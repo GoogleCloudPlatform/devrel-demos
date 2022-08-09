@@ -1,6 +1,6 @@
 # Purpose 
 
-This repo is for code that supports talks, blogs, and other activities the Google Developer Relations team engages in. **This code in unmaintained.** 
+This repo is for code that supports talks, blogs, and other activities the Google Developer Relations team engages in. **This code is unmaintained.** 
 
 # Organization 
 
