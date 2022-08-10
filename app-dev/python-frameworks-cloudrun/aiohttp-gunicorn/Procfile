@@ -1,0 +1,1 @@
+web: gunicorn --bind :$PORT --worker-class aiohttp.GunicornWebWorker app:myapp
