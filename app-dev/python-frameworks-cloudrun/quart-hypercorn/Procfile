@@ -1,0 +1,1 @@
+web: hypercorn --bind :$PORT app:app
