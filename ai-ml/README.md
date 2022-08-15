@@ -1,6 +1,6 @@
 # Demos that belong in this folder 
 
-Demos in this folder primarily focus on Google Cloud's AI/ML  products. Below is a non-exhaustive list of what products may be considered AI/MLM products for the purposes of this repo.
+Demos in this folder primarily focus on Google Cloud's AI/ML  products. Below is a non-exhaustive list of what products may be considered AI/ML products for the purposes of this repo.
 
 * AutoML
 * Cloud Inference API 
