@@ -16,7 +16,10 @@ Since this connection call is made outside of the Function's event handler metho
 4. Wait a few seconds and hit refresh. You should get an immediate response. If you happen to get another cold start, this is a second container instance spinning up just in case there are more requests coming in.
 5. Go to the logs. You'll see the cold start from the health check, the cold start from your first request, and then the I'm a warm instance for the future requests.
 
-//todo: add image
+The image below shows the health check and the incoming requests.
+
+![health check and requests shown in logs](https://user-images.githubusercontent.com/11529908/185476285-51757f92-46d3-4044-9c40-90e9bae9b1e9.png)
+
 
 ## What's next
 
