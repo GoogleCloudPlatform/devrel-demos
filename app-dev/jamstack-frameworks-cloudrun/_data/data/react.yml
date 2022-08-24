@@ -1,0 +1,10 @@
+name: React
+language: node
+homepage: https://reactjs.org/
+install: npx create-react-app helloworld
+run: npm start
+build: npm run build
+output: build
+resources: 
+ - https://create-react-app.dev/docs/getting-started 
+ - https://create-react-app.dev/docs/deployment 

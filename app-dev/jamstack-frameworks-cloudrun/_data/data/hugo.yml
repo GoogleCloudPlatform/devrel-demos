@@ -1,0 +1,21 @@
+name: Hugo
+language: go
+homepage: https://gohugo.io
+install: | 
+  # https://gohugo.io/getting-started/installing
+generate: |
+  hugo new site helloworld
+  cd helloworld/
+  hugo new posts/hello.md
+  git init .
+  git submodule add https://github.com/theNewDynamic/gohugo-theme-ananke.git themes/ananke
+  echo theme = \"ananke\" >> config.toml
+  sed -i "" "s/true/false/g" content/posts/hello.md
+run: hugo serve -D
+build: hugo -D
+output: public
+resources: 
+ - https://gohugo.io/getting-started/quick-start/ 
+
+
+cloudrun_fileserver: true

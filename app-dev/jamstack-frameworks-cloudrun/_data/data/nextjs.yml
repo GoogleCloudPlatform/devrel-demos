@@ -1,0 +1,18 @@
+name: NextJS
+language: node
+homepage: https://nextjs.org/
+install: npx create-next-app@latest helloworld
+run: npm run dev
+build: npm run build
+output: .
+resources: 
+ - https://nextjs.org/learn/basics/create-nextjs-app/setup
+ - https://cloud.google.com/sdk/gcloud/reference/topic/gcloudignore 
+
+
+ignore_gcloud: '\!.next/'
+
+# The firebase export setup is too complex, currently broken. 
+# https://nextjs.org/docs/advanced-features/static-html-export 
+# "info  - No "exportPathMap" found"
+skip_firebase: true

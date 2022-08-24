@@ -1,0 +1,12 @@
+name: Angular
+language: node
+homepage: https://angular.io/
+install: npm install -g @angular/cli
+generate: ng new helloworld
+run: npm start
+build: ng build
+output: dist/helloworld
+cloudrun_fileserver: true
+resources: 
+ - https://angular.io/tutorial/toh-pt0
+ - https://angular.io/start/start-deployment 

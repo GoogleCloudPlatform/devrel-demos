@@ -1,0 +1,11 @@
+name: Preact
+language: node
+homepage: https://preactjs.com/
+install: npx preact-cli create default helloworld
+run: npm run dev
+build: npm run build
+output: build
+resources: 
+ - https://preactjs.com/guide/v10/getting-started
+
+cloudrun_fileserver: true

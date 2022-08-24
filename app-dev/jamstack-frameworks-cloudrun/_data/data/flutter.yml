@@ -1,0 +1,16 @@
+name: Flutter
+language: flutter
+homepage: https://flutter.dev/
+install: |
+  # https://docs.flutter.dev/get-started/install
+generate: |
+  flutter create helloworld
+  cd helloworld
+  flutter devices
+run: flutter run
+build: flutter build web
+output: build/web
+resources: 
+ - https://docs.flutter.dev/get-started/web
+
+cloudrun_fileserver: true

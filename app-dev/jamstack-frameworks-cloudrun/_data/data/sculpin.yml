@@ -1,0 +1,13 @@
+name: Sculpin
+language: php
+homepage: https://sculpin.io
+install: | 
+  brew install composer
+  composer create-project sculpin/blog-skeleton helloworld
+run: vendor/bin/sculpin generate --watch --server
+build: vendor/bin/sculpin generate
+output: output_dev
+resources: 
+ - https://sculpin.io/getstarted/ 
+
+cloudrun_fileserver: true

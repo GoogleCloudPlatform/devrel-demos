@@ -1,0 +1,15 @@
+name: JBake
+homepage: https://jbake.org/
+language: java
+install:  | 
+  curl -s "https://get.sdkman.io" | bash
+  sdk install jbake
+generate: |
+  mkdir helloworld && cd helloworld
+  jbake -i
+run: jbake -b -s
+build: jbake -b 
+output: output
+cloudrun_fileserver: true
+resources: 
+ - https://jbake.org/

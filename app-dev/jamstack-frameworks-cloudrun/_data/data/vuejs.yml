@@ -1,0 +1,16 @@
+name: VueJS
+language: node
+homepage: https://vuejs.org/
+install: |
+  npm init vue@latest
+  # Use "helloworld" for the project name
+  # Press Enter for all other defaults. 
+generate: npm install
+run: npm run dev
+build: npm run build
+output: dist
+resources: 
+ - https://vuejs.org/guide/quick-start.html 
+ - https://vuejs.org/guide/best-practices/production-deployment.html 
+
+cloudrun_fileserver: true
