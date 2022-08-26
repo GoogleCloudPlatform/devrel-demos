@@ -1,0 +1,14 @@
+# Firebase Hosting Jamstack Examples
+
+This demo shows an example of how to deploy some of the popular [Node frameworks](https://jamstack.org/survey/2021/#choices-frameworks) to Firebase. 
+
+These examples use the template generator for each framework, and then run the build process, hosting the processed files in Firebase. For examples of how to host the running app server, see their equivalent [Cloud Run example](../nodejs-frameworks-cloudrun).
+
+
+## Example Frameworks
+
+All frameworks are NodeJS based, unless otherwise marked.
+
+{% for name, link, language in frameworks %}
+ * [{{ name }}]({{ link }}/) {% if language != "node" %}({{language}}){%endif%}
+{%- endfor %}

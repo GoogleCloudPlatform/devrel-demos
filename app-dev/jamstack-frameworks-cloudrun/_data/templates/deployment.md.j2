@@ -1,0 +1,214 @@
+# Running {{ name }} on {{ platform }}
+
+To deploy a [{{ name}}]({{ homepage }}) application to {{ platform }}, you will need an application
+based on this framework. This demo gets you to use the {{ name}} template to generate one. 
+
+This requires {% if 
+         language == "node" %}[node, npm](https://cloud.google.com/nodejs/docs/setup)
+{%- elif language == "python" %}[python3](https://cloud.google.com/python/docs/setup)
+{%- elif language == "go" %}[go](https://cloud.google.com/go/docs/setup)
+{%- elif language == "php" %}[php](https://www.php.net/manual/en/install.php)
+{%- elif language == "ruby" %}[ruby](https://cloud.google.com/ruby/docs/setup)
+{%- elif language == "flutter" %}Flutter
+{%- elif language == "java" %}`java`
+{% endif %}{%
+if platform == "Cloud Run" %}, and [gcloud](https://cloud.google.com/sdk/docs/install).
+{%elif platform == "Firebase"%}, and [firebase](https://cloud.google.com/firestore/docs/client/get-firebase).
+{%endif%}
+
+{% if platform == "Cloud Run" %}
+To complete this demo, you will need a [Google Cloud project](https://cloud.google.com/resource-manager/docs/creating-managing-projects#creating_a_project). 
+{%elif platform == "Firebase"%}
+To complete this demo, you will need a Firebase project. You can [create a new one](https://console.firebase.google.com/u/0/?pli=1), or connect an existing [Google Cloud project](https://cloud.google.com/firestore/docs/client/get-firebase).
+{% endif %}
+
+### Create template application
+
+{% if generate %}
+* Install the framework:
+
+    ```bash
+    {{ install | indent(4) }}
+    ```
+
+    {% if platform == "Cloud Run" and cloudrun_install %}{{cloudrun_install}}{%endif%}
+    {% if platform == "Firebase" and firebase_install %}{{firebase_install}}{%endif%}
+
+* Create a new template application:
+
+    ```bash
+    {{ generate | indent(4) }}
+    ```
+
+{% else %}
+* Generate a new template application: 
+
+    ```bash
+    {{ install | indent(4)  }}
+    ```
+
+    {% if platform == "Cloud Run" and cloudrun_install %}{{cloudrun_install}}{%endif%}
+    {% if platform == "Firebase" and firebase_install %}{{firebase_install}}{%endif%}
+
+{% endif %}
+
+{% if "cd helloworld" not in generate ~ install %}
+* Navigate to the created project:
+
+    ```bash
+    cd helloworld/
+    ```
+{% endif %}
+* Run the application locally:
+
+    ```bash
+    {{ run | indent(4) }}
+    ```
+
+    {% if run_extra %}{{ run_extra }}{% endif %}
+
+    Enter `Ctrl+C` or `CMD+C` to stop the process.
+
+{% if platform == "Cloud Run" %}
+## Configure for Cloud Run
+
+Using [Cloud Buildpacks](https://github.com/GoogleCloudPlatform/buildpacks), 
+the base language is automatically identified.
+
+{% if cloudrun_fileserver %}
+For {{name}}, instead of using `{{run}}`, going to use a Node web server to serve the compiled files. 
+
+* Generate the application: 
+
+    ```bash
+    {{ build }}
+    ```
+
+* Create a `package.json` in the `{{output}}` folder:
+
+    ```bash
+    cat <<EOF > {{output}}/package.json 
+    { 
+      "scripts": { "start": "http-server" },
+      "dependencies": { "http-server": "*" }
+    }
+    EOF
+    ```
+
+    *This is a scripting technique where all the text between `EOF` is written to the file.*
+{% else %}
+
+{% if language == "node" %}
+For Node applications, it will automatically run `npm start` as the entrypoint if no other command is defined. 
+
+{% if run == "npm start" %}
+Because this is a default for {{ name }}, no additional configuration is required.
+{% else %}
+
+You can override this using a `Procfile`. 
+
+* Create a new file called `Procfile` with the following contents: 
+
+    ```
+    web: {{ run }}
+    ```
+{% endif %}
+{% else %}
+
+For {{language}} applications, you can specify what you want the web process to run using a `Procfile`. 
+
+* Create a new file called `Procfile` with the following contents: 
+
+    ```
+    web: {%if deploy%}{{deploy}}{%else%}{{ run }}{%endif%}
+    ```
+
+
+{% endif %}
+{% if ignore_gcloud %}
+* To ensure the Cloud Run deployment doesn't ignore {{ name }}'s hidden folder, make sure it's 
+explicitly included: 
+
+    ```bash
+    echo "{{ignore_gcloud}}" >> .gcloudignore
+    ```
+{% endif %}
+
+
+{% endif %}
+
+
+{% if cloudrun_dependency %}
+
+* Create a file to install the {{language}} dependencies: 
+
+    ```bash
+    {{cloudrun_dependency}}
+    ```
+
+{% endif %}
+
+## Deploy to Cloud Run
+
+* Set the project you created earlier in `gcloud`: 
+
+    ```bash
+    gcloud config set project MYPROJECT
+    ```
+
+* Build and deploy the service to Cloud Run: 
+
+    ```bash
+    gcloud run deploy {{ name.lower() }}-helloworld \
+        --source {% if cloudrun_fileserver %}{{output}}{%else%}.{%endif%} \
+        --allow-unauthenticated {% if deploy_extra %}\
+        {{deploy_extra}}{%endif%}
+    ```
+
+    Type "Y" for all suggested operations.
+
+
+Your service will now be deployed at the URL in the deployment output.
+
+![Example {{ name }} deployment](example.png)
+
+{% endif %}
+
+{% if platform == "Firebase" %}
+## Deploy to Firebase
+
+* Generate the application: 
+
+    ```bash
+    {{ build }}
+    ```
+
+* Setup Firebase: 
+
+    ```bash
+    firebase init hosting
+    ```
+
+    * In "Project Setup", select the project you configured earlier.
+    * For "What do you want to use as your public directory", enter "{{output}}".
+    * Choose the default for all other options.
+
+* Deploy to Firebase: 
+
+    ```bash
+    firebase deploy --only hosting
+    ```
+
+Your service will now be deployed at the URL in the output under "Hosting URL".
+
+![Example {{ name }} deployment](example.png)
+
+{% endif %}
+
+## Learn more
+
+Resources: 
+
+{% for link in resources -%}
+  - {{ link }}
+{% endfor %}

@@ -1,0 +1,14 @@
+name: Lektor
+homepage: https://www.getlektor.com
+language: python
+install: pip install lektor
+generate: | 
+  lektor quickstart
+  # enter "helloworld" for project name, and accept all other defaults. 
+run: lektor server
+build: lektor build -O output
+output: output
+resources: 
+ - https://www.getlektor.com/docs/quickstart/ 
+
+cloudrun_fileserver: true

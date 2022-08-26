@@ -1,0 +1,12 @@
+name: MKDocs
+language: python
+homepage: https://www.mkdocs.org/
+install: pip install mkdocs
+generate: mkdocs new helloworld
+run: mkdocs serve
+build: mkdocs build
+output: site
+resources: 
+  - https://www.mkdocs.org/getting-started/ 
+
+cloudrun_fileserver: true
