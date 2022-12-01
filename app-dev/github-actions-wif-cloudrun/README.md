@@ -9,13 +9,18 @@ This tutorial is a combination of the following technologies:
  * [Source based Cloud Run deploys](https://cloud.google.com/run/docs/deploying-source-code)
 
 
-## Pre-requisites
+## Things you will need
 
-* Create a [Google Cloud project](https://cloud.google.com/resource-manager/docs/creating-managing-projects#creating_a_project), with billing enabled. 
-* Create a GitHub repo that contains the source code for the service you want to deploy. 
+* A [Google Cloud project](https://cloud.google.com/resource-manager/docs/creating-managing-projects#creating_a_project), with billing enabled. 
+  * [Create a new project](https://console.cloud.google.com/projectcreate) in the Google Cloud Console
+* A [GitHub](https://github.com/) repo that contains the source code for the service you want to deploy. 
   * Your repo will need to have a Dockerfile, or use [Google Cloud Buildpacks](https://cloud.google.com/docs/buildpacks)
-* Have the [`gcloud` CLI](https://cloud.google.com/sdk/gcloud) and [`terraform` CLI](https://developer.hashicorp.com/terraform/downloads) installed.
-  * Note: these tools are available in the [Google Cloud Shell](https://cloud.google.com/shell). 
+* The [`gcloud` CLI](https://cloud.google.com/sdk/gcloud)
+  * [Installation instructions](https://cloud.google.com/sdk/docs/install) 
+* The [`terraform` CLI](https://terraform.io)
+  * [Installation instructions](https://developer.hashicorp.com/terraform/downloads)
+
+ℹ️ Both `gcloud` and `terraform` come pre-installed these tools are available in the [Google Cloud Shell](https://console.cloud.google.com/home/dashboard?cloudshell=true) ([learn more](https://cloud.google.com/shell)).
 
 
 ## Steps
@@ -66,7 +71,11 @@ This tutorial is a combination of the following technologies:
 
 ### Create the GitHub workflow
 
-1. In your local git repo, ceate github workflow `.github/workflows/source_deploy.yaml`, updating `DEFAULT_BRANCH`, your required Cloud Run `REGION` and `SERVICE` name, and updating `auth` step with output from terraform:
+1. In your local git repo, create the github workflow `.github/workflows/source_deploy.yaml`, updating:
+    * `DEFAULT_BRANCH` with the default branch for your repo (e.g. `main`),
+    * `REGION`, your Google Cloud region (e.g. `us-central1`), 
+    * `SERVICE`, the name you want to call your Cloud Run service, and
+    * the `auth` step with output from Terraform:
 
     ```yaml
     name: source_deploy
@@ -98,8 +107,12 @@ This tutorial is a combination of the following technologies:
     ```
 
 1. Commit the `.github/workflows/source_deploy.yaml` file to your repo's main branch and push the change
-    1. Note: You do not need to commit the `main.tf` or other Terraform output. 
-1. In GitHub, go to your repo and click the Actions tab.
+    ```bash
+    git add .github/workflows/source_deploy.yaml
+    git commit -m "Add GitHub Action for deploy-cloudrun"
+    git push
+    ```
+1. On the GitHub website, go to your repo and click the Actions tab.
 1. Note the running action.
 
 Your repo will now be deployed, initially as a private service. 
@@ -116,6 +129,7 @@ Your service will be deployed as a private service, so you will not be able to v
     echo Service deployed to $SERVICE_URL
     ```
 1. Use `curl` to GET the service, using your `gcloud` identity: 
+
     ```bash
     curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" $SERVICE_URL
     ```
@@ -126,5 +140,4 @@ Your service will be deployed as a private service, so you will not be able to v
         SERVICE --region REGION \
         --member allUsers --role roles/run.invoker 
     ```
-
 
