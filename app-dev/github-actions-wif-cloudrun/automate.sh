@@ -27,9 +27,10 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
     --role roles/owner
 gcloud iam service-accounts keys create ~/terraform-sa-key.json \
     --iam-account terraform-sa@${PROJECT_ID}.iam.gserviceaccount.com
-export GOOGLE_APPLICATION_CREDENTIALS=~/terraform-sa-key.json
 
-echo "\nApplying Terraform"
+export GOOGLE_CREDENTIALS=~/terraform-sa-key.json
+
+echo "Applying Terraform"
 terraform init
 terraform apply -auto-approve \
     -var project_id=$PROJECT_ID \
@@ -38,4 +39,4 @@ terraform apply -auto-approve \
 export WIF_PROVIDER=$(terraform output wif_provider)
 export SERVICE_ACCOUNT=$(terraform output service_account)
 
-echo "Configuration complete."
+printf "\n\n\e[32mConfiguration complete. \e[0m\n\n"

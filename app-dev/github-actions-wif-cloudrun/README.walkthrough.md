@@ -17,32 +17,28 @@ Before you begin, you will need a Google Cloud project.
 
 1. <walkthrough-project-setup billing="true"></walkthrough-project-setup>
 
-1. <walkthrough-enable-apis apis="cloudresourcemanager.googleapis.com,cloudbuild.googleapis.com"></walkthrough-enable-apis>
-
-1. Navigate to the location with the Terraform configuration is stored. 
+1. Configure the project in the terminal: 
 
     ```bash
-    cd app-dev/github-actions-wif-cloudrun
+    export PROJECT_ID=<walkthrough-project-id/>
+    gcloud config set project $PROJECT_ID
     ```
+
+1. <walkthrough-enable-apis apis="cloudresourcemanager.googleapis.com,cloudbuild.googleapis.com"></walkthrough-enable-apis>
+
 
 ## Configuring Workload Identity Federation 
 
 
 To use the script, you will need to set a number of values for the `gcloud` and `terraform` tools to reference.
 
-1. Configure the Project and Region variables.
-
-    ```bash
-    export PROJECT_ID=<walkthrough-project-id/>
-    export REGION=us-central1
-    ```
-
-1. Configure your GitHub repo values and Cloud Run service name:
+1. Configure your GitHub repo values and Cloud Run service name and region:
 
     ```
     export GITHUB_REPO=youruser/yourrepo
     export DEFAULT_BRANCH=main
     export SERVICE=helloworld
+    export REGION=us-central1
     ```
 
     The `GITHUB_REPO` should be in the form `YourGitHubUser/YourRepo`, or `YourGitHubOrg/YourRepo`.
