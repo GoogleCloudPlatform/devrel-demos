@@ -132,19 +132,22 @@ module "gh_oidc" {
 }
 
 # Output configuration for a GitHub action step. 
+output "wif_provider" {
+  value = module.gh_oidc.provider_name
+}
+
+output "service_account" {
+  value = google_service_account.sa.email
+}
+
 output "step" {
   value = <<EOF
-
   # Add this step to your GitHub Action:
-
     - id: 'auth'
       uses: 'google-github-actions/auth@v0'
       with:
         workload_identity_provider: '${module.gh_oidc.provider_name}'
         service_account: '${google_service_account.sa.email}'
-
   EOF
 }
-
-
 

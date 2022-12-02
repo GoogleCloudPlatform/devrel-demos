@@ -1,0 +1,30 @@
+name: source_deploy
+
+on:
+  push:
+    branches:
+      - $DEFAULT_BRANCH
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v0'
+      with:
+        workload_identity_provider: $WIF_PROVIDER
+        service_account: $SERVICE_ACCOUNT
+
+    - name: 'Deploy to Cloud Run'
+      uses: 'google-github-actions/deploy-cloudrun@v0'
+      with:
+        source: '.'
+        region: $REGION
+        service: $SERVICE
+
