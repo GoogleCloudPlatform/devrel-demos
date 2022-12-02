@@ -1,5 +1,12 @@
 # Setting up Workload Identity Federation for Cloud Run services deployed with GitHub Actions
 
+# Automatic
+
+[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fgooglecloudplatform%2Fdevrel-demos&cloudshell_tutorial=README.walkthrough.md&cloudshell_workspace=app-dev/github-actions-wif-cloudrun)
+
+
+# Manual
+
 In this tutorial, we'll configure a GitHub repo to use Workload Identity Federation to deploy a Cloud Run service whenever a merge happens on the default branch.
 
 This tutorial is a combination of the following technologies: 
@@ -141,3 +148,7 @@ Your service will be deployed as a private service, so you will not be able to v
         --member allUsers --role roles/run.invoker 
     ```
 
+
+# Notices
+
+This sample is unmaintained. 
