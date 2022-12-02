@@ -46,7 +46,7 @@ To use the script, you will need to set a number of values for the `gcloud` and 
 1. Run the script to setup Workload Identity Federation: 
 
     ```bash
-    bash automate.sh
+    source automate.sh
     ```
 
 ## Configure GitHub
