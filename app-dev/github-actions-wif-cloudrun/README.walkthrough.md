@@ -49,6 +49,8 @@ To use the script, you will need to set a number of values for the `gcloud` and 
     source automate.sh
     ```
 
+    Note: if this command fails ("Error" output), try running it again. 
+
 ## Configure GitHub
 
 With the Workload Identity Federation configured, you can now configure your GitHub repo. 
