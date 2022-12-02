@@ -128,7 +128,7 @@ module "gh_oidc" {
     }
   }
 
-  depends_on = [google_project_service.enabled]
+  depends_on = [google_project_service.enabled, google_service_account.sa]
 }
 
 # Output configuration for a GitHub action step. 
