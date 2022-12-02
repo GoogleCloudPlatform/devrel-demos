@@ -24,7 +24,7 @@ Before you begin, you will need a Google Cloud project.
     gcloud config set project $PROJECT_ID
     ```
 
-1. <walkthrough-enable-apis apis="cloudresourcemanager.googleapis.com,cloudbuild.googleapis.com"></walkthrough-enable-apis>
+1. <walkthrough-enable-apis apis="sts.googleapis.com,cloudresourcemanager.googleapis.com,cloudbuild.googleapis.com"></walkthrough-enable-apis>
 
 
 ## Configuring Workload Identity Federation 
