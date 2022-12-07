@@ -1,0 +1,32 @@
+{
+  "name": "cloud-functions-2ndgen-local-development",
+  "version": "1.0.0",
+  "description": "Cloud Function local development and debugging - best practies",
+  "main": "src/index.js",
+  "files": [
+    "build/src"
+  ],
+  "license": "Apache-2.0",
+  "author": "Google LLC",
+  "scripts": {
+    "start": "functions-framework --source=build/src/ --target=index",
+    "compile": "tsc",
+    "predeploy": "npm i && npm run compile",
+    "deploy": "gcloud functions deploy $FUNCTION_NAME --region=$REGION --runtime nodejs16 --entry-point=index --gen2 --source ./build --trigger-event=google.storage.object.finalize --trigger-resource=$BUCKET --trigger-service-account=$TRIGGER_SERVICE_ACCOUNT_ADRESS --set-secrets=\"SECRET_API_KEY=$SECRET_ID:latest\" --service-account=$SERVICE_ACCOUNT_ADRESS",
+    "watch": "concurrently \"npm run compile -- --watch\" \"nodemon --watch ./build/ --exec npm run debug\"",
+    "debug": "export SECRET_API_KEY=$(gcloud secrets versions access 1 --secret='API_KEY') && node --inspect node_modules/.bin/functions-framework --source=build/src/ --target=index"
+  },
+  "devDependencies": {
+    "@types/node": "^14.11.2",
+    "concurrently": "^7.1.0",
+    "nodemon": "^2.0.16",
+    "typescript": "~4.7.0",
+    "gts": "^3.1.1"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^6.0.0",
+    "@google-cloud/functions-framework": "^3.1.2",
+    "@google-cloud/vision": "^3.0.0",
+    "@google/events": "^5.4.0"
+  }
+}

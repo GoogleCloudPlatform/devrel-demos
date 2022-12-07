@@ -1,0 +1,30 @@
+---
+Mode: binary
+content-type': 'application/json'
+ContextAttributes:
+  id: '4587923754259510'
+  source: "//storage.googleapis.com/projects/_/buckets/image_bucket"
+  specversion: '1.0'
+  type: google.cloud.storage.object.v1.finalized
+  subject: objects/CF_debugging_architecture.png
+  time: '2022-12-31T00:00:00.0Z'
+  bucket: image_bucket
+TransportExtensions:
+  Content-Type: application/json
+Data: |
+  {
+  "kind": "storage#object",
+  "id": "image_bucket/CF_debugging_architecture.png/1655919763595754",
+  "selfLink": "https://www.googleapis.com/storage/v1/b/image_bucket/o/CF_debugging_architecture.png",
+  "name": "CF_debugging_architecture.png",
+  "bucket": "image_bucket",
+  "generation": "1655919763595754",
+  "metageneration": "1",
+  "contentType": "image/jpeg",
+  "timeCreated": "2022-12-31T00:00:00.0Z",
+  "updated": "2022-12-31T00:00:00.0Z",
+  "storageClass": "STANDARD",
+  "timeStorageClassUpdated": "2022-12-31T00:00:00.0Z",
+  "size": "304037",
+  "mediaLink": "https://www.googleapis.com/download/storage/v1/b/image_bucket/o/CF_debugging_architecture.png?generation=1655919763595754&alt=media"
+  }
