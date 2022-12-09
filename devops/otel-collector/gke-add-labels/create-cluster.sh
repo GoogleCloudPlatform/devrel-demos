@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,12 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.19 as builder
-WORKDIR /build
-COPY go.mod go.sum main.go ./
-RUN go build -o /build/app
-
-FROM gcr.io/distroless/base-debian11
-WORKDIR /app
-COPY --from=builder /build/app /app/app
-CMD ["/app/app"]
+set -ex
+gcloud container clusters create otel-sample \
+--region asia-east1 \
+--release-channel rapid \
+--logging SYSTEM,WORKLOAD \
+--monitoring SYSTEM \
+--preemptible \
+--enable-autoprovisioning \
+--max-cpu 16 \
+--max-memory 32 \
+--enable-autoscaling \
+--max-nodes 1 \
+--no-enable-ip-alias \
+--scopes cloud-platform

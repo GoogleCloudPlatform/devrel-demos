@@ -12,22 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: skaffold/v3
-kind: Config
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: app
-build:
-  googleCloudBuild:
-    projectId: development-215403
-    concurrency: 0
-  artifacts:
-    - image: gcr.io/development-215403/servicea
-      context: src/servicea
-    - image: gcr.io/development-215403/serviceb
-      context: src/serviceb
-  tagPolicy:
-    gitCommit: {}
-
-manifests:
-  rawYaml:
-    - manifests/*.yaml
+  name: servicea
+spec:
+  selector:
+    matchLabels:
+      app: servicea
+  template:
+    metadata:
+      labels:
+        app: servicea
+    spec:
+      serviceAccountName: default
+      containers:
+        - name: servicea
+          image: gcr.io/development-215403/servicea
+          env:
+            - name: OTLP_ENDPOINT
+              value: "otel-collector:4317"
+          resources:
+            limits:
+              cpu: 250m
+              memory: 250Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
