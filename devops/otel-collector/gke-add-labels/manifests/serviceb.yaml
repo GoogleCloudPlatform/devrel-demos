@@ -28,7 +28,7 @@ spec:
       serviceAccountName: default
       containers:
         - name: serviceb
-          image: gcr.io/development-215403/serviceb
+          image: serviceb
           env:
             - name: OTLP_ENDPOINT
               value: "otel-collector:4317"

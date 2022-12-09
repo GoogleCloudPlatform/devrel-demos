@@ -28,7 +28,7 @@ spec:
       serviceAccountName: default
       containers:
         - name: servicea
-          image: gcr.io/development-215403/servicea
+          image: servicea
           env:
             - name: OTLP_ENDPOINT
               value: "otel-collector:4317"
