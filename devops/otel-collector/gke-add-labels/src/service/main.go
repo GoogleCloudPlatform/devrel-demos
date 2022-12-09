@@ -34,30 +34,37 @@ import (
 
 const (
 	spanInterval = 50 * time.Millisecond
-	genInterval  = 1 * time.Second
+	genInterval  = 10 * time.Second
 )
 
-var OTLPEndpoint = "localhost:4317"
+var (
+	OTLPEndpoint = "localhost:4317"
+	ServiceName  = "default-service"
+)
 
 func initTracer() (*sdktrace.TracerProvider, error) {
 	e := os.Getenv("OTLP_ENDPOINT")
-	if e != "" {
-		OTLPEndpoint = e
+	if e == "" {
+		e = OTLPEndpoint
 	}
 
 	// OTLP exporter config for Collector (using default config)
 	exporter, err := otlptracegrpc.New(
 		context.Background(),
-		otlptracegrpc.WithEndpoint(OTLPEndpoint),
+		otlptracegrpc.WithEndpoint(e),
 		otlptracegrpc.WithInsecure(),
 	)
 	if err != nil {
 		return nil, err
 	}
+	sname := os.Getenv("SERVICE_NAME")
+	if sname == "" {
+		sname = ServiceName
+	}
 	res, err := resource.New(
 		context.Background(),
 		resource.WithAttributes(
-			semconv.ServiceNameKey.String("service-b"),
+			semconv.ServiceNameKey.String(sname),
 			semconv.ServiceVersionKey.String("1.0.0"),
 			semconv.DeploymentEnvironmentKey.String("production"),
 			semconv.TelemetrySDKNameKey.String("opentelemetry"),

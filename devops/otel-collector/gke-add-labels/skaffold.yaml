@@ -21,10 +21,8 @@ build:
     projectId: development-215403
     concurrency: 0
   artifacts:
-    - image: servicea
-      context: src/servicea
-    - image: serviceb
-      context: src/serviceb
+    - image: service
+      context: src/service
   tagPolicy:
     gitCommit: {}
 

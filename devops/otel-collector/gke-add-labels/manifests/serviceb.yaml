@@ -28,10 +28,12 @@ spec:
       serviceAccountName: default
       containers:
         - name: serviceb
-          image: serviceb
+          image: service
           env:
             - name: OTLP_ENDPOINT
               value: "otel-collector:4317"
+            - name: SERVICE_NAME
+              value: "service-b"
           resources:
             limits:
               cpu: 250m
