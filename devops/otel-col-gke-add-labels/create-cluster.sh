@@ -14,7 +14,7 @@
 # limitations under the License.
 
 set -ex
-gcloud container clusters create otel-sample \
+gcloud container clusters create $1 \
 --region asia-east1 \
 --release-channel rapid \
 --logging SYSTEM,WORKLOAD \

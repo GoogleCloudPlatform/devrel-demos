@@ -18,7 +18,6 @@ metadata:
   name: app
 build:
   googleCloudBuild:
-    projectId: development-215403
     concurrency: 0
   artifacts:
     - image: service
