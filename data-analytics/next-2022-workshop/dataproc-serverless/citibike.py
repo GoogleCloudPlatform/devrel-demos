@@ -15,8 +15,8 @@
 import sys
 
 from pyspark.sql import SparkSession
-from pyspark.sql.types import BooleanType
 from pyspark.sql.functions import col
+from pyspark.sql.types import BooleanType
 
 if len(sys.argv) == 1:
     print("Please provide a GCS bucket name.")
