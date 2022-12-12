@@ -1,0 +1,12 @@
+name: Astro
+language: node
+homepage: https://astro.build/
+install: |
+  npm create astro@latest
+  # Use "helloworld" as your new project
+run: npm start
+build: npm run build
+output: dist
+cloudrun_fileserver: true
+resources: 
+ - https://docs.astro.build/en/getting-started/

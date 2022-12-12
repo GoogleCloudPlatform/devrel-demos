@@ -13,6 +13,7 @@ All frameworks are NodeJS based, unless otherwise marked.
 
 
  * [Angular](angular/) 
+ * [Astro](astro/) 
  * [Express](express/) 
  * [Flutter](flutter/) (flutter)
  * [Gatsby](gatsby/) 
