@@ -1,11 +1,11 @@
 # How to develop and test your Cloud Functions 2nd gen locally
 
-This demo illustrates a typical usecase of a Typescript application that processes thousands of images daily. It serves as the example code for the blog post ["How to develop and test your Cloud Functions 2nd gen locally"](URL).
+This demo illustrates a typical usecase of a Typescript application that processes thousands of images daily. It serves as the example code for the blog post ["How to develop and test your Cloud Functions 2nd gen locally"](https://cloud.google.com/blog/topics/developers-practitioners/how-to-develop-and-test-your-cloud-functions-locally).
 
 ## The full blog Post
 Developing code for serverless platforms requires a different approach to your development flow. Since the platform provides and maintains the entire stack, from compute infrastructure up to the function handler. For this reason, your code usually runs in a concealed and abstracted environment. Debugging your code by deploying and invoking a Function in the cloud is a time-consuming and resource wasting effort. Fortunately, Cloud Functions offers an alternative that lets you implement and debug your code much faster.
 
-In the blog post ["How to develop and test your Cloud Functions 2nd gen locally"](URL) you'll learn how to do the following:
+In the blog post ["How to develop and test your Cloud Functions 2nd gen locally"](https://cloud.google.com/blog/topics/developers-practitioners/how-to-develop-and-test-your-cloud-functions-locally) you'll learn how to do the following:
 - Run a Cloud Function locally
 - Invoke a Cloud Function function with an Eventarc event locally
 - Use the same permissions as deployed in the Cloud
@@ -112,7 +112,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 9. Deploy the Cloud Function using the npm script deploy
 
 ```
-FUNCTION_NAME=cloud-functions-2ndgen-local-development
+export FUNCTION_NAME=cloud-functions-2ndgen-local-development
 
 npm run predeploy
 
@@ -142,7 +142,7 @@ gcloud storage cp ./CF_debugging_architecture.png gs://$BUCKET
 gcloud beta run services logs tail $FUNCTION_NAME --region=$REGION
 ```
 
-12. You can follow the [blog post](URL) to understand how this application can be further developed and debugged locally, by using also the following commands:
+12. You can follow the [blog post](https://cloud.google.com/blog/topics/developers-practitioners/how-to-develop-and-test-your-cloud-functions-locally) to understand how this application can be further developed and debugged locally, by using also the following commands:
 ```
 gcloud iam service-accounts add-iam-policy-binding $SERVICE_ACCOUNT_ADDRESS  \
   --member user:$(gcloud auth list --filter=status:ACTIVE --format="value(account)") \
@@ -153,8 +153,28 @@ gcloud auth application-default login --impersonate-service-account=$SERVICE_ACC
 npm run watch
 ```
 
-To call the function code locally, you can use the [CloudEvents Conformance](https://github.com/cloudevents/conformance) tool. After installation, you can use the following command in a second terminal window:
+To invoke the Cloud Functions code locally with the expected HTTP request structure and payload, you can use a simple curl command. The following curl command implements the HTTP protocol binding for an google.cloud.storage.object.v1.finalized event of an uploaded image file CF_debugging_architecture.png to the bucket called image_bucket and invoking your Cloud Function listening on localhost port 8080
+
 ```
-cloudevents invoke http://localhost:8080 -f ./imageUploadEvent.yaml
+curl localhost:8080/$BUCKET -v \
+  -H "Content-Type: application/json" \
+  -H "ce-id: 123451234512345" \
+  -H "ce-specversion: 1.0" \
+  -H "ce-time: 2022-12-31T00:00:00.0Z" \
+  -H "ce-type: google.cloud.storage.object.v1.finalized" \
+  -H "ce-source: //storage.googleapis.com/projects/_/buckets/$BUCKET" \
+  -d '{
+        "bucket": "'$BUCKET'",
+        "contentType": "text/plain",
+        "kind": "storage#object",
+        "md5Hash": "...",
+        "metageneration": "1",
+        "name": "CF_debugging_architecture.png",
+        "size": "352",
+        "storageClass": "MULTI_REGIONAL",
+        "timeCreated": "2022-12-31T00:00:00.0Z",
+        "timeStorageClassUpdated": "2022-12-31T00:00:00.0Z",
+        "updated": "2022-12-31T00:00:00.0Z"
+      }'
 ```
 
