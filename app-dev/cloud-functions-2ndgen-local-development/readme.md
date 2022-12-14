@@ -146,7 +146,7 @@ gcloud beta run services logs tail $FUNCTION_NAME --region=$REGION
 ```
 gcloud iam service-accounts add-iam-policy-binding $SERVICE_ACCOUNT_ADDRESS  \
   --member user:$(gcloud auth list --filter=status:ACTIVE --format="value(account)") \
-  --role='roles/iam.serviceAccountUser'
+  --role='roles/iam.serviceAccountTokenCreator'
 
 gcloud auth application-default login --impersonate-service-account=$SERVICE_ACCOUNT_ADDRESS
 
@@ -156,6 +156,7 @@ npm run watch
 To invoke the Cloud Functions code locally with the expected HTTP request structure and payload, you can use a simple curl command. The following curl command implements the HTTP protocol binding for an google.cloud.storage.object.v1.finalized event of an uploaded image file CF_debugging_architecture.png to the bucket called image_bucket and invoking your Cloud Function listening on localhost port 8080
 
 ```
+export BUCKET=$PROJECT_ID-image-upload-local-dev-demo
 curl localhost:8080/$BUCKET -v \
   -H "Content-Type: application/json" \
   -H "ce-id: 123451234512345" \
@@ -163,6 +164,7 @@ curl localhost:8080/$BUCKET -v \
   -H "ce-time: 2022-12-31T00:00:00.0Z" \
   -H "ce-type: google.cloud.storage.object.v1.finalized" \
   -H "ce-source: //storage.googleapis.com/projects/_/buckets/$BUCKET" \
+  -H "ce-subject: objects/CF_debugging_architecture.png" \
   -d '{
         "bucket": "'$BUCKET'",
         "contentType": "text/plain",
