@@ -1,0 +1,18 @@
+{
+  "name": "voting-service",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "REDISPORT=6379 REDISHOST=127.0.0.1 nodemon app.js",
+    "start": "node app.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.1",
+    "nodemon": "^2.0.20",
+    "redis": "^4.3.1"
+  }
+}
