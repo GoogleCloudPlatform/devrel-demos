@@ -1,0 +1,14 @@
+{
+  "name": "resilient-system",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Sara Ford",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@google-cloud/bigquery": "^4.4.0",
+    "@google-cloud/firestore": "^2.6.0",
+    "@google-cloud/pubsub": "^1.1.5",
+    "googleapis": "^45.0.0",
+    "@google-cloud/functions-framework": "^3.0.0"
+  }
+}
