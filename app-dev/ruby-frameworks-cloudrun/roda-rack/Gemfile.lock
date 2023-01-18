@@ -1,7 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    rack (2.2.4)
+    rack (2.2.6.2)
     roda (3.58.0)
       rack
     webrick (1.7.0)
