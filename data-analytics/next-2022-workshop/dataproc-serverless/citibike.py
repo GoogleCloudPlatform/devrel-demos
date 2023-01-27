@@ -19,9 +19,9 @@ from pyspark.sql.functions import col
 from pyspark.sql.types import BooleanType
 
 if len(sys.argv) == 1:
-    print("Please provide a GCS bucket name.")
+    print("Please provide a dataset name.")
 
-bucket = sys.argv[1]
+dataset = sys.argv[1]
 table = "bigquery-public-data:new_york_citibike.citibike_trips"
 
 spark = SparkSession.builder \
@@ -41,5 +41,11 @@ top_ten = df.filter(col("start_station_id")
 
 top_ten.show()
 
-top_ten.write.option("header", True).csv(
-    f"gs://{bucket}/citibikes_top_ten_start_station_ids")
+table = f"{dataset}.citibikes_top_ten_start_station_ids"
+# Saving the data to BigQuery
+top_ten.write.format('bigquery') \
+  .option("writeMethod", "direct") \
+  .option("table", table) \
+  .save()
+
+print(f"Data written to BigQuery table: {table}.citibikes_top_ten_start_station_ids")
