@@ -17,7 +17,7 @@ To complete this demo, you will need a Firebase project. You can [create a new o
 
     ```bash
     npm create astro@latest
-    # Use "helloworld" as your new project, choose other recommended settings
+    # Use "helloworld" as your new project
 
     ```
 
