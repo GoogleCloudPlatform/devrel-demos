@@ -25,11 +25,13 @@ for config in frameworks:
 
     if "skip_cloudrun" not in data.keys():
         gcr_framework_list.append((data["name"], framework, data["language"]))
+        Path(gcr_path/ framework).mkdir(exist_ok=True)
         with open(gcr_path / framework / readme_md, "w") as f:
             f.write(template.render(**data, platform="Cloud Run"))
 
     if "skip_firebase" not in data.keys():
         firebase_framework_list.append((data["name"], framework, data["language"]))
+        Path(firebase_path/ framework).mkdir(exist_ok=True)
         with open(firebase_path / framework / readme_md, "w") as f:
             f.write(template.render(**data, platform="Firebase"))
 
