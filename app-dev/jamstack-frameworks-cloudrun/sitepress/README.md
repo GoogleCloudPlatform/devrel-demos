@@ -1,9 +1,9 @@
-# Running Astro on Cloud Run
+# Running SitePress on Cloud Run
 
-To deploy a [Astro](https://astro.build/) application to Cloud Run, you will need an application
-based on this framework. This demo gets you to use the Astro template to generate one. 
+To deploy a [SitePress](https://sitepress.cc/) application to Cloud Run, you will need an application
+based on this framework. This demo gets you to use the SitePress template to generate one. 
 
-This requires [node, npm](https://cloud.google.com/nodejs/docs/setup), and [gcloud](https://cloud.google.com/sdk/docs/install).
+This requires [ruby](https://cloud.google.com/ruby/docs/setup), and [gcloud](https://cloud.google.com/sdk/docs/install).
 
 
 
@@ -13,30 +13,30 @@ To complete this demo, you will need a [Google Cloud project](https://cloud.goog
 ### Create template application
 
 
-* Generate a new template application: 
+* Install the framework:
 
     ```bash
-    npm create astro@latest
-    # Use "helloworld" as your new project
-
+    gem install sitepress
     ```
 
     
     
 
-
-
-
-* Navigate to the created project:
+* Create a new template application:
 
     ```bash
-    cd helloworld/
+    sitepress new helloworld
+    cd helloworld
+
     ```
+
+
+
 
 * Run the application locally:
 
     ```bash
-    npm start
+    sitepress server
     ```
 
     
@@ -50,18 +50,18 @@ Using [Cloud Buildpacks](https://github.com/GoogleCloudPlatform/buildpacks),
 the base language is automatically identified.
 
 
-For Astro, instead of using `npm start`, going to use a Node web server to serve the compiled files. 
+For SitePress, instead of using `sitepress server`, going to use a Node web server to serve the compiled files. 
 
 * Generate the application: 
 
     ```bash
-    npm run build
+    sitepress compile
     ```
 
-* Create a `package.json` in the `dist` folder:
+* Create a `package.json` in the `build` folder:
 
     ```bash
-    cat <<EOF > dist/package.json 
+    cat <<EOF > build/package.json 
     { 
       "scripts": { "start": "http-server" },
       "dependencies": { "http-server": "*" }
@@ -86,8 +86,8 @@ For Astro, instead of using `npm start`, going to use a Node web server to serve
 * Build and deploy the service to Cloud Run: 
 
     ```bash
-    gcloud run deploy astro-helloworld \
-        --source dist \
+    gcloud run deploy sitepress-helloworld \
+        --source build \
         --allow-unauthenticated 
     ```
 
@@ -96,7 +96,7 @@ For Astro, instead of using `npm start`, going to use a Node web server to serve
 
 Your service will now be deployed at the URL in the deployment output.
 
-![Example Astro deployment](example.png)
+![Example SitePress deployment](example.png)
 
 
 
@@ -106,4 +106,4 @@ Your service will now be deployed at the URL in the deployment output.
 
 Resources: 
 
-- https://docs.astro.build/en/getting-started/
+- https://sitepress.cc/getting-started/static

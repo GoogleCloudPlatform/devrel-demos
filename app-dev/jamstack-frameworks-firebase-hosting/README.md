@@ -23,6 +23,7 @@ All frameworks are NodeJS based, unless otherwise marked.
  * [Preact](preact/) 
  * [React](react/) 
  * [Sculpin](sculpin/) (php)
+ * [SitePress](sitepress/) (ruby)
  * [Sphinx](sphinx/) (python)
  * [Svelte](svelte/) 
  * [VueJS](vuejs/) 

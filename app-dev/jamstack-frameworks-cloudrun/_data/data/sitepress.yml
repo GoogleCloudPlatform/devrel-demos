@@ -1,0 +1,14 @@
+name: SitePress
+homepage: https://sitepress.cc/
+language: ruby
+install: gem install sitepress
+generate: |
+  sitepress new helloworld
+  cd helloworld
+run: sitepress server
+build: sitepress compile
+output: build
+resources: 
+ - https://sitepress.cc/getting-started/static
+
+cloudrun_fileserver: true

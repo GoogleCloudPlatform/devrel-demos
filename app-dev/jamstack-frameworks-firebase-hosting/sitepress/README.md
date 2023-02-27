@@ -1,9 +1,9 @@
-# Running Astro on Firebase
+# Running SitePress on Firebase
 
-To deploy a [Astro](https://astro.build/) application to Firebase, you will need an application
-based on this framework. This demo gets you to use the Astro template to generate one. 
+To deploy a [SitePress](https://sitepress.cc/) application to Firebase, you will need an application
+based on this framework. This demo gets you to use the SitePress template to generate one. 
 
-This requires [node, npm](https://cloud.google.com/nodejs/docs/setup), and [firebase](https://cloud.google.com/firestore/docs/client/get-firebase).
+This requires [ruby](https://cloud.google.com/ruby/docs/setup), and [firebase](https://cloud.google.com/firestore/docs/client/get-firebase).
 
 
 
@@ -13,30 +13,30 @@ To complete this demo, you will need a Firebase project. You can [create a new o
 ### Create template application
 
 
-* Generate a new template application: 
+* Install the framework:
 
     ```bash
-    npm create astro@latest
-    # Use "helloworld" as your new project
-
+    gem install sitepress
     ```
 
     
     
 
-
-
-
-* Navigate to the created project:
+* Create a new template application:
 
     ```bash
-    cd helloworld/
+    sitepress new helloworld
+    cd helloworld
+
     ```
+
+
+
 
 * Run the application locally:
 
     ```bash
-    npm start
+    sitepress server
     ```
 
     
@@ -51,7 +51,7 @@ To complete this demo, you will need a Firebase project. You can [create a new o
 * Generate the application: 
 
     ```bash
-    npm run build
+    sitepress compile
     ```
 
 * Setup Firebase: 
@@ -61,7 +61,7 @@ To complete this demo, you will need a Firebase project. You can [create a new o
     ```
 
     * In "Project Setup", select the project you configured earlier.
-    * For "What do you want to use as your public directory", enter "dist".
+    * For "What do you want to use as your public directory", enter "build".
     * Choose the default for all other options.
 
 * Deploy to Firebase: 
@@ -72,7 +72,7 @@ To complete this demo, you will need a Firebase project. You can [create a new o
 
 Your service will now be deployed at the URL in the output under "Hosting URL".
 
-![Example Astro deployment](example.png)
+![Example SitePress deployment](example.png)
 
 
 
@@ -80,4 +80,4 @@ Your service will now be deployed at the URL in the output under "Hosting URL".
 
 Resources: 
 
-- https://docs.astro.build/en/getting-started/
+- https://sitepress.cc/getting-started/static
