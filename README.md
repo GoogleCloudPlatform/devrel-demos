@@ -8,6 +8,7 @@ This repo is organized around the primary Google Cloud Product(s) used. The cate
 
 * AI and Machine Learning 
 * Application Development (Serverless and Developer Tools) 
+* Codelabs (resources for Google Cloud tutorials)
 * Containers & Kubernetes
 * Data Analytics
 * DevOps
