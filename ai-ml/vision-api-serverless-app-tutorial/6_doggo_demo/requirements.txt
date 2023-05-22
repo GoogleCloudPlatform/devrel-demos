@@ -1,0 +1,5 @@
+google-cloud-vision==3.1.4
+Pillow
+google-api-python-client
+
+Flask
