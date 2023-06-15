@@ -128,18 +128,18 @@ def run(project_id, gaming_model_location, movie_model_location, pipeline_args):
 
         # Simple string schema - normally not recommended 
         # For brevity sake, we convert to a single string
-        schema = {'fields': [
+        data_schema = {'fields': [
             {'name': 'data_col', 'type': 'STRING', 'mode': 'NULLABLE'}]}
         
         # Write to BigQuery
         # We're converting to the simple string to insert
-        _ = (
+        output_to_bq = (
             joined
             | "Convert to string" >> beam.Map(lambda element: {"data_col":str(element)})
             | beam.io.gcp.bigquery.WriteToBigQuery(
                 method=beam.io.gcp.bigquery.WriteToBigQuery.Method.STREAMING_INSERTS,
                 table=output_bigquery,
-                schema=schema
+                schema=data_schema
             )
         )
 
