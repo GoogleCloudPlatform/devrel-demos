@@ -28,6 +28,6 @@ export default function SignInButton({ auth }: { auth: Auth }) {
   }
 
   return (
-    <button onClick={onSignInClick}>Sign In with Google</button>
+    <button onClick={onSignInClick} className={`border mt-20`}>Sign In with Google</button>
   )
 }

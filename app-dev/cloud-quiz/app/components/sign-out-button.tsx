@@ -11,6 +11,6 @@ export default function SignOutButton({ auth }: { auth: Auth }) {
   }
 
   return (
-    <button onClick={onSignOutClick}>Sign Out</button>
+    <button onClick={onSignOutClick} className={`border mt-20`}>Sign Out</button>
   )
 }
