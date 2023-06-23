@@ -93,6 +93,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to find project ID: %v", err)
 	}
+	log.Printf("publisher project ID: %v", projectID)
 	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
 		log.Fatalf("failed to create Pub/Sub client: %v", err)
@@ -128,7 +129,7 @@ func (hh *helloHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	m, err := json.Marshal(data)
 	if err != nil {
 		log.Printf("error marshaling data: %v", err)
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		http.Error(w, "Bad Request: marshaling data", http.StatusBadRequest)
 		return
 	}
 	msg := pubsub.Message{Data: m}
@@ -142,6 +143,9 @@ func (hh *helloHandler) Handler(w http.ResponseWriter, r *http.Request) {
 			semconv.MessagingDestinationKindTopic,
 		),
 	}
+	if msg.Attributes == nil {
+		msg.Attributes = make(map[string]string)
+	}
 	otel.GetTextMapPropagator().Inject(ctx, propagation.MapCarrier(msg.Attributes))
 
 	_, subspan := otel.Tracer("publisher").Start(ctx, "send-to-pubsub", options...)
@@ -150,7 +154,7 @@ func (hh *helloHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	msgId, err := topic.Publish(ctx, &msg).Get(ctx)
 	if err != nil {
 		log.Printf("failed to publish message: %v", err)
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		http.Error(w, "Bad Request: publish message", http.StatusBadRequest)
 		return
 	}
 	subspan.SetAttributes(semconv.MessagingMessageIDKey.String(msgId))

@@ -35,7 +35,7 @@ import (
 
 const (
 	ServiceName = "subscriber-service"
-	TopicName   = "otel-pubsub-topic"
+	TopicName   = "otel-pubsub-topic-sub"
 )
 
 func initTracer() (func(), error) {
@@ -90,6 +90,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to find project ID: %v", err)
 	}
+	log.Printf("subscriber project ID: %v", projectID)
 	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
 		log.Fatalf("failed to create Pub/Sub client: %v", err)
@@ -126,12 +127,12 @@ func handler(ctx context.Context, msg *pubsub.Message) {
 
 	var data map[string]string
 	err := json.Unmarshal(msg.Data, &data)
-
 	if err != nil {
 		log.Printf("failed to unmarshal data: %v", err)
 		msg.Nack()
 		return
 	}
+	log.Printf("message data: %v", msg.Data)
 
 	_, subspan := otel.Tracer("subscriber").Start(ctx, "call-process-user", options...)
 	processUser(data["user_id"])
