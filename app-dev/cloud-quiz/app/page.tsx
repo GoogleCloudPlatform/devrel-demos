@@ -84,23 +84,20 @@ export default function Home() {
             <CreateGameButton setGameRef={setGameRef} />
             <GameList setGameRef={setGameRef} />
           </div>}
-          {game.state !== gameStates.NOT_STARTED && gameRef && (<>
-            {showingQuestion && (<>
-              <h2>
-                {currentQuestion.prompt}
-              </h2>
-              {currentQuestion.answers.map((answer, index) => (<div className="flex pt-2" key={answer.text}>
-                {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (
-                  <div>
-                    {answer.isCorrect && '✅'}
-                    {!answer.isCorrect && answerSelection[index] && '❌'}
-                  </div>)}
-                <button onClick={() => onAnswerClick(index)} className={`border ${answerSelection[index] ? 'text-blue-500' : 'text-inherit'}`}>
-                  {answer.text}
-                </button>
-              </div>))}
-            </>)
-            }
+          {showingQuestion && gameRef && (<>
+            <h2>
+              {currentQuestion.prompt}
+            </h2>
+            {currentQuestion.answers.map((answer, index) => (<div className="flex pt-2" key={answer.text}>
+              {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (
+                <div>
+                  {answer.isCorrect && '✅'}
+                  {!answer.isCorrect && answerSelection[index] && '❌'}
+                </div>)}
+              <button onClick={() => onAnswerClick(index)} className={`border ${answerSelection[index] ? 'text-blue-500' : 'text-inherit'}`}>
+                {answer.text}
+              </button>
+            </div>))}
             {game.state === gameStates.AWAITING_PLAYER_ANSWERS && (<>
               {answerSelection.some(selection => selection === true) ? (<>
                 <SubmitAnswerButton gameRef={gameRef} currentQuestionIndex={currentQuestionIndex} answerSelection={answerSelection} />
