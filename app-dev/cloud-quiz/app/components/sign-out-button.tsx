@@ -4,11 +4,7 @@ import { auth } from "@/app/lib/firebase-initialization";
 
 export default function SignOutButton() {
   const onSignOutClick = (): void => {
-    signOut(auth).then(() => {
-      // Sign-out successful.
-    }).catch((error) => {
-      // An error happened.
-    });
+    signOut(auth);
   }
 
   return (
