@@ -34,8 +34,8 @@ import (
 )
 
 const (
-	ServiceName = "subscriber-service"
-	TopicName   = "otel-pubsub-topic-sub"
+	ServiceName    = "subscriber-service"
+	SubscriberName = "subscriber"
 )
 
 func initTracer() (func(), error) {
@@ -101,7 +101,11 @@ func main() {
 }
 
 func subscriber(ctx context.Context, client *pubsub.Client) {
-	sub := client.Subscription(TopicName)
+	sname := os.Getenv("SUBSCRIBER_NAME")
+	if sname == "" {
+		sname = SubscriberName
+	}
+	sub := client.Subscription(sname)
 	err := sub.Receive(ctx, handler)
 	if err != nil {
 		log.Printf("error subscribing topic: %v", err)
@@ -113,11 +117,15 @@ func handler(ctx context.Context, msg *pubsub.Message) {
 		propagator := otel.GetTextMapPropagator()
 		ctx = propagator.Extract(ctx, propagation.MapCarrier(msg.Attributes))
 	}
+	sname := os.Getenv("SUBSCRIBER_NAME")
+	if sname == "" {
+		sname = SubscriberName
+	}
 	options := []trace.SpanStartOption{
 		trace.WithSpanKind(trace.SpanKindConsumer),
 		trace.WithAttributes(
 			semconv.MessagingSystemKey.String("pubsub"),
-			semconv.MessagingDestinationKey.String(TopicName),
+			semconv.MessagingDestinationKey.String(sname),
 			semconv.MessagingDestinationKindTopic,
 			semconv.MessagingMessageIDKey.String(msg.ID),
 		),

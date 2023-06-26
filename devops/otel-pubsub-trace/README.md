@@ -2,6 +2,16 @@
 
 This demo shows the minumum example of how to propagate trace via Cloud Pub/Sub on GKE.
 
+## Overview
+
+This demo has 3 pods in a Kubernetes clusters:
+
+* publisher
+* subscriber-a
+* subscriber-b
+
+This cluster demonstrates a trace from 1:N Pub/Sub system.
+
 ## Pre-requisites
 
 * `gcloud` command
@@ -41,7 +51,8 @@ you need to set up a Pub/Sub topic and its subscriber.
 
 ```console
 gcloud pubsub topics create otel-pubsub-topic
-gcloud pubsub subscriptions create --topic otel-pubsub-topic otel-pubsub-topic-sub
+gcloud pubsub subscriptions create --topic otel-pubsub-topic subscriber-a
+gcloud pubsub subscriptions create --topic otel-pubsub-topic subscriber-b
 ```
 
 ### Create service account to use
@@ -138,8 +149,11 @@ DONE
 Build [publisher] succeeded
 Starting test...
 ...(omit)...
- - deployment/subscriber is ready. [1/2 deployment(s) still pending]
- - deployment/publisher is ready.
+ - deployment/publisher is ready. [2/3 deployment(s) still pending]
+ - deployment/subscriber-a: waiting for rollout to finish: 0 of 1 updated replicas are available...
+ - deployment/subscriber-b: waiting for rollout to finish: 0 of 1 updated replicas are available...
+ - deployment/subscriber-b is ready. [1/3 deployment(s) still pending]
+ - deployment/subscriber-a is re
 Deployments stabilized in 8.691 seconds
 You can also run [skaffold run --tail] to get the logs
 ```

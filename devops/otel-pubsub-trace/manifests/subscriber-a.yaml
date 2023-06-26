@@ -15,20 +15,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: subscriber
+  name: subscriber-a
 spec:
   selector:
     matchLabels:
-      app: subscriber
+      app: subscriber-a
   template:
     metadata:
       labels:
-        app: subscriber
+        app: subscriber-a
     spec:
       serviceAccountName: default
       containers:
-        - name: subscriber
+        - name: subscriber-a
           image: subscriber
+          env:
+            - name: SERVICE_NAME
+              value: subscriber-service-a
+            - name: SUBSCRIBER_NAME
+              value: subscriber-a
           resources:
             limits:
               cpu: 250m
