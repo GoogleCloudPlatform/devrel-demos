@@ -19,7 +19,9 @@ export default function CreateGameButton({ db, auth, setGameRef }: { db: Firesto
       questions,
       leader,
       // TODO: Remove leader from game players, this just makes testing faster
-      players: [leader],
+      players: {
+        [leader.uid]: leader.displayName, 
+      },
       state: gameStates.NOT_STARTED,
       currentQuestionIndex: 0,
     });

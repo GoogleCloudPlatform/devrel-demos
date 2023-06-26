@@ -14,8 +14,6 @@ import Lobby from "./components/lobby";
 import SubmitAnswerButton from "./components/submit-answer-button";
 import RevealAnswersButton from "./components/reveal-answers-button";
 import GameList from "./components/gameList";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -59,12 +57,13 @@ export default function Home() {
         setGame(game);
       });
       return unsubscribe;
+    } else {
+      setGame(emptyGame);
     }
   }, [gameRef])
 
   useEffect(() => {
     if (!authUser?.uid) {
-      setGame(emptyGame);
       setGameRef(null);
     }
   }, [authUser?.uid])
@@ -99,8 +98,7 @@ export default function Home() {
           </div>}
           {(!gameRef || game.state === gameStates.GAME_OVER) && <div>
             <CreateGameButton db={db} auth={auth} setGameRef={setGameRef} />
-            Taco
-            <GameList db={db} setGameRef={setGameRef} />
+            <GameList auth={auth} db={db} setGameRef={setGameRef} />
           </div>}
           {game.state !== gameStates.NOT_STARTED && gameRef && (<>
             {showingQuestion && (<>
@@ -131,7 +129,7 @@ export default function Home() {
             </>)}
           </>)}
           {game.state === gameStates.NOT_STARTED && gameRef && (
-            <Lobby gameRef={gameRef} setGameRef={setGameRef} />
+            <Lobby auth={auth} gameRef={gameRef} setGameRef={setGameRef} />
           )}
           {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (
             <button onClick={onNextQuestionClick} className={`border mt-20`}>
@@ -154,8 +152,8 @@ export default function Home() {
             answerSelection,
             gameId: gameRef?.id || '',
             gameData: {
-              leader: game.leader.displayName,
-              players: game.players.map(player => player.displayName),
+              leader: game.leader,
+              players: game.players,
               currentQuestionIndex: game.currentQuestionIndex,
               questionLength: Object.keys(game.questions).length - 1,
               state: game.state,
