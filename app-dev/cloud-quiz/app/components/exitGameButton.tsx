@@ -13,7 +13,7 @@ export default function ExitGameButton({ setGameRef, gameRef }: { setGameRef: Di
       [`players.${auth.currentUser.uid}`]: deleteField(),
     });
 
-    setGameRef(null);
+    setGameRef(undefined);
   }
 
 
