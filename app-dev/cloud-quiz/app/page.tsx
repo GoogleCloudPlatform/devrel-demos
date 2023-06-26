@@ -2,7 +2,7 @@
 
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs, QuerySnapshot, setDoc, addDoc, onSnapshot, doc, DocumentReference, updateDoc } from "firebase/firestore";
+import { getFirestore, collection, getDocs, QuerySnapshot, setDoc, addDoc, onSnapshot, doc, DocumentReference, updateDoc, CollectionReference } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { useEffect, useState } from 'react';
 import useFirebaseAuthentication from "./hooks/use-firebase-authentication";
@@ -13,6 +13,7 @@ import { Answer, Game, GameState, Question, emptyGame, emptyQuestion, gameStates
 import Lobby from "./components/lobby";
 import SubmitAnswerButton from "./components/submit-answer-button";
 import RevealAnswersButton from "./components/reveal-answers-button";
+import GameList from "./components/gameList";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -62,6 +63,13 @@ export default function Home() {
   }, [gameRef])
 
   useEffect(() => {
+    if (!authUser?.uid) {
+      setGame(emptyGame);
+      setGameRef(null);
+    }
+  }, [authUser?.uid])
+
+  useEffect(() => {
     if (currentQuestion?.answers.length) {
       setAnswerSelection(Array(currentQuestion.answers.length).fill(false));
     }
@@ -91,6 +99,8 @@ export default function Home() {
           </div>}
           {(!gameRef || game.state === gameStates.GAME_OVER) && <div>
             <CreateGameButton db={db} auth={auth} setGameRef={setGameRef} />
+            Taco
+            <GameList db={db} setGameRef={setGameRef} />
           </div>}
           {game.state !== gameStates.NOT_STARTED && gameRef && (<>
             {showingQuestion && (<>
@@ -121,7 +131,7 @@ export default function Home() {
             </>)}
           </>)}
           {game.state === gameStates.NOT_STARTED && gameRef && (
-            <Lobby gameRef={gameRef} />
+            <Lobby gameRef={gameRef} setGameRef={setGameRef} />
           )}
           {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (
             <button onClick={onNextQuestionClick} className={`border mt-20`}>
