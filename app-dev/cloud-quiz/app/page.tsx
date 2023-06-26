@@ -1,113 +1,83 @@
 "use client"
 
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs, DocumentSnapshot, QuerySnapshot } from "firebase/firestore";
+import { db } from "@/app/lib/firebase-initialization";
+import { onSnapshot, doc, DocumentReference, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from 'react';
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
+import SignOutButton from "@/app/components/sign-out-button";
+import SignInButton from "@/app/components/sign-in-button";
+import CreateGameButton from "@/app/components/create-game-button";
+import { Game, emptyGame, gameStates } from "@/app/types";
+import Lobby from "@/app/components/lobby";
+import GameList from "@/app/components/gameList";
+import QuestionPanel from "./components/question-panel";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyBr0i2bC9kdsdRVh-9pQ5yFOjxpweiTJrQ",
-  authDomain: "cloud-quiz-next.firebaseapp.com",
-  projectId: "cloud-quiz-next",
-  storageBucket: "cloud-quiz-next.appspot.com",
-  messagingSenderId: "406096902405",
-  appId: "1:406096902405:web:7311c44c3657568af1df6c",
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-type Answer = {
-  isCorrect: boolean;
-  isSelected: boolean;
-  text: string;
-}
-
-type Question = {
-  answers: Array<Answer>;
-  prompt: string;
-}
-
-type GameState = 'NO_ANSWER_SUBMITTED' | 'ANSWER_SUBMITTED';
 
 export default function Home() {
-  const [questions, setQuestions] = useState<Array<Question>>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
-  const [currentQuestion, setCurrentQuestion] = useState<Question>({ answers: [], prompt: '' });
-  const [gameState, setGameState] = useState<GameState>('NO_ANSWER_SUBMITTED');
+  const [gameRef, setGameRef] = useState<DocumentReference>();
+  const [game, setGame] = useState<Game>(emptyGame);
+  const authUser = useFirebaseAuthentication();
+
+  const showingQuestion = game.state === gameStates.AWAITING_PLAYER_ANSWERS || game.state === gameStates.SHOWING_CORRECT_ANSWERS;
+  const currentQuestion = game.questions[game.currentQuestionIndex];
 
   useEffect(() => {
-    const getQuestions = async () => {
-      const querySnapshot: QuerySnapshot = await getDocs(collection(db, "questions"));
-      const questions = querySnapshot.docs.map((doc) => {
-        return doc.data() as Question;
+    if (gameRef?.id) {
+      const unsubscribe = onSnapshot(doc(db, "games", gameRef.id), (doc) => {
+        const game = doc.data() as Game;
+        setGame(game);
       });
-      setQuestions(questions);
-      if (currentQuestion?.prompt === '') {
-        setCurrentQuestion(questions[currentQuestionIndex]);
-      }
+      return unsubscribe;
+    } else {
+      setGame(emptyGame);
     }
-    getQuestions();
-  }, [])
+  }, [gameRef])
 
-  const onAnswerClick = (answerIndex: number, answer: Answer): void => {
-    setCurrentQuestion({
-      ...currentQuestion,
-      // typescript gives an error for `.with` because it is a newer property
-      // this can likely be removed once typescript is updated
-      // @ts-expect-error
-      answers: currentQuestion.answers.with(answerIndex, {
-        ...answer,
-        isSelected: !answer.isSelected,
-      }),
-    })
-  }
-
-  const onSubmitAnswerClick = (): void => {
-    setGameState('ANSWER_SUBMITTED');
-  }
-
-  const onNextQuestionClick = (): void => {
-    setGameState('NO_ANSWER_SUBMITTED');
-    const newQuestionIndex = (currentQuestionIndex + 1) % questions.length;
-    setCurrentQuestion(questions[newQuestionIndex]);
-    setCurrentQuestionIndex(newQuestionIndex);
-  }
+  useEffect(() => {
+    if (!authUser?.uid) {
+      setGameRef(undefined);
+    }
+  }, [authUser?.uid])
 
   return (
-    <main className="p-24">
-      <h2>
-        {currentQuestion.prompt}
-      </h2>
-      {currentQuestion.answers.map((answer, index) => (<div className="flex pt-2" key={answer.text}>
-        {gameState === 'ANSWER_SUBMITTED' && (<div>
-          { answer.isCorrect && '✅' }
-          { !answer.isCorrect && answer.isSelected && '❌' }
-        </div>)}
-        <button onClick={() => onAnswerClick(index, answer)} className={`border ${answer.isSelected ? 'text-blue-500' : 'text-inherit'}`}>
-          {answer.text}
-        </button>
-      </div>))}
-      {gameState === 'NO_ANSWER_SUBMITTED' && (currentQuestion.answers.every((answer) => !answer.isSelected) ? (<>
-        <div className={`mt-20 text-gray-500`}>
-          Select an Answer
-        </div>
-      </>) : (<>
-        <button onClick={onSubmitAnswerClick} className={`border mt-20`}>
-          Submit Your Answer
-        </button>
-      </>)
-      )}
-      {gameState === 'ANSWER_SUBMITTED' && (
-        <button onClick={onNextQuestionClick} className={`border mt-20`}>
-          Next Question
-        </button>
-      )}
+    <main className="p-24 flex justify-between space-x-24">
+      <div>
+        {authUser ? (<>
+          {(game.state === gameStates.GAME_OVER) && <div>
+            {gameStates.GAME_OVER}
+          </div>}
+          {(!gameRef || game.state === gameStates.GAME_OVER) && <div>
+            <CreateGameButton setGameRef={setGameRef} />
+            <GameList setGameRef={setGameRef} />
+          </div>}
+          {showingQuestion && gameRef && (<>
+            <QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />
+          </>)}
+          {game.state === gameStates.NOT_STARTED && gameRef && (
+            <Lobby gameRef={gameRef} setGameRef={setGameRef} />
+          )}
+          <br />
+          <SignOutButton />
+        </>) : (<>
+          <SignInButton />
+        </>)}
+      </div>
+      {/* TODO: Remove this pre tag, just here do make debugging faster */}
+      <pre>
+        {JSON.stringify({
+          authUser: {
+            uid: authUser.uid,
+            displayName: authUser.displayName,
+          },
+          game: {
+            gameRefId: gameRef?.id,
+            state: game.state,
+            players: game.players,
+            leader: game.leader,
+          }
+        }, null, 2)}
+      </pre>
     </main>
   )
 }
