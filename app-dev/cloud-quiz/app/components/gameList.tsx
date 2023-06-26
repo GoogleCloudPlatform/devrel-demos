@@ -1,10 +1,10 @@
 "use client"
 
 import { db, auth } from "@/app/lib/firebase-initialization";
-import { DocumentReference, collection, onSnapshot, query, updateDoc, where } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { DocumentData, DocumentReference, collection, onSnapshot, query, updateDoc, where } from "firebase/firestore";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
-export default function GameList({ setGameRef }: { setGameRef: Function }) {
+export default function GameList({ setGameRef }: { setGameRef: Dispatch<SetStateAction<DocumentReference<DocumentData> | undefined>> }) {
   const [gameList, setGameList] = useState<DocumentReference[]>();
 
   const onJoinGameClick = async (gameRef: DocumentReference) => {
