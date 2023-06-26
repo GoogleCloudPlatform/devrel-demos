@@ -2,14 +2,14 @@
 
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs, QuerySnapshot, setDoc, addDoc, onSnapshot, doc, DocumentReference, updateDoc, CollectionReference } from "firebase/firestore";
+import { getFirestore, onSnapshot, doc, DocumentReference, updateDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { useEffect, useState } from 'react';
 import useFirebaseAuthentication from "./hooks/use-firebase-authentication";
 import SignOutButton from "./components/sign-out-button";
 import SignInButton from "./components/sign-in-button";
 import CreateGameButton from "./components/create-game-button";
-import { Answer, Game, GameState, Question, emptyGame, emptyQuestion, gameStates } from "./types";
+import { Game, emptyGame, gameStates } from "./types";
 import Lobby from "./components/lobby";
 import SubmitAnswerButton from "./components/submit-answer-button";
 import RevealAnswersButton from "./components/reveal-answers-button";
@@ -141,25 +141,6 @@ export default function Home() {
         </>) : (<>
           <SignInButton auth={auth} />
         </>)}
-      </div>
-      <div>
-        <pre>
-          {JSON.stringify({
-            authUser: {
-              uid: authUser?.uid || '',
-              displayName: authUser?.displayName || '',
-            },
-            answerSelection,
-            gameId: gameRef?.id || '',
-            gameData: {
-              leader: game.leader,
-              players: game.players,
-              currentQuestionIndex: game.currentQuestionIndex,
-              questionLength: Object.keys(game.questions).length - 1,
-              state: game.state,
-            },
-          }, null, 2)}
-        </pre>
       </div>
     </main>
   )
