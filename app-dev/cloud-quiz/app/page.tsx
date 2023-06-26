@@ -63,6 +63,7 @@ export default function Home() {
           <SignInButton />
         </>)}
       </div>
+      {/* TODO: Remove this pre tag, just here do make debugging faster */}
       <pre>
         {JSON.stringify({
           authUser: {
@@ -70,9 +71,10 @@ export default function Home() {
             displayName: authUser.displayName,
           },
           game: {
-            ...game,
             gameRefId: gameRef?.id,
-            questions: [],
+            state: game.state,
+            players: game.players,
+            leader: game.leader,
           }
         }, null, 2)}
       </pre>

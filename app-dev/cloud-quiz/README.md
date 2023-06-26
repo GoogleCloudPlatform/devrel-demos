@@ -22,19 +22,25 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
 ## Add a question
 
-To add a question to the database, you will need to have access to the project. A project administrator will need to:
+To add a question to the database:
 
-1. Visit https://console.firebase.google.com/project/cloud-quiz-next/settings/iam
-1. Click `Add Member`
-    * Role should be `Develop` -> `Admin`
+1. A project administrator will need to give you access:
+    1. Visit https://console.firebase.google.com/project/cloud-quiz-next/settings/iam
+    1. Click `Add Member`
+        * Role should be `Develop` -> `Admin`
+1. Go to the firestore questions collection https://console.firebase.google.com/project/cloud-quiz-next/firestore/data/~2Fquestions
+1. Click `Add document`
+    1. Click `Auto-ID`
+    1. Add a `prompt` field, type string, with the value of the question you want to ask.
+    1. Add an `answers` field of type array
+    1. For each possible answer, add:
+        * `text` for the possible answer
+        * `isCorrect` boolean for if the answer is correct
 
-## Run a live quiz
+![Example Question](docs/example-question.png)
 
-To run a live quiz, an admin or developer will need to add you as an `allowedGameLeader` in the database.
 
 ## Deploy on Cloud Run
 
