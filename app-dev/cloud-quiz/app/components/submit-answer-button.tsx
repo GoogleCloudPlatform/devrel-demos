@@ -1,9 +1,9 @@
 "use client"
 
-import { Auth } from "firebase/auth";
+import { auth } from "@/app/lib/firebase-initialization";
 import { DocumentReference, updateDoc } from "firebase/firestore";
 
-export default function SubmitAnswerButton({gameRef, currentQuestionIndex, auth, answerSelection}: {gameRef: DocumentReference, currentQuestionIndex: number, auth: Auth, answerSelection: boolean[] }) {
+export default function SubmitAnswerButton({gameRef, currentQuestionIndex, answerSelection}: {gameRef: DocumentReference, currentQuestionIndex: number, answerSelection: boolean[] }) {
   const onSubmitAnswerClick = async (gameRef: DocumentReference) => {
     if(!auth.currentUser) {
       throw new Error('Must have current user');

@@ -1,7 +1,8 @@
 "use client"
-import { Auth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth } from "@/app/lib/firebase-initialization";
 
-export default function SignInButton({ auth }: { auth: Auth }) {
+export default function SignInButton() {
   const provider = new GoogleAuthProvider();
 
   const onSignInClick = async() => {

@@ -1,7 +1,7 @@
 "use client"
 
 import { DocumentReference, updateDoc } from "firebase/firestore";
-import { gameStates } from "../types";
+import { gameStates } from "@/app/types";
 
 export default function RevealAnswersButton({gameRef}: {gameRef: DocumentReference}) {
   const onRevealAnswersClick = async (gameRef: DocumentReference) => {

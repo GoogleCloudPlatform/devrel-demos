@@ -1,9 +1,9 @@
 "use client"
 
-import { Auth } from "firebase/auth"
+import { auth } from "@/app/lib/firebase-initialization";
 import { DocumentReference, deleteField, updateDoc } from "firebase/firestore";
 
-export default function ExitGameButton({ auth, setGameRef, gameRef }: { auth: Auth, setGameRef: Function, gameRef: DocumentReference }) {
+export default function ExitGameButton({ setGameRef, gameRef }: { setGameRef: Function, gameRef: DocumentReference }) {
 
   const onExitGameClick = async (gameRef: DocumentReference) => {
     if (!auth.currentUser) throw new Error('User must be signed in to start game');

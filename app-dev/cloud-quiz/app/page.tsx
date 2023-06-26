@@ -1,41 +1,25 @@
 "use client"
 
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getFirestore, onSnapshot, doc, DocumentReference, updateDoc } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { db, auth } from "@/app/lib/firebase-initialization";
+import { onSnapshot, doc, DocumentReference, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from 'react';
-import useFirebaseAuthentication from "./hooks/use-firebase-authentication";
-import SignOutButton from "./components/sign-out-button";
-import SignInButton from "./components/sign-in-button";
-import CreateGameButton from "./components/create-game-button";
-import { Game, emptyGame, gameStates } from "./types";
-import Lobby from "./components/lobby";
-import SubmitAnswerButton from "./components/submit-answer-button";
-import RevealAnswersButton from "./components/reveal-answers-button";
-import GameList from "./components/gameList";
+import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
+import SignOutButton from "@/app/components/sign-out-button";
+import SignInButton from "@/app/components/sign-in-button";
+import CreateGameButton from "@/app/components/create-game-button";
+import { Game, emptyGame, gameStates } from "@/app/types";
+import Lobby from "@/app/components/lobby";
+import SubmitAnswerButton from "@/app/components/submit-answer-button";
+import RevealAnswersButton from "@/app/components/reveal-answers-button";
+import GameList from "@/app/components/gameList";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyBr0i2bC9kdsdRVh-9pQ5yFOjxpweiTJrQ",
-  authDomain: "cloud-quiz-next.firebaseapp.com",
-  projectId: "cloud-quiz-next",
-  storageBucket: "cloud-quiz-next.appspot.com",
-  messagingSenderId: "406096902405",
-  appId: "1:406096902405:web:7311c44c3657568af1df6c",
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
 
 export default function Home() {
   const [answerSelection, setAnswerSelection] = useState<boolean[]>([]);
   const [gameRef, setGameRef] = useState<DocumentReference>();
   const [game, setGame] = useState<Game>(emptyGame);
-  const authUser = useFirebaseAuthentication(auth);
+  const authUser = useFirebaseAuthentication();
 
   const showingQuestion = game.state === gameStates.AWAITING_PLAYER_ANSWERS || game.state === gameStates.SHOWING_CORRECT_ANSWERS;
   const currentQuestionIndex = game.currentQuestionIndex;
@@ -64,7 +48,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!authUser?.uid) {
-      setGameRef(null);
+      setGameRef(undefined);
     }
   }, [authUser?.uid])
 
@@ -97,8 +81,8 @@ export default function Home() {
             {gameStates.GAME_OVER}
           </div>}
           {(!gameRef || game.state === gameStates.GAME_OVER) && <div>
-            <CreateGameButton db={db} auth={auth} setGameRef={setGameRef} />
-            <GameList auth={auth} db={db} setGameRef={setGameRef} />
+            <CreateGameButton setGameRef={setGameRef} />
+            <GameList setGameRef={setGameRef} />
           </div>}
           {game.state !== gameStates.NOT_STARTED && gameRef && (<>
             {showingQuestion && (<>
@@ -119,7 +103,7 @@ export default function Home() {
             }
             {game.state === gameStates.AWAITING_PLAYER_ANSWERS && (<>
               {answerSelection.some(selection => selection === true) ? (<>
-                <SubmitAnswerButton auth={auth} gameRef={gameRef} currentQuestionIndex={currentQuestionIndex} answerSelection={answerSelection} />
+                <SubmitAnswerButton gameRef={gameRef} currentQuestionIndex={currentQuestionIndex} answerSelection={answerSelection} />
               </>) : (<>
                 <div className={`mt-20 text-gray-500`}>
                   Select an Answer
@@ -129,7 +113,7 @@ export default function Home() {
             </>)}
           </>)}
           {game.state === gameStates.NOT_STARTED && gameRef && (
-            <Lobby auth={auth} gameRef={gameRef} setGameRef={setGameRef} />
+            <Lobby gameRef={gameRef} setGameRef={setGameRef} />
           )}
           {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (
             <button onClick={onNextQuestionClick} className={`border mt-20`}>
@@ -137,11 +121,24 @@ export default function Home() {
             </button>
           )}
           <br />
-          <SignOutButton auth={auth} />
+          <SignOutButton />
         </>) : (<>
-          <SignInButton auth={auth} />
+          <SignInButton />
         </>)}
       </div>
+      <pre>
+        {JSON.stringify({
+          authUser: {
+            uid: authUser.uid,
+            displayName: authUser.displayName,
+          },
+          game: {
+            ...game,
+            gameRefId: gameRef?.id,
+            questions: [],
+          }
+        }, null, 2)}
+      </pre>
     </main>
   )
 }

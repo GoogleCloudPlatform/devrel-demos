@@ -9,7 +9,10 @@ export type Question = {
   prompt: string;
 }
 
-export const emptyQuestion = { answers: [], prompt: '' };
+export const emptyQuestion: Question = {
+  answers: [],
+  prompt: ''
+};
 
 export type GameState = 'NOT_STARTED' | 'NO_ANSWER_SUBMITTED' | 'ANSWER_SUBMITTED' | 'SHOWING_CORRECT_ANSWERS' | 'AWAITING_PLAYER_ANSWERS' | 'GAME_OVER';
 
@@ -27,6 +30,11 @@ export type Player = {
   displayName: string;
 }
 
+export const emptyPlayer: Player = {
+  uid: '',
+  displayName: '',
+}
+
 export type Game = {
   questions: Array<Question>;
   leader: Player,
@@ -35,9 +43,10 @@ export type Game = {
   currentQuestionIndex: number;
 }
 
-export const emptyGame = {
+export const emptyGame: Game = {
   questions: [],
-  leader: '',
+  leader: emptyPlayer,
   players: [],
   state: gameStates.NOT_STARTED,
+  currentQuestionIndex: -1,
 };

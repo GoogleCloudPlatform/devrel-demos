@@ -1,9 +1,9 @@
 "use client"
-import { Auth } from "firebase/auth";
-import { Firestore, QuerySnapshot, addDoc, collection, getDocs } from "firebase/firestore";
-import { Game, Question, gameStates } from "../types";
+import { db, auth } from "@/app/lib/firebase-initialization";
+import { QuerySnapshot, addDoc, collection, getDocs } from "firebase/firestore";
+import { gameStates } from "@/app/types";
 
-export default function CreateGameButton({ db, auth, setGameRef }: { db: Firestore, auth: Auth, setGameRef: Function }) {
+export default function CreateGameButton({ setGameRef }: { setGameRef: Function }) {
   const onCreateGameClick = async () => {
     const querySnapshot: QuerySnapshot = await getDocs(collection(db, "questions"));
     const questions = querySnapshot.docs.reduce((agg, doc, index) => {

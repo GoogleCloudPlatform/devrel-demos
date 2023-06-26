@@ -1,16 +1,15 @@
 "use client"
 
 import { DocumentReference } from "firebase/firestore";
-import StartGameButton from "./start-game-button";
-import ExitGameButton from "./exitGameButton";
-import { Auth } from "firebase/auth";
+import StartGameButton from "@/app/components/start-game-button";
+import ExitGameButton from "@/app/components/exitGameButton";
 
-export default function Lobby({ auth, gameRef, setGameRef }: { auth: Auth, gameRef: DocumentReference, setGameRef: Function }) {
+export default function Lobby({ gameRef, setGameRef }: { gameRef: DocumentReference, setGameRef: Function }) {
 
   return (
     <>
       <StartGameButton gameRef={gameRef} />
-      <ExitGameButton auth={auth} setGameRef={setGameRef} gameRef={gameRef} />
+      <ExitGameButton setGameRef={setGameRef} gameRef={gameRef} />
     </>
   )
 }
