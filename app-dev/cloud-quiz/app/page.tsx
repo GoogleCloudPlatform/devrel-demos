@@ -35,15 +35,15 @@ export default function Home() {
   }, [gameRef])
 
   useEffect(() => {
-    if (!authUser?.uid) {
+    if (!authUser.uid) {
       setGameRef(undefined);
     }
-  }, [authUser?.uid])
+  }, [authUser.uid])
 
   return (
     <main className="p-24 flex justify-between space-x-24">
       <div>
-        {authUser ? (<>
+        {authUser.uid ? (<>
           {(game.state === gameStates.GAME_OVER) && <div>
             {gameStates.GAME_OVER}
           </div>}
