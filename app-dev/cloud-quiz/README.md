@@ -12,6 +12,10 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
     ```bash
     cd devrel-demos/app-dev/cloud-quiz/
     ```
+1. Install dependencies:
+    ```bash
+    npm install
+    ```
 1. Run the development server:
     ```bash
     npm run dev
