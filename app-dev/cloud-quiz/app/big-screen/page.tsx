@@ -34,7 +34,7 @@ export default function Home() {
       setGame(emptyGame);
     }
   }, [gameRef])
-// co
+
   useEffect(() => {
     if (!authUser.uid) {
       setGameRef(undefined);
