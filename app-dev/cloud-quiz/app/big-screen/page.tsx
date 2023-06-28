@@ -11,7 +11,8 @@ import CreateGameButton from "@/app/components/create-game-button";
 import { Game, emptyGame, gameStates } from "@/app/types";
 import Lobby from "@/app/components/lobby";
 import GameList from "@/app/components/gameList";
-import QuestionPanel from "./components/question-panel";
+import QuestionPanel from "@/app/components/question-panel";
+import Link from "next/link";
 
 
 export default function Home() {
@@ -61,6 +62,7 @@ export default function Home() {
           <SignOutButton />
         </>) : (<>
           <SignInButton />
+          <Link href="/" className="underline text-blue-600">Join the fun!</Link>
         </>)}
       </div>
       {/* TODO: Remove this pre tag, just here do make debugging faster */}
