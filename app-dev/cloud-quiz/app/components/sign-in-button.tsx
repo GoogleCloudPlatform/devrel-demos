@@ -1,15 +1,13 @@
 "use client"
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { signInAnonymously } from "firebase/auth";
 import { auth } from "@/app/lib/firebase-initialization";
 
 export default function SignInButton() {
-  const provider = new GoogleAuthProvider();
-
   const onSignInClick = async() => {
-    signInWithPopup(auth, provider);
+    signInAnonymously(auth);
   }
 
   return (
-    <button onClick={onSignInClick} className={`border mt-20`}>Sign In with Google</button>
+    <button onClick={onSignInClick} className={`border mt-20`}>Sign In Anonymously</button>
   )
 }
