@@ -41,7 +41,7 @@ export default function Home() {
   }, [authUser.uid])
 
   return (
-    <main className="p-24 flex justify-between space-x-24">
+    <main className="p-24 flex justify-between container mx-auto">
       <div>
         {authUser.uid ? (<>
           {(game.state === gameStates.GAME_OVER) && <div>
@@ -64,7 +64,7 @@ export default function Home() {
         </>)}
       </div>
       {/* TODO: Remove this pre tag, just here do make debugging faster */}
-      <pre>
+      {/* <pre>
         {JSON.stringify({
           authUser: {
             uid: authUser.uid,
@@ -77,7 +77,7 @@ export default function Home() {
             leader: game.leader,
           }
         }, null, 2)}
-      </pre>
+      </pre> */}
     </main>
   )
 }

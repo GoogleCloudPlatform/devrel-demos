@@ -15,7 +15,7 @@ export default function SubmitAnswerButton({ gameRef, currentQuestionIndex, answ
   }
 
   return (
-    <button onClick={() => onSubmitAnswerClick(gameRef)} className={`border mt-20`}>
+    <button onClick={() => onSubmitAnswerClick(gameRef)} className={`border mt-20 p-2 rounded-md`}>
       Submit Your Answer
     </button>
   )
