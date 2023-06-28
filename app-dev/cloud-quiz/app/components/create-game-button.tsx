@@ -32,6 +32,6 @@ export default function CreateGameButton({ setGameRef }: { setGameRef: Dispatch<
   }
 
   return (
-    <button onClick={onCreateGameClick} className={`border mt-20`}>Create a New Game</button>
+    <button onClick={onCreateGameClick} className={`border mt-20 p-2`}>Create a New Game</button>
   )
 }
