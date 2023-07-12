@@ -11,7 +11,7 @@ export default function RevealAnswersButton({gameRef}: {gameRef: DocumentReferen
   }
 
   return (
-    <button onClick={() => onRevealAnswersClick(gameRef)} className={`border mt-20`}>
+    <button onClick={() => onRevealAnswersClick(gameRef)} className={`border mt-20 p-2 rounded-md`}>
       Reveal Answers
     </button>
   )
