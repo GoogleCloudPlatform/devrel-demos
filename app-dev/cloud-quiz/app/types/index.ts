@@ -1,3 +1,5 @@
+import { FieldValue, Timestamp, serverTimestamp } from "firebase/firestore";
+
 export type Answer = {
   isCorrect: boolean;
   isSelected: boolean;
@@ -41,6 +43,9 @@ export type Game = {
   players: Player[];
   state: GameState;
   currentQuestionIndex: number;
+  startTime: any;
+  timePerQuestion: number;
+  timePerAnswer: number;
 }
 
 export const emptyGame: Game = {
@@ -49,4 +54,7 @@ export const emptyGame: Game = {
   players: [],
   state: gameStates.NOT_STARTED,
   currentQuestionIndex: -1,
+  startTime: '',
+  timePerQuestion: -1,
+  timePerAnswer: -1,
 };

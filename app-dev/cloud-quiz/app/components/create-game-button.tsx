@@ -1,6 +1,6 @@
 "use client"
 import { db } from "@/app/lib/firebase-initialization";
-import { DocumentData, DocumentReference, QuerySnapshot, addDoc, collection, getDocs } from "firebase/firestore";
+import { DocumentData, DocumentReference, QuerySnapshot, addDoc, collection, getDocs, serverTimestamp } from "firebase/firestore";
 import { gameStates } from "@/app/types";
 import { Dispatch, SetStateAction } from "react";
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
@@ -27,6 +27,9 @@ export default function CreateGameButton({ setGameRef }: { setGameRef: Dispatch<
       },
       state: gameStates.NOT_STARTED,
       currentQuestionIndex: 0,
+      startTime: serverTimestamp(),
+      timePerQuestion: 30,
+      timePerAnswer: 10,
     });
     setGameRef(gameRef);
   }

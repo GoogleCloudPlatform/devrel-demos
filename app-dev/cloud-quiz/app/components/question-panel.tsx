@@ -5,6 +5,7 @@ import { Game, Question, gameStates } from "@/app/types";
 import RevealAnswersButton from "@/app/components/reveal-answers-button";
 import SubmitAnswerButton from "@/app/components/submit-answer-button";
 import { useState, useEffect } from "react";
+import useTimer from "@/app/hooks/use-timer";
 
 export default function QuestionPanel({ game, gameRef, currentQuestion }: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const [answerSelection, setAnswerSelection] = useState<boolean[]>([]);
@@ -24,7 +25,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
     }
   }, [game.currentQuestionIndex])
 
-  const onNextQuestionClick = async () => {
+  const onNextQuestionClick = async ({game, gameRef}: {game: Game, gameRef: DocumentReference}) => {
     if (gameRef?.id) {
       if (game.currentQuestionIndex < Object.keys(game.questions).length - 1) {
         await updateDoc(gameRef, {
@@ -39,6 +40,8 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
     }
   }
 
+  const { timer } = useTimer({ game, isAnswer: true, onTimeExpired: () => onNextQuestionClick({game, gameRef}) });
+
   const currentQuestionIndex = game.currentQuestionIndex;
 
   return (
@@ -48,22 +51,22 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
       </h2>
       <hr className="w-100 my-4"></hr>
       <div className="grid grid-cols-2">
-          {currentQuestion.answers.map((answer, index) => (<div className="flex pt-2 	aspect-square" key={answer.text}>
+        {currentQuestion.answers.map((answer, index) => (<div className="flex pt-2 	aspect-square" key={answer.text}>
           {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (
             <div>
               {answer.isCorrect && '✅'}
               {!answer.isCorrect && answerSelection[index] && '❌'}
             </div>)}
-          <button onClick={() => onAnswerClick(index)} 
+          <button onClick={() => onAnswerClick(index)}
             className=
-              {`border-8 m-8 aspect-square
+            {`border-8 m-8 aspect-square
                 ${answerSelection[index] ? 'text-blue-500' : 'text-inherit'}
                 ${answerSelection[index] && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS && 'border-green-500'}
                 ${answerSelection[index] && !answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS && 'border-red-500'}
                 ${!answerSelection[index] && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS && 'border-green-500 border-dotted'} `}>
             {answer.text}
           </button>
-      </div>))}     
+        </div>))}
       </div>
       {game.state === gameStates.AWAITING_PLAYER_ANSWERS && (<>
         {answerSelection.some(selection => selection === true) ? (<>
@@ -73,11 +76,11 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
             Select an Answer
           </div>
         </>)}
-        <RevealAnswersButton gameRef={gameRef} />
+        <RevealAnswersButton game={game} gameRef={gameRef} />
       </>)}
       {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (
-        <button onClick={onNextQuestionClick} className={`border mt-20 p-2 rounded-md`}>
-          Next Question
+        <button onClick={() => onNextQuestionClick({game, gameRef})} className={`border mt-20 p-2 rounded-md`}>
+          Next Question ({timer})
         </button>
       )}
     </>

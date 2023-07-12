@@ -1,12 +1,13 @@
 "use client"
 
-import { DocumentReference, updateDoc } from "firebase/firestore";
+import { DocumentReference, serverTimestamp, updateDoc } from "firebase/firestore";
 import { gameStates } from "@/app/types";
 
 export default function StartGameButton({gameRef}: {gameRef: DocumentReference}) {
   const onStartGameClick = async (gameRef: DocumentReference) => {
     await updateDoc(gameRef, {
       state: gameStates.AWAITING_PLAYER_ANSWERS,
+      startTime: serverTimestamp(),
     });
   }
 
