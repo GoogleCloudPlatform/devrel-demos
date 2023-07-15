@@ -1,12 +1,10 @@
 import { NextRequest } from "next/server";
 import { getAuth } from 'firebase-admin/auth';
-import { initializeApp } from 'firebase-admin/app';
-
-export const app = initializeApp();
+import { app } from "@/app/lib/firebase-server-initialization";
 
 export async function getAuthenticatedUser(request: NextRequest) {
   const token = request.headers.get('Authorization') || '';
-  const decodedToken = await getAuth().verifyIdToken(token);
+  const decodedToken = await getAuth(app).verifyIdToken(token);
   return decodedToken;
 };
 

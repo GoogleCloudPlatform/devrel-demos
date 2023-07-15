@@ -29,8 +29,6 @@ async function getData() {
 
 
 async function addSomethingToAPIEndpoint(token: any) {
-  console.log('adding to endpoint')
-
   const res = await fetch('/api/protected', {
     method: 'POST',
     body: JSON.stringify({ text: 'this is great text content' }),
@@ -70,7 +68,6 @@ export default function Home() {
 
       const postData = async () => {
         const token = await authUser.getIdToken();
-        console.log(token);
         setToken(token);
         const data = await addSomethingToAPIEndpoint(token)
         setData(data);
