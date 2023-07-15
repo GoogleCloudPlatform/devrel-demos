@@ -8,30 +8,20 @@ import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 export default function CreateGameButton({ setGameRef }: { setGameRef: Dispatch<SetStateAction<DocumentReference<DocumentData> | undefined>> }) {
   const authUser = useFirebaseAuthentication();
   const onCreateGameClick = async () => {
-    const querySnapshot: QuerySnapshot = await getDocs(collection(db, "questions"));
-    const questions = querySnapshot.docs.reduce((agg, doc, index) => {
-      return { ...agg, [index]: doc.data() }
-    }, {});
-    if (!authUser) throw new Error('User must be signed in to start game');
-    const leader = {
-      displayName: authUser.displayName || '',
-      uid: authUser.uid || '',
-    };
-
-    const gameRef = await addDoc(collection(db, "games"), {
-      questions,
-      leader,
-      // TODO: Remove leader from game players, this just makes testing faster
-      players: {
-        [leader.uid]: leader.displayName, 
-      },
-      state: gameStates.NOT_STARTED,
-      currentQuestionIndex: 0,
-      startTime: serverTimestamp(),
-      timePerQuestion: 30,
-      timePerAnswer: 10,
+    const token = await authUser.getIdToken();
+    const res = await fetch('/api/create-game', {
+      method: 'POST',
+      body: JSON.stringify({ text: 'this is great text content' }),
+      headers: {
+        Authorization: token,
+      }
+    }).then(async (response) => {
+      const ressy = await response.json();
+      console.log({ response: ressy });
+      setGameRef(ressy);
+    }).catch(error => {
+      console.log({ error })
     });
-    setGameRef(gameRef);
   }
 
   return (

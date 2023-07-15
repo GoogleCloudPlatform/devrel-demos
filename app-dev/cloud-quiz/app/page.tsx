@@ -27,27 +27,6 @@ async function getData() {
   return res;
 }
 
-
-async function addSomethingToAPIEndpoint(token: any) {
-  const res = await fetch('/api/protected', {
-    method: 'POST',
-    body: JSON.stringify({ text: 'this is great text content' }),
-    headers: {
-      Authorization: token,
-    }
-  });
-  // The return value is *not* serialized
-  // You can return Date, Map, Set, etc.
-
-  // Recommendation: handle errors
-  if (!res.ok) {
-    // This will activate the closest `error.js` Error Boundary
-    throw new Error('Failed to fetch data')
-  }
-
-  return res;
-}
-
 export default function Home() {
   const [gameRef, setGameRef] = useState<DocumentReference>();
   const [game, setGame] = useState<Game>(emptyGame);
@@ -66,19 +45,8 @@ export default function Home() {
         setData(data);
       }
 
-      const postData = async () => {
-        const token = await authUser.getIdToken();
-        setToken(token);
-        const data = await addSomethingToAPIEndpoint(token)
-        setData(data);
-      }
-
-
-
       // call the function
       fetchData()
-        .then(postData)
-        // make sure to catch any error
         .catch(console.error);
     }
   }, [authUser.uid])
