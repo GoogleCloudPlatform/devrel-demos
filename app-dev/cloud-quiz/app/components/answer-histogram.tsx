@@ -1,7 +1,7 @@
 "use client"
 import { signInAnonymously } from "firebase/auth";
 import { onSnapshot, doc, DocumentReference, updateDoc } from "firebase/firestore";
-import { db } from "@/app/lib/firebase-initialization";
+import { db } from "@/app/lib/firebase-client-initialization";
 import { Game, emptyGame, gameStates } from "@/app/types";
 import { useEffect, useState } from 'react';
 

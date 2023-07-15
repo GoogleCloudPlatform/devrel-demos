@@ -1,6 +1,6 @@
 "use client"
 import { signOut } from "firebase/auth";
-import { auth } from "@/app/lib/firebase-initialization";
+import { auth } from "@/app/lib/firebase-client-initialization";
 
 export default function SignOutButton() {
   const onSignOutClick = (): void => {

@@ -1,7 +1,7 @@
 "use client"
 
 // Import the functions you need from the SDKs you need
-import { db } from "@/app/lib/firebase-initialization";
+import { db } from "@/app/lib/firebase-client-initialization";
 import { onSnapshot, doc, DocumentReference, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from 'react';
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";

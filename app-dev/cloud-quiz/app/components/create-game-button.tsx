@@ -1,5 +1,5 @@
 "use client"
-import { db } from "@/app/lib/firebase-initialization";
+import { db } from "@/app/lib/firebase-client-initialization";
 import { DocumentData, DocumentReference, QuerySnapshot, addDoc, collection, getDocs, serverTimestamp } from "firebase/firestore";
 import { gameStates } from "@/app/types";
 import { Dispatch, SetStateAction } from "react";

@@ -1,6 +1,6 @@
 "use client"
 
-import { db } from "@/app/lib/firebase-initialization";
+import { db } from "@/app/lib/firebase-client-initialization";
 import { DocumentData, DocumentReference, collection, onSnapshot, query, updateDoc, where } from "firebase/firestore";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";

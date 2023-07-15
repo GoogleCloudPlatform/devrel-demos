@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { auth } from "@/app/lib/firebase-initialization"
+import { auth } from "@/app/lib/firebase-client-initialization"
 import { IdTokenResult, User } from "firebase/auth";
 
 export const emptyUser: User = {
