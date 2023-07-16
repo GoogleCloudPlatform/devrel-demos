@@ -46,5 +46,5 @@ export async function POST(request: NextRequest) {
     timePerAnswer: 10,
   });
 
-  return NextResponse.json({ gameRef }, { status: 200 })
+  return NextResponse.json({ gameId: gameRef.id }, { status: 200 })
 }

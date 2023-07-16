@@ -2,12 +2,21 @@
 
 import { DocumentReference, serverTimestamp, updateDoc } from "firebase/firestore";
 import { gameStates } from "@/app/types";
+import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 
 export default function StartGameButton({gameRef}: {gameRef: DocumentReference}) {
+  const authUser = useFirebaseAuthentication();
   const onStartGameClick = async (gameRef: DocumentReference) => {
-    await updateDoc(gameRef, {
-      state: gameStates.AWAITING_PLAYER_ANSWERS,
-      startTime: serverTimestamp(),
+    const token = await authUser.getIdToken();
+    await fetch('/api/start-game', {
+      method: 'POST',
+      body: JSON.stringify({ gameId: gameRef.id }),
+      headers: {
+        Authorization: token,
+      }
+    })
+    .catch(error => {
+      console.log({ error })
     });
   }
 
