@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
     state: gameStates.NOT_STARTED,
     currentQuestionIndex: 0,
     startTime,
-    timePerQuestion: 30,
-    timePerAnswer: 10,
+    timePerQuestion: 10,
+    timePerAnswer: 5,
   });
 
   return NextResponse.json({ gameId: gameRef.id }, { status: 200 })

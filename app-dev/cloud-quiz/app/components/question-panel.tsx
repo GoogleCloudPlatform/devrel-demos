@@ -1,11 +1,9 @@
 "use client"
 
-import { DocumentReference, updateDoc } from "firebase/firestore";
+import { DocumentReference } from "firebase/firestore";
 import { Game, Question, gameStates } from "@/app/types";
-import RevealAnswersButton from "@/app/components/reveal-answers-button";
 import SubmitAnswerButton from "@/app/components/submit-answer-button";
 import { useState, useEffect } from "react";
-import useTimer from "@/app/hooks/use-timer";
 
 export default function QuestionPanel({ game, gameRef, currentQuestion }: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const [answerSelection, setAnswerSelection] = useState<boolean[]>([]);
@@ -25,27 +23,31 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
     }
   }, [game.currentQuestionIndex])
 
-  const onNextQuestionClick = async ({game, gameRef}: {game: Game, gameRef: DocumentReference}) => {
-    if (gameRef?.id) {
-      if (game.currentQuestionIndex < Object.keys(game.questions).length - 1) {
-        await updateDoc(gameRef, {
-          currentQuestionIndex: game.currentQuestionIndex + 1,
-          state: gameStates.AWAITING_PLAYER_ANSWERS,
-        });
-      } else {
-        await updateDoc(gameRef, {
-          state: gameStates.GAME_OVER,
-        });
-      }
-    }
-  }
+  const [timer, setTimer] = useState<number>(game.timePerQuestion);
 
-  const { timer } = useTimer({ game, isAnswer: true, onTimeExpired: () => onNextQuestionClick({game, gameRef}) });
+  useEffect(() => {
+    setTimer(game.timePerQuestion);
+    const interval = setInterval(() => {
+      const clientTime = Math.round(Date.now() / 1000);
+      const startTime = game.startTime.seconds;
+      const timePerQuestionAndAnswer = game.timePerQuestion + game.timePerAnswer;
+      const whenThisQuestionStarted = startTime + game.currentQuestionIndex * timePerQuestionAndAnswer;
+      const whenThisQuestionWillEnd = whenThisQuestionStarted + game.timePerQuestion;
+      const timeRemaining = whenThisQuestionWillEnd - clientTime;
+      if (timeRemaining < 0) {
+        setTimer(0);
+      } else {
+        setTimer(timeRemaining);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [game.currentQuestionIndex])
 
   const currentQuestionIndex = game.currentQuestionIndex;
 
   return (
     <>
+      <input type="range" min="0" max={game.timePerQuestion} value={timer} />
       <h2 className="text-2xl font-light">
         {currentQuestion.prompt}
       </h2>
@@ -76,13 +78,12 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
             Select an Answer
           </div>
         </>)}
-        <RevealAnswersButton game={game} gameRef={gameRef} />
       </>)}
-      {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (
+      {/* {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (
         <button onClick={() => onNextQuestionClick({game, gameRef})} className={`border mt-20 p-2 rounded-md`}>
           Next Question ({timer})
         </button>
-      )}
+      )} */}
     </>
   )
 }

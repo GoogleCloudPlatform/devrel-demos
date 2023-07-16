@@ -16,7 +16,7 @@ export default function CreateGameButton({ setGameRef }: { setGameRef: Dispatch<
     })
     .then(res => res.json())
     .catch(error => {
-      console.log({ error })
+      console.error({ error })
     });
 
     const gameRef = doc(db, 'games', response.gameId);

@@ -16,7 +16,7 @@ export default function StartGameButton({gameRef}: {gameRef: DocumentReference})
       }
     })
     .catch(error => {
-      console.log({ error })
+      console.error({ error })
     });
   }
 
