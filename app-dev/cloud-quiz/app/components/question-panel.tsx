@@ -2,29 +2,32 @@
 
 import { DocumentReference } from "firebase/firestore";
 import { Game, Question, gameStates } from "@/app/types";
-import SubmitAnswerButton from "@/app/components/submit-answer-button";
-import { useState, useEffect } from "react";
-import CountdownTimer from "./countdown-timer";
+import CountdownTimer from "@/app/components/countdown-timer";
+import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 
 export default function QuestionPanel({ game, gameRef, currentQuestion }: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
-  const [answerSelection, setAnswerSelection] = useState<boolean[]>([]);
+  const authUser = useFirebaseAuthentication();
 
-  const onAnswerClick = (answerIndex: number): void => {
+  const existingGuesses = currentQuestion?.playerGuesses && currentQuestion.playerGuesses[authUser.uid];
+  const answerSelection = existingGuesses || Array(currentQuestion.answers.length).fill(false);
+
+  const onAnswerClick = async (answerIndex: number) => {
     if (game.state === gameStates.AWAITING_PLAYER_ANSWERS) {
-      // typescript gives an error for `.with` because it is a newer property
-      // this can likely be removed once typescript is updated
-      // @ts-expect-error
-      setAnswerSelection(answerSelection.with(answerIndex, !answerSelection[answerIndex]));
+      const newAnswerSelection = answerSelection.with(answerIndex, !answerSelection[answerIndex]);
+      const token = await authUser.getIdToken();
+      await fetch('/api/update-answer', {
+        method: 'POST',
+        body: JSON.stringify({ newAnswerSelection, gameId: gameRef.id }),
+        headers: {
+          Authorization: token,
+        }
+      })
+      .catch(error => {
+        console.error({ error })
+      });
     }
   }
 
-  useEffect(() => {
-    if (currentQuestion?.answers.length) {
-      setAnswerSelection(Array(currentQuestion.answers.length).fill(false));
-    }
-  }, [game.currentQuestionIndex])
-
-  const currentQuestionIndex = game.currentQuestionIndex;
 
   return (
     <>
@@ -51,20 +54,6 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
           </button>
         </div>))}
       </div>
-      {game.state === gameStates.AWAITING_PLAYER_ANSWERS && (<>
-        {answerSelection.some(selection => selection === true) ? (<>
-          <SubmitAnswerButton gameRef={gameRef} currentQuestionIndex={currentQuestionIndex} answerSelection={answerSelection} />
-        </>) : (<>
-          <div className={`mt-20 text-gray-500`}>
-            Select an Answer
-          </div>
-        </>)}
-      </>)}
-      {/* {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (
-        <button onClick={() => onNextQuestionClick({game, gameRef})} className={`border mt-20 p-2 rounded-md`}>
-          Next Question ({timer})
-        </button>
-      )} */}
     </>
   )
 }

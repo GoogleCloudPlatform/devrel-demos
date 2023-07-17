@@ -9,6 +9,7 @@ export type Answer = {
 export type Question = {
   answers: Array<Answer>;
   prompt: string;
+  playerGuesses?: any;
 }
 
 export const emptyQuestion: Question = {
