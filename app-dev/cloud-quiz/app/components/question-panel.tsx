@@ -4,6 +4,7 @@ import { DocumentReference } from "firebase/firestore";
 import { Game, Question, gameStates } from "@/app/types";
 import SubmitAnswerButton from "@/app/components/submit-answer-button";
 import { useState, useEffect } from "react";
+import CountdownTimer from "./countdown-timer";
 
 export default function QuestionPanel({ game, gameRef, currentQuestion }: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const [answerSelection, setAnswerSelection] = useState<boolean[]>([]);
@@ -23,31 +24,11 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
     }
   }, [game.currentQuestionIndex])
 
-  const [timer, setTimer] = useState<number>(game.timePerQuestion);
-
-  useEffect(() => {
-    setTimer(game.timePerQuestion);
-    const interval = setInterval(() => {
-      const clientTime = Math.round(Date.now() / 1000);
-      const startTime = game.startTime.seconds;
-      const timePerQuestionAndAnswer = game.timePerQuestion + game.timePerAnswer;
-      const whenThisQuestionStarted = startTime + game.currentQuestionIndex * timePerQuestionAndAnswer;
-      const whenThisQuestionWillEnd = whenThisQuestionStarted + game.timePerQuestion;
-      const timeRemaining = whenThisQuestionWillEnd - clientTime;
-      if (timeRemaining < 0) {
-        setTimer(0);
-      } else {
-        setTimer(timeRemaining);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [game.currentQuestionIndex])
-
   const currentQuestionIndex = game.currentQuestionIndex;
 
   return (
     <>
-      <input type="range" min="0" max={game.timePerQuestion} value={timer} />
+      <CountdownTimer game={game} />
       <h2 className="text-2xl font-light">
         {currentQuestion.prompt}
       </h2>
