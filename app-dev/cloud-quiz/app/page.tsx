@@ -91,25 +91,7 @@ export default function Home() {
         </>) : (<>
           <SignInButton />
         </>)}
-        <pre>
-          {JSON.stringify({ data, token, authUser: authUser?.uid || '' })}
-        </pre>
       </div>
-      {/* TODO: Remove this pre tag, just here do make debugging faster */}
-      {/* <pre>
-        {JSON.stringify({
-          authUser: {
-            uid: authUser.uid,
-            displayName: authUser.displayName,
-          },
-          game: {
-            gameRefId: gameRef?.id,
-            state: game.state,
-            players: game.players,
-            leader: game.leader,
-          }
-        }, null, 2)}
-      </pre> */}
     </main>
   )
 }

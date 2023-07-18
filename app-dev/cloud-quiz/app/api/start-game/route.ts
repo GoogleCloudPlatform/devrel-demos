@@ -46,26 +46,33 @@ export async function POST(request: NextRequest) {
   await gameRef.update({
     state: gameStates.AWAITING_PLAYER_ANSWERS,
     startTime: FieldValue.serverTimestamp(),
-    currentTimerStart: FieldValue.serverTimestamp(),
   });
 
   // start automatic question progression
-  async function onQuestionTimeExpired() {
+  async function showQuestion() {
+    let timeRemainingOnThisQuestion = game.timePerQuestion;
+    gameRef.update({ timeRemainingOnThisQuestion })
+    while (timeRemainingOnThisQuestion > 0) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      timeRemainingOnThisQuestion--;
+      gameRef.update({ timeRemainingOnThisQuestion })
+    }
     await gameRef.update({
       state: gameStates.SHOWING_CORRECT_ANSWERS,
     });
-    setTimeout(onAnswerTimeExpired, game.timePerAnswer * 1000)
+    showAnswers();
   }
 
-  async function onAnswerTimeExpired() {
+  async function showAnswers() {
     const gameDoc = await gameRef.get();
     const game = gameDoc.data();
+    await new Promise(resolve => setTimeout(resolve, game.timePerAnswer * 1000));
     if (game.currentQuestionIndex < Object.keys(game.questions).length - 1) {
       await gameRef.update({
         state: gameStates.AWAITING_PLAYER_ANSWERS,
         currentQuestionIndex: game.currentQuestionIndex + 1,
       });
-      setTimeout(onQuestionTimeExpired, game.timePerQuestion * 1000)
+      showQuestion();
     } else {
       await gameRef.update({
         state: gameStates.GAME_OVER,
@@ -73,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  setTimeout(onQuestionTimeExpired, game.timePerQuestion * 1000)
+  showQuestion(); // starts first question
 
   return NextResponse.json('successfully started game', { status: 200 })
 }
