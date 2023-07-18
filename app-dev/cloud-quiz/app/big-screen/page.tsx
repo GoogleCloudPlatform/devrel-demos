@@ -46,7 +46,7 @@ export default function Home() {
       <div>
         {authUser.uid ? (<>
           {(game.state === gameStates.GAME_OVER) && <div>
-            {gameStates.GAME_OVER}
+            {gameStates.GAME_OVER}. Thanks for playing!
           </div>}
           {(!gameRef || game.state === gameStates.GAME_OVER) && <div>
             <CreateGameButton setGameRef={setGameRef} />
