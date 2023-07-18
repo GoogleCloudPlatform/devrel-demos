@@ -1,7 +1,6 @@
 "use client"
 
-import { DocumentReference, serverTimestamp, updateDoc } from "firebase/firestore";
-import { gameStates } from "@/app/types";
+import { DocumentReference } from "firebase/firestore";
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 
 export default function StartGameButton({gameRef}: {gameRef: DocumentReference}) {
