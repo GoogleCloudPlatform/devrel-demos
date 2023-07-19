@@ -50,14 +50,15 @@ export async function POST(request: NextRequest) {
 
   // start automatic question progression
   async function showQuestion() {
-    let timeRemainingOnThisQuestion = game.timePerQuestion;
-    gameRef.update({ timeRemainingOnThisQuestion })
-    while (timeRemainingOnThisQuestion > 0) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      timeRemainingOnThisQuestion--;
-      gameRef.update({ timeRemainingOnThisQuestion })
+    // set all timers for countdown
+    for (let timeRemainingOnThisQuestion = game.timePerQuestion; timeRemainingOnThisQuestion > 0; timeRemainingOnThisQuestion--) {
+      console.log({ timeRemainingOnThisQuestion });
+      setTimeout(() => { gameRef.update({ timeRemainingOnThisQuestion }) }, (game.timePerQuestion - timeRemainingOnThisQuestion) * 1000)
     }
+    // only wait for the final timer
+    await new Promise(resolve => setTimeout(resolve, game.timePerQuestion * 1000));
     await gameRef.update({
+      timeRemainingOnThisQuestion: 0,
       state: gameStates.SHOWING_CORRECT_ANSWERS,
     });
     showAnswers();
