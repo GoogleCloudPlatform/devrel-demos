@@ -51,3 +51,13 @@ To add a question to the database:
 ```bash
 gcloud run deploy cloud-quiz --source .
 ```
+
+
+## Architecture
+
+```mermaid
+flowchart TD
+    A[UI <br /> NextJS <br /> /app folder] -->|Post| B[Validation API <br /> NextJS <br /> /api folder]
+    B --> |Update| C[(Firestore Database <br /> protected by <br /> Firebase Auth)]
+    C -->|GET| A
+```

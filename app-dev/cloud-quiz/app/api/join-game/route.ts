@@ -1,0 +1,42 @@
+import { db } from '@/app/lib/firebase-server-initialization';
+import { generateName } from '@/app/lib/name-generator';
+import { getAuthenticatedUser } from '@/app/lib/server-side-auth'
+import { gameStates } from '@/app/types';
+import { FieldValue } from 'firebase-admin/firestore';
+import { NextRequest, NextResponse } from 'next/server'
+
+export async function POST(request: NextRequest) {
+  // Authenticate user
+  let authUser;
+
+  try {
+    authUser = await getAuthenticatedUser(request);
+  } catch (error) {
+    console.error({ error });
+    // Respond with JSON indicating an error message
+    return new NextResponse(
+      JSON.stringify({ success: false, message: 'authentication failed' }),
+      { status: 401, headers: { 'content-type': 'application/json' } }
+    )
+  }
+
+  // Validate request
+  const { gameId } = await request.json();
+
+  if (!gameId) {
+    // Respond with JSON indicating an error message
+    return new NextResponse(
+      JSON.stringify({ success: false, message: 'no game id provided' }),
+      { status: 400, headers: { 'content-type': 'application/json' } }
+    )
+  }
+
+  const gameRef = await db.collection("games").doc(gameId);
+
+  // update database to join the game
+  await gameRef.update({
+    [`players.${authUser.uid}`]: generateName(),
+  });
+
+  return NextResponse.json('successfully joined game', { status: 200 })
+}

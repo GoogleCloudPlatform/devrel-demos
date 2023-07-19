@@ -2,7 +2,7 @@
 
 import { DocumentData, DocumentReference } from "firebase/firestore";
 import StartGameButton from "@/app/components/start-game-button";
-import ExitGameButton from "@/app/components/exitGameButton";
+import ExitGameButton from "@/app/components/exit-game-button";
 import { Dispatch, SetStateAction } from "react";
 
 export default function Lobby({ gameRef, setGameRef }: { gameRef: DocumentReference, setGameRef: Dispatch<SetStateAction<DocumentReference<DocumentData> | undefined>> }) {
