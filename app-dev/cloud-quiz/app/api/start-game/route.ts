@@ -52,7 +52,6 @@ export async function POST(request: NextRequest) {
   async function showQuestion() {
     // set all timers for countdown
     for (let timeRemainingOnThisQuestion = game.timePerQuestion; timeRemainingOnThisQuestion > 0; timeRemainingOnThisQuestion--) {
-      console.log({ timeRemainingOnThisQuestion });
       setTimeout(() => { gameRef.update({ timeRemainingOnThisQuestion }) }, (game.timePerQuestion - timeRemainingOnThisQuestion) * 1000)
     }
     // only wait for the final timer
@@ -72,6 +71,7 @@ export async function POST(request: NextRequest) {
       await gameRef.update({
         state: gameStates.AWAITING_PLAYER_ANSWERS,
         currentQuestionIndex: game.currentQuestionIndex + 1,
+        timeRemainingOnThisQuestion: game.timePerQuestion,
       });
       showQuestion();
     } else {
