@@ -44,7 +44,6 @@ export async function POST(request: NextRequest) {
     startTime,
     timePerQuestion: 10,
     timePerAnswer: 5,
-    timeRemainingOnThisQuestion: 10,
   });
 
   return NextResponse.json({ gameId: gameRef.id }, { status: 200 })

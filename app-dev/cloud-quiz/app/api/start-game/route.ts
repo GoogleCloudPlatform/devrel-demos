@@ -50,14 +50,9 @@ export async function POST(request: NextRequest) {
 
   // start automatic question progression
   async function showQuestion() {
-    // set all timers for countdown
-    for (let timeRemainingOnThisQuestion = game.timePerQuestion; timeRemainingOnThisQuestion > 0; timeRemainingOnThisQuestion--) {
-      setTimeout(() => { gameRef.update({ timeRemainingOnThisQuestion }) }, (game.timePerQuestion - timeRemainingOnThisQuestion) * 1000)
-    }
-    // only wait for the final timer
-    await new Promise(resolve => setTimeout(resolve, game.timePerQuestion * 1000));
+    // the `+ 500` is used to give an extra half second to submit answers
+    await new Promise(resolve => setTimeout(resolve, game.timePerQuestion * 1000 + 500));
     await gameRef.update({
-      timeRemainingOnThisQuestion: 0,
       state: gameStates.SHOWING_CORRECT_ANSWERS,
     });
     showAnswers();
@@ -71,7 +66,6 @@ export async function POST(request: NextRequest) {
       await gameRef.update({
         state: gameStates.AWAITING_PLAYER_ANSWERS,
         currentQuestionIndex: game.currentQuestionIndex + 1,
-        timeRemainingOnThisQuestion: game.timePerQuestion,
       });
       showQuestion();
     } else {
