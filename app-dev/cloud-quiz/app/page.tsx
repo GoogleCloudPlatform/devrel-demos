@@ -91,7 +91,7 @@ export default function Home() {
                 {game.players[authUser.uid]}
               </div>
               <ul className="list-disc mt-5">
-                {Object.values(game.players).map(displayName => (<li>
+                {Object.values(game.players).map(displayName => (<li key={displayName}>
                   {game.players[authUser.uid] === displayName && '*'}
                   {displayName}
                 </li>))}
