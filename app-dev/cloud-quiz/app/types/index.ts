@@ -47,7 +47,6 @@ export type Game = {
   startTime: any;
   timePerQuestion: number;
   timePerAnswer: number;
-  timeRemainingOnThisQuestion: number;
 }
 
 export const emptyGame: Game = {
@@ -59,5 +58,4 @@ export const emptyGame: Game = {
   startTime: '',
   timePerQuestion: -1,
   timePerAnswer: -1,
-  timeRemainingOnThisQuestion: -1,
 };

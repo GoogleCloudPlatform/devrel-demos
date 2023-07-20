@@ -50,13 +50,8 @@ export async function POST(request: NextRequest) {
 
   // start automatic question progression
   async function showQuestion() {
-    let timeRemainingOnThisQuestion = game.timePerQuestion;
-    gameRef.update({ timeRemainingOnThisQuestion })
-    while (timeRemainingOnThisQuestion > 0) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      timeRemainingOnThisQuestion--;
-      gameRef.update({ timeRemainingOnThisQuestion })
-    }
+    // the `+ 500` is used to give an extra half second to submit answers
+    await new Promise(resolve => setTimeout(resolve, game.timePerQuestion * 1000 + 500));
     await gameRef.update({
       state: gameStates.SHOWING_CORRECT_ANSWERS,
     });
