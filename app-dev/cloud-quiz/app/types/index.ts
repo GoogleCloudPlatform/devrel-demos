@@ -41,7 +41,9 @@ export const emptyPlayer: Player = {
 export type Game = {
   questions: Array<Question>;
   leader: Player,
-  players: Player[];
+  players: {
+    [key: string]: string;
+  };
   state: GameState;
   currentQuestionIndex: number;
   startTime: any;
@@ -52,7 +54,7 @@ export type Game = {
 export const emptyGame: Game = {
   questions: [],
   leader: emptyPlayer,
-  players: [],
+  players: {},
   state: gameStates.NOT_STARTED,
   currentQuestionIndex: -1,
   startTime: '',

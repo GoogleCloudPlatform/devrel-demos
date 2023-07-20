@@ -31,7 +31,6 @@ export default function Home() {
   const [gameRef, setGameRef] = useState<DocumentReference>();
   const [game, setGame] = useState<Game>(emptyGame);
   const [data, setData] = useState<any>({});
-  const [token, setToken] = useState<any>({});
   const authUser = useFirebaseAuthentication();
 
   const showingQuestion = game.state === gameStates.AWAITING_PLAYER_ANSWERS || game.state === gameStates.SHOWING_CORRECT_ANSWERS;
@@ -83,9 +82,23 @@ export default function Home() {
           {showingQuestion && gameRef && (<>
             <QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />
           </>)}
-          {game.state === gameStates.NOT_STARTED && gameRef && (
+          {game.state === gameStates.NOT_STARTED && gameRef && (<>
+            <div>
+              <div>
+                {gameRef.id}
+              </div>
+              <div>
+                {game.players[authUser.uid]}
+              </div>
+              <ul className="list-disc mt-5">
+                {Object.values(game.players).map(displayName => (<li>
+                  {game.players[authUser.uid] === displayName && '*'}
+                  {displayName}
+                </li>))}
+              </ul>
+            </div>
             <Lobby gameRef={gameRef} setGameRef={setGameRef} />
-          )}
+          </>)}
           <br />
           <SignOutButton />
         </>) : (<>
