@@ -10,7 +10,7 @@ import SignInButton from "@/app/components/sign-in-button";
 import CreateGameButton from "@/app/components/create-game-button";
 import { Game, emptyGame, gameStates } from "@/app/types";
 import Lobby from "@/app/components/lobby";
-import GameList from "@/app/components/gameList";
+import GameList from "@/app/components/game-list";
 import QuestionPanel from "@/app/components/question-panel";
 
 async function getData() {
@@ -30,25 +30,10 @@ async function getData() {
 export default function Home() {
   const [gameRef, setGameRef] = useState<DocumentReference>();
   const [game, setGame] = useState<Game>(emptyGame);
-  const [data, setData] = useState<any>({});
   const authUser = useFirebaseAuthentication();
 
   const showingQuestion = game.state === gameStates.AWAITING_PLAYER_ANSWERS || game.state === gameStates.SHOWING_CORRECT_ANSWERS;
   const currentQuestion = game.questions[game.currentQuestionIndex];
-
-  useEffect(() => {
-    if (authUser.uid) {
-      // declare the data fetching function
-      const fetchData = async () => {
-        const data = await getData()
-        setData(data);
-      }
-
-      // call the function
-      fetchData()
-        .catch(console.error);
-    }
-  }, [authUser.uid])
 
   useEffect(() => {
     if (gameRef?.id) {
@@ -72,6 +57,14 @@ export default function Home() {
     <main className="p-24 flex justify-between container mx-auto">
       <div>
         {authUser.uid ? (<>
+          {gameRef && (<>
+            <div>
+              Your Player Name: {game.players[authUser.uid]}
+            </div>
+            <div>
+              Game ID: {gameRef.id}
+            </div>
+          </>)}
           {(game.state === gameStates.GAME_OVER) && <div>
             {gameStates.GAME_OVER}
           </div>}
@@ -83,21 +76,7 @@ export default function Home() {
             <QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />
           </>)}
           {game.state === gameStates.NOT_STARTED && gameRef && (<>
-            <div>
-              <div>
-                {gameRef.id}
-              </div>
-              <div>
-                {game.players[authUser.uid]}
-              </div>
-              <ul className="list-disc mt-5">
-                {Object.values(game.players).map(displayName => (<li key={displayName}>
-                  {game.players[authUser.uid] === displayName && '*'}
-                  {displayName}
-                </li>))}
-              </ul>
-            </div>
-            <Lobby gameRef={gameRef} setGameRef={setGameRef} />
+            <Lobby game={game} gameRef={gameRef} setGameRef={setGameRef} />
           </>)}
           <br />
           <SignOutButton />

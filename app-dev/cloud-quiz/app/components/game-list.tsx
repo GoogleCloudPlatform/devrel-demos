@@ -4,6 +4,7 @@ import { db } from "@/app/lib/firebase-client-initialization";
 import { DocumentData, DocumentReference, collection, onSnapshot, query, where } from "firebase/firestore";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
+import { gameStates } from "../types";
 
 export default function GameList({ setGameRef }: { setGameRef: Dispatch<SetStateAction<DocumentReference<DocumentData> | undefined>> }) {
   const [gameList, setGameList] = useState<DocumentReference[]>();
@@ -24,7 +25,7 @@ export default function GameList({ setGameRef }: { setGameRef: Dispatch<SetState
   }
 
   useEffect(() => {
-    const q = query(collection(db, "games"), where("state", "==", "NOT_STARTED"));
+    const q = query(collection(db, "games"), where("state", "!=", gameStates.GAME_OVER));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const games: DocumentReference[] = [];
       querySnapshot.forEach((doc) => {
