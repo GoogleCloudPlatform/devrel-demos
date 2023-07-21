@@ -38,6 +38,7 @@ const adjectiveList = [
   "Unified",
   "Simple",
   "Service-Oriented",
+  "Anonymous"
 ];
 
 const animalList = [
