@@ -24,6 +24,8 @@ export default function CountdownTimer({ game }: { game: Game }) {
   useEffect(() => {
     if (game.state === gameStates.AWAITING_PLAYER_ANSWERS) {
       setTimeLeft(game.timePerQuestion);
+    } else if (game.state === gameStates.SHOWING_CORRECT_ANSWERS) {
+      setTimeLeft(game.timePerAnswer);
     }
   }, [game.state]);
 
@@ -32,7 +34,7 @@ export default function CountdownTimer({ game }: { game: Game }) {
       <input
         type="range"
         min="0"
-        max={game.timePerQuestion}
+        max={game.state === gameStates.AWAITING_PLAYER_ANSWERS ? game.timePerQuestion : game.timePerAnswer}
         value={timeLeft}
         readOnly
       />

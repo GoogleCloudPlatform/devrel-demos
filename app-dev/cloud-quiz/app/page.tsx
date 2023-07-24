@@ -55,8 +55,8 @@ export default function Home() {
             {gameStates.GAME_OVER}
           </div>}
           {(!gameRef || game.state === gameStates.GAME_OVER) && <div>
-            <CreateGameButton setGameRef={setGameRef} />
             <GameList setGameRef={setGameRef} />
+            <CreateGameButton setGameRef={setGameRef} />
           </div>}
           {showingQuestion && gameRef && (<>
             <QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />
