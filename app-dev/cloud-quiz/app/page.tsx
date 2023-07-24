@@ -13,20 +13,6 @@ import Lobby from "@/app/components/lobby";
 import GameList from "@/app/components/game-list";
 import QuestionPanel from "@/app/components/question-panel";
 
-async function getData() {
-  const res = await fetch('/api/hello');
-  // The return value is *not* serialized
-  // You can return Date, Map, Set, etc.
-
-  // Recommendation: handle errors
-  if (!res.ok) {
-    // This will activate the closest `error.js` Error Boundary
-    throw new Error('Failed to fetch data')
-  }
-
-  return res;
-}
-
 export default function Home() {
   const [gameRef, setGameRef] = useState<DocumentReference>();
   const [game, setGame] = useState<Game>(emptyGame);
