@@ -3,9 +3,11 @@
 import { DocumentData, DocumentReference } from "firebase/firestore";
 import { Dispatch, SetStateAction } from "react";
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
+import { useRouter } from 'next/navigation'
 
 export default function ExitGameButton({ setGameRef, gameRef }: { setGameRef: Dispatch<SetStateAction<DocumentReference<DocumentData> | undefined>>, gameRef: DocumentReference }) {
   const authUser = useFirebaseAuthentication();
+  const router = useRouter()
 
   const onExitGameClick = async (gameRef: DocumentReference) => {
     const token = await authUser.getIdToken();
@@ -15,7 +17,7 @@ export default function ExitGameButton({ setGameRef, gameRef }: { setGameRef: Di
       headers: {
         Authorization: token,
       }
-    }).then(() => setGameRef(undefined))
+    }).then(() => router.push('/'))
     .catch(error => {
       console.error({ error })
     });

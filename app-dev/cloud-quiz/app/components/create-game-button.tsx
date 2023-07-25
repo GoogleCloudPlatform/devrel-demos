@@ -1,11 +1,11 @@
 "use client"
-import { db } from "@/app/lib/firebase-client-initialization";
-import { DocumentData, DocumentReference, doc } from "firebase/firestore";
-import { Dispatch, SetStateAction } from "react";
-import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 
-export default function CreateGameButton({ setGameRef }: { setGameRef: Dispatch<SetStateAction<DocumentReference<DocumentData> | undefined>> }) {
+import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
+import { useRouter } from 'next/navigation'
+
+export default function CreateGameButton() {
   const authUser = useFirebaseAuthentication();
+  const router = useRouter()
   const onCreateGameClick = async () => {
     const token = await authUser.getIdToken();
     const response = await fetch('/api/create-game', {
@@ -19,9 +19,7 @@ export default function CreateGameButton({ setGameRef }: { setGameRef: Dispatch<
       console.error({ error })
     });
 
-    const gameRef = doc(db, 'games', response.gameId);
-
-    setGameRef(gameRef);
+    router.push(`/game/${response.gameId}`)
   }
 
   return (
