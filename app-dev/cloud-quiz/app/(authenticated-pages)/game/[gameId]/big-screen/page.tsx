@@ -8,6 +8,7 @@ import QuestionPanel from "@/app/components/question-panel";
 import { usePathname } from 'next/navigation';
 import Link from "next/link";
 import useGame from "@/app/hooks/use-game";
+import QRCode from "react-qr-code";
 
 export default function GamePage() {
   const authUser = useFirebaseAuthentication();
@@ -19,11 +20,11 @@ export default function GamePage() {
   const currentQuestion = game.questions[game.currentQuestionIndex];
 
   useEffect(() => {
-    if (authUser.uid && Object.keys(game.players).length > 0) {
-      const joinGame = async () => {
-        if (!Object.keys(game.players).includes(authUser.uid)) {
+    if (authUser.uid) {
+      const exitGame = async () => {
+        if (Object.keys(game.players).includes(authUser.uid)) {
           const token = await authUser.getIdToken();
-          await fetch('/api/join-game', {
+          await fetch('/api/exit-game', {
             method: 'POST',
             body: JSON.stringify({ gameId }),
             headers: {
@@ -35,7 +36,7 @@ export default function GamePage() {
         }
       }
 
-      joinGame();
+      exitGame();
     }
   }, [authUser.uid, game.players])
 
@@ -53,9 +54,6 @@ export default function GamePage() {
   return (
     <>
       <div>
-        Your Player Name: {game.players[authUser.uid]}
-      </div>
-      <div>
         Game ID: {gameId}
       </div>
       {(game.state === gameStates.GAME_OVER) && <div>
@@ -69,6 +67,10 @@ export default function GamePage() {
       {game.state === gameStates.NOT_STARTED && gameRef && (<>
         <Lobby game={game} gameRef={gameRef} />
       </>)}
+      <div>
+        Join the game:
+        <QRCode value={`${location.protocol}//${window.location.host}/game/${gameRef.id}`} />
+      </div>
     </>
   )
 }

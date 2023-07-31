@@ -1,8 +1,6 @@
 import { db } from '@/app/lib/firebase-server-initialization';
 import { generateName } from '@/app/lib/name-generator';
 import { getAuthenticatedUser } from '@/app/lib/server-side-auth'
-import { gameStates } from '@/app/types';
-import { FieldValue } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {

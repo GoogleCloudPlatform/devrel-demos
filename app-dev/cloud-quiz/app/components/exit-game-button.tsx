@@ -1,7 +1,6 @@
 "use client"
 
-import { DocumentData, DocumentReference } from "firebase/firestore";
-import { Dispatch, SetStateAction } from "react";
+import { DocumentReference } from "firebase/firestore";
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import { useRouter } from 'next/navigation'
 

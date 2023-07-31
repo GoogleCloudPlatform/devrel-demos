@@ -36,9 +36,7 @@ export async function POST(request: NextRequest) {
   const gameRef = await db.collection("games").add({
     questions,
     leader,
-    players: {
-      [leader.uid]: leader.displayName,
-    },
+    players: {},
     state: gameStates.NOT_STARTED,
     currentQuestionIndex: 0,
     startTime,

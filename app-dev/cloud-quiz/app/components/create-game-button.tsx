@@ -19,7 +19,7 @@ export default function CreateGameButton() {
       console.error({ error })
     });
 
-    router.push(`/game/${response.gameId}`)
+    router.push(`/game/${response.gameId}/big-screen`)
   }
 
   return (
