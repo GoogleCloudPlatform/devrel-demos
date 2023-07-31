@@ -1,40 +1,22 @@
 "use client"
 
-// Import the functions you need from the SDKs you need
-import { db } from "@/app/lib/firebase-client-initialization";
-import { onSnapshot, doc, DocumentReference } from "firebase/firestore";
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
-import { Game, emptyGame, gameStates } from "@/app/types";
+import { gameStates } from "@/app/types";
 import Lobby from "@/app/components/lobby";
 import QuestionPanel from "@/app/components/question-panel";
 import { usePathname } from 'next/navigation';
 import Link from "next/link";
+import useGame from "@/app/hooks/use-game";
 
 export default function GamePage() {
-  const [gameRef, setGameRef] = useState<DocumentReference>();
-  const [game, setGame] = useState<Game>(emptyGame);
-  const [errorMessage, setErrorMessage] = useState<string>('');
   const authUser = useFirebaseAuthentication();
   const pathname = usePathname();
   const gameId = pathname.split('/')[2];
+  const { game, gameRef, error: errorMessage } = useGame(gameId);
 
   const showingQuestion = game.state === gameStates.AWAITING_PLAYER_ANSWERS || game.state === gameStates.SHOWING_CORRECT_ANSWERS;
   const currentQuestion = game.questions[game.currentQuestionIndex];
-
-  useEffect(() => {
-    const gameRef = doc(db, "games", gameId);
-    const unsubscribe = onSnapshot(gameRef, (doc) => {
-      const game = doc.data() as Game;
-      if (game) {
-        setGame(game);
-        setGameRef(gameRef);
-      } else {
-        setErrorMessage(`Game ${gameId} was not found.`)
-      }
-    });
-    return unsubscribe;
-  }, [gameId])
 
   useEffect(() => {
     if (authUser.uid && Object.keys(game.players).length > 0) {
@@ -78,13 +60,14 @@ export default function GamePage() {
       </div>
       {(game.state === gameStates.GAME_OVER) && <div>
         {gameStates.GAME_OVER}
+        <br />
         <Link href="/">Return to Home Page</Link>
       </div>}
       {showingQuestion && gameRef && (<>
         <QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />
       </>)}
       {game.state === gameStates.NOT_STARTED && gameRef && (<>
-        <Lobby game={game} gameRef={gameRef} setGameRef={setGameRef} />
+        <Lobby game={game} gameRef={gameRef} />
       </>)}
     </>
   )

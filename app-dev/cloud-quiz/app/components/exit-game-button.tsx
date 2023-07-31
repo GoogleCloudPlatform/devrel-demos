@@ -5,7 +5,7 @@ import { Dispatch, SetStateAction } from "react";
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import { useRouter } from 'next/navigation'
 
-export default function ExitGameButton({ setGameRef, gameRef }: { setGameRef: Dispatch<SetStateAction<DocumentReference<DocumentData> | undefined>>, gameRef: DocumentReference }) {
+export default function ExitGameButton({ gameRef }: { gameRef: DocumentReference }) {
   const authUser = useFirebaseAuthentication();
   const router = useRouter()
 
