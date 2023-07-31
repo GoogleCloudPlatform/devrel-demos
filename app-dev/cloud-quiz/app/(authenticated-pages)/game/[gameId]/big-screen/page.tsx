@@ -38,7 +38,7 @@ export default function GamePage() {
 
       exitGame();
     }
-  }, [authUser.uid, game.players])
+  }, [authUser.uid])
 
   if (errorMessage) {
     return (

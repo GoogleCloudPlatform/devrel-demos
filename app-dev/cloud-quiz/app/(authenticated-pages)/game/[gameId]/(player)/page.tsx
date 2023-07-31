@@ -37,7 +37,7 @@ export default function GamePage() {
 
       joinGame();
     }
-  }, [authUser.uid, game.players])
+  }, [authUser.uid])
 
   if (errorMessage) {
     return (
