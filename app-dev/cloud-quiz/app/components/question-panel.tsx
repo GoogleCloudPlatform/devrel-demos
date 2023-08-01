@@ -22,9 +22,9 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
           Authorization: token,
         }
       })
-      .catch(error => {
-        console.error({ error })
-      });
+        .catch(error => {
+          console.error({ error })
+        });
     }
   }
 
@@ -38,19 +38,19 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
       <hr className="w-100 my-4"></hr>
       <div className="grid grid-cols-2">
         {currentQuestion.answers.map((answer, index) => (<div className="flex pt-2 	aspect-square" key={answer.text}>
-          {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (
-            <div>
-              {answer.isCorrect && '✅'}
-              {!answer.isCorrect && answerSelection[index] && '❌'}
-            </div>)}
           <button onClick={() => onAnswerClick(index)}
             className=
-            {`border-8 m-8 aspect-square
+            {`border-8 m-2 aspect-square
                 ${answerSelection[index] ? 'text-blue-500' : 'text-inherit'}
                 ${answerSelection[index] && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS && 'border-green-500'}
                 ${answerSelection[index] && !answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS && 'border-red-500'}
-                ${!answerSelection[index] && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS && 'border-green-500 border-dotted'} `}>
+                ${!answerSelection[index] && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS && 'border-green-500 border-dotted'}`}>
             {answer.text}
+            {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (
+              <div>
+                {answer.isCorrect && '✅'}
+                {!answer.isCorrect && answerSelection[index] && '❌'}
+              </div>)}
           </button>
         </div>))}
       </div>
