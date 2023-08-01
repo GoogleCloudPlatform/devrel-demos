@@ -4,7 +4,7 @@ button.start {
   box-sizing: border-box;
   margin: 1em;
   padding: 2em 4em;
-  box-shadow: inset 0 0 0 8px #000000;
+  box-shadow: inset 0 0 0 2px #000000;
   color: #000000;
   font-size: inherit;
   font-weight: 700;
