@@ -1,28 +1,13 @@
 "use client"
 
 import { db } from "@/app/lib/firebase-client-initialization";
-import { DocumentData, DocumentReference, collection, onSnapshot, query, where } from "firebase/firestore";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
+import { DocumentReference, collection, onSnapshot, query, where } from "firebase/firestore";
+import { useEffect, useState } from "react";
 import { gameStates } from "../types";
+import Link from "next/link";
 
-export default function GameList({ setGameRef }: { setGameRef: Dispatch<SetStateAction<DocumentReference<DocumentData> | undefined>> }) {
+export default function GameList() {
   const [gameList, setGameList] = useState<DocumentReference[]>();
-  const authUser = useFirebaseAuthentication();
-
-  const onJoinGameClick = async (gameRef: DocumentReference) => {
-    const token = await authUser.getIdToken();
-    await fetch('/api/join-game', {
-      method: 'POST',
-      body: JSON.stringify({ gameId: gameRef.id }),
-      headers: {
-        Authorization: token,
-      }
-    }).then(() => setGameRef(gameRef))
-    .catch(error => {
-      console.error({ error })
-    });
-  }
 
   useEffect(() => {
     const q = query(collection(db, "games"), where("state", "!=", gameStates.GAME_OVER));
@@ -39,8 +24,8 @@ export default function GameList({ setGameRef }: { setGameRef: Dispatch<SetState
   return (
     <div>
       {gameList?.map(game => (
-        <div key={game.id}>
-          <button onClick={() => onJoinGameClick(game)} className={`border mt-5`}>Join Game - {game.id}</button>
+        <div key={game.id} className={`border mt-5 p-2 rounded-md`}>
+          <Link href={`/game/${game.id}`}>Join Game - {game.id}</Link>
         </div>
       ))}
     </div>

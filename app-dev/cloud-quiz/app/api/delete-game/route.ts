@@ -1,6 +1,6 @@
 import { db } from '@/app/lib/firebase-server-initialization';
-import { generateName } from '@/app/lib/name-generator';
 import { getAuthenticatedUser } from '@/app/lib/server-side-auth'
+import { FieldValue } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
@@ -30,11 +30,19 @@ export async function POST(request: NextRequest) {
   }
 
   const gameRef = await db.collection("games").doc(gameId);
+  const gameDoc = await gameRef.get();
+  const game = gameDoc.data()
 
-  // update database to join the game
-  await gameRef.update({
-    [`players.${authUser.uid}`]: generateName(),
-  });
+  if (game.leader.uid !== authUser.uid) {
+    // Respond with JSON indicating no game was found
+    return new NextResponse(
+      JSON.stringify({ success: false, message: 'no game found' }),
+      { status: 404, headers: { 'content-type': 'application/json' } }
+    )
+  }
+
+  // update database to delete the game
+  await gameRef.delete();
 
   return NextResponse.json('successfully joined game', { status: 200 })
 }
