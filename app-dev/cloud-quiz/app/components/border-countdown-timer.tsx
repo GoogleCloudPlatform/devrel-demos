@@ -86,25 +86,25 @@ export default function BorderCountdownTimer({ game, children }: { game: Game, c
   div.timer.counting.down::before {
     border-top-color: #db3236;
     border-right-color: #4885ed;
-    transition: width ${timeToCountDown / 4}s ease-out, height ${timeToCountDown / 4}s ease-out ${timeToCountDown / 4}s;
+    transition: width ${0.25 * timeToCountDown}s ease-out, height ${0.25 * timeToCountDown}s ease-out ${0.25 * timeToCountDown}s;
   }
   
   div.timer.counting.down::after {
     border-bottom-color: #3cba54;
     border-left-color: #f4c20d;
-    transition: border-color 0s ease-out ${timeToCountDown / 2}s, width ${timeToCountDown / 4}s ease-out ${timeToCountDown / 2}s, height ${timeToCountDown / 4}s ease-out ${timeToCountDown / 4 * 3}s;
+    transition: width ${0.25 * timeToCountDown}s ease-out ${0.50 * timeToCountDown}s, height ${0.25 * timeToCountDown}s ease-out ${0.75 * timeToCountDown}s;
   }
   
   div.timer.counting::before {
     border-top-color: #db3236;
     border-right-color: #4885ed;
-    transition: height ${timeToCountDown / 4}s ease-out, width ${timeToCountDown / 4}s ease-out ${timeToCountDown / 4}s;
+    transition: height ${0.25 * timeToCountDown}s ease-out ${0.50 * timeToCountDown}s, width ${0.25 * timeToCountDown}s ease-out ${0.75 * timeToCountDown}s;
   }
   
   div.timer.counting::after {
     border-bottom-color: #3cba54;
     border-left-color: #f4c20d;
-    transition: border-color 0s ease-out ${timeToCountDown / 2}s, height ${timeToCountDown / 4}s ease-out ${timeToCountDown / 2}s, width ${timeToCountDown / 4}s ease-out ${timeToCountDown / 4 * 3}s;
+    transition: height ${0.25 * timeToCountDown}s ease-out, width ${0.25 * timeToCountDown}s ease-out ${0.25 * timeToCountDown}s;
   }
   `;
 
