@@ -24,7 +24,7 @@ export default function DeleteGameButton({ gameRef }: { gameRef: DocumentReferen
 
   return (
     <div>
-      <button onClick={() => onDeleteGameClick(gameRef)} className={`border mt-20`}>Delete Game</button>
+      <button onClick={() => onDeleteGameClick(gameRef)} className={`border m-2 p-2`}>🗑 Delete Game</button>
     </div>
   )
 }

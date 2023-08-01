@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import { gameStates } from "@/app/types";
-import Lobby from "@/app/components/lobby";
+import BigScreenLobby from "@/app/components/big-screen-lobby";
 import QuestionPanel from "@/app/components/question-panel";
 import { usePathname } from 'next/navigation';
 import Link from "next/link";
@@ -53,9 +53,6 @@ export default function GamePage() {
 
   return (
     <>
-      <div>
-        Game ID: {gameId}
-      </div>
       {(game.state === gameStates.GAME_OVER) && <div>
         {gameStates.GAME_OVER}
         <br />
@@ -65,11 +62,10 @@ export default function GamePage() {
         <QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />
       </>)}
       {game.state === gameStates.NOT_STARTED && gameRef && (<>
-        <Lobby game={game} gameRef={gameRef} />
+        <BigScreenLobby game={game} gameRef={gameRef} />
       </>)}
       <div>
-        Join the game:
-        <QRCode value={`${location.protocol}//${window.location.host}/game/${gameRef.id}`} />
+        Game ID: {gameId}
       </div>
     </>
   )

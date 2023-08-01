@@ -2,6 +2,7 @@
 
 import { DocumentReference } from "firebase/firestore";
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
+import "./start-game-button.css";
 
 export default function StartGameButton({gameRef}: {gameRef: DocumentReference}) {
   const authUser = useFirebaseAuthentication();
@@ -20,8 +21,8 @@ export default function StartGameButton({gameRef}: {gameRef: DocumentReference})
   }
 
   return (
-    <button onClick={() => onStartGameClick(gameRef)} className={`border mt-20`}>
-      Start Game
+    <button onClick={() => onStartGameClick(gameRef)} className={`start draw`}>
+      Start Game Now ►
     </button>
   )
 }

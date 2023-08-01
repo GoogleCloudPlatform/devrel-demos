@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import { gameStates } from "@/app/types";
-import Lobby from "@/app/components/lobby";
+import PlayerLobby from "@/app/components/player-lobby";
 import QuestionPanel from "@/app/components/question-panel";
 import { usePathname } from 'next/navigation';
 import Link from "next/link";
@@ -52,12 +52,6 @@ export default function GamePage() {
 
   return (
     <>
-      <div>
-        Your Player Name: {game.players[authUser.uid]}
-      </div>
-      <div>
-        Game ID: {gameId}
-      </div>
       {(game.state === gameStates.GAME_OVER) && <div>
         {gameStates.GAME_OVER}
         <br />
@@ -67,8 +61,11 @@ export default function GamePage() {
         <QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />
       </>)}
       {game.state === gameStates.NOT_STARTED && gameRef && (<>
-        <Lobby game={game} gameRef={gameRef} />
+        <PlayerLobby game={game} gameRef={gameRef} />
       </>)}
+      <div>
+        Game ID: {gameId}
+      </div>
     </>
   )
 }

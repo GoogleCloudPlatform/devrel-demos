@@ -24,7 +24,7 @@ export default function ExitGameButton({ gameRef }: { gameRef: DocumentReference
 
   return (
     <div>
-      <button onClick={() => onExitGameClick(gameRef)} className={`border mt-20`}>Exit Game</button>
+      <button onClick={() => onExitGameClick(gameRef)} className={`border mt-20 p-2`}>◄ Exit Game</button>
     </div>
   )
 }

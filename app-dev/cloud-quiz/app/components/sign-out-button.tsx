@@ -8,6 +8,6 @@ export default function SignOutButton() {
   }
 
   return (
-    <button onClick={onSignOutClick} className={`border mt-20 p-2 rounded-md`}>Sign Out</button>
+    <button onClick={onSignOutClick} className={`border mt-20 p-2`}>Sign Out</button>
   )
 }

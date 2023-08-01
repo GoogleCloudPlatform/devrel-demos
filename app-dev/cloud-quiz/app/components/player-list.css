@@ -1,0 +1,5 @@
+div.player-list-item {margin: 5px; padding:5px; color: white; display: inline-block }
+div.player-list-item:nth-child(4n+1) {background-color: #4885ed;}
+div.player-list-item:nth-child(4n+2) {background-color: #3cba54;}
+div.player-list-item:nth-child(4n+3) {background-color: #f4c20d;}
+div.player-list-item:nth-child(4n+4) {background-color: #db3236;}
