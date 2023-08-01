@@ -2,7 +2,7 @@
 
 import { DocumentReference } from "firebase/firestore";
 import { Game, Question, gameStates } from "@/app/types";
-import CountdownTimer from "@/app/components/countdown-timer";
+import BorderCountdownTimer from "@/app/components/border-countdown-timer";
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 
 export default function QuestionPanel({ game, gameRef, currentQuestion }: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
@@ -31,10 +31,11 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
 
   return (
     <>
-      <CountdownTimer game={game} />
-      <h2 className="text-2xl font-light">
-        {currentQuestion.prompt}
-      </h2>
+      <BorderCountdownTimer game={game}>
+        <h2 className="text-2xl font-light">
+          {currentQuestion.prompt}
+        </h2>
+      </BorderCountdownTimer>
       <hr className="w-100 my-4"></hr>
       <div className="grid grid-cols-2">
         {currentQuestion.answers.map((answer, index) => (<div className="flex pt-2 	aspect-square" key={answer.text}>

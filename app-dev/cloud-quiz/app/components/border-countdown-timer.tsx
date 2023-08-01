@@ -3,8 +3,10 @@
 import { Game, gameStates } from "@/app/types";
 import { useEffect, useState } from "react";
 
-export default function CountdownTimer({ game }: { game: Game }) {
+export default function BorderCountdownTimer({ game, children }: { game: Game, children: React.ReactNode }) {
+  const [timeToCountDown, setTimeToCountDown] = useState(game.timePerQuestion);
   const [timeLeft, setTimeLeft] = useState(game.timePerQuestion);
+  const [countDirection, setCountDirection] = useState<string>("stopped");
 
   useEffect(() => {
     // save intervalId to clear the interval when the
@@ -23,15 +25,16 @@ export default function CountdownTimer({ game }: { game: Game }) {
 
   useEffect(() => {
     if (game.state === gameStates.AWAITING_PLAYER_ANSWERS) {
+      setCountDirection("down");
+      setTimeToCountDown(game.timePerQuestion);
       setTimeLeft(game.timePerQuestion);
     } else if (game.state === gameStates.SHOWING_CORRECT_ANSWERS) {
+      setCountDirection("up");
+      setTimeToCountDown(game.timePerAnswer);
       setTimeLeft(game.timePerAnswer);
     }
   }, [game.state]);
 
-
-  const isCountingDown = game.state === gameStates.AWAITING_PLAYER_ANSWERS;
-  const timeToCountDown = isCountingDown ? game.timePerQuestion : game.timePerAnswer;
 
   const css = `
   div.timer {
@@ -40,7 +43,7 @@ export default function CountdownTimer({ game }: { game: Game }) {
     box-sizing: border-box;
     margin: 1em;
     padding: 2em 4em;
-    box-shadow: inset 0 0 0 8px #000000;
+    box-shadow: inset 0 0 0 2px #000000;
     color: #000000;
     font-size: inherit;
     font-weight: 700;
@@ -95,15 +98,8 @@ export default function CountdownTimer({ game }: { game: Game }) {
 
   return (
     <>
-      <input
-        type="range"
-        min="0"
-        max={timeToCountDown}
-        value={timeLeft}
-        readOnly
-      />
-      <div className={`timer counting ${ isCountingDown ? "down" : ""}`}>
-        Hello
+      <div className={`timer counting ${ countDirection }`}>
+        {children}
       </div>
       <style>
         {css}
