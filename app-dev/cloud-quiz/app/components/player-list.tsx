@@ -9,17 +9,26 @@ export default function PlayerList({ game }: { game: Game }) {
 
   const currentPlayerName = game.players[authUser.uid];
 
-  return (<>
+  // sort the names so the current player is first
+  const playerDisplayNames = Object.values(game.players).sort((a) => (a === currentPlayerName ? -1 : 0));
+
+  if (playerDisplayNames.length < 1) {
+    return <div className="grid h-full place-items-center">
+      No players have joined the game yet.
+    </div>
+  }
+
+  return (<center className="mx-auto max-w-7xl">
     {currentPlayerName && (<div className="mt-5">
       <div className="player-list-item">
         {currentPlayerName}
       </div>
-      {currentPlayerName === currentPlayerName && ' <-- You!'}
+      {' ← You!'}
     </div>)}
     <div className="mt-5">
-      {Object.values(game.players).sort((a) => (a === currentPlayerName ? -1 : 0)).map(displayName => (<div key={displayName} className="player-list-item">
+      {playerDisplayNames.map(displayName => (<div key={displayName} className="player-list-item">
         {displayName}
       </div>))}
     </div>
-  </>);
+  </center>);
 }
