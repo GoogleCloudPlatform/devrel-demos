@@ -81,29 +81,29 @@ export default function BorderCountdownTimer({ game, children }: { game: Game, c
   
   /* Top and right timer bars going out */
   div.timer.counting.down::before {
-    border-top-color: #db3236;
-    border-right-color: #4885ed;
+    border-top-color: var(--google-cloud-red);
+    border-right-color: var(--google-cloud-blue);
     transition: width ${0.25 * timeToCountDown}s ease-out, height ${0.25 * timeToCountDown}s ease-out ${0.25 * timeToCountDown}s;
   }
   
   /* Bottom and left timer bars going out */
   div.timer.counting.down::after {
-    border-bottom-color: #3cba54;
-    border-left-color: #f4c20d;
+    border-bottom-color: var(--google-cloud-green);
+    border-left-color: var(--google-cloud-yellow);
     transition: height ${0.25 * timeToCountDown}s ease-out ${0.50 * timeToCountDown}s, width ${0.25 * timeToCountDown}s ease-out ${0.75 * timeToCountDown}s;
   }
   
   /* Top and right timer bars going in */
   div.timer.counting::before {
-    border-top-color: #db3236;
-    border-right-color: #4885ed;
+    border-top-color: var(--google-cloud-red);
+    border-right-color: var(--google-cloud-blue);
     transition: height ${0.25 * timeToCountDown}s ease-out ${0.50 * timeToCountDown}s, width ${0.25 * timeToCountDown}s ease-out ${0.75 * timeToCountDown}s;
   }
   
   /* Top and right timer bars going in */
   div.timer.counting::after {
-    border-bottom-color: #3cba54;
-    border-left-color: #f4c20d;
+    border-bottom-color: var(--google-cloud-green);
+    border-left-color: var(--google-cloud-yellow);
     transition: width ${0.25 * timeToCountDown}s ease-out, height ${0.25 * timeToCountDown}s ease-out ${0.25 * timeToCountDown}s;
   }
   `;

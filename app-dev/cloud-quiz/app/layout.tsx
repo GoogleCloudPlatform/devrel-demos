@@ -1,11 +1,11 @@
 import './globals.css'
-import { Inter } from 'next/font/google'
+import { Open_Sans } from 'next/font/google'
 
-const inter = Inter({ subsets: ['latin'] })
+const openSans = Open_Sans({ subsets: ['latin'] })
 
 export const metadata = {
   title: 'Cloud Quiz',
-  description: 'A quiz game letting you test your knowledge of Google Cloud.',
+  description: 'Test your knowledge of Google Cloud.',
 }
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={openSans.className}>{children}</body>
     </html>
   )
 }

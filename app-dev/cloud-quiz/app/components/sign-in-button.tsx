@@ -2,12 +2,14 @@
 import { signInAnonymously } from "firebase/auth";
 import { auth } from "@/app/lib/firebase-client-initialization";
 
+import "./big-color-border-button.css";
+
 export default function SignInButton() {
   const onSignInClick = async() => {
     signInAnonymously(auth);
   }
 
   return (
-    <button onClick={onSignInClick} className={`border mt-20`}>Sign In Anonymously</button>
+    <button onClick={onSignInClick} className={`color-border draw`}>Sign In Anonymously</button>
   )
 }
