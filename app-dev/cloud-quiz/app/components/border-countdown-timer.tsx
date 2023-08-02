@@ -67,14 +67,10 @@ export default function BorderCountdownTimer({ game, children }: { game: Game, c
     height: 0;
   }
   
-  div.timer.counting::before {
+  div.timer.counting::before,
+  div.timer.counting::after {
     top: 0;
     left: 0;
-  }
-  
-  div.timer.counting::after {
-    bottom: 0;
-    right: 0;
   }
   
   div.timer.counting.down::before,
@@ -94,10 +90,10 @@ export default function BorderCountdownTimer({ game, children }: { game: Game, c
   div.timer.counting.down::after {
     border-bottom-color: #3cba54;
     border-left-color: #f4c20d;
-    transition: width ${0.25 * timeToCountDown}s ease-out ${0.50 * timeToCountDown}s, height ${0.25 * timeToCountDown}s ease-out ${0.75 * timeToCountDown}s;
+    transition: height ${0.25 * timeToCountDown}s ease-out ${0.50 * timeToCountDown}s, width ${0.25 * timeToCountDown}s ease-out ${0.75 * timeToCountDown}s;
   }
   
-  /* Bottom and left timer bars going in */
+  /* Top and right timer bars going in */
   div.timer.counting::before {
     border-top-color: #db3236;
     border-right-color: #4885ed;
@@ -108,7 +104,7 @@ export default function BorderCountdownTimer({ game, children }: { game: Game, c
   div.timer.counting::after {
     border-bottom-color: #3cba54;
     border-left-color: #f4c20d;
-    transition: height ${0.25 * timeToCountDown}s ease-out, width ${0.25 * timeToCountDown}s ease-out ${0.25 * timeToCountDown}s;
+    transition: width ${0.25 * timeToCountDown}s ease-out, height ${0.25 * timeToCountDown}s ease-out ${0.25 * timeToCountDown}s;
   }
   `;
 
