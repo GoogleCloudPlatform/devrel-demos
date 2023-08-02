@@ -83,24 +83,28 @@ export default function BorderCountdownTimer({ game, children }: { game: Game, c
     height: 100%;
   }
   
+  /* Top and right timer bars going out */
   div.timer.counting.down::before {
     border-top-color: #db3236;
     border-right-color: #4885ed;
     transition: width ${0.25 * timeToCountDown}s ease-out, height ${0.25 * timeToCountDown}s ease-out ${0.25 * timeToCountDown}s;
   }
   
+  /* Bottom and left timer bars going out */
   div.timer.counting.down::after {
     border-bottom-color: #3cba54;
     border-left-color: #f4c20d;
     transition: width ${0.25 * timeToCountDown}s ease-out ${0.50 * timeToCountDown}s, height ${0.25 * timeToCountDown}s ease-out ${0.75 * timeToCountDown}s;
   }
   
+  /* Bottom and left timer bars going in */
   div.timer.counting::before {
     border-top-color: #db3236;
     border-right-color: #4885ed;
     transition: height ${0.25 * timeToCountDown}s ease-out ${0.50 * timeToCountDown}s, width ${0.25 * timeToCountDown}s ease-out ${0.75 * timeToCountDown}s;
   }
   
+  /* Top and right timer bars going in */
   div.timer.counting::after {
     border-bottom-color: #3cba54;
     border-left-color: #f4c20d;
