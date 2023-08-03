@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation';
 import Link from "next/link";
 import useGame from "@/app/hooks/use-game";
 import GameOverPanel from '@/app/components/game-over-panel';
+import ShareLinkPanel from '@/app/components/share-link-panel';
 
 export default function GamePage() {
   const authUser = useFirebaseAuthentication();

@@ -6,7 +6,7 @@ import DeleteGameButton from "@/app/components/delete-game-button";
 import PlayerList from "./player-list";
 import { Game } from "@/app/types";
 import useFirebaseAuthentication from "../hooks/use-firebase-authentication";
-import QRCode from "react-qr-code";
+import ShareLinkPanel from "./share-link-panel";
 
 export default function PlayerLobby({ game, gameRef }: { game: Game; gameRef: DocumentReference }) {
 
@@ -14,21 +14,16 @@ export default function PlayerLobby({ game, gameRef }: { game: Game; gameRef: Do
 
   return (
     <div className="grid grid-cols-2">
-      {authUser.uid === game.leader.uid ? (<>
-        <div>
-          <PlayerList game={game} />
-        </div>
-        <div>
-          <StartGameButton gameRef={gameRef} />
-          <div>
-            Scan this QR code to join the game:
-            <QRCode value={`${location.protocol}//${window.location.host}/game/${gameRef.id}`} />
-          </div>
-          <DeleteGameButton gameRef={gameRef} />
-        </div>
-      </>) : (<>
+      <div className="mt-20">
         <PlayerList game={game} />
-      </>)}
+      </div>
+      <center>
+        {authUser.uid === game.leader.uid && (<div className="my-20">
+          <StartGameButton gameRef={gameRef} />
+        </div>)}
+        <ShareLinkPanel gameRef={gameRef} />
+        {authUser.uid === game.leader.uid && <DeleteGameButton gameRef={gameRef} />}
+      </center>
     </div>
   )
 }
