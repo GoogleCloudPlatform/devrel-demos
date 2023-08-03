@@ -3,6 +3,7 @@
 import { DocumentReference } from "firebase/firestore";
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import "./big-color-border-button.css";
+import BigColorBorderButton from "@/app/components/big-color-border-button";
 
 export default function StartGameButton({gameRef}: {gameRef: DocumentReference}) {
   const authUser = useFirebaseAuthentication();
@@ -21,8 +22,8 @@ export default function StartGameButton({gameRef}: {gameRef: DocumentReference})
   }
 
   return (
-    <button onClick={() => onStartGameClick(gameRef)} className={`color-border draw`}>
+    <BigColorBorderButton onClick={() => onStartGameClick(gameRef)}>
       Start Game Now ►
-    </button>
+    </BigColorBorderButton>
   )
 }

@@ -1,16 +1,13 @@
 "use client"
 import { useRouter } from 'next/navigation'
-
-
-import "./big-color-border-button.css";
+import BigColorBorderButton from './big-color-border-button'
 
 export default function ReturnToHomepageButton() {
   const router = useRouter()
-  const onReturnToHomepageClick = async() => {
-    router.push('/')
-  }
 
   return (
-    <button onClick={onReturnToHomepageClick} className={`color-border draw`}>Return to Homepage</button>
+    <BigColorBorderButton onClick={() => router.push('/')}>
+      Return to Homepage
+    </BigColorBorderButton>
   )
 }

@@ -1,4 +1,5 @@
 import { db } from '@/app/lib/firebase-server-initialization';
+import { gameFormValidator } from '@/app/lib/game-form-validator';
 import { generateName } from '@/app/lib/name-generator';
 import { getAuthenticatedUser } from '@/app/lib/server-side-auth'
 import { gameStates } from '@/app/types';
@@ -16,6 +17,19 @@ export async function POST(request: NextRequest) {
     return new NextResponse(
       JSON.stringify({ success: false, message: 'authentication failed' }),
       { status: 401, headers: { 'content-type': 'application/json' } }
+    )
+  }
+
+  // Validate request
+  const { timePerQuestion, timePerAnswer }: { timePerQuestion: number, timePerAnswer: number } = await request.json();
+
+  const errorMessage = gameFormValidator({timePerQuestion, timePerAnswer});
+
+  if (errorMessage) {
+    // Respond with JSON indicating an error message
+    return new NextResponse(
+      JSON.stringify({ success: false, message: errorMessage }),
+      { status: 400, headers: { 'content-type': 'application/json' } }
     )
   }
 
@@ -40,8 +54,8 @@ export async function POST(request: NextRequest) {
     state: gameStates.NOT_STARTED,
     currentQuestionIndex: 0,
     startTime,
-    timePerQuestion: 10,
-    timePerAnswer: 5,
+    timePerQuestion,
+    timePerAnswer,
   });
 
   return NextResponse.json({ gameId: gameRef.id }, { status: 200 })
