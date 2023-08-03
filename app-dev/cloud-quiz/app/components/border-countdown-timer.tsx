@@ -12,7 +12,7 @@ export default function BorderCountdownTimer({ game, children }: { game: Game, c
     // save intervalId to clear the interval when the
     // component re-renders
     const intervalId = setInterval(() => {
-      if (timeLeft < 0) {
+      if (timeLeft < 1) {
         setTimeLeft(0);
       } else {
         setTimeLeft(timeLeft - 1);
@@ -110,8 +110,10 @@ export default function BorderCountdownTimer({ game, children }: { game: Game, c
 
   return (
     <>
-      <div className={`timer counting ${ countDirection }`}>
-        {timeLeft}
+      <div className={`timer counting ${countDirection}`}>
+        <div className="float-right -mt-4 -mr-12 bg-gray-100 py-1 px-2">
+          {timeLeft}
+        </div>
         {children}
       </div>
       <style>

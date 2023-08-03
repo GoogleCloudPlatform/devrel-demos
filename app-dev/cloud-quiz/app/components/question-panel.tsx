@@ -30,22 +30,22 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
 
 
   return (
-    <>
+    <div className="grid lg:grid-cols-2">
       <BorderCountdownTimer game={game}>
         <h2 className="text-2xl font-light">
           {currentQuestion.prompt}
         </h2>
       </BorderCountdownTimer>
-      <hr className="w-100 my-4"></hr>
       <div className="grid grid-cols-2">
-        {currentQuestion.answers.map((answer, index) => (<div className="flex pt-2 	aspect-square" key={answer.text}>
+        {currentQuestion.answers.map((answer, index) => (<div className="flex py-2 	aspect-square" key={answer.text}>
           <button onClick={() => onAnswerClick(index)}
             className=
             {`border-8 m-2 aspect-square
-                ${answerSelection[index] ? 'text-blue-500' : 'text-inherit'}
-                ${answerSelection[index] && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS && 'border-green-500'}
-                ${answerSelection[index] && !answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS && 'border-red-500'}
-                ${!answerSelection[index] && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS && 'border-green-500 border-dotted'}`}>
+                ${answerSelection[index] ? 'text-[var(--google-cloud-blue)]' : 'text-inherit'}
+                ${answerSelection[index] && game.state !== gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-blue)]' : ''}
+                ${answerSelection[index] && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS && 'border-[var(--google-cloud-green)]'}
+                ${answerSelection[index] && !answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS && 'border-[var(--google-cloud-red)]'}
+                ${!answerSelection[index] && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS && 'border-[var(--google-cloud-green)] border-dotted'}`}>
             {answer.text}
             {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (
               <div>
@@ -55,6 +55,6 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
           </button>
         </div>))}
       </div>
-    </>
+    </div>
   )
 }
