@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { RouteWithCurrentStatus } from '@/app/types';
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import SignInButton from '@/app/components/sign-in-button';
+import { usePathname } from 'next/navigation';
 
 function classNames(...classes: any) {
   return classes.filter(Boolean).join(' ')
@@ -17,19 +18,14 @@ function classNames(...classes: any) {
 export default function Navbar() {
   const authUser = useFirebaseAuthentication();
 
-  const [navigation, setNavigation] = useState<RouteWithCurrentStatus[]>([]);
-
-  useEffect(() => {
-    const navigation = [
-      { name: 'Home', href: '/' },
-      { name: 'About', href: '/about' },
-    ].map((route: any) => {
-      return({
-      ...route,
-      current: window?.location?.pathname === route.href,
-    })});
-    setNavigation(navigation);
-  }, [window?.location?.pathname])
+  const pathname = usePathname();
+  const navigation = [
+    { name: 'Home', href: '/' },
+    { name: 'About', href: '/about' },
+  ].map((route: any) => ({
+    ...route,
+    current: pathname === route.href,
+  }));
 
   return (
     <Disclosure as="nav" className="border">
@@ -76,7 +72,7 @@ export default function Navbar() {
                   </div>
                 </div>
               </div>
-              { authUser.uid ? <SignOutButton /> : <SignInButton /> }
+              {authUser.uid ? <SignOutButton /> : <SignInButton />}
             </div>
           </div>
 

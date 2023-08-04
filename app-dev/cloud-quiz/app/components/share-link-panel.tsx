@@ -5,7 +5,7 @@ import { useState } from "react"
 import QRCode from "react-qr-code";
 
 export default function ShareLinkPanel({ gameRef }: { gameRef: DocumentReference }) {
-  const gameShareLink = `${location.protocol}//${window.location.host}/game/${gameRef.id}`;
+  const gameShareLink = `${location.protocol}//${location.host}/game/${gameRef.id}`;
   const [isCopied, setIsCopied] = useState<Boolean>(false);
 
   const copyShareLink = () => {
