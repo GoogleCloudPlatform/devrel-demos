@@ -24,7 +24,7 @@ export default function DeleteGameButton({ gameRef }: { gameRef: DocumentReferen
 
   return (
     <div>
-      <button onClick={() => onDeleteGameClick(gameRef)} className={`border mt-20`}>Delete Game</button>
+      <button onClick={() => onDeleteGameClick(gameRef)} className={`m-2 mt-20 p-2 text-gray-700 hover:underline hover:decoration-[var(--google-cloud-red)] hover:text-black block rounded-md px-3 py-2 text-base font-medium`}>Delete Game</button>
     </div>
   )
 }

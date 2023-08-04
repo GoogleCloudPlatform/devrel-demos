@@ -1,9 +1,10 @@
 "use client"
 
-import '@/app/globals.css'
+import '@/app/globals.css';
+import Image from 'next/image';
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
-import SignInButton from '@/app/components/sign-in-button';
-import SignOutButton from '@/app/components/sign-out-button';
+import BigSignInButton from '@/app/components/big-sign-in-button';
+import Navbar from '@/app/components/navbar';
 
 export default function RootLayout({
   children,
@@ -13,17 +14,31 @@ export default function RootLayout({
   const authUser = useFirebaseAuthentication();
 
   return (
-    <main className="p-24 flex justify-between container mx-auto">
+    <main>
       <div>
         {authUser.uid ? (
           <>
             {children}
-            <br />
-            <SignOutButton />
           </>
         ) : (
-          <SignInButton />
-        )}
+          <>
+            <Navbar />
+            <center className='pt-20'>
+              <div className='h-20'>
+                <Image
+                  src='/google-cloud-logo.svg'
+                  alt='Google Cloud Logo'
+                  width={0}
+                  height={0}
+                  sizes="100vw"
+                  style={{ width: '100%', height: '100%' }} // optional            
+                />
+              </div>
+              <h1 className='text-4xl pt-10'>Cloud Quiz</h1>
+              <h2 className='pb-10'>Test your knowledge of Google Cloud.</h2>
+              <BigSignInButton />
+            </center>
+          </>)}
       </div>
     </main>
   )

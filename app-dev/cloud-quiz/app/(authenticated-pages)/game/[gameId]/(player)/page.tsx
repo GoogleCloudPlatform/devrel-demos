@@ -3,11 +3,13 @@
 import { useEffect } from 'react';
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import { gameStates } from "@/app/types";
-import Lobby from "@/app/components/lobby";
+import PlayerLobby from "@/app/components/player-lobby";
 import QuestionPanel from "@/app/components/question-panel";
 import { usePathname } from 'next/navigation';
 import Link from "next/link";
 import useGame from "@/app/hooks/use-game";
+import GameOverPanel from '@/app/components/game-over-panel';
+import ShareLinkPanel from '@/app/components/share-link-panel';
 
 export default function GamePage() {
   const authUser = useFirebaseAuthentication();
@@ -52,23 +54,16 @@ export default function GamePage() {
 
   return (
     <>
-      <div>
-        Your Player Name: {game.players[authUser.uid]}
-      </div>
-      <div>
-        Game ID: {gameId}
-      </div>
-      {(game.state === gameStates.GAME_OVER) && <div>
-        {gameStates.GAME_OVER}
-        <br />
-        <Link href="/">Return to Home Page</Link>
-      </div>}
+      {(game.state === gameStates.GAME_OVER) && <GameOverPanel />}
       {showingQuestion && gameRef && (<>
         <QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />
       </>)}
       {game.state === gameStates.NOT_STARTED && gameRef && (<>
-        <Lobby game={game} gameRef={gameRef} />
+        <PlayerLobby game={game} gameRef={gameRef} />
       </>)}
+      <center className='mt-60 text-slate-500'>
+        Game ID: {gameId}
+      </center>
     </>
   )
 }

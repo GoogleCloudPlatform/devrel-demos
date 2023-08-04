@@ -59,3 +59,9 @@ export const emptyGame: Game = {
   timePerQuestion: -1,
   timePerAnswer: -1,
 };
+
+export type RouteWithCurrentStatus = {
+  name: string;
+  href: string;
+  current: boolean;
+}

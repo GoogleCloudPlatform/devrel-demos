@@ -1,0 +1,5 @@
+div.player-list-item {margin: 5px; padding:5px; color: white; display: inline-block }
+div.player-list-item:nth-child(4n+1) {background-color: var(--google-cloud-blue);}
+div.player-list-item:nth-child(4n+2) {background-color: var(--google-cloud-green);}
+div.player-list-item:nth-child(4n+3) {background-color: var(--google-cloud-yellow);}
+div.player-list-item:nth-child(4n+4) {background-color: var(--google-cloud-red);}

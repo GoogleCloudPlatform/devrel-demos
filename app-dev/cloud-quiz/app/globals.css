@@ -6,6 +6,10 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
+  --google-cloud-red: #ea4335;
+  --google-cloud-blue: #4285f4;
+  --google-cloud-green: #34a853;
+  --google-cloud-yellow: #fbbc05;
 }
 
 

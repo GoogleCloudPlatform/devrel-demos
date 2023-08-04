@@ -8,6 +8,8 @@ export default function SignOutButton() {
   }
 
   return (
-    <button onClick={onSignOutClick} className={`border mt-20 p-2 rounded-md`}>Sign Out</button>
+    <button onClick={onSignOutClick} className={`text-gray-700 hover:underline hover:decoration-[var(--google-cloud-blue)] hover:text-black block rounded-md px-3 py-2 text-base font-medium`}>
+      Sign Out
+    </button>
   )
 }

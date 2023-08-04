@@ -22,12 +22,14 @@ export default function GameList() {
   }, [])
 
   return (
-    <div>
-      {gameList?.map(game => (
+    <div className="p-2 mx-auto max-w-2xl">
+      {(gameList && gameList.length > 0) ? gameList.map(game => (
         <div key={game.id} className={`border mt-5 p-2 rounded-md`}>
           <Link href={`/game/${game.id}`}>Join Game - {game.id}</Link>
         </div>
-      ))}
+      )) : (<center className="mt-20">
+        There are currently no games in progress.
+      </center>)}
     </div>
   )
 }
