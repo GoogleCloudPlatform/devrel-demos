@@ -5,19 +5,12 @@ import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import { gameStates } from "@/app/types";
 import PlayerLobby from "@/app/components/player-lobby";
 import QuestionPanel from "@/app/components/question-panel";
-import { usePathname } from 'next/navigation';
 import useGame from "@/app/hooks/use-game";
-import GameOverPanel from '@/app/components/game-over-panel';
-import ReturnToHomepageButton from '@/app/components/return-to-homepage-button';
+import ReturnToHomepagePanel from '@/app/components/return-to-homepage-panel';
 
 export default function GamePage() {
   const authUser = useFirebaseAuthentication();
-  const pathname = usePathname();
-  const gameId = pathname.split('/')[2];
-  const { game, gameRef, error: errorMessage } = useGame(gameId);
-
-  const showingQuestion = game.state === gameStates.AWAITING_PLAYER_ANSWERS || game.state === gameStates.SHOWING_CORRECT_ANSWERS;
-  const currentQuestion = game.questions[game.currentQuestionIndex];
+  const { game, gameId, gameRef, isShowingQuestion, currentQuestion, error: errorMessage } = useGame();
 
   useEffect(() => {
     if (authUser.uid && Object.keys(game.players)) {
@@ -42,27 +35,21 @@ export default function GamePage() {
 
   if (errorMessage) {
     return (
-      <center className='p-8'>
-        {errorMessage}
-        <div className='p-8'>
-          <ReturnToHomepageButton />
-        </div>
-      </center>
+      <ReturnToHomepagePanel>
+        <h2>{errorMessage}</h2>
+      </ReturnToHomepagePanel>
     )
   }
 
   return (
     <>
-      {(game.state === gameStates.GAME_OVER) && <GameOverPanel />}
-      {showingQuestion && gameRef && (<>
-        <QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />
-      </>)}
-      {game.state === gameStates.NOT_STARTED && gameRef && (<>
-        <PlayerLobby game={game} gameRef={gameRef} />
-      </>)}
-      <center className='mt-60 text-slate-500'>
-        Game ID: {gameId}
-      </center>
+      {(game.state === gameStates.GAME_OVER) && (
+        <ReturnToHomepagePanel>
+          <h2>Game Over</h2>
+        </ReturnToHomepagePanel>
+      )}
+      {isShowingQuestion && (<QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />)}
+      {game.state === gameStates.NOT_STARTED && (<PlayerLobby game={game} gameRef={gameRef} />)}
     </>
   )
 }

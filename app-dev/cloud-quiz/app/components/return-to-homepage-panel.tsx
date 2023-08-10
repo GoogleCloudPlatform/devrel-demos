@@ -1,9 +1,13 @@
 "use client"
 
 import Image from 'next/image';
-import ReturnToHomepageButton from '@/app/components/return-to-homepage-button';
+import BigColorBorderButton from '@/app/components/big-color-border-button';
+import { useRouter } from 'next/navigation'
 
-export default function GameOverPanel() {
+
+export default function ReturnToHomepagePanel({ children }: { children: React.ReactNode }) {
+
+  const router = useRouter()
   return (
     <div>
       <center className='pt-20'>
@@ -18,8 +22,10 @@ export default function GameOverPanel() {
           />
         </div>
         <h1 className='text-4xl pt-10'>Cloud Quiz</h1>
-        <h2>Game Over</h2>
-        <ReturnToHomepageButton />
+        {children}
+        <BigColorBorderButton onClick={() => router.push('/')}>
+          Return to Homepage
+        </BigColorBorderButton>
       </center>
     </div>
   )

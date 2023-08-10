@@ -1,5 +1,3 @@
-import { FieldValue, Timestamp, serverTimestamp } from "firebase/firestore";
-
 export type Answer = {
   isCorrect: boolean;
   isSelected: boolean;
@@ -17,14 +15,14 @@ export const emptyQuestion: Question = {
   prompt: ''
 };
 
-export type GameState = 'NOT_STARTED' | 'NO_ANSWER_SUBMITTED' | 'ANSWER_SUBMITTED' | 'SHOWING_CORRECT_ANSWERS' | 'AWAITING_PLAYER_ANSWERS' | 'GAME_OVER';
-
 export const gameStates = {
   NOT_STARTED: 'NOT_STARTED',
   SHOWING_CORRECT_ANSWERS: 'SHOWING_CORRECT_ANSWERS',
   AWAITING_PLAYER_ANSWERS: 'AWAITING_PLAYER_ANSWERS',
   GAME_OVER: 'GAME_OVER',
 } as const;
+
+export type GameState = (typeof gameStates)[keyof typeof gameStates];
 
 export type Player = {
   uid: string;

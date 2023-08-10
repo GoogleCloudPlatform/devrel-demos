@@ -33,7 +33,7 @@ export default function BorderCountdownTimer({ game, children }: { game: Game, c
       setTimeToCountDown(game.timePerAnswer);
       setTimeLeft(game.timePerAnswer);
     }
-  }, [game.state]);
+  }, [game.state, game.timePerAnswer, game.timePerQuestion]);
 
 
   const css = `
@@ -41,14 +41,14 @@ export default function BorderCountdownTimer({ game, children }: { game: Game, c
     background: none;
     border: 0;
     box-sizing: border-box;
-    margin: 1em;
     padding: 2em 4em;
-    box-shadow: inset 0 0 0 2px #000000;
+    box-shadow: inset 0 0 0 2px #F3F4F6;
     color: #000000;
     font-size: inherit;
     font-weight: 700;
     position: relative;
     vertical-align: middle;
+    height: 50vh;
   }
   
   div.timer::before,

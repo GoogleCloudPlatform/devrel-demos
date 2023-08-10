@@ -8,3 +8,6 @@ if (getApps().length < 1) {
   app = initializeApp(firebaseConfig);
 }
 export const db = getFirestore()
+
+export const gamesRef = db.collection("games");
+export const questionsRef = db.collection("questions");

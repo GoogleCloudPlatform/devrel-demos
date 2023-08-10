@@ -1,4 +1,4 @@
-import { db } from '@/app/lib/firebase-server-initialization';
+import { gamesRef, questionsRef } from '@/app/lib/firebase-server-initialization';
 import { gameFormValidator } from '@/app/lib/game-form-validator';
 import { generateName } from '@/app/lib/name-generator';
 import { getAuthenticatedUser } from '@/app/lib/server-side-auth'
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const querySnapshot = await db.collection("questions").get();
+  const querySnapshot = await questionsRef.get();
   const questions = querySnapshot.docs.reduce((agg: any, doc: any, index: any) => {
     return { ...agg, [index]: doc.data() }
   }, {});
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
   const startTime = Timestamp.now();
 
-  const gameRef = await db.collection("games").add({
+  const gameRef = await gamesRef.add({
     questions,
     leader,
     players: {},

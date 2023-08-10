@@ -1,6 +1,5 @@
-import { db } from '@/app/lib/firebase-server-initialization';
+import { gamesRef } from '@/app/lib/firebase-server-initialization';
 import { getAuthenticatedUser } from '@/app/lib/server-side-auth'
-import { FieldValue } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
@@ -29,7 +28,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const gameRef = await db.collection("games").doc(gameId);
+  const gameRef = await gamesRef.doc(gameId);
   const gameDoc = await gameRef.get();
   const game = gameDoc.data()
 
