@@ -6,9 +6,9 @@ import { gameStates } from "@/app/types";
 import BigScreenLobby from "@/app/components/big-screen-lobby";
 import QuestionPanel from "@/app/components/question-panel";
 import { usePathname } from 'next/navigation';
-import Link from "next/link";
 import useGame from "@/app/hooks/use-game";
 import GameOverPanel from '@/app/components/game-over-panel';
+import ReturnToHomepageButton from '@/app/components/return-to-homepage-button';
 
 export default function GamePage() {
   const authUser = useFirebaseAuthentication();
@@ -42,12 +42,12 @@ export default function GamePage() {
 
   if (errorMessage) {
     return (
-      <>
+      <center className='p-8'>
         {errorMessage}
-        <div>
-          <Link href="/">Return to Homepage</Link>
+        <div className='p-8'>
+          <ReturnToHomepageButton />
         </div>
-      </>
+      </center>
     )
   }
 

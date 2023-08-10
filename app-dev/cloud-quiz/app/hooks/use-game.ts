@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { auth, db } from "@/app/lib/firebase-client-initialization"
+import { db } from "@/app/lib/firebase-client-initialization"
 import { Game, emptyGame } from "@/app/types";
 import { DocumentReference, doc, onSnapshot } from "firebase/firestore";
 
