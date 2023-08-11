@@ -7,6 +7,7 @@ import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import Image from 'next/image';
 import QRCode from "react-qr-code";
 import { usePathname } from "next/navigation";
+import { mergeClassNames } from "../lib/mergeClassNames";
 
 export default function QuestionPanel({ game, gameRef, currentQuestion }: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const authUser = useFirebaseAuthentication();
@@ -41,11 +42,16 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
     <div className={`grid ${isBigScreen ? 'grid-cols-2' : 'lg:grid-cols-2'}`}>
       <div className="flex flex-col">
         <BorderCountdownTimer game={game}>
-          <h2 className="text-2xl font-light">
+          <h2 className="text-xl lg:text-2xl">
             {currentQuestion.prompt}
           </h2>
+          {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (<>
+            <h2 className="text-sm lg:text-xl lg:font-light pt-5">
+              {currentQuestion.explanation}
+            </h2>
+          </>)}
         </BorderCountdownTimer>
-        <center className={`hidden bg-gray-100 p-10 h-[50vh] lg:block`}>
+        <center className='hidden bg-gray-100 p-10 h-[50vh] lg:block'>
           {isBigScreen ? (<>
             <div>
               Just getting here?
@@ -63,7 +69,8 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
                   width={0}
                   height={0}
                   sizes="100vw"
-                  style={{ width: '100%', height: '100%' }} // optional            
+                  style={{ width: '100%', height: '100%' }} // optional
+                  priority
                 />
               </div>
               <h1 className='text-4xl pt-10'>Cloud Quiz</h1>
@@ -74,13 +81,14 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
       <div className="grid grid-cols-2 h-[50vh] lg:h-full">
         {currentQuestion.answers.map((answer, index) => (<div className="flex" key={answer.text}>
           <button onClick={() => onAnswerClick(index)}
-            className=
-            {`border-8 m-2 w-full
-                ${answerSelection[index] ? 'text-[var(--google-cloud-blue)]' : 'text-inherit'}
-                ${answerSelection[index] && game.state !== gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-blue)]' : ''}
-                ${answerSelection[index] && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS && 'border-[var(--google-cloud-green)]'}
-                ${answerSelection[index] && !answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS && 'border-[var(--google-cloud-red)]'}
-                ${!answerSelection[index] && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS && 'border-[var(--google-cloud-green)] border-dotted'}`}>
+            className={mergeClassNames(
+              "border-8 m-2 w-full",
+              answerSelection[index] ? 'text-[var(--google-cloud-blue)]' : 'text-inherit',
+              answerSelection[index] && game.state !== gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-blue)]' : '',
+              answerSelection[index] && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-green)]' : '',
+              answerSelection[index] && !answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-red)]' : '',
+              !answerSelection[index] && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-green)] border-dotted' : '',
+            )}>
             {answer.text}
             {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (
               <div>

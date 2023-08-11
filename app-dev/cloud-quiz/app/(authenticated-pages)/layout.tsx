@@ -31,7 +31,8 @@ export default function RootLayout({
                   width={0}
                   height={0}
                   sizes="100vw"
-                  style={{ width: '100%', height: '100%' }} // optional            
+                  style={{ width: '100%', height: '100%' }} // optional
+                  priority
                 />
               </div>
               <h1 className='text-4xl pt-10'>Cloud Quiz</h1>

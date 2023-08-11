@@ -8,10 +8,7 @@ import SignOutButton from '@/app/components/sign-out-button';
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import SignInButton from '@/app/components/sign-in-button';
 import { usePathname } from 'next/navigation';
-
-function classNames(...classes: string[]) {
-  return classes.filter(Boolean).join(' ')
-}
+import { mergeClassNames } from '@/app/lib/mergeClassNames';
 
 export default function Navbar() {
   const authUser = useFirebaseAuthentication();
@@ -33,7 +30,7 @@ export default function Navbar() {
             <div className="relative flex h-16 items-center justify-between">
               <div className="absolute inset-y-0 left-0 flex items-center sm:hidden">
                 {/* Mobile menu button*/}
-                <Disclosure.Button className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:underline hover:decoration-[var(--google-cloud-blue)] hover:text-black">
+                <Disclosure.Button id="disclosure-button" className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:underline hover:decoration-[var(--google-cloud-blue)] hover:text-black">
                   <span className="sr-only">Open main menu</span>
                   {open ? (
                     <XMarkIcon className="block h-6 w-6" aria-hidden="true" />
@@ -50,6 +47,7 @@ export default function Navbar() {
                     width='80'
                     height='80'
                     className='block h-8 w-auto'
+                    priority
                   />
                 </div>
                 <div className="hidden sm:ml-6 sm:block">
@@ -58,7 +56,7 @@ export default function Navbar() {
                       <Link
                         key={item.name}
                         href={item.href}
-                        className={classNames(
+                        className={mergeClassNames(
                           item.current ? 'text-black underline' : 'text-gray-700 hover:underline hover:decoration-[var(--google-cloud-blue)] hover:text-black',
                           'rounded-md px-3 py-2 text-base font-medium'
                         )}
@@ -81,7 +79,7 @@ export default function Navbar() {
                   key={item.name}
                   as="a"
                   href={item.href}
-                  className={classNames(
+                  className={mergeClassNames(
                     item.current ? 'text-black underline' : 'text-gray-700 hover:underline hover:decoration-[var(--google-cloud-blue)] hover:text-black',
                     'block rounded-md px-3 py-2 text-base font-medium'
                   )}
