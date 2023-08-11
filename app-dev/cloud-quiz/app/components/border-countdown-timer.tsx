@@ -62,6 +62,7 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
     }
   }, [game.state, game.timePerAnswer, game.timePerQuestion]);
 
+  const displayTime = Math.max(timeLeft, 0);
 
   const css = `
   div.timer {
@@ -139,7 +140,7 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
     <>
       <div className={`timer counting ${countDirection}`}>
         <div className="float-right -mt-4 -mr-12 bg-gray-100 py-1 px-2">
-          {Math.max(timeLeft, 0)}
+          {displayTime}
         </div>
         {children}
       </div>
