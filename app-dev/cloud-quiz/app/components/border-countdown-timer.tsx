@@ -1,9 +1,11 @@
 "use client"
 
 import { Game, gameStates } from "@/app/types";
+import { DocumentReference, Timestamp } from "firebase/firestore";
 import { useEffect, useState } from "react";
+import { timeCalculator } from "../lib/time-calculator";
 
-export default function BorderCountdownTimer({ game, children }: { game: Game, children: React.ReactNode }) {
+export default function BorderCountdownTimer({ game, children, gameRef }: { game: Game, children: React.ReactNode, gameRef: DocumentReference }) {
   const [timeToCountDown, setTimeToCountDown] = useState(game.timePerQuestion);
   const [timeLeft, setTimeLeft] = useState(game.timePerQuestion);
   const [countDirection, setCountDirection] = useState<string>("stopped");
@@ -12,10 +14,35 @@ export default function BorderCountdownTimer({ game, children }: { game: Game, c
     // save intervalId to clear the interval when the
     // component re-renders
     const intervalId = setInterval(() => {
-      if (timeLeft < 1) {
-        setTimeLeft(0);
+      const {
+        timeElapsed,
+        timeToShowCurrentQuestionAnswer,
+        timeToStartNextQuestion,
+        isAFullThreeSecondsOverTime,
+      } = timeCalculator({
+        currentTimeInSeconds: Timestamp.now().seconds,
+        game,
+      });
+
+      if (game.state === gameStates.AWAITING_PLAYER_ANSWERS) {
+        setTimeLeft(Math.floor(timeToShowCurrentQuestionAnswer - timeElapsed));
       } else {
-        setTimeLeft(timeLeft - 1);
+        setTimeLeft(Math.floor(timeToStartNextQuestion - timeElapsed));
+      }
+
+      // this code is here as a backup in case the questions stop advancing
+      // it is possible that the server has stopped
+      // prompt the server to move to the next question and start counting again
+      const nudgeGame = async () => {
+        await fetch('/api/nudge-game', {
+          method: 'POST',
+          body: JSON.stringify({ gameId: gameRef.id }),
+        }).catch(error => {
+          console.error({ error })
+        });
+      }
+      if (isAFullThreeSecondsOverTime) {
+        nudgeGame();
       }
     }, 1000);
 
@@ -112,7 +139,7 @@ export default function BorderCountdownTimer({ game, children }: { game: Game, c
     <>
       <div className={`timer counting ${countDirection}`}>
         <div className="float-right -mt-4 -mr-12 bg-gray-100 py-1 px-2">
-          {timeLeft}
+          {Math.max(timeLeft, 0)}
         </div>
         {children}
       </div>

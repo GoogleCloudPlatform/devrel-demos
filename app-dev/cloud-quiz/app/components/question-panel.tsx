@@ -41,7 +41,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
   return (
     <div className={`grid ${isBigScreen ? 'grid-cols-2' : 'lg:grid-cols-2'}`}>
       <div className="flex flex-col">
-        <BorderCountdownTimer game={game}>
+        <BorderCountdownTimer game={game} gameRef={gameRef}>
           <h2 className="text-xl lg:text-2xl">
             {currentQuestion.prompt}
           </h2>
