@@ -46,7 +46,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
             {currentQuestion.prompt}
           </h2>
           {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (<>
-            <h2 className="text-sm lg:text-xl lg:font-light pt-5">
+            <h2 className="text-sm lg:text-xl font-light pt-5">
               {currentQuestion.explanation}
             </h2>
           </>)}

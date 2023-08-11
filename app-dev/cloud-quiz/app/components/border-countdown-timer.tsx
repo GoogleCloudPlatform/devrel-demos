@@ -84,55 +84,50 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
     box-sizing: inherit;
     content: "";
     position: absolute;
-    width: 100%;
-    height: 100%;
-  }
-  
-  div.timer.counting::before,
-  div.timer.counting::after {
-    border: 8px solid transparent;
     width: 0;
     height: 0;
   }
   
   div.timer.counting::before,
   div.timer.counting::after {
+    border: 8px solid transparent;
+    transition: height 1s linear, width 1s linear, border 0.1s linear;
+  }
+  
+  div.timer.counting.down::before {
+    border-top: 8px solid var(--google-cloud-red);
+    border-right: ${Math.max(Math.min(((timeToCountDown - displayTime + 1) / timeToCountDown * 400 - 100) * 100000000, 8),0)}px solid var(--google-cloud-blue);
     top: 0;
     left: 0;
+    width: ${Math.max(Math.min((timeToCountDown - displayTime + 1) / timeToCountDown * 400, 100), 0)}%;
+    height: ${Math.max(Math.min((timeToCountDown - displayTime + 1) / timeToCountDown * 400 - 100, 100),0)}%;
   }
   
-  div.timer.counting.down::before,
   div.timer.counting.down::after {
-    width: 100%;
-    height: 100%;
+    border-bottom: ${Math.max(Math.min(((timeToCountDown - displayTime + 1) / timeToCountDown * 400 - 200) * 10000000000, 8),0)}px solid var(--google-cloud-green);
+    border-left: ${Math.max(Math.min(((timeToCountDown - displayTime + 1) / timeToCountDown * 400 - 300) * 10000000000, 8),0)}px solid var(--google-cloud-yellow);
+    bottom: 0;
+    right: 0;
+    width: ${Math.max(Math.min((timeToCountDown - displayTime + 1) / timeToCountDown * 400 - 200, 100), 0)}%;
+    height: ${Math.max(Math.min((timeToCountDown - displayTime + 1) / timeToCountDown * 400 - 300, 100),0)}%;
   }
   
-  /* Top and right timer bars going out */
-  div.timer.counting.down::before {
-    border-top-color: var(--google-cloud-red);
-    border-right-color: var(--google-cloud-blue);
-    transition: width ${0.50 * timeToCountDown}s linear, height ${0.50 * timeToCountDown}s linear ${0.50 * timeToCountDown}s;
+  div.timer.counting.up::before {
+    border-top: 8px solid var(--google-cloud-red);
+    border-right: ${Math.max(Math.min((300 - (timeToCountDown - displayTime) / timeToCountDown * 400) * 100000000, 8), 0)}px solid var(--google-cloud-blue);
+    top: 0;
+    left: 0;
+    width: ${Math.max(Math.min(400 - (timeToCountDown - displayTime + 1) / timeToCountDown * 400, 100), 0)}%;
+    height: ${Math.max(Math.min(300 - (timeToCountDown - displayTime + 1) / timeToCountDown * 400, 100),0)}%;
   }
   
-  /* Bottom and left timer bars going out */
-  div.timer.counting.down::after {
-    border-bottom-color: var(--google-cloud-green);
-    border-left-color: var(--google-cloud-yellow);
-    transition: height ${0.50 * timeToCountDown}s linear, width ${0.50 * timeToCountDown}s linear ${0.50 * timeToCountDown}s;
-  }
-  
-  /* Top and right timer bars going in */
-  div.timer.counting::before {
-    border-top-color: var(--google-cloud-red);
-    border-right-color: var(--google-cloud-blue);
-    transition: height ${0.50 * timeToCountDown}s linear, width ${0.50 * timeToCountDown}s linear ${0.50 * timeToCountDown}s;
-  }
-  
-  /* Top and right timer bars going in */
-  div.timer.counting::after {
-    border-bottom-color: var(--google-cloud-green);
-    border-left-color: var(--google-cloud-yellow);
-    transition: width ${0.50 * timeToCountDown}s linear, height ${0.50 * timeToCountDown}s linear ${0.50 * timeToCountDown}s;
+  div.timer.counting.up::after {
+    border-bottom: ${Math.max(Math.min((200 - (timeToCountDown - displayTime) / timeToCountDown * 400) * 100000000, 8), 0)}px solid var(--google-cloud-green);
+    border-left: ${Math.max(Math.min((100 - (timeToCountDown - displayTime) / timeToCountDown * 400) * 100000000, 8), 0)}px solid var(--google-cloud-yellow);
+    bottom: 0;
+    right: 0;
+    width: ${Math.max(Math.min(200 - (timeToCountDown - displayTime + 1) / timeToCountDown * 400, 100), 0)}%;
+    height: ${Math.max(Math.min(100 - (timeToCountDown - displayTime + 1) / timeToCountDown * 400, 100),0)}%;
   }
   `;
 
