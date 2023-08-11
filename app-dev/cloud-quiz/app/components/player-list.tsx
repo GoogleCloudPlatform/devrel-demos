@@ -9,8 +9,9 @@ export default function PlayerList({ game }: { game: Game }) {
 
   const currentPlayerName = game.players[authUser.uid];
 
-  // sort the names so the current player is first
-  const playerDisplayNames = Object.values(game.players).sort((a) => (a === currentPlayerName ? -1 : 0));
+  // sort the names so they are in alphabetical order
+  // then sort to put the current player first
+  const playerDisplayNames = Object.values(game.players).sort().sort((a) => (a === currentPlayerName ? -1 : 0));
 
   if (playerDisplayNames.length < 1) {
     return <div className="grid h-full place-items-center">

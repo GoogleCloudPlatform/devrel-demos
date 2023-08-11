@@ -1,14 +1,24 @@
 "use client"
 
-import GameList from "@/app/components/game-list";
-import Navbar from "../components/navbar";
+import useActiveGameList from "@/app/hooks/use-active-game-list";
+import { useRouter } from 'next/navigation'
+import Navbar from "@/app/components/navbar";
 
 export default function Home() {
+  const { activeGameList } = useActiveGameList();
+  const router = useRouter()
+
+  if (activeGameList.length > 0) {
+    const firstGameId = activeGameList[0].id;
+    router.push(`/game/${firstGameId}`);
+  }
+
   return (
     <div>
       <Navbar />
-      <GameList />
-      <br />
+      <center className="p-8">
+        Waiting for a game.
+      </center>
     </div>
   )
 }

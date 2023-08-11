@@ -13,7 +13,7 @@ export default function PlayerLobby({ game, gameRef }: { game: Game; gameRef: Do
 
   return (
     <>
-      <ExitGameButton gameRef={gameRef} />
+      {/* <ExitGameButton gameRef={gameRef} /> */}
 
       <center>
         {showSharePanel ? (
