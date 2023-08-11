@@ -7,12 +7,17 @@ export type Answer = {
 export type Question = {
   answers: Array<Answer>;
   prompt: string;
-  playerGuesses?: any;
+  explanation: string;
+  playerGuesses: {
+    [key: string]: Boolean[];
+  };
 }
 
 export const emptyQuestion: Question = {
   answers: [],
-  prompt: ''
+  prompt: '',
+  explanation: '',
+  playerGuesses: {},
 };
 
 export const gameStates = {

@@ -5,13 +5,11 @@ import { Disclosure } from '@headlessui/react'
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link';
 import SignOutButton from '@/app/components/sign-out-button';
-import { useEffect, useState } from 'react';
-import { RouteWithCurrentStatus } from '@/app/types';
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import SignInButton from '@/app/components/sign-in-button';
 import { usePathname } from 'next/navigation';
 
-function classNames(...classes: any) {
+function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
 }
 
@@ -22,14 +20,14 @@ export default function Navbar() {
   const navigation = [
     { name: 'Home', href: '/' },
     { name: 'About', href: '/about' },
-  ].map((route: any) => ({
+  ].map((route: { name: string, href: string }) => ({
     ...route,
     current: pathname === route.href,
   }));
 
   return (
     <Disclosure as="nav" className="border">
-      {({ open }: { open: any }) => (
+      {({ open }: { open: Boolean }) => (
         <>
           <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
             <div className="relative flex h-16 items-center justify-between">

@@ -18,6 +18,8 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
 
   const onAnswerClick = async (answerIndex: number) => {
     if (game.state === gameStates.AWAITING_PLAYER_ANSWERS) {
+      // Typescript does not expect the `with` property on arrays yet
+      // @ts-expect-error
       const newAnswerSelection = answerSelection.with(answerIndex, !answerSelection[answerIndex]);
       const token = await authUser.getIdToken();
       await fetch('/api/update-answer', {
