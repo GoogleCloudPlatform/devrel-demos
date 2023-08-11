@@ -95,7 +95,7 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
   }
   
   div.timer.counting.down::before {
-    border-top: 8px solid var(--google-cloud-red);
+    border-top: ${Math.max(Math.min(((timeToCountDown - displayTime + 1) / timeToCountDown * 400) * 100000000, 8),0)}px solid var(--google-cloud-red);
     border-right: ${Math.max(Math.min(((timeToCountDown - displayTime + 1) / timeToCountDown * 400 - 100) * 100000000, 8),0)}px solid var(--google-cloud-blue);
     top: 0;
     left: 0;
@@ -113,7 +113,7 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
   }
   
   div.timer.counting.up::before {
-    border-top: 8px solid var(--google-cloud-red);
+    border-top: ${Math.max(Math.min((400 - (timeToCountDown - displayTime) / timeToCountDown * 400) * 100000000, 8), 0)}px solid var(--google-cloud-red);
     border-right: ${Math.max(Math.min((300 - (timeToCountDown - displayTime) / timeToCountDown * 400) * 100000000, 8), 0)}px solid var(--google-cloud-blue);
     top: 0;
     left: 0;
