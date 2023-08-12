@@ -61,7 +61,7 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
 
   // this is the percent of the entire animation that has completed
   // the `+ 1` allows the animation to target where it "should" be in one second
-  const animationCompletionPercentage = (timeToCountDown - timeLeft + 1) / timeToCountDown;
+  const animationCompletionPercentage = (timeToCountDown - timeLeft + 1) / timeToCountDown * 100;
 
   const css = `
   div.timer {
@@ -91,39 +91,39 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
   }
   
   div.timer.down::before {
-    border-top: ${Math.max(Math.min((animationCompletionPercentage * 400) * 100000000, 8), 0)}px solid var(--google-cloud-red);
-    border-right: ${Math.max(Math.min((animationCompletionPercentage * 400 - 100) * 100000000, 8), 0)}px solid var(--google-cloud-blue);
+    border-top: ${animationCompletionPercentage > 0 ? '8' : '0'}px solid var(--google-cloud-red);
+    border-right: ${animationCompletionPercentage > 25 ? '8' : '0'}px solid var(--google-cloud-blue);
     top: 0;
     left: 0;
-    width: ${Math.max(Math.min(animationCompletionPercentage * 400, 100), 0)}%;
-    height: ${Math.max(Math.min(animationCompletionPercentage * 400 - 100, 100), 0)}%;
+    width: ${Math.max(Math.min(animationCompletionPercentage * 4, 100), 0)}%;
+    height: ${Math.max(Math.min(animationCompletionPercentage * 4 - 100, 100), 0)}%;
   }
   
   div.timer.down::after {
-    border-bottom: ${Math.max(Math.min((animationCompletionPercentage * 400 - 200) * 10000000000, 8), 0)}px solid var(--google-cloud-green);
-    border-left: ${Math.max(Math.min((animationCompletionPercentage * 400 - 300) * 10000000000, 8), 0)}px solid var(--google-cloud-yellow);
+    border-bottom: ${animationCompletionPercentage > 50 ? '8' : '0'}px solid var(--google-cloud-green);
+    border-left: ${animationCompletionPercentage > 75 ? '8' : '0'}px solid var(--google-cloud-yellow);
     bottom: 0;
     right: 0;
-    width: ${Math.max(Math.min(animationCompletionPercentage * 400 - 200, 100), 0)}%;
-    height: ${Math.max(Math.min(animationCompletionPercentage * 400 - 300, 100), 0)}%;
+    width: ${Math.max(Math.min(animationCompletionPercentage * 4 - 200, 100), 0)}%;
+    height: ${Math.max(Math.min(animationCompletionPercentage * 4 - 300, 100), 0)}%;
   }
   
   div.timer.up::before {
-    border-top: ${Math.max(Math.min((400 - animationCompletionPercentage * 400) * 100000000, 8), 0)}px solid var(--google-cloud-red);
-    border-right: ${Math.max(Math.min((300 - animationCompletionPercentage * 400) * 100000000, 8), 0)}px solid var(--google-cloud-blue);
+    border-top: ${animationCompletionPercentage < 100 ? '8' : '0'}px solid var(--google-cloud-red);
+    border-right: ${animationCompletionPercentage < 75 ? '8' : '0'}px solid var(--google-cloud-blue);
     top: 0;
     left: 0;
-    width: ${Math.max(Math.min(400 - animationCompletionPercentage * 400, 100), 0)}%;
-    height: ${Math.max(Math.min(300 - animationCompletionPercentage * 400, 100), 0)}%;
+    width: ${Math.max(Math.min(400 - animationCompletionPercentage * 4, 100), 0)}%;
+    height: ${Math.max(Math.min(300 - animationCompletionPercentage * 4, 100), 0)}%;
   }
   
   div.timer.up::after {
-    border-bottom: ${Math.max(Math.min((200 - animationCompletionPercentage * 400) * 100000000, 8), 0)}px solid var(--google-cloud-green);
-    border-left: ${Math.max(Math.min((100 - animationCompletionPercentage * 400) * 100000000, 8), 0)}px solid var(--google-cloud-yellow);
+    border-bottom: ${animationCompletionPercentage < 50 ? '8' : '0'}px solid var(--google-cloud-green);
+    border-left: ${animationCompletionPercentage < 25 ? '8' : '0'}px solid var(--google-cloud-yellow);
     bottom: 0;
     right: 0;
-    width: ${Math.max(Math.min(200 - animationCompletionPercentage * 400, 100), 0)}%;
-    height: ${Math.max(Math.min(100 - animationCompletionPercentage * 400, 100), 0)}%;
+    width: ${Math.max(Math.min(200 - animationCompletionPercentage * 4, 100), 0)}%;
+    height: ${Math.max(Math.min(100 - animationCompletionPercentage * 4, 100), 0)}%;
   }
   `;
 
