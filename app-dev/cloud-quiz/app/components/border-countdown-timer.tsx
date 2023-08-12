@@ -7,6 +7,7 @@ import { timeCalculator } from "../lib/time-calculator";
 
 export default function BorderCountdownTimer({ game, children, gameRef }: { game: Game, children: React.ReactNode, gameRef: DocumentReference }) {
   const [timeToCountDown, setTimeToCountDown] = useState(game.timePerQuestion);
+  const [displayTime, setDisplayTime] = useState(game.timePerQuestion);
   const [timeLeft, setTimeLeft] = useState(game.timePerQuestion);
   const [isSmoothCounting, setIsSmoothCounting] = useState<Boolean>(false);
   const [countDirection, setCountDirection] = useState<"down" | "up">("down");
@@ -15,23 +16,27 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
     // save intervalId to clear the interval when the
     // component re-renders
     const intervalId = setInterval(() => {
-      if (timeLeft < game.timePerQuestion) {
-        setIsSmoothCounting(true);
-      }
+
       const {
-        timeElapsed,
-        timeToShowCurrentQuestionAnswer,
-        timeToStartNextQuestion,
         isAFullThreeSecondsOverTime,
+        timeLeft,
+        timeToCountDown,
+        displayTime,
+        countDirection,
       } = timeCalculator({
-        currentTimeInSeconds: Timestamp.now().seconds,
+        currentTimeInMillis: Timestamp.now().toMillis(),
         game,
       });
 
-      if (game.state === gameStates.AWAITING_PLAYER_ANSWERS) {
-        setTimeLeft(Math.floor(timeToShowCurrentQuestionAnswer - timeElapsed));
-      } else {
-        setTimeLeft(Math.floor(timeToStartNextQuestion - timeElapsed));
+      setTimeLeft(timeLeft);
+      setTimeToCountDown(timeToCountDown);
+      setDisplayTime(displayTime);
+      setCountDirection(countDirection);
+
+      // smooth counting is delayed briefly to allow the timer
+      // to get to the right place before animating
+      if (!isSmoothCounting) {
+        setTimeout(() => setIsSmoothCounting(true), 100);
       }
 
       // this code is here as a backup in case the questions stop advancing
@@ -48,25 +53,15 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
       if (isAFullThreeSecondsOverTime) {
         nudgeGame();
       }
-    }, 1000);
+    }, 100);
 
     // clear interval on re-render to avoid memory leaks
     return () => clearInterval(intervalId);
-  }, [timeLeft]);
+  }, [timeLeft, game.state, game.timePerAnswer, game.timePerQuestion]);
 
-  useEffect(() => {
-    if (game.state === gameStates.AWAITING_PLAYER_ANSWERS) {
-      setCountDirection("down");
-      setTimeToCountDown(game.timePerQuestion);
-      setTimeLeft(game.timePerQuestion);
-    } else if (game.state === gameStates.SHOWING_CORRECT_ANSWERS) {
-      setCountDirection("up");
-      setTimeToCountDown(game.timePerAnswer);
-      setTimeLeft(game.timePerAnswer);
-    }
-  }, [game.state, game.timePerAnswer, game.timePerQuestion]);
-
-  const displayTime = Math.max(timeLeft, 0);
+  // this is the percent of the entire animation that has completed
+  // the `+ 1` allows the animation to target where it "should" be in one second
+  const animationCompletionPercentage = (timeToCountDown - timeLeft + 1) / timeToCountDown;
 
   const css = `
   div.timer {
@@ -92,43 +87,43 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
   
   div.timer.smooth-counting::before,
   div.timer.smooth-counting::after {
-    transition: height 1s linear, width 1s linear, border 0.1s linear;
+    transition: height 0.1s linear, width 0.1s linear, border 0.1s linear;
   }
   
   div.timer.down::before {
-    border-top: ${Math.max(Math.min(((timeToCountDown - displayTime + 1) / timeToCountDown * 400) * 100000000, 8), 0)}px solid var(--google-cloud-red);
-    border-right: ${Math.max(Math.min(((timeToCountDown - displayTime + 1) / timeToCountDown * 400 - 100) * 100000000, 8), 0)}px solid var(--google-cloud-blue);
+    border-top: ${Math.max(Math.min((animationCompletionPercentage * 400) * 100000000, 8), 0)}px solid var(--google-cloud-red);
+    border-right: ${Math.max(Math.min((animationCompletionPercentage * 400 - 100) * 100000000, 8), 0)}px solid var(--google-cloud-blue);
     top: 0;
     left: 0;
-    width: ${Math.max(Math.min((timeToCountDown - displayTime + 1) / timeToCountDown * 400, 100), 0)}%;
-    height: ${Math.max(Math.min((timeToCountDown - displayTime + 1) / timeToCountDown * 400 - 100, 100), 0)}%;
+    width: ${Math.max(Math.min(animationCompletionPercentage * 400, 100), 0)}%;
+    height: ${Math.max(Math.min(animationCompletionPercentage * 400 - 100, 100), 0)}%;
   }
   
   div.timer.down::after {
-    border-bottom: ${Math.max(Math.min(((timeToCountDown - displayTime + 1) / timeToCountDown * 400 - 200) * 10000000000, 8), 0)}px solid var(--google-cloud-green);
-    border-left: ${Math.max(Math.min(((timeToCountDown - displayTime + 1) / timeToCountDown * 400 - 300) * 10000000000, 8), 0)}px solid var(--google-cloud-yellow);
+    border-bottom: ${Math.max(Math.min((animationCompletionPercentage * 400 - 200) * 10000000000, 8), 0)}px solid var(--google-cloud-green);
+    border-left: ${Math.max(Math.min((animationCompletionPercentage * 400 - 300) * 10000000000, 8), 0)}px solid var(--google-cloud-yellow);
     bottom: 0;
     right: 0;
-    width: ${Math.max(Math.min((timeToCountDown - displayTime + 1) / timeToCountDown * 400 - 200, 100), 0)}%;
-    height: ${Math.max(Math.min((timeToCountDown - displayTime + 1) / timeToCountDown * 400 - 300, 100), 0)}%;
+    width: ${Math.max(Math.min(animationCompletionPercentage * 400 - 200, 100), 0)}%;
+    height: ${Math.max(Math.min(animationCompletionPercentage * 400 - 300, 100), 0)}%;
   }
   
   div.timer.up::before {
-    border-top: ${Math.max(Math.min((400 - (timeToCountDown - displayTime) / timeToCountDown * 400) * 100000000, 8), 0)}px solid var(--google-cloud-red);
-    border-right: ${Math.max(Math.min((300 - (timeToCountDown - displayTime) / timeToCountDown * 400) * 100000000, 8), 0)}px solid var(--google-cloud-blue);
+    border-top: ${Math.max(Math.min((400 - animationCompletionPercentage * 400) * 100000000, 8), 0)}px solid var(--google-cloud-red);
+    border-right: ${Math.max(Math.min((300 - animationCompletionPercentage * 400) * 100000000, 8), 0)}px solid var(--google-cloud-blue);
     top: 0;
     left: 0;
-    width: ${Math.max(Math.min(400 - (timeToCountDown - displayTime + 1) / timeToCountDown * 400, 100), 0)}%;
-    height: ${Math.max(Math.min(300 - (timeToCountDown - displayTime + 1) / timeToCountDown * 400, 100), 0)}%;
+    width: ${Math.max(Math.min(400 - animationCompletionPercentage * 400, 100), 0)}%;
+    height: ${Math.max(Math.min(300 - animationCompletionPercentage * 400, 100), 0)}%;
   }
   
   div.timer.up::after {
-    border-bottom: ${Math.max(Math.min((200 - (timeToCountDown - displayTime) / timeToCountDown * 400) * 100000000, 8), 0)}px solid var(--google-cloud-green);
-    border-left: ${Math.max(Math.min((100 - (timeToCountDown - displayTime) / timeToCountDown * 400) * 100000000, 8), 0)}px solid var(--google-cloud-yellow);
+    border-bottom: ${Math.max(Math.min((200 - animationCompletionPercentage * 400) * 100000000, 8), 0)}px solid var(--google-cloud-green);
+    border-left: ${Math.max(Math.min((100 - animationCompletionPercentage * 400) * 100000000, 8), 0)}px solid var(--google-cloud-yellow);
     bottom: 0;
     right: 0;
-    width: ${Math.max(Math.min(200 - (timeToCountDown - displayTime + 1) / timeToCountDown * 400, 100), 0)}%;
-    height: ${Math.max(Math.min(100 - (timeToCountDown - displayTime + 1) / timeToCountDown * 400, 100), 0)}%;
+    width: ${Math.max(Math.min(200 - animationCompletionPercentage * 400, 100), 0)}%;
+    height: ${Math.max(Math.min(100 - animationCompletionPercentage * 400, 100), 0)}%;
   }
   `;
 
