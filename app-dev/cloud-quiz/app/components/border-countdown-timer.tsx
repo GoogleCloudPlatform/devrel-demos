@@ -11,14 +11,14 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
   const [timeLeft, setTimeLeft] = useState(game.timePerQuestion);
   const [isSmoothCounting, setIsSmoothCounting] = useState<Boolean>(false);
   const [countDirection, setCountDirection] = useState<"down" | "up">("down");
+  const [hasAlreadyNudged, setHasAlreadyNudged] = useState<{question: Boolean, answer: Boolean}[]>(Array(Object.keys(game.questions).length).fill({question: false, answer: false}));
 
   useEffect(() => {
-    // save intervalId to clear the interval when the
+    // save intervalIdOne to clear the interval when the
     // component re-renders
-    const intervalId = setInterval(() => {
+    const intervalIdOne = setInterval(() => {
 
       const {
-        isAFullThreeSecondsOverTime,
         timeLeft,
         timeToCountDown,
         displayTime,
@@ -38,26 +38,35 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
       if (!isSmoothCounting) {
         setTimeout(() => setIsSmoothCounting(true), 100);
       }
-
-      // this code is here as a backup in case the questions stop advancing
-      // it is possible that the server has stopped
-      // prompt the server to move to the next question and start counting again
-      const nudgeGame = async () => {
-        await fetch('/api/nudge-game', {
-          method: 'POST',
-          body: JSON.stringify({ gameId: gameRef.id }),
-        }).catch(error => {
-          console.error({ error })
-        });
-      }
-      if (isAFullThreeSecondsOverTime) {
-        nudgeGame();
-      }
     }, 100);
 
     // clear interval on re-render to avoid memory leaks
-    return () => clearInterval(intervalId);
+    return () => clearInterval(intervalIdOne);
   }, [timeLeft, game.state, game.timePerAnswer, game.timePerQuestion]);
+
+  useEffect(() => {
+    // this code is here as a backup in case the questions stop advancing
+    // it is possible that the server has stopped
+    // prompt the server to move to the next question and start counting again
+    const nudgeGame = async () => {
+      await fetch('/api/nudge-game', {
+        method: 'POST',
+        body: JSON.stringify({ gameId: gameRef.id }),
+      }).catch(error => {
+        console.error({ error })
+      });
+    }
+
+    // nudge the server toe move to the next question
+    // once the question is 3 seconds over time
+    if (timeLeft < -2 && !hasAlreadyNudged[game.currentQuestionIndex][ game.state === gameStates.AWAITING_PLAYER_ANSWERS ? 'question': 'answer']) {
+      // Typescript does not expect the `with` property on arrays yet
+      // @ts-expect-error
+      setHasAlreadyNudged(hasAlreadyNudged.with(game.currentQuestionIndex, {question: true, answer: game.state === gameStates.SHOWING_CORRECT_ANSWERS }));
+      nudgeGame();
+    }
+
+  }, [timeLeft]);
 
   // this is the percent of the entire animation that has completed
   // the `+ 1` allows the animation to target where it "should" be in one second

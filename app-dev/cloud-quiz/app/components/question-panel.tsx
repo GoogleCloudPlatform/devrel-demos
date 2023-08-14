@@ -1,7 +1,7 @@
 "use client"
 
 import { DocumentReference } from "firebase/firestore";
-import { Game, Question, gameStates } from "@/app/types";
+import { Answer, Game, Question, gameStates } from "@/app/types";
 import BorderCountdownTimer from "@/app/components/border-countdown-timer";
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import Image from 'next/image';
@@ -37,6 +37,17 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
   }
 
   const gameShareLink = `${location.protocol}//${location.host}/game/${gameRef.id}`;
+
+  const answerBorder = ({ isSelected, answer, game }: { isSelected: Boolean, answer: Answer, game: Game }): string => {
+    return mergeClassNames(
+      "border-8 m-2 w-full",
+      isSelected ? 'text-[var(--google-cloud-blue)]' : 'text-inherit',
+      isSelected && game.state !== gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-blue)]' : '',
+      isSelected && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-green)]' : '',
+      isSelected && !answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-red)]' : '',
+      !isSelected && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-green)] border-dotted' : '',
+    );
+  }
 
   return (
     <div className={`grid lg:grid-cols-2`}>
@@ -80,15 +91,10 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
       </div>
       <div className="grid grid-cols-2 h-[50vh] lg:h-full">
         {currentQuestion.answers.map((answer, index) => (<div className="flex" key={answer.text}>
-          <button onClick={() => onAnswerClick(index)}
-            className={mergeClassNames(
-              "border-8 m-2 w-full",
-              answerSelection[index] ? 'text-[var(--google-cloud-blue)]' : 'text-inherit',
-              answerSelection[index] && game.state !== gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-blue)]' : '',
-              answerSelection[index] && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-green)]' : '',
-              answerSelection[index] && !answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-red)]' : '',
-              !answerSelection[index] && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-green)] border-dotted' : '',
-            )}>
+          <button
+            onClick={() => onAnswerClick(index)}
+            className={answerBorder({ isSelected: answerSelection[index], game, answer })}
+          >
             {answer.text}
             {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (
               <div>

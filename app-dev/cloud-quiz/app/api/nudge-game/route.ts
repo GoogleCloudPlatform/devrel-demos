@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     timePerQuestionAndAnswer,
     isTimeToShowAnswer,
     isTimeToStartNextQuestion,
-  } = timeCalculator({ currentTimeInSeconds: Timestamp.now().seconds, game })
+  } = timeCalculator({ currentTimeInMillis: Timestamp.now().toMillis(), game })
 
   const totalNumberOfQuestions = Object.keys(game.questions).length;
 
@@ -47,5 +47,5 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  return NextResponse.json('successfully started game', { status: 200 })
+  return NextResponse.json('successfully nudged game', { status: 200 })
 }
