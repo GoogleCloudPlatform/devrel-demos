@@ -12,7 +12,7 @@ import { mergeClassNames } from "../lib/mergeClassNames";
 export default function QuestionPanel({ game, gameRef, currentQuestion }: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const authUser = useFirebaseAuthentication();
   const pathname = usePathname();
-  const isBigScreen = pathname.includes('/big-screen');
+  const isPresenter = pathname.includes('/presenter');
 
   const existingGuesses = currentQuestion?.playerGuesses && currentQuestion.playerGuesses[authUser.uid];
   const answerSelection = existingGuesses || Array(currentQuestion.answers.length).fill(false);
@@ -39,10 +39,10 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
   const gameShareLink = `${location.protocol}//${location.host}/game/${gameRef.id}`;
 
   return (
-    <div className={`grid ${isBigScreen ? 'grid-cols-2' : 'lg:grid-cols-2'}`}>
+    <div className={`grid lg:grid-cols-2`}>
       <div className="flex flex-col">
         <BorderCountdownTimer game={game} gameRef={gameRef}>
-          <h2 className="text-xl lg:text-2xl">
+          <h2 className="text-lg lg:text-2xl">
             {currentQuestion.prompt}
           </h2>
           {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (<>
@@ -52,7 +52,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
           </>)}
         </BorderCountdownTimer>
         <center className='hidden bg-gray-100 p-10 h-[50vh] lg:block'>
-          {isBigScreen ? (<>
+          {isPresenter ? (<>
             <div>
               Just getting here?
             </div>

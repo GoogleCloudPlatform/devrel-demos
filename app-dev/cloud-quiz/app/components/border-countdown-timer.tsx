@@ -67,7 +67,7 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
   div.timer {
     background: none;
     box-sizing: border-box;
-    padding: 2em 4em;
+    padding: 1em 2em;
     box-shadow: inset 0 0 0 2px #F3F4F6;
     color: #000000;
     font-size: inherit;
@@ -130,7 +130,8 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
   return (
     <>
       <div className={`timer ${isSmoothCounting ? 'smooth-counting' : ''} ${countDirection}`}>
-        <div className="float-right -mt-4 -mr-12 bg-gray-100 py-1 px-2">
+        <div className="float-right -mt-1 -mr-4 ml-1 bg-gray-100 py-1 px-2">
+          {displayTime < 10 && '0'}
           {displayTime}
         </div>
         {children}

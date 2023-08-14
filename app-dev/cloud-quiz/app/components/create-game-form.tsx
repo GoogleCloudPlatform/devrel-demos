@@ -27,7 +27,7 @@ export default function CreateGameForm() {
       })
       const response = await res.json();
       if (!response.gameId) throw new Error('no gameId returned in the response')
-      router.push(`/game/${response.gameId}/big-screen`)
+      router.push(`/game/${response.gameId}/presenter`)
     } catch (error) {
       setErrorMessage('There was an error handling the request.');
     }
