@@ -50,8 +50,7 @@ export async function POST(request: NextRequest) {
 
   // start automatic question progression
   async function showQuestion() {
-    // the `+ 500` is used to give an extra half second to submit answers
-    await new Promise(resolve => setTimeout(resolve, game.timePerQuestion * 1000 + 500));
+    await new Promise(resolve => setTimeout(resolve, game.timePerQuestion * 1000));
     await gameRef.update({
       state: gameStates.SHOWING_CORRECT_ANSWERS,
     });

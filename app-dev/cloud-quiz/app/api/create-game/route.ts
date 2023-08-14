@@ -3,7 +3,7 @@ import { gameFormValidator } from '@/app/lib/game-form-validator';
 import { generateName } from '@/app/lib/name-generator';
 import { getAuthenticatedUser } from '@/app/lib/server-side-auth'
 import { Question, gameStates } from '@/app/types';
-import { DocumentData, DocumentReference, QueryDocumentSnapshot, Timestamp } from 'firebase-admin/firestore'; 
+import { QueryDocumentSnapshot, Timestamp } from 'firebase-admin/firestore'; 
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {

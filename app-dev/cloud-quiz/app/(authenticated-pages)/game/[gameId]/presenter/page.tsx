@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import { gameStates } from "@/app/types";
-import BigScreenLobby from "@/app/components/big-screen-lobby";
+import PresenterLobby from "@/app/components/presenter-lobby";
 import QuestionPanel from "@/app/components/question-panel";
 import useGame from "@/app/hooks/use-game";
 import ReturnToHomepagePanel from '@/app/components/return-to-homepage-panel';
@@ -31,7 +31,7 @@ export default function GamePage() {
 
       exitGame();
     }
-  }, [authUser.uid])
+  }, [authUser, authUser.uid, game.players, gameId])
 
   if (errorMessage) {
     return (
@@ -52,7 +52,7 @@ export default function GamePage() {
         <QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />
       </>)}
       {game.state === gameStates.NOT_STARTED && gameRef && (<>
-        <BigScreenLobby game={game} gameRef={gameRef} />
+        <PresenterLobby game={game} gameRef={gameRef} />
       </>)}
     </>
   )

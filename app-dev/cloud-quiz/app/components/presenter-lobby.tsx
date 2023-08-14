@@ -8,12 +8,12 @@ import { Game } from "@/app/types";
 import useFirebaseAuthentication from "../hooks/use-firebase-authentication";
 import ShareLinkPanel from "./share-link-panel";
 
-export default function PlayerLobby({ game, gameRef }: { game: Game; gameRef: DocumentReference }) {
+export default function PresenterLobby({ game, gameRef }: { game: Game; gameRef: DocumentReference }) {
 
   const authUser = useFirebaseAuthentication();
 
   return (
-    <div className="grid grid-cols-2">
+    <div className="grid lg:grid-cols-2">
       <div className="mt-20">
         <PlayerList game={game} />
       </div>
