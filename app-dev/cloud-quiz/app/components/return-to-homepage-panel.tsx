@@ -22,7 +22,7 @@ export default function ReturnToHomepagePanel({ children }: { children: React.Re
             priority
           />
         </div>
-        <h1 className='text-4xl pt-10'>Cloud Quiz</h1>
+        <h1 className='text-4xl pt-10'>Party Game</h1>
         {children}
         <BigColorBorderButton onClick={() => router.push('/')}>
           Return to Homepage

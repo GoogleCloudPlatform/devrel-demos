@@ -35,7 +35,7 @@ export default function RootLayout({
                   priority
                 />
               </div>
-              <h1 className='text-4xl pt-10'>Cloud Quiz</h1>
+              <h1 className='text-4xl pt-10'>Party Game</h1>
               <h2 className='pb-10'>Test your knowledge of Google Cloud.</h2>
               <BigSignInButton />
             </center>

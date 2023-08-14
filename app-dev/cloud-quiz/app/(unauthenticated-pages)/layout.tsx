@@ -2,7 +2,7 @@ import Navbar from '@/app/components/navbar'
 import '@/app/globals.css'
 
 export const metadata = {
-  title: 'About Cloud Quiz',
+  title: 'About Party Game',
   description: 'An open-source party game to learn about Google Cloud.',
 }
 

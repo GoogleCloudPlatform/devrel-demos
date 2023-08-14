@@ -4,7 +4,7 @@ import { Open_Sans } from 'next/font/google'
 const openSans = Open_Sans({ subsets: ['latin'] })
 
 export const metadata = {
-  title: 'Cloud Quiz',
+  title: 'Party Game',
   description: 'Test your knowledge of Google Cloud.',
 }
 
