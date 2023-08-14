@@ -7,7 +7,7 @@ import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import Image from 'next/image';
 import QRCode from "react-qr-code";
 import { usePathname } from "next/navigation";
-import { mergeClassNames } from "../lib/mergeClassNames";
+import { mergeClassNames } from "../lib/merge-class-names";
 
 export default function QuestionPanel({ game, gameRef, currentQuestion }: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const authUser = useFirebaseAuthentication();

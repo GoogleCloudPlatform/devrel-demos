@@ -14,7 +14,7 @@ export default function Home() {
         <div className='py-4'>
           <div>
             <b>404 </b>
-            | That's an error.
+            | That&apos;s an error.
           </div>
           <div>
             The requested URL {pathname} was not found on this server.

@@ -8,7 +8,7 @@ import SignOutButton from '@/app/components/sign-out-button';
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import SignInButton from '@/app/components/sign-in-button';
 import { usePathname } from 'next/navigation';
-import { mergeClassNames } from '@/app/lib/mergeClassNames';
+import { mergeClassNames } from '@/app/lib/merge-class-names';
 
 export default function Navbar() {
   const authUser = useFirebaseAuthentication();
