@@ -4,8 +4,8 @@ export const timeCalculator = ({ currentTimeInMillis, game }: { currentTimeInMil
   // all times are in seconds unless noted as `InMillis`
   const timeElapsedInMillis = currentTimeInMillis - game.startTime.seconds * 1000;
   const timeElapsed = timeElapsedInMillis / 1000;
-  const timePerQuestionAndAnswer = game.timePerQuestion + 0.5 + game.timePerAnswer;
-  const timeToShowCurrentQuestionAnswer = timePerQuestionAndAnswer * (game.currentQuestionIndex) + game.timePerQuestion + 0.5;
+  const timePerQuestionAndAnswer = game.timePerQuestion + game.timePerAnswer;
+  const timeToShowCurrentQuestionAnswer = timePerQuestionAndAnswer * (game.currentQuestionIndex) + game.timePerQuestion;
   const timeToStartNextQuestion = timePerQuestionAndAnswer * (game.currentQuestionIndex + 1);
   const isTimeToShowAnswer = timeElapsed > timeToShowCurrentQuestionAnswer && game.state === gameStates.AWAITING_PLAYER_ANSWERS;
   const isTimeToStartNextQuestion = timeElapsed > timeToStartNextQuestion;
