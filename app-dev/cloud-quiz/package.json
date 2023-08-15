@@ -1,5 +1,5 @@
 {
-  "name": "cloud-quiz",
+  "name": "party-game",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,21 +9,21 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@headlessui/react": "^1.7.16",
-    "@heroicons/react": "^2.0.18",
-    "@types/node": "20.4.4",
-    "@types/react": "18.2.15",
+    "@headlessui/react": "1.7.16",
+    "@heroicons/react": "2.0.18",
+    "@types/node": "20.5.0",
+    "@types/react": "18.2.20",
     "@types/react-dom": "18.2.7",
-    "autoprefixer": "10.4.14",
-    "eslint": "8.45.0",
-    "eslint-config-next": "13.4.12",
+    "autoprefixer": "10.4.15",
+    "eslint": "8.47.0",
+    "eslint-config-next": "13.4.16",
     "firebase": "10.1.0",
     "firebase-admin": "11.10.1",
-    "next": "13.4.12",
+    "next": "13.4.16",
     "postcss": "8.4.27",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-qr-code": "^2.0.11",
+    "react-qr-code": "2.0.12",
     "tailwindcss": "3.3.3",
     "typescript": "5.1.6"
   },
