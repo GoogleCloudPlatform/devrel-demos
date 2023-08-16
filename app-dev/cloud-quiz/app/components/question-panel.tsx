@@ -70,7 +70,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
     <div className={`grid lg:grid-cols-2`}>
       <div className="flex flex-col">
         <BorderCountdownTimer game={game} gameRef={gameRef}>
-          <h2 className={isShowingCorrectAnswers ? 'text-sm' : 'text-lg md:text-2xl lg:text-4xl'}>
+          <h2 className={isShowingCorrectAnswers ? 'transition-all text-sm font-light' : 'text-lg md:text-2xl lg:text-4xl'}>
             {currentQuestion.prompt}
           </h2>
           <h2 className="lg:text-xl pt-5">
