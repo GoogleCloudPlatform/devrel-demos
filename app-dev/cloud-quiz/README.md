@@ -48,7 +48,7 @@ To add a question to the database:
 
 ## Deploy on Cloud Run
 
-> TODO: Add more detail to this section
+> TODO: Add more detail to this section for quick project creation
 
 ```bash
 gcloud run deploy party-game --source .
