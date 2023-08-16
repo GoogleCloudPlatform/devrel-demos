@@ -118,25 +118,12 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
           return (<div className="flex" key={answer.text}>
             <button
               onClick={() => onAnswerClick(index)}
-              className="m-2 w-full relative flex content-start text-left overflow-hidden"
+              className="m-1 w-full relative flex content-start text-left overflow-hidden"
             >
               <div className="w-full px-1 m-auto line-clamp-1 overflow-hidden border-8 border-transparent flex justify-between h-fit">
-                <span className="h-fit text-xl lg:text-3xl my-auto">
+                <span className={`h-fit text-xl lg:text-3xl my-auto ${isShowingCorrectAnswers ? 'w-full text-transparent bg-clip-text bg-gradient-to-r from-black via-transparent via-60%' : ''}`}>
                   {answer.text}
                 </span>
-                {isShowingCorrectAnswers && (<>
-                  <span className="min-w-fit h-fit my-auto text-right text-lg lg:text-2xl">
-                    <div>
-                      {answer.isCorrect && isSelected && 'You got it '}
-                      {answer.isCorrect && !isSelected && !isPresenter && 'You missed this one '}
-                      {answer.isCorrect && ' ✓'}
-                      {!answer.isCorrect && (isSelected ? 'Not this one ✖' : <>&nbsp;</>)}
-                    </div>
-                    <div>
-                      {guessesForThisAnswer} / {totalPlayerGuesses}
-                    </div>
-                  </span>
-                </>)}
               </div>
 
               <div
@@ -150,10 +137,24 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
                   <div
                     className={`absolute bottom-0 left-0 h-full opacity-25`}
                     style={{
-                      backgroundColor: answer.isCorrect ? `var(--google-cloud-${color})` : '#e5e7eb',
-                      width: `${Math.min(Math.max(guessPercentageForThisAnswer, 2))}%`
+                      backgroundColor: answer.isCorrect ? `var(--google-cloud-${color})` : '#9ca3af',
+                      width: `${Math.min(Math.max(guessPercentageForThisAnswer, 2), 98)}%`
                     }}
                   />
+                </div>
+                <div className="absolute bottom-0 right-0 border-8 border-transparent min-w-fit h-full text-right text-lg lg:text-2xl flex">
+                  <div className="my-auto">
+                    <div>
+                      {answer.isCorrect && isSelected && 'You got it '}
+                      {answer.isCorrect && !isSelected && !isPresenter && 'You missed this one '}
+                      {answer.isCorrect && ' ✓'}
+                      {!answer.isCorrect && (isSelected ? 'Not this one ✖' : <>&nbsp;</>)}
+                    </div>
+                    <div>
+                      {guessesForThisAnswer} / {totalPlayerGuesses}
+                    </div>
+
+                  </div>
                 </div>
               </>)
               }
