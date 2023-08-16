@@ -121,7 +121,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
               className="m-1 w-full relative flex content-start text-left overflow-hidden"
             >
               <div className="w-full px-1 m-auto line-clamp-1 overflow-hidden border-8 border-transparent flex justify-between h-fit">
-                <span className={`h-fit text-xl lg:text-3xl my-auto ${isShowingCorrectAnswers ? 'w-full text-transparent bg-clip-text bg-gradient-to-r from-black via-transparent via-60%' : ''}`}>
+                <span className={`h-fit text-xl lg:text-3xl my-auto ${isShowingCorrectAnswers ? 'transition-all w-full text-transparent bg-clip-text bg-gradient-to-r from-black via-transparent via-70%' : ''}`}>
                   {answer.text}
                 </span>
               </div>
@@ -132,16 +132,16 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
                   borderColor: `var(--google-cloud-${color})`,
                 }}
               />
+              <div className="absolute bottom-0 h-full w-full text-black -z-50">
+                <div
+                  className={`absolute bottom-0 left-0 h-full opacity-25 transition-all duration-[3000ms]`}
+                  style={{
+                    backgroundColor: answer.isCorrect ? `var(--google-cloud-${color})` : '#9ca3af',
+                    width: `${isShowingCorrectAnswers ? Math.min(Math.max(guessPercentageForThisAnswer, 2), 98) : 0}%`
+                  }}
+                />
+              </div>
               {isShowingCorrectAnswers && (<>
-                <div className="absolute bottom-0 h-full w-full text-black -z-50">
-                  <div
-                    className={`absolute bottom-0 left-0 h-full opacity-25`}
-                    style={{
-                      backgroundColor: answer.isCorrect ? `var(--google-cloud-${color})` : '#9ca3af',
-                      width: `${Math.min(Math.max(guessPercentageForThisAnswer, 2), 98)}%`
-                    }}
-                  />
-                </div>
                 <div className="absolute bottom-0 right-0 border-8 border-transparent min-w-fit h-full text-right text-lg lg:text-2xl flex">
                   <div className="my-auto">
                     <div>
