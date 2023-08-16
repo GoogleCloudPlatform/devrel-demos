@@ -17,7 +17,7 @@
 "use client"
 
 import { DocumentReference } from "firebase/firestore";
-import { Answer, Game, Question, gameStates } from "@/app/types";
+import { Game, Question, gameStates } from "@/app/types";
 import BorderCountdownTimer from "@/app/components/border-countdown-timer";
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import Image from 'next/image';
@@ -122,20 +122,30 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
               className="m-1 w-full relative flex content-start text-left overflow-hidden"
             >
               <div className="w-full px-1 m-auto line-clamp-1 overflow-hidden border-8 border-transparent flex justify-between h-fit">
-                <span className={`h-fit text-xl lg:text-3xl my-auto ${isShowingCorrectAnswers ? 'transition-all w-full text-transparent bg-clip-text bg-gradient-to-r from-black via-transparent via-45% md:via-50% xl:via-60%' : ''}`}>
-                {isSingleAnswer && (isSelected ? '●' : '○') }
-                {!isSingleAnswer && (isSelected ? '☑' : '☐') }
+                <span className={`h-fit text-xl lg:text-3xl my-auto`}>
+                  {isSingleAnswer && (isSelected ? '●' : '○')}
+                  {!isSingleAnswer && (isSelected ? '☑' : '☐')}
                   {answer.text}
                 </span>
               </div>
-
-              <div
-                className={`transition-all ${isSelected ? 'border-8' : 'border-4'} w-full absolute bottom-0 h-full`}
-                style={{
-                  borderColor: `var(--google-cloud-${color})`,
-                }}
-              />
-              <div className="absolute bottom-0 h-full w-full text-black -z-50">
+              {isShowingCorrectAnswers && (<>
+                <div className="absolute bottom-0 right-0 border-8 border-transparent min-w-fit h-full text-right text-lg lg:text-2xl flex">
+                  <div className="h-full w-20 max-w-full bg-gradient-to-l from-white via-transparent via-white via-20% -m-1" />
+                  <div className="bg-white pl-1 h-fit my-auto">
+                    <div className="whitespace-nowrap">
+                      {answer.isCorrect && isSelected && 'You got it '}
+                      {answer.isCorrect && !isSelected && !isPresenter && 'You missed this one '}
+                      {answer.isCorrect && ' ✭'}
+                      {!answer.isCorrect && (isSelected ? 'Not this one ✖' : <div className="whitespace-wrap">&nbsp;</div>)}
+                    </div>
+                    <div>
+                      {guessesForThisAnswer} / {totalPlayerGuesses}
+                    </div>
+                  </div>
+                </div>
+              </>)
+              }
+              <div className="absolute bottom-0 h-full w-full text-black">
                 <div
                   className={`absolute bottom-0 left-0 h-full opacity-25 transition-all duration-[3000ms]`}
                   style={{
@@ -144,23 +154,12 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
                   }}
                 />
               </div>
-              {isShowingCorrectAnswers && (<>
-                <div className="absolute bottom-0 right-0 border-8 border-transparent min-w-fit h-full text-right text-lg lg:text-2xl flex">
-                  <div className="my-auto">
-                    <div>
-                      {answer.isCorrect && isSelected && 'You got it '}
-                      {answer.isCorrect && !isSelected && !isPresenter && 'You missed this one '}
-                      {answer.isCorrect && ' ✭'}
-                      {!answer.isCorrect && (isSelected ? 'Not this one ✖' : <>&nbsp;</>)}
-                    </div>
-                    <div>
-                      {guessesForThisAnswer} / {totalPlayerGuesses}
-                    </div>
-
-                  </div>
-                </div>
-              </>)
-              }
+              <div
+                className={`transition-all ${isSelected ? 'border-8' : 'border-4'} w-full absolute bottom-0 h-full`}
+                style={{
+                  borderColor: `var(--google-cloud-${color})`,
+                }}
+              />
             </button>
           </div>)
         })}
