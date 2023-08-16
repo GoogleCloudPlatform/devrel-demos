@@ -23,7 +23,6 @@ import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import Image from 'next/image';
 import QRCode from "react-qr-code";
 import { usePathname } from "next/navigation";
-import { mergeClassNames } from "../lib/merge-class-names";
 
 export default function QuestionPanel({ game, gameRef, currentQuestion }: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const authUser = useFirebaseAuthentication();
@@ -38,10 +37,12 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
     return correctAnswerCount + (answer.isCorrect ? 1 : 0);
   }, 0);
 
+  const isSingleAnswer = totalCorrectAnswerOptions === 1;
+
   const onAnswerClick = async (answerIndex: number) => {
     if (game.state === gameStates.AWAITING_PLAYER_ANSWERS) {
       // If the user is only supposed to pick one answer, clear the other answers first
-      const startingAnswerSelection = totalCorrectAnswerOptions === 1 ? emptyAnswerSelection : answerSelection;
+      const startingAnswerSelection = isSingleAnswer ? emptyAnswerSelection : answerSelection;
 
       // Typescript does not expect the `with` property on arrays yet
       // @ts-expect-error
@@ -73,7 +74,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
           <h2 className={isShowingCorrectAnswers ? 'transition-all text-sm font-light' : 'text-lg md:text-2xl lg:text-4xl'}>
             {currentQuestion.prompt}
           </h2>
-          <h2 className="lg:text-xl pt-5">
+          <h2 className="text-lg md:text-xl lg:text-2xl pt-5">
             {isShowingCorrectAnswers ? currentQuestion.explanation : (<>[Pick {totalCorrectAnswerOptions}]</>)}
           </h2>
         </BorderCountdownTimer>
@@ -121,7 +122,9 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
               className="m-1 w-full relative flex content-start text-left overflow-hidden"
             >
               <div className="w-full px-1 m-auto line-clamp-1 overflow-hidden border-8 border-transparent flex justify-between h-fit">
-                <span className={`h-fit text-xl lg:text-3xl my-auto ${isShowingCorrectAnswers ? 'transition-all w-full text-transparent bg-clip-text bg-gradient-to-r from-black via-transparent via-70%' : ''}`}>
+                <span className={`h-fit text-xl lg:text-3xl my-auto ${isShowingCorrectAnswers ? 'transition-all w-full text-transparent bg-clip-text bg-gradient-to-r from-black via-transparent via-45% md:via-50% xl:via-60%' : ''}`}>
+                {isSingleAnswer && (isSelected ? '●' : '○') }
+                {!isSingleAnswer && (isSelected ? '☑' : '☐') }
                   {answer.text}
                 </span>
               </div>
@@ -137,7 +140,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
                   className={`absolute bottom-0 left-0 h-full opacity-25 transition-all duration-[3000ms]`}
                   style={{
                     backgroundColor: answer.isCorrect ? `var(--google-cloud-${color})` : '#9ca3af',
-                    width: `${isShowingCorrectAnswers ? Math.min(Math.max(guessPercentageForThisAnswer, 2), 98) : 0}%`
+                    width: `${isShowingCorrectAnswers ? Math.max(guessPercentageForThisAnswer, 2) : 0}%`
                   }}
                 />
               </div>
@@ -147,7 +150,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
                     <div>
                       {answer.isCorrect && isSelected && 'You got it '}
                       {answer.isCorrect && !isSelected && !isPresenter && 'You missed this one '}
-                      {answer.isCorrect && ' ✓'}
+                      {answer.isCorrect && ' ✭'}
                       {!answer.isCorrect && (isSelected ? 'Not this one ✖' : <>&nbsp;</>)}
                     </div>
                     <div>
