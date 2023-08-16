@@ -89,7 +89,7 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
     font-weight: 700;
     position: relative;
     vertical-align: middle;
-    height: 50vh;
+    height: 50dvh;
   }
   
   div.timer::before,

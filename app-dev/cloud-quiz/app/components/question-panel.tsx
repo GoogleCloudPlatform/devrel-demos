@@ -77,7 +77,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
             {isShowingCorrectAnswers ? currentQuestion.explanation : (<>[Pick {totalCorrectAnswerOptions}]</>)}
           </h2>
         </BorderCountdownTimer>
-        <center className='hidden bg-gray-100 p-10 h-[50vh] lg:block'>
+        <center className='hidden bg-gray-100 p-10 h-[50dvh] lg:block'>
           {isPresenter ? (<>
             <div>
               Just getting here?
@@ -104,7 +104,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
           </>)}
         </center>
       </div>
-      <div className="grid grid-rows-4 h-[50vh] lg:h-full">
+      <div className="grid grid-rows-4 h-[50dvh] lg:h-full">
         {currentQuestion.answers.map((answer, index) => {
           const guessesForThisAnswer = Object.values(currentQuestion.playerGuesses || []).reduce((playerGuesses, guess) => {
             return playerGuesses + (guess[index] ? 1 : 0);
