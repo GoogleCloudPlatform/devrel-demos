@@ -23,11 +23,13 @@ import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import Image from 'next/image';
 import QRCode from "react-qr-code";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function QuestionPanel({ game, gameRef, currentQuestion }: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const authUser = useFirebaseAuthentication();
   const pathname = usePathname();
   const isPresenter = pathname.includes('/presenter');
+  const [answersSelectedCount, setAnswersSelectedCount] = useState<number>(0);
 
   const existingGuesses = currentQuestion?.playerGuesses && currentQuestion.playerGuesses[authUser.uid];
   const emptyAnswerSelection = Array(currentQuestion.answers.length).fill(false);
@@ -36,6 +38,12 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
   const totalCorrectAnswerOptions = currentQuestion.answers.reduce((correctAnswerCount, answer) => {
     return correctAnswerCount + (answer.isCorrect ? 1 : 0);
   }, 0);
+
+  useEffect(() => {
+    setAnswersSelectedCount(answerSelection.reduce((correctAnswerCount, answerIsSelected) => {
+      return correctAnswerCount + (answerIsSelected ? 1 : 0);
+    }, 0));
+  }, [answerSelection])
 
   const isSingleAnswer = totalCorrectAnswerOptions === 1;
 
@@ -46,7 +54,8 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
 
       // Typescript does not expect the `with` property on arrays yet
       // @ts-expect-error
-      const newAnswerSelection = startingAnswerSelection.with(answerIndex, !answerSelection[answerIndex]);
+      const newAnswerSelection: Boolean[] = startingAnswerSelection.with(answerIndex, !answerSelection[answerIndex]);
+
       const token = await authUser.getIdToken();
       await fetch('/api/update-answer', {
         method: 'POST',
@@ -65,18 +74,35 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
 
   const isShowingCorrectAnswers = game.state === gameStates.SHOWING_CORRECT_ANSWERS;
 
-  const totalPlayerGuesses = Object.values(currentQuestion.playerGuesses || []).length;
+  const totalPlayersWhoMadeAGuess = Object.values(currentQuestion.playerGuesses || []).length;
+
+  const countLeftToPick = totalCorrectAnswerOptions - answersSelectedCount;
 
   return (
     <div className={`grid lg:grid-cols-2`}>
       <div className="flex flex-col">
         <BorderCountdownTimer game={game} gameRef={gameRef}>
-          <h2 className={isShowingCorrectAnswers ? 'transition-all text-sm font-light' : 'text-lg md:text-2xl lg:text-4xl'}>
-            {currentQuestion.prompt}
-          </h2>
-          <h2 className="text-lg md:text-xl lg:text-2xl pt-5">
-            {isShowingCorrectAnswers ? currentQuestion.explanation : (<>[Pick {totalCorrectAnswerOptions}]</>)}
-          </h2>
+          <div className="flex flex-col justify-between h-full">
+            <h2 className={isShowingCorrectAnswers ? 'transition-all text-sm font-light' : 'text-lg md:text-2xl lg:text-4xl'}>
+              {currentQuestion.prompt}
+            </h2>
+            {isShowingCorrectAnswers ? (<>
+              <h2 className="md:text-xl lg:text-2xl pt-5">
+                {currentQuestion.explanation}
+              </h2>
+            </>) : (<div>
+              <h2 className="text-xl lg:text-4xl pt-5">
+                Pick {totalCorrectAnswerOptions}
+              </h2>
+              {!isPresenter && (
+                <h3 className="font-light text-lg lg:text-xl">
+                  {countLeftToPick !== 0 ? (
+                    `Pick ${Math.abs(countLeftToPick)} ${countLeftToPick > 0 ? 'More' : 'Less'}`
+                  ) : "You are all set"}
+                </h3>
+              )}
+            </div>)}
+          </div>
         </BorderCountdownTimer>
         <center className='hidden bg-gray-100 p-10 h-[50dvh] lg:block'>
           {isPresenter ? (<>
@@ -111,7 +137,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
             return playerGuesses + (guess[index] ? 1 : 0);
           }, 0);
 
-          const guessPercentageForThisAnswer = guessesForThisAnswer / (totalPlayerGuesses || 1) * 100;
+          const guessPercentageForThisAnswer = guessesForThisAnswer / (totalPlayersWhoMadeAGuess || 1) * 100;
           const colorOrder = ['red', 'blue', 'green', 'yellow'];
           const color = colorOrder[index];
           const isSelected = answerSelection[index];
@@ -139,7 +165,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
                       {!answer.isCorrect && (isSelected ? 'Not this one ✖' : <div className="whitespace-wrap">&nbsp;</div>)}
                     </div>
                     <div>
-                      {guessesForThisAnswer} / {totalPlayerGuesses}
+                      {guessesForThisAnswer} / {totalPlayersWhoMadeAGuess}
                     </div>
                   </div>
                 </div>

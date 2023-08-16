@@ -16,7 +16,7 @@
 
 "use client"
 
-import { Game, gameStates } from "@/app/types";
+import { Game } from "@/app/types";
 import { DocumentReference, Timestamp } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { timeCalculator } from "../lib/time-calculator";
@@ -144,7 +144,7 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
 
   return (
     <>
-      <div className={`timer ${isSmoothCounting ? 'smooth-counting' : ''} ${countDirection}`}>
+      <div className={`timer ${isSmoothCounting ? 'smooth-counting' : ''} ${countDirection} overflow-hidden`}>
         <div className="float-right -mt-1 -mr-4 ml-1 bg-gray-100 py-1 px-2">
           {displayTime < 10 && '0'}
           {displayTime}
