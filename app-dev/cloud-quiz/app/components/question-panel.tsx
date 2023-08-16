@@ -31,13 +31,21 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
   const isPresenter = pathname.includes('/presenter');
 
   const existingGuesses = currentQuestion?.playerGuesses && currentQuestion.playerGuesses[authUser.uid];
-  const answerSelection = existingGuesses || Array(currentQuestion.answers.length).fill(false);
+  const emptyAnswerSelection = Array(currentQuestion.answers.length).fill(false);
+  const answerSelection = existingGuesses || emptyAnswerSelection;
+
+  const totalCorrectAnswerOptions = currentQuestion.answers.reduce((correctAnswerCount, answer) => {
+    return correctAnswerCount + (answer.isCorrect ? 1 : 0);
+  }, 0);
 
   const onAnswerClick = async (answerIndex: number) => {
     if (game.state === gameStates.AWAITING_PLAYER_ANSWERS) {
+      // If the user is only supposed to pick one answer, clear the other answers first
+      const startingAnswerSelection = totalCorrectAnswerOptions === 1 ? emptyAnswerSelection : answerSelection;
+
       // Typescript does not expect the `with` property on arrays yet
       // @ts-expect-error
-      const newAnswerSelection = answerSelection.with(answerIndex, !answerSelection[answerIndex]);
+      const newAnswerSelection = startingAnswerSelection.with(answerIndex, !answerSelection[answerIndex]);
       const token = await authUser.getIdToken();
       await fetch('/api/update-answer', {
         method: 'POST',
@@ -54,29 +62,20 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
 
   const gameShareLink = `${location.protocol}//${location.host}/game/${gameRef.id}`;
 
-  const answerBorder = ({ isSelected, answer, game }: { isSelected: Boolean, answer: Answer, game: Game }): string => {
-    return mergeClassNames(
-      "border-8 m-2 w-full",
-      isSelected ? 'text-[var(--google-cloud-blue)]' : 'text-inherit',
-      isSelected && game.state !== gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-blue)]' : '',
-      isSelected && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-green)]' : '',
-      isSelected && !answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-red)]' : '',
-      !isSelected && answer.isCorrect && game.state === gameStates.SHOWING_CORRECT_ANSWERS ? 'border-[var(--google-cloud-green)] border-dotted' : '',
-    );
-  }
+  const isShowingCorrectAnswers = game.state === gameStates.SHOWING_CORRECT_ANSWERS;
+
+  const totalPlayerGuesses = Object.values(currentQuestion.playerGuesses || []).length;
 
   return (
     <div className={`grid lg:grid-cols-2`}>
       <div className="flex flex-col">
         <BorderCountdownTimer game={game} gameRef={gameRef}>
-          <h2 className="text-lg lg:text-2xl">
+          <h2 className={isShowingCorrectAnswers ? 'text-sm' : 'text-lg md:text-2xl lg:text-4xl'}>
             {currentQuestion.prompt}
           </h2>
-          {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (<>
-            <h2 className="text-sm lg:text-xl font-light pt-5">
-              {currentQuestion.explanation}
-            </h2>
-          </>)}
+          <h2 className="lg:text-xl pt-5">
+            {isShowingCorrectAnswers ? currentQuestion.explanation : (<>[Pick {totalCorrectAnswerOptions}]</>)}
+          </h2>
         </BorderCountdownTimer>
         <center className='hidden bg-gray-100 p-10 h-[50vh] lg:block'>
           {isPresenter ? (<>
@@ -105,21 +104,63 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
           </>)}
         </center>
       </div>
-      <div className="grid grid-cols-2 h-[50vh] lg:h-full">
-        {currentQuestion.answers.map((answer, index) => (<div className="flex" key={answer.text}>
-          <button
-            onClick={() => onAnswerClick(index)}
-            className={answerBorder({ isSelected: answerSelection[index], game, answer })}
-          >
-            {answer.text}
-            {game.state === gameStates.SHOWING_CORRECT_ANSWERS && (
-              <div>
-                {answer.isCorrect && '✅'}
-                {!answer.isCorrect && answerSelection[index] && '❌'}
-              </div>)}
-          </button>
-        </div>))}
-      </div>
-    </div>
+      <div className="grid grid-rows-4 h-[50vh] lg:h-full">
+        {currentQuestion.answers.map((answer, index) => {
+          const guessesForThisAnswer = Object.values(currentQuestion.playerGuesses || []).reduce((playerGuesses, guess) => {
+            return playerGuesses + (guess[index] ? 1 : 0);
+          }, 0);
+
+          const guessPercentageForThisAnswer = guessesForThisAnswer / (totalPlayerGuesses || 1) * 100;
+          const colorOrder = ['red', 'blue', 'green', 'yellow'];
+          const color = colorOrder[index];
+          const isSelected = answerSelection[index];
+
+          return (<div className="flex" key={answer.text}>
+            <button
+              onClick={() => onAnswerClick(index)}
+              className="m-2 w-full relative flex content-start text-left overflow-hidden"
+            >
+              <div className="w-full px-1 m-auto line-clamp-1 overflow-hidden border-8 border-transparent flex justify-between h-fit">
+                <span className="h-fit text-xl lg:text-3xl my-auto">
+                  {answer.text}
+                </span>
+                {isShowingCorrectAnswers && (<>
+                  <span className="min-w-fit h-fit my-auto text-right text-lg lg:text-2xl">
+                    <div>
+                      {answer.isCorrect && isSelected && 'You got it '}
+                      {answer.isCorrect && !isSelected && !isPresenter && 'You missed this one '}
+                      {answer.isCorrect && ' ✓'}
+                      {!answer.isCorrect && (isSelected ? 'Not this one ✖' : <>&nbsp;</>)}
+                    </div>
+                    <div>
+                      {guessesForThisAnswer} / {totalPlayerGuesses}
+                    </div>
+                  </span>
+                </>)}
+              </div>
+
+              <div
+                className={`transition-all ${isSelected ? 'border-8' : 'border-4'} w-full absolute bottom-0 h-full`}
+                style={{
+                  borderColor: `var(--google-cloud-${color})`,
+                }}
+              />
+              {isShowingCorrectAnswers && (<>
+                <div className="absolute bottom-0 h-full w-full text-black -z-50">
+                  <div
+                    className={`absolute bottom-0 left-0 h-full opacity-25`}
+                    style={{
+                      backgroundColor: answer.isCorrect ? `var(--google-cloud-${color})` : '#e5e7eb',
+                      width: `${Math.min(Math.max(guessPercentageForThisAnswer, 2))}%`
+                    }}
+                  />
+                </div>
+              </>)
+              }
+            </button>
+          </div>)
+        })}
+      </div >
+    </div >
   )
 }
