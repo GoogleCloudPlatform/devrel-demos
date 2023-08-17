@@ -101,10 +101,11 @@ def run(project_id, gaming_model_location, movie_model_location, pipeline_args):
             | beam.io.WriteToPubSub(topic=output_topic)
         )
 
+        # Step 1: Create the model handler 
         # Load the model into a handler
         movie_model_handler = KeyedModelHandler(TFModelHandlerTensor(movie_model_location,compile=False))
 
-
+        # Step 2: Submit the input into the model for a result
         # Note that the movie score differ in scoring
         # "negative" would mean negative values
         # "postivie" would mean positive values
@@ -114,17 +115,20 @@ def run(project_id, gaming_model_location, movie_model_location, pipeline_args):
             | "Perform movie inference" >> RunInference(movie_model_handler)
         )
 
+        # Step 3: Join your results together
         # We join up the data so we can compare the values later
         joined = (
             ({'gaming': gaming_inference, 'movie': movie_inference})
             | 'Join' >> beam.CoGroupByKey()
         )
 
+        # Step 4: Transform your joined results into a string
         # Simple string schema - normally not recommended 
         # For brevity sake, we convert to a single string
         schema = {'fields': [
             {'name': 'data_col', 'type': 'STRING', 'mode': 'NULLABLE'}]}
         
+        # Step 6: Join your results together
         # Write to BigQuery
         # We're converting to the simple string to insert
         _ = (

@@ -1,4 +1,4 @@
-# Cloud Quiz
+# Party Game
 
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
@@ -8,9 +8,9 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
     ```bash
     git clone https://github.com/GoogleCloudPlatform/devrel-demos.git
     ```
-1. Navigate to the Cloud Quiz directory
+1. Navigate to the Party Game directory
     ```bash
-    cd devrel-demos/app-dev/cloud-quiz/
+    cd devrel-demos/app-dev/party-game/
     ```
 1. Install dependencies:
     ```bash
@@ -49,5 +49,15 @@ To add a question to the database:
 ## Deploy on Cloud Run
 
 ```bash
-gcloud run deploy cloud-quiz --source .
+gcloud run deploy party-game --source .
+```
+
+
+## Architecture
+
+```mermaid
+flowchart TD
+    A[UI <br /> NextJS <br /> /app folder] -->|Post| B[Validation API <br /> NextJS <br /> /api folder]
+    B --> |Update| C[(Firestore Database <br /> protected by <br /> Firebase Auth)]
+    C -->|GET| A
 ```

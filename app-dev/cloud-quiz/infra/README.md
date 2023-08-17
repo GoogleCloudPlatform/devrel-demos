@@ -1,4 +1,4 @@
-# Terraform for Cloud Quiz
+# Terraform for Party Game
 
 ## Requirements
 

@@ -24,11 +24,13 @@ from apache_beam.ml.inference.base import RunInference
 from apache_beam.ml.inference.base import KeyedModelHandler
 import argparse
 
+# Step 5: Tag your element with the key
 class tag_with_key(beam.DoFn):
     # In this pardo, we key our elements using the attributes of the message
     def process(self, element):
         yield (element.attributes["userid"],(element.data).decode('UTF-8'))
 
+# Step 8: Parse your results from the prediction
 class flag_for_toxic(beam.DoFn):
     def process(self, element):
         # Parsing the output of the inference
@@ -56,24 +58,29 @@ def run(project_id, gaming_model_location, movie_model_location, pipeline_args):
 
     with beam.Pipeline(options=pipeline_options) as p:
 
+        # Step 3: Create the pipeline to read from the input topic
         # We first read from Pub/Sub
         # Because it's a streaming pipeline, we need to apply a window for the join
         # Finally we key the data so we can join it back after the A/B test
         read_from_pubsub = (
             p 
             | "Read from PubSub" >> beam.io.ReadFromPubSub(topic=input_topic,with_attributes=True)
+            # Step 4: Window the incoming element
             # In this particular example, we aren't worried about an accurate window
             # If uniqueness is an issue, we can switch to using message ID of each message 
             # The message ID will be unique and will ensure uniqueness 
             | "Window data" >> beam.WindowInto(beam.window.FixedWindows(0.1))
+            # Step 5: Tag your element with the key
             | "Key up input" >> beam.ParDo(tag_with_key())
         )
 
+        # Step 6: Create the model handler 
         # Load the model into a handler
         # We use KeyedModelHandler here to automatically handle the incoming keys
         # It also returns the key so you can preserve the key and use it after the prediction
         gaming_model_handler = KeyedModelHandler(TFModelHandlerTensor(model_uri=gaming_model_location,load_model_args={"compile":False}))
 
+        # Step 7: Submit the input to the model for a result
         # Use the handler to perform inference
         # Note that the gaming toxicity score is based on "toxic or not"
         # The scale differs from the movie model
@@ -82,19 +89,23 @@ def run(project_id, gaming_model_location, movie_model_location, pipeline_args):
             | "Perform gaming inference" >> RunInference(gaming_model_handler)
         )
 
+        # Step 8: Parse your results from the prediction
         # Flag the values so we can determine if toxic or not
         nice_or_not = (
             gaming_inference 
             | beam.ParDo(flag_for_toxic())
         )
         
+        # Step 9: Do a simple MAP and print
         # Print to screen so we can see the results
         nice_or_not | beam.Map(print)
 
+        # Step 10: Filter your data on the result key
         # Filter, if toxic then write to Pub/Sub
         # "Not" denotes not nice
         not_filter = nice_or_not | beam.Filter(lambda outcome: outcome[0] == "not")
         
+        # Step 11: Submit the messages to Pub/Sub for further action
         # Write to Pub/Sub
         _ = (not_filter 
             | "Convert to bytestring" >> beam.Map(lambda element: bytes(str(element[1]),"UTF-8"))
@@ -102,6 +113,7 @@ def run(project_id, gaming_model_location, movie_model_location, pipeline_args):
         )
 
 if __name__ == "__main__":
+    # Step 12: Execute your pipeline
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--project_id',
