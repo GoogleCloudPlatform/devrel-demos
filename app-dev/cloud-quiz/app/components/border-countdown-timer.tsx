@@ -25,7 +25,6 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
   const [timeToCountDown, setTimeToCountDown] = useState(game.timePerQuestion);
   const [displayTime, setDisplayTime] = useState(game.timePerQuestion);
   const [timeLeft, setTimeLeft] = useState(game.timePerQuestion);
-  const [isSmoothCounting, setIsSmoothCounting] = useState<Boolean>(false);
   const [countDirection, setCountDirection] = useState<"down" | "up">("down");
 
   useEffect(() => {
@@ -38,7 +37,7 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
         displayTime,
         countDirection,
       } = timeCalculator({
-        currentTimeInMillis: Timestamp.now().toMillis(),
+        currentTimeInMillis: Timestamp.now().toMillis() + 1000,
         game,
       });
 
@@ -57,13 +56,11 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
       }
 
       // nudge every three seconds after time has expired
-      if (Math.floor((timeLeft * 10 % 39)) < -38) {
+      if (timeLeft % 3 < -2) {
         nudgeGame();
       }
 
-      setTimeout(() => setIsSmoothCounting(timeLeft > -2 && document.visibilityState === 'visible'), 1);
-
-    }, 100);
+    }, 1000);
 
     // clear interval on re-render to avoid memory leaks
     return () => { clearTimeout(timeoutIdOne) };
@@ -74,84 +71,33 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
 
   // this is the percent of the entire animation that has completed
   // the `+ 1` allows the animation to target where it "should" be in one second
-  const animationCompletionPercentage = (timeToCountDown - timeLeft + 1) / timeToCountDown * 100;
+  const animationCompletionPercentage = Math.ceil(timeToCountDown - displayTime) / (timeToCountDown) * 100;
 
-  const css = `
-  div.timer {
-    background: none;
-    box-sizing: border-box;
-    padding: 1em 2em;
-    box-shadow: inset 0 0 0 2px #F3F4F6;
-    color: #000000;
-    font-size: inherit;
-    font-weight: 700;
-    position: relative;
-    vertical-align: middle;
-    height: 50dvh;
-  }
-  
-  div.timer::before,
-  div.timer::after {
-    box-sizing: inherit;
-    content: "";
-    position: absolute;
-    border: 8px solid transparent;
-  }
-  
-  div.timer.smooth-counting::before,
-  div.timer.smooth-counting::after {
-    transition: height 0.1s linear, width 0.1s linear, border 0.1s linear;
-  }
-  
-  div.timer.down::before {
-    border-top: ${animationCompletionPercentage > 0 ? '8' : '0'}px solid var(--google-cloud-red);
-    border-right: ${animationCompletionPercentage > 25 ? '8' : '0'}px solid var(--google-cloud-blue);
-    top: 0;
-    left: 0;
-    width: ${Math.max(Math.min(animationCompletionPercentage * 4, 100), 0)}%;
-    height: ${Math.max(Math.min(animationCompletionPercentage * 4 - 100, 100), 0)}%;
-  }
-  
-  div.timer.down::after {
-    border-bottom: ${animationCompletionPercentage > 50 ? '8' : '0'}px solid var(--google-cloud-green);
-    border-left: ${animationCompletionPercentage > 75 ? '8' : '0'}px solid var(--google-cloud-yellow);
-    bottom: 0;
-    right: 0;
-    width: ${Math.max(Math.min(animationCompletionPercentage * 4 - 200, 100), 0)}%;
-    height: ${Math.max(Math.min(animationCompletionPercentage * 4 - 300, 100), 0)}%;
-  }
-  
-  div.timer.up::before {
-    border-top: ${animationCompletionPercentage < 100 ? '8' : '0'}px solid var(--google-cloud-red);
-    border-right: ${animationCompletionPercentage < 75 ? '8' : '0'}px solid var(--google-cloud-blue);
-    top: 0;
-    left: 0;
-    width: ${Math.max(Math.min(400 - animationCompletionPercentage * 4, 100), 0)}%;
-    height: ${Math.max(Math.min(300 - animationCompletionPercentage * 4, 100), 0)}%;
-  }
-  
-  div.timer.up::after {
-    border-bottom: ${animationCompletionPercentage < 50 ? '8' : '0'}px solid var(--google-cloud-green);
-    border-left: ${animationCompletionPercentage < 25 ? '8' : '0'}px solid var(--google-cloud-yellow);
-    bottom: 0;
-    right: 0;
-    width: ${Math.max(Math.min(200 - animationCompletionPercentage * 4, 100), 0)}%;
-    height: ${Math.max(Math.min(100 - animationCompletionPercentage * 4, 100), 0)}%;
-  }
-  `;
+  const limitPercents = (num: number) => Math.max(Math.min(num, 100), 0);
+
+  const topBorderPercentage = limitPercents(countDirection === "down" ? animationCompletionPercentage * 4 : 400 - animationCompletionPercentage * 4);
+  const rightBorderPercentage = limitPercents(countDirection === "down" ? animationCompletionPercentage * 4 - 100 : 300 - animationCompletionPercentage * 4);
+  const bottomBorderPercentage = limitPercents(countDirection === "down" ? animationCompletionPercentage * 4 - 200 : 200 - animationCompletionPercentage * 4);
+  const leftBorderPercentage = limitPercents(countDirection === "down" ? animationCompletionPercentage * 4 - 300 : 100 - animationCompletionPercentage * 4);
+
+
+
 
   return (
     <>
-      <div className={`timer ${isSmoothCounting ? 'smooth-counting' : ''} ${countDirection} overflow-hidden`}>
-        <div className="float-right -mt-1 -mr-4 ml-1 bg-gray-100 py-1 px-2">
-          {displayTime < 10 && '0'}
-          {displayTime}
+      <div className={`relative p-4 h-[50dvh] overflow-hidden`}>
+        <div className="timer-top-border absolute top-0 left-0 bg-[var(--google-cloud-red)]" style={{ height: '8px', width: `${topBorderPercentage}%`, transition: 'width 1s linear' }} />
+        <div className="timer-right-border absolute top-0 right-0 bg-[var(--google-cloud-blue)]" style={{ height: `${rightBorderPercentage}%`, width: '8px', transition: 'height 1s linear' }} />
+        <div className="timer-bottom-border absolute bottom-0 right-0 bg-[var(--google-cloud-green)]" style={{ height: '8px', width: `${bottomBorderPercentage}%`, transition: 'width 1s linear' }} />
+        <div className="timer-left-border absolute bottom-0 left-0 bg-[var(--google-cloud-yellow)]" style={{ height: `${leftBorderPercentage}%`, width: '8px', transition: 'height 1s linear' }} />
+        <div className="h-full w-full border-8 border-transparent">
+          <div className="bg-gray-100 py-1 px-2 float-right">
+            {displayTime < 10 && '0'}
+            {displayTime}
+          </div>
+          {children}
         </div>
-        {children}
       </div>
-      <style>
-        {css}
-      </style>
     </>
   )
 }
