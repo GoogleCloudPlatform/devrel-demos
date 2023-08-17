@@ -22,7 +22,6 @@ import BorderCountdownTimer from "@/app/components/border-countdown-timer";
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import Image from 'next/image';
 import QRCode from "react-qr-code";
-import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Scoreboard from "./scoreboard";
 import useScoreboard from "../hooks/use-scoreboard";

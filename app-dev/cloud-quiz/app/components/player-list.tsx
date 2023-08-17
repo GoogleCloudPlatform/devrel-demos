@@ -30,9 +30,7 @@ export default function PlayerList({ game }: { game: Game }) {
   const playerDisplayNames = Object.values(game.players).sort().sort((a) => (a === currentPlayerName ? -1 : 0));
 
   if (playerDisplayNames.length < 1) {
-    return <div className="grid h-full place-items-center">
-      No players have joined the game yet.
-    </div>
+    return 'No players have joined the game yet.'
   }
 
   return (<center className="mx-auto max-w-7xl">

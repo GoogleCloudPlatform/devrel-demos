@@ -84,7 +84,7 @@ const useGame = () => {
       unsubscribe();
       exitGame({ playerIdList, gameId, authUser });
     };
-  }, [authUser.uid, game.leader.uid])
+  }, [authUser, game.leader.uid, gameId, gameRef, playerIdList])
 
   return {
     gameRef,

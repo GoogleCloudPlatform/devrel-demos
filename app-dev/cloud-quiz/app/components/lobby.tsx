@@ -40,7 +40,9 @@ export default function PresenterLobby({ game, gameRef }: { game: Game; gameRef:
           </button>
           {showSharePanel && <ShareLinkPanel gameRef={gameRef} />}
         </div>
-        <PlayerList game={game} />
+        <div className="my-8">
+          <PlayerList game={game} />
+        </div>
       </center>
       <center>
         {authUser.uid === game.leader.uid && <StartGameButton gameRef={gameRef} />}

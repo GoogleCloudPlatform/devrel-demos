@@ -32,7 +32,6 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
     // save intervalIdOne to clear the interval when the
     // component re-renders
     const timeoutIdOne = setTimeout(() => {
-
       const {
         timeLeft,
         timeToCountDown,
@@ -47,7 +46,6 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
       setTimeToCountDown(timeToCountDown);
       setDisplayTime(displayTime);
       setCountDirection(countDirection);
-
 
       const nudgeGame = async () => {
         await fetch('/api/nudge-game', {
