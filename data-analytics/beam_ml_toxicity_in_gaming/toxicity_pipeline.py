@@ -24,12 +24,6 @@ from apache_beam.ml.inference.base import RunInference
 from apache_beam.ml.inference.base import KeyedModelHandler
 import argparse
 
-class extendTFModelHandlerTensor (beam.ml.inference.tensorflow_inference.TFModelHandlerTensor):
-    # We currently need to overload the method 
-    # This will be unnecessary when https://github.com/apache/beam/pull/26548 goes live
-    def load_model(self) -> tf.Module:
-        return tf.keras.models.load_model(self._model_uri,compile=False)
-
 class tag_with_key(beam.DoFn):
     # In this pardo, we key our elements using the attributes of the message
     def process(self, element):
@@ -78,7 +72,7 @@ def run(project_id, gaming_model_location, movie_model_location, pipeline_args):
         # Load the model into a handler
         # We use KeyedModelHandler here to automatically handle the incoming keys
         # It also returns the key so you can preserve the key and use it after the prediction
-        gaming_model_handler = KeyedModelHandler(extendTFModelHandlerTensor(gaming_model_location))
+        gaming_model_handler = KeyedModelHandler(TFModelHandlerTensor(gaming_model_location,compile=False))
 
         # Use the handler to perform inference
         # Note that the gaming toxicity score is based on "toxic or not"
@@ -108,7 +102,7 @@ def run(project_id, gaming_model_location, movie_model_location, pipeline_args):
         )
 
         # Load the model into a handler
-        movie_model_handler = KeyedModelHandler(extendTFModelHandlerTensor(movie_model_location))
+        movie_model_handler = KeyedModelHandler(TFModelHandlerTensor(movie_model_location,compile=False))
 
 
         # Note that the movie score differ in scoring
