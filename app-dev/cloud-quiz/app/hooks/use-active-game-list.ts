@@ -33,7 +33,7 @@ const useActiveGameList = () => {
       setActiveGameList(games);
     });
     return unsubscribe;
-  }, [])
+  }, []);
 
   return { activeGameList }
 }

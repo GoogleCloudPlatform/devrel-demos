@@ -16,39 +16,15 @@
 
 "use client"
 
-import { useEffect } from 'react';
-import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import { gameStates } from "@/app/types";
-import PlayerLobby from "@/app/components/player-lobby";
+import Lobby from "@/app/components/lobby";
 import QuestionPanel from "@/app/components/question-panel";
 import useGame from "@/app/hooks/use-game";
 import ReturnToHomepagePanel from '@/app/components/return-to-homepage-panel';
 import Scoreboard from '@/app/components/scoreboard';
 
 export default function GamePage() {
-  const authUser = useFirebaseAuthentication();
-  const { game, gameId, gameRef, isShowingQuestion, currentQuestion, error: errorMessage } = useGame();
-
-  useEffect(() => {
-    if (authUser.uid && Object.keys(game.players)) {
-      const joinGame = async () => {
-        if (!Object.keys(game.players).includes(authUser.uid)) {
-          const token = await authUser.getIdToken();
-          await fetch('/api/join-game', {
-            method: 'POST',
-            body: JSON.stringify({ gameId }),
-            headers: {
-              Authorization: token,
-            }
-          }).catch(error => {
-            console.error({ error })
-          });
-        }
-      }
-
-      joinGame();
-    }
-  }, [authUser, authUser.uid, game.players, gameId])
+  const { game, gameRef, isShowingQuestion, currentQuestion, error: errorMessage } = useGame();
 
   if (errorMessage) {
     return (
@@ -67,7 +43,7 @@ export default function GamePage() {
         <Scoreboard />
       </>)}
       {isShowingQuestion && (<QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />)}
-      {game.state === gameStates.NOT_STARTED && (<PlayerLobby game={game} gameRef={gameRef} />)}
+      {game.state === gameStates.NOT_STARTED && (<Lobby game={game} gameRef={gameRef} />)}
     </>
   )
 }

@@ -55,8 +55,8 @@ export default function Navbar() {
                   )}
                 </Disclosure.Button>
               </div>
-              <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
-                <div className="flex flex-shrink-0 items-center">
+              <div className="relative flex flex-1 items-center">
+                <div className="absolute w-full flex flex-shrink-0 justify-center sm:justify-start -z-20">
                   <Image
                     src='/google-cloud-logo.svg'
                     alt='Google Cloud Logo'
@@ -66,7 +66,7 @@ export default function Navbar() {
                     priority
                   />
                 </div>
-                <div className="hidden sm:ml-6 sm:block">
+                <div className="hidden sm:ml-12 sm:block">
                   <div className="flex space-x-4">
                     {navigation.map((item) => (
                       <Link
@@ -83,8 +83,10 @@ export default function Navbar() {
                     ))}
                   </div>
                 </div>
+                <div className="absolute w-full flex flex-shrink-0 justify-end -z-10">
+                  {authUser.uid ? <SignOutButton /> : <SignInButton />}
+                </div>
               </div>
-              {authUser.uid ? <SignOutButton /> : <SignInButton />}
             </div>
           </div>
 

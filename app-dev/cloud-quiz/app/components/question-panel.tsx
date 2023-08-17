@@ -29,9 +29,8 @@ import useScoreboard from "../hooks/use-scoreboard";
 
 export default function QuestionPanel({ game, gameRef, currentQuestion }: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const authUser = useFirebaseAuthentication();
-  const pathname = usePathname();
   const { currentPlayer, playerScores } = useScoreboard();
-  const isPresenter = pathname.includes('/presenter');
+  const isGameLeader = authUser.uid === game.leader.uid;
   const [answersSelectedCount, setAnswersSelectedCount] = useState<number>(0);
 
   const existingGuesses = currentQuestion?.playerGuesses && currentQuestion.playerGuesses[authUser.uid];
@@ -51,7 +50,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
   const isSingleAnswer = totalCorrectAnswerOptions === 1;
 
   const onAnswerClick = async (answerIndex: number) => {
-    if (game.state === gameStates.AWAITING_PLAYER_ANSWERS) {
+    if (game.state === gameStates.AWAITING_PLAYER_ANSWERS && !isGameLeader) {
       // If the user is only supposed to pick one answer, clear the other answers first
       const startingAnswerSelection = isSingleAnswer ? emptyAnswerSelection : answerSelection;
 
@@ -66,10 +65,9 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
         headers: {
           Authorization: token,
         }
-      })
-        .catch(error => {
-          console.error({ error })
-        });
+      }).catch(error => {
+        console.error({ error })
+      });
     }
   }
 
@@ -97,7 +95,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
               <h2 className="text-xl lg:text-4xl pt-5">
                 Pick {totalCorrectAnswerOptions}
               </h2>
-              {!isPresenter && (
+              {!isGameLeader && (
                 <h3 className="font-light text-lg lg:text-xl">
                   {countLeftToPick !== 0 ? (
                     `Pick ${Math.abs(countLeftToPick)} ${countLeftToPick > 0 ? 'More' : 'Less'}`
@@ -109,11 +107,11 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
         </BorderCountdownTimer>
         <center className='hidden bg-gray-100 h-[50dvh] lg:block overflow-hidden'>
           {currentPlayer.displayName && <div className="mt-2">You are {currentPlayer.displayName}</div>}
-          {isShowingCorrectAnswers && currentPlayer?.score > -1 && <div>and you have {currentPlayer.score} point{currentPlayer.score ===1 ? '' : 's'}</div>}
+          {isShowingCorrectAnswers && currentPlayer?.score > -1 && <div>and you have {currentPlayer.score} point{currentPlayer.score === 1 ? '' : 's'}</div>}
           {(isShowingCorrectAnswers && playerScores.length > 0) ? (<>
             <Scoreboard />
           </>) : (<>
-            {isPresenter ? (<div className="flex h-full">
+            {isGameLeader ? (<div className="flex h-full">
               <div className="m-auto">
                 <div>
                   Just getting here?
@@ -171,7 +169,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
                   <div className="bg-white pl-1 h-fit my-auto">
                     <div className="whitespace-nowrap">
                       {answer.isCorrect && isSelected && 'You got it '}
-                      {answer.isCorrect && !isSelected && !isPresenter && 'You missed this one '}
+                      {answer.isCorrect && !isSelected && !isGameLeader && 'You missed this one '}
                       {answer.isCorrect && ' ✭'}
                       {!answer.isCorrect && (isSelected ? 'Not this one ✖' : <div className="whitespace-wrap">&nbsp;</div>)}
                     </div>

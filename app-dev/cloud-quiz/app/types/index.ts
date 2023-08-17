@@ -45,22 +45,24 @@ export const gameStates = {
 
 export type GameState = (typeof gameStates)[keyof typeof gameStates];
 
-export type Player = {
+export type Leader = {
   uid: string;
   displayName: string;
 }
 
-export const emptyPlayer: Player = {
+export const emptyLeader = {
   uid: '',
-  displayName: '',
+  displayName: ''
+}
+
+export type Players = {
+  [key: string]: string;
 }
 
 export type Game = {
   questions: Array<Question>;
-  leader: Player,
-  players: {
-    [key: string]: string;
-  };
+  leader: Leader,
+  players: Players;
   state: GameState;
   currentQuestionIndex: number;
   startTime: any;
@@ -70,7 +72,7 @@ export type Game = {
 
 export const emptyGame: Game = {
   questions: [],
-  leader: emptyPlayer,
+  leader: emptyLeader,
   players: {},
   state: gameStates.NOT_STARTED,
   currentQuestionIndex: -1,

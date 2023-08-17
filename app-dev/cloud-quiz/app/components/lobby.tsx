@@ -23,21 +23,30 @@ import PlayerList from "./player-list";
 import { Game } from "@/app/types";
 import useFirebaseAuthentication from "../hooks/use-firebase-authentication";
 import ShareLinkPanel from "./share-link-panel";
+import { useState } from "react";
 
 export default function PresenterLobby({ game, gameRef }: { game: Game; gameRef: DocumentReference }) {
 
   const authUser = useFirebaseAuthentication();
 
+  const [showSharePanel, setShowSharePanel] = useState<Boolean>(false);
+
   return (
-    <div className="grid lg:grid-cols-2">
-      <div className="mt-20">
-        <PlayerList game={game} />
-      </div>
+    <div className="grid lg:grid-cols-2 mt-20">
       <center>
-        {authUser.uid === game.leader.uid && (<div className="my-20">
-          <StartGameButton gameRef={gameRef} />
-        </div>)}
-        <ShareLinkPanel gameRef={gameRef} />
+        <div className="lg:hidden">
+          <button onClick={() => setShowSharePanel(!showSharePanel)} className={`border m-2 mt-10 p-2`}>
+            {showSharePanel ? 'Hide Share Panel' : 'Invite Others to Join'}
+          </button>
+          {showSharePanel && <ShareLinkPanel gameRef={gameRef} />}
+        </div>
+        <PlayerList game={game} />
+      </center>
+      <center>
+        {authUser.uid === game.leader.uid && <StartGameButton gameRef={gameRef} />}
+        <div className="hidden lg:block">
+          <ShareLinkPanel gameRef={gameRef} />
+        </div>
         {authUser.uid === game.leader.uid && <DeleteGameButton gameRef={gameRef} />}
       </center>
     </div>
