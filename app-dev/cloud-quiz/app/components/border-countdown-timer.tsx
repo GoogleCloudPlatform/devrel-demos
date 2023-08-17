@@ -67,13 +67,13 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
 
     // including exhaustive deps (specifically `game`) makes the re-render take far too long
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft]);
+  }, [timeLeft, game.state]);
+
+  const limitPercents = (num: number) => Math.max(Math.min(num, 100), 0);
 
   // this is the percent of the entire animation that has completed
   // the `+ 1` allows the animation to target where it "should" be in one second
-  const animationCompletionPercentage = Math.ceil(timeToCountDown - displayTime) / (timeToCountDown) * 100;
-
-  const limitPercents = (num: number) => Math.max(Math.min(num, 100), 0);
+  const animationCompletionPercentage = limitPercents((timeToCountDown - displayTime + 1) / (timeToCountDown) * 100);
 
   const topBorderPercentage = limitPercents(countDirection === "down" ? animationCompletionPercentage * 4 : 400 - animationCompletionPercentage * 4);
   const rightBorderPercentage = limitPercents(countDirection === "down" ? animationCompletionPercentage * 4 - 100 : 300 - animationCompletionPercentage * 4);
