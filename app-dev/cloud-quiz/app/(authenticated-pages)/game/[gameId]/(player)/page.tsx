@@ -23,6 +23,7 @@ import PlayerLobby from "@/app/components/player-lobby";
 import QuestionPanel from "@/app/components/question-panel";
 import useGame from "@/app/hooks/use-game";
 import ReturnToHomepagePanel from '@/app/components/return-to-homepage-panel';
+import Scoreboard from '@/app/components/scoreboard';
 
 export default function GamePage() {
   const authUser = useFirebaseAuthentication();
@@ -59,11 +60,12 @@ export default function GamePage() {
 
   return (
     <>
-      {(game.state === gameStates.GAME_OVER) && (
+      {(game.state === gameStates.GAME_OVER) && (<>
         <ReturnToHomepagePanel>
           <h2>Game Over</h2>
         </ReturnToHomepagePanel>
-      )}
+        <Scoreboard />
+      </>)}
       {isShowingQuestion && (<QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />)}
       {game.state === gameStates.NOT_STARTED && (<PlayerLobby game={game} gameRef={gameRef} />)}
     </>

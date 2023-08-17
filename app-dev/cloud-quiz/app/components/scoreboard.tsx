@@ -16,48 +16,13 @@
 
 "use client"
 
-import { useEffect } from 'react';
 import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
-import { gameStates } from "@/app/types";
-import PresenterLobby from "@/app/components/presenter-lobby";
-import QuestionPanel from "@/app/components/question-panel";
 import useGame from "@/app/hooks/use-game";
-import ReturnToHomepagePanel from '@/app/components/return-to-homepage-panel';
 import '@/app/components/player-list.css';
-import Scoreboard from '@/app/components/scoreboard';
 
-export default function GamePage() {
+export default function Scoreboard() {
   const authUser = useFirebaseAuthentication();
-  const { game, gameId, gameRef, isShowingQuestion, currentQuestion, error: errorMessage } = useGame();
-
-  useEffect(() => {
-    if (authUser.uid) {
-      const exitGame = async () => {
-        if (Object.keys(game.players).includes(authUser.uid)) {
-          const token = await authUser.getIdToken();
-          await fetch('/api/exit-game', {
-            method: 'POST',
-            body: JSON.stringify({ gameId }),
-            headers: {
-              Authorization: token,
-            }
-          }).catch(error => {
-            console.error({ error })
-          });
-        }
-      }
-
-      exitGame();
-    }
-  }, [authUser, authUser.uid, game.players, gameId])
-
-  if (errorMessage) {
-    return (
-      <ReturnToHomepagePanel>
-        <h2>{errorMessage}</h2>
-      </ReturnToHomepagePanel>
-    )
-  }
+  const { game } = useGame();
 
   // create a list of all players
   const arraysAreEqual = (a: Boolean[], b: Boolean[]) => {
@@ -89,22 +54,24 @@ export default function GamePage() {
     return a.displayName.localeCompare(b.displayName);
   });
 
-  const currentPlayer = playerScoresObject['6LghThEruESLO4AHQaP8ARwOPHf1'];
+  const currentPlayer = playerScoresObject[authUser.uid];
 
   return (
-    <>
-      {(game.state === gameStates.GAME_OVER) && (<>
-        <ReturnToHomepagePanel>
-          <h2>Game Over</h2>
-        </ReturnToHomepagePanel>
-        <Scoreboard />
-      </>)}
-      {isShowingQuestion && gameRef && (<>
-        <QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />
-      </>)}
-      {game.state === gameStates.NOT_STARTED && gameRef && (<>
-        <PresenterLobby game={game} gameRef={gameRef} />
-      </>)}
-    </>
+    <div className="mt-5 w-fit m-auto">
+      <center className='mt-10'>
+        Full Scoreboard
+      </center>
+      {playerScores.map((playerScore) => (<div key={playerScore.uid} className="player-list-item relative" style={{ display: 'block' }}>
+        <div className='flex justify-between'>
+          <div className='pr-4'>{playerScore.displayName}</div>
+          <div>{playerScore.score}</div>
+        </div>
+        <div className='text-black z-50 absolute left-full min-w-fit whitespace-nowrap top-0 h-full flex p-1'>
+          <div className='m-auto'>
+            {currentPlayer?.uid === playerScore.uid && ' ← You!'}
+          </div>
+        </div>
+      </div>))}
+    </div>
   )
 }
