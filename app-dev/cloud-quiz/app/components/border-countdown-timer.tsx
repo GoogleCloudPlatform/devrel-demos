@@ -24,50 +24,49 @@ import { timeCalculator } from "../lib/time-calculator";
 export default function BorderCountdownTimer({ game, children, gameRef }: { game: Game, children: React.ReactNode, gameRef: DocumentReference }) {
   const [timeToCountDown, setTimeToCountDown] = useState(game.timePerQuestion);
   const [displayTime, setDisplayTime] = useState(game.timePerQuestion);
-  const [timeLeft, setTimeLeft] = useState(game.timePerQuestion);
   const [countDirection, setCountDirection] = useState<"down" | "up">("down");
+  const [localCounter, setLocalCounter] = useState<number>(0);
+
+  useEffect(() => {
+    const {
+      timeLeft,
+      timeToCountDown,
+      displayTime,
+      countDirection,
+    } = timeCalculator({
+      currentTimeInMillis: Timestamp.now().toMillis() + 1000,
+      game,
+    });
+
+    setTimeToCountDown(timeToCountDown);
+    setDisplayTime(displayTime);
+    setCountDirection(countDirection);
+
+    const nudgeGame = async () => {
+      await fetch('/api/nudge-game', {
+        method: 'POST',
+        body: JSON.stringify({ gameId: gameRef.id }),
+      }).catch(error => {
+        console.error({ error })
+      });
+    }
+
+    // nudge every three seconds after time has expired
+    if (timeLeft % 3 < -2) {
+      nudgeGame();
+    }
+  }, [localCounter, game, gameRef.id])
 
   useEffect(() => {
     // save intervalIdOne to clear the interval when the
     // component re-renders
     const timeoutIdOne = setTimeout(() => {
-      const {
-        timeLeft,
-        timeToCountDown,
-        displayTime,
-        countDirection,
-      } = timeCalculator({
-        currentTimeInMillis: Timestamp.now().toMillis() + 1000,
-        game,
-      });
-
-      setTimeLeft(timeLeft);
-      setTimeToCountDown(timeToCountDown);
-      setDisplayTime(displayTime);
-      setCountDirection(countDirection);
-
-      const nudgeGame = async () => {
-        await fetch('/api/nudge-game', {
-          method: 'POST',
-          body: JSON.stringify({ gameId: gameRef.id }),
-        }).catch(error => {
-          console.error({ error })
-        });
-      }
-
-      // nudge every three seconds after time has expired
-      if (timeLeft % 3 < -2) {
-        nudgeGame();
-      }
-
+      setLocalCounter(localCounter + 1);
     }, 1000);
 
     // clear interval on re-render to avoid memory leaks
-    return () => { clearTimeout(timeoutIdOne) };
-
-    // including exhaustive deps (specifically `game`) makes the re-render take far too long
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, game.state]);
+    return () => clearTimeout(timeoutIdOne);
+  }, [localCounter]);
 
   const limitPercents = (num: number) => Math.max(Math.min(num, 100), 0);
 
