@@ -24,10 +24,13 @@ import Image from 'next/image';
 import QRCode from "react-qr-code";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import Scoreboard from "./scoreboard";
+import useScoreboard from "../hooks/use-scoreboard";
 
 export default function QuestionPanel({ game, gameRef, currentQuestion }: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const authUser = useFirebaseAuthentication();
   const pathname = usePathname();
+  const { currentPlayer, playerScores } = useScoreboard();
   const isPresenter = pathname.includes('/presenter');
   const [answersSelectedCount, setAnswersSelectedCount] = useState<number>(0);
 
@@ -104,30 +107,38 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
             </div>)}
           </div>
         </BorderCountdownTimer>
-        <center className='hidden bg-gray-100 p-10 h-[50dvh] lg:block'>
-          {isPresenter ? (<>
-            <div>
-              Just getting here?
-            </div>
-            <div>
-              Scan the QR Code to join the game!
-            </div>
-            <QRCode value={gameShareLink} />
+        <center className='hidden bg-gray-100 h-[50dvh] lg:block overflow-hidden'>
+          {currentPlayer.displayName && <div className="mt-2">You are {currentPlayer.displayName}</div>}
+          {isShowingCorrectAnswers && currentPlayer?.score > -1 && <div>and you have {currentPlayer.score} point{currentPlayer.score ===1 ? '' : 's'}</div>}
+          {(isShowingCorrectAnswers && playerScores.length > 0) ? (<>
+            <Scoreboard />
           </>) : (<>
-            <center className='pt-20'>
-              <div className='h-20'>
-                <Image
-                  src='/google-cloud-logo.svg'
-                  alt='Google Cloud Logo'
-                  width={0}
-                  height={0}
-                  sizes="100vw"
-                  style={{ width: '100%', height: '100%' }} // optional
-                  priority
-                />
+            {isPresenter ? (<div className="flex h-full">
+              <div className="m-auto">
+                <div>
+                  Just getting here?
+                </div>
+                <div>
+                  Scan the QR Code to join the game!
+                </div>
+                <QRCode value={gameShareLink} />
               </div>
-              <h1 className='text-4xl pt-10'>Party Game</h1>
-            </center>
+            </div>) : (<>
+              <center className='pt-20'>
+                <div className='h-20'>
+                  <Image
+                    src='/google-cloud-logo.svg'
+                    alt='Google Cloud Logo'
+                    width={0}
+                    height={0}
+                    sizes="100vw"
+                    style={{ width: '100%', height: '100%' }} // optional
+                    priority
+                  />
+                </div>
+                <h1 className='text-4xl pt-10'>Party Game</h1>
+              </center>
+            </>)}
           </>)}
         </center>
       </div>

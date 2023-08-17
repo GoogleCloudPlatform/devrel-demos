@@ -67,8 +67,9 @@ export default function GamePage() {
   const playerScoresObject = Object.values(game.questions).reduce((playerScores: { [key: string]: { score: number, displayName: string, uid: string }; }, question) => {
     const correctAnswerArray = question.answers.map(answer => answer.isCorrect);
     let newPlayerScores = playerScores;
-    // for each question, go through every guess
-    Object.entries(question.playerGuesses).forEach(([uid, playerGuess]) => {
+    // for each question, go through every guess from every player
+    // if the player guessed correctly, give them one point
+    Object.entries(question?.playerGuesses || {}).forEach(([uid, playerGuess]) => {
       const previousPlayerScore = playerScores[uid]?.score || 0;
       // if a player's guess is correct, add 1 point to their score
       const currentQuestionScore = arraysAreEqual(correctAnswerArray, playerGuess) ? 1 : 0;
@@ -80,16 +81,6 @@ export default function GamePage() {
     });
     return newPlayerScores;
   }, {});
-
-  const playerScores = Object.values(playerScoresObject).sort(function (a, b) {
-    // higher score goes first
-    // otherwise, sort alphabetically
-    if (a.score > b.score) return -1;
-    if (a.score < b.score) return 1;
-    return a.displayName.localeCompare(b.displayName);
-  });
-
-  const currentPlayer = playerScoresObject['6LghThEruESLO4AHQaP8ARwOPHf1'];
 
   return (
     <>

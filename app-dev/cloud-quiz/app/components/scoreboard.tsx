@@ -16,50 +16,20 @@
 
 "use client"
 
-import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
-import useGame from "@/app/hooks/use-game";
 import '@/app/components/player-list.css';
+import useScoreboard from "../hooks/use-scoreboard";
 
 export default function Scoreboard() {
-  const authUser = useFirebaseAuthentication();
-  const { game } = useGame();
+  const {currentPlayer, playerScores} = useScoreboard();
 
-  // create a list of all players
-  const arraysAreEqual = (a: Boolean[], b: Boolean[]) => {
-    return a.every((val, index) => val === b[index]);
+  if (playerScores.length === 0) {
+    return <></>
   }
-
-  const playerScoresObject = Object.values(game.questions).reduce((playerScores: { [key: string]: { score: number, displayName: string, uid: string }; }, question) => {
-    const correctAnswerArray = question.answers.map(answer => answer.isCorrect);
-    let newPlayerScores = playerScores;
-    // for each question, go through every guess
-    Object.entries(question.playerGuesses).forEach(([uid, playerGuess]) => {
-      const previousPlayerScore = playerScores[uid]?.score || 0;
-      // if a player's guess is correct, add 1 point to their score
-      const currentQuestionScore = arraysAreEqual(correctAnswerArray, playerGuess) ? 1 : 0;
-      const score = previousPlayerScore + currentQuestionScore;
-      newPlayerScores = {
-        ...newPlayerScores,
-        [uid]: { displayName: game.players[uid], score, uid },
-      }
-    });
-    return newPlayerScores;
-  }, {});
-
-  const playerScores = Object.values(playerScoresObject).sort(function (a, b) {
-    // higher score goes first
-    // otherwise, sort alphabetically
-    if (a.score > b.score) return -1;
-    if (a.score < b.score) return 1;
-    return a.displayName.localeCompare(b.displayName);
-  });
-
-  const currentPlayer = playerScoresObject[authUser.uid];
 
   return (
     <div className="mt-5 w-fit m-auto">
       <center className='mt-10'>
-        Full Scoreboard
+        Scoreboard
       </center>
       {playerScores.map((playerScore) => (<div key={playerScore.uid} className="player-list-item relative" style={{ display: 'block' }}>
         <div className='flex justify-between'>
