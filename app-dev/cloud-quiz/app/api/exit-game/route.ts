@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
+import { unknownParser } from '@/app/lib/unknown-parser';
 import { gamesRef } from '@/app/lib/firebase-server-initialization';
 import { getAuthenticatedUser } from '@/app/lib/server-side-auth'
 import { FieldValue } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod';
 
 export async function POST(request: NextRequest) {
   // Authenticate user
@@ -35,16 +37,29 @@ export async function POST(request: NextRequest) {
   }
 
   // Validate request
-  const { gameId } = await request.json();
+  const Body = z.object({
+    gameId: z.string(),
+  });
 
-  if (!gameId) {
-    // Respond with JSON indicating an error message
-    return new NextResponse(
-      JSON.stringify({ success: false, message: 'no game id provided' }),
-      { status: 400, headers: { 'content-type': 'application/json' } }
-    )
+  let parsedBody;
+
+  try {
+    const body = await request.json();
+    parsedBody = unknownParser(body, Body);
+  } catch (error) {
+    // return the first error
+    if (error instanceof Error) {
+      // Respond with JSON indicating an error message
+      const {message} = error;
+      return new NextResponse(
+        JSON.stringify({ success: false, message }),
+        { status: 400, headers: { 'content-type': 'application/json' } }
+      );
+    }
+    throw error;
   }
 
+  const { gameId } = parsedBody;
   const gameRef = await gamesRef.doc(gameId);
 
   // update database to exit the game

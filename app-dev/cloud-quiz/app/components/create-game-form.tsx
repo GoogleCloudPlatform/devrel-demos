@@ -20,7 +20,17 @@ import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from "react";
 import BigColorBorderButton from "./big-color-border-button";
-import { gameFormValidator } from "../lib/game-form-validator";
+import { z } from "zod";
+import { unknownParser } from "../lib/unknown-parser";
+
+const Body = z.object({
+  timePerQuestion: z.number().int().max(600, 'Time per question must be 600 or less.').min(10, 'Time per question must be at least 10.'),
+  timePerAnswer: z.number().int().max(600, 'Time per answer must be 600 or less.').min(5, 'Time per answer must be at least 5.'),
+});
+
+const Response = z.object({
+  gameId: z.string(),
+});
 
 export default function CreateGameForm() {
   const authUser = useFirebaseAuthentication();
@@ -42,15 +52,24 @@ export default function CreateGameForm() {
         }
       })
       const response = await res.json();
-      if (!response.gameId) throw new Error('no gameId returned in the response')
-      router.push(`/game/${response.gameId}`)
+      const parsedResponse = unknownParser(response, Response);
+      if (!parsedResponse.gameId) throw new Error('no gameId returned in the response')
+      router.push(`/game/${parsedResponse.gameId}`)
     } catch (error) {
       setErrorMessage('There was an error handling the request.');
     }
   }
 
   useEffect(() => {
-    setErrorMessage(gameFormValidator({ timePerQuestion, timePerAnswer }));
+    try {
+      unknownParser({timePerAnswer, timePerQuestion}, Body);
+    } catch (error) {
+      // return the first error
+      if (error instanceof Error) {
+        setErrorMessage(error.message);
+      }
+      throw error;
+    }
   }, [timePerAnswer, timePerQuestion])
 
   return (

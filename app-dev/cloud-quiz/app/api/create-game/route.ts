@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
+import { unknownParser } from '@/app/lib/unknown-parser';
 import { gamesRef, questionsRef } from '@/app/lib/firebase-server-initialization';
-import { gameFormValidator } from '@/app/lib/game-form-validator';
 import { generateName } from '@/app/lib/name-generator';
 import { getAuthenticatedUser } from '@/app/lib/server-side-auth'
 import { Question, gameStates } from '@/app/types';
-import { QueryDocumentSnapshot, Timestamp } from 'firebase-admin/firestore'; 
+import { QueryDocumentSnapshot, Timestamp } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from "zod";
 
 export async function POST(request: NextRequest) {
   let authUser;
@@ -36,18 +37,30 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const Body = z.object({
+    timePerQuestion: z.number().int().max(600, 'Time per question must be 600 or less.').min(10, 'Time per question must be at least 10.'),
+    timePerAnswer: z.number().int().max(600, 'Time per answer must be 600 or less.').min(5, 'Time per answer must be at least 5.'),
+  });
+
   // Validate request
-  const { timePerQuestion, timePerAnswer }: { timePerQuestion: number, timePerAnswer: number } = await request.json();
-
-  const errorMessage = gameFormValidator({timePerQuestion, timePerAnswer});
-
-  if (errorMessage) {
-    // Respond with JSON indicating an error message
-    return new NextResponse(
-      JSON.stringify({ success: false, message: errorMessage }),
-      { status: 400, headers: { 'content-type': 'application/json' } }
-    )
+  const body = await request.json();
+  let parsedBody;
+  try {
+    parsedBody = unknownParser(body, Body);
+  } catch (error) {
+    // return the first error
+    if (error instanceof Error) {
+      // Respond with JSON indicating an error message
+      const {message} = error;
+      return new NextResponse(
+        JSON.stringify({ success: false, message }),
+        { status: 400, headers: { 'content-type': 'application/json' } }
+      );
+    }
+    throw error;
   }
+
+  const { timePerQuestion, timePerAnswer } = parsedBody;
 
   const querySnapshot = await questionsRef.get();
   const questions = querySnapshot.docs.reduce((agg: Question[], doc: QueryDocumentSnapshot, index: number) => {

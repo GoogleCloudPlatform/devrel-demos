@@ -52,7 +52,8 @@ const useGame = () => {
       joinGame();
     }
 
-  }, [authUser.uid, game.leader.uid, gameId, authUser.getIdToken, game.players]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUser.uid, game.leader.uid, gameId]);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(gameRef, (doc) => {
