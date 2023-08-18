@@ -22,9 +22,12 @@ import QuestionPanel from "@/app/components/question-panel";
 import useGame from "@/app/hooks/use-game";
 import ReturnToHomepagePanel from '@/app/components/return-to-homepage-panel';
 import Scoreboard from '@/app/components/scoreboard';
+import { db } from "@/app/lib/firebase-client-initialization";
+import { doc } from "firebase/firestore";
 
 export default function GamePage() {
-  const { game, gameRef, isShowingQuestion, currentQuestion, error: errorMessage } = useGame();
+  const { game, gameId, isShowingQuestion, currentQuestion, error: errorMessage } = useGame();
+  const gameRef = doc(db, "games", gameId);
 
   if (errorMessage) {
     return (
@@ -42,8 +45,10 @@ export default function GamePage() {
         </ReturnToHomepagePanel>
         <Scoreboard />
       </>)}
-      {isShowingQuestion && (<QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />)}
-      {game.state === gameStates.NOT_STARTED && (<Lobby game={game} gameRef={gameRef} />)}
+      {gameRef && <>
+        {isShowingQuestion && (<QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />)}
+        {game.state === gameStates.NOT_STARTED && (<Lobby game={game} gameRef={gameRef} />)}
+      </>}
     </>
   )
 }

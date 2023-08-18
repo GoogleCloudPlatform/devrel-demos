@@ -35,7 +35,6 @@ export async function POST(request: NextRequest) {
   // Validate request
   const body = await request.json();
   const errorMessage = unknownValidator(body, AnswerSelectionWithGameId);
-  console.log({errorMessage});
   if (errorMessage) return badRequestResponse({errorMessage})
   const { gameId, answerSelection } = unknownParser(body, AnswerSelectionWithGameId);
 

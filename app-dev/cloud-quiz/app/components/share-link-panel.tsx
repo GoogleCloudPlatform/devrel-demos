@@ -16,12 +16,11 @@
 
 "use client"
 
-import { DocumentReference } from "firebase/firestore";
 import { useState } from "react"
 import QRCode from "react-qr-code";
 
-export default function ShareLinkPanel({ gameRef }: { gameRef: DocumentReference }) {
-  const gameShareLink = `${location.protocol}//${location.host}/game/${gameRef.id}`;
+export default function ShareLinkPanel({ gameId }: { gameId: string }) {
+  const gameShareLink = `${location.protocol}//${location.host}/game/${gameId}`;
   const [isCopied, setIsCopied] = useState<Boolean>(false);
 
   const copyShareLink = () => {

@@ -25,7 +25,7 @@ import useFirebaseAuthentication from "../hooks/use-firebase-authentication";
 import ShareLinkPanel from "./share-link-panel";
 import { useState } from "react";
 
-export default function PresenterLobby({ game, gameRef }: { game: Game; gameRef: DocumentReference }) {
+export default function Lobby({ game, gameRef }: { game: Game; gameRef: DocumentReference }) {
 
   const authUser = useFirebaseAuthentication();
 
@@ -38,7 +38,7 @@ export default function PresenterLobby({ game, gameRef }: { game: Game; gameRef:
           <button onClick={() => setShowSharePanel(!showSharePanel)} className={`border m-2 mt-10 p-2`}>
             {showSharePanel ? 'Hide Share Panel' : 'Invite Others to Join'}
           </button>
-          {showSharePanel && <ShareLinkPanel gameRef={gameRef} />}
+          {showSharePanel && <ShareLinkPanel gameId={gameRef.id} />}
         </div>
         <div className="my-8">
           <PlayerList game={game} />
@@ -47,7 +47,7 @@ export default function PresenterLobby({ game, gameRef }: { game: Game; gameRef:
       <center>
         {authUser.uid === game.leader.uid && <StartGameButton gameRef={gameRef} />}
         <div className="hidden lg:block">
-          <ShareLinkPanel gameRef={gameRef} />
+          <ShareLinkPanel gameId={gameRef.id} />
         </div>
         {authUser.uid === game.leader.uid && <DeleteGameButton gameRef={gameRef} />}
       </center>

@@ -24,7 +24,6 @@ import useFirebaseAuthentication from "./use-firebase-authentication";
 const useGame = () => {
   const pathname = usePathname();
   const gameId = pathname.split('/')[2];
-  const gameRef = doc(db, "games", gameId);
   const [game, setGame] = useState<Game>(emptyGame);
   const [error, setErrorMessage] = useState<string>("");
   const authUser = useFirebaseAuthentication();
@@ -35,7 +34,6 @@ const useGame = () => {
     const joinGame = async () => {
       if (!playerIdList.includes(authUser.uid)) {
         const token = await authUser.getIdToken();
-        console.log('joining the game')
         await fetch('/api/join-game', {
           method: 'POST',
           body: JSON.stringify({ gameId }),
@@ -56,6 +54,7 @@ const useGame = () => {
   }, [authUser.uid, game.leader.uid, gameId]);
 
   useEffect(() => {
+    const gameRef = doc(db, "games", gameId);
     const unsubscribe = onSnapshot(gameRef, (doc) => {
       const game = doc.data() as Game;
       if (game) {
@@ -68,10 +67,9 @@ const useGame = () => {
     return () => {
       unsubscribe();
     };
-  }, [authUser.uid, gameId, gameRef])
+  }, [authUser.uid, gameId])
 
   return {
-    gameRef,
     gameId,
     game,
     isShowingQuestion: game.state === gameStates.AWAITING_PLAYER_ANSWERS || game.state === gameStates.SHOWING_CORRECT_ANSWERS,
