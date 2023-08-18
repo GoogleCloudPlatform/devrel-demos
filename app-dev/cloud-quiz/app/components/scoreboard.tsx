@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-"use client"
+'use client';
 
 import '@/app/components/player-list.css';
-import useScoreboard from "../hooks/use-scoreboard";
+import useScoreboard from '../hooks/use-scoreboard';
 
 export default function Scoreboard() {
   const {currentPlayer, playerScores} = useScoreboard();
 
   if (playerScores.length === 0) {
-    return <></>
+    return <></>;
   }
 
   return (
@@ -31,7 +31,7 @@ export default function Scoreboard() {
       <center className='mt-10'>
         Scoreboard
       </center>
-      {playerScores.map((playerScore) => (<div key={playerScore.uid} className="player-list-item relative" style={{ display: 'block' }}>
+      {playerScores.map((playerScore) => (<div key={playerScore.uid} className="player-list-item relative" style={{display: 'block'}}>
         <div className='flex justify-between'>
           <div className='pr-4'>{playerScore.displayName}</div>
           <div>{playerScore.score}</div>
@@ -43,5 +43,5 @@ export default function Scoreboard() {
         </div>
       </div>))}
     </div>
-  )
+  );
 }

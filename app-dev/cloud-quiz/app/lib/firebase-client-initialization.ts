@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
-import { firebaseConfig } from "@/app/lib/firebase-config";
+import {initializeApp} from 'firebase/app';
+import {getFirestore} from 'firebase/firestore';
+import {getAuth} from 'firebase/auth';
+import {firebaseConfig} from '@/app/lib/firebase-config';
 
 // Initialize Firebase
 export const app = initializeApp(firebaseConfig);

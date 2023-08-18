@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-"use client"
+'use client';
 
-import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from "react";
-import BigColorBorderButton from "./big-color-border-button";
-import { z } from "zod";
-import { unknownParser, unknownValidator } from "@/app/lib/zod-parser";
-import { GameIdObject, GameSettings } from "@/app/types/zod-types";
+import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
+import {useRouter} from 'next/navigation';
+import {useEffect, useState} from 'react';
+import BigColorBorderButton from './big-color-border-button';
+import {unknownParser, unknownValidator} from '@/app/lib/zod-parser';
+import {GameIdObject, GameSettings} from '@/app/types/zod-types';
 
 export default function CreateGameForm() {
   const authUser = useFirebaseAuthentication();
@@ -33,30 +32,30 @@ export default function CreateGameForm() {
   const timePerQuestion = timePerQuestionInputValue ? parseInt(timePerQuestionInputValue) : -0.5;
   const timePerAnswer = timePerAnswerInputValue ? parseInt(timePerAnswerInputValue) : -0.5;
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const router = useRouter()
+  const router = useRouter();
   const onCreateGameSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const token = await authUser.getIdToken();
     try {
       const res = await fetch('/api/create-game', {
         method: 'POST',
-        body: JSON.stringify({ timePerQuestion, timePerAnswer }),
+        body: JSON.stringify({timePerQuestion, timePerAnswer}),
         headers: {
           Authorization: token,
-        }
-      })
+        },
+      });
       const response = await res.json();
       const parsedResponse = unknownParser(response, GameIdObject);
-      if (!parsedResponse.gameId) throw new Error('no gameId returned in the response')
-      router.push(`/game/${parsedResponse.gameId}`)
+      if (!parsedResponse.gameId) throw new Error('no gameId returned in the response');
+      router.push(`/game/${parsedResponse.gameId}`);
     } catch (error) {
       setErrorMessage('There was an error handling the request.');
     }
-  }
+  };
 
   useEffect(() => {
     setErrorMessage(unknownValidator({timePerAnswer, timePerQuestion}, GameSettings));
-  }, [timePerAnswer, timePerQuestion])
+  }, [timePerAnswer, timePerQuestion]);
 
   return (
     <div className="w-full max-w-lg mx-auto border-8 border-r-[var(--google-cloud-blue)] border-t-[var(--google-cloud-red)] border-b-[var(--google-cloud-green)] border-l-[var(--google-cloud-yellow)]">
@@ -97,5 +96,5 @@ export default function CreateGameForm() {
         </center>
       </form>
     </div>
-  )
+  );
 }

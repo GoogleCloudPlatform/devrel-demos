@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-import useFirebaseAuthentication from "./use-firebase-authentication";
-import useGame from "./use-game";
+import useFirebaseAuthentication from './use-firebase-authentication';
+import useGame from './use-game';
 
 const useScoreboard = () => {
   const authUser = useFirebaseAuthentication();
-  const { game } = useGame();
+  const {game} = useGame();
 
   // create a list of all players
   const arraysAreEqual = (a: Boolean[], b: Boolean[]) => {
     return a.every((val, index) => val === b[index]);
-  }
+  };
 
   const playerScoresObject = Object.values(game.questions).reduce((playerScores: { [key: string]: { score: number, displayName: string, uid: string }; }, question) => {
-    const correctAnswerArray = question.answers.map(answer => answer.isCorrect);
+    const correctAnswerArray = question.answers.map((answer) => answer.isCorrect);
     let newPlayerScores = playerScores;
     // for each question, go through every guess
     if (question.playerGuesses) {
@@ -38,8 +38,8 @@ const useScoreboard = () => {
         const score = previousPlayerScore + currentQuestionScore;
         newPlayerScores = {
           ...newPlayerScores,
-          [uid]: { displayName: game.players[uid], score, uid },
-        }
+          [uid]: {displayName: game.players[uid], score, uid},
+        };
       });
     }
     return newPlayerScores;
@@ -64,7 +64,7 @@ const useScoreboard = () => {
   return {
     currentPlayer,
     playerScores,
-  }
-}
+  };
+};
 
 export default useScoreboard;

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-"use client"
+'use client';
 
-import CreateGameForm from "@/app/components/create-game-form";
-import Link from "next/link";
+import CreateGameForm from '@/app/components/create-game-form';
+import Link from 'next/link';
 
 export default function Home() {
   return (
@@ -28,5 +28,5 @@ export default function Home() {
       <br />
       <CreateGameForm />
     </div>
-  )
+  );
 }

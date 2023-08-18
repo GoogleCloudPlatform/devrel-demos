@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-"use client"
+'use client';
 
-import { usePathname } from 'next/navigation';
-import Navbar from "@/app/components/navbar";
-import ReturnToHomepagePanel from "@/app/components/return-to-homepage-panel";
+import {usePathname} from 'next/navigation';
+import Navbar from '@/app/components/navbar';
+import ReturnToHomepagePanel from '@/app/components/return-to-homepage-panel';
 
 export default function Home() {
   const pathname = usePathname();
@@ -38,5 +38,5 @@ export default function Home() {
         </div>
       </ReturnToHomepagePanel>
     </div>
-  )
+  );
 }

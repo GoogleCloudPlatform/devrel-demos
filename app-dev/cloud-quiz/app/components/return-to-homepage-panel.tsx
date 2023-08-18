@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-"use client"
+'use client';
 
 import Image from 'next/image';
 import BigColorBorderButton from '@/app/components/big-color-border-button';
-import { useRouter } from 'next/navigation'
+import {useRouter} from 'next/navigation';
 
 
-export default function ReturnToHomepagePanel({ children }: { children: React.ReactNode }) {
-
-  const router = useRouter()
+export default function ReturnToHomepagePanel({children}: { children: React.ReactNode }) {
+  const router = useRouter();
   return (
     <div>
       <center className='pt-20'>
@@ -34,7 +33,7 @@ export default function ReturnToHomepagePanel({ children }: { children: React.Re
             width={0}
             height={0}
             sizes="100vw"
-            style={{ width: '100%', height: '100%' }} // optional
+            style={{width: '100%', height: '100%'}} // optional
             priority
           />
         </div>
@@ -45,5 +44,5 @@ export default function ReturnToHomepagePanel({ children }: { children: React.Re
         </BigColorBorderButton>
       </center>
     </div>
-  )
+  );
 }

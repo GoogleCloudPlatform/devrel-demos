@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-"use client"
+'use client';
 
-import { DocumentReference } from "firebase/firestore";
-import StartGameButton from "@/app/components/start-game-button";
-import DeleteGameButton from "@/app/components/delete-game-button";
-import PlayerList from "./player-list";
-import { Game } from "@/app/types";
-import useFirebaseAuthentication from "../hooks/use-firebase-authentication";
-import ShareLinkPanel from "./share-link-panel";
-import { useState } from "react";
+import {DocumentReference} from 'firebase/firestore';
+import StartGameButton from '@/app/components/start-game-button';
+import DeleteGameButton from '@/app/components/delete-game-button';
+import PlayerList from './player-list';
+import {Game} from '@/app/types';
+import useFirebaseAuthentication from '../hooks/use-firebase-authentication';
+import ShareLinkPanel from './share-link-panel';
+import {useState} from 'react';
 
-export default function Lobby({ game, gameRef }: { game: Game; gameRef: DocumentReference }) {
-
+export default function Lobby({game, gameRef}: { game: Game; gameRef: DocumentReference }) {
   const authUser = useFirebaseAuthentication();
 
   const [showSharePanel, setShowSharePanel] = useState<Boolean>(false);
@@ -52,5 +51,5 @@ export default function Lobby({ game, gameRef }: { game: Game; gameRef: Document
         {authUser.uid === game.leader.uid && <DeleteGameButton gameRef={gameRef} />}
       </center>
     </div>
-  )
+  );
 }

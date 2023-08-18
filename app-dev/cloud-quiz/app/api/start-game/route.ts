@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-import { unknownParser, unknownValidator } from '@/app/lib/zod-parser';
-import { gamesRef } from '@/app/lib/firebase-server-initialization';
-import { getAuthenticatedUser } from '@/app/lib/server-side-auth'
-import { gameStates } from '@/app/types';
-import { FieldValue } from 'firebase-admin/firestore';
-import { NextRequest, NextResponse } from 'next/server'
-import { z } from 'zod';
-import { badRequestResponse } from '@/app/lib/bad-request-response';
-import { GameIdObject } from '@/app/types/zod-types';
-import { authenticationFailedResponse } from '@/app/lib/authentication-failed-response';
+import {unknownParser, unknownValidator} from '@/app/lib/zod-parser';
+import {gamesRef} from '@/app/lib/firebase-server-initialization';
+import {getAuthenticatedUser} from '@/app/lib/server-side-auth';
+import {gameStates} from '@/app/types';
+import {FieldValue} from 'firebase-admin/firestore';
+import {NextRequest, NextResponse} from 'next/server';
+import {badRequestResponse} from '@/app/lib/bad-request-response';
+import {GameIdObject} from '@/app/types/zod-types';
+import {authenticationFailedResponse} from '@/app/lib/authentication-failed-response';
 
 export async function POST(request: NextRequest) {
   // Authenticate user
@@ -37,19 +36,19 @@ export async function POST(request: NextRequest) {
   // Validate request
   const body = await request.json();
   const errorMessage = unknownValidator(body, GameIdObject);
-  if (errorMessage) return badRequestResponse({errorMessage})
-  const { gameId } = unknownParser(body, GameIdObject);
+  if (errorMessage) return badRequestResponse({errorMessage});
+  const {gameId} = unknownParser(body, GameIdObject);
 
   const gameRef = await gamesRef.doc(gameId);
   const gameDoc = await gameRef.get();
-  const game = gameDoc.data()
+  const game = gameDoc.data();
 
   if (game.leader.uid !== authUser.uid) {
     // Respond with JSON indicating an error message
     return new NextResponse(
-      JSON.stringify({ success: false, message: 'no game found' }),
-      { status: 404, headers: { 'content-type': 'application/json' } }
-    )
+        JSON.stringify({success: false, message: 'no game found'}),
+        {status: 404, headers: {'content-type': 'application/json'}}
+    );
   }
 
   // update database to start the game
@@ -60,7 +59,7 @@ export async function POST(request: NextRequest) {
 
   // start automatic question progression
   async function showQuestion() {
-    await new Promise(resolve => setTimeout(resolve, game.timePerQuestion * 1000));
+    await new Promise((resolve) => setTimeout(resolve, game.timePerQuestion * 1000));
     await gameRef.update({
       state: gameStates.SHOWING_CORRECT_ANSWERS,
     });
@@ -70,7 +69,7 @@ export async function POST(request: NextRequest) {
   async function showAnswers() {
     const gameDoc = await gameRef.get();
     const game = gameDoc.data();
-    await new Promise(resolve => setTimeout(resolve, game.timePerAnswer * 1000));
+    await new Promise((resolve) => setTimeout(resolve, game.timePerAnswer * 1000));
     if (game.currentQuestionIndex < Object.keys(game.questions).length - 1) {
       await gameRef.update({
         state: gameStates.AWAITING_PLAYER_ANSWERS,
@@ -86,5 +85,5 @@ export async function POST(request: NextRequest) {
 
   showQuestion(); // starts first question
 
-  return NextResponse.json('successfully started game', { status: 200 })
+  return NextResponse.json('successfully started game', {status: 200});
 }

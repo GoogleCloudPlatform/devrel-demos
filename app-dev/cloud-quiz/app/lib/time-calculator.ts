@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { Game, gameStates } from "@/app/types";
+import {Game, gameStates} from '@/app/types';
 
-export const timeCalculator = ({ currentTimeInMillis, game }: { currentTimeInMillis: number, game: Game }) => {
+export const timeCalculator = ({currentTimeInMillis, game}: { currentTimeInMillis: number, game: Game }) => {
   // all times are in seconds unless noted as `InMillis`
   const timeElapsedInMillis = currentTimeInMillis - game.startTime.seconds * 1000;
   const timeElapsed = timeElapsedInMillis / 1000;
@@ -28,16 +28,16 @@ export const timeCalculator = ({ currentTimeInMillis, game }: { currentTimeInMil
   const isOverTime = isTimeToShowAnswer || isTimeToStartNextQuestion;
 
   let timeLeft;
-  let countDirection: "up" | "down";
+  let countDirection: 'up' | 'down';
   let timeToCountDown;
 
   if (game.state === gameStates.AWAITING_PLAYER_ANSWERS) {
     timeLeft = timeToShowCurrentQuestionAnswer - timeElapsed;
-    countDirection = "down";
+    countDirection = 'down';
     timeToCountDown = game.timePerQuestion;
   } else {
     timeLeft = timeToStartNextQuestion - timeElapsed;
-    countDirection = "up";
+    countDirection = 'up';
     timeToCountDown = game.timePerAnswer;
   }
 
@@ -55,5 +55,5 @@ export const timeCalculator = ({ currentTimeInMillis, game }: { currentTimeInMil
     isTimeToShowAnswer,
     isTimeToStartNextQuestion,
     isOverTime,
-  }
-}
+  };
+};

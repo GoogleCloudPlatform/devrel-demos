@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-import { z } from "zod";
+import {z} from 'zod';
 
-const gameId = z.string()
+const gameId = z.string();
 
-export const GameIdObject = z.object({ gameId });
+export const GameIdObject = z.object({gameId});
 
 export const AnswerSelection = z.array(z.boolean());
 
@@ -28,6 +28,6 @@ export const AnswerSelectionWithGameId = z.object({
 });
 
 export const GameSettings = z.object({
-  timePerQuestion: z.number({ invalid_type_error: 'Time per question must be a number' }).int().max(600, 'Time per question must be 600 or less.').min(10, 'Time per question must be at least 10.'),
-  timePerAnswer: z.number({ invalid_type_error: 'Time per answer must be a number' }).int().max(600, 'Time per answer must be 600 or less.').min(5, 'Time per answer must be at least 5.'),
+  timePerQuestion: z.number({invalid_type_error: 'Time per question must be a number'}).int().max(600, 'Time per question must be 600 or less.').min(10, 'Time per question must be at least 10.'),
+  timePerAnswer: z.number({invalid_type_error: 'Time per answer must be a number'}).int().max(600, 'Time per answer must be 600 or less.').min(5, 'Time per answer must be at least 5.'),
 });

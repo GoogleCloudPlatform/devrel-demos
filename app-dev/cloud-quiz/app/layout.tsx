@@ -14,15 +14,17 @@
  * limitations under the License.
  */
 
-import './globals.css'
-import { Open_Sans } from 'next/font/google'
+import '@/app/globals.css';
+// eslint-disable-next-line camelcase
+import {Open_Sans} from 'next/font/google';
 
-const openSans = Open_Sans({ subsets: ['latin'] })
+// eslint-disable-next-line new-cap
+const openSans = Open_Sans({subsets: ['latin']});
 
 export const metadata = {
   title: 'Party Game',
   description: 'Test your knowledge of Google Cloud.',
-}
+};
 
 export default function RootLayout({
   children,
@@ -33,5 +35,5 @@ export default function RootLayout({
     <html lang="en">
       <body className={openSans.className}>{children}</body>
     </html>
-  )
+  );
 }

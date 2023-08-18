@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-"use client"
+'use client';
 
-import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
-import { Game } from "@/app/types";
-import "./player-list.css";
+import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
+import {Game} from '@/app/types';
+import './player-list.css';
 
-export default function PlayerList({ game }: { game: Game }) {
+export default function PlayerList({game}: { game: Game }) {
   const authUser = useFirebaseAuthentication();
 
   const currentPlayerName = game.players[authUser.uid];
@@ -30,7 +30,7 @@ export default function PlayerList({ game }: { game: Game }) {
   const playerDisplayNames = Object.values(game.players).sort().sort((a) => (a === currentPlayerName ? -1 : 0));
 
   if (playerDisplayNames.length < 1) {
-    return 'No players have joined the game yet.'
+    return 'No players have joined the game yet.';
   }
 
   return (<center className="mx-auto max-w-7xl">
@@ -41,7 +41,7 @@ export default function PlayerList({ game }: { game: Game }) {
       {' ← You!'}
     </div>)}
     <div className="mt-5">
-      {playerDisplayNames.map(displayName => (<div key={displayName} className="player-list-item">
+      {playerDisplayNames.map((displayName) => (<div key={displayName} className="player-list-item">
         {displayName}
       </div>))}
     </div>

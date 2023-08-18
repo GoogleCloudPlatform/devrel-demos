@@ -1,3 +1,8 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": ["eslint:recommended", "next", "prettier", "google"],
+  "rules": {
+    "max-len": "off",
+    "require-jsdoc": "off",
+    "no-undef": "off"
+  }
 }

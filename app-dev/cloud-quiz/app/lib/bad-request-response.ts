@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-import { NextResponse } from "next/server";
+import {NextResponse} from 'next/server';
 
-export const badRequestResponse = ({ errorMessage }: { errorMessage: string }) => {
+export const badRequestResponse = ({errorMessage}: { errorMessage: string }) => {
   return new NextResponse(
-    JSON.stringify({ success: false, message: errorMessage }),
-    { status: 400, headers: { 'content-type': 'application/json' } }
+      JSON.stringify({success: false, message: errorMessage}),
+      {status: 400, headers: {'content-type': 'application/json'}}
   );
-}
+};

@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-"use client"
+'use client';
 
 import '@/app/globals.css';
 import Image from 'next/image';
-import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
+import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import BigSignInButton from '@/app/components/big-sign-in-button';
 import Navbar from '@/app/components/navbar';
 
@@ -47,7 +47,7 @@ export default function RootLayout({
                   width={0}
                   height={0}
                   sizes="100vw"
-                  style={{ width: '100%', height: '100%' }} // optional
+                  style={{width: '100%', height: '100%'}} // optional
                   priority
                 />
               </div>
@@ -58,5 +58,5 @@ export default function RootLayout({
           </>)}
       </div>
     </main>
-  )
+  );
 }

@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-"use client"
+'use client';
 
-import useActiveGameList from "@/app/hooks/use-active-game-list";
-import { useRouter } from 'next/navigation'
-import Navbar from "@/app/components/navbar";
+import useActiveGameList from '@/app/hooks/use-active-game-list';
+import {useRouter} from 'next/navigation';
+import Navbar from '@/app/components/navbar';
 
 export default function Home() {
-  const { activeGameList } = useActiveGameList();
-  const router = useRouter()
+  const {activeGameList} = useActiveGameList();
+  const router = useRouter();
 
   if (activeGameList.length > 0) {
     const firstGameId = activeGameList[0].id;
@@ -36,5 +36,5 @@ export default function Home() {
         Waiting for a game.
       </center>
     </div>
-  )
+  );
 }

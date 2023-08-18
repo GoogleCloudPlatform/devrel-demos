@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-import Navbar from '@/app/components/navbar'
-import '@/app/globals.css'
+import Navbar from '@/app/components/navbar';
+import '@/app/globals.css';
 
 export const metadata = {
   title: 'About Party Game',
   description: 'An open-source party game to learn about Google Cloud.',
-}
+};
 
 export default function RootLayout({
   children,
@@ -34,5 +34,5 @@ export default function RootLayout({
         {children}
       </main>
     </>
-  )
+  );
 }

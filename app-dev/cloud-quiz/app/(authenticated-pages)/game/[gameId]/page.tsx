@@ -14,27 +14,27 @@
  * limitations under the License.
  */
 
-"use client"
+'use client';
 
-import { gameStates } from "@/app/types";
-import Lobby from "@/app/components/lobby";
-import QuestionPanel from "@/app/components/question-panel";
-import useGame from "@/app/hooks/use-game";
+import {gameStates} from '@/app/types';
+import Lobby from '@/app/components/lobby';
+import QuestionPanel from '@/app/components/question-panel';
+import useGame from '@/app/hooks/use-game';
 import ReturnToHomepagePanel from '@/app/components/return-to-homepage-panel';
 import Scoreboard from '@/app/components/scoreboard';
-import { db } from "@/app/lib/firebase-client-initialization";
-import { doc } from "firebase/firestore";
+import {db} from '@/app/lib/firebase-client-initialization';
+import {doc} from 'firebase/firestore';
 
 export default function GamePage() {
-  const { game, gameId, isShowingQuestion, currentQuestion, error: errorMessage } = useGame();
-  const gameRef = doc(db, "games", gameId);
+  const {game, gameId, isShowingQuestion, currentQuestion, error: errorMessage} = useGame();
+  const gameRef = doc(db, 'games', gameId);
 
   if (errorMessage) {
     return (
       <ReturnToHomepagePanel>
         <h2>{errorMessage}</h2>
       </ReturnToHomepagePanel>
-    )
+    );
   }
 
   return (
@@ -50,5 +50,5 @@ export default function GamePage() {
         {game.state === gameStates.NOT_STARTED && (<Lobby game={game} gameRef={gameRef} />)}
       </>}
     </>
-  )
+  );
 }

@@ -15,5 +15,5 @@
  */
 
 export function mergeClassNames(...classes: string[]) {
-  return classes.filter(Boolean).join(' ')
+  return classes.filter(Boolean).join(' ');
 }

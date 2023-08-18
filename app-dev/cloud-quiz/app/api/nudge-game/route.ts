@@ -14,22 +14,21 @@
  * limitations under the License.
  */
 
-import { unknownParser, unknownValidator } from '@/app/lib/zod-parser';
-import { gamesRef } from '@/app/lib/firebase-server-initialization';
-import { timeCalculator } from '@/app/lib/time-calculator';
-import { gameStates } from '@/app/types';
-import { Timestamp } from 'firebase-admin/firestore';
-import { NextRequest, NextResponse } from 'next/server'
-import { z } from 'zod';
-import { badRequestResponse } from '@/app/lib/bad-request-response';
-import { GameIdObject } from '@/app/types/zod-types';
+import {unknownParser, unknownValidator} from '@/app/lib/zod-parser';
+import {gamesRef} from '@/app/lib/firebase-server-initialization';
+import {timeCalculator} from '@/app/lib/time-calculator';
+import {gameStates} from '@/app/types';
+import {Timestamp} from 'firebase-admin/firestore';
+import {NextRequest, NextResponse} from 'next/server';
+import {badRequestResponse} from '@/app/lib/bad-request-response';
+import {GameIdObject} from '@/app/types/zod-types';
 
 export async function POST(request: NextRequest) {
   // Validate request
   const body = await request.json();
   const errorMessage = unknownValidator(body, GameIdObject);
-  if (errorMessage) return badRequestResponse({errorMessage})
-  const { gameId } = unknownParser(body, GameIdObject);
+  if (errorMessage) return badRequestResponse({errorMessage});
+  const {gameId} = unknownParser(body, GameIdObject);
 
   const gameRef = await gamesRef.doc(gameId);
   const gameDoc = await gameRef.get();
@@ -41,7 +40,7 @@ export async function POST(request: NextRequest) {
     timePerQuestionAndAnswer,
     isTimeToShowAnswer,
     isTimeToStartNextQuestion,
-  } = timeCalculator({ currentTimeInMillis: Timestamp.now().toMillis(), game })
+  } = timeCalculator({currentTimeInMillis: Timestamp.now().toMillis(), game});
 
   const totalNumberOfQuestions = Object.keys(game.questions).length;
 
@@ -62,5 +61,5 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  return NextResponse.json('successfully nudged game', { status: 200 })
+  return NextResponse.json('successfully nudged game', {status: 200});
 }

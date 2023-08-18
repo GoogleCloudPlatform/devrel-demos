@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { z } from "zod";
+import {z} from 'zod';
 
 export const unknownValidator = (body: unknown, Schema: z.ZodType) => {
   // Validate request
@@ -29,13 +29,13 @@ export const unknownValidator = (body: unknown, Schema: z.ZodType) => {
   }
 
   return '';
-}
+};
 
 export const unknownParser = (body: unknown, Schema: z.ZodType) => {
   // Validate request
   const errorMessage = unknownValidator(body, Schema);
   if (errorMessage) {
-    throw new Error(errorMessage)
+    throw new Error(errorMessage);
   }
   return Schema.parse(body);
-}
+};

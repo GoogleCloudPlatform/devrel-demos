@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-"use client"
+'use client';
 
-import GameList from "@/app/components/game-list";
-import Navbar from "@/app/components/navbar";
+import GameList from '@/app/components/game-list';
+import Navbar from '@/app/components/navbar';
 
 export default function Home() {
   return (
@@ -26,5 +26,5 @@ export default function Home() {
       <GameList />
       <br />
     </div>
-  )
+  );
 }

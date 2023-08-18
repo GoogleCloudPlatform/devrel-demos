@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-"use client"
+'use client';
 
-import { useState } from "react"
-import QRCode from "react-qr-code";
+import {useState} from 'react';
+import QRCode from 'react-qr-code';
 
-export default function ShareLinkPanel({ gameId }: { gameId: string }) {
+export default function ShareLinkPanel({gameId}: { gameId: string }) {
   const gameShareLink = `${location.protocol}//${location.host}/game/${gameId}`;
   const [isCopied, setIsCopied] = useState<Boolean>(false);
 
   const copyShareLink = () => {
     navigator.clipboard.writeText(gameShareLink);
     setIsCopied(true);
-  }
+  };
 
   return (
     <div>
@@ -40,5 +40,5 @@ export default function ShareLinkPanel({ gameId }: { gameId: string }) {
         {isCopied ? 'Link copied to clipboard' : ''}
       </p>
     </div>
-  )
+  );
 }

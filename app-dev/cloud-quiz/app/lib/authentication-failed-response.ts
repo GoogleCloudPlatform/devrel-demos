@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-import { NextResponse } from "next/server";
+import {NextResponse} from 'next/server';
 
 export const authenticationFailedResponse = () => {
   return new NextResponse(
-    JSON.stringify({ success: false, message: 'authentication failed' }),
-    { status: 401, headers: { 'content-type': 'application/json' } }
+      JSON.stringify({success: false, message: 'authentication failed'}),
+      {status: 401, headers: {'content-type': 'application/json'}}
   );
-}
+};

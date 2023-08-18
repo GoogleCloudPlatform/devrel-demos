@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-"use client"
-import { useRouter } from 'next/navigation'
-import BigColorBorderButton from './big-color-border-button'
+'use client';
+import {useRouter} from 'next/navigation';
+import BigColorBorderButton from './big-color-border-button';
 
 export default function ReturnToHomepageButton() {
-  const router = useRouter()
+  const router = useRouter();
 
   return (
     <BigColorBorderButton onClick={() => router.push('/')}>
       Return to Homepage
     </BigColorBorderButton>
-  )
+  );
 }

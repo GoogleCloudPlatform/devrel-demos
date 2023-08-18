@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-import { unknownParser, unknownValidator } from '@/app/lib/zod-parser';
-import { gamesRef, questionsRef } from '@/app/lib/firebase-server-initialization';
-import { generateName } from '@/app/lib/name-generator';
-import { getAuthenticatedUser } from '@/app/lib/server-side-auth'
-import { Question, gameStates } from '@/app/types';
-import { QueryDocumentSnapshot, Timestamp } from 'firebase-admin/firestore';
-import { NextRequest, NextResponse } from 'next/server'
-import { z } from "zod";
-import { authenticationFailedResponse } from '@/app/lib/authentication-failed-response';
-import { GameSettings } from '@/app/types/zod-types';
-import { badRequestResponse } from '@/app/lib/bad-request-response';
+import {unknownParser, unknownValidator} from '@/app/lib/zod-parser';
+import {gamesRef, questionsRef} from '@/app/lib/firebase-server-initialization';
+import {generateName} from '@/app/lib/name-generator';
+import {getAuthenticatedUser} from '@/app/lib/server-side-auth';
+import {Question, gameStates} from '@/app/types';
+import {QueryDocumentSnapshot, Timestamp} from 'firebase-admin/firestore';
+import {NextRequest, NextResponse} from 'next/server';
+import {authenticationFailedResponse} from '@/app/lib/authentication-failed-response';
+import {GameSettings} from '@/app/types/zod-types';
+import {badRequestResponse} from '@/app/lib/bad-request-response';
 
 export async function POST(request: NextRequest) {
   let authUser;
@@ -37,13 +36,13 @@ export async function POST(request: NextRequest) {
   // Validate request
   const body = await request.json();
   const errorMessage = unknownValidator(body, GameSettings);
-  if (errorMessage) return badRequestResponse({errorMessage})
-  const { timePerQuestion, timePerAnswer } = unknownParser(body, GameSettings);
+  if (errorMessage) return badRequestResponse({errorMessage});
+  const {timePerQuestion, timePerAnswer} = unknownParser(body, GameSettings);
 
 
   const querySnapshot = await questionsRef.get();
   const questions = querySnapshot.docs.reduce((agg: Question[], doc: QueryDocumentSnapshot, index: number) => {
-    return { ...agg, [index]: doc.data() as Question }
+    return {...agg, [index]: doc.data() as Question};
   }, {});
   if (!authUser) throw new Error('User must be signed in to start game');
   // create game with server endpoint
@@ -66,5 +65,5 @@ export async function POST(request: NextRequest) {
     timePerAnswer: timePerAnswer + 1, // add one for padding between questions
   });
 
-  return NextResponse.json({ gameId: gameRef.id }, { status: 200 })
+  return NextResponse.json({gameId: gameRef.id}, {status: 200});
 }

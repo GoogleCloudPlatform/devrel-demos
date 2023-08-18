@@ -52,8 +52,8 @@ export type Leader = {
 
 export const emptyLeader = {
   uid: '',
-  displayName: ''
-}
+  displayName: '',
+};
 
 export type Players = {
   [key: string]: string;

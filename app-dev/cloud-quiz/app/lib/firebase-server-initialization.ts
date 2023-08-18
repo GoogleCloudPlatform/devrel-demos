@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-import { initializeApp, getApps, App } from 'firebase-admin/app';
-import { firebaseConfig } from "@/app/lib/firebase-config";
-const { getFirestore } = require('firebase-admin/firestore');
+import {initializeApp, getApps, App} from 'firebase-admin/app';
+import {firebaseConfig} from '@/app/lib/firebase-config';
+const {getFirestore} = require('firebase-admin/firestore');
 
 export let app: App;
 
 if (getApps().length < 1) {
   app = initializeApp(firebaseConfig);
 }
-export const db = getFirestore()
+export const db = getFirestore();
 
-export const gamesRef = db.collection("games");
-export const questionsRef = db.collection("questions");
+export const gamesRef = db.collection('games');
+export const questionsRef = db.collection('questions');

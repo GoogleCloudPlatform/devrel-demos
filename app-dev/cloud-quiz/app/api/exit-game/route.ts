@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-import { unknownParser, unknownValidator } from '@/app/lib/zod-parser';
-import { gamesRef } from '@/app/lib/firebase-server-initialization';
-import { getAuthenticatedUser } from '@/app/lib/server-side-auth'
-import { FieldValue } from 'firebase-admin/firestore';
-import { NextRequest, NextResponse } from 'next/server'
-import { z } from 'zod';
-import { badRequestResponse } from '@/app/lib/bad-request-response';
-import { GameIdObject } from '@/app/types/zod-types';
-import { authenticationFailedResponse } from '@/app/lib/authentication-failed-response';
+import {unknownParser, unknownValidator} from '@/app/lib/zod-parser';
+import {gamesRef} from '@/app/lib/firebase-server-initialization';
+import {getAuthenticatedUser} from '@/app/lib/server-side-auth';
+import {FieldValue} from 'firebase-admin/firestore';
+import {NextRequest, NextResponse} from 'next/server';
+import {badRequestResponse} from '@/app/lib/bad-request-response';
+import {GameIdObject} from '@/app/types/zod-types';
+import {authenticationFailedResponse} from '@/app/lib/authentication-failed-response';
 
 export async function POST(request: NextRequest) {
   let authUser;
@@ -35,8 +34,8 @@ export async function POST(request: NextRequest) {
   // Validate request
   const body = await request.json();
   const errorMessage = unknownValidator(body, GameIdObject);
-  if (errorMessage) return badRequestResponse({errorMessage})
-  const { gameId } = unknownParser(body, GameIdObject);
+  if (errorMessage) return badRequestResponse({errorMessage});
+  const {gameId} = unknownParser(body, GameIdObject);
   const gameRef = await gamesRef.doc(gameId);
 
   // update database to exit the game
@@ -44,5 +43,5 @@ export async function POST(request: NextRequest) {
     [`players.${authUser.uid}`]: FieldValue.delete(),
   });
 
-  return NextResponse.json('successfully joined game', { status: 200 })
+  return NextResponse.json('successfully joined game', {status: 200});
 }

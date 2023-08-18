@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-"use client"
+'use client';
 
-import { DocumentReference } from "firebase/firestore";
-import { Game, Question, gameStates } from "@/app/types";
-import BorderCountdownTimer from "@/app/components/border-countdown-timer";
-import useFirebaseAuthentication from "@/app/hooks/use-firebase-authentication";
+import {DocumentReference} from 'firebase/firestore';
+import {Game, Question, gameStates} from '@/app/types';
+import BorderCountdownTimer from '@/app/components/border-countdown-timer';
+import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import Image from 'next/image';
-import QRCode from "react-qr-code";
-import { useEffect, useState } from "react";
-import Scoreboard from "./scoreboard";
-import useScoreboard from "../hooks/use-scoreboard";
+import QRCode from 'react-qr-code';
+import {useEffect, useState} from 'react';
+import Scoreboard from './scoreboard';
+import useScoreboard from '../hooks/use-scoreboard';
 
-export default function QuestionPanel({ game, gameRef, currentQuestion }: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
+export default function QuestionPanel({game, gameRef, currentQuestion}: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const authUser = useFirebaseAuthentication();
-  const { currentPlayer, playerScores } = useScoreboard();
+  const {currentPlayer, playerScores} = useScoreboard();
   const isGameLeader = authUser.uid === game.leader.uid;
   const [answersSelectedCount, setAnswersSelectedCount] = useState<number>(0);
 
@@ -44,7 +44,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
     setAnswersSelectedCount(answerSelection.reduce((correctAnswerCount, answerIsSelected) => {
       return correctAnswerCount + (answerIsSelected ? 1 : 0);
     }, 0));
-  }, [answerSelection])
+  }, [answerSelection]);
 
   const isSingleAnswer = totalCorrectAnswerOptions === 1;
 
@@ -60,15 +60,15 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
       const token = await authUser.getIdToken();
       await fetch('/api/update-answer', {
         method: 'POST',
-        body: JSON.stringify({ answerSelection: newAnswerSelection, gameId: gameRef.id }),
+        body: JSON.stringify({answerSelection: newAnswerSelection, gameId: gameRef.id}),
         headers: {
           Authorization: token,
-        }
-      }).catch(error => {
-        console.error({ error })
+        },
+      }).catch((error) => {
+        console.error({error});
       });
     }
-  }
+  };
 
   const gameShareLink = `${location.protocol}//${location.host}/game/${gameRef.id}`;
 
@@ -98,7 +98,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
                 <h3 className="font-light text-lg lg:text-xl">
                   {countLeftToPick !== 0 ? (
                     `Pick ${Math.abs(countLeftToPick)} ${countLeftToPick > 0 ? 'More' : 'Less'}`
-                  ) : "You are all set"}
+                  ) : 'You are all set'}
                 </h3>
               )}
             </div>)}
@@ -129,7 +129,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
                     width={0}
                     height={0}
                     sizes="100vw"
-                    style={{ width: '100%', height: '100%' }} // optional
+                    style={{width: '100%', height: '100%'}} // optional
                     priority
                   />
                 </div>
@@ -184,7 +184,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
                   className={`absolute bottom-0 left-0 h-full opacity-25 transition-all duration-[3000ms]`}
                   style={{
                     backgroundColor: answer.isCorrect ? `var(--google-cloud-${color})` : '#9ca3af',
-                    width: `${isShowingCorrectAnswers ? Math.max(guessPercentageForThisAnswer, 2) : 0}%`
+                    width: `${isShowingCorrectAnswers ? Math.max(guessPercentageForThisAnswer, 2) : 0}%`,
                   }}
                 />
               </div>
@@ -195,9 +195,9 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
                 }}
               />
             </button>
-          </div>)
+          </div>);
         })}
       </div >
     </div >
-  )
+  );
 }
