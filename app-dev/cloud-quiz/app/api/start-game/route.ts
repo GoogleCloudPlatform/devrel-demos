@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { unknownParser } from '@/app/lib/unknown-parser';
+import { unknownParser } from '@/app/lib/zod-parser';
 import { gamesRef } from '@/app/lib/firebase-server-initialization';
 import { getAuthenticatedUser } from '@/app/lib/server-side-auth'
 import { gameStates } from '@/app/types';

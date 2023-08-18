@@ -21,11 +21,11 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from "react";
 import BigColorBorderButton from "./big-color-border-button";
 import { z } from "zod";
-import { unknownParser } from "../lib/unknown-parser";
+import { unknownParser, unknownValidator } from "../lib/zod-parser";
 
 const Body = z.object({
-  timePerQuestion: z.number().int().max(600, 'Time per question must be 600 or less.').min(10, 'Time per question must be at least 10.'),
-  timePerAnswer: z.number().int().max(600, 'Time per answer must be 600 or less.').min(5, 'Time per answer must be at least 5.'),
+  timePerQuestion: z.number({invalid_type_error: 'Time per question must be a number'}).int().max(600, 'Time per question must be 600 or less.').min(10, 'Time per question must be at least 10.'),
+  timePerAnswer: z.number({invalid_type_error: 'Time per answer must be a number'}).int().max(600, 'Time per answer must be 600 or less.').min(5, 'Time per answer must be at least 5.'),
 });
 
 const Response = z.object({
@@ -36,8 +36,10 @@ export default function CreateGameForm() {
   const authUser = useFirebaseAuthentication();
   const defaultTimePerQuestion = 60;
   const defaultTimePerAnswer = 20;
-  const [timePerQuestion, setTimePerQuestion] = useState<number>(defaultTimePerQuestion);
-  const [timePerAnswer, setTimePerAnswer] = useState<number>(defaultTimePerAnswer);
+  const [timePerQuestionInputValue, setTimePerQuestionInputValue] = useState<string>(defaultTimePerQuestion.toString());
+  const [timePerAnswerInputValue, setTimePerAnswerInputValue] = useState<string>(defaultTimePerAnswer.toString());
+  const timePerQuestion = timePerQuestionInputValue ? parseInt(timePerQuestionInputValue) : -0.5;
+  const timePerAnswer = timePerAnswerInputValue ? parseInt(timePerAnswerInputValue) : -0.5;
   const [errorMessage, setErrorMessage] = useState<string>('');
   const router = useRouter()
   const onCreateGameSubmit = async (event: React.FormEvent) => {
@@ -61,15 +63,7 @@ export default function CreateGameForm() {
   }
 
   useEffect(() => {
-    try {
-      unknownParser({timePerAnswer, timePerQuestion}, Body);
-    } catch (error) {
-      // return the first error
-      if (error instanceof Error) {
-        setErrorMessage(error.message);
-      }
-      throw error;
-    }
+    setErrorMessage(unknownValidator({timePerAnswer, timePerQuestion}, Body));
   }, [timePerAnswer, timePerQuestion])
 
   return (
@@ -82,9 +76,10 @@ export default function CreateGameForm() {
           <input
             className="shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline"
             id="timePerQuestion"
-            type="number"
-            value={timePerQuestion}
-            onChange={(event) => setTimePerQuestion(parseInt(event.target.value))}
+            type="text"
+            inputMode="numeric"
+            value={timePerQuestionInputValue}
+            onChange={(event) => setTimePerQuestionInputValue(event.target.value)}
             placeholder={defaultTimePerQuestion.toString()}
           />
         </div>
@@ -95,12 +90,13 @@ export default function CreateGameForm() {
           <input
             className="shadow appearance-none border rounded w-full py-2 px-3 mb-3 leading-tight focus:outline-none focus:shadow-outline"
             id="timePerAnswer"
-            type="number"
-            value={timePerAnswer}
-            onChange={(event) => setTimePerAnswer(parseInt(event.target.value))}
+            type="text"
+            inputMode="numeric"
+            value={timePerAnswerInputValue}
+            onChange={(event) => setTimePerAnswerInputValue(event.target.value)}
             placeholder={defaultTimePerAnswer.toString()}
           />
-          <p className="text-red-500 text-xs italic">{errorMessage}</p>
+          <p className="text-red-500 text-xs italic">{errorMessage ? errorMessage : <>&nbsp;</>}</p>
         </div>
         <center>
           <BigColorBorderButton type="submit">

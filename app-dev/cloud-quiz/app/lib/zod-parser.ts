@@ -16,19 +16,26 @@
 
 import { z } from "zod";
 
-export const unknownParser = (body: unknown, Schema: z.ZodType) => {
+export const unknownValidator = (body: unknown, Schema: z.ZodType) => {
   // Validate request
-  let parsedBody;
-
   try {
-    parsedBody = Schema.parse(body);
-    return parsedBody;
+    Schema.parse(body);
   } catch (error) {
     // return the first error
     if (error instanceof z.ZodError) {
-      throw new Error(error.issues[0].message)
+      return error.issues[0].message;
     }
-
     throw error;
   }
+
+  return '';
+}
+
+export const unknownParser = (body: unknown, Schema: z.ZodType) => {
+  // Validate request
+  const errorMessage = unknownValidator(body, Schema);
+  if (errorMessage) {
+    throw new Error(errorMessage)
+  }
+  return Schema.parse(body);
 }

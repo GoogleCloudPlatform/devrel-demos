@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { unknownParser } from '@/app/lib/unknown-parser';
+import { unknownParser } from '@/app/lib/zod-parser';
 import { gamesRef } from '@/app/lib/firebase-server-initialization';
 import { timeCalculator } from '@/app/lib/time-calculator';
 import { gameStates } from '@/app/types';
