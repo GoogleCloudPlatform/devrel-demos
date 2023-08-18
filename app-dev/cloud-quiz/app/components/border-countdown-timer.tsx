@@ -34,7 +34,7 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
       displayTime,
       countDirection,
     } = timeCalculator({
-      currentTimeInMillis: Timestamp.now().toMillis() + 1000,
+      currentTimeInMillis: Timestamp.now().toMillis(),
       game,
     });
 
