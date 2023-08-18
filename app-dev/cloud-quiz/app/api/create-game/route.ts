@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { unknownParser } from '@/app/lib/zod-parser';
+import { unknownParser, unknownValidator } from '@/app/lib/zod-parser';
 import { gamesRef, questionsRef } from '@/app/lib/firebase-server-initialization';
 import { generateName } from '@/app/lib/name-generator';
 import { getAuthenticatedUser } from '@/app/lib/server-side-auth'
@@ -24,6 +24,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from "zod";
 import { authenticationFailedResponse } from '@/app/lib/authentication-failed-response';
 import { GameSettings } from '@/app/types/zod-types';
+import { badRequestResponse } from '@/app/lib/bad-request-response';
 
 export async function POST(request: NextRequest) {
   let authUser;
@@ -35,23 +36,10 @@ export async function POST(request: NextRequest) {
 
   // Validate request
   const body = await request.json();
-  let parsedBody;
-  try {
-    parsedBody = unknownParser(body, GameSettings);
-  } catch (error) {
-    // return the first error
-    if (error instanceof Error) {
-      // Respond with JSON indicating an error message
-      const {message} = error;
-      return new NextResponse(
-        JSON.stringify({ success: false, message }),
-        { status: 400, headers: { 'content-type': 'application/json' } }
-      );
-    }
-    throw error;
-  }
+  const errorMessage = unknownValidator(body, GameSettings);
+  if (errorMessage) return badRequestResponse({errorMessage})
+  const { timePerQuestion, timePerAnswer } = unknownParser(body, GameSettings);
 
-  const { timePerQuestion, timePerAnswer } = parsedBody;
 
   const querySnapshot = await questionsRef.get();
   const questions = querySnapshot.docs.reduce((agg: Question[], doc: QueryDocumentSnapshot, index: number) => {
