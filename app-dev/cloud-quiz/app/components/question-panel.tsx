@@ -60,7 +60,7 @@ export default function QuestionPanel({ game, gameRef, currentQuestion }: { game
       const token = await authUser.getIdToken();
       await fetch('/api/update-answer', {
         method: 'POST',
-        body: JSON.stringify({ newAnswerSelection, gameId: gameRef.id }),
+        body: JSON.stringify({ answerSelection: newAnswerSelection, gameId: gameRef.id }),
         headers: {
           Authorization: token,
         }

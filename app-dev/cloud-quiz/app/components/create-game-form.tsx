@@ -21,16 +21,8 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from "react";
 import BigColorBorderButton from "./big-color-border-button";
 import { z } from "zod";
-import { unknownParser, unknownValidator } from "../lib/zod-parser";
-
-const Body = z.object({
-  timePerQuestion: z.number({invalid_type_error: 'Time per question must be a number'}).int().max(600, 'Time per question must be 600 or less.').min(10, 'Time per question must be at least 10.'),
-  timePerAnswer: z.number({invalid_type_error: 'Time per answer must be a number'}).int().max(600, 'Time per answer must be 600 or less.').min(5, 'Time per answer must be at least 5.'),
-});
-
-const Response = z.object({
-  gameId: z.string(),
-});
+import { unknownParser, unknownValidator } from "@/app/lib/zod-parser";
+import { GameIdObject, GameSettings } from "@/app/types/zod-types";
 
 export default function CreateGameForm() {
   const authUser = useFirebaseAuthentication();
@@ -54,7 +46,7 @@ export default function CreateGameForm() {
         }
       })
       const response = await res.json();
-      const parsedResponse = unknownParser(response, Response);
+      const parsedResponse = unknownParser(response, GameIdObject);
       if (!parsedResponse.gameId) throw new Error('no gameId returned in the response')
       router.push(`/game/${parsedResponse.gameId}`)
     } catch (error) {
@@ -63,7 +55,7 @@ export default function CreateGameForm() {
   }
 
   useEffect(() => {
-    setErrorMessage(unknownValidator({timePerAnswer, timePerQuestion}, Body));
+    setErrorMessage(unknownValidator({timePerAnswer, timePerQuestion}, GameSettings));
   }, [timePerAnswer, timePerQuestion])
 
   return (

@@ -14,52 +14,29 @@
  * limitations under the License.
  */
 
-import { unknownParser } from '@/app/lib/zod-parser';
+import { unknownParser, unknownValidator } from '@/app/lib/zod-parser';
 import { gamesRef } from '@/app/lib/firebase-server-initialization';
 import { getAuthenticatedUser } from '@/app/lib/server-side-auth'
 import { FieldValue } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod';
+import { badRequestResponse } from '@/app/lib/bad-request-response';
+import { GameIdObject } from '@/app/types/zod-types';
+import { authenticationFailedResponse } from '@/app/lib/authentication-failed-response';
 
 export async function POST(request: NextRequest) {
-  // Authenticate user
   let authUser;
-
   try {
     authUser = await getAuthenticatedUser(request);
   } catch (error) {
-    console.error({ error });
-    // Respond with JSON indicating an error message
-    return new NextResponse(
-      JSON.stringify({ success: false, message: 'authentication failed' }),
-      { status: 401, headers: { 'content-type': 'application/json' } }
-    )
+    return authenticationFailedResponse();
   }
 
   // Validate request
-  const Body = z.object({
-    gameId: z.string(),
-  });
-
-  let parsedBody;
-
-  try {
-    const body = await request.json();
-    parsedBody = unknownParser(body, Body);
-  } catch (error) {
-    // return the first error
-    if (error instanceof Error) {
-      // Respond with JSON indicating an error message
-      const {message} = error;
-      return new NextResponse(
-        JSON.stringify({ success: false, message }),
-        { status: 400, headers: { 'content-type': 'application/json' } }
-      );
-    }
-    throw error;
-  }
-
-  const { gameId } = parsedBody;
+  const body = await request.json();
+  const errorMessage = unknownValidator(body, GameIdObject);
+  if (errorMessage) return badRequestResponse({errorMessage})
+  const { gameId } = unknownParser(body, GameIdObject);
   const gameRef = await gamesRef.doc(gameId);
 
   // update database to exit the game

@@ -22,31 +22,22 @@ import { Question, gameStates } from '@/app/types';
 import { QueryDocumentSnapshot, Timestamp } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from "zod";
+import { authenticationFailedResponse } from '@/app/lib/authentication-failed-response';
+import { GameSettings } from '@/app/types/zod-types';
 
 export async function POST(request: NextRequest) {
   let authUser;
-
   try {
     authUser = await getAuthenticatedUser(request);
   } catch (error) {
-    console.error({ error });
-    // Respond with JSON indicating an error message
-    return new NextResponse(
-      JSON.stringify({ success: false, message: 'authentication failed' }),
-      { status: 401, headers: { 'content-type': 'application/json' } }
-    )
+    return authenticationFailedResponse();
   }
-
-  const Body = z.object({
-    timePerQuestion: z.number().int().max(600, 'Time per question must be 600 or less.').min(10, 'Time per question must be at least 10.'),
-    timePerAnswer: z.number().int().max(600, 'Time per answer must be 600 or less.').min(5, 'Time per answer must be at least 5.'),
-  });
 
   // Validate request
   const body = await request.json();
   let parsedBody;
   try {
-    parsedBody = unknownParser(body, Body);
+    parsedBody = unknownParser(body, GameSettings);
   } catch (error) {
     // return the first error
     if (error instanceof Error) {

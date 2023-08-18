@@ -14,53 +14,30 @@
  * limitations under the License.
  */
 
-import { unknownParser } from '@/app/lib/zod-parser';
+import { unknownParser, unknownValidator } from '@/app/lib/zod-parser';
 import { gamesRef } from '@/app/lib/firebase-server-initialization';
 import { getAuthenticatedUser } from '@/app/lib/server-side-auth'
 import { gameStates } from '@/app/types';
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod';
+import { AnswerSelectionWithGameId } from '@/app/types/zod-types';
+import { badRequestResponse } from '@/app/lib/bad-request-response';
+import { authenticationFailedResponse } from '@/app/lib/authentication-failed-response';
 
 export async function POST(request: NextRequest) {
-  // Authenticate user
   let authUser;
-
   try {
     authUser = await getAuthenticatedUser(request);
   } catch (error) {
-    console.error({ error });
-    // Respond with JSON indicating an error message
-    return new NextResponse(
-      JSON.stringify({ success: false, message: 'authentication failed' }),
-      { status: 401, headers: { 'content-type': 'application/json' } }
-    )
+    return authenticationFailedResponse();
   }
 
   // Validate request
-  const Body = z.object({
-    gameId: z.string(),
-    newAnswerSelection: z.array(z.boolean())
-  });
-
-  let parsedBody;
-
-  try {
-    const body = await request.json();
-    parsedBody = unknownParser(body, Body);
-  } catch (error) {
-    // return the first error
-    if (error instanceof Error) {
-      // Respond with JSON indicating an error message
-      const {message} = error;
-      return new NextResponse(
-        JSON.stringify({ success: false, message }),
-        { status: 400, headers: { 'content-type': 'application/json' } }
-      );
-    }
-    throw error;
-  }
-
-  const { gameId, newAnswerSelection } = parsedBody;
+  const body = await request.json();
+  const errorMessage = unknownValidator(body, AnswerSelectionWithGameId);
+  console.log({errorMessage});
+  if (errorMessage) return badRequestResponse({errorMessage})
+  const { gameId, answerSelection } = unknownParser(body, AnswerSelectionWithGameId);
 
   const gameRef = await gamesRef.doc(gameId);
   const gameDoc = await gameRef.get();
@@ -75,12 +52,12 @@ export async function POST(request: NextRequest) {
   }
 
 
-  // newAnswerSelection must be an array of booleans as long as the game question answers
+  // answerSelection must be an array of booleans as long as the game question answers
   const currentQuestion = game.questions[game.currentQuestionIndex];
-  const isCorrectLength = newAnswerSelection.length === currentQuestion.answers.length
+  const isCorrectLength = answerSelection.length === currentQuestion.answers.length
 
   const isBoolean = (value: boolean) => value === true || value === false;
-  const answerSelectionIsValid = newAnswerSelection.every(isBoolean);
+  const answerSelectionIsValid = answerSelection.every(isBoolean);
 
   if (!isCorrectLength || !answerSelectionIsValid) {
     // Respond with JSON indicating an error message
@@ -92,7 +69,7 @@ export async function POST(request: NextRequest) {
 
   // update database to start the game
   await gameRef.update({
-    [`questions.${game.currentQuestionIndex}.playerGuesses.${authUser.uid}`]: newAnswerSelection,
+    [`questions.${game.currentQuestionIndex}.playerGuesses.${authUser.uid}`]: answerSelection,
   });
 
   return NextResponse.json('successfully started game', { status: 200 })

@@ -14,40 +14,22 @@
  * limitations under the License.
  */
 
-import { unknownParser } from '@/app/lib/zod-parser';
+import { unknownParser, unknownValidator } from '@/app/lib/zod-parser';
 import { gamesRef } from '@/app/lib/firebase-server-initialization';
 import { timeCalculator } from '@/app/lib/time-calculator';
 import { gameStates } from '@/app/types';
 import { Timestamp } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod';
+import { badRequestResponse } from '@/app/lib/bad-request-response';
+import { GameIdObject } from '@/app/types/zod-types';
 
 export async function POST(request: NextRequest) {
   // Validate request
-  // Validate request
-  const Body = z.object({
-    gameId: z.string(),
-  });
-
-  let parsedBody;
-
-  try {
-    const body = await request.json();
-    parsedBody = unknownParser(body, Body);
-  } catch (error) {
-    // return the first error
-    if (error instanceof Error) {
-      // Respond with JSON indicating an error message
-      const {message} = error;
-      return new NextResponse(
-        JSON.stringify({ success: false, message }),
-        { status: 400, headers: { 'content-type': 'application/json' } }
-      );
-    }
-    throw error;
-  }
-
-  const { gameId } = parsedBody;
+  const body = await request.json();
+  const errorMessage = unknownValidator(body, GameIdObject);
+  if (errorMessage) return badRequestResponse({errorMessage})
+  const { gameId } = unknownParser(body, GameIdObject);
 
   const gameRef = await gamesRef.doc(gameId);
   const gameDoc = await gameRef.get();
