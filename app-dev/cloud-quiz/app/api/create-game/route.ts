@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
     state: gameStates.NOT_STARTED,
     currentQuestionIndex: 0,
     startTime,
-    timePerQuestion,
-    timePerAnswer,
+    timePerQuestion: timePerQuestion + 1, // add one for padding between questions
+    timePerAnswer: timePerAnswer + 1, // add one for padding between questions
   });
 
   return NextResponse.json({ gameId: gameRef.id }, { status: 200 })

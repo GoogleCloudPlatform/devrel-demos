@@ -16,75 +16,58 @@
 
 import { useEffect, useState } from "react";
 import { db } from "@/app/lib/firebase-client-initialization"
-import { Game, Players, emptyGame, gameStates } from "@/app/types";
+import { Game, emptyGame, gameStates } from "@/app/types";
 import { doc, onSnapshot } from "firebase/firestore";
 import { usePathname } from "next/navigation";
 import useFirebaseAuthentication from "./use-firebase-authentication";
-import { User } from "firebase/auth";
-
-const exitGame = async ({ playerIdList, authUser, gameId }: { playerIdList: string[], authUser: User, gameId: string }) => {
-  if (playerIdList.includes(authUser.uid)) {
-    const token = await authUser.getIdToken();
-    await fetch('/api/exit-game', {
-      method: 'POST',
-      body: JSON.stringify({ gameId }),
-      headers: {
-        Authorization: token,
-      }
-    }).catch(error => {
-      console.error({ error })
-    });
-  }
-}
-
-const joinGame = async ({ playerIdList, authUser, gameId }: { playerIdList: string[], authUser: User, gameId: string }) => {
-  if (!playerIdList.includes(authUser.uid)) {
-    const token = await authUser.getIdToken();
-    await fetch('/api/join-game', {
-      method: 'POST',
-      body: JSON.stringify({ gameId }),
-      headers: {
-        Authorization: token,
-      }
-    }).catch(error => {
-      console.error({ error })
-    });
-  }
-}
 
 const useGame = () => {
   const pathname = usePathname();
   const gameId = pathname.split('/')[2];
   const gameRef = doc(db, "games", gameId);
   const [game, setGame] = useState<Game>(emptyGame);
-  const [playerIdList, setPlayerIdList] = useState<string[]>([]);
   const [error, setErrorMessage] = useState<string>("");
   const authUser = useFirebaseAuthentication();
+
+  useEffect(() => {
+    const playerIdList = Object.keys(game.players);
+
+    const joinGame = async () => {
+      if (!playerIdList.includes(authUser.uid)) {
+        const token = await authUser.getIdToken();
+        console.log('joining the game')
+        await fetch('/api/join-game', {
+          method: 'POST',
+          body: JSON.stringify({ gameId }),
+          headers: {
+            Authorization: token,
+          }
+        }).catch(error => {
+          console.error({ error })
+        });
+      }
+    };
+
+    if (game.leader.uid && authUser.uid && game.leader.uid !== authUser.uid) {
+      joinGame();
+    }
+
+  }, [authUser.uid, game.leader.uid, gameId, authUser.getIdToken, game.players]);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(gameRef, (doc) => {
       const game = doc.data() as Game;
       if (game) {
         setGame(game);
-        setPlayerIdList(Object.keys(game.players))
       } else {
         setErrorMessage(`Game ${gameId} was not found.`)
       }
     });
 
-    if (game.leader.uid) {
-      if (game.leader.uid !== authUser.uid) {
-        joinGame({ playerIdList, authUser, gameId });
-      } else {
-        exitGame({ playerIdList, gameId, authUser });
-      }
-    }
-
     return () => {
       unsubscribe();
-      exitGame({ playerIdList, gameId, authUser });
     };
-  }, [authUser, game.leader.uid, gameId, gameRef, playerIdList])
+  }, [authUser.uid, gameId, gameRef])
 
   return {
     gameRef,

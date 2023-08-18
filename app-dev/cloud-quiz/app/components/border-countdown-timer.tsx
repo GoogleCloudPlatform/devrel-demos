@@ -66,13 +66,14 @@ export default function BorderCountdownTimer({ game, children, gameRef }: { game
 
     // clear interval on re-render to avoid memory leaks
     return () => clearTimeout(timeoutIdOne);
-  }, [localCounter]);
+  }, [localCounter, game.state]);
 
   const limitPercents = (num: number) => Math.max(Math.min(num, 100), 0);
 
   // this is the percent of the entire animation that has completed
   // the `+ 1` allows the animation to target where it "should" be in one second
-  const animationCompletionPercentage = limitPercents((timeToCountDown - displayTime + 1) / (timeToCountDown) * 100);
+  const timeToCountDivisibleByFour = Math.floor(timeToCountDown / 4) * 4;
+  const animationCompletionPercentage = limitPercents((timeToCountDivisibleByFour - displayTime + 1) / timeToCountDivisibleByFour * 100);
 
   const topBorderPercentage = limitPercents(countDirection === "down" ? animationCompletionPercentage * 4 : 400 - animationCompletionPercentage * 4);
   const rightBorderPercentage = limitPercents(countDirection === "down" ? animationCompletionPercentage * 4 - 100 : 300 - animationCompletionPercentage * 4);
