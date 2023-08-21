@@ -18,7 +18,7 @@ import {unknownParser, unknownValidator} from '@/app/lib/zod-parser';
 import {gamesRef, questionsRef} from '@/app/lib/firebase-server-initialization';
 import {generateName} from '@/app/lib/name-generator';
 import {getAuthenticatedUser} from '@/app/lib/server-side-auth';
-import {Question, gameStates} from '@/app/types';
+import {Question, QuestionSchema, gameStates} from '@/app/types';
 import {QueryDocumentSnapshot, Timestamp} from 'firebase-admin/firestore';
 import {NextRequest, NextResponse} from 'next/server';
 import {authenticationFailedResponse} from '@/app/lib/authentication-failed-response';
@@ -41,8 +41,14 @@ export async function POST(request: NextRequest) {
 
 
   const querySnapshot = await questionsRef.get();
-  const questions = querySnapshot.docs.reduce((agg: Question[], doc: QueryDocumentSnapshot, index: number) => {
-    return {...agg, [index]: doc.data() as Question};
+  const questions = querySnapshot.docs.reduce((agg: Record<number, Question>, doc: QueryDocumentSnapshot, index: number) => {
+    const question = doc.data();
+    const errorMessage = unknownValidator(question, QuestionSchema);
+    if (errorMessage) {
+      console.warn(`WARNING: The question "${question?.prompt}" [Firestore ID: ${doc.id}] has an issue and will not be added to the game.`)
+      return agg;
+    }
+    return {...agg, [index]: question};
   }, {});
   if (!authUser) throw new Error('User must be signed in to start game');
   // create game with server endpoint

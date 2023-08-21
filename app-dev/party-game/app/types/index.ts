@@ -40,12 +40,11 @@ const AnswerSchema = z.object({
 export type Answer = z.infer<typeof AnswerSchema>;
 
 export const QuestionSchema = z.object({
-  answers: z.array(AnswerSchema).default([]),
-  prompt: z.string().default(''),
-  explanation: z.string().default(''),
+  answers: z.array(AnswerSchema).min(1).max(4),
+  prompt: z.string(),
+  explanation: z.string(),
   playerGuesses: z.record(z.string(), z.array(z.boolean())).default({}),
 });
-export const emptyQuestion = QuestionSchema.parse({});
 export type Question = z.infer<typeof QuestionSchema>;
 
 const gameStatesOptions = ['NOT_STARTED', 'SHOWING_CORRECT_ANSWERS', 'AWAITING_PLAYER_ANSWERS', 'GAME_OVER'] as const;
