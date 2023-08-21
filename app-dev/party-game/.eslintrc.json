@@ -2,8 +2,7 @@
   "extends": [
     "eslint:recommended",
     "next",
-    "prettier",
-    "google"
+    "prettier"
   ],
   "rules": {
     "max-len": "off",
