@@ -20,7 +20,7 @@ import {getAuthenticatedUser} from '@/app/lib/server-side-auth';
 import {FieldValue} from 'firebase-admin/firestore';
 import {NextRequest, NextResponse} from 'next/server';
 import {badRequestResponse} from '@/app/lib/bad-request-response';
-import {GameIdObject} from '@/app/types/zod-types';
+import {GameIdObjectSchema} from '@/app/types';
 import {authenticationFailedResponse} from '@/app/lib/authentication-failed-response';
 
 export async function POST(request: NextRequest) {
@@ -33,9 +33,9 @@ export async function POST(request: NextRequest) {
 
   // Validate request
   const body = await request.json();
-  const errorMessage = unknownValidator(body, GameIdObject);
+  const errorMessage = unknownValidator(body, GameIdObjectSchema);
   if (errorMessage) return badRequestResponse({errorMessage});
-  const {gameId} = unknownParser(body, GameIdObject);
+  const {gameId} = unknownParser(body, GameIdObjectSchema);
   const gameRef = await gamesRef.doc(gameId);
 
   // update database to exit the game

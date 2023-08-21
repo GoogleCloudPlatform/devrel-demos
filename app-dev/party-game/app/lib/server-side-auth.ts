@@ -22,4 +22,4 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<Decode
   const token = request.headers.get('Authorization') || '';
   const decodedIdToken = await getAuth(app).verifyIdToken(token);
   return decodedIdToken;
-};
+}

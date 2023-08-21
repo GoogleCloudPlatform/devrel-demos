@@ -19,7 +19,7 @@ import {gamesRef} from '@/app/lib/firebase-server-initialization';
 import {getAuthenticatedUser} from '@/app/lib/server-side-auth';
 import {gameStates} from '@/app/types';
 import {NextRequest, NextResponse} from 'next/server';
-import {AnswerSelectionWithGameId} from '@/app/types/zod-types';
+import {AnswerSelectionWithGameIdSchema} from '@/app/types';
 import {badRequestResponse} from '@/app/lib/bad-request-response';
 import {authenticationFailedResponse} from '@/app/lib/authentication-failed-response';
 
@@ -33,9 +33,9 @@ export async function POST(request: NextRequest) {
 
   // Validate request
   const body = await request.json();
-  const errorMessage = unknownValidator(body, AnswerSelectionWithGameId);
+  const errorMessage = unknownValidator(body, AnswerSelectionWithGameIdSchema);
   if (errorMessage) return badRequestResponse({errorMessage});
-  const {gameId, answerSelection} = unknownParser(body, AnswerSelectionWithGameId);
+  const {gameId, answerSelection} = unknownParser(body, AnswerSelectionWithGameIdSchema);
 
   const gameRef = await gamesRef.doc(gameId);
   const gameDoc = await gameRef.get();

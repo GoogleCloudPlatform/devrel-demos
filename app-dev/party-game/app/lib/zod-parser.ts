@@ -23,7 +23,7 @@ export const unknownValidator = (body: unknown, Schema: z.ZodType) => {
   } catch (error) {
     // return the first error
     if (error instanceof z.ZodError) {
-      return error.issues[0].message;
+      return `${error.issues[0].message}`;
     }
     throw error;
   }

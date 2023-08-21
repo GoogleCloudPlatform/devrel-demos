@@ -21,14 +21,14 @@ import {gameStates} from '@/app/types';
 import {Timestamp} from 'firebase-admin/firestore';
 import {NextRequest, NextResponse} from 'next/server';
 import {badRequestResponse} from '@/app/lib/bad-request-response';
-import {GameIdObject} from '@/app/types/zod-types';
+import {GameIdObjectSchema} from '@/app/types';
 
 export async function POST(request: NextRequest) {
   // Validate request
   const body = await request.json();
-  const errorMessage = unknownValidator(body, GameIdObject);
+  const errorMessage = unknownValidator(body, GameIdObjectSchema);
   if (errorMessage) return badRequestResponse({errorMessage});
-  const {gameId} = unknownParser(body, GameIdObject);
+  const {gameId} = unknownParser(body, GameIdObjectSchema);
 
   const gameRef = await gamesRef.doc(gameId);
   const gameDoc = await gameRef.get();

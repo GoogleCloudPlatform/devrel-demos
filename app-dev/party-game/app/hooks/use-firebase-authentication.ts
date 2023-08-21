@@ -28,10 +28,10 @@ export const emptyUser: User = {
   delete: function(): Promise<void> {
     throw new Error('Function not implemented.');
   },
-  getIdToken: function(forceRefresh?: boolean | undefined): Promise<string> {
+  getIdToken: function(): Promise<string> {
     throw new Error('Function not implemented.');
   },
-  getIdTokenResult: function(forceRefresh?: boolean | undefined): Promise<IdTokenResult> {
+  getIdTokenResult: function(): Promise<IdTokenResult> {
     throw new Error('Function not implemented.');
   },
   reload: function(): Promise<void> {

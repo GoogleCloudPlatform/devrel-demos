@@ -16,10 +16,11 @@
 
 import {useEffect, useState} from 'react';
 import {db} from '@/app/lib/firebase-client-initialization';
-import {Game, emptyGame, gameStates} from '@/app/types';
+import {Game, GameSchema, emptyGame, gameStates} from '@/app/types';
 import {doc, onSnapshot} from 'firebase/firestore';
 import {usePathname} from 'next/navigation';
 import useFirebaseAuthentication from './use-firebase-authentication';
+import {unknownParser} from '../lib/zod-parser';
 
 const useGame = () => {
   const pathname = usePathname();
@@ -56,10 +57,11 @@ const useGame = () => {
   useEffect(() => {
     const gameRef = doc(db, 'games', gameId);
     const unsubscribe = onSnapshot(gameRef, (doc) => {
-      const game = doc.data() as Game;
-      if (game) {
+      try {
+        const game = unknownParser(doc.data(), GameSchema);
         setGame(game);
-      } else {
+      } catch (error) {
+        console.log(error);
         setErrorMessage(`Game ${gameId} was not found.`);
       }
     });

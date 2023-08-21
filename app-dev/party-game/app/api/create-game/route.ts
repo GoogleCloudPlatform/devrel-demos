@@ -22,7 +22,7 @@ import {Question, gameStates} from '@/app/types';
 import {QueryDocumentSnapshot, Timestamp} from 'firebase-admin/firestore';
 import {NextRequest, NextResponse} from 'next/server';
 import {authenticationFailedResponse} from '@/app/lib/authentication-failed-response';
-import {GameSettings} from '@/app/types/zod-types';
+import {GameSettingsSchema} from '@/app/types';
 import {badRequestResponse} from '@/app/lib/bad-request-response';
 
 export async function POST(request: NextRequest) {
@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
 
   // Validate request
   const body = await request.json();
-  const errorMessage = unknownValidator(body, GameSettings);
+  const errorMessage = unknownValidator(body, GameSettingsSchema);
   if (errorMessage) return badRequestResponse({errorMessage});
-  const {timePerQuestion, timePerAnswer} = unknownParser(body, GameSettings);
+  const {timePerQuestion, timePerAnswer} = unknownParser(body, GameSettingsSchema);
 
 
   const querySnapshot = await questionsRef.get();

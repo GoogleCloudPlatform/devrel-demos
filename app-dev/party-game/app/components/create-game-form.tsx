@@ -21,7 +21,7 @@ import {useRouter} from 'next/navigation';
 import {useEffect, useState} from 'react';
 import BigColorBorderButton from './big-color-border-button';
 import {unknownParser, unknownValidator} from '@/app/lib/zod-parser';
-import {GameIdObject, GameSettings} from '@/app/types/zod-types';
+import {GameIdObjectSchema, GameSettingsSchema} from '@/app/types';
 
 export default function CreateGameForm() {
   const authUser = useFirebaseAuthentication();
@@ -45,7 +45,7 @@ export default function CreateGameForm() {
         },
       });
       const response = await res.json();
-      const parsedResponse = unknownParser(response, GameIdObject);
+      const parsedResponse = unknownParser(response, GameIdObjectSchema);
       if (!parsedResponse.gameId) throw new Error('no gameId returned in the response');
       router.push(`/game/${parsedResponse.gameId}`);
     } catch (error) {
@@ -54,7 +54,7 @@ export default function CreateGameForm() {
   };
 
   useEffect(() => {
-    setErrorMessage(unknownValidator({timePerAnswer, timePerQuestion}, GameSettings));
+    setErrorMessage(unknownValidator({timePerAnswer, timePerQuestion}, GameSettingsSchema));
   }, [timePerAnswer, timePerQuestion]);
 
   return (
