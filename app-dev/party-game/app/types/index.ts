@@ -37,7 +37,6 @@ const AnswerSchema = z.object({
   isSelected: z.boolean().default(false),
   text: z.string(),
 });
-export type Answer = z.infer<typeof AnswerSchema>;
 
 export const QuestionSchema = z.object({
   answers: z.array(AnswerSchema).min(1).max(4),
@@ -52,27 +51,32 @@ const GameStateEnum = z.enum(gameStatesOptions);
 export const gameStates = GameStateEnum.Values;
 
 export const LeaderSchema = z.object({
-  uid: z.string().default(''),
-  displayName: z.string().default(''),
+  uid: z.string(),
+  displayName: z.string(),
 });
-const emptyLeader = LeaderSchema.parse({});
+const emptyLeader = LeaderSchema.parse({
+  uid: '',
+  displayName: '',
+});
 
 export const GameSchema = z.object({
-  questions: z.record(z.string(), QuestionSchema).default({}),
-  leader: LeaderSchema.default(emptyLeader),
-  players: z.record(z.string(), z.string()).default({}),
-  state: GameStateEnum.default(gameStates.NOT_STARTED),
-  currentQuestionIndex: z.number().int().nonnegative().default(0),
-  startTime: z.object({seconds: z.number()}).default({seconds: -1}),
-  timePerQuestion: TimePerQuestionSchema.default(60),
-  timePerAnswer: TimePerAnswerSchema.default(20),
+  questions: z.record(z.string(), QuestionSchema),
+  leader: LeaderSchema,
+  players: z.record(z.string(), z.string()),
+  state: GameStateEnum,
+  currentQuestionIndex: z.number().int().nonnegative(),
+  startTime: z.object({seconds: z.number()}),
+  timePerQuestion: TimePerQuestionSchema,
+  timePerAnswer: TimePerAnswerSchema,
+});
+export const emptyGame = GameSchema.parse({
+  questions: {},
+  leader: emptyLeader,
+  players: {},
+  state: 'NOT_STARTED',
+  currentQuestionIndex: 0,
+  startTime: {seconds: 0},
+  timePerQuestion: 60,
+  timePerAnswer: 20,
 });
 export type Game = z.infer<typeof GameSchema>;
-export const emptyGame = GameSchema.parse({});
-
-const RouteWithCurrentStatusSchema = z.object({
-  name: z.string(),
-  href: z.string(),
-  current: z.string(),
-});
-export type RouteWithCurrentStatus = z.infer<typeof RouteWithCurrentStatusSchema>;

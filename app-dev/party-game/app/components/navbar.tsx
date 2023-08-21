@@ -31,9 +31,9 @@ export default function Navbar() {
 
   const pathname = usePathname();
   const navigation = [
-    {name: 'Home', href: '/'},
-    {name: 'About', href: '/about'},
-  ].map((route: { name: string, href: string }) => ({
+    {title: 'Home', href: '/'},
+    {title: 'About', href: '/about'},
+  ].map((route) => ({
     ...route,
     current: pathname === route.href,
   }));
@@ -44,33 +44,22 @@ export default function Navbar() {
         <>
           <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
             <div className="relative flex h-16 items-center justify-between">
-              <div className="absolute inset-y-0 left-0 flex items-center sm:hidden">
-                {/* Mobile menu button*/}
-                <Disclosure.Button id="disclosure-button" className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:underline hover:decoration-[var(--google-cloud-blue)] hover:text-black">
-                  <span className="sr-only">Open main menu</span>
-                  {open ? (
-                    <XMarkIcon className="block h-6 w-6" aria-hidden="true" />
-                  ) : (
-                    <Bars3Icon className="block h-6 w-6" aria-hidden="true" />
-                  )}
-                </Disclosure.Button>
+              <div className="absolute w-full flex flex-shrink-0 justify-center sm:justify-start">
+                <Image
+                  src='/google-cloud-logo.svg'
+                  alt='Google Cloud Logo'
+                  width='80'
+                  height='80'
+                  className='block h-8 w-auto'
+                  priority
+                />
               </div>
-              <div className="relative flex flex-1 items-center">
-                <div className="absolute w-full flex flex-shrink-0 justify-center sm:justify-start -z-20">
-                  <Image
-                    src='/google-cloud-logo.svg'
-                    alt='Google Cloud Logo'
-                    width='80'
-                    height='80'
-                    className='block h-8 w-auto'
-                    priority
-                  />
-                </div>
+              <div className="absolute w-full flex justify-between">
                 <div className="hidden sm:ml-12 sm:block">
                   <div className="flex space-x-4">
                     {navigation.map((item) => (
                       <Link
-                        key={item.name}
+                        key={item.title}
                         href={item.href}
                         className={mergeClassNames(
                           item.current ? 'text-black underline' : 'text-gray-700 hover:underline hover:decoration-[var(--google-cloud-blue)] hover:text-black',
@@ -78,23 +67,31 @@ export default function Navbar() {
                         )}
                         aria-current={item.current ? 'page' : undefined}
                       >
-                        {item.name}
+                        {item.title}
                       </Link>
                     ))}
                   </div>
                 </div>
-                <div className="absolute w-full flex flex-shrink-0 justify-end -z-10">
-                  {authUser.uid ? <SignOutButton /> : <SignInButton />}
+                <div className="inset-y-0 left-0 flex items-center sm:hidden">
+                  {/* Mobile menu button*/}
+                  <Disclosure.Button id="disclosure-button" className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:underline hover:decoration-[var(--google-cloud-blue)] hover:text-black">
+                    <span className="sr-only">Open main menu</span>
+                    {open ? (
+                      <XMarkIcon className="block h-6 w-6" aria-hidden="true" />
+                    ) : (
+                      <Bars3Icon className="block h-6 w-6" aria-hidden="true" />
+                    )}
+                  </Disclosure.Button>
                 </div>
+                {authUser.uid ? <SignOutButton /> : <SignInButton />}
               </div>
             </div>
           </div>
-
           <Disclosure.Panel className="sm:hidden">
             <div className="space-y-1 px-2 pt-2 pb-3">
               {navigation.map((item) => (
                 <Disclosure.Button
-                  key={item.name}
+                  key={item.title}
                   as="a"
                   href={item.href}
                   className={mergeClassNames(
@@ -103,7 +100,7 @@ export default function Navbar() {
                   )}
                   aria-current={item.current ? 'page' : undefined}
                 >
-                  {item.name}
+                  {item.title}
                 </Disclosure.Button>
               ))}
             </div>

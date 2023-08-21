@@ -18,7 +18,7 @@ import {unknownParser, unknownValidator} from '@/app/lib/zod-parser';
 import {gamesRef, questionsRef} from '@/app/lib/firebase-server-initialization';
 import {generateName} from '@/app/lib/name-generator';
 import {getAuthenticatedUser} from '@/app/lib/server-side-auth';
-import {Question, QuestionSchema, gameStates} from '@/app/types';
+import {Game, Question, QuestionSchema, gameStates} from '@/app/types';
 import {QueryDocumentSnapshot, Timestamp} from 'firebase-admin/firestore';
 import {NextRequest, NextResponse} from 'next/server';
 import {authenticationFailedResponse} from '@/app/lib/authentication-failed-response';
@@ -41,15 +41,16 @@ export async function POST(request: NextRequest) {
 
 
   const querySnapshot = await questionsRef.get();
-  const questions = querySnapshot.docs.reduce((agg: Record<number, Question>, doc: QueryDocumentSnapshot, index: number) => {
+  const validQuestionsArray = querySnapshot.docs.reduce((agg: Question[], doc: QueryDocumentSnapshot) => {
     const question = doc.data();
     const errorMessage = unknownValidator(question, QuestionSchema);
     if (errorMessage) {
-      console.warn(`WARNING: The question "${question?.prompt}" [Firestore ID: ${doc.id}] has an issue and will not be added to the game.`)
+      console.warn(`WARNING: The question "${question?.prompt}" [Firestore ID: ${doc.id}] has an issue and will not be added to the game.`);
       return agg;
     }
-    return {...agg, [index]: question};
-  }, {});
+    return [...agg, question];
+  }, []);
+  const questions = {...validQuestionsArray};
   if (!authUser) throw new Error('User must be signed in to start game');
   // create game with server endpoint
 
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
 
   const startTime = Timestamp.now();
 
-  const gameRef = await gamesRef.add({
+  const newGame: Game= {
     questions,
     leader,
     players: {},
@@ -69,7 +70,9 @@ export async function POST(request: NextRequest) {
     startTime,
     timePerQuestion: timePerQuestion + 1, // add one for padding between questions
     timePerAnswer: timePerAnswer + 1, // add one for padding between questions
-  });
+  };
+
+  const gameRef = await gamesRef.add(newGame);
 
   return NextResponse.json({gameId: gameRef.id}, {status: 200});
 }

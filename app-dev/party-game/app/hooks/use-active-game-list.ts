@@ -22,6 +22,7 @@ import {DocumentReference, collection, onSnapshot, query, where} from 'firebase/
 
 const useActiveGameList = () => {
   const [activeGameList, setActiveGameList] = useState<DocumentReference[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const q = query(collection(db, 'games'), where('state', '!=', gameStates.GAME_OVER));
@@ -31,11 +32,12 @@ const useActiveGameList = () => {
         games.push(doc.ref);
       });
       setActiveGameList(games);
+      setLoading(false);
     });
     return unsubscribe;
   }, []);
 
-  return {activeGameList};
+  return {activeGameList, loading};
 };
 
 export default useActiveGameList;
