@@ -1,0 +1,15 @@
+{
+  "extends": [
+    "eslint:recommended",
+    "next",
+    "prettier",
+    "google"
+  ],
+  "rules": {
+    "max-len": "off",
+    "require-jsdoc": "off"
+  },
+  "globals": {
+    "React": true
+  }
+}
