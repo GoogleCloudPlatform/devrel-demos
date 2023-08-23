@@ -31,6 +31,7 @@ const TimePerQuestionSchema = z.number({invalid_type_error: 'Time per question m
 const TimePerAnswerSchema = z.number({invalid_type_error: 'Time per answer must be a number'}).int().max(600, 'Time per answer must be 600 or less.').min(5, 'Time per answer must be at least 5.');
 
 export const GameSettingsSchema = z.object({timePerQuestion: TimePerQuestionSchema, timePerAnswer: TimePerAnswerSchema});
+export type GameSettings = z.infer<typeof GameSettingsSchema>;
 
 const AnswerSchema = z.object({
   isCorrect: z.boolean(),

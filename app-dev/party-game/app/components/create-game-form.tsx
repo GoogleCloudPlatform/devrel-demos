@@ -20,8 +20,9 @@ import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import {useRouter} from 'next/navigation';
 import {useEffect, useState} from 'react';
 import BigColorBorderButton from './big-color-border-button';
-import {unknownParser, unknownValidator} from '@/app/lib/zod-parser';
-import {GameIdObjectSchema, GameSettingsSchema} from '@/app/types';
+import {unknownValidator} from '@/app/lib/zod-parser';
+import {GameSettingsSchema} from '@/app/types';
+import {createGameAction} from '../actions/create-game/action';
 
 export default function CreateGameForm() {
   const authUser = useFirebaseAuthentication();
@@ -37,17 +38,8 @@ export default function CreateGameForm() {
     event.preventDefault();
     const token = await authUser.getIdToken();
     try {
-      const res = await fetch('/api/create-game', {
-        method: 'POST',
-        body: JSON.stringify({timePerQuestion, timePerAnswer}),
-        headers: {
-          Authorization: token,
-        },
-      });
-      const response = await res.json();
-      const parsedResponse = unknownParser(response, GameIdObjectSchema);
-      if (!parsedResponse.gameId) throw new Error('no gameId returned in the response');
-      router.push(`/game/${parsedResponse.gameId}`);
+      const response = await createGameAction({gameSettings: {timePerQuestion, timePerAnswer}, token});
+      router.push(`/game/${response.gameId}`);
     } catch (error) {
       setErrorMessage('There was an error handling the request.');
     }
@@ -62,7 +54,7 @@ export default function CreateGameForm() {
       <form className="bg-white px-8 py-12" onSubmit={onCreateGameSubmit}>
         <div className="mb-4">
           <label className="block text-sm font-bold mb-2" htmlFor="timePerQuestion">
-            Time (in seconds) to answer the question
+          Time (in seconds) to answer the question
           </label>
           <input
             className="shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline"
@@ -76,7 +68,7 @@ export default function CreateGameForm() {
         </div>
         <div className="mb-6">
           <label className="block text-sm font-bold mb-2" htmlFor="timePerAnswer">
-            Time (in seconds) to review the answers
+          Time (in seconds) to review the answers
           </label>
           <input
             className="shadow appearance-none border rounded w-full py-2 px-3 mb-3 leading-tight focus:outline-none focus:shadow-outline"
@@ -91,7 +83,7 @@ export default function CreateGameForm() {
         </div>
         <center>
           <BigColorBorderButton type="submit">
-            Create Game
+          Create Game
           </BigColorBorderButton>
         </center>
       </form>

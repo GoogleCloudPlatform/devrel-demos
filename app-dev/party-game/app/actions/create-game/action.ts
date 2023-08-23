@@ -14,31 +14,21 @@
  * limitations under the License.
  */
 
+'use server';
+
 import {unknownParser, unknownValidator} from '@/app/lib/zod-parser';
-import {gamesRef, questionsRef} from '@/app/lib/firebase-server-initialization';
+import {app, gamesRef, questionsRef} from '@/app/lib/firebase-server-initialization';
 import {generateName} from '@/app/lib/name-generator';
-import {getAuthenticatedUser} from '@/app/lib/server-side-auth';
-import {Game, Question, QuestionSchema, gameStates} from '@/app/types';
+import {Game, GameSettings, Question, QuestionSchema, gameStates} from '@/app/types';
 import {QueryDocumentSnapshot, Timestamp} from 'firebase-admin/firestore';
-import {NextRequest, NextResponse} from 'next/server';
-import {authenticationFailedResponse} from '@/app/lib/authentication-failed-response';
 import {GameSettingsSchema} from '@/app/types';
-import {badRequestResponse} from '@/app/lib/bad-request-response';
+import {getAuth} from 'firebase-admin/auth';
 
-export async function POST(request: NextRequest) {
-  let authUser;
-  try {
-    authUser = await getAuthenticatedUser(request);
-  } catch (error) {
-    return authenticationFailedResponse();
-  }
+export async function createGameAction({gameSettings, token}: {gameSettings: GameSettings, token: string}): Promise<{gameId: string}> {
+  const authUser = await getAuth(app).verifyIdToken(token);
 
-  // Validate request
-  const body = await request.json();
-  const errorMessage = unknownValidator(body, GameSettingsSchema);
-  if (errorMessage) return badRequestResponse({errorMessage});
-  const {timePerQuestion, timePerAnswer} = unknownParser(body, GameSettingsSchema);
-
+  // Parse request (throw an error if not correct)
+  const {timePerQuestion, timePerAnswer} = unknownParser(gameSettings, GameSettingsSchema);
 
   const querySnapshot = await questionsRef.get();
   const validQuestionsArray = querySnapshot.docs.reduce((agg: Question[], doc: QueryDocumentSnapshot) => {
@@ -50,8 +40,10 @@ export async function POST(request: NextRequest) {
     }
     return [...agg, question];
   }, []);
+
+  // convert array to object for Firestore
   const questions = {...validQuestionsArray};
-  if (!authUser) throw new Error('User must be signed in to start game');
+
   // create game with server endpoint
 
   const leader = {
@@ -74,5 +66,7 @@ export async function POST(request: NextRequest) {
 
   const gameRef = await gamesRef.add(newGame);
 
-  return NextResponse.json({gameId: gameRef.id}, {status: 200});
+  if (gameRef.id) return {gameId: gameRef.id};
+
+  throw new Error('no gameId returned in the response');
 }
