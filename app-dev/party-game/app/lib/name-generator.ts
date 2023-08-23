@@ -135,8 +135,14 @@ const animalList = [
   'Wombat',
 ];
 
-export const generateName = (): string => {
-  const randomColor = adjectiveList[Math.floor(Math.random() * adjectiveList.length)];
-  const randomAnimal = animalList[Math.floor(Math.random() * animalList.length)];
-  return `${randomColor} ${randomAnimal}`;
+export const generateName = (uid: string) => {
+  // use a hash so the name is always the same for the same player
+  // this is helpful to prevent flashes on the screen of one name
+  // that switch to another name if the user rejoins a game'
+  const uidArray = uid.split('');
+  const adjectiveNumberHash = uidArray.slice(0, 7).reduce((numberTotal, character, index) => numberTotal + character.charCodeAt(0), 0) % adjectiveList.length;
+  const animalNumberHash = uidArray.slice(7, 14).reduce((numberTotal, character, index) => numberTotal + character.charCodeAt(0), 0) % animalList.length;
+  const adjective = adjectiveList[adjectiveNumberHash];
+  const animal = animalList[animalNumberHash];
+  return `${adjective} ${animal}`;
 };

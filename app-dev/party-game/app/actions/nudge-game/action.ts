@@ -42,6 +42,7 @@ export async function nudgeGame({gameId}: {gameId: string}) {
   if (correctQuestionIndex > finalQuestionIndex) {
     await gameRef.update({
       state: gameStates.GAME_OVER,
+      currentQuestionIndex: finalQuestionIndex,
     });
     return;
   }

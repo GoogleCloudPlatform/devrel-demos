@@ -47,7 +47,7 @@ export async function createGameAction({gameSettings, token}: {gameSettings: Gam
   // create game with server endpoint
 
   const leader = {
-    displayName: generateName(),
+    displayName: generateName(authUser.uid),
     uid: authUser.uid,
   };
 
