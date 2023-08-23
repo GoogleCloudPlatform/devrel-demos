@@ -47,7 +47,7 @@ export default function GamePage() {
       </>)}
       {gameRef && <>
         {isShowingQuestion && (<QuestionPanel game={game} gameRef={gameRef} currentQuestion={currentQuestion} />)}
-        {game.state === gameStates.NOT_STARTED && (<Lobby game={game} gameRef={gameRef} />)}
+        {game.state === gameStates.NOT_STARTED && (<Lobby game={game} gameId={gameId} />)}
       </>}
     </>
   );

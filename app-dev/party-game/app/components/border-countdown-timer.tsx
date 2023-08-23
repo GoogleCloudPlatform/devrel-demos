@@ -19,17 +19,9 @@
 import {Game} from '@/app/types';
 import {DocumentReference, Timestamp} from 'firebase/firestore';
 import {useEffect, useState} from 'react';
-import {timeCalculator} from '../lib/time-calculator';
-import useFirebaseAuthentication from '../hooks/use-firebase-authentication';
-
-const nudgeGame = async (gameId: string) => {
-  await fetch('/api/nudge-game', {
-    method: 'POST',
-    body: JSON.stringify({gameId}),
-  }).catch((error) => {
-    console.error({error});
-  });
-};
+import {timeCalculator} from '@/app/lib/time-calculator';
+import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
+import {nudgeGame} from '@/app/actions/nudge-game/action';
 
 export default function BorderCountdownTimer({game, children, gameRef}: { game: Game, children: React.ReactNode, gameRef: DocumentReference }) {
   const [timeToCountDown, setTimeToCountDown] = useState(game.timePerQuestion);
@@ -58,7 +50,7 @@ export default function BorderCountdownTimer({game, children, gameRef}: { game: 
 
     // nudge every three seconds after time has expired
     if (timeLeft % 3 < -2) {
-      nudgeGame(gameId);
+      nudgeGame({gameId});
     }
   }, [localCounter, game, gameId, authUser.uid]);
 
@@ -66,7 +58,7 @@ export default function BorderCountdownTimer({game, children, gameRef}: { game: 
     // whenever the game state or question changes
     // make a timeout to progress the question
     if (authUser.uid === game.leader.uid) {
-      const timeoutIdTwo = setTimeout(() => nudgeGame(gameId), timeLeft * 1000);
+      const timeoutIdTwo = setTimeout(() => nudgeGame({gameId}), timeLeft * 1000);
       // clear timeout on re-render to avoid memory leaks
       return () => clearTimeout(timeoutIdTwo);
     }

@@ -41,7 +41,7 @@ export async function createGameAction({gameSettings, token}: {gameSettings: Gam
     return [...agg, question];
   }, []);
 
-  // convert array to object for Firestore
+  // convert array to object for Firebase
   const questions = {...validQuestionsArray};
 
   // create game with server endpoint

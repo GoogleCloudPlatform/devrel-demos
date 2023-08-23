@@ -16,7 +16,7 @@
 
 import {z} from 'zod';
 
-const GameIdSchema = z.string();
+export const GameIdSchema = z.string();
 
 export const GameIdObjectSchema = z.object({gameId: GameIdSchema});
 

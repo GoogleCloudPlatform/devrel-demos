@@ -16,18 +16,17 @@
 
 'use client';
 
-import {DocumentReference} from 'firebase/firestore';
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import './big-color-border-button.css';
 import BigColorBorderButton from '@/app/components/big-color-border-button';
 
-export default function StartGameButton({gameRef}: {gameRef: DocumentReference}) {
+export default function StartGameButton({gameId}: {gameId: string}) {
   const authUser = useFirebaseAuthentication();
-  const onStartGameClick = async (gameRef: DocumentReference) => {
+  const onStartGameClick = async () => {
     const token = await authUser.getIdToken();
     await fetch('/api/start-game', {
       method: 'POST',
-      body: JSON.stringify({gameId: gameRef.id}),
+      body: JSON.stringify({gameId}),
       headers: {
         Authorization: token,
       },
@@ -38,7 +37,7 @@ export default function StartGameButton({gameRef}: {gameRef: DocumentReference})
   };
 
   return (
-    <BigColorBorderButton onClick={() => onStartGameClick(gameRef)}>
+    <BigColorBorderButton onClick={onStartGameClick}>
       Start Game Now ►
     </BigColorBorderButton>
   );

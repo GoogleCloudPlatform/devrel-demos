@@ -16,31 +16,20 @@
 
 'use client';
 
-import {DocumentReference} from 'firebase/firestore';
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
-import {useRouter} from 'next/navigation';
+import {deleteGameAction} from '../actions/delete-game/action';
 
-export default function DeleteGameButton({gameRef}: { gameRef: DocumentReference }) {
+export default function DeleteGameButton({gameId}: { gameId: string }) {
   const authUser = useFirebaseAuthentication();
-  const router = useRouter();
 
-  const onDeleteGameClick = async (gameRef: DocumentReference) => {
+  const onDeleteGameClick = async () => {
     const token = await authUser.getIdToken();
-    await fetch('/api/delete-game', {
-      method: 'POST',
-      body: JSON.stringify({gameId: gameRef.id}),
-      headers: {
-        Authorization: token,
-      },
-    }).then(() => router.push('/'))
-        .catch((error) => {
-          console.error({error});
-        });
+    await deleteGameAction({gameId, token});
   };
 
   return (
     <div>
-      <button onClick={() => onDeleteGameClick(gameRef)} className={`m-2 mt-20 p-2 text-gray-700 hover:underline hover:decoration-[var(--google-cloud-red)] hover:text-black block rounded-md px-3 py-2 text-base font-medium`}>Delete Game</button>
+      <button onClick={onDeleteGameClick} className={`m-2 mt-20 p-2 text-gray-700 hover:underline hover:decoration-[var(--google-cloud-red)] hover:text-black block rounded-md px-3 py-2 text-base font-medium`}>Delete Game</button>
     </div>
   );
 }

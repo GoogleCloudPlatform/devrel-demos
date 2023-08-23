@@ -14,21 +14,18 @@
  * limitations under the License.
  */
 
-import {unknownParser, unknownValidator} from '@/app/lib/zod-parser';
+'use server';
+
+import {unknownParser} from '@/app/lib/zod-parser';
 import {gamesRef} from '@/app/lib/firebase-server-initialization';
 import {timeCalculator} from '@/app/lib/time-calculator';
-import {gameStates} from '@/app/types';
+import {GameIdSchema, gameStates} from '@/app/types';
 import {Timestamp} from 'firebase-admin/firestore';
-import {NextRequest, NextResponse} from 'next/server';
-import {badRequestResponse} from '@/app/lib/bad-request-response';
-import {GameIdObjectSchema} from '@/app/types';
 
-export async function POST(request: NextRequest) {
+export async function nudgeGame({gameId}: {gameId: string}) {
   // Validate request
-  const body = await request.json();
-  const errorMessage = unknownValidator(body, GameIdObjectSchema);
-  if (errorMessage) return badRequestResponse({errorMessage});
-  const {gameId} = unknownParser(body, GameIdObjectSchema);
+  // Will throw an error if not a string
+  unknownParser(gameId, GameIdSchema);
 
   const gameRef = await gamesRef.doc(gameId);
   const gameDoc = await gameRef.get();
@@ -47,7 +44,7 @@ export async function POST(request: NextRequest) {
     await gameRef.update({
       state: gameStates.GAME_OVER,
     });
-    return NextResponse.json('successfully nudged game', {status: 200});
+    return;
   }
 
   const isAcceptingAnswers = timeElapsed - correctQuestionIndex * timePerQuestionAndAnswer < game.timePerQuestion;
@@ -56,5 +53,4 @@ export async function POST(request: NextRequest) {
     state: isAcceptingAnswers ? gameStates.AWAITING_PLAYER_ANSWERS : gameStates.SHOWING_CORRECT_ANSWERS,
     currentQuestionIndex: correctQuestionIndex,
   });
-  return NextResponse.json('successfully nudged game', {status: 200});
 }
