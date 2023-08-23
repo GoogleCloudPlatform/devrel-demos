@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     if (game.currentQuestionIndex < totalNumberOfQuestions - 1) {
       await gameRef.update({
         state: gameStates.AWAITING_PLAYER_ANSWERS,
-        currentQuestionIndex: Math.min(Math.floor(timeElapsed / timePerQuestionAndAnswer), totalNumberOfQuestions - 1),
+        currentQuestionIndex: Math.max(Math.min(Math.floor(timeElapsed / timePerQuestionAndAnswer), totalNumberOfQuestions - 1), game.currentQuestionIndex),
       });
     } else {
       await gameRef.update({

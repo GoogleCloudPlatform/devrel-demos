@@ -20,12 +20,14 @@ import {Game} from '@/app/types';
 import {DocumentReference, Timestamp} from 'firebase/firestore';
 import {useEffect, useState} from 'react';
 import {timeCalculator} from '../lib/time-calculator';
+import useFirebaseAuthentication from '../hooks/use-firebase-authentication';
 
 export default function BorderCountdownTimer({game, children, gameRef}: { game: Game, children: React.ReactNode, gameRef: DocumentReference }) {
   const [timeToCountDown, setTimeToCountDown] = useState(game.timePerQuestion);
   const [displayTime, setDisplayTime] = useState(game.timePerQuestion);
   const [countDirection, setCountDirection] = useState<'down' | 'up'>('down');
   const [localCounter, setLocalCounter] = useState<number>(0);
+  const authUser = useFirebaseAuthentication();
 
   useEffect(() => {
     const {
@@ -52,19 +54,19 @@ export default function BorderCountdownTimer({game, children, gameRef}: { game: 
     };
 
     // nudge every three seconds after time has expired
-    if (timeLeft % 3 < -2) {
+    if (timeLeft % 3 < -2 || (authUser.uid === game.leader.uid && timeLeft < 1)) {
       nudgeGame();
     }
-  }, [localCounter, game, gameRef.id]);
+  }, [localCounter, game, gameRef.id, authUser.uid]);
 
   useEffect(() => {
-    // save intervalIdOne to clear the interval when the
+    // save timeoutIdOne to clear the timeout when the
     // component re-renders
     const timeoutIdOne = setTimeout(() => {
       setLocalCounter(localCounter + 1);
     }, 1000);
 
-    // clear interval on re-render to avoid memory leaks
+    // clear timeout on re-render to avoid memory leaks
     return () => clearTimeout(timeoutIdOne);
   }, [localCounter, game.state]);
 

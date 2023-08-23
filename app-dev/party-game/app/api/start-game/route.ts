@@ -56,33 +56,5 @@ export async function POST(request: NextRequest) {
     startTime: FieldValue.serverTimestamp(),
   });
 
-  // start automatic question progression
-  async function showQuestion() {
-    await new Promise((resolve) => setTimeout(resolve, game.timePerQuestion * 1000));
-    await gameRef.update({
-      state: gameStates.SHOWING_CORRECT_ANSWERS,
-    });
-    showAnswers();
-  }
-
-  async function showAnswers() {
-    const gameDoc = await gameRef.get();
-    const game = gameDoc.data();
-    await new Promise((resolve) => setTimeout(resolve, game.timePerAnswer * 1000));
-    if (game.currentQuestionIndex < Object.keys(game.questions).length - 1) {
-      await gameRef.update({
-        state: gameStates.AWAITING_PLAYER_ANSWERS,
-        currentQuestionIndex: game.currentQuestionIndex + 1,
-      });
-      showQuestion();
-    } else {
-      await gameRef.update({
-        state: gameStates.GAME_OVER,
-      });
-    }
-  }
-
-  showQuestion(); // starts first question
-
   return NextResponse.json('successfully started game', {status: 200});
 }
