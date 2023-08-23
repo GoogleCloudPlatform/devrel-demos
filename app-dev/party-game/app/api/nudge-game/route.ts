@@ -38,28 +38,23 @@ export async function POST(request: NextRequest) {
   const {
     timeElapsed,
     timePerQuestionAndAnswer,
-    isTimeToShowAnswer,
-    isTimeToStartNextQuestion,
   } = timeCalculator({currentTimeInMillis: Timestamp.now().toMillis(), game});
 
   const totalNumberOfQuestions = Object.keys(game.questions).length;
-
-  if (isTimeToStartNextQuestion) {
-    if (game.currentQuestionIndex < totalNumberOfQuestions - 1) {
-      await gameRef.update({
-        state: gameStates.AWAITING_PLAYER_ANSWERS,
-        currentQuestionIndex: Math.max(Math.min(Math.floor(timeElapsed / timePerQuestionAndAnswer), totalNumberOfQuestions - 1), game.currentQuestionIndex),
-      });
-    } else {
-      await gameRef.update({
-        state: gameStates.GAME_OVER,
-      });
-    }
-  } else if (isTimeToShowAnswer) {
+  const finalQuestionIndex = totalNumberOfQuestions - 1;
+  const correctQuestionIndex = Math.floor(timeElapsed / timePerQuestionAndAnswer);
+  if (correctQuestionIndex > finalQuestionIndex) {
     await gameRef.update({
-      state: gameStates.SHOWING_CORRECT_ANSWERS,
+      state: gameStates.GAME_OVER,
     });
+    return NextResponse.json('successfully nudged game', {status: 200});
   }
 
+  const isAcceptingAnswers = timeElapsed - correctQuestionIndex * timePerQuestionAndAnswer < game.timePerQuestion;
+
+  await gameRef.update({
+    state: isAcceptingAnswers ? gameStates.AWAITING_PLAYER_ANSWERS : gameStates.SHOWING_CORRECT_ANSWERS,
+    currentQuestionIndex: correctQuestionIndex,
+  });
   return NextResponse.json('successfully nudged game', {status: 200});
 }
