@@ -26,7 +26,7 @@ import {useState} from 'react';
 
 export default function Lobby({game, gameId}: { game: Game; gameId: string }) {
   const authUser = useFirebaseAuthentication();
-  const [showSharePanel, setShowSharePanel] = useState<Boolean>(false);
+  const [showSharePanel, setShowSharePanel] = useState<boolean>(false);
 
   return (
     <div className="grid lg:grid-cols-2 mt-20">

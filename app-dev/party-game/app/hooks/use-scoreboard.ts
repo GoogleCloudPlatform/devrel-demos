@@ -22,7 +22,7 @@ const useScoreboard = () => {
   const {game} = useGame();
 
   // create a list of all players
-  const arraysAreEqual = (a: Boolean[], b: Boolean[]) => {
+  const arraysAreEqual = (a: boolean[], b: boolean[]) => {
     return a.every((val, index) => val === b[index]);
   };
 

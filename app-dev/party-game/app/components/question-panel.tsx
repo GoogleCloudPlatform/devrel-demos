@@ -25,6 +25,7 @@ import QRCode from 'react-qr-code';
 import {useEffect, useState} from 'react';
 import Scoreboard from './scoreboard';
 import useScoreboard from '../hooks/use-scoreboard';
+import { updateAnswerAction } from '../actions/update-answer/action';
 
 export default function QuestionPanel({game, gameRef, currentQuestion}: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const authUser = useFirebaseAuthentication();
@@ -35,6 +36,7 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
   const existingGuesses = currentQuestion?.playerGuesses && currentQuestion.playerGuesses[authUser.uid];
   const emptyAnswerSelection = Array(currentQuestion.answers.length).fill(false);
   const answerSelection = existingGuesses || emptyAnswerSelection;
+  const gameId = gameRef.id;
 
   const totalCorrectAnswerOptions = currentQuestion.answers.reduce((correctAnswerCount, answer) => {
     return correctAnswerCount + (answer.isCorrect ? 1 : 0);
@@ -55,22 +57,14 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
 
       // Typescript does not expect the `with` property on arrays yet
       // @ts-expect-error
-      const newAnswerSelection: Boolean[] = startingAnswerSelection.with(answerIndex, !answerSelection[answerIndex]);
+      const newAnswerSelection: boolean[] = startingAnswerSelection.with(answerIndex, !answerSelection[answerIndex]);
 
       const token = await authUser.getIdToken();
-      await fetch('/api/update-answer', {
-        method: 'POST',
-        body: JSON.stringify({answerSelection: newAnswerSelection, gameId: gameRef.id}),
-        headers: {
-          Authorization: token,
-        },
-      }).catch((error) => {
-        console.error({error});
-      });
+      await updateAnswerAction({gameId, answerSelection: newAnswerSelection, token});
     }
   };
 
-  const gameShareLink = `${location.protocol}//${location.host}/game/${gameRef.id}`;
+  const gameShareLink = `${location.protocol}//${location.host}/game/${gameId}`;
 
   const isShowingCorrectAnswers = game.state === gameStates.SHOWING_CORRECT_ANSWERS;
 
