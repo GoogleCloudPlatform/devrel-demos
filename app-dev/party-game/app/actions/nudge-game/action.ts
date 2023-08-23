@@ -16,7 +16,6 @@
 
 'use server';
 
-import {unknownParser} from '@/app/lib/zod-parser';
 import {gamesRef} from '@/app/lib/firebase-server-initialization';
 import {timeCalculator} from '@/app/lib/time-calculator';
 import {GameIdSchema, gameStates} from '@/app/types';
@@ -25,7 +24,7 @@ import {Timestamp} from 'firebase-admin/firestore';
 export async function nudgeGame({gameId}: {gameId: string}) {
   // Validate request
   // Will throw an error if not a string
-  unknownParser(gameId, GameIdSchema);
+  GameIdSchema.parse(gameId);
 
   const gameRef = await gamesRef.doc(gameId);
   const gameDoc = await gameRef.get();

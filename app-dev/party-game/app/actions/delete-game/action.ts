@@ -16,7 +16,6 @@
 
 'use server';
 
-import {unknownParser} from '@/app/lib/zod-parser';
 import {app, gamesRef} from '@/app/lib/firebase-server-initialization';
 import {GameIdSchema} from '@/app/types';
 import {getAuth} from 'firebase-admin/auth';
@@ -26,7 +25,7 @@ export async function deleteGameAction({gameId, token}: {gameId: string, token: 
   const authUser = await getAuth(app).verifyIdToken(token);
 
   // Parse request (throw an error if not correct)
-  unknownParser(gameId, GameIdSchema);
+  GameIdSchema.parse(gameId);
 
   const gameRef = await gamesRef.doc(gameId);
   const gameDoc = await gameRef.get();

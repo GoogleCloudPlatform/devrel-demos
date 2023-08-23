@@ -16,7 +16,6 @@
 
 'use server';
 
-import {unknownParser, unknownValidator} from '@/app/lib/zod-parser';
 import {app, gamesRef, questionsRef} from '@/app/lib/firebase-server-initialization';
 import {generateName} from '@/app/lib/name-generator';
 import {Game, GameSettings, Question, QuestionSchema, gameStates} from '@/app/types';
@@ -28,17 +27,18 @@ export async function createGameAction({gameSettings, token}: {gameSettings: Gam
   const authUser = await getAuth(app).verifyIdToken(token);
 
   // Parse request (throw an error if not correct)
-  const {timePerQuestion, timePerAnswer} = unknownParser(gameSettings, GameSettingsSchema);
+  const {timePerQuestion, timePerAnswer} = GameSettingsSchema.parse(gameSettings);
 
   const querySnapshot = await questionsRef.get();
   const validQuestionsArray = querySnapshot.docs.reduce((agg: Question[], doc: QueryDocumentSnapshot) => {
-    const question = doc.data();
-    const errorMessage = unknownValidator(question, QuestionSchema);
-    if (errorMessage) {
+    let question = doc.data();
+    try {
+      question = QuestionSchema.parse(question);
+      return [...agg, question];
+    } catch (error) {
       console.warn(`WARNING: The question "${question?.prompt}" [Firestore ID: ${doc.id}] has an issue and will not be added to the game.`);
       return agg;
     }
-    return [...agg, question];
   }, []);
 
   // convert array to object for Firebase
