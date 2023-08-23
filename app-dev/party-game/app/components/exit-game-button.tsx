@@ -18,7 +18,7 @@
 
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import {useRouter} from 'next/navigation';
-import {exitGameAction} from '../actions/exit-game/action';
+import {exitGameAction} from '../actions/exit-game';
 
 export default function ExitGameButton({gameId}: { gameId: string }) {
   const authUser = useFirebaseAuthentication();

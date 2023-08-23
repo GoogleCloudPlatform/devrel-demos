@@ -17,7 +17,7 @@
 'use client';
 
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
-import {deleteGameAction} from '../actions/delete-game/action';
+import {deleteGameAction} from '../actions/delete-game';
 
 export default function DeleteGameButton({gameId}: { gameId: string }) {
   const authUser = useFirebaseAuthentication();

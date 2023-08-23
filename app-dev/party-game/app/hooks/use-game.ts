@@ -21,7 +21,7 @@ import {doc, onSnapshot} from 'firebase/firestore';
 import {usePathname} from 'next/navigation';
 import useFirebaseAuthentication from './use-firebase-authentication';
 import {unknownParser} from '../lib/zod-parser';
-import {joinGameAction} from '../actions/join-game/action';
+import {joinGameAction} from '../actions/join-game';
 
 const useGame = () => {
   const pathname = usePathname();

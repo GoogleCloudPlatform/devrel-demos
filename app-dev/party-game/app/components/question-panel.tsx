@@ -25,7 +25,7 @@ import QRCode from 'react-qr-code';
 import {useEffect, useState} from 'react';
 import Scoreboard from './scoreboard';
 import useScoreboard from '../hooks/use-scoreboard';
-import {updateAnswerAction} from '../actions/update-answer/action';
+import {updateAnswerAction} from '../actions/update-answer';
 
 export default function QuestionPanel({game, gameRef, currentQuestion}: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const authUser = useFirebaseAuthentication();

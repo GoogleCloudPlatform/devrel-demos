@@ -21,7 +21,7 @@ import {DocumentReference, Timestamp} from 'firebase/firestore';
 import {useEffect, useState} from 'react';
 import {timeCalculator} from '@/app/lib/time-calculator';
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
-import {nudgeGame} from '@/app/actions/nudge-game/action';
+import {nudgeGame} from '@/app/actions/nudge-game';
 
 export default function BorderCountdownTimer({game, children, gameRef}: { game: Game, children: React.ReactNode, gameRef: DocumentReference }) {
   const [timeToCountDown, setTimeToCountDown] = useState(game.timePerQuestion);

@@ -19,7 +19,7 @@
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import './big-color-border-button.css';
 import BigColorBorderButton from '@/app/components/big-color-border-button';
-import {startGameAction} from '@/app/actions/start-game/action';
+import {startGameAction} from '@/app/actions/start-game';
 
 export default function StartGameButton({gameId}: {gameId: string}) {
   const authUser = useFirebaseAuthentication();

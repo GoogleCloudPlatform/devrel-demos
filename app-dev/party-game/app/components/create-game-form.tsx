@@ -22,7 +22,7 @@ import {useEffect, useState} from 'react';
 import BigColorBorderButton from './big-color-border-button';
 import {unknownValidator} from '@/app/lib/zod-parser';
 import {GameSettingsSchema} from '@/app/types';
-import {createGameAction} from '../actions/create-game/action';
+import {createGameAction} from '../actions/create-game';
 
 export default function CreateGameForm() {
   const authUser = useFirebaseAuthentication();
