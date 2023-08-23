@@ -22,11 +22,22 @@ import {useEffect, useState} from 'react';
 import {timeCalculator} from '../lib/time-calculator';
 import useFirebaseAuthentication from '../hooks/use-firebase-authentication';
 
+const nudgeGame = async (gameId: string) => {
+  await fetch('/api/nudge-game', {
+    method: 'POST',
+    body: JSON.stringify({gameId}),
+  }).catch((error) => {
+    console.error({error});
+  });
+};
+
 export default function BorderCountdownTimer({game, children, gameRef}: { game: Game, children: React.ReactNode, gameRef: DocumentReference }) {
   const [timeToCountDown, setTimeToCountDown] = useState(game.timePerQuestion);
   const [displayTime, setDisplayTime] = useState(game.timePerQuestion);
+  const [timeLeft, setTimeLeft] = useState(game.timePerQuestion);
   const [countDirection, setCountDirection] = useState<'down' | 'up'>('down');
   const [localCounter, setLocalCounter] = useState<number>(0);
+  const gameId = gameRef.id;
   const authUser = useFirebaseAuthentication();
 
   useEffect(() => {
@@ -43,21 +54,23 @@ export default function BorderCountdownTimer({game, children, gameRef}: { game: 
     setTimeToCountDown(timeToCountDown);
     setDisplayTime(displayTime);
     setCountDirection(countDirection);
-
-    const nudgeGame = async () => {
-      await fetch('/api/nudge-game', {
-        method: 'POST',
-        body: JSON.stringify({gameId: gameRef.id}),
-      }).catch((error) => {
-        console.error({error});
-      });
-    };
+    setTimeLeft(timeLeft);
 
     // nudge every three seconds after time has expired
-    if (timeLeft % 3 < -2 || (authUser.uid === game.leader.uid && timeLeft < 1)) {
-      nudgeGame();
+    if (timeLeft % 3 < -2) {
+      nudgeGame(gameId);
     }
-  }, [localCounter, game, gameRef.id, authUser.uid]);
+  }, [localCounter, game, gameId, authUser.uid]);
+
+  useEffect(() => {
+    // whenever the game state or question changes
+    // make a timeout to progress the question
+    if (authUser.uid === game.leader.uid) {
+      const timeoutIdTwo = setTimeout(() => nudgeGame(gameId), timeLeft * 1000);
+      // clear timeout on re-render to avoid memory leaks
+      return () => clearTimeout(timeoutIdTwo);
+    }
+  }, [timeLeft, game.state, game.currentQuestionIndex, gameId, game.leader.uid, authUser.uid]);
 
   useEffect(() => {
     // save timeoutIdOne to clear the timeout when the

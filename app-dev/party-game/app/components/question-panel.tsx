@@ -150,7 +150,7 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
           const color = colorOrder[index];
           const isSelected = answerSelection[index];
 
-          return (<div className="flex" key={answer.text}>
+          return (<div className="flex" key={`${currentQuestion.prompt} ${answer.text}`}>
             <button
               onClick={() => onAnswerClick(index)}
               className="m-1 w-full relative flex content-start text-left overflow-hidden"
