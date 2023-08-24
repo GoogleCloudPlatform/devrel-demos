@@ -16,31 +16,23 @@
 
 'use client';
 
-import {DocumentReference} from 'firebase/firestore';
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import {useRouter} from 'next/navigation';
+import {exitGameAction} from '../actions/exit-game';
 
-export default function ExitGameButton({gameRef}: { gameRef: DocumentReference }) {
+export default function ExitGameButton({gameId}: { gameId: string }) {
   const authUser = useFirebaseAuthentication();
   const router = useRouter();
 
-  const onExitGameClick = async (gameRef: DocumentReference) => {
+  const onExitGameClick = async () => {
     const token = await authUser.getIdToken();
-    await fetch('/api/exit-game', {
-      method: 'POST',
-      body: JSON.stringify({gameId: gameRef.id}),
-      headers: {
-        Authorization: token,
-      },
-    }).then(() => router.push('/'))
-        .catch((error) => {
-          console.error({error});
-        });
+    await exitGameAction({gameId, token});
+    router.push('/');
   };
 
   return (
     <div>
-      <button onClick={() => onExitGameClick(gameRef)} className={`border mt-1 p-2`}>◄ Exit Game</button>
+      <button onClick={onExitGameClick} className={`border mt-1 p-2`}>◄ Exit Game</button>
     </div>
   );
 }

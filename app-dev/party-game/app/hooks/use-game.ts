@@ -20,7 +20,7 @@ import {Game, GameSchema, emptyGame, gameStates} from '@/app/types';
 import {doc, onSnapshot} from 'firebase/firestore';
 import {usePathname} from 'next/navigation';
 import useFirebaseAuthentication from './use-firebase-authentication';
-import {unknownParser} from '../lib/zod-parser';
+import {joinGameAction} from '../actions/join-game';
 
 const useGame = () => {
   const pathname = usePathname();
@@ -30,35 +30,22 @@ const useGame = () => {
   const authUser = useFirebaseAuthentication();
 
   useEffect(() => {
-    const playerIdList = Object.keys(game.players);
-
     const joinGame = async () => {
-      if (!playerIdList.includes(authUser.uid)) {
-        const token = await authUser.getIdToken();
-        await fetch('/api/join-game', {
-          method: 'POST',
-          body: JSON.stringify({gameId}),
-          headers: {
-            Authorization: token,
-          },
-        }).catch((error) => {
-          console.error({error});
-        });
-      }
+      const token = await authUser.getIdToken();
+      joinGameAction({gameId, token});
     };
-
     if (game.leader.uid && authUser.uid && game.leader.uid !== authUser.uid) {
       joinGame();
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authUser.uid, game.leader.uid, gameId]);
+  }, [authUser.getIdToken, authUser.uid, game.leader.uid]);
 
   useEffect(() => {
     const gameRef = doc(db, 'games', gameId);
     const unsubscribe = onSnapshot(gameRef, (doc) => {
       try {
-        const game = unknownParser(doc.data(), GameSchema);
+        const game = GameSchema.parse(doc.data());
         setGame(game);
       } catch (error) {
         console.log(error);

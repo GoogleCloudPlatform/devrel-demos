@@ -16,7 +16,6 @@
 
 'use client';
 
-import {DocumentReference} from 'firebase/firestore';
 import StartGameButton from '@/app/components/start-game-button';
 import DeleteGameButton from '@/app/components/delete-game-button';
 import PlayerList from './player-list';
@@ -25,10 +24,9 @@ import useFirebaseAuthentication from '../hooks/use-firebase-authentication';
 import ShareLinkPanel from './share-link-panel';
 import {useState} from 'react';
 
-export default function Lobby({game, gameRef}: { game: Game; gameRef: DocumentReference }) {
+export default function Lobby({game, gameId}: { game: Game; gameId: string }) {
   const authUser = useFirebaseAuthentication();
-
-  const [showSharePanel, setShowSharePanel] = useState<Boolean>(false);
+  const [showSharePanel, setShowSharePanel] = useState<boolean>(false);
 
   return (
     <div className="grid lg:grid-cols-2 mt-20">
@@ -37,18 +35,18 @@ export default function Lobby({game, gameRef}: { game: Game; gameRef: DocumentRe
           <button onClick={() => setShowSharePanel(!showSharePanel)} className={`border m-2 mt-10 p-2`}>
             {showSharePanel ? 'Hide Share Panel' : 'Invite Others to Join'}
           </button>
-          {showSharePanel && <ShareLinkPanel gameId={gameRef.id} />}
+          {showSharePanel && <ShareLinkPanel gameId={gameId} />}
         </div>
         <div className="my-8">
           <PlayerList game={game} />
         </div>
       </center>
       <center>
-        {authUser.uid === game.leader.uid && <StartGameButton gameRef={gameRef} />}
+        {authUser.uid === game.leader.uid && <StartGameButton gameId={gameId} />}
         <div className="hidden lg:block">
-          <ShareLinkPanel gameId={gameRef.id} />
+          <ShareLinkPanel gameId={gameId} />
         </div>
-        {authUser.uid === game.leader.uid && <DeleteGameButton gameRef={gameRef} />}
+        {authUser.uid === game.leader.uid && <DeleteGameButton gameId={gameId} />}
       </center>
     </div>
   );

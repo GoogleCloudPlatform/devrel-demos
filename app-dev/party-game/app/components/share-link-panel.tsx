@@ -21,7 +21,7 @@ import QRCode from 'react-qr-code';
 
 export default function ShareLinkPanel({gameId}: { gameId: string }) {
   const gameShareLink = `${location.protocol}//${location.host}/game/${gameId}`;
-  const [isCopied, setIsCopied] = useState<Boolean>(false);
+  const [isCopied, setIsCopied] = useState<boolean>(false);
 
   const copyShareLink = () => {
     navigator.clipboard.writeText(gameShareLink);

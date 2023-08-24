@@ -25,6 +25,7 @@ import QRCode from 'react-qr-code';
 import {useEffect, useState} from 'react';
 import Scoreboard from './scoreboard';
 import useScoreboard from '../hooks/use-scoreboard';
+import {updateAnswerAction} from '../actions/update-answer';
 
 export default function QuestionPanel({game, gameRef, currentQuestion}: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const authUser = useFirebaseAuthentication();
@@ -35,6 +36,7 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
   const existingGuesses = currentQuestion?.playerGuesses && currentQuestion.playerGuesses[authUser.uid];
   const emptyAnswerSelection = Array(currentQuestion.answers.length).fill(false);
   const answerSelection = existingGuesses || emptyAnswerSelection;
+  const gameId = gameRef.id;
 
   const totalCorrectAnswerOptions = currentQuestion.answers.reduce((correctAnswerCount, answer) => {
     return correctAnswerCount + (answer.isCorrect ? 1 : 0);
@@ -55,22 +57,14 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
 
       // Typescript does not expect the `with` property on arrays yet
       // @ts-expect-error
-      const newAnswerSelection: Boolean[] = startingAnswerSelection.with(answerIndex, !answerSelection[answerIndex]);
+      const newAnswerSelection: boolean[] = startingAnswerSelection.with(answerIndex, !answerSelection[answerIndex]);
 
       const token = await authUser.getIdToken();
-      await fetch('/api/update-answer', {
-        method: 'POST',
-        body: JSON.stringify({answerSelection: newAnswerSelection, gameId: gameRef.id}),
-        headers: {
-          Authorization: token,
-        },
-      }).catch((error) => {
-        console.error({error});
-      });
+      await updateAnswerAction({gameId, answerSelection: newAnswerSelection, token});
     }
   };
 
-  const gameShareLink = `${location.protocol}//${location.host}/game/${gameRef.id}`;
+  const gameShareLink = `${location.protocol}//${location.host}/game/${gameId}`;
 
   const isShowingCorrectAnswers = game.state === gameStates.SHOWING_CORRECT_ANSWERS;
 
@@ -149,16 +143,26 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
           const colorOrder = ['red', 'blue', 'green', 'yellow'];
           const color = colorOrder[index];
           const isSelected = answerSelection[index];
+          const isLeaderReveal = isGameLeader && isShowingCorrectAnswers && answer.isCorrect;
+          const isChecked = isSelected || isLeaderReveal;
 
-          return (<div className="flex" key={answer.text}>
+          const histogramBarPercentage = () => {
+            // don't show bar until after question
+            if (!isShowingCorrectAnswers) return 0;
+            // if no guesses were made, show full bar for correct answers
+            if (totalPlayersWhoMadeAGuess === 0 && isLeaderReveal) return 100;
+            return guessPercentageForThisAnswer;
+          };
+
+          return (<div className="flex" key={`${currentQuestion.prompt} ${answer.text}`}>
             <button
               onClick={() => onAnswerClick(index)}
               className="m-1 w-full relative flex content-start text-left overflow-hidden"
             >
               <div className="w-full px-1 m-auto line-clamp-1 overflow-hidden border-8 border-transparent flex justify-between h-fit">
                 <span className={`h-fit text-xl lg:text-3xl my-auto`}>
-                  {isSingleAnswer && (isSelected ? '●' : '○')}
-                  {!isSingleAnswer && (isSelected ? '☑' : '☐')}
+                  {isSingleAnswer && (isChecked ? ' ● ' : ' ○ ')}
+                  {!isSingleAnswer && (isChecked ? ' ☑ ' : ' ☐ ')}
                   {answer.text}
                 </span>
               </div>
@@ -167,14 +171,16 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
                   <div className="h-full w-20 max-w-full bg-gradient-to-l from-white via-transparent via-white via-20% -m-1" />
                   <div className="bg-white pl-1 h-fit my-auto">
                     <div className="whitespace-nowrap">
-                      {answer.isCorrect && isSelected && 'You got it '}
-                      {answer.isCorrect && !isSelected && !isGameLeader && 'You missed this one '}
-                      {answer.isCorrect && ' ✭'}
+                      {isLeaderReveal && '✭'}
+                      {answer.isCorrect && isSelected && 'You got it ✭'}
+                      {answer.isCorrect && !isSelected && !isGameLeader && 'You missed this one'}
                       {!answer.isCorrect && (isSelected ? 'Not this one ✖' : <div className="whitespace-wrap">&nbsp;</div>)}
                     </div>
-                    <div>
-                      {guessesForThisAnswer} / {totalPlayersWhoMadeAGuess}
-                    </div>
+                    {totalPlayersWhoMadeAGuess > 0 && (
+                      <div>
+                        {guessesForThisAnswer} / {totalPlayersWhoMadeAGuess}
+                      </div>
+                    )}
                   </div>
                 </div>
               </>)
@@ -184,14 +190,14 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
                   className={`absolute bottom-0 left-0 h-full opacity-25 transition-all duration-[3000ms]`}
                   style={{
                     backgroundColor: answer.isCorrect ? `var(--google-cloud-${color})` : '#9ca3af',
-                    width: `${isShowingCorrectAnswers ? Math.max(guessPercentageForThisAnswer, 2) : 0}%`,
+                    width: `${histogramBarPercentage()}%`,
                   }}
                 />
               </div>
               <div
-                className={`transition-all ${isSelected ? 'border-8' : 'border-4'} w-full absolute bottom-0 h-full`}
+                className={`transition-all ${isChecked ? 'border-8' : 'border-4'} w-full absolute bottom-0 h-full`}
                 style={{
-                  borderColor: `var(--google-cloud-${color})`,
+                  borderColor: (answer.isCorrect || !isShowingCorrectAnswers) ? `var(--google-cloud-${color})` : '#9ca3af',
                 }}
               />
             </button>
