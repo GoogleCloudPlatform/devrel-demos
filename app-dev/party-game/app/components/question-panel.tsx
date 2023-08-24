@@ -54,9 +54,6 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
     if (game.state === gameStates.AWAITING_PLAYER_ANSWERS && !isGameLeader) {
       // If the user is only supposed to pick one answer, clear the other answers first
       const startingAnswerSelection = isSingleAnswer ? emptyAnswerSelection : answerSelection;
-
-      // Typescript does not expect the `with` property on arrays yet
-      // @ts-expect-error
       const newAnswerSelection: boolean[] = startingAnswerSelection.with(answerIndex, !answerSelection[answerIndex]);
 
       const token = await authUser.getIdToken();
