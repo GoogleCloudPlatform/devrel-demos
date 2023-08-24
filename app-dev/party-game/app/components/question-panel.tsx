@@ -161,9 +161,8 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
                   <div className="h-full w-20 max-w-full bg-gradient-to-l from-white via-transparent via-white via-20% -m-1" />
                   <div className="bg-white pl-1 h-fit my-auto">
                     <div className="whitespace-nowrap">
-                      {answer.isCorrect && isSelected && 'You got it '}
-                      {answer.isCorrect && !isSelected && !isGameLeader && 'You missed this one '}
-                      {answer.isCorrect && ' ✭'}
+                      {answer.isCorrect && isSelected && 'You got it ✭'}
+                      {answer.isCorrect && !isSelected && !isGameLeader && 'You missed this one'}
                       {!answer.isCorrect && (isSelected ? 'Not this one ✖' : <div className="whitespace-wrap">&nbsp;</div>)}
                     </div>
                     <div>
@@ -185,7 +184,7 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
               <div
                 className={`transition-all ${isSelected ? 'border-8' : 'border-4'} w-full absolute bottom-0 h-full`}
                 style={{
-                  borderColor: `var(--google-cloud-${color})`,
+                  borderColor: (answer.isCorrect || !isShowingCorrectAnswers) ? `var(--google-cloud-${color})` : '#9ca3af',
                 }}
               />
             </button>

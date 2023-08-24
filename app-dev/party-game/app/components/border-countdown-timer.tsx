@@ -16,44 +16,37 @@
 
 'use client';
 
-import {Game} from '@/app/types';
+import {Game, gameStates} from '@/app/types';
 import {DocumentReference, Timestamp} from 'firebase/firestore';
 import {useEffect, useState} from 'react';
-import {timeCalculator} from '@/app/lib/time-calculator';
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import {nudgeGame} from '@/app/actions/nudge-game';
 
 export default function BorderCountdownTimer({game, children, gameRef}: { game: Game, children: React.ReactNode, gameRef: DocumentReference }) {
-  const [timeToCountDown, setTimeToCountDown] = useState(game.timePerQuestion);
-  const [displayTime, setDisplayTime] = useState(game.timePerQuestion);
-  const [timeLeft, setTimeLeft] = useState(game.timePerQuestion);
-  const [countDirection, setCountDirection] = useState<'down' | 'up'>('down');
+  const [timeLeft, setTimeLeft] = useState<number>(game.timePerQuestion);
+  const displayTime = Math.max(Math.floor(timeLeft), 0);
   const [localCounter, setLocalCounter] = useState<number>(0);
   const gameId = gameRef.id;
   const authUser = useFirebaseAuthentication();
+  const isShowingCorrectAnswers = game.state === gameStates.SHOWING_CORRECT_ANSWERS;
+  const timeToCountDown = isShowingCorrectAnswers ? game.timePerAnswer : game.timePerQuestion;
 
   useEffect(() => {
-    const {
-      timeLeft,
-      timeToCountDown,
-      displayTime,
-      countDirection,
-    } = timeCalculator({
-      currentTimeInMillis: Timestamp.now().toMillis(),
-      game,
-    });
+    // all times are in seconds unless noted as `InMillis`
+    const timeElapsedInMillis = Timestamp.now().toMillis() - game.startTime.seconds * 1000;
+    const timeElapsed = timeElapsedInMillis / 1000;
+    const timePerQuestionAndAnswer = game.timePerQuestion + game.timePerAnswer;
 
-    setTimeToCountDown(timeToCountDown);
-    setDisplayTime(displayTime);
-    setCountDirection(countDirection);
-    setTimeLeft(timeLeft);
-
-    // nudge every three seconds after time has expired
-    if (timeLeft % 3 < -2) {
-      nudgeGame({gameId});
+    if (isShowingCorrectAnswers) {
+      const timeToStartNextQuestion = timePerQuestionAndAnswer * (game.currentQuestionIndex + 1);
+      setTimeLeft(timeToStartNextQuestion - timeElapsed);
+    } else {
+      const timeToShowCurrentQuestionAnswer = timePerQuestionAndAnswer * (game.currentQuestionIndex) + game.timePerQuestion;
+      setTimeLeft(timeToShowCurrentQuestionAnswer - timeElapsed);
     }
-  }, [localCounter, game, gameId, authUser.uid]);
+  }, [localCounter, game.startTime, game.currentQuestionIndex, game.timePerAnswer, game.timePerQuestion, isShowingCorrectAnswers]);
 
+  // game leader nudge
   useEffect(() => {
     // whenever the game state or question changes
     // make a timeout to progress the question
@@ -63,6 +56,13 @@ export default function BorderCountdownTimer({game, children, gameRef}: { game: 
       return () => clearTimeout(timeoutIdTwo);
     }
   }, [timeLeft, game.state, game.currentQuestionIndex, gameId, game.leader.uid, authUser.uid]);
+
+  // game player nudge
+  useEffect(() => {
+    if (timeLeft % 2 < -1) {
+      nudgeGame({gameId});
+    }
+  }, [timeLeft, gameId]);
 
   useEffect(() => {
     // save timeoutIdOne to clear the timeout when the
@@ -82,10 +82,10 @@ export default function BorderCountdownTimer({game, children, gameRef}: { game: 
   const timeToCountDivisibleByFour = Math.floor(timeToCountDown / 4) * 4;
   const animationCompletionPercentage = limitPercents((timeToCountDivisibleByFour - displayTime + 1) / timeToCountDivisibleByFour * 100);
 
-  const topBorderPercentage = limitPercents(countDirection === 'down' ? animationCompletionPercentage * 4 : 400 - animationCompletionPercentage * 4);
-  const rightBorderPercentage = limitPercents(countDirection === 'down' ? animationCompletionPercentage * 4 - 100 : 300 - animationCompletionPercentage * 4);
-  const bottomBorderPercentage = limitPercents(countDirection === 'down' ? animationCompletionPercentage * 4 - 200 : 200 - animationCompletionPercentage * 4);
-  const leftBorderPercentage = limitPercents(countDirection === 'down' ? animationCompletionPercentage * 4 - 300 : 100 - animationCompletionPercentage * 4);
+  const topBorderPercentage = limitPercents(isShowingCorrectAnswers ? 400 - animationCompletionPercentage * 4 : animationCompletionPercentage * 4);
+  const rightBorderPercentage = limitPercents(isShowingCorrectAnswers ? 300 - animationCompletionPercentage * 4 : animationCompletionPercentage * 4 - 100);
+  const bottomBorderPercentage = limitPercents(isShowingCorrectAnswers ? 200 - animationCompletionPercentage * 4 : animationCompletionPercentage * 4 - 200);
+  const leftBorderPercentage = limitPercents(isShowingCorrectAnswers ? 100 - animationCompletionPercentage * 4 : animationCompletionPercentage * 4 - 300);
 
 
   return (

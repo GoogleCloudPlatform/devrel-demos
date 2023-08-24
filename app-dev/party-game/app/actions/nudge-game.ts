@@ -17,7 +17,6 @@
 'use server';
 
 import {gamesRef} from '@/app/lib/firebase-server-initialization';
-import {timeCalculator} from '@/app/lib/time-calculator';
 import {GameIdSchema, gameStates} from '@/app/types';
 import {Timestamp} from 'firebase-admin/firestore';
 
@@ -31,10 +30,10 @@ export async function nudgeGame({gameId}: {gameId: string}) {
   const game = gameDoc.data();
 
   // force the game state to move to where the game should be
-  const {
-    timeElapsed,
-    timePerQuestionAndAnswer,
-  } = timeCalculator({currentTimeInMillis: Timestamp.now().toMillis(), game});
+
+  const timeElapsedInMillis = Timestamp.now().toMillis() - game.startTime.seconds * 1000;
+  const timeElapsed = timeElapsedInMillis / 1000;
+  const timePerQuestionAndAnswer = game.timePerQuestion + game.timePerAnswer;
 
   const totalNumberOfQuestions = Object.keys(game.questions).length;
   const finalQuestionIndex = totalNumberOfQuestions - 1;
@@ -47,10 +46,12 @@ export async function nudgeGame({gameId}: {gameId: string}) {
     return;
   }
 
-  const isAcceptingAnswers = timeElapsed - correctQuestionIndex * timePerQuestionAndAnswer < game.timePerQuestion;
+  const timeThisQuestionStarted = correctQuestionIndex * timePerQuestionAndAnswer;
+  const shouldBeAcceptingAnswers = timeElapsed - timeThisQuestionStarted < game.timePerQuestion;
+  const correctState = shouldBeAcceptingAnswers ? gameStates.AWAITING_PLAYER_ANSWERS : gameStates.SHOWING_CORRECT_ANSWERS;
 
   await gameRef.update({
-    state: isAcceptingAnswers ? gameStates.AWAITING_PLAYER_ANSWERS : gameStates.SHOWING_CORRECT_ANSWERS,
+    state: correctState,
     currentQuestionIndex: correctQuestionIndex,
   });
 }
