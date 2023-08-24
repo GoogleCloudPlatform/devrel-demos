@@ -20,7 +20,6 @@ import {Game, GameSchema, emptyGame, gameStates} from '@/app/types';
 import {doc, onSnapshot} from 'firebase/firestore';
 import {usePathname} from 'next/navigation';
 import useFirebaseAuthentication from './use-firebase-authentication';
-import {unknownParser} from '../lib/zod-parser';
 import {joinGameAction} from '../actions/join-game';
 
 const useGame = () => {
@@ -46,7 +45,7 @@ const useGame = () => {
     const gameRef = doc(db, 'games', gameId);
     const unsubscribe = onSnapshot(gameRef, (doc) => {
       try {
-        const game = unknownParser(doc.data(), GameSchema);
+        const game = GameSchema.parse(doc.data());
         setGame(game);
       } catch (error) {
         console.log(error);

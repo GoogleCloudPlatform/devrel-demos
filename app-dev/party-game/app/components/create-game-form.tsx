@@ -20,9 +20,9 @@ import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import {useRouter} from 'next/navigation';
 import {useEffect, useState} from 'react';
 import BigColorBorderButton from './big-color-border-button';
-import {unknownValidator} from '@/app/lib/zod-parser';
-import {GameSettingsSchema} from '@/app/types';
+import {TimePerAnswerSchema, TimePerQuestionSchema} from '@/app/types';
 import {createGameAction} from '../actions/create-game';
+import {z} from 'zod';
 
 export default function CreateGameForm() {
   const authUser = useFirebaseAuthentication();
@@ -32,7 +32,9 @@ export default function CreateGameForm() {
   const [timePerAnswerInputValue, setTimePerAnswerInputValue] = useState<string>(defaultTimePerAnswer.toString());
   const timePerQuestion = timePerQuestionInputValue ? parseInt(timePerQuestionInputValue) : -0.5;
   const timePerAnswer = timePerAnswerInputValue ? parseInt(timePerAnswerInputValue) : -0.5;
-  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [timePerQuestionError, setTimePerQuestionError] = useState<string>('');
+  const [timePerAnswerError, setTimePerAnswerError] = useState<string>('');
+  const [submissionErrorMessage, setSubmissionErrorMessage] = useState<string>('');
   const router = useRouter();
   const onCreateGameSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -41,20 +43,38 @@ export default function CreateGameForm() {
       const response = await createGameAction({gameSettings: {timePerQuestion, timePerAnswer}, token});
       router.push(`/game/${response.gameId}`);
     } catch (error) {
-      setErrorMessage('There was an error handling the request.');
+      setSubmissionErrorMessage('There was an error handling the request.');
     }
   };
 
   useEffect(() => {
-    setErrorMessage(unknownValidator({timePerAnswer, timePerQuestion}, GameSettingsSchema));
-  }, [timePerAnswer, timePerQuestion]);
+    try {
+      TimePerQuestionSchema.parse(timePerQuestion);
+      setTimePerQuestionError('');
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        setTimePerQuestionError(error.issues[0].message);
+      }
+    }
+  }, [timePerQuestion]);
+
+  useEffect(() => {
+    try {
+      TimePerAnswerSchema.parse(timePerAnswer);
+      setTimePerAnswerError('');
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        setTimePerAnswerError(error.issues[0].message);
+      }
+    }
+  }, [timePerAnswer]);
 
   return (
     <div className="w-full max-w-lg mx-auto border-8 border-r-[var(--google-cloud-blue)] border-t-[var(--google-cloud-red)] border-b-[var(--google-cloud-green)] border-l-[var(--google-cloud-yellow)]">
       <form className="bg-white px-8 py-12" onSubmit={onCreateGameSubmit}>
         <div className="mb-4">
           <label className="block text-sm font-bold mb-2" htmlFor="timePerQuestion">
-          Time (in seconds) to answer the question
+            Time (in seconds) to answer the question
           </label>
           <input
             className="shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline"
@@ -65,10 +85,11 @@ export default function CreateGameForm() {
             onChange={(event) => setTimePerQuestionInputValue(event.target.value)}
             placeholder={defaultTimePerQuestion.toString()}
           />
+          <p className="text-red-500 text-xs italic">{timePerQuestionError ? timePerQuestionError : <>&nbsp;</>}</p>
         </div>
         <div className="mb-6">
           <label className="block text-sm font-bold mb-2" htmlFor="timePerAnswer">
-          Time (in seconds) to review the answers
+            Time (in seconds) to review the answers
           </label>
           <input
             className="shadow appearance-none border rounded w-full py-2 px-3 mb-3 leading-tight focus:outline-none focus:shadow-outline"
@@ -79,11 +100,12 @@ export default function CreateGameForm() {
             onChange={(event) => setTimePerAnswerInputValue(event.target.value)}
             placeholder={defaultTimePerAnswer.toString()}
           />
-          <p className="text-red-500 text-xs italic">{errorMessage ? errorMessage : <>&nbsp;</>}</p>
+          <p className="text-red-500 text-xs italic">{timePerAnswerError ? timePerAnswerError : <>&nbsp;</>}</p>
         </div>
+        <p className="text-red-500 text-xs italic">{submissionErrorMessage ? submissionErrorMessage : <>&nbsp;</>}</p>
         <center>
           <BigColorBorderButton type="submit">
-          Create Game
+            Create Game
           </BigColorBorderButton>
         </center>
       </form>
