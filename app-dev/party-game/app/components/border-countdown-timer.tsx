@@ -91,6 +91,7 @@ export default function BorderCountdownTimer({game, children, gameRef}: { game: 
   return (
     <>
       <div className={`relative p-4 h-[50dvh] overflow-hidden`}>
+        <div className="absolute border-2 border-gray-100 h-full w-full top-0 left-0" />
         <div className="timer-top-border absolute top-0 left-0 bg-[var(--google-cloud-red)]" style={{height: '8px', width: `${topBorderPercentage}%`, transition: 'width 1s linear'}} />
         <div className="timer-right-border absolute top-0 right-0 bg-[var(--google-cloud-blue)]" style={{height: `${rightBorderPercentage}%`, width: '8px', transition: 'height 1s linear'}} />
         <div className="timer-bottom-border absolute bottom-0 right-0 bg-[var(--google-cloud-green)]" style={{height: '8px', width: `${bottomBorderPercentage}%`, transition: 'width 1s linear'}} />
