@@ -20,7 +20,6 @@ import {DocumentReference} from 'firebase/firestore';
 import {Game, Question, gameStates} from '@/app/types';
 import BorderCountdownTimer from '@/app/components/border-countdown-timer';
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
-import Image from 'next/image';
 import QRCode from 'react-qr-code';
 import {useEffect, useState} from 'react';
 import Scoreboard from './scoreboard';
@@ -101,7 +100,7 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
           {(isShowingCorrectAnswers && playerScores.length > 0) ? (<>
             <Scoreboard />
           </>) : (<>
-            {isGameLeader ? (<div className="flex h-full">
+            <div className="flex h-full">
               <div className="m-auto">
                 <div>
                   Just getting here?
@@ -111,22 +110,7 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
                 </div>
                 <QRCode value={gameShareLink} />
               </div>
-            </div>) : (<>
-              <center className='pt-20'>
-                <div className='h-20'>
-                  <Image
-                    src='/google-cloud-logo.svg'
-                    alt='Google Cloud Logo'
-                    width={0}
-                    height={0}
-                    sizes="100vw"
-                    style={{width: '100%', height: '100%'}} // optional
-                    priority
-                  />
-                </div>
-                <h1 className='text-4xl pt-10'>Party Game</h1>
-              </center>
-            </>)}
+            </div>
           </>)}
         </center>
       </div>
