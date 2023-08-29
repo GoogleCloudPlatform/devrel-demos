@@ -101,11 +101,11 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
                 </h3>
               )}
               {hasEverGuessed && currentPlayer.displayName && <div className="mt-2">You are {currentPlayer.displayName}</div>}
+              {isShowingCorrectAnswers && currentPlayer?.score > -1 && hasEverGuessed && currentPlayer.displayName && <div>and you have {currentPlayer.score} point{currentPlayer.score === 1 ? '' : 's'}</div>}
             </div>)}
           </div>
         </BorderCountdownTimer>
         <center className='hidden bg-gray-100 h-[50dvh] lg:block overflow-hidden'>
-          {isShowingCorrectAnswers && currentPlayer?.score > -1 && <div>and you have {currentPlayer.score} point{currentPlayer.score === 1 ? '' : 's'}</div>}
           {(isShowingCorrectAnswers && playerScores.length > 0) ? (<>
             <Scoreboard />
           </>) : (<>
