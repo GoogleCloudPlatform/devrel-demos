@@ -85,24 +85,27 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
             <h2 className={isShowingCorrectAnswers ? 'transition-all text-sm font-light' : 'text-lg md:text-2xl lg:text-4xl'}>
               {currentQuestion.prompt}
             </h2>
-            {isShowingCorrectAnswers ? (<>
-              <h2 className="md:text-xl lg:text-2xl pt-5">
-                {currentQuestion.explanation}
-              </h2>
-            </>) : (<div>
-              <h2 className="text-xl lg:text-4xl pt-5">
+            <div>
+              {isShowingCorrectAnswers ? (<>
+                <h2 className="md:text-xl lg:text-2xl pt-5">
+                  {currentQuestion.explanation}
+                </h2>
+              </>) : (<div>
+                <h2 className="text-xl lg:text-4xl pt-5">
                 Pick {totalCorrectAnswerOptions}
-              </h2>
-              {hasEverGuessed && (
-                <h3 className="font-light text-lg lg:text-xl">
-                  {countLeftToPick !== 0 ? (
+                </h2>
+                {hasEverGuessed && (
+                  <h3 className="font-light text-lg lg:text-xl">
+                    {countLeftToPick !== 0 ? (
                     `Pick ${Math.abs(countLeftToPick)} ${countLeftToPick > 0 ? 'More' : 'Less'}`
                   ) : 'You are all set'}
-                </h3>
-              )}
-              {hasEverGuessed && currentPlayer.displayName && <div className="mt-2">You are {currentPlayer.displayName}</div>}
-              {isShowingCorrectAnswers && currentPlayer?.score > -1 && hasEverGuessed && currentPlayer.displayName && <div>and you have {currentPlayer.score} point{currentPlayer.score === 1 ? '' : 's'}</div>}
-            </div>)}
+                  </h3>
+                )}
+              </div>)}
+              {hasEverGuessed && currentPlayer.displayName && <div className="mt-2">You are {currentPlayer.displayName}
+                {isShowingCorrectAnswers && currentPlayer?.score > -1 && ` and you have ${currentPlayer.score} point${currentPlayer.score === 1 ? '' : 's'}`}
+              </div>}
+            </div>
           </div>
         </BorderCountdownTimer>
         <center className='hidden bg-gray-100 h-[50dvh] lg:block overflow-hidden'>
