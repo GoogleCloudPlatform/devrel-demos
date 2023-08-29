@@ -31,6 +31,7 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
   const {currentPlayer, playerScores} = useScoreboard();
   const isGameLeader = authUser.uid === game.leader.uid;
   const [answersSelectedCount, setAnswersSelectedCount] = useState<number>(0);
+  const [hasEverGuessed, setHasEverGuessed] = useState<boolean>(false);
 
   const existingGuesses = currentQuestion?.playerGuesses && currentQuestion.playerGuesses[authUser.uid];
   const emptyAnswerSelection = Array(currentQuestion.answers.length).fill(false);
@@ -68,6 +69,14 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
 
   const countLeftToPick = totalCorrectAnswerOptions - answersSelectedCount;
 
+  const hasGuessed = answersSelectedCount > 0;
+
+  useEffect(() => {
+    if (hasGuessed) {
+      setHasEverGuessed(true);
+    }
+  }, [hasGuessed]);
+
   return (
     <div className={`grid lg:grid-cols-2`}>
       <div className="flex flex-col">
@@ -84,18 +93,18 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
               <h2 className="text-xl lg:text-4xl pt-5">
                 Pick {totalCorrectAnswerOptions}
               </h2>
-              {!isGameLeader && (
+              {hasEverGuessed && (
                 <h3 className="font-light text-lg lg:text-xl">
                   {countLeftToPick !== 0 ? (
                     `Pick ${Math.abs(countLeftToPick)} ${countLeftToPick > 0 ? 'More' : 'Less'}`
                   ) : 'You are all set'}
                 </h3>
               )}
+              {hasEverGuessed && currentPlayer.displayName && <div className="mt-2">You are {currentPlayer.displayName}</div>}
             </div>)}
           </div>
         </BorderCountdownTimer>
         <center className='hidden bg-gray-100 h-[50dvh] lg:block overflow-hidden'>
-          {currentPlayer.displayName && <div className="mt-2">You are {currentPlayer.displayName}</div>}
           {isShowingCorrectAnswers && currentPlayer?.score > -1 && <div>and you have {currentPlayer.score} point{currentPlayer.score === 1 ? '' : 's'}</div>}
           {(isShowingCorrectAnswers && playerScores.length > 0) ? (<>
             <Scoreboard />
@@ -124,7 +133,7 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
           const colorOrder = ['red', 'blue', 'green', 'yellow'];
           const color = colorOrder[index];
           const isSelected = answerSelection[index];
-          const isLeaderReveal = isGameLeader && isShowingCorrectAnswers && answer.isCorrect;
+          const isLeaderReveal = !hasEverGuessed && isShowingCorrectAnswers && answer.isCorrect;
           const isChecked = isSelected || isLeaderReveal;
 
           const histogramBarPercentage = () => {
@@ -133,6 +142,17 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
             // if no guesses were made, show full bar for correct answers
             if (totalPlayersWhoMadeAGuess === 0 && isLeaderReveal) return 100;
             return guessPercentageForThisAnswer;
+          };
+
+          const answerDisplayText = () => {
+            if (hasEverGuessed) {
+              if (answer.isCorrect && isSelected) return 'You got it ✭';
+              if (answer.isCorrect) return 'You missed this one';
+              if (isSelected) return 'Not this one ✖';
+              return <div className="whitespace-wrap">&nbsp;</div>;
+            }
+            if (answer.isCorrect) return '✭';
+            return <div className="whitespace-wrap">&nbsp;</div>;
           };
 
           return (<div className="flex" key={`${currentQuestion.prompt} ${answer.text}`}>
@@ -152,10 +172,7 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
                   <div className="h-full w-20 max-w-full bg-gradient-to-l from-white via-transparent via-white via-20% -m-1" />
                   <div className="bg-white pl-1 h-fit my-auto">
                     <div className="whitespace-nowrap">
-                      {isLeaderReveal && '✭'}
-                      {answer.isCorrect && isSelected && 'You got it ✭'}
-                      {answer.isCorrect && !isSelected && !isGameLeader && 'You missed this one'}
-                      {!answer.isCorrect && (isSelected ? 'Not this one ✖' : <div className="whitespace-wrap">&nbsp;</div>)}
+                      {answerDisplayText()}
                     </div>
                     {totalPlayersWhoMadeAGuess > 0 && (
                       <div>
