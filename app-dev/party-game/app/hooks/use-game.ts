@@ -15,13 +15,13 @@
  */
 
 import {useEffect, useState} from 'react';
-import {appCheck, db} from '@/app/lib/firebase-client-initialization';
+import {db} from '@/app/lib/firebase-client-initialization';
 import {Game, GameSchema, emptyGame, gameStates} from '@/app/types';
 import {doc, onSnapshot} from 'firebase/firestore';
 import {usePathname} from 'next/navigation';
 import useFirebaseAuthentication from './use-firebase-authentication';
 import {joinGameAction} from '@/app/actions/join-game';
-import {getToken} from 'firebase/app-check';
+import {addTokens} from '../lib/request-formatter';
 
 const useGame = () => {
   const pathname = usePathname();
@@ -32,10 +32,7 @@ const useGame = () => {
 
   useEffect(() => {
     const joinGame = async () => {
-      const appCheckTokenResponse = await getToken(appCheck, false);
-      const appCheckToken = appCheckTokenResponse.token;
-      const token = await authUser.getIdToken();
-      joinGameAction({gameId, token, appCheckToken});
+      joinGameAction(await addTokens({gameId}));
     };
     if (game.leader.uid && authUser.uid && game.leader.uid !== authUser.uid) {
       joinGame();

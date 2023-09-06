@@ -14,21 +14,12 @@
  * limitations under the License.
  */
 
-'use client';
+import {appCheck, auth} from '@/app/lib/firebase-client-initialization';
+import {getToken} from 'firebase/app-check';
 
-import './big-color-border-button.css';
-import BigColorBorderButton from '@/app/components/big-color-border-button';
-import {startGameAction} from '@/app/actions/start-game';
-import {addTokens} from '@/app/lib/request-formatter';
-
-export default function StartGameButton({gameId}: {gameId: string}) {
-  const onStartGameClick = async () => {
-    await startGameAction(await addTokens({gameId}));
-  };
-
-  return (
-    <BigColorBorderButton onClick={onStartGameClick}>
-      Start Game Now ►
-    </BigColorBorderButton>
-  );
+export async function addTokens(requestBody: any) {
+  const appCheckTokenResponse = await getToken(appCheck, false);
+  const appCheckToken = appCheckTokenResponse.token;
+  const token = await auth.currentUser?.getIdToken();
+  return {...requestBody, token, appCheckToken};
 }

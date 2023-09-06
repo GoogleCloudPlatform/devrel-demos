@@ -25,8 +25,7 @@ import {useEffect, useState} from 'react';
 import Scoreboard from './scoreboard';
 import useScoreboard from '@/app/hooks/use-scoreboard';
 import {updateAnswerAction} from '@/app/actions/update-answer';
-import {appCheck} from '@/app/lib/firebase-client-initialization';
-import {getToken} from 'firebase/app-check';
+import {addTokens} from '../lib/request-formatter';
 
 export default function QuestionPanel({game, gameRef, currentQuestion}: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const authUser = useFirebaseAuthentication();
@@ -63,11 +62,7 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
         // otherwise, don't change it
         return currentValue;
       });
-
-      const appCheckTokenResponse = await getToken(appCheck, false);
-      const appCheckToken = appCheckTokenResponse.token;
-      const token = await authUser.getIdToken();
-      await updateAnswerAction({gameId, answerSelection: newAnswerSelection, token, appCheckToken});
+      await updateAnswerAction(await addTokens({gameId, answerSelection: newAnswerSelection}));
     }
   };
 

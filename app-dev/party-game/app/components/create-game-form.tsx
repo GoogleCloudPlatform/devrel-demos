@@ -16,18 +16,15 @@
 
 'use client';
 
-import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import {useRouter} from 'next/navigation';
 import {useEffect, useState} from 'react';
 import BigColorBorderButton from './big-color-border-button';
 import {TimePerAnswerSchema, TimePerQuestionSchema} from '@/app/types';
 import {createGameAction} from '@/app/actions/create-game';
 import {z} from 'zod';
-import {getToken} from 'firebase/app-check';
-import {appCheck} from '@/app/lib/firebase-client-initialization';
+import {addTokens} from '@/app/lib/request-formatter';
 
 export default function CreateGameForm() {
-  const authUser = useFirebaseAuthentication();
   const defaultTimePerQuestion = 60;
   const defaultTimePerAnswer = 20;
   const [timePerQuestionInputValue, setTimePerQuestionInputValue] = useState<string>(defaultTimePerQuestion.toString());
@@ -40,11 +37,9 @@ export default function CreateGameForm() {
   const router = useRouter();
   const onCreateGameSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const appCheckTokenResponse = await getToken(appCheck, false);
-    const appCheckToken = appCheckTokenResponse.token;
-    const token = await authUser.getIdToken();
     try {
-      const response = await createGameAction({gameSettings: {timePerQuestion, timePerAnswer}, token, appCheckToken});
+      const gameSettings = {timePerQuestion, timePerAnswer};
+      const response = await createGameAction(await addTokens({gameSettings}));
       router.push(`/game/${response.gameId}`);
     } catch (error) {
       setSubmissionErrorMessage('There was an error handling the request.');
