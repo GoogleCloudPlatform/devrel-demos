@@ -16,11 +16,16 @@
 
 'use server';
 
-import {gamesRef} from '@/app/lib/firebase-server-initialization';
+import {app, gamesRef} from '@/app/lib/firebase-server-initialization';
 import {GameIdSchema, gameStates} from '@/app/types';
+import {getAppCheck} from 'firebase-admin/app-check';
+import {getAuth} from 'firebase-admin/auth';
 import {Timestamp} from 'firebase-admin/firestore';
 
-export async function nudgeGame({gameId}: {gameId: string}) {
+export async function nudgeGameAction({gameId, token, appCheckToken}: {gameId: string, token: string, appCheckToken: string}) {
+  await getAppCheck().verifyToken(appCheckToken);
+  await getAuth(app).verifyIdToken(token);
+
   // Validate request
   // Will throw an error if not a string
   GameIdSchema.parse(gameId);

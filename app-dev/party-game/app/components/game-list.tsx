@@ -17,7 +17,7 @@
 'use client';
 
 import Link from 'next/link';
-import useActiveGameList from '../hooks/use-active-game-list';
+import useActiveGameList from '@/app/hooks/use-active-game-list';
 
 export default function GameList() {
   const {activeGameList} = useActiveGameList();

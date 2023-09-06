@@ -20,7 +20,9 @@ import {Game, gameStates} from '@/app/types';
 import {DocumentReference, Timestamp} from 'firebase/firestore';
 import {useEffect, useState} from 'react';
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
-import {nudgeGame} from '@/app/actions/nudge-game';
+import {nudgeGameAction} from '@/app/actions/nudge-game';
+import {appCheck} from '@/app/lib/firebase-client-initialization';
+import {getToken} from 'firebase/app-check';
 
 export default function BorderCountdownTimer({game, children, gameRef}: { game: Game, children: React.ReactNode, gameRef: DocumentReference }) {
   const [timeLeft, setTimeLeft] = useState<number>(game.timePerQuestion);
@@ -30,6 +32,13 @@ export default function BorderCountdownTimer({game, children, gameRef}: { game: 
   const authUser = useFirebaseAuthentication();
   const isShowingCorrectAnswers = game.state === gameStates.SHOWING_CORRECT_ANSWERS;
   const timeToCountDown = isShowingCorrectAnswers ? game.timePerAnswer : game.timePerQuestion;
+
+  const nudgeGame = async ({gameId}: {gameId: string}) => {
+    const appCheckTokenResponse = await getToken(appCheck, false);
+    const appCheckToken = appCheckTokenResponse.token;
+    const token = await authUser.getIdToken();
+    nudgeGameAction({gameId, token, appCheckToken});
+  };
 
   useEffect(() => {
     // all times are in seconds unless noted as `InMillis`

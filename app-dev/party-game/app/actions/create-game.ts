@@ -22,8 +22,10 @@ import {Game, GameSettings, Question, QuestionSchema, gameStates} from '@/app/ty
 import {QueryDocumentSnapshot, Timestamp} from 'firebase-admin/firestore';
 import {GameSettingsSchema} from '@/app/types';
 import {getAuth} from 'firebase-admin/auth';
+import {getAppCheck} from 'firebase-admin/app-check';
 
-export async function createGameAction({gameSettings, token}: {gameSettings: GameSettings, token: string}): Promise<{gameId: string}> {
+export async function createGameAction({gameSettings, token, appCheckToken}: {gameSettings: GameSettings, token: string, appCheckToken: string}): Promise<{gameId: string}> {
+  await getAppCheck().verifyToken(appCheckToken);
   const authUser = await getAuth(app).verifyIdToken(token);
 
   // Parse request (throw an error if not correct)

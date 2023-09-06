@@ -20,9 +20,10 @@ import {app, gamesRef} from '@/app/lib/firebase-server-initialization';
 import {GameIdSchema, gameStates} from '@/app/types';
 import {FieldValue} from 'firebase-admin/firestore';
 import {getAuth} from 'firebase-admin/auth';
+import {getAppCheck} from 'firebase-admin/app-check';
 
-export async function startGameAction({gameId, token}: {gameId: string, token: string}) {
-  // Authenticate user
+export async function startGameAction({gameId, token, appCheckToken}: {gameId: string, token: string, appCheckToken: string}) {
+  await getAppCheck().verifyToken(appCheckToken);
   const authUser = await getAuth(app).verifyIdToken(token);
 
   // Parse request (throw an error if not correct)

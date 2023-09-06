@@ -21,8 +21,10 @@ import {useRouter} from 'next/navigation';
 import {useEffect, useState} from 'react';
 import BigColorBorderButton from './big-color-border-button';
 import {TimePerAnswerSchema, TimePerQuestionSchema} from '@/app/types';
-import {createGameAction} from '../actions/create-game';
+import {createGameAction} from '@/app/actions/create-game';
 import {z} from 'zod';
+import {getToken} from 'firebase/app-check';
+import {appCheck} from '@/app/lib/firebase-client-initialization';
 
 export default function CreateGameForm() {
   const authUser = useFirebaseAuthentication();
@@ -38,14 +40,20 @@ export default function CreateGameForm() {
   const router = useRouter();
   const onCreateGameSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    const appCheckTokenResponse = await getToken(appCheck, false);
+    const appCheckToken = appCheckTokenResponse.token;
     const token = await authUser.getIdToken();
     try {
-      const response = await createGameAction({gameSettings: {timePerQuestion, timePerAnswer}, token});
+      const response = await createGameAction({gameSettings: {timePerQuestion, timePerAnswer}, token, appCheckToken});
       router.push(`/game/${response.gameId}`);
     } catch (error) {
       setSubmissionErrorMessage('There was an error handling the request.');
     }
   };
+
+  useEffect(() => {
+    setSubmissionErrorMessage('');
+  }, [timePerQuestion, timePerAnswer]);
 
   useEffect(() => {
     try {

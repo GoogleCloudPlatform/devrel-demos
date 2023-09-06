@@ -17,7 +17,7 @@
 'use client';
 
 import '@/app/components/player-list.css';
-import useScoreboard from '../hooks/use-scoreboard';
+import useScoreboard from '@/app/hooks/use-scoreboard';
 
 export default function Scoreboard() {
   const {currentPlayer, playerScores} = useScoreboard();

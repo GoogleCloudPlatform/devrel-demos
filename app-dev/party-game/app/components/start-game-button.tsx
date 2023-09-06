@@ -20,12 +20,16 @@ import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import './big-color-border-button.css';
 import BigColorBorderButton from '@/app/components/big-color-border-button';
 import {startGameAction} from '@/app/actions/start-game';
+import {getToken} from 'firebase/app-check';
+import {appCheck} from '@/app/lib/firebase-client-initialization';
 
 export default function StartGameButton({gameId}: {gameId: string}) {
   const authUser = useFirebaseAuthentication();
   const onStartGameClick = async () => {
+    const appCheckTokenResponse = await getToken(appCheck, false);
+    const appCheckToken = appCheckTokenResponse.token;
     const token = await authUser.getIdToken();
-    await startGameAction({gameId, token});
+    await startGameAction({gameId, token, appCheckToken});
   };
 
   return (

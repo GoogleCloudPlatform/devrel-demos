@@ -23,8 +23,10 @@ import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import QRCode from 'react-qr-code';
 import {useEffect, useState} from 'react';
 import Scoreboard from './scoreboard';
-import useScoreboard from '../hooks/use-scoreboard';
-import {updateAnswerAction} from '../actions/update-answer';
+import useScoreboard from '@/app/hooks/use-scoreboard';
+import {updateAnswerAction} from '@/app/actions/update-answer';
+import {appCheck} from '@/app/lib/firebase-client-initialization';
+import {getToken} from 'firebase/app-check';
 
 export default function QuestionPanel({game, gameRef, currentQuestion}: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const authUser = useFirebaseAuthentication();
@@ -56,8 +58,10 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
       const startingAnswerSelection = isSingleAnswer ? emptyAnswerSelection : answerSelection;
       const newAnswerSelection: boolean[] = startingAnswerSelection.with(answerIndex, !answerSelection[answerIndex]);
 
+      const appCheckTokenResponse = await getToken(appCheck, false);
+      const appCheckToken = appCheckTokenResponse.token;
       const token = await authUser.getIdToken();
-      await updateAnswerAction({gameId, answerSelection: newAnswerSelection, token});
+      await updateAnswerAction({gameId, answerSelection: newAnswerSelection, token, appCheckToken});
     }
   };
 

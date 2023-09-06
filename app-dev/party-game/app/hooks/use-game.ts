@@ -15,12 +15,13 @@
  */
 
 import {useEffect, useState} from 'react';
-import {db} from '@/app/lib/firebase-client-initialization';
+import {appCheck, db} from '@/app/lib/firebase-client-initialization';
 import {Game, GameSchema, emptyGame, gameStates} from '@/app/types';
 import {doc, onSnapshot} from 'firebase/firestore';
 import {usePathname} from 'next/navigation';
 import useFirebaseAuthentication from './use-firebase-authentication';
-import {joinGameAction} from '../actions/join-game';
+import {joinGameAction} from '@/app/actions/join-game';
+import {getToken} from 'firebase/app-check';
 
 const useGame = () => {
   const pathname = usePathname();
@@ -31,8 +32,10 @@ const useGame = () => {
 
   useEffect(() => {
     const joinGame = async () => {
+      const appCheckTokenResponse = await getToken(appCheck, false);
+      const appCheckToken = appCheckTokenResponse.token;
       const token = await authUser.getIdToken();
-      joinGameAction({gameId, token});
+      joinGameAction({gameId, token, appCheckToken});
     };
     if (game.leader.uid && authUser.uid && game.leader.uid !== authUser.uid) {
       joinGame();
@@ -48,7 +51,6 @@ const useGame = () => {
         const game = GameSchema.parse(doc.data());
         setGame(game);
       } catch (error) {
-        console.log(error);
         setErrorMessage(`Game ${gameId} was not found.`);
       }
     });
