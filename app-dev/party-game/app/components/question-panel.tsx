@@ -55,8 +55,14 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
   const onAnswerClick = async (answerIndex: number) => {
     if (game.state === gameStates.AWAITING_PLAYER_ANSWERS && !isGameLeader) {
       // If the user is only supposed to pick one answer, clear the other answers first
-      const startingAnswerSelection = isSingleAnswer ? emptyAnswerSelection : answerSelection;
-      const newAnswerSelection: boolean[] = startingAnswerSelection.with(answerIndex, !answerSelection[answerIndex]);
+      const newAnswerSelection: boolean[] = answerSelection.map((currentValue, index) => {
+        // update the selection to true
+        if (index === answerIndex) return true;
+        // update other selections to false if there is only one correct answer
+        if (isSingleAnswer) return false;
+        // otherwise, don't change it
+        return currentValue;
+      });
 
       const appCheckTokenResponse = await getToken(appCheck, false);
       const appCheckToken = appCheckTokenResponse.token;
