@@ -20,7 +20,7 @@ import StartGameButton from '@/app/components/start-game-button';
 import DeleteGameButton from '@/app/components/delete-game-button';
 import PlayerList from './player-list';
 import {Game} from '@/app/types';
-import useFirebaseAuthentication from '../hooks/use-firebase-authentication';
+import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import ShareLinkPanel from './share-link-panel';
 import {useState} from 'react';
 

@@ -19,10 +19,11 @@
 import {app, gamesRef} from '@/app/lib/firebase-server-initialization';
 import {generateName} from '@/app/lib/name-generator';
 import {GameIdSchema} from '@/app/types';
+import {getAppCheck} from 'firebase-admin/app-check';
 import {getAuth} from 'firebase-admin/auth';
 
-export async function joinGameAction({gameId, token}: {gameId: string, token: string}) {
-  // Authenticate user
+export async function joinGameAction({gameId, token, appCheckToken}: {gameId: string, token: string, appCheckToken: string}) {
+  await getAppCheck().verifyToken(appCheckToken);
   const authUser = await getAuth(app).verifyIdToken(token);
 
   // Parse request (throw an error if not correct)

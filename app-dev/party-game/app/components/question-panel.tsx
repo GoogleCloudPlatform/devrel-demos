@@ -23,8 +23,9 @@ import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import QRCode from 'react-qr-code';
 import {useEffect, useState} from 'react';
 import Scoreboard from './scoreboard';
-import useScoreboard from '../hooks/use-scoreboard';
-import {updateAnswerAction} from '../actions/update-answer';
+import useScoreboard from '@/app/hooks/use-scoreboard';
+import {updateAnswerAction} from '@/app/actions/update-answer';
+import {addTokens} from '../lib/request-formatter';
 
 export default function QuestionPanel({game, gameRef, currentQuestion}: { game: Game, gameRef: DocumentReference, currentQuestion: Question }) {
   const authUser = useFirebaseAuthentication();
@@ -53,11 +54,15 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
   const onAnswerClick = async (answerIndex: number) => {
     if (game.state === gameStates.AWAITING_PLAYER_ANSWERS && !isGameLeader) {
       // If the user is only supposed to pick one answer, clear the other answers first
-      const startingAnswerSelection = isSingleAnswer ? emptyAnswerSelection : answerSelection;
-      const newAnswerSelection: boolean[] = startingAnswerSelection.with(answerIndex, !answerSelection[answerIndex]);
-
-      const token = await authUser.getIdToken();
-      await updateAnswerAction({gameId, answerSelection: newAnswerSelection, token});
+      const newAnswerSelection: boolean[] = answerSelection.map((currentValue, index) => {
+        // update the selection to true
+        if (index === answerIndex) return true;
+        // update other selections to false if there is only one correct answer
+        if (isSingleAnswer) return false;
+        // otherwise, don't change it
+        return currentValue;
+      });
+      await updateAnswerAction(await addTokens({gameId, answerSelection: newAnswerSelection}));
     }
   };
 

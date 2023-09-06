@@ -16,17 +16,15 @@
 
 'use client';
 
-import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import {useRouter} from 'next/navigation';
-import {exitGameAction} from '../actions/exit-game';
+import {exitGameAction} from '@/app/actions/exit-game';
+import {addTokens} from '../lib/request-formatter';
 
 export default function ExitGameButton({gameId}: { gameId: string }) {
-  const authUser = useFirebaseAuthentication();
   const router = useRouter();
 
   const onExitGameClick = async () => {
-    const token = await authUser.getIdToken();
-    await exitGameAction({gameId, token});
+    await exitGameAction(await addTokens({gameId}));
     router.push('/');
   };
 

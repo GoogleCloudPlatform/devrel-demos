@@ -16,15 +16,12 @@
 
 'use client';
 
-import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
-import {deleteGameAction} from '../actions/delete-game';
+import {deleteGameAction} from '@/app/actions/delete-game';
+import {addTokens} from '../lib/request-formatter';
 
 export default function DeleteGameButton({gameId}: { gameId: string }) {
-  const authUser = useFirebaseAuthentication();
-
   const onDeleteGameClick = async () => {
-    const token = await authUser.getIdToken();
-    await deleteGameAction({gameId, token});
+    await deleteGameAction(await addTokens({gameId}));
   };
 
   return (

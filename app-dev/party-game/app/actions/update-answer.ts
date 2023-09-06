@@ -18,11 +18,12 @@
 
 import {app, gamesRef} from '@/app/lib/firebase-server-initialization';
 import {GameIdSchema, gameStates} from '@/app/types';
+import {getAppCheck} from 'firebase-admin/app-check';
 import {getAuth} from 'firebase-admin/auth';
 import {z} from 'zod';
 
-export async function updateAnswerAction({gameId, answerSelection, token}: {gameId: string, answerSelection: boolean[], token: string}) {
-  // Authenticate user
+export async function updateAnswerAction({gameId, answerSelection, token, appCheckToken}: {gameId: string, answerSelection: boolean[], token: string, appCheckToken: string}) {
+  await getAppCheck().verifyToken(appCheckToken);
   const authUser = await getAuth(app).verifyIdToken(token);
 
   // Parse request (throw an error if not correct)
