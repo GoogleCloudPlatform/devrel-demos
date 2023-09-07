@@ -21,7 +21,7 @@ import {doc, onSnapshot} from 'firebase/firestore';
 import {usePathname} from 'next/navigation';
 import useFirebaseAuthentication from './use-firebase-authentication';
 import {joinGameAction} from '@/app/actions/join-game';
-import {addTokens} from '../lib/request-formatter';
+import {getTokens} from '@/app/lib/client-token-generator';
 
 const useGame = () => {
   const pathname = usePathname();
@@ -32,7 +32,8 @@ const useGame = () => {
 
   useEffect(() => {
     const joinGame = async () => {
-      joinGameAction(await addTokens({gameId}));
+      const tokens = await getTokens();
+      joinGameAction({gameId, tokens});
     };
     if (game.leader.uid && authUser.uid && game.leader.uid !== authUser.uid) {
       joinGame();

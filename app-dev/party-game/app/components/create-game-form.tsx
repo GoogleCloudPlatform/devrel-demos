@@ -22,7 +22,7 @@ import BigColorBorderButton from './big-color-border-button';
 import {TimePerAnswerSchema, TimePerQuestionSchema} from '@/app/types';
 import {createGameAction} from '@/app/actions/create-game';
 import {z} from 'zod';
-import {addTokens} from '@/app/lib/request-formatter';
+import {getTokens} from '@/app/lib/client-token-generator';
 
 export default function CreateGameForm() {
   const defaultTimePerQuestion = 60;
@@ -39,7 +39,8 @@ export default function CreateGameForm() {
     event.preventDefault();
     try {
       const gameSettings = {timePerQuestion, timePerAnswer};
-      const response = await createGameAction(await addTokens({gameSettings}));
+      const tokens = await getTokens();
+      const response = await createGameAction({gameSettings, tokens});
       router.push(`/game/${response.gameId}`);
     } catch (error) {
       setSubmissionErrorMessage('There was an error handling the request.');

@@ -16,17 +16,15 @@
 
 'use server';
 
-import {app, gamesRef, questionsRef} from '@/app/lib/firebase-server-initialization';
+import {gamesRef, questionsRef} from '@/app/lib/firebase-server-initialization';
 import {generateName} from '@/app/lib/name-generator';
-import {Game, GameSettings, Question, QuestionSchema, gameStates} from '@/app/types';
+import {Game, GameSettings, Question, QuestionSchema, Tokens, gameStates} from '@/app/types';
 import {QueryDocumentSnapshot, Timestamp} from 'firebase-admin/firestore';
 import {GameSettingsSchema} from '@/app/types';
-import {getAuth} from 'firebase-admin/auth';
-import {getAppCheck} from 'firebase-admin/app-check';
+import {validateTokens} from '@/app/lib/server-token-validator';
 
-export async function createGameAction({gameSettings, token, appCheckToken}: {gameSettings: GameSettings, token: string, appCheckToken: string}): Promise<{gameId: string}> {
-  await getAppCheck().verifyToken(appCheckToken);
-  const authUser = await getAuth(app).verifyIdToken(token);
+export async function createGameAction({gameSettings, tokens}: {gameSettings: GameSettings, tokens: Tokens}): Promise<{gameId: string}> {
+  const authUser = await validateTokens(tokens);
 
   // Parse request (throw an error if not correct)
   const {timePerQuestion, timePerAnswer} = GameSettingsSchema.parse(gameSettings);
