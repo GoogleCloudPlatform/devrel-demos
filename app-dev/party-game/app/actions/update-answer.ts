@@ -16,15 +16,13 @@
 
 'use server';
 
-import {app, gamesRef} from '@/app/lib/firebase-server-initialization';
-import {GameIdSchema, gameStates} from '@/app/types';
-import {getAppCheck} from 'firebase-admin/app-check';
-import {getAuth} from 'firebase-admin/auth';
+import {gamesRef} from '@/app/lib/firebase-server-initialization';
+import {GameIdSchema, Tokens, gameStates} from '@/app/types';
 import {z} from 'zod';
+import {validateTokens} from '@/app/lib/server-token-validator';
 
-export async function updateAnswerAction({gameId, answerSelection, token, appCheckToken}: {gameId: string, answerSelection: boolean[], token: string, appCheckToken: string}) {
-  await getAppCheck().verifyToken(appCheckToken);
-  const authUser = await getAuth(app).verifyIdToken(token);
+export async function updateAnswerAction({gameId, answerSelection, tokens}: {gameId: string, answerSelection: boolean[], tokens: Tokens}) {
+  const authUser = await validateTokens(tokens);
 
   // Parse request (throw an error if not correct)
   GameIdSchema.parse(gameId);

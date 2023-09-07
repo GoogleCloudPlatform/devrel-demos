@@ -14,24 +14,14 @@
  * limitations under the License.
  */
 
-'use client';
+import {appCheck, auth} from '@/app/lib/firebase-client-initialization';
+import {getToken} from 'firebase/app-check';
+import {Tokens} from '@/app/types';
 
-import {useRouter} from 'next/navigation';
-import {exitGameAction} from '@/app/actions/exit-game';
-import {getTokens} from '@/app/lib/client-token-generator';
-
-export default function ExitGameButton({gameId}: { gameId: string }) {
-  const router = useRouter();
-
-  const onExitGameClick = async () => {
-    const tokens = await getTokens();
-    await exitGameAction({gameId, tokens});
-    router.push('/');
-  };
-
-  return (
-    <div>
-      <button onClick={onExitGameClick} className={`border mt-1 p-2`}>◄ Exit Game</button>
-    </div>
-  );
+export async function getTokens(): Promise<Tokens> {
+  const appCheckTokenResponse = await getToken(appCheck, false);
+  const appCheckToken = appCheckTokenResponse.token;
+  const userToken = await auth.currentUser?.getIdToken();
+  if (!userToken) throw new Error('no user token');
+  return {userToken, appCheckToken};
 }

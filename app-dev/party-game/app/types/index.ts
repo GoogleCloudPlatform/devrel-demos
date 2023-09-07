@@ -81,3 +81,9 @@ export const emptyGame = GameSchema.parse({
   timePerAnswer: 20,
 });
 export type Game = z.infer<typeof GameSchema>;
+
+export const TokensSchema = z.object({
+  userToken: z.string(),
+  appCheckToken: z.string(),
+});
+export type Tokens = z.infer<typeof TokensSchema>;

@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
-import {appCheck, auth} from '@/app/lib/firebase-client-initialization';
-import {getToken} from 'firebase/app-check';
+import {app} from '@/app/lib/firebase-server-initialization';
+import {Tokens} from '@/app/types';
+import {getAuth} from 'firebase-admin/auth';
+import {getAppCheck} from 'firebase-admin/app-check';
 
-export async function addTokens(requestBody: any) {
-  const appCheckTokenResponse = await getToken(appCheck, false);
-  const appCheckToken = appCheckTokenResponse.token;
-  const token = await auth.currentUser?.getIdToken();
-  return {...requestBody, token, appCheckToken};
-}
+export async function validateTokens(tokens: Tokens) {
+  const {userToken, appCheckToken} = tokens;
+  const [authUser] = await Promise.all([
+    getAuth(app).verifyIdToken(userToken),
+    getAppCheck(app).verifyToken(appCheckToken),
+  ]);
+  return authUser;
+};

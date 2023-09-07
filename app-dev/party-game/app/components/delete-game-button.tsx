@@ -17,11 +17,12 @@
 'use client';
 
 import {deleteGameAction} from '@/app/actions/delete-game';
-import {addTokens} from '../lib/request-formatter';
+import {getTokens} from '@/app/lib/client-token-generator';
 
 export default function DeleteGameButton({gameId}: { gameId: string }) {
   const onDeleteGameClick = async () => {
-    await deleteGameAction(await addTokens({gameId}));
+    const tokens = await getTokens();
+    await deleteGameAction({gameId, tokens});
   };
 
   return (

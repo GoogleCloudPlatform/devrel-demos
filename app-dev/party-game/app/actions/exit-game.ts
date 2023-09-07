@@ -16,15 +16,13 @@
 
 'use server';
 
-import {app, gamesRef} from '@/app/lib/firebase-server-initialization';
+import {gamesRef} from '@/app/lib/firebase-server-initialization';
 import {FieldValue} from 'firebase-admin/firestore';
-import {GameIdSchema} from '@/app/types';
-import {getAuth} from 'firebase-admin/auth';
-import {getAppCheck} from 'firebase-admin/app-check';
+import {GameIdSchema, Tokens} from '@/app/types';
+import {validateTokens} from '@/app/lib/server-token-validator';
 
-export async function exitGameAction({gameId, token, appCheckToken}: {gameId: string, token: string, appCheckToken: string}) {
-  await getAppCheck().verifyToken(appCheckToken);
-  const authUser = await getAuth(app).verifyIdToken(token);
+export async function exitGameAction({gameId, tokens}: {gameId: string, tokens: Tokens}) {
+  const authUser = await validateTokens(tokens);
 
   // Parse request (throw an error if not correct)
   GameIdSchema.parse(gameId);

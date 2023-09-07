@@ -19,11 +19,12 @@
 import './big-color-border-button.css';
 import BigColorBorderButton from '@/app/components/big-color-border-button';
 import {startGameAction} from '@/app/actions/start-game';
-import {addTokens} from '@/app/lib/request-formatter';
+import {getTokens} from '@/app/lib/client-token-generator';
 
 export default function StartGameButton({gameId}: {gameId: string}) {
   const onStartGameClick = async () => {
-    await startGameAction(await addTokens({gameId}));
+    const tokens = await getTokens();
+    await startGameAction({gameId, tokens});
   };
 
   return (
