@@ -17,7 +17,6 @@
 'use client';
 
 import {usePathname} from 'next/navigation';
-import Navbar from '@/app/components/navbar';
 import ReturnToHomepagePanel from '@/app/components/return-to-homepage-panel';
 
 export default function Home() {
@@ -25,7 +24,6 @@ export default function Home() {
 
   return (
     <div>
-      <Navbar />
       <ReturnToHomepagePanel>
         <div className='py-4'>
           <div>

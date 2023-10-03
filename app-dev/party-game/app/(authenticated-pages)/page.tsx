@@ -18,7 +18,6 @@
 
 import useActiveGameList from '@/app/hooks/use-active-game-list';
 import {useRouter} from 'next/navigation';
-import Navbar from '@/app/components/navbar';
 import {useEffect} from 'react';
 
 export default function Home() {
@@ -34,7 +33,6 @@ export default function Home() {
 
   return (
     <div>
-      <Navbar />
       <center className="p-8">
         Waiting for a game.
       </center>
