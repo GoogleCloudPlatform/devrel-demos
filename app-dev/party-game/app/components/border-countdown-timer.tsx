@@ -33,6 +33,7 @@ export default function BorderCountdownTimer({game, children, gameRef}: { game: 
   const isShowingCorrectAnswers = game.state === gameStates.SHOWING_CORRECT_ANSWERS;
   const displayTime = MANUAL === game.questionAdvancement && isShowingCorrectAnswers ? 0 : Math.max(Math.floor(timeLeft), 0);
   const timeToCountDown = isShowingCorrectAnswers ? game.timePerAnswer : game.timePerQuestion;
+  const totalPlayersWhoMadeAGuess = Object.values(game.questions[game.currentQuestionIndex].playerGuesses || []).length;
 
   const nudgeGame = useCallback(async ({gameId, desiredState}: { gameId: string, desiredState: GameStateUpdate }) => {
     if (game.state === desiredState.state && game.currentQuestionIndex === desiredState.currentQuestionIndex) return;
@@ -111,6 +112,10 @@ export default function BorderCountdownTimer({game, children, gameRef}: { game: 
             {displayTime < 10 && '0'}
             {displayTime}
             {authUser.uid === game.leader.uid && (<>
+              <div>
+                {totalPlayersWhoMadeAGuess < 10 && '0'}
+                {totalPlayersWhoMadeAGuess}
+              </div>
               <div>&nbsp;</div>
               <div className="my-1 absolute bottom-0">
                 <button

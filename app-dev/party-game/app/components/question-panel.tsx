@@ -185,7 +185,8 @@ export default function QuestionPanel({game, gameRef, currentQuestion}: { game: 
                     </div>
                     {totalPlayersWhoMadeAGuess > 0 && (
                       <div>
-                        {guessesForThisAnswer} / {totalPlayersWhoMadeAGuess}
+                        {guessesForThisAnswer}
+                        <span className='text-xs'> / {totalPlayersWhoMadeAGuess}</span>
                       </div>
                     )}
                   </div>
