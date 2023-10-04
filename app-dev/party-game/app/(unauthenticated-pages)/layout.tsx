@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import Navbar from '@/app/components/navbar';
 import '@/app/globals.css';
 
 export const metadata = {
@@ -29,7 +28,6 @@ export default function RootLayout({
 }) {
   return (
     <>
-      <Navbar />
       <main className="mt-5 mx-auto max-w-2xl underline hover:decoration-[var(--google-cloud-blue)]">
         {children}
       </main>

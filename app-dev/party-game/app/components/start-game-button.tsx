@@ -18,13 +18,18 @@
 
 import './big-color-border-button.css';
 import BigColorBorderButton from '@/app/components/big-color-border-button';
-import {startGameAction} from '@/app/actions/start-game';
+import {nudgeGameAction} from '@/app/actions/nudge-game';
 import {getTokens} from '@/app/lib/client-token-generator';
+import {gameStates} from '../types';
 
 export default function StartGameButton({gameId}: {gameId: string}) {
   const onStartGameClick = async () => {
     const tokens = await getTokens();
-    await startGameAction({gameId, tokens});
+    const desiredState = {
+      state: gameStates.AWAITING_PLAYER_ANSWERS,
+      currentQuestionIndex: 0,
+    };
+    nudgeGameAction({gameId, desiredState, tokens});
   };
 
   return (

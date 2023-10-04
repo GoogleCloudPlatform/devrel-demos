@@ -18,7 +18,7 @@
 
 import {gamesRef} from '@/app/lib/firebase-server-initialization';
 import {generateName} from '@/app/lib/name-generator';
-import {GameIdSchema, Tokens} from '@/app/types';
+import {GameIdSchema, GameSchema, Tokens} from '@/app/types';
 import {validateTokens} from '@/app/lib/server-token-validator';
 
 export async function joinGameAction({gameId, tokens}: {gameId: string, tokens: Tokens}) {
@@ -29,7 +29,7 @@ export async function joinGameAction({gameId, tokens}: {gameId: string, tokens: 
 
   const gameRef = await gamesRef.doc(gameId);
   const gameDoc = await gameRef.get();
-  const game = gameDoc.data();
+  const game = GameSchema.parse(gameDoc.data());
   const playerIdList = Object.keys(game.players);
   if (playerIdList.includes(authUser.uid)) return;
   if (game.leader.uid === authUser.uid) {

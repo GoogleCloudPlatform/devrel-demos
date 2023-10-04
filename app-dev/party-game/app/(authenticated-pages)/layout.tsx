@@ -20,7 +20,6 @@ import '@/app/globals.css';
 import Image from 'next/image';
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import BigSignInButton from '@/app/components/big-sign-in-button';
-import Navbar from '@/app/components/navbar';
 
 export default function RootLayout({
   children,
@@ -38,7 +37,6 @@ export default function RootLayout({
           </>
         ) : (
           <>
-            <Navbar />
             <center className='pt-20'>
               <div className='h-20'>
                 <Image
