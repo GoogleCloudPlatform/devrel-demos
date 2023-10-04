@@ -93,7 +93,7 @@ export const GameSchema = z.object({
   players: z.record(z.string(), z.string()),
   state: GameStateEnum,
   currentQuestionIndex: z.number().int().nonnegative(),
-  currentQuestionStartTime: z.object({seconds: z.number()}),
+  currentStateStartTime: z.object({seconds: z.number()}),
   questionAdvancement: questionAdvancementEnum,
   timePerQuestion: TimePerQuestionSchema,
   timePerAnswer: TimePerAnswerSchema,
@@ -105,7 +105,7 @@ export const emptyGame = GameSchema.parse({
   state: 'NOT_STARTED',
   currentQuestionIndex: 0,
   questionAdvancement: 'AUTOMATIC',
-  currentQuestionStartTime: {seconds: 0},
+  currentStateStartTime: {seconds: 0},
   timePerQuestion: 60,
   timePerAnswer: 20,
 });

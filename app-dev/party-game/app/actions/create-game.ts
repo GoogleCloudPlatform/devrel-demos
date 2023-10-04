@@ -60,7 +60,7 @@ export async function createGameAction({gameSettings, tokens}: {gameSettings: Ga
     timePerQuestion: timePerQuestion + 1, // add one for padding between questions
     timePerAnswer: timePerAnswer + 1, // add one for padding between questions
     questionAdvancement: 'AUTOMATIC',
-    currentQuestionStartTime: {seconds: 0},
+    currentStateStartTime: {seconds: 0},
   };
 
   const gameRef = await gamesRef.add(newGame);

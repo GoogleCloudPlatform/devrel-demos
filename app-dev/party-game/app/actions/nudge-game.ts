@@ -58,7 +58,7 @@ export async function nudgeGameAction({gameId, desiredState, tokens}: { gameId: 
         await gameRef.update({
           state: AWAITING_PLAYER_ANSWERS,
           currentQuestionIndex: 0,
-          currentQuestionStartTime: FieldValue.serverTimestamp(),
+          currentStateStartTime: FieldValue.serverTimestamp(),
         });
         return;
       }
@@ -68,13 +68,14 @@ export async function nudgeGameAction({gameId, desiredState, tokens}: { gameId: 
         if (game.currentQuestionIndex === finalQuestionIndex) {
           await gameRef.update({
             state: GAME_OVER,
+            currentStateStartTime: FieldValue.serverTimestamp(),
           });
           return;
         }
         await gameRef.update({
           state: AWAITING_PLAYER_ANSWERS,
           currentQuestionIndex: nextQuestionIndex,
-          currentQuestionStartTime: FieldValue.serverTimestamp(),
+          currentStateStartTime: FieldValue.serverTimestamp(),
         });
         return;
       }
@@ -83,6 +84,7 @@ export async function nudgeGameAction({gameId, desiredState, tokens}: { gameId: 
       if (desiredState.state === SHOWING_CORRECT_ANSWERS && desiredState.currentQuestionIndex === game.currentQuestionIndex) {
         await gameRef.update({
           state: SHOWING_CORRECT_ANSWERS,
+          currentStateStartTime: FieldValue.serverTimestamp(),
         });
         return;
       }
