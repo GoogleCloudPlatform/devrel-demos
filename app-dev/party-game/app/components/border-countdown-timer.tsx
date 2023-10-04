@@ -23,13 +23,15 @@ import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import {nudgeGameAction} from '@/app/actions/nudge-game';
 import {getTokens} from '@/app/lib/client-token-generator';
 
+const {MANUAL} = questionAdvancements;
+
 export default function BorderCountdownTimer({game, children, gameRef}: { game: Game, children: React.ReactNode, gameRef: DocumentReference }) {
   const [timeLeft, setTimeLeft] = useState<number>(game.timePerQuestion);
-  const displayTime = Math.max(Math.floor(timeLeft), 0);
   const [localCounter, setLocalCounter] = useState<number>(0);
   const gameId = gameRef.id;
   const authUser = useFirebaseAuthentication();
   const isShowingCorrectAnswers = game.state === gameStates.SHOWING_CORRECT_ANSWERS;
+  const displayTime = MANUAL === game.questionAdvancement && isShowingCorrectAnswers ? 0 : Math.max(Math.floor(timeLeft), 0);
   const timeToCountDown = isShowingCorrectAnswers ? game.timePerAnswer : game.timePerQuestion;
 
   const nudgeGame = useCallback(async ({gameId, desiredState}: { gameId: string, desiredState: GameStateUpdate }) => {
