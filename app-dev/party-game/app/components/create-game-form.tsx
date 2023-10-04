@@ -19,14 +19,17 @@
 import {useRouter} from 'next/navigation';
 import {useEffect, useState} from 'react';
 import BigColorBorderButton from './big-color-border-button';
-import {TimePerAnswerSchema, TimePerQuestionSchema} from '@/app/types';
+import {QuestionAdvancement, QuestionAdvancementEnum, TimePerAnswerSchema, TimePerQuestionSchema, questionAdvancements} from '@/app/types';
 import {createGameAction} from '@/app/actions/create-game';
 import {z} from 'zod';
 import {getTokens} from '@/app/lib/client-token-generator';
 
+const {MANUAL, AUTOMATIC} = questionAdvancements;
+const defaultTimePerQuestion = 60;
+const defaultTimePerAnswer = 20;
+
 export default function CreateGameForm() {
-  const defaultTimePerQuestion = 60;
-  const defaultTimePerAnswer = 20;
+  const [questionAdvancement, setQuestionAdvancement] = useState<QuestionAdvancement>(MANUAL);
   const [timePerQuestionInputValue, setTimePerQuestionInputValue] = useState<string>(defaultTimePerQuestion.toString());
   const [timePerAnswerInputValue, setTimePerAnswerInputValue] = useState<string>(defaultTimePerAnswer.toString());
   const timePerQuestion = timePerQuestionInputValue ? parseInt(timePerQuestionInputValue) : -0.5;
@@ -38,7 +41,7 @@ export default function CreateGameForm() {
   const onCreateGameSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
-      const gameSettings = {timePerQuestion, timePerAnswer};
+      const gameSettings = {timePerQuestion, timePerAnswer, questionAdvancement};
       const tokens = await getTokens();
       const response = await createGameAction({gameSettings, tokens});
       router.push(`/game/${response.gameId}`);
@@ -92,20 +95,38 @@ export default function CreateGameForm() {
           <p className="text-red-500 text-xs italic">{timePerQuestionError ? timePerQuestionError : <>&nbsp;</>}</p>
         </div>
         <div className="mb-6">
-          <label className="block text-sm font-bold mb-2" htmlFor="timePerAnswer">
-            Time (in seconds) to review the answers
+          <label className="block text-sm font-bold mb-2" htmlFor="questionAdvancement">
+            Advancement to the next question
           </label>
-          <input
-            className="shadow appearance-none border rounded w-full py-2 px-3 mb-3 leading-tight focus:outline-none focus:shadow-outline"
-            id="timePerAnswer"
-            type="text"
-            inputMode="numeric"
-            value={timePerAnswerInputValue}
-            onChange={(event) => setTimePerAnswerInputValue(event.target.value)}
-            placeholder={defaultTimePerAnswer.toString()}
-          />
-          <p className="text-red-500 text-xs italic">{timePerAnswerError ? timePerAnswerError : <>&nbsp;</>}</p>
+          <select
+          // shadow appearance-none border rounded w-full py-2 px-3 mb-3 leading-tight focus:outline-none focus:shadow-outline
+            className="shadow border rounded w-full py-2 px-3 mb-3 leading-tight focus:outline-none focus:shadow-outline"
+            value={questionAdvancement}
+            onChange={(event) => {
+              setQuestionAdvancement(QuestionAdvancementEnum.parse(event.target.value));
+            }}
+          >
+            <option value={MANUAL}>Manually</option>
+            <option value={AUTOMATIC}>Automatically on a timer</option>
+          </select>
         </div>
+        {questionAdvancement === AUTOMATIC && (<>
+          <div className="mb-6">
+            <label className="block text-sm font-bold mb-2" htmlFor="timePerAnswer">
+              Time (in seconds) to review the answers
+            </label>
+            <input
+              className="shadow appearance-none border rounded w-full py-2 px-3 mb-3 leading-tight focus:outline-none focus:shadow-outline"
+              id="timePerAnswer"
+              type="text"
+              inputMode="numeric"
+              value={timePerAnswerInputValue}
+              onChange={(event) => setTimePerAnswerInputValue(event.target.value)}
+              placeholder={defaultTimePerAnswer.toString()}
+            />
+            <p className="text-red-500 text-xs italic">{timePerAnswerError ? timePerAnswerError : <>&nbsp;</>}</p>
+          </div>
+        </>)}
         <p className="text-red-500 text-xs italic">{submissionErrorMessage ? submissionErrorMessage : <>&nbsp;</>}</p>
         <center>
           <BigColorBorderButton type="submit">

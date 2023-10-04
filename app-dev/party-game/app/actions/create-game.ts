@@ -27,7 +27,7 @@ export async function createGameAction({gameSettings, tokens}: {gameSettings: Ga
   const authUser = await validateTokens(tokens);
 
   // Parse request (throw an error if not correct)
-  const {timePerQuestion, timePerAnswer} = GameSettingsSchema.parse(gameSettings);
+  const {timePerQuestion, timePerAnswer, questionAdvancement} = GameSettingsSchema.parse(gameSettings);
 
   const querySnapshot = await questionsRef.get();
   const validQuestionsArray = querySnapshot.docs.reduce((agg: Question[], doc: QueryDocumentSnapshot) => {
@@ -59,7 +59,7 @@ export async function createGameAction({gameSettings, tokens}: {gameSettings: Ga
     currentQuestionIndex: 0,
     timePerQuestion: timePerQuestion + 1, // add one for padding between questions
     timePerAnswer: timePerAnswer + 1, // add one for padding between questions
-    questionAdvancement: 'AUTOMATIC',
+    questionAdvancement,
     currentStateStartTime: {seconds: 0},
   };
 
