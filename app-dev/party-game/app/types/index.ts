@@ -30,7 +30,10 @@ export const AnswerSelectionWithGameIdSchema = z.object({
 export const TimePerQuestionSchema = z.number({invalid_type_error: 'Time per question must be a number'}).int().max(600, 'Time per question must be 600 or less.').min(10, 'Time per question must be at least 10.');
 export const TimePerAnswerSchema = z.number({invalid_type_error: 'Time per answer must be a number'}).int().max(600, 'Time per answer must be 600 or less.').min(5, 'Time per answer must be at least 5.');
 
-export const GameSettingsSchema = z.object({timePerQuestion: TimePerQuestionSchema, timePerAnswer: TimePerAnswerSchema});
+export const GameSettingsSchema = z.object({
+  timePerQuestion: TimePerQuestionSchema,
+  timePerAnswer: TimePerAnswerSchema,
+});
 export type GameSettings = z.infer<typeof GameSettingsSchema>;
 
 const AnswerSchema = z.object({
@@ -51,6 +54,30 @@ const gameStatesOptions = ['NOT_STARTED', 'SHOWING_CORRECT_ANSWERS', 'AWAITING_P
 const GameStateEnum = z.enum(gameStatesOptions);
 export const gameStates = GameStateEnum.Values;
 
+export const GameStateUpdateSchema = z.object({
+  state: GameStateEnum,
+  currentQuestionIndex: z.number().int().nonnegative(),
+});
+export type GameStateUpdate = z.infer<typeof GameStateUpdateSchema>;
+
+export const questionAdvancementOptionDetails = [
+  {
+    type: 'MANUAL',
+    description: 'Manually advance to the next question.',
+    shortName: 'Manual',
+    automaticallyAdvanceToNextQuestion: false,
+  },
+  {
+    type: 'AUTOMATIC',
+    description: 'Automatically advance question on a timer.',
+    shortName: 'Automatic',
+    automaticallyAdvanceToNextQuestion: true,
+  },
+] as const;
+const questionAdvancementOptions = ['MANUAL', 'AUTOMATIC'] as const;
+const questionAdvancementEnum = z.enum(questionAdvancementOptions);
+export const questionAdvancements = questionAdvancementEnum.Values;
+
 export const LeaderSchema = z.object({
   uid: z.string(),
   displayName: z.string(),
@@ -66,7 +93,8 @@ export const GameSchema = z.object({
   players: z.record(z.string(), z.string()),
   state: GameStateEnum,
   currentQuestionIndex: z.number().int().nonnegative(),
-  startTime: z.object({seconds: z.number()}),
+  currentQuestionStartTime: z.object({seconds: z.number()}),
+  questionAdvancement: questionAdvancementEnum,
   timePerQuestion: TimePerQuestionSchema,
   timePerAnswer: TimePerAnswerSchema,
 });
@@ -76,7 +104,8 @@ export const emptyGame = GameSchema.parse({
   players: {},
   state: 'NOT_STARTED',
   currentQuestionIndex: 0,
-  startTime: {seconds: 0},
+  questionAdvancement: 'AUTOMATIC',
+  currentQuestionStartTime: {seconds: 0},
   timePerQuestion: 60,
   timePerAnswer: 20,
 });

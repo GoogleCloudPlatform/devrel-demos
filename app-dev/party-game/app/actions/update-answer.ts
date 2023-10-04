@@ -17,7 +17,7 @@
 'use server';
 
 import {gamesRef} from '@/app/lib/firebase-server-initialization';
-import {GameIdSchema, Tokens, gameStates} from '@/app/types';
+import {GameIdSchema, GameSchema, Tokens, gameStates} from '@/app/types';
 import {z} from 'zod';
 import {validateTokens} from '@/app/lib/server-token-validator';
 
@@ -29,7 +29,7 @@ export async function updateAnswerAction({gameId, answerSelection, tokens}: {gam
 
   const gameRef = await gamesRef.doc(gameId);
   const gameDoc = await gameRef.get();
-  const game = gameDoc.data();
+  const game = GameSchema.parse(gameDoc.data());
 
   if (game.state !== gameStates.AWAITING_PLAYER_ANSWERS) {
     return new Error(`Answering is not allowed during ${game.state}.`);

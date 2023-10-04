@@ -16,7 +16,7 @@
 
 'use client';
 
-import {Game, gameStates} from '@/app/types';
+import {Game, GameStateUpdate, gameStates, questionAdvancements} from '@/app/types';
 import {DocumentReference, Timestamp} from 'firebase/firestore';
 import {useEffect, useState} from 'react';
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
@@ -32,43 +32,42 @@ export default function BorderCountdownTimer({game, children, gameRef}: { game: 
   const isShowingCorrectAnswers = game.state === gameStates.SHOWING_CORRECT_ANSWERS;
   const timeToCountDown = isShowingCorrectAnswers ? game.timePerAnswer : game.timePerQuestion;
 
-  const nudgeGame = async ({gameId}: {gameId: string}) => {
-    const tokens = await getTokens();
-    nudgeGameAction({gameId, tokens});
-  };
-
   useEffect(() => {
     // all times are in seconds unless noted as `InMillis`
-    const timeElapsedInMillis = Timestamp.now().toMillis() - game.startTime.seconds * 1000;
+    const timeElapsedInMillis = Timestamp.now().toMillis() - game.currentQuestionStartTime.seconds * 1000;
     const timeElapsed = timeElapsedInMillis / 1000;
     const timePerQuestionAndAnswer = game.timePerQuestion + game.timePerAnswer;
+    const nudgeGame = async ({gameId, desiredState}: { gameId: string, desiredState: GameStateUpdate }) => {
+      if (game.state === desiredState.state && game.currentQuestionIndex === desiredState.currentQuestionIndex) return;
+      if (authUser.uid === game.leader.uid) {
+        const tokens = await getTokens();
+        nudgeGameAction({gameId, desiredState, tokens});
+      }
+    };
+    const isShowingCorrectAnswers = game.state === gameStates.SHOWING_CORRECT_ANSWERS;
 
     if (isShowingCorrectAnswers) {
-      const timeToStartNextQuestion = timePerQuestionAndAnswer * (game.currentQuestionIndex + 1);
-      setTimeLeft(timeToStartNextQuestion - timeElapsed);
+      const timeLeft = timePerQuestionAndAnswer - timeElapsed;
+      if (timeLeft < 0 && game.questionAdvancement === questionAdvancements.AUTOMATIC) {
+        const desiredState = {
+          state: gameStates.AWAITING_PLAYER_ANSWERS,
+          currentQuestionIndex: game.currentQuestionIndex + 1,
+        };
+        nudgeGame({gameId, desiredState});
+      }
+      setTimeLeft(timeLeft);
     } else {
-      const timeToShowCurrentQuestionAnswer = timePerQuestionAndAnswer * (game.currentQuestionIndex) + game.timePerQuestion;
-      setTimeLeft(timeToShowCurrentQuestionAnswer - timeElapsed);
+      const timeLeft = game.timePerQuestion - timeElapsed;
+      if (timeLeft < 0) {
+        const desiredState = {
+          state: gameStates.SHOWING_CORRECT_ANSWERS,
+          currentQuestionIndex: game.currentQuestionIndex,
+        };
+        nudgeGame({gameId, desiredState});
+      }
+      setTimeLeft(timeLeft);
     }
-  }, [localCounter, game.startTime, game.currentQuestionIndex, game.timePerAnswer, game.timePerQuestion, isShowingCorrectAnswers]);
-
-  // game leader nudge
-  useEffect(() => {
-    // whenever the game state or question changes
-    // make a timeout to progress the question
-    if (authUser.uid === game.leader.uid) {
-      const timeoutIdTwo = setTimeout(() => nudgeGame({gameId}), timeLeft * 1000);
-      // clear timeout on re-render to avoid memory leaks
-      return () => clearTimeout(timeoutIdTwo);
-    }
-  }, [timeLeft, game.state, game.currentQuestionIndex, gameId, game.leader.uid, authUser.uid]);
-
-  // game player nudge
-  useEffect(() => {
-    if (timeLeft % 2 < -1) {
-      nudgeGame({gameId});
-    }
-  }, [timeLeft, gameId]);
+  }, [localCounter, game.currentQuestionStartTime, game.currentQuestionIndex, game.timePerAnswer, game.timePerQuestion, isShowingCorrectAnswers, game.state, game.leader.uid, game.questionAdvancement, authUser.uid, gameId]);
 
   useEffect(() => {
     // save timeoutIdOne to clear the timeout when the

@@ -19,7 +19,7 @@
 import {gamesRef, questionsRef} from '@/app/lib/firebase-server-initialization';
 import {generateName} from '@/app/lib/name-generator';
 import {Game, GameSettings, Question, QuestionSchema, Tokens, gameStates} from '@/app/types';
-import {QueryDocumentSnapshot, Timestamp} from 'firebase-admin/firestore';
+import {QueryDocumentSnapshot} from 'firebase-admin/firestore';
 import {GameSettingsSchema} from '@/app/types';
 import {validateTokens} from '@/app/lib/server-token-validator';
 
@@ -51,17 +51,16 @@ export async function createGameAction({gameSettings, tokens}: {gameSettings: Ga
     uid: authUser.uid,
   };
 
-  const startTime = Timestamp.now();
-
-  const newGame: Game= {
+  const newGame: Game = {
     questions,
     leader,
     players: {},
     state: gameStates.NOT_STARTED,
     currentQuestionIndex: 0,
-    startTime,
     timePerQuestion: timePerQuestion + 1, // add one for padding between questions
     timePerAnswer: timePerAnswer + 1, // add one for padding between questions
+    questionAdvancement: 'AUTOMATIC',
+    currentQuestionStartTime: {seconds: 0},
   };
 
   const gameRef = await gamesRef.add(newGame);

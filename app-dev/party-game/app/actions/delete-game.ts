@@ -17,7 +17,7 @@
 'use server';
 
 import {gamesRef} from '@/app/lib/firebase-server-initialization';
-import {GameIdSchema, Tokens} from '@/app/types';
+import {GameIdSchema, GameSchema, Tokens} from '@/app/types';
 import {validateTokens} from '@/app/lib/server-token-validator';
 
 export async function deleteGameAction({gameId, tokens}: {gameId: string, tokens: Tokens}) {
@@ -28,7 +28,7 @@ export async function deleteGameAction({gameId, tokens}: {gameId: string, tokens
 
   const gameRef = await gamesRef.doc(gameId);
   const gameDoc = await gameRef.get();
-  const game = gameDoc.data();
+  const game = GameSchema.parse(gameDoc.data());
 
   if (game.leader.uid !== authUser.uid) {
     // Respond with JSON indicating no game was found
