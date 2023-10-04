@@ -31,8 +31,7 @@ export let appCheck: AppCheck;
 if (typeof window !== 'undefined') {
   // Create a ReCaptchaEnterpriseProvider instance using your reCAPTCHA Enterprise
   // site key and pass it to initializeAppCheck().
-  // @ts-expect-error
-  self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  // self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
   appCheck = initializeAppCheck(app, {
     provider: new ReCaptchaEnterpriseProvider('6Lc3JP8nAAAAAPrX4s-HwUT8L-k_aMtbKGhJEq_0'),
     isTokenAutoRefreshEnabled: true, // Set to true to allow auto-refresh.
