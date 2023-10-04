@@ -18,7 +18,7 @@
 
 import {Game, GameStateUpdate, gameStates, questionAdvancements} from '@/app/types';
 import {DocumentReference, Timestamp} from 'firebase/firestore';
-import {useEffect, useState} from 'react';
+import {useEffect, useState, useCallback} from 'react';
 import useFirebaseAuthentication from '@/app/hooks/use-firebase-authentication';
 import {nudgeGameAction} from '@/app/actions/nudge-game';
 import {getTokens} from '@/app/lib/client-token-generator';
@@ -32,7 +32,7 @@ export default function BorderCountdownTimer({game, children, gameRef}: { game: 
   const isShowingCorrectAnswers = game.state === gameStates.SHOWING_CORRECT_ANSWERS;
   const timeToCountDown = isShowingCorrectAnswers ? game.timePerAnswer : game.timePerQuestion;
 
-  const nudgeGame = async ({gameId, desiredState}: { gameId: string, desiredState: GameStateUpdate }) => {
+  const nudgeGame = useCallback(async ({gameId, desiredState}: { gameId: string, desiredState: GameStateUpdate }) => {
     if (game.state === desiredState.state && game.currentQuestionIndex === desiredState.currentQuestionIndex) return;
     // all times are in seconds unless noted as `InMillis`
     const timeElapsedInMillis = Timestamp.now().toMillis() - game.currentStateStartTime.seconds * 1000;
@@ -41,22 +41,12 @@ export default function BorderCountdownTimer({game, children, gameRef}: { game: 
       const tokens = await getTokens();
       nudgeGameAction({gameId, desiredState, tokens});
     }
-  };
+  }, [authUser.uid, game.currentQuestionIndex, game.currentStateStartTime.seconds, game.leader.uid, game.state]);
 
   useEffect(() => {
     // all times are in seconds unless noted as `InMillis`
     const timeElapsedInMillis = Timestamp.now().toMillis() - game.currentStateStartTime.seconds * 1000;
     const timeElapsed = timeElapsedInMillis / 1000;
-    const nudgeGame = async ({gameId, desiredState}: { gameId: string, desiredState: GameStateUpdate }) => {
-      if (game.state === desiredState.state && game.currentQuestionIndex === desiredState.currentQuestionIndex) return;
-      // all times are in seconds unless noted as `InMillis`
-      const timeElapsedInMillis = Timestamp.now().toMillis() - game.currentStateStartTime.seconds * 1000;
-      const timeElapsed = timeElapsedInMillis / 1000;
-      if (authUser.uid === game.leader.uid && timeElapsed > 2) {
-        const tokens = await getTokens();
-        nudgeGameAction({gameId, desiredState, tokens});
-      }
-    };
     const isShowingCorrectAnswers = game.state === gameStates.SHOWING_CORRECT_ANSWERS;
 
     if (isShowingCorrectAnswers) {
@@ -80,7 +70,7 @@ export default function BorderCountdownTimer({game, children, gameRef}: { game: 
       }
       setTimeLeft(timeLeft);
     }
-  }, [localCounter, game.currentStateStartTime, game.currentQuestionIndex, game.timePerAnswer, game.timePerQuestion, isShowingCorrectAnswers, game.state, game.leader.uid, game.questionAdvancement, authUser.uid, gameId]);
+  }, [localCounter, game.currentStateStartTime, game.currentQuestionIndex, game.timePerAnswer, game.timePerQuestion, isShowingCorrectAnswers, game.state, game.leader.uid, game.questionAdvancement, authUser.uid, gameId, nudgeGame]);
 
   useEffect(() => {
     // save timeoutIdOne to clear the timeout when the
