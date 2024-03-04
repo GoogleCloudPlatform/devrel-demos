@@ -32,7 +32,9 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
 
 const (
@@ -48,11 +50,13 @@ var (
 )
 
 // newResource returns a OpenTelemetry resource object of the service
-/*
 func newResource(name, version, env string) (*resource.Resource, error) {
 	return resource.New(
 		context.Background(),
-		resource.WithDetectors(gcp.NewDetector()),
+		// TODO(yoshifumi): Check how GCP detector works with exemplars.
+		// Using detector disables sending metrics with exemplar to the Cloud Monitoring.
+		//
+		// resource.WithDetectors(gcp.NewDetector()),
 		resource.WithTelemetrySDK(),
 		resource.WithAttributes(
 			semconv.ServiceNameKey.String(name),
@@ -61,7 +65,6 @@ func newResource(name, version, env string) (*resource.Resource, error) {
 		),
 	)
 }
-*/
 
 func initTracer() (*sdktrace.TracerProvider, error) {
 	e := os.Getenv("OTLP_ENDPOINT")
@@ -82,15 +85,15 @@ func initTracer() (*sdktrace.TracerProvider, error) {
 	if sname == "" {
 		sname = ServiceName
 	}
-	// res, err := newResource(sname, "1.0.0", "demo")
-	// if err != nil {
-	//		log.Printf("failed to create resource: %v", err)
-	//	return nil, err
-	//}
+	res, err := newResource(sname, "1.0.0", "demo")
+	if err != nil {
+		log.Printf("failed to create resource: %v", err)
+		return nil, err
+	}
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithBatcher(exporter),
-		//sdktrace.WithResource(res),
+		sdktrace.WithResource(res),
 	)
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
@@ -115,16 +118,16 @@ func initMeter() (*sdkmetric.MeterProvider, error) {
 	if sname == "" {
 		sname = ServiceName
 	}
-	//res, err := newResource(sname, "1.0.0", "demo")
-	//if err != nil {
-	//	return nil, err
-	//}
+	res, err := newResource(sname, "1.0.0", "demo")
+	if err != nil {
+		return nil, err
+	}
 	mp := sdkmetric.NewMeterProvider(
-		//sdkmetric.WithResource(res),
 		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(
 			exporter,
 			sdkmetric.WithInterval(1*time.Minute),
 		)),
+		sdkmetric.WithResource(res),
 	)
 	otel.SetMeterProvider(mp)
 	return mp, nil

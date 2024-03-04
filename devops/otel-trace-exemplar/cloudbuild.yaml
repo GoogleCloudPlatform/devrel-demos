@@ -36,16 +36,8 @@ steps:
       - BUILD_OTEL_CONTAINER
 
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    entrypoint: gcloud
-    args:
-      [
-        "run",
-        "services",
-        "replace",
-        "multicontainers.yaml",
-        "--region",
-        "asia-east1",
-      ]
+    script: |
+      gcloud run services replace multicontainers.yaml --region asia-east1
     id: DEPLOY_MULTICONTAINER
     waitFor:
       - PUSH_MAIN_CONTAINER
