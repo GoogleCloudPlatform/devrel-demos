@@ -25,7 +25,7 @@ spec:
         run.googleapis.com/execution-environment: gen2
     spec:
       containers:
-        - image: asia-east1-docker.pkg.dev/yoshifumi-demo/demo-container/recursive:latest
+        - image: ${YOUR_CONTAINER_REGISTRY_NAME}/recursive:latest
           env:
             - name: OTEL_GO_X_EXEMPLAR
               value: "true"
@@ -33,7 +33,7 @@ spec:
               value: "always_on"
           ports:
             - containerPort: 8080
-        - image: asia-east1-docker.pkg.dev/yoshifumi-demo/demo-container/otelsidecar:latest
+        - image: ${YOUR_CONTAINER_REGISTRY_NAME}/otelsidecar:latest
           resources:
             limits:
               cpu: 1000m

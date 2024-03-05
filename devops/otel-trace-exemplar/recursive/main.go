@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"time"
 
+	"go.opentelemetry.io/contrib/detectors/gcp"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -53,10 +54,9 @@ var (
 func newResource(name, version, env string) (*resource.Resource, error) {
 	return resource.New(
 		context.Background(),
-		// TODO(yoshifumi): Check how GCP detector works with exemplars.
-		// Using detector disables sending metrics with exemplar to the Cloud Monitoring.
-		//
-		// resource.WithDetectors(gcp.NewDetector()),
+		// Using resource detector changes the target monitored resource name from
+		// generic node to generic task.
+		resource.WithDetectors(gcp.NewDetector()),
 		resource.WithTelemetrySDK(),
 		resource.WithAttributes(
 			semconv.ServiceNameKey.String(name),
