@@ -1,3 +1,17 @@
+# Copyright 2024 Google LLC
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     https://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 This code must be executed in the Raspberry Pi that mounts Pixel phone.
 """
@@ -55,8 +69,9 @@ def monitor_and_upload():
             file_path = str(latest_file.absolute())  # Convert Path to string for file operations
             print(f"New file detected: {file_path}")
             print(f"File size: {os.path.getsize(file_path)}")
+            dst_name = latest_file.name.split("_")[0]
 
-            upload_file_to_gcs(file_path, latest_file.name)
+            upload_file_to_gcs(file_path, dst_name + ".MP4")
             existing_files[latest_file.name] = latest_file.stat().st_mtime  # Update existing files
         else:
             print("No new file detected. Waiting...")

@@ -1,3 +1,17 @@
+# Copyright 2024 Google LLC
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     https://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 This is the code for Cloud function.
 """
@@ -10,9 +24,9 @@ from time import time
 from google.cloud import bigquery, storage
 
 # Pre-defined position of the golf ball.
-BALL = (945, 910, 47, 45)
+BALL = (219, 605, 19, 17)
 # Pre-defined position of the hole.
-HOLE = (1013, 3052, 35, 56)
+HOLE = (1428, 568, 32, 26)
 
 BIGQUERY_DATASET_ID = "ball_track"
 BIGQUERY_TABLE_ID = "test_table"
