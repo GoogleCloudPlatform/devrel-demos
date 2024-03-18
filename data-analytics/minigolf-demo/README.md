@@ -1,15 +1,15 @@
-# Gemini Golf
-This repository contains the code for the Gemini Golf demo, an interactive mini-golf experience that showcases a new approach to broadcasting the sport.
+# Golf with Gemini
+This repository contains the code for the `Golf with Gemini` demo, an interactive mini-golf experience that showcases a new approach to broadcasting the sport.
 
 ## Project Overview
-Gemini Golf utilizes live data visualization and analysis to enhance the spectating experience. The system captures gameplay data through a GoPro camera and processes it using OpenCV and Python. This data drives two key features:
+`Golf with Gemini` utilizes live data visualization and analysis to enhance the spectating experience. The system captures gameplay data through a GoPro camera and processes it using OpenCV and Python. This data drives two key features:
 
 - AI-Powered Announcer: Gemini, a large language model, provides real-time commentary based on the player's performance, offering insights and observations in a professional sportscaster style.
 - Personalized User Dashboard: A user-friendly dashboard visualizes key gameplay data, including shot heatmap and relevant statistics.
 
 ## Technical Details
-- Data Capture: Gameplay is recorded using a GoPro camera and transferred wirelessly to a Pixel phone via the Quik app.
-- Data Processing: The video is downloaded to the Pixel phone and uploaded to a cloud bucket by a Raspberry Pi. A cloud function analyzes the video frame-by-frame using OpenCV to detect the ball and hole locations, calculating distances.
+- Data Capture: Gameplay is recorded using a GoPro camera and transferred to a Pixel phone.
+- Data Processing: The downloaded video is transferred to a Raspberry Pi and uploaded to a cloud bucket. A cloud function analyzes the video frame-by-frame using OpenCV to detect the ball and hole locations, calculating distances.
 - AI Announcer: The analysis data is used as input for Gemini, which generates real-time commentary based on the player's performance.
 - User Dashboard: The analysis data is also used to populate a user-friendly dashboard with visualizations and statistics.
 
@@ -34,4 +34,3 @@ To run the demo, follow these steps:
 
 ## License
 This project is licensed under the Apache License, Version 2.0. See the LICENSE file for details.
-
