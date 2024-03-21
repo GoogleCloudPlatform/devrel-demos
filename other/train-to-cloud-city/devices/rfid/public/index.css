@@ -1,0 +1,10 @@
+body {
+  font-family: "monospace";
+}
+
+.adminPanel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  margin: 10px auto;
+}

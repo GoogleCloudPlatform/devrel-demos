@@ -1,0 +1,127 @@
+/**
+ * Copyright 2024 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.trainContainer {
+  position: relative;
+}
+
+.cloudTrain {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.container {
+  position: relative;
+  overflow: hidden;
+}
+
+.content {
+  position: relative;
+  height: 100px;
+  overflow: hidden;
+  border: 5px solid var(--melanzane);
+  background: var(--lemonGrass);
+}
+
+.track {
+  position: relative;
+  width: 200em;
+  height: 5px;
+  background-color: #333;
+}
+
+.track:before {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 5px;
+  background-color: #333;
+  top: 4px;
+  box-shadow:
+    20px 0 #333,
+    -20px 0 #333,
+    -40px 0 #333,
+    -60px 0 #333,
+    -80px 0 #333,
+    40px 0 #333,
+    60px 0 #333,
+    80px 0 #333,
+    100px 0 #333,
+    120px 0 #333,
+    140px 0 #333,
+    160px 0 #333,
+    180px 0 #333,
+    200px 0 #333,
+    220px 0 #333,
+    240px 0 #333,
+    260px 0 #333,
+    280px 0 #333,
+    300px 0 #333,
+    320px 0 #333,
+    340px 0 #333,
+    360px 0 #333,
+    380px 0 #333,
+    400px 0 #333,
+    420px 0 #333,
+    440px 0 #333,
+    -100px 0 #333,
+    -120px 0 #333,
+    -140px 0 #333,
+    460px 0 #333,
+    480px 0 #333;
+  animation: move 1s linear infinite reverse;
+}
+
+@keyframes move {
+  from {
+    left: -100px;
+  }
+  to {
+    left: 100px;
+  }
+}
+
+.train {
+  position: relative;
+  width: 50px;
+  height: 70px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  z-index: 1;
+  top: 7px;
+}
+
+.train.station {
+  left: 0%;
+}
+
+.train.one {
+  left: 25%;
+}
+
+.train.two {
+  left: 45%;
+}
+
+.train.three {
+  left: 65%;
+}
+
+.train.four {
+  left: 85%;
+}
