@@ -20,12 +20,15 @@
   --lemonGrass: #a0a08b;
   --lilyWhite: #e9efec;
   --darkOrange: #ff8100;
-
+  --cinnabar: #E94434;
+  --dodgerblue: #4286F5;
+  --selectiveyellow: #FBBB06;
+  --eucalyptus: #34A752;
 }
 
 body {
-  background-color: var(--melanzane);
-  color: var(--lilyWhite);
+  background-color: var(--lilyWhite);
+  color: var(--melanzane);
   font-family: monospace;
   margin: 0;
 }

@@ -43,6 +43,7 @@ const Train = (props) => {
 
   return (
     <div className="trainContainer">
+      <div className="cloudTrain"></div>
       <div className="container">
         <div className="content">
           <div className={trainClasses}>

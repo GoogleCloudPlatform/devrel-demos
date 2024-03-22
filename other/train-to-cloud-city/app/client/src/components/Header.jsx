@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import React from "react";
+import Ribbon from './Ribbon';
 import "./styles/Header.css";
 
 /**
@@ -23,12 +24,8 @@ import "./styles/Header.css";
 const Header = () => {
   return (
     <div className="headerContainer">
-      <h1>🚂 Train to Cloud City 🛤️</h1>
-      <div className="headerContent">
-        Welcome stranger! Help us explore Cloud City and should you choose
-        to join us, we promise a wealth of knowledge at the end of this
-        mission. Begin your quest by selecting a mission below.
-      </div>
+      <div className="headerBanner"></div>
+      <Ribbon />
     </div>
   );
 };

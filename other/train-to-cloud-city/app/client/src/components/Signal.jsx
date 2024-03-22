@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import React from "react";
-import Station from "../assets/station.svg";
+import Station from "../assets/Station.png";
 import "./styles/Signal.css";
 
 /**

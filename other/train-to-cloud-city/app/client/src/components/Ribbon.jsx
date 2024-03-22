@@ -13,27 +13,25 @@
 // limitations under the License.
 
 import React from "react";
-import Car from "../assets/TrainCar.png";
-import FrontCar from "../assets/FrontTrain.png";
-import "./styles/TrainCoach.css";
+import "./styles/Ribbon.css";
 
 /**
- * TrainCoach
+ * Ribbon
  * -----------------
  *
  */
-const TrainCoach = (props) => {
-  const { name } = props;
-
+const Ribbon = () => {
   return (
-    <div className="trainCoachContainer">
-      <div className="trainCoachWrapper">
-        <div className="coach">
-          {name === "front" ? <img alt="FrontCar" src={FrontCar} /> : <img alt="Car" src={Car} />}
-        </div>
+    <div className="ribbonContainer">
+      <div className="ribbon">
+        <div className="blue"></div>
+        <div className="red"></div>
+        <div className="yellow"></div>
+        <div className="green"></div>
       </div>
     </div>
   );
 };
 
-export default TrainCoach;
+export default Ribbon;
+

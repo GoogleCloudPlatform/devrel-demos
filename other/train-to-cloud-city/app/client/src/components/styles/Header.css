@@ -15,21 +15,19 @@
  */
 
 .headerContainer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   text-align: center;
   color: var(--melanzane);
-  background: var(--lilyWhite);
-  border: 5px solid var(--lemonGrass);
-  border-inline: 7px solid var(--lilyWhite);
-  flex-direction: column;
+  height: 145px;
+  width: 100%;
 }
 
-.headerContent {
+.headerBanner {
   display: flex;
   align-items: center;
   justify-content: center;
-  max-width: 500px;
-  padding: 10px;
+  height: 100px;
+  width: 100%;
+  background-image: url(../../assets/Banner.png);
+  background-size: cover;
 }

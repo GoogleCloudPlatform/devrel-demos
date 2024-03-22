@@ -18,6 +18,7 @@ import ControlPanel from "./ControlPanel";
 import QuizForm from "./QuizForm";
 import Train from "./Train";
 import Signal from "./Signal";
+import Ribbon from "./Ribbon";
 import "./styles/Dashboard.css";
 
 /**
@@ -68,6 +69,7 @@ const Dashboard = (props) => {
           </div>
         )}
       </div>
+      <Ribbon />
     </div>
   );
 };
