@@ -35,8 +35,13 @@ const Dashboard = (props) => {
   return (
     <div className="dashboardContainer">
       <div className="dashboardWrapper">
+        {!isSimulator && (
+          <div className="dashboardPanel">
+            <h3>{`Your Mission: ${selectedPattern?.name}`}</h3>
+            {selectedPattern && <QuizForm services={services} selectedPattern={selectedPattern} />}
+          </div>
+        )}
         <div className="dashboardPanel">
-          <Train train={train} />
           <div className="columns">
             <Signal isStation={true} trainLocation={train?.actual_location} />
             <Signal
@@ -56,18 +61,13 @@ const Dashboard = (props) => {
               signal={signals?.four}
             />
           </div>
+          <Train train={train} />
           <ControlPanel
             worldState={worldState}
             proposal={proposal}
             proposal_result={proposal_result}
           />
         </div>
-        {!isSimulator && (
-          <div className="dashboardPanel">
-            <h3>{`Your Mission: ${selectedPattern?.name}`}</h3>
-            {selectedPattern && <QuizForm services={services} selectedPattern={selectedPattern} />}
-          </div>
-        )}
       </div>
       <Ribbon />
     </div>

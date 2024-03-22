@@ -14,6 +14,9 @@
 
 import React from "react";
 import Station from "../assets/station.png";
+import SignalGreen from "../assets/signal-green.svg";
+import SignalYellow from "../assets/signal-yellow.svg";
+import SignalRed from "../assets/signal-red.svg";
 import "./styles/Signal.css";
 
 /**
@@ -44,20 +47,22 @@ const Signal = (props) => {
         ? "light green blinking"
         : "light green";
 
+  console.log(actual_state);
+
   return (
     <div className="signalContainer">
-      <div className={locationClasses}></div>
       {isStation ? (
         <div className="stationCheckpoint">
           <img alt="Station" src={Station} />
         </div>
       ) : (
         <div className="signal">
-          <div className={redLightClasses}></div>
-          <div className={greenLightClasses}></div>
-          <div className={"light yellow"}></div>
+          {actual_state === 'stop' && <img alt="SignalRed" src={SignalRed} />}
+          {actual_state === 'clear' && <img alt="SignalGreen" src={SignalGreen} />}
         </div>
       )}
+      <div className={locationClasses}></div>
+
     </div>
   );
 };
