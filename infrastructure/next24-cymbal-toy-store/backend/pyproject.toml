@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "backend"
+version = "0.1.0"
+description = ""
+authors = ["Guido Rainuzzo <guido@rainuzzo.com>"]
+readme = "README.md"
+packages = [{include = "backend", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+starlette = "^0.31.0"
+uvicorn = "^0.23.2"
+cloud-sql-python-connector = {extras = ["pg8000"], version = "^1.4.0"}
+google-cloud-secret-manager = "^2.16.3"
+sqlalchemy = "^2.0.19"
+langchain = "^0.0.261"
+jinja2 = "^3.1.2"
+google-cloud-aiplatform = "^1.30.0"
+python-dotenv = "^1.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
