@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="b" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" width="147.679" height="61.149" viewBox="0 0 147.679 61.149">
+  <g id="c" data-name="BUBBLE02">
+    <g>
+      <g>
+        <rect x="15.239" y="2" width="125.43" height="51.37" fill="#000" stroke-width="0"/>
+        <rect x="11.639" y="5.68" width="132.62" height="44.02" fill="#000" stroke-width="0"/>
+        <rect x="8.229" y="9.37" width="139.45" height="36.64" fill="#000" stroke-width="0"/>
+      </g>
+      <g>
+        <rect x="8.169" y="45.36" width="7.27" height="8.07" fill="#000" stroke-width="0"/>
+        <rect x="5.219" y="49.45" width="7.27" height="8.07" fill="#000" stroke-width="0"/>
+        <rect x="2.419" y="53.879" width="5.59" height="7.27" fill="#000" stroke-width="0"/>
+      </g>
+      <g>
+        <g>
+          <rect x="12.819" width="125.43" height="51.37" fill="#fff" stroke-width="0"/>
+          <rect x="9.229" y="3.68" width="132.62" height="44.02" fill="#fff" stroke-width="0"/>
+          <rect x="5.809" y="7.37" width="139.45" height="36.64" fill="#fff" stroke-width="0"/>
+        </g>
+        <g>
+          <rect x="5.749" y="43.36" width="7.27" height="8.07" fill="#fff" stroke-width="0"/>
+          <rect x="2.799" y="47.45" width="7.27" height="8.07" fill="#fff" stroke-width="0"/>
+          <rect y="51.874" width="5.59" height="7.27" fill="#fff" stroke-width="0"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

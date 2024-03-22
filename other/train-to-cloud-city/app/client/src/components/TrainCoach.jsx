@@ -13,8 +13,8 @@
 // limitations under the License.
 
 import React from "react";
-import Car from "../assets/TrainCar.png";
-import FrontCar from "../assets/FrontTrain.png";
+import Car from "../assets/train-car.png";
+import FrontCar from "../assets/train-engine.png";
 import "./styles/TrainCoach.css";
 
 /**
