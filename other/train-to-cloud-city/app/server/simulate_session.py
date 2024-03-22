@@ -18,12 +18,12 @@ import train_types
 from google.cloud import firestore
 from fastapi.encoders import jsonable_encoder
 
-PROJECT = "train-to-cloud-city-4"
+PROJECT = "train-to-cloud-city-5"
 COLLECTION = "global_simulation"
 STEP_SEC = 5
 
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(message)s')
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 log = logging.info
 
 def sleep(duration):
@@ -39,14 +39,9 @@ def change(doc, data):
 
 train=train_types.Train(
         actual_location=train_types.LOCATION["STATION"],
-        target_location=train_types.LOCATION["STATION"],
-        actual_state="unknown",
     )
 cargo = train_types.Cargo(actual_cargo=list())
 signals={s.slug: s for s in train_types.SIGNALS}
-pattern_slug="medium_complexity"
-proposal=None
-proposal_result=None
 
 
 log("connecting to DB")
@@ -56,6 +51,9 @@ global_ref = db.collection(COLLECTION)
 while True:
     log("set starting world state")
     
+    global_ref.document("train_mailbox").set({"input" : None, "doc_valid_commands" : ["do_check_cargo", "do_victory_lap"]})
+    global_ref.document("session_mailbox").set({"input" : None, "doc_valid_commands" : ["reset", "check_pattern"]})
+
     cargo_doc = global_ref.document("cargo")
     cargo_doc.set(cargo.model_dump(mode="json"))
 
@@ -67,10 +65,11 @@ while True:
 
     proposal_doc = global_ref.document("proposal")
     proposal_doc.set({"pattern_slug":None, "proposal_result":None})
-    # print(db.collection("global").document("proposal").get().to_dict()["pattern_slug"])
-
 
     sleep(STEP_SEC)    
+
+
+    log("start simulation activity")
     change(proposal_doc, {"pattern_slug":"pattern_d"})
     
     sleep(STEP_SEC)
@@ -105,15 +104,13 @@ while True:
     change(signals_doc, {"four.actual_state" : "clear"})
 
     sleep(STEP_SEC)
-    change(train_doc, {"target_location" : "one"})
+    change(train_doc, {"actual_location" : "one"})
     sleep(STEP_SEC)
-    change(train_doc, {"target_location" : "two", "actual_location" : "one"})
+    change(train_doc, {"actual_location" : "two"})
     sleep(STEP_SEC)
-    change(train_doc, {"target_location" : "three", "actual_location" : "two"})
+    change(train_doc, {"actual_location" : "three"})
     sleep(STEP_SEC)
-    change(train_doc, {"target_location" : "four", "actual_location" : "three"})
-    sleep(STEP_SEC)
-    change(train_doc, {"target_location" : "station", "actual_location" : "four"})
+    change(train_doc, {"actual_location" : "four"})
     sleep(STEP_SEC)
     change(train_doc, {"actual_location" : "station"})
 

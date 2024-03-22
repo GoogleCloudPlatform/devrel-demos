@@ -15,7 +15,6 @@
 from typing import Union, List, Dict, Tuple, Optional
 from pydantic import BaseModel, Field
 import json
-import enum
 
 class Service(BaseModel):
     slug: str
@@ -192,8 +191,8 @@ SIGNALS = [
 
 class Train(BaseModel):
     actual_location: str
-    target_location: str
-    actual_state: str  # "running" or "stopped"
+    actual_state: str = Field(default="at_station")
+    doc_valid_states: List[str] = Field(default=["at_station", "checking_cargo", "victory_lap"])
 
 class Cargo(BaseModel):
     actual_cargo: List[str]
