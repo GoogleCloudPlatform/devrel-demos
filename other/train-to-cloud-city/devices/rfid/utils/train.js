@@ -34,7 +34,13 @@ function initTrain() {
 
 async function getMotor() {
   const hubs = poweredUP?.getHubs();
-  const motor = await hubs[0].waitForDeviceAtPort("A");
+  let motor;
+
+  try {
+    motor = await hubs[0].waitForDeviceAtPort("A");
+  } catch(error) {
+    console.log(error);
+  }
   return motor;
 }
 

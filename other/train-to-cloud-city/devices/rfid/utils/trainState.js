@@ -26,12 +26,13 @@ let holdCargo = [];
 /**
  * readTrain
  * ----------------------
- * TODO: To replace checkpointCrossed
  */ 
 async function readTrain(chunk, checkpoint) { 
+  console.log(`--- checkpoint `, checkpoint);
   // This could be separate before the game begins
   //const patternSelected = rfid; (after backcar)
   const tagId = new String(chunk);
+  
   // TODO: Replace with calls to firestore
   const frontCar = '\x02330035AD1EB5\r';
   const backCar = '\x03\x023300348E9019\r';
@@ -43,6 +44,7 @@ async function readTrain(chunk, checkpoint) {
   // MIDDLE: In the middle of train, store cargo chunk and continue on
   if(isCargo && beginReading) {
     holdCargo.push(chunk);
+    console.log('--- pushing cargo ', chunk);
     return;
   }
 
@@ -61,17 +63,17 @@ async function readTrain(chunk, checkpoint) {
   // BACK: At tailend of train, wrap up and send read cargo to firestore
   if(isBackCar) {
     console.log('------ is back');
-    beginReading = false
-    actual_cargo = holdCargo
-    holdCargo = []; // clear holding cargo
-
+    beginReading = false;
+    
     // TODO: save actual_cargo to firestore
     // TODO: pubsub metric to log beginning game (for event)
     // Verification happens at the station (checkpoint 0)
     if(checkpoint === 0) {
+      console.log('---- updatecargos ', JSON.stringify(holdCargo));
+      
       Promise.all([
         updateCargos(holdCargo),
-        // validateCargo(holdCargo, 0)
+        validateCargo(holdCargo, 0)
       ])
         .then((res) => {
           console.log(JSON.stringify(res));
@@ -79,6 +81,10 @@ async function readTrain(chunk, checkpoint) {
         .catch((error) => {
           console.error(error);
         });
+    
+      // clear holding cargo
+      holdCargo = [];
+      
       // TODO: set signal lights
     }
   }
@@ -88,14 +94,14 @@ async function readTrain(chunk, checkpoint) {
  * getMatchingService
  * ----------------------
  */
-async function getMatchingService(docId) {
+async function getMatchingService(id) {
   const serviceRef = db.collection("tags");
   let services = [];
   
   try {
     const snapshot = await serviceRef.get();
     snapshot.docs.forEach((doc) => {
-      const chunk = new String(docId.chunk);
+      const chunk = new String(id?.chunk);
       const docId = new String(doc.id);
       if (chunk.includes(docId)) {
         services.push(doc.data());
@@ -121,12 +127,15 @@ async function updateCargos(chunks) {
 
   chunks?.forEach(async chunk => {
     const buffer = Buffer.from(JSON.stringify({ chunk }));
-    const docId = JSON.parse(buffer.toString());
-    
+    const id = JSON.parse(buffer.toString());
+  
+    console.log(id);
+
     // Match read rfid chunk with correct service
-    const matchingService = await getMatchingService(docId);
-    
-    cargos.push(matchingService);
+    const matchingService = await getMatchingService(id);
+   
+    console.log(matchingService);
+    matchingService && cargos.push(matchingService);
   });
 
   console.log(cargos);
@@ -135,7 +144,7 @@ async function updateCargos(chunks) {
   const ref = db.collection("global").doc("cargo");
 
   try {
-    await ref.update({ actual_cargo: cargos}, { merge: false });
+    await ref.update({ actual_cargo: cargos}, { merge: true });
     console.log(`Cargos read ${JSON.stringify(cargos)}`);
   } catch(error) {
     console.error(error);
@@ -169,44 +178,29 @@ async function updateLocation(chunk, index = 0) {
  * index -> step train is on
  */
 async function validateCargo(cargos) {
-  //const ref = db.collection("global").doc("world");
+  const proposalRef = db.collection("global").doc("proposal");
 
-    /**
+  // TODO: Check train mailbox (listener on mailbox)
+  // Retrieve proposal result too?
+  /*
   try {
-    const snapshot = await ref.get();
-    const { train } = snapshot.data();
-    const nextStop = train.actual_location > 2 ? 0 : train.actual_location + 1; // checkpoints 0 -> 3
-    // TODO: Add in here the code to connect with validation api to pass actual cargo
-     * const response = await fetch(......)
-     *
-     * if (response.status === 200) {
-     *   // update actual_cargo
-     *   // update target_location to 0 ---> move all the way around the track
-     * } else {
-     *   const { erroredCheckpoint } = response;
-     *   // update target_location to erroredCheckpoint marker
-     *   // train should move forward and then move back to station with red signal lights
-     * }
-     */
-    /*const trainUpdate = {
-      train: {
-        ...train,
-        target_location: 3,
-      },
-    };
-    // Update new target location after successful validation
-    await ref.update(trainUpdate, { merge: true });
-    console.log(`Target location for train is checkpoint ${nextStop}.`);
+    const snapshot = await proposalRef.get();
+    const { proposal_result } = snapshot.data();
+    
+    // TODO: If proposal result is successful (victory lap, set signal lights green)
+    // The game session is completed
+    // if not, the game is still going.
+    // (move back to station, set signal lights green up to missing step)
+
+    console.log(`Proposal result is  ${JSON.stringify(proposal_result)}.`);
   } catch(error) {
     console.error(error);
-  }
-  */
+  }*/
 }
 
 module.exports = {
   readTrain,
   validateCargo,
-  getTrainMovement,
   updateLocation,
   updateCargos
 };
