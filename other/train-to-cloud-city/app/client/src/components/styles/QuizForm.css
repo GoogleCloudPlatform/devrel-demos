@@ -24,6 +24,7 @@
   padding: 10px;
   background: var(--lilyWhite);
   color: var(--melanzane);
+  margin-bottom: 10px;
 }
 
 form#missionForm,

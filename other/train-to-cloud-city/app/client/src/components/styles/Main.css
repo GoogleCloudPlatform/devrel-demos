@@ -21,7 +21,6 @@
   text-align: center;
   flex-direction: column;
   margin: auto;
-  min-height: 800px;
   font-family: var(--font);
   font-size: larger;
 }

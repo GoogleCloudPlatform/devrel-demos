@@ -13,12 +13,16 @@
 // limitations under the License.
 
 import React from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import ControlPanel from "./ControlPanel";
 import QuizForm from "./QuizForm";
 import Train from "./Train";
 import Signal from "./Signal";
 import Ribbon from "./Ribbon";
+import {
+  stopMission,
+  resetMission
+} from "../actions/coreActions";
 import "./styles/Dashboard.css";
 
 /**
@@ -28,9 +32,22 @@ import "./styles/Dashboard.css";
  */
 const Dashboard = (props) => {
   const state = useSelector((state) => state);
+  const dispatch = useDispatch();
   const { isSimulator } = props;
   const { services, selectedPattern, worldState } = state.coreReducer;
   const { cargo, proposal, session_mailbox, signals, train, train_mailbox } = worldState;
+
+  // Stop and reset whole mission
+  const handleStopMission = (event) => {
+    dispatch(stopMission());
+    window.location.replace('/');
+  };
+ 
+  // Keeps selected mission/pattern
+  // Removes previously selected cargo
+  const handleResetMission = (event) => {
+    dispatch(resetMission());
+  };
 
   return (
     <div className="dashboardContainer">
@@ -69,6 +86,10 @@ const Dashboard = (props) => {
           <Train train={train} />
           <ControlPanel worldState={worldState} />
         </div>
+      </div>
+      <div className="actionPanel">
+        <button className="stop" onClick={handleStopMission}>Stop Mission</button>
+        <button className="reset" onClick={handleResetMission}>Reset Mission</button>
       </div>
       <Ribbon />
     </div>

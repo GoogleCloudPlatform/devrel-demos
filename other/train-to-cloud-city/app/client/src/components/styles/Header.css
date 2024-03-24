@@ -29,4 +29,5 @@
   background-image: url(../../assets/banner.svg);
   background-size: cover;
   background-repeat: no-repeat;
+  background-position: center;
 }

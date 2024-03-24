@@ -23,7 +23,7 @@ import firebaseInstance from "../Firebase";
  * -----------------
  */
 export const getServices = createAsyncThunk("getServices", async () => {
-  const ref = firebaseInstance.db.collection("services_by_category");
+  const ref = firebaseInstance.db.collection("services");
   const services = await ref.get().then((querySnapshot) => {
     let serviceList = [];
     querySnapshot.docs.forEach(doc => serviceList.push(`${doc.id}`));
@@ -123,6 +123,42 @@ export const updateSelectedPattern = createAsyncThunk(
     const selectedPattern = await ref.update({ pattern_slug: pattern?.slug });
     
     return { selectedPattern: pattern };
+  });
+
+/**
+ * -----------------
+ * resetMission
+ * -----------------
+ * Solely resets chosen cargo, keeps the previously
+ * selected mission
+ */
+export const resetMission = createAsyncThunk("resetMission",async () => {
+    const cargoRef = firebaseInstance.db.collection("global").doc("cargo");
+    let result;
+
+    try {
+      result = await cargoRef.update({ actual_cargo: [] });
+    } catch(error) {
+      console.log(error);
+    }
+
+    return result;
+  });
+
+/**
+ * -----------------
+ * stopMission
+ * -----------------
+ * Resets entire game and redirect user to homebase
+ */
+export const stopMission = createAsyncThunk("stopMission", async () => {
+    const cargoRef = firebaseInstance.db.collection("global").doc("cargo");
+    const patternRef = firebaseInstance.db.collection("global").doc("proposal");
+    
+    return Promise.all([
+      cargoRef.update({ actual_cargo: [] }),
+      patternRef.update({ pattern_slug: "" })
+    ]);
   });
 
 
