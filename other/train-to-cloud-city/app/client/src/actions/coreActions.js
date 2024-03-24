@@ -77,8 +77,16 @@ export const getWorld = async ({ dispatch, isSimulator, pattern }) => {
   if(isSimulator) {
     await worldSimulationStateUpdated(dispatch);
   } else {
-    await worldStateUpdated(dispatch);
-    dispatch?.(updateSelectedPattern(pattern));
+    Promise.all([
+      worldStateUpdated(dispatch),
+      dispatch?.(updateSelectedPattern(pattern))
+    ])
+      .then(res => {
+        console.log(res);
+      })
+      .catch(err => {
+        console.error(err);
+      });
   }
 };
 
@@ -112,7 +120,7 @@ export const updateSelectedPattern = createAsyncThunk(
   "updateSelectedPattern",
   async (pattern) => {
     const ref = firebaseInstance.db.collection("global").doc("proposal");
-    const selectedPattern = await ref.update({ pattern_slug: pattern?.pattern_slug });
+    const selectedPattern = await ref.update({ pattern_slug: pattern?.slug });
     
     return { selectedPattern: pattern };
   });

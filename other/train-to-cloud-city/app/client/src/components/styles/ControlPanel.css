@@ -16,7 +16,7 @@
 
 .controlPanelContainer {
   position: relative;
-  margin: 10px;
+  margin: 15px auto;
   font-family: var(--font);
   font-size: 12px;
 }

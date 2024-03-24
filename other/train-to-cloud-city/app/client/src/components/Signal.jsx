@@ -25,8 +25,6 @@ import "./styles/Signal.css";
  *
  */
 const Signal = (props) => {
-  console.log(props);
-
   const { isStation, trainLocation, signal } = props;
   const { name, slug, actual_state, target_state } = signal || {};
   const position = isStation ? "station" : slug;
