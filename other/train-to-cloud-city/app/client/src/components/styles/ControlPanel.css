@@ -16,9 +16,10 @@
 
 .controlPanelContainer {
   position: relative;
+  width: inherit;
   margin: 15px auto;
   font-family: var(--font);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .controlPanel {
@@ -26,11 +27,10 @@
   align-items: center;
   justify-content: space-evenly;
   flex-direction: column;
-  font-size: 10px;
-  height: 200px;
+  color: white;
+  height: 260px;
   padding: 10px;
   border-radius: 10px;
   background: black;
-  color: white;
   overflow-y: scroll;
 }

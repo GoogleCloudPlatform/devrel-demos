@@ -77,7 +77,7 @@ const QuizForm = (props) => {
       onSubmit={onSubmit}
       render={({ handleSubmit, form, submitting, pristine, values }) => (
         <form id="missionForm" onSubmit={handleSubmit}>
-          <p>Goal: {selectedPattern?.description}</p>
+          <p><b>Goal: </b>{selectedPattern?.description}</p>
           {selectedPattern?.checkpoints?.map((step, index) => (
             <Field
               key={`missionStep${index}`}
@@ -87,16 +87,14 @@ const QuizForm = (props) => {
               {({ input, meta }) => (
                 <div className="formMissionInputWrapper">
                   <div className="formMissionDescription">
-                    {`Step ${index + 1}: ${step.description}`}
+                    <p><b>{`Step ${index + 1}: `}</b>{step.description}</p>
                   </div>
                   <div className="formMissionInput">
-                    <label>Service: </label>
+                    <label><b>Service: </b></label>
                     <select {...input} name="gcp" id="gcpService">
                       <option value="">--Choose a service--</option>
                       {services?.map((s, index) => (
-                        <option key={index} value={`${s}`}>
-                          {s}
-                        </option>
+                        <option key={index} value={`${s}`}>{s}</option>
                       ))}
                     </select>
                     {meta.error && meta.touched && (

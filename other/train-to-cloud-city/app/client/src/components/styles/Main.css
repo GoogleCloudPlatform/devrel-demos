@@ -23,6 +23,7 @@
   margin: auto;
   min-height: 800px;
   font-family: var(--font);
+  font-size: larger;
 }
 
 .mainContainer a {

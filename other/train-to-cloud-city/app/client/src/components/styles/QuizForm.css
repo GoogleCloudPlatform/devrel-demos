@@ -18,8 +18,7 @@
   display: flex;
   align-items: center;
   flex-direction: column;
-  font-size: 12px;
-  font-style: italic;
+  font-size: 16px;
   text-align: center;
   border: 1px solid black;
   padding: 10px;
@@ -33,7 +32,8 @@ form#missionForm .formMissionInput {
 }
 
 form#missionForm select {
-  margin: 10px auto;
+  font-family: var(--font);
+  font-size: 16px;
 }
 
 form#missionForm .buttons {
@@ -47,7 +47,7 @@ form#missionForm .buttons {
 form#missionForm .formError {
   color: red;
   display: block;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 img.qrcode {
