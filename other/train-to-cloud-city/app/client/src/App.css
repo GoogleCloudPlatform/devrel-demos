@@ -15,6 +15,7 @@
  */
 
 :root {
+  --font: "Pixelify Sans";
   --melanzane: #211e20;
   --smoky: #555568;
   --lemonGrass: #a0a08b;
@@ -24,11 +25,19 @@
   --dodgerblue: #4286F5;
   --selectiveyellow: #FBBB06;
   --eucalyptus: #34A752;
+  --font: "Pixelify Sans", sans-serif
+}
+
+button {
+  padding: 10px;
+  margin: 5px;
+  font-family: var(--font);
 }
 
 body {
   background-color: var(--lilyWhite);
   color: var(--melanzane);
-  font-family: monospace;
+  font-family: "Pixelify Sans", sans-serif;
+  font-optical-sizing: auto;
   margin: 0;
 }

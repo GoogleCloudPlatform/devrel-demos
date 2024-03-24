@@ -25,6 +25,8 @@ import "./styles/Signal.css";
  *
  */
 const Signal = (props) => {
+  console.log(props);
+
   const { isStation, trainLocation, signal } = props;
   const { name, slug, actual_state, target_state } = signal || {};
   const position = isStation ? "station" : slug;
@@ -33,36 +35,27 @@ const Signal = (props) => {
     trainLocation === position
       ? checkpointClasses.concat(" here")
       : checkpointClasses;
+ 
+  let signalLight;
 
-  const redLightClasses =
-    actual_state === "stop"
-      ? "light red on"
-      : target_state === "stop"
-        ? "light red blinking"
-        : "light red";
-  const greenLightClasses =
-    actual_state === "clear"
-      ? "light green on"
-      : target_state === "clear"
-        ? "light green blinking"
-        : "light green";
-
-  console.log(actual_state);
-
+  switch(actual_state) {
+    case 'stop': {
+      signalLight = <img alt="SignalRed" src={SignalRed} />;
+    }
+    case 'clear': {
+      signalLight = <img alt="SignalGreen" src={SignalGreen} />;
+    }
+    default: {
+      signalLight = <img alt="SignalYellow" src={SignalYellow} />;
+    }
+  }
+  
   return (
     <div className="signalContainer">
-      {isStation ? (
-        <div className="stationCheckpoint">
-          <img alt="Station" src={Station} />
-        </div>
-      ) : (
-        <div className="signal">
-          {actual_state === 'stop' && <img alt="SignalRed" src={SignalRed} />}
-          {actual_state === 'clear' && <img alt="SignalGreen" src={SignalGreen} />}
-        </div>
-      )}
+      <div className={`signal ${position}`}>
+        {isStation ? <img alt="Station" src={Station} /> : signalLight}
+      </div>
       <div className={locationClasses}></div>
-
     </div>
   );
 };

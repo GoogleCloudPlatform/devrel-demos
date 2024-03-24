@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import firebaseInstance from "../Firebase";
 
@@ -22,12 +23,10 @@ import firebaseInstance from "../Firebase";
  * -----------------
  */
 export const getServices = createAsyncThunk("getServices", async () => {
-  const ref = firebaseInstance.db.collection("services");
+  const ref = firebaseInstance.db.collection("services_by_category");
   const services = await ref.get().then((querySnapshot) => {
     let serviceList = [];
-    querySnapshot.docs.forEach((doc) => {
-      serviceList.push(`${doc.id}`);
-    });
+    querySnapshot.docs.forEach(doc => serviceList.push(`${doc.id}`));
     return serviceList;
   });
 
@@ -43,27 +42,12 @@ export const getPatterns = createAsyncThunk("getPatterns", async () => {
   const ref = firebaseInstance.db.collection("patterns");
   const patterns = await ref.get().then((querySnapshot) => {
     let patternList = [];
-    querySnapshot.docs.forEach((doc) => patternList.push(doc.data()));
+    querySnapshot.docs.forEach(doc => patternList.push(doc.data()));
     return patternList;
   });
 
   return { patterns };
 });
-
-/**
- * -----------------
- * getSinglePattern
- * -----------------
- */
-export const getSinglePattern = async(id) => {
-  const ref = firebaseInstance.db.collection("patterns").where("pattern_slug", "==", id);
-  const pattern = await ref.get();
-      
-  let list = [];
-  pattern.docs.forEach((doc) => list.push(doc.data()));
-
-  return list[0];
-};
 
 /**
  * -----------------
@@ -74,11 +58,10 @@ export const getInitialWorldState = createAsyncThunk(
   "getInitialWorldState",
   async () => {
     const ref = firebaseInstance.db.collection("global");
-
     const state = await ref.get().then((querySnapshot) => {
-      let list = [];
-      querySnapshot.docs.forEach((doc) => list.push(doc.data()));
-      return list[0];
+      let world = {};
+      querySnapshot.docs.forEach(doc => world[doc.id] = doc.data());
+      return world;
     });
 
     return { state };
@@ -109,9 +92,9 @@ export const getWorldSimulation = createAsyncThunk(
   async (changeType) => {
     const ref = firebaseInstance.db.collection("global_simulation");
     const simulationState = await ref.get().then((querySnapshot) => {
-      let list = [];
-      querySnapshot.docs.forEach((doc) => list.push(doc.data()));
-      return list[0];
+      let world = {};
+      querySnapshot.docs.forEach(doc => world[doc.id] = doc.data());
+      return world;
     });
     
     return { simulationState: { ...simulationState, changeType } };
@@ -128,10 +111,9 @@ export const getWorldSimulation = createAsyncThunk(
 export const updateSelectedPattern = createAsyncThunk(
   "updateSelectedPattern",
   async (pattern) => {
-    const ref = firebaseInstance.db.collection("global").doc("world");
+    const ref = firebaseInstance.db.collection("global").doc("proposal");
     const selectedPattern = await ref.update({ pattern_slug: pattern?.pattern_slug });
-    console.log("Pattern selection updated.");
-
+    
     return { selectedPattern: pattern };
   });
 
@@ -159,12 +141,38 @@ export const worldStateUpdated = async (dispatch) => {
  */
 export const worldSimulationStateUpdated = async (dispatch) => {
   const ref = firebaseInstance.db.collection("global_simulation");
-  const patternRef = firebaseInstance.db.collection("patterns");
-
   await ref.onSnapshot((snapshot) => {
     snapshot.docChanges().forEach((change) => {
       dispatch?.(getWorldSimulation(change.type));
     });
   });
 };
+
+/**
+ * -----------------
+ * trainMailboxUpdated
+ * -----------------
+export const trainMailboxUpdated = async (dispatch) => {
+  const ref = firebaseInstance.db.collection("global").doc("train_mailbox");
+  await ref.onSnapshot((snapshot) => {
+    snapshot.docChanges().forEach(change => {
+      dispatch?.(getWorldSimulation());
+    });
+  });
+};
+
+/**
+ * -----------------
+ * sessionMailboxUpdated
+ * -----------------
+export const sessionMailboxUpdated = async (dispatch) => {
+  const ref = firebaseInstance.db.collection("global").doc("session_mailbox");
+  await ref.onSnapshot((snapshot) => {
+    snapshot.docChanges().forEach((change) => {
+      dispatch?.(getWorldSimulation());
+    
+    });
+  });
+};
+*/
 

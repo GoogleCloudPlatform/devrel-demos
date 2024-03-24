@@ -17,10 +17,16 @@
 .mainContainer {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   text-align: center;
   flex-direction: column;
   margin: auto;
+  min-height: 800px;
+  font-family: var(--font);
+}
+
+.mainContainer a {
+  font-size: 10px;
 }
 
 .mainWrapper {
@@ -34,7 +40,3 @@
   justify-content: center;
 }
 
-.row button {
-  padding: 10px;
-  margin: 5px;
-}

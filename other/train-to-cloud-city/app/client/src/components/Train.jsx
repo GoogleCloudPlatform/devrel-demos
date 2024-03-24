@@ -39,14 +39,14 @@ const Train = (props) => {
   let cars = [];
   cargo.forEach((cargo, index) => cars.push(<TrainCoach key={index} />));
 
-  const trainClasses = "train".concat(` ${actual_location}`);
+  const trainClasses = "train ".concat(actual_location || 'station');
 
   return (
     <div className="trainContainer">
       <div className="cloudTrain"></div>
       <div className="container">
         <div className="content">
-          <div className={trainClasses}>
+          <div className={`${trainClasses}`}>
             {cars?.map(c => c)}
             <TrainCoach name="front" />
           </div>

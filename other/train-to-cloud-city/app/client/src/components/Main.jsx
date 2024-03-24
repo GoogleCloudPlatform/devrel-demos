@@ -31,6 +31,7 @@ import "./styles/Main.css";
 const Main = (props) => {
   const state = useSelector((state) => state);
   const dispatch = useDispatch();
+  const [adminView, setAdminView] = useState(false);
   const [toggled, setToggle] = useState(false);
   const [simulator, setSimulator] = useState(false);
 
@@ -63,17 +64,10 @@ const Main = (props) => {
   return (
     <div className="mainContainer">
       <div className="mainWrapper">
-        {toggled ? (
-          <Dashboard isSimulator={simulator} />
-        ) : (
+        { !toggled && <a href="#" onClick={()=> setAdminView(!adminView)}>Toggle admin view</a> }
+        {!adminView && (
           <div className="mainContent">
             <h2>Choose your adventure</h2>
-            <div className="row">
-              <ToggleButton
-                label="(Admin) Switch on simulator: "
-                onChange={handleSimulator}
-              />
-            </div>
             <div className="row">
               {state.coreReducer.patterns?.map((p, index) => (
                 <button
@@ -87,6 +81,20 @@ const Main = (props) => {
             </div>
           </div>
         )}
+        {adminView && (
+          <div>
+            <h2>Admin View</h2>
+            {!toggled && (
+              <div className="row">
+                <ToggleButton
+                  label="(Admin) Switch on simulator: "
+                  onChange={handleSimulator}
+                />
+              </div>
+            )}
+          </div>
+        )}
+        {toggled &&<Dashboard isSimulator={simulator} />}
       </div>
     </div>
   );

@@ -17,12 +17,16 @@
 .controlPanelContainer {
   position: relative;
   margin: 10px;
+  font-family: var(--font);
+  font-size: 12px;
 }
 
 .controlPanel {
-  font-family: monospace;
-  font-size: 12px;
-  width: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  flex-direction: column;
+  font-size: 10px;
   height: 200px;
   padding: 10px;
   border-radius: 10px;

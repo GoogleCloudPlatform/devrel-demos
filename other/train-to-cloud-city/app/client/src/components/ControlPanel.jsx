@@ -15,7 +15,9 @@
 import React from "react";
 import "./styles/ControlPanel.css";
 
-const ControlPanel = (worldState, proposal, result) => {
+const ControlPanel = (worldState) => {
+  const { session_mailbox, train_mailbox } = worldState || {};
+
   return (
     <div className="controlPanelContainer">
       <div className="controlPanelWrapper">
@@ -24,13 +26,13 @@ const ControlPanel = (worldState, proposal, result) => {
             World State:
             <p>{JSON.stringify(worldState)}</p>
           </div>
-          <div className="proposal">
-            Proposal:
-            <p>{JSON.stringify(proposal)}</p>
+          <div className="sessionMailbox">
+            Session:
+            <p>{JSON.stringify(session_mailbox)}</p>
           </div>
-          <div className="proposalResult">
-            Proposal Result:
-            <p>{JSON.stringify(result)}</p>
+          <div className="trainMailbox">
+            Train:
+            <p>{JSON.stringify(train_mailbox)}</p>
           </div>
         </div>
       </div>

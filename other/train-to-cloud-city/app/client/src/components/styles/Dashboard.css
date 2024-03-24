@@ -22,7 +22,13 @@
 .dashboardWrapper {
   display: flex;
   align-items: center;
-  justify-content: space-evenly;
+  justify-content: center;
+}
+
+.dashboardSignals {
+  display: flex;
+  align-items: center;
+  justify-content: end;
 }
 
 .dashboardPanel {
@@ -43,6 +49,8 @@
 .dashboardWrapper .columns {
   display: flex;
   flex-direction: row;
+  align-items: center;
   justify-content: space-between;
   overflow: hidden;
 }
+
