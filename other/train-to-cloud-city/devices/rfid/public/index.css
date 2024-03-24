@@ -18,6 +18,44 @@ body {
   margin: auto 0;
 }
 
+.button {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  margin: 5px;
+  background: var(--selectiveyellow);
+  border: 2px solid var(--melanzane);
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.button a {
+  text-decoration: none;
+  color: var(--melanzane);
+  font-family: var(--font);
+  font-size: larger;
+}
+
+.button img {
+  width: 20px;
+  height: auto;
+  margin-right: 15px;
+}
+
+.button.start {
+  background-color: var(--eucalyptus);
+}
+
+.button.reset {
+  background-color: var(--dodgerblue);
+}
+
+.button.stop {
+  background-color: var(--cinnabar);
+}
+
 .headerBanner {
   display: flex;
   align-items: center;
@@ -33,14 +71,17 @@ body {
   height: 3px;
   background: var(--dodgerblue);
 }
+
 .retroBorder .red {
   height: 3px;
   background: var(--cinnabar);
 }
+
 .retroBorder .yellow {
   height: 3px;
   background: var(--selectiveyellow);
 }
+
 .retroBorder .green {
   height: 3px;
   background: var(--eucalyptus);
@@ -51,7 +92,7 @@ body {
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  margin: auto 20px;
+  margin: 50px;
 }
 
 .section {
@@ -65,5 +106,12 @@ body {
   margin: 10px;
   width: 100%;
   max-width: 500px;
+}
+
+.signals {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
 }
 
