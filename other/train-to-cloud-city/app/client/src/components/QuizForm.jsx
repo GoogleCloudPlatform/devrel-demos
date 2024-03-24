@@ -14,12 +14,14 @@
 
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { required, composeValidators, validateServices } from "../helpers/formValidation";
+import {
+  required,
+  composeValidators,
+  validateServices,
+} from "../helpers/formValidation";
 import { Form, Field } from "react-final-form";
 import { addCar, deleteCar } from "../actions/trainActions";
-import {
-  getServices,
-} from "../actions/coreActions";
+import { getServices } from "../actions/coreActions";
 import ExtrasQRCode from "../assets/qrcode-extras.png";
 import "./styles/QuizForm.css";
 
@@ -33,13 +35,16 @@ const QuizForm = (props) => {
   const state = useSelector((state) => state);
   const dispatch = useDispatch();
 
-  const [errorMessage, setErrorMessage] = useState({ message: '', result: {} });
-  const [successMessage, setSuccessMessage] = useState({ message: '', result: {} });
+  const [errorMessage, setErrorMessage] = useState({ message: "", result: {} });
+  const [successMessage, setSuccessMessage] = useState({
+    message: "",
+    result: {},
+  });
 
   useEffect(() => {
     async function fetchData() {
       await dispatch(getServices());
-    };
+    }
     fetchData();
   }, [dispatch]);
 
@@ -47,9 +52,9 @@ const QuizForm = (props) => {
 
   const onSubmit = async (results) => {
     const proposal = {
-      service_slugs: Object.keys(results).map((k) => results[k])
+      service_slugs: Object.keys(results).map((k) => results[k]),
     };
-   
+
     let result, error;
 
     try {
@@ -77,7 +82,10 @@ const QuizForm = (props) => {
       onSubmit={onSubmit}
       render={({ handleSubmit, form, submitting, pristine, values }) => (
         <form id="missionForm" onSubmit={handleSubmit}>
-          <p><b>Goal: </b>{selectedPattern?.description}</p>
+          <p>
+            <b>Goal: </b>
+            {selectedPattern?.description}
+          </p>
           {selectedPattern?.checkpoints?.map((step, index) => (
             <Field
               key={`missionStep${index}`}
@@ -87,14 +95,21 @@ const QuizForm = (props) => {
               {({ input, meta }) => (
                 <div className="formMissionInputWrapper">
                   <div className="formMissionDescription">
-                    <p><b>{`Step ${index + 1}: `}</b>{step.description}</p>
+                    <p>
+                      <b>{`Step ${index + 1}: `}</b>
+                      {step.description}
+                    </p>
                   </div>
                   <div className="formMissionInput">
-                    <label><b>Service: </b></label>
+                    <label>
+                      <b>Service: </b>
+                    </label>
                     <select {...input} name="gcp" id="gcpService">
                       <option value="">--Choose a service--</option>
                       {services?.map((s, index) => (
-                        <option key={index} value={`${s}`}>{s}</option>
+                        <option key={index} value={`${s}`}>
+                          {s}
+                        </option>
                       ))}
                     </select>
                     {meta.error && meta.touched && (
@@ -119,16 +134,16 @@ const QuizForm = (props) => {
           </div>
           {(submitting || errorMessage?.message || successMessage?.message) && (
             <div className="resultContainer">
-              {submitting && 'Calculating responses ....'}
+              {submitting && "Calculating responses ...."}
               {errorMessage?.message && (
                 <div>
-                  <h3>{'Oh no!'}</h3>
+                  <h3>{"Oh no!"}</h3>
                   <p>{errorMessage.message}</p>
                 </div>
               )}
               {successMessage?.message && (
                 <div>
-                  <h3>{'Huzzah!'}</h3>
+                  <h3>{"Huzzah!"}</h3>
                   <p>{successMessage.message}</p>
                   <img alt="Extras" src={ExtrasQRCode} className="qrcode" />
                 </div>

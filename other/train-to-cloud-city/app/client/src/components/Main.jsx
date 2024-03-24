@@ -16,32 +16,28 @@ import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import Dashboard from "./Dashboard";
 import ToggleButton from "./ToggleButton";
-import {
-  getWorld,
-  getPatterns,
-  getServices,
-} from "../actions/coreActions";
+import { getWorld, getPatterns, getServices } from "../actions/coreActions";
 import "./styles/Main.css";
 
 /**
  * Main
  * -----------------
- *
+ * Sets environment and data to populate into dashboard
+ * which is in 3 different states (simulator, realtime, virtual input)
  */
 const Main = (props) => {
   const state = useSelector((state) => state);
   const dispatch = useDispatch();
+
+  const [realtime, setRealtime] = useState(false);
   const [adminView, setAdminView] = useState(false);
   const [toggled, setToggle] = useState(false);
   const [simulator, setSimulator] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
-      await Promise.all([
-        dispatch(getServices()),
-        dispatch(getPatterns())
-      ]);
-    };
+      await Promise.all([dispatch(getServices()), dispatch(getPatterns())]);
+    }
     fetchData();
   }, [dispatch]);
 
@@ -61,11 +57,31 @@ const Main = (props) => {
     await getWorld({ pattern, dispatch });
   };
 
+  const handleWatchRealtime = async (event) => {
+    setToggle(true);
+    setRealtime(true);
+  };
+
+  const showPatternSelect = !adminView && !realtime && !simulator;
+
   return (
     <div className="mainContainer">
       <div className="mainWrapper">
-        { !toggled && <a href="#" onClick={()=> setAdminView(!adminView)}>Toggle admin view</a> }
-        {!adminView && (
+        <div>
+          {!toggled && (
+            <a href="#" onClick={handleWatchRealtime}>
+              Watch in real-time!
+            </a>
+          )}
+        </div>
+        <div>
+          {!toggled && (
+            <a href="#" onClick={() => setAdminView(!adminView)}>
+              Toggle admin view
+            </a>
+          )}
+        </div>
+        {showPatternSelect && (
           <div className="mainContent">
             <h2>Choose your adventure</h2>
             <div className="row">
@@ -94,7 +110,7 @@ const Main = (props) => {
             )}
           </div>
         )}
-        {toggled &&<Dashboard isSimulator={simulator} />}
+        {toggled && <Dashboard isRealtime={realtime} isSimulator={simulator} />}
       </div>
     </div>
   );

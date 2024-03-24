@@ -19,7 +19,7 @@ import {
   getServices,
   getPatterns,
   selectPattern,
-  updateSelectedPattern
+  updateSelectedPattern,
 } from "../actions/coreActions";
 
 const initialState = {

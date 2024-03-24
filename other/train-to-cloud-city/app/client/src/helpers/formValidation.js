@@ -26,7 +26,7 @@ const composeValidators =
  * --------------------------
  *  TODO: Call external service validator api to ensure listed services
  *  given are valid for the pattern.
- */ 
+ */
 const validateServices = async (pattern, proposal) => {
   const { checkpoints } = pattern;
   const { service_slugs } = proposal;
@@ -37,23 +37,30 @@ const validateServices = async (pattern, proposal) => {
   checkpoints?.map((c, index) => {
     // Check if any are found, push to list
     // * = any service can fit
-    const matchedServices = c?.satisfying_services?.filter(s => s === '*' || service_slugs.includes(s));
-    matchedServices.length ? matchedCheckpoints.push(index) : unmatchedCheckpoints.push(index);
+    const matchedServices = c?.satisfying_services?.filter(
+      (s) => s === "*" || service_slugs.includes(s),
+    );
+    matchedServices.length
+      ? matchedCheckpoints.push(index)
+      : unmatchedCheckpoints.push(index);
   });
 
   const result = {
     proposal,
     pattern,
     unmatchedCheckpoints,
-    matchedCheckpoints
+    matchedCheckpoints,
   };
 
-  if(unmatchedCheckpoints.length) {
-    throw new Error("Patterns between proposal and mission do not match", result);
+  if (unmatchedCheckpoints.length) {
+    throw new Error(
+      "Patterns between proposal and mission do not match",
+      result,
+    );
     return;
   }
 
-  return Promise.resolve({ message: 'Services match!', result });
-}
+  return Promise.resolve({ message: "Services match!", result });
+};
 
 export { validateServices, required, composeValidators };

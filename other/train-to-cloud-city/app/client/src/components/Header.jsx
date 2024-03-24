@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import React from "react";
-import Ribbon from './Ribbon';
+import Ribbon from "./Ribbon";
 import "./styles/Header.css";
 
 /**
@@ -31,4 +31,3 @@ const Header = () => {
 };
 
 export default Header;
-

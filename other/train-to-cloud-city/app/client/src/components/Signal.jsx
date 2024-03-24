@@ -33,21 +33,21 @@ const Signal = (props) => {
     trainLocation === position
       ? checkpointClasses.concat(" here")
       : checkpointClasses;
- 
+
   let signalLight;
 
-  switch(actual_state) {
-    case 'stop': {
+  switch (actual_state) {
+    case "stop": {
       signalLight = <img alt="SignalRed" src={SignalRed} />;
     }
-    case 'clear': {
+    case "clear": {
       signalLight = <img alt="SignalGreen" src={SignalGreen} />;
     }
     default: {
       signalLight = <img alt="SignalYellow" src={SignalYellow} />;
     }
   }
-  
+
   return (
     <div className="signalContainer">
       <div className={`signal ${position}`}>

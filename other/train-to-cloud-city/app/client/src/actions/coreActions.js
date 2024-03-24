@@ -26,7 +26,7 @@ export const getServices = createAsyncThunk("getServices", async () => {
   const ref = firebaseInstance.db.collection("services");
   const services = await ref.get().then((querySnapshot) => {
     let serviceList = [];
-    querySnapshot.docs.forEach(doc => serviceList.push(`${doc.id}`));
+    querySnapshot.docs.forEach((doc) => serviceList.push(`${doc.id}`));
     return serviceList;
   });
 
@@ -42,7 +42,7 @@ export const getPatterns = createAsyncThunk("getPatterns", async () => {
   const ref = firebaseInstance.db.collection("patterns");
   const patterns = await ref.get().then((querySnapshot) => {
     let patternList = [];
-    querySnapshot.docs.forEach(doc => patternList.push(doc.data()));
+    querySnapshot.docs.forEach((doc) => patternList.push(doc.data()));
     return patternList;
   });
 
@@ -60,7 +60,7 @@ export const getInitialWorldState = createAsyncThunk(
     const ref = firebaseInstance.db.collection("global");
     const state = await ref.get().then((querySnapshot) => {
       let world = {};
-      querySnapshot.docs.forEach(doc => world[doc.id] = doc.data());
+      querySnapshot.docs.forEach((doc) => (world[doc.id] = doc.data()));
       return world;
     });
 
@@ -74,17 +74,17 @@ export const getInitialWorldState = createAsyncThunk(
  * -----------------
  */
 export const getWorld = async ({ dispatch, isSimulator, pattern }) => {
-  if(isSimulator) {
+  if (isSimulator) {
     await worldSimulationStateUpdated(dispatch);
   } else {
     Promise.all([
       worldStateUpdated(dispatch),
-      dispatch?.(updateSelectedPattern(pattern))
+      dispatch?.(updateSelectedPattern(pattern)),
     ])
-      .then(res => {
+      .then((res) => {
         console.log(res);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(err);
       });
   }
@@ -101,10 +101,10 @@ export const getWorldSimulation = createAsyncThunk(
     const ref = firebaseInstance.db.collection("global_simulation");
     const simulationState = await ref.get().then((querySnapshot) => {
       let world = {};
-      querySnapshot.docs.forEach(doc => world[doc.id] = doc.data());
+      querySnapshot.docs.forEach((doc) => (world[doc.id] = doc.data()));
       return world;
     });
-    
+
     return { simulationState: { ...simulationState, changeType } };
   },
 );
@@ -121,9 +121,10 @@ export const updateSelectedPattern = createAsyncThunk(
   async (pattern) => {
     const ref = firebaseInstance.db.collection("global").doc("proposal");
     const selectedPattern = await ref.update({ pattern_slug: pattern?.slug });
-    
+
     return { selectedPattern: pattern };
-  });
+  },
+);
 
 /**
  * -----------------
@@ -132,18 +133,18 @@ export const updateSelectedPattern = createAsyncThunk(
  * Solely resets chosen cargo, keeps the previously
  * selected mission
  */
-export const resetMission = createAsyncThunk("resetMission",async () => {
-    const cargoRef = firebaseInstance.db.collection("global").doc("cargo");
-    let result;
+export const resetMission = createAsyncThunk("resetMission", async () => {
+  const cargoRef = firebaseInstance.db.collection("global").doc("cargo");
+  let result;
 
-    try {
-      result = await cargoRef.update({ actual_cargo: [] });
-    } catch(error) {
-      console.log(error);
-    }
+  try {
+    result = await cargoRef.update({ actual_cargo: [] });
+  } catch (error) {
+    console.log(error);
+  }
 
-    return result;
-  });
+  return result;
+});
 
 /**
  * -----------------
@@ -152,15 +153,14 @@ export const resetMission = createAsyncThunk("resetMission",async () => {
  * Resets entire game and redirect user to homebase
  */
 export const stopMission = createAsyncThunk("stopMission", async () => {
-    const cargoRef = firebaseInstance.db.collection("global").doc("cargo");
-    const patternRef = firebaseInstance.db.collection("global").doc("proposal");
-    
-    return Promise.all([
-      cargoRef.update({ actual_cargo: [] }),
-      patternRef.update({ pattern_slug: "" })
-    ]);
-  });
+  const cargoRef = firebaseInstance.db.collection("global").doc("cargo");
+  const patternRef = firebaseInstance.db.collection("global").doc("proposal");
 
+  return Promise.all([
+    cargoRef.update({ actual_cargo: [] }),
+    patternRef.update({ pattern_slug: "" }),
+  ]);
+});
 
 /**** Listeners ****/
 /**
@@ -219,4 +219,3 @@ export const sessionMailboxUpdated = async (dispatch) => {
   });
 };
 */
-

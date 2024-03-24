@@ -34,4 +34,3 @@ const Ribbon = () => {
 };
 
 export default Ribbon;
-

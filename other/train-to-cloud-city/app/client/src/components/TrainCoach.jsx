@@ -29,7 +29,11 @@ const TrainCoach = (props) => {
     <div className="trainCoachContainer">
       <div className="trainCoachWrapper">
         <div className="coach">
-          {name === "front" ? <img alt="FrontCar" src={FrontCar} /> : <img alt="Car" src={Car} />}
+          {name === "front" ? (
+            <img alt="FrontCar" src={FrontCar} />
+          ) : (
+            <img alt="Car" src={Car} />
+          )}
         </div>
       </div>
     </div>

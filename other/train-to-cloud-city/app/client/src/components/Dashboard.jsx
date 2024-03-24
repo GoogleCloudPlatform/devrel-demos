@@ -19,10 +19,7 @@ import QuizForm from "./QuizForm";
 import Train from "./Train";
 import Signal from "./Signal";
 import Ribbon from "./Ribbon";
-import {
-  stopMission,
-  resetMission
-} from "../actions/coreActions";
+import { stopMission, resetMission } from "../actions/coreActions";
 import "./styles/Dashboard.css";
 
 /**
@@ -33,16 +30,19 @@ import "./styles/Dashboard.css";
 const Dashboard = (props) => {
   const state = useSelector((state) => state);
   const dispatch = useDispatch();
-  const { isSimulator } = props;
+  const { isRealtime, isSimulator } = props;
+
+  const showQuiz = !isRealtime && !isSimulator;
   const { services, selectedPattern, worldState } = state.coreReducer;
-  const { cargo, proposal, session_mailbox, signals, train, train_mailbox } = worldState;
+  const { cargo, proposal, session_mailbox, signals, train, train_mailbox } =
+    worldState;
 
   // Stop and reset whole mission
   const handleStopMission = (event) => {
     dispatch(stopMission());
-    window.location.replace('/');
+    window.location.replace("/");
   };
- 
+
   // Keeps selected mission/pattern
   // Removes previously selected cargo
   const handleResetMission = (event) => {
@@ -52,12 +52,14 @@ const Dashboard = (props) => {
   return (
     <div className="dashboardContainer">
       <div className="dashboardWrapper">
-        {!isSimulator && (
+        {showQuiz && (
           <div className="dashboardPanel">
             <div className="missionTitle">
               <h3>{`Your Mission: ${selectedPattern?.name}`}</h3>
             </div>
-            {selectedPattern && <QuizForm services={services} selectedPattern={selectedPattern} />}
+            {selectedPattern && (
+              <QuizForm services={services} selectedPattern={selectedPattern} />
+            )}
           </div>
         )}
         <div className="dashboardPanel">
@@ -88,8 +90,12 @@ const Dashboard = (props) => {
         </div>
       </div>
       <div className="actionPanel">
-        <button className="stop" onClick={handleStopMission}>Stop Mission</button>
-        <button className="reset" onClick={handleResetMission}>Reset Mission</button>
+        <button className="stop" onClick={handleStopMission}>
+          Stop Mission
+        </button>
+        <button className="reset" onClick={handleResetMission}>
+          Reset Mission
+        </button>
       </div>
       <Ribbon />
     </div>
