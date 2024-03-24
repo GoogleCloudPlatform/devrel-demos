@@ -48,9 +48,11 @@ async function readTrain(chunk, checkpoint) {
 
   // FRONT: Begin reading cargo
   if(isFrontCar) {
+    console.log('------ is front');
     beginReading = true
     try {
-      await updateLocation(chunk, checkpoint);
+      // marking current location
+      //await updateLocation(chunk, checkpoint);
     } catch(error) {
       console.error(error);
     }
@@ -58,6 +60,7 @@ async function readTrain(chunk, checkpoint) {
    
   // BACK: At tailend of train, wrap up and send read cargo to firestore
   if(isBackCar) {
+    console.log('------ is back');
     beginReading = false
     actual_cargo = holdCargo
     holdCargo = []; // clear holding cargo
@@ -67,9 +70,12 @@ async function readTrain(chunk, checkpoint) {
     // Verification happens at the station (checkpoint 0)
     if(checkpoint === 0) {
       Promise.all([
-        // updateCargo(holdCargo, 0),
+        updateCargos(holdCargo),
         // validateCargo(holdCargo, 0)
       ])
+        .then((res) => {
+          console.log(JSON.stringify(res));
+        })
         .catch((error) => {
           console.error(error);
         });
@@ -103,36 +109,34 @@ async function getMatchingService(docId) {
 }
 
 /**
- * updateCargo
+ * updateCargos
  *-------------------
- * chunk -> rfid tag id
- * index -> step train is on
+ * chunks -> rfid tag id
  */
-async function updateCargo(chunk, index) {
-  const buffer = Buffer.from(JSON.stringify({ chunk }));
-  const docId = JSON.parse(buffer.toString());
+async function updateCargos(chunks) {
+  let cargos = [];
 
-  // Match read rfid chunk with correct service
-  const matchingService = await getMatchingService(docId);
-  // Updates actual_cargo state with newly read service
-  const ref = db.collection("global").doc("world");
- 
-  try {
-    const cargoSnapshot = await ref.get();
-    const { train } = cargoSnapshot.data();
+  console.log('----- updateCargos');
+  console.log(chunks);
+
+  chunks?.forEach(async chunk => {
+    const buffer = Buffer.from(JSON.stringify({ chunk }));
+    const docId = JSON.parse(buffer.toString());
     
-    const newCargo = {
-      reader: index,
-      service: matchingService,
-    };
-    const trainUpdate = {
-      train: {
-        ...train,
-        actual_cargo: [...train?.actual_cargo, newCargo],
-      },
-    };
-    await ref.update(trainUpdate, { merge: true });
-    console.log(`Cargo read ${JSON.stringify(newCargo)}`);
+    // Match read rfid chunk with correct service
+    const matchingService = await getMatchingService(docId);
+    
+    cargos.push(matchingService);
+  });
+
+  console.log(cargos);
+
+  // Updates actual_cargo state with newly read service
+  const ref = db.collection("global").doc("cargo");
+
+  try {
+    await ref.update({ actual_cargo: cargos}, { merge: false });
+    console.log(`Cargos read ${JSON.stringify(cargos)}`);
   } catch(error) {
     console.error(error);
   }
@@ -144,65 +148,15 @@ async function updateCargo(chunk, index) {
  * index -> step train is on
  */
 async function updateLocation(chunk, index = 0) {
-  const ref = db.collection("global").doc("world");
+  const ref = db.collection("global").doc("cargo");
   
   try {
-    const snapshot = await ref.get();
-    const { train } = snapshot.data();
     const trainUpdate = {
-      train: {
-        ...train,
-        actual_location: index,
-      },
+      actual_location: index,
     }; 
     
-    // Move train if train is not at location they need to be
-    const locationReached = index === train.target_location; 
-
     await ref.update(trainUpdate, { merge: true });
     console.log(`Passed checkpoint ${index}`);
-   
-    if(locationReached) {
-      await updateTrainMovement(false, 0);
-    }
-  } catch(error) {
-    console.error(error);
-  }
-}
-
-/**
- * getTrainMovement
- * --------------------------
- */
-async function getTrainMovement() {
-  const ref = db.collection("train");
-  let movement = [];
-
-  try {
-    const snapshot = await ref.get();
-    snapshot.forEach((doc) => movement.push(doc.data()));
-  } catch(error) {
-    console.error(error);
-  }
-  
-  return movement?.[0];
-}
-
-async function moveTrainToCheckpoint(currentIndex, targetIndex) {
-  await updateTrainMovement(currentIndex !== targetIndex, 30);
-}
-
-/**
- * updateTrainMovement
- * --------------------------
- * power: -100 (backwards) -> +100 (forward)
- */
-async function updateTrainMovement(isRunning, power = 30) {
-  try {
-    const state = { isRunning,  power };
-    const ref = db.collection("train").doc("state");
-    await ref.set(state, { merge: true });
-    console.log(`Train is running: ${isRunning}`);
   } catch(error) {
     console.error(error);
   }
@@ -215,14 +169,14 @@ async function updateTrainMovement(isRunning, power = 30) {
  * index -> step train is on
  */
 async function validateCargo(cargos) {
-  const ref = db.collection("global").doc("world");
+  //const ref = db.collection("global").doc("world");
 
+    /**
   try {
     const snapshot = await ref.get();
     const { train } = snapshot.data();
     const nextStop = train.actual_location > 2 ? 0 : train.actual_location + 1; // checkpoints 0 -> 3
     // TODO: Add in here the code to connect with validation api to pass actual cargo
-    /**
      * const response = await fetch(......)
      *
      * if (response.status === 200) {
@@ -234,7 +188,7 @@ async function validateCargo(cargos) {
      *   // train should move forward and then move back to station with red signal lights
      * }
      */
-    const trainUpdate = {
+    /*const trainUpdate = {
       train: {
         ...train,
         target_location: 3,
@@ -246,6 +200,7 @@ async function validateCargo(cargos) {
   } catch(error) {
     console.error(error);
   }
+  */
 }
 
 module.exports = {
@@ -253,6 +208,5 @@ module.exports = {
   validateCargo,
   getTrainMovement,
   updateLocation,
-  updateCargo,
-  updateTrainMovement,
+  updateCargos
 };

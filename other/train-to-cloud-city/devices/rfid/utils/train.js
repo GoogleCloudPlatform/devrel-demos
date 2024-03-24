@@ -24,32 +24,18 @@ function initTrain() {
   poweredUP?.on("discover", async (hub) => {
     console.log(`Discovered ${hub.name}!`);
     hub.connect();
-
-    const motorA = await hub.waitForDeviceAtPort("A");
     console.log("Connected");
-
-    // Main controller of the train,
-    // checkpoints may manipulate the firestore train state
-    // which is constantly checked on a loop
-    while (true) {
-      const { isRunning, power } = await getTrainMovement();
-      // TODO: Try swapping onSnapshot listener rather than while(true)
-      // to react only when the train collection is updated
-
-      if (isRunning) {
-        motorA.setPower(power || 30);
-      } else {
-        console.log('STOPPPP');
-        motorA.brake();
-        motorA.setPower(0);
-        motorA.stop();
-        await hub.sleep(3000);
-      }
-    }
   });
+  
   poweredUP.scan(); // Start scanning for Hubs
 
   console.log("Scanning for Hubs...");
 }
 
-module.exports = { initTrain, poweredUP };
+async function getMotor() {
+  const hubs = poweredUP?.getHubs();
+  const motor = await hubs[0].waitForDeviceAtPort("A");
+  return motor;
+}
+
+module.exports = { initTrain, poweredUP, getMotor };

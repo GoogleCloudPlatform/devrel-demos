@@ -17,7 +17,7 @@ const express = require("express");
 const path = require("path");
 const url = require("url");
 
-const { initTrain } = require("./utils/train.js");
+const { initTrain, getMotor } = require("./utils/train.js");
 const { ports, parsers } = require("./utils/checkpoints.js");
 const { poweredUP } = require("./utils/firebase.js");
 const {
@@ -54,9 +54,15 @@ function listenToReaders() {
 /**
  * GET /stop
  */
-expressApp.get("/stop", (req, res) => {
+expressApp.get("/stop", async (req, res) => {
   console.log("Stopping train ...");
-  updateTrainMovement(false);
+  
+  const motor = await getMotor();
+  motor.brake();
+  motor.setPower(0);
+  motor.stop();
+
+
   res.redirect(`/?message=${encodeURIComponent("Stopping train")}`);
 });
 
@@ -72,14 +78,17 @@ expressApp.get("/reset", (req, res) => {
 /**
  * GET /start
  */
-expressApp.get("/start", (req, res) => {
+expressApp.get("/start", async (req, res) => {
   const urlParts = url.parse(req.url, true);
   const query = urlParts.query;
 
   const useStubTrain = query["train"] === "dummy";
   // Start train movment
-  updateTrainMovement(true, 30);
+  //updateTrainMovement(true, 30);
   
+  const motor = await getMotor();
+  motor.setPower(30);
+
   useStubTrain
     ? console.log("Starting dummy train ...")
     : console.log("Starting train ...");
