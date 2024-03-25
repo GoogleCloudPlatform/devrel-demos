@@ -13,7 +13,6 @@
 // limitations under the License.
 
 const { db, app, firestore } = require("./firebase.js");
-const { getTrainMovement } = require("./trainState.js");
 const PoweredUP = require("node-poweredup");
 const poweredUP = new PoweredUP.PoweredUP();
 
@@ -26,16 +25,13 @@ function initTrain() {
     hub.connect();
     console.log("Connected");
   });
-  
   poweredUP.scan(); // Start scanning for Hubs
-
   console.log("Scanning for Hubs...");
 }
 
 async function getMotor() {
   const hubs = poweredUP?.getHubs();
   let motor;
-
   try {
     motor = await hubs[0].waitForDeviceAtPort("A");
   } catch(error) {

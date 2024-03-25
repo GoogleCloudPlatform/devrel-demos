@@ -43,13 +43,13 @@ const ports = [
 ];
 
 const roles = [
-    { location: "station", serialNumber: "A10LXV9Y" },
-    { location: "checkpoint_1", serialNumber: "A10LXV95" },
-    { location: "checkpoint_2", serialNumber: "A10LXVA5" },
-    { location: "checkpoint_3", serialNumber: "A10LY36P" },
-    { location: "checkpoint_4", serialNumber: "A10LY36T" },
-    { location: "mission_check", serialNumber: "A10LXV9L" },
-  ];
+  { location: "station", serialNumber: "A10LXV9Y" },
+  { location: "checkpoint_1", serialNumber: "A10LXV95" },
+  { location: "checkpoint_2", serialNumber: "A10LXVA5" },
+  { location: "checkpoint_3", serialNumber: "A10LY36P" },
+  { location: "checkpoint_4", serialNumber: "A10LY36T" },
+  { location: "mission_check", serialNumber: "A10LXV9L" },
+];
 
 const mappedRfidRoles = async function() {
   let mapped = [];
@@ -57,14 +57,14 @@ const mappedRfidRoles = async function() {
     const ports = await SerialPort.list();
     ports.forEach((port, index) => {
       let matches = roles.filter(role => port.serialNumber === role.serialNumber);
-      
-      if(matches[0]) {
-        mapped.push({ ...matches[0], ...port });
-      }
+      matches[0] && mapped.push({ ...matches[0], ...port });
     });
   } catch(error) {
     console.error(error);
   }
+
+  console.log(mapped);
+
   return mapped;
 };
 

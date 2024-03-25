@@ -20,10 +20,7 @@ const url = require("url");
 const { initTrain, getMotor } = require("./utils/train.js");
 const { ports, parsers, roles, mappedRfidRoles } = require("./utils/checkpoints.js");
 const { poweredUP } = require("./utils/firebase.js");
-const {
-  readTrain,
-  updateTrainMovement,
-} = require("./utils/trainState.js");
+const { evaluateRfidTags } = require("./trainGame.js");
 
 const expressApp = express();
 expressApp.use(express.json());
@@ -43,7 +40,7 @@ async function listenToReaders() {
     const role = roles[index];
     const match = mappedRoles.filter(m => m.location === role.location);
     // listeners are passed their location role (i.e station, checkpoint, etc);
-    parsers[index].on("data", (chunk) => readTrain(chunk, index, match[0])); 
+    parsers[index].on("data", (chunk) => evaluateRfidTags(chunk, index, match[0])); 
   });
 }
 
@@ -55,6 +52,10 @@ async function listenToReaders() {
   listenToReaders();
 })();
 
+expressApp.get("/check-pattern", async (req, res) => {
+  console.log("Check cargo ...");
+});
+
 /**
  * GET /stop
  */
@@ -65,7 +66,6 @@ expressApp.get("/stop", async (req, res) => {
   motor.brake();
   motor.setPower(0);
   motor.stop();
-
 
   res.redirect(`/?message=${encodeURIComponent("Stopping train")}`);
 });
