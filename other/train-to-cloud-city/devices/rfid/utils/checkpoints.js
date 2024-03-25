@@ -14,68 +14,52 @@
 
 const { SerialPort, ReadlineParser } = require("serialport");
 
+const roles = {
+  "A10LXV9L": "mission_check",
+  "A10LXV9Y": "station",
+  "A10LXV95": "checkpoint_1",
+  "A10LXVA5": "checkpoint_2",
+  "A10LY36P": "checkpoint_3",
+  "A10LY36T": "checkpoint_4",
+};
+
+
 // Train checkpoints
-const ports = [
-  new SerialPort({
-    path: "/dev/ttyUSB0",
-    baudRate: 9600,
-  }),
-  new SerialPort({
-    path: "/dev/ttyUSB1",
-    baudRate: 9600,
-  }),
-  new SerialPort({
-    path: "/dev/ttyUSB2",
-    baudRate: 9600,
-  }),
-  new SerialPort({
-    path: "/dev/ttyUSB3",
-    baudRate: 9600,
-  }),
-  new SerialPort({
-    path: "/dev/ttyUSB4",
-    baudRate: 9600,
-  }),
-  new SerialPort({
-    path: "/dev/ttyUSB5",
-    baudRate: 9600,
-  }),
-];
-
-const roles = [
-  { location: "station", serialNumber: "A10LXV9Y" },
-  { location: "checkpoint_1", serialNumber: "A10LXV95" },
-  { location: "checkpoint_2", serialNumber: "A10LXVA5" },
-  { location: "checkpoint_3", serialNumber: "A10LY36P" },
-  { location: "checkpoint_4", serialNumber: "A10LY36T" },
-  { location: "mission_check", serialNumber: "A10LXV9L" },
-];
-
-const mappedRfidRoles = async function() {
-  let mapped = [];
+const getPorts = async function() {
+  let ports = [];
   try {
-    const ports = await SerialPort.list();
-    ports.forEach((port, index) => {
-      let matches = roles.filter(role => port.serialNumber === role.serialNumber);
-      matches[0] && mapped.push({ ...matches[0], ...port });
+    const list = await SerialPort.list();    
+    list.forEach((port, index) => {
+      const role = roles[port.serialNumber];
+      ports.push(
+        new SerialPort({
+          role,
+          path: port.path,
+          serialNumber: port.serialNumber,
+          baudRate: 9600,
+        })
+      );
     });
   } catch(error) {
     console.error(error);
   }
-
-  console.log(mapped);
-
-  return mapped;
+  return ports;
 };
 
 // Parsers
-const parsers = [
-  ports[0].pipe(new ReadlineParser()),
-  ports[1].pipe(new ReadlineParser()),
-  ports[2].pipe(new ReadlineParser()),
-  ports[3].pipe(new ReadlineParser()),
-  ports[4].pipe(new ReadlineParser()),
-  ports[5].pipe(new ReadlineParser()),
-];
+const getParsers = async function() {
+  const ports = await getPorts();
+  let parsers = [];
 
-module.exports = { ports, parsers, roles, mappedRfidRoles };
+  ports?.forEach(port => {
+    const parser = port.pipe(new ReadlineParser());
+    parsers.push({
+      parser,
+      role: port.settings.role
+    });
+  });
+
+  return parsers
+}
+
+module.exports = { getParsers };

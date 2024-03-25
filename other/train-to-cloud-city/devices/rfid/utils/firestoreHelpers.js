@@ -25,6 +25,7 @@ const { StringDecoder } = require("node:string_decoder");
 async function setMissionPattern(chunk, reader) {
   const mission = await getMatchingTag({ chunk });
   const ref = db.collection("global").doc("proposal");
+  
   try {
     await ref.update({ pattern_slug: mission }, { merge: true });
     console.log(`Mission has been read: ${JSON.stringify(mission)}`);
@@ -101,9 +102,58 @@ async function updateLocation(chunk, location) {
   }
 }
 
+/**
+ * -----------------
+ * proposalResult
+ * -----------------
+ */
+const proposalResultUpdated = (async () => {
+  const ref = db.collection("global").doc("proposal");
+  await ref.onSnapshot(docSnapshot => {
+    console.log(`Received doc snapshot:`);
+    console.log(docSnapshot.data());  
+  }, err => {
+    console.log(`Encountered error: ${err}`);
+  });
+
+})();
+
+/**
+ * -----------------
+ * trainMailboxUpdated
+ * -----------------
+ */
+const trainMailboxUpdated = (async () => {
+  const ref = db.collection("global").doc("train_mailbox");
+  await ref.onSnapshot(docSnapshot => {
+    console.log(`Train received doc snapshot:`);
+    console.log(docSnapshot.data());  
+  }, err => {
+    console.log(`Encountered error: ${err}`);
+  });
+})();
+
+/**
+ * -----------------
+ * sessionMailboxUpdated
+ * -----------------
+ */
+const sessionMailboxUpdated = (async () => {
+  const ref = db.collection("global").doc("session_mailbox");
+  await ref.onSnapshot(docSnapshot => {
+    console.log(`Session received doc snapshot:`);
+    console.log(docSnapshot.data());  
+  }, err => {
+    console.log(`Encountered error: ${err}`);
+  });
+})();
+
 
 module.exports = {
   setMissionPattern,
   updateLocation,
-  submitActualCargo
+  submitActualCargo,
+  proposalResultUpdated,
+  trainMailboxUpdated,
+  sessionMailboxUpdated
 };

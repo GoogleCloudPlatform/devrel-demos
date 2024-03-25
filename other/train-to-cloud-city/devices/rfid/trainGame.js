@@ -14,7 +14,6 @@
 
 const { StringDecoder } = require("node:string_decoder");
 const {
-  setMissionPattern,
   validateCargo,
   updateLocation,
   submitActualCargo
@@ -29,12 +28,6 @@ let holdCargo = [];
  * ----------------------
  */ 
 async function evaluateRfidTags(chunk, checkpoint, reader) { 
-  // Redirect to mission set, this should reset entire actual_cargo 
-  if(reader.location === 'mission_check') {
-    await setMissionPattern(chunk, reader);
-    return;
-  }
-  
   // This could be separate before the game begins
   //const patternSelected = rfid; (after backcar)
   const tagId = new String(chunk);

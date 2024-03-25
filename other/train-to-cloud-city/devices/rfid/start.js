@@ -18,8 +18,8 @@ const path = require("path");
 const url = require("url");
 
 const { initTrain, getMotor } = require("./utils/train.js");
-const { ports, parsers, roles, mappedRfidRoles } = require("./utils/checkpoints.js");
-const { poweredUP } = require("./utils/firebase.js");
+const { getParsers } = require("./utils/checkpoints.js");
+const { setMissionPattern } = require("./utils/firestoreHelpers.js");
 const { evaluateRfidTags } = require("./trainGame.js");
 
 const expressApp = express();
@@ -34,13 +34,15 @@ expressApp.use(express.static("public"));
  * -> push up information to firestore
  */
 async function listenToReaders() {
-  const mappedRoles = await mappedRfidRoles();
-  
-  parsers.forEach((parser, index) => {
-    const role = roles[index];
-    const match = mappedRoles.filter(m => m.location === role.location);
+  const parsers = await getParsers();
+
+  parsers?.forEach(({parser, role}, index) => {
     // listeners are passed their location role (i.e station, checkpoint, etc);
-    parsers[index].on("data", (chunk) => evaluateRfidTags(chunk, index, match[0])); 
+    if(role === 'mission_check') {
+      parser.on("data", (chunk) => setMissionPattern(chunk, role));
+    } else {
+      parsers[index].on("data", (chunk) => evaluateRfidTags(chunk, index, role));
+    }
   });
 }
 
