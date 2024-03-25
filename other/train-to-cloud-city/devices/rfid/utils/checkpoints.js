@@ -32,7 +32,41 @@ const ports = [
     path: "/dev/ttyUSB3",
     baudRate: 9600,
   }),
+  new SerialPort({
+    path: "/dev/ttyUSB4",
+    baudRate: 9600,
+  }),
+  new SerialPort({
+    path: "/dev/ttyUSB5",
+    baudRate: 9600,
+  }),
 ];
+
+const roles = [
+    { location: "station", serialNumber: "A10LXV9Y" },
+    { location: "checkpoint_1", serialNumber: "A10LXV95" },
+    { location: "checkpoint_2", serialNumber: "A10LXVA5" },
+    { location: "checkpoint_3", serialNumber: "A10LY36P" },
+    { location: "checkpoint_4", serialNumber: "A10LY36T" },
+    { location: "mission_check", serialNumber: "A10LXV9L" },
+  ];
+
+const mappedRfidRoles = async function() {
+  let mapped = [];
+  try {
+    const ports = await SerialPort.list();
+    ports.forEach((port, index) => {
+      let matches = roles.filter(role => port.serialNumber === role.serialNumber);
+      
+      if(matches[0]) {
+        mapped.push({ ...matches[0], ...port });
+      }
+    });
+  } catch(error) {
+    console.error(error);
+  }
+  return mapped;
+};
 
 // Parsers
 const parsers = [
@@ -40,6 +74,8 @@ const parsers = [
   ports[1].pipe(new ReadlineParser()),
   ports[2].pipe(new ReadlineParser()),
   ports[3].pipe(new ReadlineParser()),
+  ports[4].pipe(new ReadlineParser()),
+  ports[5].pipe(new ReadlineParser()),
 ];
 
-module.exports = { ports, parsers };
+module.exports = { ports, parsers, roles, mappedRfidRoles };

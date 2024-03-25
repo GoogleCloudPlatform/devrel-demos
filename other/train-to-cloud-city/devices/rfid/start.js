@@ -18,7 +18,7 @@ const path = require("path");
 const url = require("url");
 
 const { initTrain, getMotor } = require("./utils/train.js");
-const { ports, parsers } = require("./utils/checkpoints.js");
+const { ports, parsers, roles, mappedRfidRoles } = require("./utils/checkpoints.js");
 const { poweredUP } = require("./utils/firebase.js");
 const {
   readTrain,
@@ -36,11 +36,15 @@ expressApp.use(express.static("public"));
  * -> should update state of current train location
  * -> push up information to firestore
  */
-function listenToReaders() {
-  parsers[0].on("data", (chunk) => readTrain(chunk, 0));
-  parsers[1].on("data", (chunk) => readTrain(chunk, 1));
-  parsers[2].on("data", (chunk) => readTrain(chunk, 2));
-  parsers[3].on("data", (chunk) => readTrain(chunk, 3));
+async function listenToReaders() {
+  const mappedRoles = await mappedRfidRoles();
+  
+  parsers.forEach((parser, index) => {
+    const role = roles[index];
+    const match = mappedRoles.filter(m => m.location === role.location);
+    // listeners are passed their location role (i.e station, checkpoint, etc);
+    parsers[index].on("data", (chunk) => readTrain(chunk, index, match[0])); 
+  });
 }
 
 /**
@@ -82,20 +86,17 @@ expressApp.get("/start", async (req, res) => {
   const urlParts = url.parse(req.url, true);
   const query = urlParts.query;
 
-  const useStubTrain = query["train"] === "dummy";
-  // Start train movment
-  //updateTrainMovement(true, 30);
-  
-  const motor = await getMotor();
-  motor.setPower(30);
+  try { 
+    const motor = await getMotor();
+    motor.setPower(30);
+    console.log("Starting train ...");
+    res.redirect(
+      `/?message=${encodeURIComponent(useStubTrain ? "Starting dummy train" : "Starting train")}`,
+    );
+  } catch(error) {
+    res.status(400).send("Error: You must start the train first before starting");
+  }
 
-  useStubTrain
-    ? console.log("Starting dummy train ...")
-    : console.log("Starting train ...");
-
-  res.redirect(
-    `/?message=${encodeURIComponent(useStubTrain ? "Starting dummy train" : "Starting train")}`,
-  );
 });
 
 /**

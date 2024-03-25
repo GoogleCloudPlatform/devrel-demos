@@ -15,20 +15,41 @@
 const { LocalStorage } = require("node-localstorage");
 const { firebase, db, app, firestore } = require("./firebase.js");
 const { StringDecoder } = require("node:string_decoder");
-const decoder = new StringDecoder("utf8");
-const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// TODO: Find if localstorage is best place to store
+// Cargo reading
 let beginReading = false;
 let holdCargo = [];
 
 
 /**
+ * setMissionPattern
+ * ----------------------
+ * high complex - 3300348D69E3
+ * medium complex -  33003558732D
+ * low complex - 0D0088F32B5D
+ */ 
+async function setMissionPattern(chunk, reader) {
+  const mission = await getMatchingService({ chunk });
+  const ref = db.collection("global").doc("proposal");
+  try {
+    await ref.update({ pattern_slug: mission }, { merge: true });
+    console.log(`Mission has been read: ${JSON.stringify(mission)}`);
+  } catch(error) {
+    console.error(error);
+  }
+}
+
+/**
  * readTrain
  * ----------------------
  */ 
-async function readTrain(chunk, checkpoint) { 
-  console.log(`--- checkpoint `, checkpoint);
+async function readTrain(chunk, checkpoint, reader) { 
+  // Redirect to mission set, this should reset entire actual_cargo 
+  if(reader.location === 'mission_check') {
+    await setMissionPattern(chunk, reader);
+    return;
+  }
+  
   // This could be separate before the game begins
   //const patternSelected = rfid; (after backcar)
   const tagId = new String(chunk);
@@ -44,13 +65,11 @@ async function readTrain(chunk, checkpoint) {
   // MIDDLE: In the middle of train, store cargo chunk and continue on
   if(isCargo && beginReading) {
     holdCargo.push(chunk);
-    console.log('--- pushing cargo ', chunk);
     return;
   }
 
   // FRONT: Begin reading cargo
   if(isFrontCar) {
-    console.log('------ is front');
     beginReading = true
     try {
       // marking current location
@@ -62,25 +81,18 @@ async function readTrain(chunk, checkpoint) {
    
   // BACK: At tailend of train, wrap up and send read cargo to firestore
   if(isBackCar) {
-    console.log('------ is back');
     beginReading = false;
-    
     // TODO: save actual_cargo to firestore
     // TODO: pubsub metric to log beginning game (for event)
     // Verification happens at the station (checkpoint 0)
-    if(checkpoint === 0) {
-      console.log('---- updatecargos ', JSON.stringify(holdCargo));
-      
-      Promise.all([
-        updateCargos(holdCargo),
-        validateCargo(holdCargo, 0)
-      ])
-        .then((res) => {
-          console.log(JSON.stringify(res));
-        })
-        .catch((error) => {
-          console.error(error);
-        });
+    if(reader.location  === 'station') {
+      Promise.all([ updateCargos(holdCargo), validateCargo(holdCargo)])
+      .then((res) => {
+        console.log(JSON.stringify(res));
+      })
+      .catch((error) => {
+        console.error(error);
+      });
     
       // clear holding cargo
       holdCargo = [];
@@ -96,8 +108,7 @@ async function readTrain(chunk, checkpoint) {
  */
 async function getMatchingService(id) {
   const serviceRef = db.collection("tags");
-  let services = [];
-  
+  let services = [];  
   try {
     const snapshot = await serviceRef.get();
     snapshot.docs.forEach((doc) => {
@@ -122,23 +133,13 @@ async function getMatchingService(id) {
 async function updateCargos(chunks) {
   let cargos = [];
 
-  console.log('----- updateCargos');
-  console.log(chunks);
-
   chunks?.forEach(async chunk => {
     const buffer = Buffer.from(JSON.stringify({ chunk }));
     const id = JSON.parse(buffer.toString());
-  
-    console.log(id);
-
     // Match read rfid chunk with correct service
     const matchingService = await getMatchingService(id);
-   
-    console.log(matchingService);
     matchingService && cargos.push(matchingService);
   });
-
-  console.log(cargos);
 
   // Updates actual_cargo state with newly read service
   const ref = db.collection("global").doc("cargo");
@@ -158,12 +159,10 @@ async function updateCargos(chunks) {
  */
 async function updateLocation(chunk, index = 0) {
   const ref = db.collection("global").doc("cargo");
-  
   try {
     const trainUpdate = {
       actual_location: index,
     }; 
-    
     await ref.update(trainUpdate, { merge: true });
     console.log(`Passed checkpoint ${index}`);
   } catch(error) {
@@ -200,6 +199,7 @@ async function validateCargo(cargos) {
 
 module.exports = {
   readTrain,
+  setMissionPattern,
   validateCargo,
   updateLocation,
   updateCargos
