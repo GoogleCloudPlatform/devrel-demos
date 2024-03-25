@@ -18,6 +18,7 @@ const {
   getTrainMailbox,
   getSessionMailbox,
   clearTrainMailbox,
+  emitTrainMailboxEvent,
   validateCargo,
   updateLocation,
   submitActualCargo
@@ -35,6 +36,16 @@ let goingOnVictoryLap = false;
  * ----------------------
  */ 
 async function readCargo(chunk, checkpoint, role) {  
+  const tagId = new String(chunk);
+  console.log(tagId);
+  // TODO: Replace with calls to firestore
+  const frontCar = '\x02330035AD1EB5\r';
+  const backCar = '\x03\x023300348E9019\r';
+  
+  const isFrontCar = frontCar.includes(tagId);
+  const isBackCar = backCar.includes(tagId);
+  const isCargo = !isFrontCar && !isBackCar;
+
   let actualCargo = [];
 
   // MIDDLE: In the middle of train, store cargo chunk and continue on
@@ -66,14 +77,18 @@ async function readCargo(chunk, checkpoint, role) {
     holdCargo = [];
   }
 
-  return actualCargo;
+  return {
+    actualCargo,
+    isBackCar
+  }
 }
 
 
 /**
  * startGameLoop
  * ----------------------
- * Main game loop
+ * Main game loop for train. Callback fn to all serialport / rfid readers
+ * so state is not held within loop, but above (TODO: refactor later)
  */ 
 async function startGameLoop(chunk, checkpoint, role) {  
   if(role !== 'station') {
@@ -83,22 +98,25 @@ async function startGameLoop(chunk, checkpoint, role) {
   const trainMailbox = await getTrainMailbox();
   
   motor.stop();
-  
+
+  //TODO: train_mailbox input should be set to check cargo on initial call
+
   if(trainMailbox.input === 'do_check_cargo') {
     motor.setPower(30);
-    const bundledCargo = await readCargo(); // read in cargo rfids
-    // submit cargo
-    submitActualCargo(bundledCargo).then((res) => {
-      console.log(JSON.stringify(res));
-      // TODO: train_mailbox should be set to either do_check_cargo again or do_victory_lap
-      await emitTrainMailboxEvent('do_victory_lap');
-      motor.setPower(-20); // move backwards to get function to reevaluate
-    })
-    .catch((error) => {
-      console.error(error);
-      await emitTrainMailboxEvent('do_check_cargo');
-      motor.setPower(-20); // move backwards to get function to reevaluate
-    });
+    const { actualCargo, isBackCar } = await readCargo(chunk, checkpoint, role); // read in cargo rfids
+    
+    if(isBackCar) {
+      // submit cargo
+      submitActualCargo(actualCargo)
+        .then(async (res) => {
+          console.log(JSON.stringify(res));
+          // TODO: train_mailbox should be set to either do_check_cargo again or do_victory_lap
+          motor.setPower(40); // move backwards to get function to reevaluate
+        })
+        .catch(async (error) => {
+          console.error(error);
+        });
+    }
     return;
   }
   

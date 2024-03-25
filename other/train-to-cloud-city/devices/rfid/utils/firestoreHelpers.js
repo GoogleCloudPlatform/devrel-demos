@@ -14,7 +14,7 @@
 
 const { firebase, db, app, firestore } = require("./firebase.js");
 const { StringDecoder } = require("node:string_decoder");
-const { getMotor } = require("./utils/train.js");
+const { getMotor } = require("./train.js");
 
 /**
  * setMissionPattern (step 1)
@@ -102,7 +102,8 @@ async function getSessionMailbox() {
  */
 async function getTrainMailbox() {
   const trainRef = db.collection("global").doc("train_mailbox");
-  let docs = [];
+  let doc = {};
+
   try {
     const snapshot = await trainRef.get();
     doc = snapshot.data();
@@ -110,7 +111,7 @@ async function getTrainMailbox() {
     console.error(error);
   }
 
-  return docs;
+  return doc;
 }
 
 /**
@@ -118,7 +119,7 @@ async function getTrainMailbox() {
  * ----------------------
  */
 async function clearTrainMailbox() {
-  const trainRef = db.collection("global").doc("train_mailbox");
+  const ref = db.collection("global").doc("train_mailbox");
   try {
     await ref.update({ input: null}, { merge: true });
     console.log(`Train mailbox cleared`);
@@ -183,7 +184,6 @@ const emitTrainMailboxEvent = async (eventString) => {
   const ref = db.collection("global").doc("train_mailbox");
   try {
     await ref.update({ input: eventString }, { merge: true });
-    console.log(`Passed checkpoint ${location}`);
   } catch(error) {
     console.error(error);
   }
