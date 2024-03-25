@@ -18,7 +18,7 @@ const path = require("path");
 const url = require("url");
 
 const { initTrain, getMotor } = require("./utils/train.js");
-const { getParsers } = require("./utils/checkpoints.js");
+const { getPorts } = require("./utils/checkpoints.js");
 const { setMissionPattern } = require("./utils/firestoreHelpers.js");
 const { evaluateRfidTags } = require("./trainGame.js");
 
@@ -27,6 +27,8 @@ expressApp.use(express.json());
 expressApp.use(express.static("express"));
 expressApp.use(express.static("public"));
 
+const { SerialPort, ReadlineParser } = require("serialport");
+
 /**
  * listenToReaders
  * ----------------------
@@ -34,14 +36,15 @@ expressApp.use(express.static("public"));
  * -> push up information to firestore
  */
 async function listenToReaders() {
-  const parsers = await getParsers();
-
-  parsers?.forEach(({parser, role}, index) => {
+  const ports = await getPorts();
+  
+  ports?.forEach((port, index) => {
+    const listener = (new SerialPort(port)).pipe(new ReadlineParser());
     // listeners are passed their location role (i.e station, checkpoint, etc);
-    if(role === 'mission_check') {
-      parser.on("data", (chunk) => setMissionPattern(chunk, role));
+    if(port?.role === 'mission_check') {
+      listener.on("data", (chunk) => setMissionPattern(chunk, port?.role));
     } else {
-      parsers[index].on("data", (chunk) => evaluateRfidTags(chunk, index, role));
+      listener.on("data", (chunk) => evaluateRfidTags(chunk, index, port?.role));
     }
   });
 }

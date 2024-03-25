@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { SerialPort, ReadlineParser } = require("serialport");
+const { SerialPort } = require("serialport");
 
 const roles = {
   "A10LXV9L": "mission_check",
@@ -23,7 +23,6 @@ const roles = {
   "A10LY36T": "checkpoint_4",
 };
 
-
 // Train checkpoints
 const getPorts = async function() {
   let ports = [];
@@ -31,14 +30,14 @@ const getPorts = async function() {
     const list = await SerialPort.list();    
     list.forEach((port, index) => {
       const role = roles[port.serialNumber];
-      ports.push(
-        new SerialPort({
+      if(role) {
+        ports.push({
           role,
           path: port.path,
           serialNumber: port.serialNumber,
           baudRate: 9600,
-        })
-      );
+        });
+      }
     });
   } catch(error) {
     console.error(error);
@@ -46,20 +45,4 @@ const getPorts = async function() {
   return ports;
 };
 
-// Parsers
-const getParsers = async function() {
-  const ports = await getPorts();
-  let parsers = [];
-
-  ports?.forEach(port => {
-    const parser = port.pipe(new ReadlineParser());
-    parsers.push({
-      parser,
-      role: port.settings.role
-    });
-  });
-
-  return parsers
-}
-
-module.exports = { getParsers };
+module.exports = { getPorts };
