@@ -49,8 +49,17 @@ intent_template = PromptTemplate.from_template(textwrap.dedent("""\
 		"shouldRecommendProduct": true,
 		"shouldRecommendProductReasoning": "User is looking for a product recommendation.",
 		"summary": "A list of 3 birthday gifts for a 6 year old girl who likes science."
-	}			
+	}
 
+    History: [{'role': 'user', 'content': "Hi, I am looking for a birthday gift for my 26 year old neice"}]
+	Answer: {
+		"isOnTopic": true,
+		"shouldRecommendProduct": false,
+		"shouldRecommendProductReasoning": "Age is out of range for a toy store.",
+		"summary": "Clarify the age of the child to make further recommendations."
+	}
+
+    Recommend only products from the list received from the recommendation tool. If none of the products satisfy the needs then run recommendation tool again.
 	History: {{ history }}
 	Answer: 
 """), template_format="jinja2")

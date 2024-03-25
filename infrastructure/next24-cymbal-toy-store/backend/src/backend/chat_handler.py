@@ -7,9 +7,9 @@ from langchain.prompts import (
 	PromptTemplate,
 )
 from langchain.schema import HumanMessage, AIMessage, SystemMessage, BaseMessage
-from langchain.chat_models import ChatVertexAI
-from langchain.llms import VertexAI
-from langchain.embeddings import VertexAIEmbeddings
+from langchain_google_vertexai import ChatVertexAI
+from langchain_google_vertexai import VertexAI
+from langchain_google_vertexai import VertexAIEmbeddings
 import sqlalchemy
 from typing import Any
 
@@ -28,21 +28,13 @@ class ChatHandler():
 			verbose=True,
 		)
 		self.llm = VertexAI(
-			model_name="text-bison@002",
+			model_name="gemini-pro",
 			max_output_tokens=512,
 			temperature=0.0,
 			top_p=0.8,
 			top_k=20,
 			verbose=True,
 		)
-		# self.llm = VertexAI(
-		# 	model_name="text-bison@001",
-		# 	max_output_tokens=512,
-		# 	temperature=0.0,
-		# 	top_p=0.8,
-		# 	top_k=20,
-		# 	verbose=True,
-		# )
 
 
 	def _generic_error():
