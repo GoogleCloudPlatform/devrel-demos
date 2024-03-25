@@ -173,6 +173,7 @@ LOCATION = {
 SIGNAL_STATE = {
     "STOP": "stop",
     "CLEAR": "clear",
+    "OFF": "off",
 }
 
 class Signal(BaseModel):
@@ -182,10 +183,10 @@ class Signal(BaseModel):
     target_state: str
 
 SIGNALS = [
-    Signal(slug="one", name="One", actual_state=SIGNAL_STATE["STOP"], target_state=SIGNAL_STATE["STOP"]),
-    Signal(slug="two", name="Two", actual_state=SIGNAL_STATE["STOP"], target_state=SIGNAL_STATE["STOP"]),
-    Signal(slug="three", name="Three", actual_state=SIGNAL_STATE["STOP"], target_state=SIGNAL_STATE["STOP"]),
-    Signal(slug="four", name="Four", actual_state=SIGNAL_STATE["STOP"], target_state=SIGNAL_STATE["STOP"]),
+    Signal(slug="one", name="One", actual_state=SIGNAL_STATE["OFF"], target_state=SIGNAL_STATE["OFF"]),
+    Signal(slug="two", name="Two", actual_state=SIGNAL_STATE["OFF"], target_state=SIGNAL_STATE["OFF"]),
+    Signal(slug="three", name="Three", actual_state=SIGNAL_STATE["OFF"], target_state=SIGNAL_STATE["OFF"]),
+    Signal(slug="four", name="Four", actual_state=SIGNAL_STATE["OFF"], target_state=SIGNAL_STATE["OFF"]),
 ]
 
 

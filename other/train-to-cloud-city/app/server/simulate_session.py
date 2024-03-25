@@ -18,7 +18,7 @@ import train_types
 from google.cloud import firestore
 from fastapi.encoders import jsonable_encoder
 
-PROJECT = "train-to-cloud-city-5"
+PROJECT = "train-to-cloud-city-4"
 COLLECTION = "global_simulation"
 STEP_SEC = 5
 
@@ -41,7 +41,7 @@ train=train_types.Train(
         actual_location=train_types.LOCATION["STATION"],
     )
 cargo = train_types.Cargo(actual_cargo=list())
-signals={s.slug: s for s in train_types.SIGNALS}
+signals={s.slug: s.model_dump(mode="json") for s in train_types.SIGNALS}
 
 
 log("connecting to DB")
@@ -51,21 +51,24 @@ global_ref = db.collection(COLLECTION)
 while True:
     log("set starting world state")
     
-    global_ref.document("train_mailbox").set({"input" : None, "doc_valid_commands" : ["do_check_cargo", "do_victory_lap"]})
-    global_ref.document("session_mailbox").set({"input" : None, "doc_valid_commands" : ["reset", "check_pattern"]})
-
-    cargo_doc = global_ref.document("cargo")
-    cargo_doc.set(cargo.model_dump(mode="json"))
-
-    train_doc = global_ref.document("train")
-    train_doc.set(train.model_dump(mode="json"))
-
-    signals_doc = global_ref.document("signals")
-    signals_doc.set(jsonable_encoder(signals))
+    global_ref.document("train_mailbox").update({"input" : None})
+    global_ref.document("input_mailbox").update({"input" : None})
 
     proposal_doc = global_ref.document("proposal")
-    proposal_doc.set({"pattern_slug":None, "proposal_result":None})
+    proposal_doc.update({"pattern_slug":None, "proposal_result":None})
 
+    cargo_doc = global_ref.document("cargo")
+    cargo_doc.update({"actual_cargo": []})
+
+    signals_doc = global_ref.document("signals")
+    signals_doc.update({"one.target_state" : "off"})
+    signals_doc.update({"two.target_state" : "off"})
+    signals_doc.update({"three.target_state" : "off"})
+    signals_doc.update({"four.target_state" : "off"})
+
+    train_doc = global_ref.document("train")
+    change(train_doc, {"actual_location" : "station"})
+    
     sleep(STEP_SEC)    
 
 
