@@ -20,7 +20,7 @@ const url = require("url");
 const { initTrain, getMotor } = require("./utils/train.js");
 const { getPorts } = require("./utils/checkpoints.js");
 const { setMissionPattern } = require("./utils/firestoreHelpers.js");
-const { evaluateRfidTags } = require("./trainGame.js");
+const { startGameLoop } = require("./trainGame.js");
 
 const expressApp = express();
 expressApp.use(express.json());
@@ -30,7 +30,7 @@ expressApp.use(express.static("public"));
 const { SerialPort, ReadlineParser } = require("serialport");
 
 /**
- * listenToReaders
+ * listenToReaders (setup)
  * ----------------------
  * -> should update state of current train location
  * -> push up information to firestore
@@ -44,7 +44,7 @@ async function listenToReaders() {
     if(port?.role === 'mission_check') {
       listener.on("data", (chunk) => setMissionPattern(chunk, port?.role));
     } else {
-      listener.on("data", (chunk) => evaluateRfidTags(chunk, index, port?.role));
+      listener.on("data", (chunk) => startGameLoop(chunk, index, port?.role));
     }
   });
 }
@@ -92,14 +92,12 @@ expressApp.get("/start", async (req, res) => {
   const query = urlParts.query;
 
   try { 
-    const motor = await getMotor();
-    motor.setPower(30);
-    console.log("Starting train ...");
-    res.redirect(
-      `/?message=${encodeURIComponent(useStubTrain ? "Starting dummy train" : "Starting train")}`,
-    );
+    //const motor = await getMotor();
+    //motor.setPower(30);
+    console.log("Starting train demo ...");
+    res.redirect(`/?message=${encodeURIComponent("Starting train")}`);
   } catch(error) {
-    res.status(400).send("Error: You must start the train first before starting");
+    console.error(error);
   }
 
 });

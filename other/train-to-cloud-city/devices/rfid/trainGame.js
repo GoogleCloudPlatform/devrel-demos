@@ -28,92 +28,91 @@ const { getMotor } = require("./utils/train.js");
 let beginReading = false;
 let holdCargo = [];
 
+let goingOnVictoryLap = false;
+
 /**
- * evaluateRfidTags
+ * readCargo
  * ----------------------
  */ 
-async function evaluateRfidTags(chunk, checkpoint, role) {  
+async function readCargo(chunk, checkpoint, role) {  
+  let actualCargo = [];
+
+  // MIDDLE: In the middle of train, store cargo chunk and continue on
+  if(isCargo && beginReading) {
+    holdCargo.push(chunk);
+    try {
+      await updateLocation(chunk, role);
+    } catch(error) {
+      console.error(error);
+    }
+    return;
+  }
+
+  // FRONT: Begin reading cargo
+  if(isFrontCar) {
+    beginReading = true
+    try {
+      await updateLocation(chunk, role);
+    } catch(error) {
+      console.error(error);
+    }
+  }
+
+  // BACK: At tailend of train, wrap up and send read cargo to firestore
+  if(isBackCar) {
+    beginReading = false;
+    const actualCargo = holdCargo;
+    // clear any previously read cargo
+    holdCargo = [];
+  }
+
+  return actualCargo;
+}
+
+
+/**
+ * startGameLoop
+ * ----------------------
+ * Main game loop
+ */ 
+async function startGameLoop(chunk, checkpoint, role) {  
+  if(role !== 'station') {
+    return;
+  }
   const motor = await getMotor();
-
-  const tagId = new String(chunk); 
-  const frontCar = '\x02330035AD1EB5\r';
-  const backCar = '\x03\x023300348E9019\r';
-
-  const isFrontCar = frontCar.includes(tagId);
-  const isBackCar = backCar.includes(tagId);
-  const isCargo = !isFrontCar && !isBackCar;
-
-  const train = await getTrain();
   const trainMailbox = await getTrainMailbox();
-
-  const isStationCheck = (
-    role === 'station' && // current location 
-    train.actual_location === 'station' &&  // database last recorded
-    trainMailbox.input === 'do_check_cargo'
-  );
-  const isStationVictory = (
-    role === 'station' && // current location 
-    train.actual_location === 'station' &&  // database last recorded
-    trainMailbox.input === 'do_victory_lap'
-  );
-
-  const loadingAtStation = (
-    !isStationCheck && !isStationVictory &&
-    role === 'station' && // current location 
-    train.actual_location === 'station' 
-  );
-
-  // TODO: add in 3 states for train in if check 
-  if(role === 'station') {
-    // MIDDLE: In the middle of train, store cargo chunk and continue on
-    if(isCargo && beginReading) {
-      holdCargo.push(chunk);
-      try {
-        await updateLocation(chunk, role);
-      } catch(error) {
-        console.error(error);
-      }
-      return;
-    }
-
-    // FRONT: Begin reading cargo
-    if(isFrontCar) {
-      // TODO: read in mailbox for this check
-      // if(isVictory) {
-      //  motor.stop();
-      //  await clearTrainMailbox(); 
-      //} else {
-      beginReading = true
-      try {
-        // marking current location
-        await updateLocation(chunk, role);
-      } catch(error) {
-        console.error(error);
-      }
-    }
-
-    // BACK: At tailend of train, wrap up and send read cargo to firestore
-    if(isBackCar) {
-      beginReading = false;
-      // TODO: pubsub metric to log beginning game (for event)
+  
+  motor.stop();
+  
+  if(trainMailbox.input === 'do_check_cargo') {
+    motor.setPower(30);
+    const bundledCargo = await readCargo(); // read in cargo rfids
+    // submit cargo
+    submitActualCargo(bundledCargo).then((res) => {
+      console.log(JSON.stringify(res));
+      // TODO: train_mailbox should be set to either do_check_cargo again or do_victory_lap
+      motor.setPower(-20); // move backwards to get function to reevaluate
+    })
+    .catch((error) => {
+      console.error(error);
+      motor.setPower(-20); // move backwards to get function to reevaluate
+    });
+    return;
+  }
+  
+  if(trainMailbox.input === 'do_victory_lap') {
+    if(goingOnVictoryLap) {
       motor.stop();
-
-      submitActualCargo(holdCargo).then((res) => {
-        motor.setPower(40);
-        console.log('Victory!');
-        console.log(JSON.stringify(res));
-      })
-        .catch((error) => {
-          motor.setPower(-10);
-          console.error(error);
-          // move backwards
-        });
-      // clear holding cargo
-      holdCargo = [];
-
-      // TODO: set signal lights
+      clearTrainMailbox();
+      console.log('Session success!');
+      // TODO: reset whole game state
+    } else {
+      motor.setPower(50);
+      goingOnVictoryLap = true;
+      console.log('Going on victory lap!');
     }
+    return;
   }
 }
 
-module.exports = { evaluateRfidTags };
+module.exports = { startGameLoop };

@@ -14,22 +14,28 @@
 
 const { firebase, db, app, firestore } = require("./firebase.js");
 const { StringDecoder } = require("node:string_decoder");
+const { getMotor } = require("./utils/train.js");
 
 /**
- * setMissionPattern
+ * setMissionPattern (step 1)
  * ----------------------
  * high complex - 3300348D69E3
  * medium complex -  33003558732D
  * low complex - 0D0088F32B5D
+ *
+ * TODO: step 1a train_mailbox updated to check_cargo?
  */ 
 async function setMissionPattern(chunk, reader) {
+  const motor = await getMotor();
   const mission = await getMatchingTag({ chunk });
   const ref = db.collection("global").doc("proposal");
   
   try {
     await ref.update({ pattern_slug: mission }, { merge: true });
-    console.log(`Mission has been read: ${JSON.stringify(mission)}`);
+    motor.setPower(30); // move towards station
+    console.log(`Mission has been read: ${JSON.stringify(mission)} and now moving to station`);
   } catch(error) {
+    motor.stop();
     console.error(error);
   }
 }
