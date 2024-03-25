@@ -14,10 +14,15 @@
 
 const { StringDecoder } = require("node:string_decoder");
 const {
+  getTrain,
+  getTrainMailbox,
+  getSessionMailbox,
+  clearTrainMailbox,
   validateCargo,
   updateLocation,
   submitActualCargo
 } = require("./utils/firestoreHelpers.js");
+const { getMotor } = require("./utils/train.js");
 
 // Cargo reading
 let beginReading = false;
@@ -27,57 +32,88 @@ let holdCargo = [];
  * evaluateRfidTags
  * ----------------------
  */ 
-async function evaluateRfidTags(chunk, checkpoint, reader) { 
-  // This could be separate before the game begins
-  //const patternSelected = rfid; (after backcar)
-  const tagId = new String(chunk);
-  
-  // TODO: Replace with calls to firestore
+async function evaluateRfidTags(chunk, checkpoint, role) {  
+  const motor = await getMotor();
+
+  const tagId = new String(chunk); 
   const frontCar = '\x02330035AD1EB5\r';
   const backCar = '\x03\x023300348E9019\r';
-  
+
   const isFrontCar = frontCar.includes(tagId);
   const isBackCar = backCar.includes(tagId);
   const isCargo = !isFrontCar && !isBackCar;
 
-  // MIDDLE: In the middle of train, store cargo chunk and continue on
-  if(isCargo && beginReading) {
-    holdCargo.push(chunk);
-    return;
-  }
+  const train = await getTrain();
+  const trainMailbox = await getTrainMailbox();
 
-  // FRONT: Begin reading cargo
-  if(isFrontCar) {
-    beginReading = true
-    try {
-      // marking current location
-      //await updateLocation(chunk, checkpoint);
-    } catch(error) {
-      console.error(error);
+  const isStationCheck = (
+    role === 'station' && // current location 
+    train.actual_location === 'station' &&  // database last recorded
+    trainMailbox.input === 'do_check_cargo'
+  );
+  const isStationVictory = (
+    role === 'station' && // current location 
+    train.actual_location === 'station' &&  // database last recorded
+    trainMailbox.input === 'do_victory_lap'
+  );
+
+  const loadingAtStation = (
+    !isStationCheck && !isStationVictory &&
+    role === 'station' && // current location 
+    train.actual_location === 'station' 
+  );
+
+  // TODO: add in 3 states for train in if check 
+  if(role === 'station') {
+    // MIDDLE: In the middle of train, store cargo chunk and continue on
+    if(isCargo && beginReading) {
+      holdCargo.push(chunk);
+      try {
+        await updateLocation(chunk, role);
+      } catch(error) {
+        console.error(error);
+      }
+      return;
     }
-  }
-   
-  // BACK: At tailend of train, wrap up and send read cargo to firestore
-  if(isBackCar) {
-    beginReading = false;
-    // TODO: save actual_cargo to firestore
-    // TODO: pubsub metric to log beginning game (for event)
-    // Verification happens at the station (checkpoint 0)
-    if(reader.location  === 'station') {
+
+    // FRONT: Begin reading cargo
+    if(isFrontCar) {
+      // TODO: read in mailbox for this check
+      // if(isVictory) {
+      //  motor.stop();
+      //  await clearTrainMailbox(); 
+      //} else {
+      beginReading = true
+      try {
+        // marking current location
+        await updateLocation(chunk, role);
+      } catch(error) {
+        console.error(error);
+      }
+    }
+
+    // BACK: At tailend of train, wrap up and send read cargo to firestore
+    if(isBackCar) {
+      beginReading = false;
+      // TODO: pubsub metric to log beginning game (for event)
+      motor.stop();
+
       submitActualCargo(holdCargo).then((res) => {
+        motor.setPower(40);
+        console.log('Victory!');
         console.log(JSON.stringify(res));
       })
-      .catch((error) => {
-        console.error(error);
-      });
+        .catch((error) => {
+          motor.setPower(-10);
+          console.error(error);
+          // move backwards
+        });
       // clear holding cargo
       holdCargo = [];
-      
+
       // TODO: set signal lights
     }
   }
 }
 
-module.exports = {
-  evaluateRfidTags
-};
+module.exports = { evaluateRfidTags };

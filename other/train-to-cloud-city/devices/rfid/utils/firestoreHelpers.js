@@ -58,6 +58,70 @@ async function getMatchingTag(id) {
 }
 
 /**
+ * getTrain
+ * ----------------------
+ */
+async function getTrain() {
+  const trainRef = db.collection("global").doc("train");
+  let docs = [];
+  try {
+    const snapshot = await trainRef.get();
+    doc = snapshot.data();
+  } catch(error) {
+    console.error(error);
+  }
+
+  return docs;
+}
+/**
+ * getSessionMailbox
+ * ----------------------
+ */
+async function getSessionMailbox() {
+  const ref = db.collection("global").doc("session_mailbox");
+  let docs = [];
+  try {
+    const snapshot = await ref.get();
+    doc = snapshot.data();
+  } catch(error) {
+    console.error(error);
+  }
+
+  return docs;
+}
+
+/**
+ * getTrainMailbox
+ * ----------------------
+ */
+async function getTrainMailbox() {
+  const trainRef = db.collection("global").doc("train_mailbox");
+  let docs = [];
+  try {
+    const snapshot = await trainRef.get();
+    doc = snapshot.data();
+  } catch(error) {
+    console.error(error);
+  }
+
+  return docs;
+}
+
+/**
+ * clearTrainMailbox
+ * ----------------------
+ */
+async function clearTrainMailbox() {
+  const trainRef = db.collection("global").doc("train_mailbox");
+  try {
+    await ref.update({ input: null}, { merge: false });
+    console.log(`Train mailbox cleared`);
+  } catch(error) {
+    console.error(error);
+  }
+}
+
+/**
  * submitActualCargo
  *-------------------
  * chunks -> rfid tag id
@@ -96,7 +160,7 @@ async function updateLocation(chunk, location) {
       actual_location: location,
     }; 
     await ref.update(trainUpdate, { merge: true });
-    console.log(`Passed checkpoint ${index}`);
+    console.log(`Passed checkpoint ${location}`);
   } catch(error) {
     console.error(error);
   }
@@ -150,10 +214,14 @@ const sessionMailboxUpdated = (async () => {
 
 
 module.exports = {
+  getTrain,
   setMissionPattern,
   updateLocation,
   submitActualCargo,
   proposalResultUpdated,
+  clearTrainMailbox,
+  getTrainMailbox,
+  getSessionMailbox,
   trainMailboxUpdated,
   sessionMailboxUpdated
 };
