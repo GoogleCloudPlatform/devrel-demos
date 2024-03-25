@@ -91,10 +91,12 @@ async function startGameLoop(chunk, checkpoint, role) {
     submitActualCargo(bundledCargo).then((res) => {
       console.log(JSON.stringify(res));
       // TODO: train_mailbox should be set to either do_check_cargo again or do_victory_lap
+      await emitTrainMailboxEvent('do_victory_lap');
       motor.setPower(-20); // move backwards to get function to reevaluate
     })
     .catch((error) => {
       console.error(error);
+      await emitTrainMailboxEvent('do_check_cargo');
       motor.setPower(-20); // move backwards to get function to reevaluate
     });
     return;

@@ -120,7 +120,7 @@ async function getTrainMailbox() {
 async function clearTrainMailbox() {
   const trainRef = db.collection("global").doc("train_mailbox");
   try {
-    await ref.update({ input: null}, { merge: false });
+    await ref.update({ input: null}, { merge: true });
     console.log(`Train mailbox cleared`);
   } catch(error) {
     console.error(error);
@@ -147,7 +147,7 @@ async function submitActualCargo(chunks) {
   const ref = db.collection("global").doc("cargo");
 
   try {
-    await ref.update({ actual_cargo: cargos}, { merge: true });
+    await ref.update({ actual_cargo: cargos }, { merge: true });
     console.log(`Cargos read ${JSON.stringify(cargos)}`);
   } catch(error) {
     console.error(error);
@@ -174,60 +174,28 @@ async function updateLocation(chunk, location) {
 
 /**
  * -----------------
- * proposalResult
+ * updateTrainMailbox
  * -----------------
+ *  TODO: Should be removed later, only stub to mimic backend
+ *  update to firestore
  */
-const proposalResultUpdated = (async () => {
-  const ref = db.collection("global").doc("proposal");
-  await ref.onSnapshot(docSnapshot => {
-    console.log(`Received doc snapshot:`);
-    console.log(docSnapshot.data());  
-  }, err => {
-    console.log(`Encountered error: ${err}`);
-  });
-
-})();
-
-/**
- * -----------------
- * trainMailboxUpdated
- * -----------------
- */
-const trainMailboxUpdated = (async () => {
+const emitTrainMailboxEvent = async (eventString) => {
   const ref = db.collection("global").doc("train_mailbox");
-  await ref.onSnapshot(docSnapshot => {
-    console.log(`Train received doc snapshot:`);
-    console.log(docSnapshot.data());  
-  }, err => {
-    console.log(`Encountered error: ${err}`);
-  });
-})();
-
-/**
- * -----------------
- * sessionMailboxUpdated
- * -----------------
- */
-const sessionMailboxUpdated = (async () => {
-  const ref = db.collection("global").doc("session_mailbox");
-  await ref.onSnapshot(docSnapshot => {
-    console.log(`Session received doc snapshot:`);
-    console.log(docSnapshot.data());  
-  }, err => {
-    console.log(`Encountered error: ${err}`);
-  });
-})();
-
+  try {
+    await ref.update({ input: eventString }, { merge: true });
+    console.log(`Passed checkpoint ${location}`);
+  } catch(error) {
+    console.error(error);
+  }
+};
 
 module.exports = {
   getTrain,
   setMissionPattern,
   updateLocation,
   submitActualCargo,
-  proposalResultUpdated,
+  emitTrainMailboxEvent,
   clearTrainMailbox,
   getTrainMailbox,
   getSessionMailbox,
-  trainMailboxUpdated,
-  sessionMailboxUpdated
 };
