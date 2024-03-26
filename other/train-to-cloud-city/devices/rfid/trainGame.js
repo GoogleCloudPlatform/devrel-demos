@@ -18,7 +18,7 @@ const {
   getTrainMailbox,
   getSessionMailbox,
   clearTrainMailbox,
-  emitTrainMailboxEvent,
+  updateInputMailbox,
   validateCargo,
   updateLocation,
   submitActualCargo
@@ -37,16 +37,13 @@ let goingOnVictoryLap = false;
  */ 
 async function readCargo(chunk, checkpoint, role) {  
   const tagId = new String(chunk);
-  console.log(tagId);
-  // TODO: Replace with calls to firestore
+  
   const frontCar = '\x02330035AD1EB5\r';
   const backCar = '\x03\x023300348E9019\r';
   
   const isFrontCar = frontCar.includes(tagId);
   const isBackCar = backCar.includes(tagId);
   const isCargo = !isFrontCar && !isBackCar;
-
-  let actualCargo = [];
 
   // MIDDLE: In the middle of train, store cargo chunk and continue on
   if(isCargo && beginReading) {
@@ -56,9 +53,7 @@ async function readCargo(chunk, checkpoint, role) {
     } catch(error) {
       console.error(error);
     }
-    return;
   }
-
   // FRONT: Begin reading cargo
   if(isFrontCar) {
     beginReading = true
@@ -68,19 +63,12 @@ async function readCargo(chunk, checkpoint, role) {
       console.error(error);
     }
   }
-
   // BACK: At tailend of train, wrap up and send read cargo to firestore
   if(isBackCar) {
     beginReading = false;
-    const actualCargo = holdCargo;
-    // clear any previously read cargo
-    holdCargo = [];
   }
 
-  return {
-    actualCargo,
-    isBackCar
-  }
+  return { isBackCar, holdCargo };
 }
 
 
@@ -91,31 +79,31 @@ async function readCargo(chunk, checkpoint, role) {
  * so state is not held within loop, but above (TODO: refactor later)
  */ 
 async function startGameLoop(chunk, checkpoint, role) {  
-  if(role !== 'station') {
-    return;
-  }
+  if(role !== 'station') return;
+
   const motor = await getMotor();
   const trainMailbox = await getTrainMailbox();
   
   motor.stop();
 
-  //TODO: train_mailbox input should be set to check cargo on initial call
-
   if(trainMailbox.input === 'do_check_cargo') {
     motor.setPower(30);
-    const { actualCargo, isBackCar } = await readCargo(chunk, checkpoint, role); // read in cargo rfids
-    
-    if(isBackCar) {
-      // submit cargo
-      submitActualCargo(actualCargo)
-        .then(async (res) => {
-          console.log(JSON.stringify(res));
-          // TODO: train_mailbox should be set to either do_check_cargo again or do_victory_lap
-          motor.setPower(40); // move backwards to get function to reevaluate
-        })
-        .catch(async (error) => {
-          console.error(error);
-        });
+    let cargoResult = {
+      isBackCar: false,
+      holdCargo: []
+    };
+  
+    if(cargoResult.isBackCar) {
+      console.log(' reading completed, submit cargo');
+      motor.stop();
+      try {
+        const result = await submitActualCargo(cargoResult.holdCargo);
+      } catch (error) {
+        console.error(error);
+      }
+    } else {
+      const result = await readCargo(chunk, checkpoint, role); // read in cargo rfids
+      cargoResult = result;
     }
     return;
   }
@@ -123,7 +111,8 @@ async function startGameLoop(chunk, checkpoint, role) {
   if(trainMailbox.input === 'do_victory_lap') {
     if(goingOnVictoryLap) {
       motor.stop();
-      clearTrainMailbox();
+      // Reset train mailbox
+      await clearTrainMailbox();
       console.log('Session success!');
       // TODO: reset whole game state
     } else {

@@ -19,48 +19,68 @@ const { getMotor } = require("./train.js");
 /**
  * setMissionPattern (step 1)
  * ----------------------
- * high complex - 3300348D69E3
- * medium complex -  33003558732D
- * low complex - 0D0088F32B5D
- *
- * TODO: step 1a train_mailbox updated to check_cargo?
  */ 
 async function setMissionPattern(chunk, reader) {
   const motor = await getMotor();
-  const mission = await getMatchingTag({ chunk });
-  const ref = db.collection("global").doc("proposal");
+  const matchingTag = await getMatchingTag({ chunk }); 
+  const proposalRef = db.collection("global").doc("proposal");
+  const mailboxRef = db.collection("global").doc("input_mailbox");
   
-  try {
-    await ref.update({ pattern_slug: mission }, { merge: true });
-    motor.setPower(30); // move towards station
-    console.log(`Mission has been read: ${JSON.stringify(mission)} and now moving to station`);
-  } catch(error) {
-    motor.stop();
-    console.error(error);
+  /** 
+   * PATTERNS TO SELECT FROM
+   * high complex - 3300348D69E3
+   * medium complex -  33003558732D
+   * low complex - 0D0088F32B5D
+   */
+  if (matchingTag?.pattern_slug) {
+    try {
+      await proposalRef.set({ pattern_slug: matchingTag?.pattern_slug }, { merge: false });
+      console.log(`Mission has been read: ${JSON.stringify(matchingTag?.pattern_slug)}. Waiting for event input trigger.`);
+    } catch(error) {
+      console.error(error);
+    }
+    return;
+  }
+
+  /** 
+   * EVENT RFID TAG (let's go magic wand)
+   * check_pattern - 0D00876E4DA9
+   */
+  if (matchingTag?.event_slug) {
+    try {
+      await mailboxRef.set({ input: "check_pattern"});
+      motor.setPower(30); // move towards station
+      console.log(`Input mailbox has been triggered to check pattern and now moving to station.`);
+    } catch(error) {
+      motor.stop();
+      console.error(error);
+    }
   }
 }
 
 /**
  * getMatchingTag
  * ----------------------
+ *  Fetches GCP services, mission patterns, event tags (i.e eval trigger tag)
  */
 async function getMatchingTag(id) {
-  const serviceRef = db.collection("tags");
-  let services = [];  
+  const tagRef = db.collection("tags");
+  let tag = {};  
   try {
-    const snapshot = await serviceRef.get();
+    const snapshot = await tagRef.get();
     snapshot.docs.forEach((doc) => {
+      const data = doc.data();
       const chunk = new String(id?.chunk);
       const docId = new String(doc.id);
       if (chunk.includes(docId)) {
-        services.push(doc.data());
+        tag = data;
       }
     });
   } catch(error) {
     console.error(error);
   }
 
-  return services;
+  return tag;
 }
 
 /**
@@ -72,22 +92,6 @@ async function getTrain() {
   let docs = [];
   try {
     const snapshot = await trainRef.get();
-    doc = snapshot.data();
-  } catch(error) {
-    console.error(error);
-  }
-
-  return docs;
-}
-/**
- * getSessionMailbox
- * ----------------------
- */
-async function getSessionMailbox() {
-  const ref = db.collection("global").doc("session_mailbox");
-  let docs = [];
-  try {
-    const snapshot = await ref.get();
     doc = snapshot.data();
   } catch(error) {
     console.error(error);
@@ -141,12 +145,13 @@ async function submitActualCargo(chunks) {
     const id = JSON.parse(buffer.toString());
     // Match read rfid chunk with correct service
     const matchingService = await getMatchingTag(id);
-    matchingService && cargos.push(matchingService);
+    matchingService?.slug && cargos.push(matchingService.slug);
   });
+
+  console.log(cargos);
 
   // Updates actual_cargo state with newly read service
   const ref = db.collection("global").doc("cargo");
-
   try {
     await ref.update({ actual_cargo: cargos }, { merge: true });
     console.log(`Cargos read ${JSON.stringify(cargos)}`);
@@ -174,14 +179,12 @@ async function updateLocation(chunk, location) {
 }
 
 /**
- * -----------------
- * updateTrainMailbox
- * -----------------
- *  TODO: Should be removed later, only stub to mimic backend
- *  update to firestore
+ * updateInputMailbox
+ *-------------------
+ * index -> step train is on
  */
-const emitTrainMailboxEvent = async (eventString) => {
-  const ref = db.collection("global").doc("train_mailbox");
+async function updateInputMailbox(chunk, location) {
+  const ref = db.collection("global").doc("input_mailbox");
   try {
     await ref.update({ input: eventString }, { merge: true });
   } catch(error) {
@@ -193,9 +196,8 @@ module.exports = {
   getTrain,
   setMissionPattern,
   updateLocation,
+  updateInputMailbox,
   submitActualCargo,
-  emitTrainMailboxEvent,
   clearTrainMailbox,
   getTrainMailbox,
-  getSessionMailbox,
 };

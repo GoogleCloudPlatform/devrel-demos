@@ -19,7 +19,7 @@ const url = require("url");
 
 const { initTrain, getMotor } = require("./utils/train.js");
 const { getPorts } = require("./utils/checkpoints.js");
-const { setMissionPattern } = require("./utils/firestoreHelpers.js");
+const { setMissionPattern, updateLocation } = require("./utils/firestoreHelpers.js");
 const { startGameLoop } = require("./trainGame.js");
 
 const expressApp = express();
@@ -41,10 +41,17 @@ async function listenToReaders() {
   ports?.forEach((port, index) => {
     const listener = (new SerialPort(port)).pipe(new ReadlineParser());
     // listeners are passed their location role (i.e station, checkpoint, etc);
-    if(port?.role === 'mission_check') {
-      listener.on("data", (chunk) => setMissionPattern(chunk, port?.role));
-    } else {
-      listener.on("data", (chunk) => startGameLoop(chunk, index, port?.role));
+    switch(port?.role) {
+      case 'mission_check': {
+        listener.on("data", (chunk) => setMissionPattern(chunk, port?.role));
+      }
+      case 'station': {
+        listener.on("data", (chunk) => startGameLoop(chunk, index, port?.role));
+      }
+      default: {
+        // TODO: isolate out so that other readers are just updating location (port.role)
+        // listener.on("data", () => updateLocation(port?.role));
+      }
     }
   });
 }
@@ -68,8 +75,6 @@ expressApp.get("/stop", async (req, res) => {
   console.log("Stopping train ...");
   
   const motor = await getMotor();
-  motor.brake();
-  motor.setPower(0);
   motor.stop();
 
   res.redirect(`/?message=${encodeURIComponent("Stopping train")}`);
