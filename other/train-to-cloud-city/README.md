@@ -22,7 +22,7 @@ which will validate if the pattern fits. For every validated component, the trai
 * [Firebase](https://firebase.google.com/)
 * [Terraform](https://cloud.google.com/docs/terraform)
 
-* [City Freight Lego Train](https://www.amazon.com/LEGO-Freight-Building-Powered-Technology/)
+* [City Freight Lego Train](https://www.lego.com/en-us/product/freight-train-60336)
 * [Sparkfun RFID readers](https://www.sparkfun.com/products/9963)
 * [RFID Reader ID-20LA](https://www.sparkfun.com/products/11828)
 * [Raspberry Pi 4](https://www.adafruit.com/product/4295)
