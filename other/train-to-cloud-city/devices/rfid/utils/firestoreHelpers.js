@@ -17,7 +17,7 @@ const { StringDecoder } = require("node:string_decoder");
 const { getMotor } = require("./train.js");
 
 /**
- * setMissionPattern (step 1)
+ * setMissionPattern
  * ----------------------
  */ 
 async function setMissionPattern(chunk, reader) {
@@ -44,16 +44,40 @@ async function setMissionPattern(chunk, reader) {
 
   /** 
    * EVENT RFID TAG (let's go magic wand)
-   * check_pattern - 0D00876E4DA9
+   * check-pattern (GO) - 0D00876E4DA9
+   * stop 330034B6B607
+   * reset - 330035D3B96C
    */
   if (matchingTag?.event_slug) {
-    try {
-      await mailboxRef.set({ input: "check_pattern"});
-      motor.setPower(30); // move towards station
-      console.log(`Input mailbox has been triggered to check pattern and now moving to station.`);
-    } catch(error) {
-      motor.stop();
-      console.error(error);
+    const { event_slug } = matchingTag;
+    
+    if(event_slug === 'check-pattern') {
+      console.log('Checking pattern ....');
+      try {
+        await mailboxRef.set({ input: "check_pattern"});
+        motor?.setPower(30); // move towards station
+        console.log(`Input mailbox has been triggered to check pattern and now moving to station.`);
+      } catch(error) {
+        motor?.stop();
+        console.error(error);
+      }
+    }
+    
+    if(event_slug === 'reset') {
+      console.log('Admin reset registered.');
+      try {
+        motor.stop();
+        await mailboxRef.set({ input: "reset"});
+        moveBackToStation = true;
+        motor?.setPower(30);
+      } catch(error) {
+        console.error(error);
+      }
+    }
+    
+    if(event_slug === 'stop') {
+        console.log('Admin stop registered.');
+        motor?.stop();
     }
   }
 }
