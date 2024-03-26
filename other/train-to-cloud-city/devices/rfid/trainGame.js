@@ -17,6 +17,7 @@ const {
   getTrain,
   getTrainMailbox,
   getSessionMailbox,
+  getProposalResult,
   clearTrainMailbox,
   updateInputMailbox,
   validateCargo,
@@ -29,6 +30,8 @@ const { getMotor } = require("./utils/train.js");
 let beginReading = false;
 let holdCargo = [];
 
+let moveBackToStation = false;
+let moveForwardsToStation = false;
 let goingOnVictoryLap = false;
 
 /**
@@ -68,42 +71,62 @@ async function readCargo(chunk, checkpoint, role) {
     beginReading = false;
   }
 
-  return { isBackCar, holdCargo };
+  return { isFrontCar, isBackCar, holdCargo };
 }
 
+async function moveToStation(chunk, role) {
+  const tagId = new String(chunk);
+  const frontCar = '\x03\x02330035AD1EB5\r';
+  const isFrontCar = frontCar.includes(tagId); 
+  const motor = await getMotor();
+
+  if(isFrontCar && role === 'station') {
+    motor?.brake();
+    motor?.stop();
+    moveBackToStation = false;
+    moveForwardsToStation = false;
+    return;
+  } 
+    
+  moveForwardsToStation && motor.setPower(30);
+  moveBackToStation && motor.setPower(-30);
+}
 
 /**
- * startGameLoop
+ * updateGameLoop
  * ----------------------
  * Main game loop for train. Callback fn to all serialport / rfid readers
  * so state is not held within loop, but above (TODO: refactor later)
  */ 
-async function startGameLoop(chunk, checkpoint, role) {  
+async function updateGameLoop(chunk, checkpoint, role) {  
   if(role !== 'station') return;
+
+  if (moveBackToStation || moveForwardsToStation) {
+    await moveToStation(chunk, role);
+    return;
+  }
 
   const motor = await getMotor();
   const trainMailbox = await getTrainMailbox();
-  
-  motor.stop();
+
+  motor?.stop();
 
   if(trainMailbox.input === 'do_check_cargo') {
-    motor.setPower(30);
-    let cargoResult = {
-      isBackCar: false,
-      holdCargo: []
-    };
-  
-    if(cargoResult.isBackCar) {
-      console.log(' reading completed, submit cargo');
+    motor.setPower(30);  
+    const { isBackCar, holdCargo } = await readCargo(chunk, checkpoint, role); // read in cargo rfids
+    
+    if(isBackCar) {
       motor.stop();
       try {
-        const result = await submitActualCargo(cargoResult.holdCargo);
+        // Submit held cargo
+        await submitActualCargo(holdCargo);
+        // Reset train mailbox
+        await clearTrainMailbox();
+        moveBackToStation = true;
+        motor.setPower(-30);
       } catch (error) {
         console.error(error);
       }
-    } else {
-      const result = await readCargo(chunk, checkpoint, role); // read in cargo rfids
-      cargoResult = result;
     }
     return;
   }
@@ -117,11 +140,11 @@ async function startGameLoop(chunk, checkpoint, role) {
       // TODO: reset whole game state
     } else {
       motor.setPower(50);
-      goingOnVictoryLap = true;
+      moveForwardToStation = true;
       console.log('Going on victory lap!');
     }
     return;
   }
 }
 
-module.exports = { startGameLoop };
+module.exports = { updateGameLoop };

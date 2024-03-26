@@ -59,6 +59,24 @@ async function setMissionPattern(chunk, reader) {
 }
 
 /**
+ * getProposalResult
+ * ----------------------
+ */
+async function getProposalResult() {
+  const proposalRef = db.collection("global").doc("proposal");
+  let result = {};
+  try {
+    const snapshot = await proposalRef.get();
+    const data = snapshot.data();
+    result = data.result;
+  } catch(error) {
+    console.error(error);
+  }
+
+  return result;
+}
+
+/**
  * getMatchingTag
  * ----------------------
  *  Fetches GCP services, mission patterns, event tags (i.e eval trigger tag)
@@ -79,7 +97,6 @@ async function getMatchingTag(id) {
   } catch(error) {
     console.error(error);
   }
-
   return tag;
 }
 
@@ -89,7 +106,7 @@ async function getMatchingTag(id) {
  */
 async function getTrain() {
   const trainRef = db.collection("global").doc("train");
-  let docs = [];
+  let doc = {};
   try {
     const snapshot = await trainRef.get();
     doc = snapshot.data();
@@ -97,7 +114,7 @@ async function getTrain() {
     console.error(error);
   }
 
-  return docs;
+  return doc;
 }
 
 /**
@@ -133,22 +150,34 @@ async function clearTrainMailbox() {
 }
 
 /**
+ * matchCargoToServices
+ *-------------------
+ * chunks -> rfid tag id
+ */
+async function matchCargoToServices(chunks) {
+  let cargos = [];
+
+  for(const chunk of chunks) {
+    const buffer = Buffer.from(JSON.stringify({ chunk }));
+    const id = JSON.parse(buffer.toString());
+    // Match read rfid chunk with correct service
+    const matchingService = await getMatchingTag(id);
+
+    if(matchingService?.slug) {
+      cargos.push(matchingService.slug);
+    }
+  }
+
+  return cargos;
+}
+
+/**
  * submitActualCargo
  *-------------------
  * chunks -> rfid tag id
  */
 async function submitActualCargo(chunks) {
-  let cargos = [];
-
-  chunks?.forEach(async chunk => {
-    const buffer = Buffer.from(JSON.stringify({ chunk }));
-    const id = JSON.parse(buffer.toString());
-    // Match read rfid chunk with correct service
-    const matchingService = await getMatchingTag(id);
-    matchingService?.slug && cargos.push(matchingService.slug);
-  });
-
-  console.log(cargos);
+  let cargos = await matchCargoToServices(chunks);
 
   // Updates actual_cargo state with newly read service
   const ref = db.collection("global").doc("cargo");
@@ -194,10 +223,11 @@ async function updateInputMailbox(chunk, location) {
 
 module.exports = {
   getTrain,
+  getProposalResult,
+  getTrainMailbox,
   setMissionPattern,
   updateLocation,
   updateInputMailbox,
   submitActualCargo,
   clearTrainMailbox,
-  getTrainMailbox,
 };
