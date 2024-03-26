@@ -30,9 +30,9 @@ const { getMotor } = require("./utils/train.js");
 let beginReading = false;
 let holdCargo = [];
 
+// Train movement states
 let moveBackToStation = false;
 let moveForwardsToStation = false;
-let goingOnVictoryLap = false;
 
 /**
  * readCargo
@@ -40,7 +40,6 @@ let goingOnVictoryLap = false;
  */ 
 async function readCargo(chunk, checkpoint, role) {  
   const tagId = new String(chunk);
-  
   const frontCar = '\x02330035AD1EB5\r';
   const backCar = '\x03\x023300348E9019\r';
   
@@ -74,6 +73,12 @@ async function readCargo(chunk, checkpoint, role) {
   return { isFrontCar, isBackCar, holdCargo };
 }
 
+/**
+ * moveToStation
+ * ----------------------
+ * In either cargo error & reload stage (backwards to station)
+ * Or in victory lap mode (forwards to station)
+ */
 async function moveToStation(chunk, role) {
   const tagId = new String(chunk);
   const frontCar = '\x03\x02330035AD1EB5\r';
@@ -101,6 +106,8 @@ async function moveToStation(chunk, role) {
 async function updateGameLoop(chunk, checkpoint, role) {  
   if(role !== 'station') return;
 
+  // In either cargo error & reload stage (backwards to station)
+  // Or in victory lap mode (forwards to station)
   if (moveBackToStation || moveForwardsToStation) {
     await moveToStation(chunk, role);
     return;
@@ -139,8 +146,8 @@ async function updateGameLoop(chunk, checkpoint, role) {
       console.log('Session success!');
       // TODO: reset whole game state
     } else {
-      motor.setPower(50);
       moveForwardToStation = true;
+      motor.setPower(50);
       console.log('Going on victory lap!');
     }
     return;
