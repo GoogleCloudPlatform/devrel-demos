@@ -19,7 +19,7 @@ const url = require("url");
 
 const { initTrain, getMotor } = require("./utils/train.js");
 const { getPorts } = require("./utils/checkpoints.js");
-const { setMissionPattern, updateLocation } = require("./utils/firestoreHelpers.js");
+const { setMissionPattern, updateLocation, updateInputMailbox } = require("./utils/firestoreHelpers.js");
 const { updateGameLoop } = require("./trainGame.js");
 
 const expressApp = express();
@@ -59,9 +59,10 @@ async function listenToReaders() {
 /**
  * initialize
  */
-(function initialize(useStubTrain = false) {
-  !useStubTrain && initTrain();
+(async function initialize() {
+  initTrain();
   listenToReaders();
+  await updateInputMailbox('reset');
 })();
 
 expressApp.get("/check-pattern", async (req, res) => {
@@ -83,9 +84,9 @@ expressApp.get("/stop", async (req, res) => {
 /**
  * get /reset
  */
-expressApp.get("/reset", (req, res) => {
+expressApp.get("/reset", async (req, res) => {
   console.log("Resetting train state ...");
-  // TODO: Move train to station
+  await updateInputMailbox('reset');
   res.redirect(`/?message=${encodeURIComponent("Resetting train")}`);
 });
 

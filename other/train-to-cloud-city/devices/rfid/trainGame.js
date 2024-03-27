@@ -19,6 +19,8 @@ const {
   getSessionMailbox,
   getProposalResult,
   clearTrainMailbox,
+  trainMailboxListener,
+  proposalListener,
   updateInputMailbox,
   validateCargo,
   updateLocation,
@@ -28,11 +30,44 @@ const { getMotor } = require("./utils/train.js");
 
 // Cargo reading
 let beginReading = false;
-let holdCargo = [];
+let stockedCargo = [];
+
+// Mailbox
+let trainMailbox = {};
+
+let proposalResult = {};
 
 // Train movement states
 let moveBackToStation = false;
 let moveForwardsToStation = false;
+
+// Train mailbox listener
+trainMailboxListener(async snapshot => {
+  const motor = await getMotor();
+  trainMailbox = snapshot?.data();
+  
+  await updateGameLoop(null, null, 'station');
+  //motor?.setPower(40);
+});
+
+/**
+ * Proposal listener
+ */ 
+proposalListener(async snapshot => {
+  const motor = await getMotor();
+  proposalResult = snapshot?.data()?.proposal_result;
+  
+  if(trainMailbox?.input === 'do_check_cargo') {   
+    // If cargo isn't valid
+    // Head back to station to reload cargo
+    if(proposalResult?.reason && !proposalResult?.clear) {
+      moveBackToStation = true;
+      motor?.setPower(-30);
+      // reset
+      await updateInputMailbox('reset');
+    }
+  }
+});
 
 /**
  * readCargo
@@ -49,7 +84,7 @@ async function readCargo(chunk, checkpoint, role) {
 
   // MIDDLE: In the middle of train, store cargo chunk and continue on
   if(isCargo && beginReading) {
-    holdCargo.push(chunk);
+    stockedCargo.push(chunk);
     try {
       await updateLocation(chunk, role);
     } catch(error) {
@@ -70,7 +105,7 @@ async function readCargo(chunk, checkpoint, role) {
     beginReading = false;
   }
 
-  return { isFrontCar, isBackCar, holdCargo };
+  return { isFrontCar, isBackCar };
 }
 
 /**
@@ -93,8 +128,8 @@ async function moveToStation(chunk, role) {
     return;
   } 
     
-  moveForwardsToStation && motor.setPower(30);
-  moveBackToStation && motor.setPower(-30);
+  moveForwardsToStation && motor?.setPower(35);
+  moveBackToStation && motor?.setPower(-40);
 }
 
 /**
@@ -104,8 +139,7 @@ async function moveToStation(chunk, role) {
  * so state is not held within loop, but above (TODO: refactor later)
  */ 
 async function updateGameLoop(chunk, checkpoint, role) {  
-  if(role !== 'station') return;
-
+  //if(role !== 'station') return;
   // In either cargo error & reload stage (backwards to station)
   // Or in victory lap mode (forwards to station)
   if (moveBackToStation || moveForwardsToStation) {
@@ -114,23 +148,21 @@ async function updateGameLoop(chunk, checkpoint, role) {
   }
 
   const motor = await getMotor();
-  const trainMailbox = await getTrainMailbox();
-
+  motor?.brake();
   motor?.stop();
 
-  if(trainMailbox.input === 'do_check_cargo') {
-    motor.setPower(30);  
-    const { isBackCar, holdCargo } = await readCargo(chunk, checkpoint, role); // read in cargo rfids
-    
+  if(trainMailbox?.input === 'do_check_cargo') {
+    motor?.setPower(35);  
+    // read in cargo rfids
+    const { isBackCar } = await readCargo(chunk, checkpoint, role);
     if(isBackCar) {
-      motor.stop();
+      motor?.brake();
+      motor?.stop();
+
       try {
         // Submit held cargo
-        await submitActualCargo(holdCargo);
-        // Reset train mailbox
-        await clearTrainMailbox();
-        moveBackToStation = true;
-        motor.setPower(-30);
+        await submitActualCargo(stockedCargo); 
+        stockedCargo = [];
       } catch (error) {
         console.error(error);
       }
@@ -138,19 +170,21 @@ async function updateGameLoop(chunk, checkpoint, role) {
     return;
   }
   
-  if(trainMailbox.input === 'do_victory_lap') {
-    if(goingOnVictoryLap) {
-      motor.stop();
+  if(trainMailbox?.input === 'do_victory_lap') {
+    if(moveForwardsToStation) {
+      moveForwardsToStation = false; // reset
+      motor?.stop();
       // Reset train mailbox
       await clearTrainMailbox();
+      // TODO: Send metrics
       console.log('Session success!');
-      // TODO: reset whole game state
+      // reset
+      await updateInputMailbox('reset');
     } else {
-      moveForwardToStation = true;
-      motor.setPower(50);
+      moveForwardsToStation = true;
+      motor?.setPower(50);
       console.log('Going on victory lap!');
     }
-    return;
   }
 }
 

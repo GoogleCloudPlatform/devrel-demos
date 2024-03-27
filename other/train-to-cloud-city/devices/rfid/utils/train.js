@@ -22,7 +22,7 @@ const poweredUP = new PoweredUP.PoweredUP();
 function initTrain() {
   poweredUP?.on("discover", async (hub) => {
     console.log(`Discovered ${hub.name}!`);
-    hub.connect();
+    hub?.connect();
     console.log("Connected");
   });
   poweredUP.scan(); // Start scanning for Hubs
@@ -33,7 +33,7 @@ async function getMotor() {
   const hubs = poweredUP?.getHubs();
   let motor;
   try {
-    motor = await hubs[0].waitForDeviceAtPort("A");
+    motor = await hubs[0]?.waitForDeviceAtPort("A");
   } catch(error) {
     console.log(error);
   }

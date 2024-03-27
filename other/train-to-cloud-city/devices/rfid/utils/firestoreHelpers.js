@@ -83,24 +83,6 @@ async function setMissionPattern(chunk, reader) {
 }
 
 /**
- * getProposalResult
- * ----------------------
- */
-async function getProposalResult() {
-  const proposalRef = db.collection("global").doc("proposal");
-  let result = {};
-  try {
-    const snapshot = await proposalRef.get();
-    const data = snapshot.data();
-    result = data.result;
-  } catch(error) {
-    console.error(error);
-  }
-
-  return result;
-}
-
-/**
  * getMatchingTag
  * ----------------------
  *  Fetches GCP services, mission patterns, event tags (i.e eval trigger tag)
@@ -236,7 +218,7 @@ async function updateLocation(chunk, location) {
  *-------------------
  * index -> step train is on
  */
-async function updateInputMailbox(chunk, location) {
+async function updateInputMailbox(eventString) {
   const ref = db.collection("global").doc("input_mailbox");
   try {
     await ref.update({ input: eventString }, { merge: true });
@@ -245,10 +227,29 @@ async function updateInputMailbox(chunk, location) {
   }
 };
 
+/**
+ * trainMailboxListener
+ * ----------------------
+ */
+async function trainMailboxListener(cb = () => {}) {
+  const trainRef = db.collection("global").doc("train_mailbox");
+  trainRef.onSnapshot(cb);
+};
+
+/**
+ * proposalListener
+ * ----------------------
+ */
+async function proposalListener(cb = () => {}) {
+  const proposalRef = db.collection("global").doc("proposal");
+  proposalRef.onSnapshot(cb);
+};
+
 module.exports = {
   getTrain,
-  getProposalResult,
   getTrainMailbox,
+  trainMailboxListener,
+  proposalListener,
   setMissionPattern,
   updateLocation,
   updateInputMailbox,
