@@ -116,4 +116,23 @@ expressApp.get("/", (req, res) => {
   res.sendFile(path.join(__dirname + "/public/index.html"));
 });
 
+async function gracefulExit() {
+  console.log("Caught interrupt signal. Resetting the game.");
+
+  try {
+    await updateInputMailbox('reset');
+    console.log('Reset completed, exiting out.');
+  } catch (error) {
+    console.log(error);
+  }
+  
+  setTimeout(() => {
+    console.log('exit');
+    process.exit(0);
+  }, 2000);
+};
+
+process.on('SIGINT', gracefulExit);
+process.on('SIGTERM', gracefulExit);
+
 expressApp.listen(3000, () => console.log("Listening to 3000"));
