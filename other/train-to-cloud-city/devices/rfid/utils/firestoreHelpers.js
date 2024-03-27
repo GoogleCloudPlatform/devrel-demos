@@ -184,7 +184,6 @@ async function matchCargoToServices(chunks) {
  */
 async function submitActualCargo(chunks) {
   let cargos = await matchCargoToServices(chunks);
-
   // Updates actual_cargo state with newly read service
   const ref = db.collection("global").doc("cargo");
   try {

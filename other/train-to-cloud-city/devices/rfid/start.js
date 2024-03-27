@@ -20,7 +20,7 @@ const url = require("url");
 const { initTrain, getMotor } = require("./utils/train.js");
 const { getPorts } = require("./utils/checkpoints.js");
 const { setMissionPattern, updateLocation, updateInputMailbox } = require("./utils/firestoreHelpers.js");
-const { updateGameLoop } = require("./trainGame.js");
+const { readCargo, updateGameLoop } = require("./trainGame.js");
 
 const expressApp = express();
 expressApp.use(express.json());
@@ -46,7 +46,7 @@ async function listenToReaders() {
         listener.on("data", (chunk) => setMissionPattern(chunk, port?.role));
       }
       case 'station': {
-        listener.on("data", (chunk) => updateGameLoop(chunk, index, port?.role));
+        listener.on("data", (chunk) => readCargo(chunk, port?.role));
       }
       default: {
         // TODO: isolate out so that other readers are just updating location (port.role)
@@ -98,8 +98,6 @@ expressApp.get("/start", async (req, res) => {
   const query = urlParts.query;
 
   try { 
-    //const motor = await getMotor();
-    //motor.setPower(30);
     console.log("Starting train demo ...");
     res.redirect(`/?message=${encodeURIComponent("Starting train")}`);
   } catch(error) {

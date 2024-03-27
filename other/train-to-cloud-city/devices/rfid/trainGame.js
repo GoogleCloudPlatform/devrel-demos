@@ -32,39 +32,39 @@ const { getMotor } = require("./utils/train.js");
 let beginReading = false;
 let stockedCargo = [];
 
-// Mailbox
+// Cargo results & Mailbox
 let trainMailbox = {};
-
 let proposalResult = {};
 
 // Train movement states
 let moveBackToStation = false;
 let moveForwardsToStation = false;
 
-// Train mailbox listener
+/**
+ * Train mailbox listener
+ */ 
 trainMailboxListener(async snapshot => {
-  const motor = await getMotor();
-  trainMailbox = snapshot?.data();
-  
-  await updateGameLoop(null, null, 'station');
-  //motor?.setPower(40);
+  trainMailbox = snapshot?.data(); 
+  trainMailbox && await updateGameLoop();
 });
 
 /**
  * Proposal listener
  */ 
 proposalListener(async snapshot => {
-  const motor = await getMotor();
   proposalResult = snapshot?.data()?.proposal_result;
-  
-  if(trainMailbox?.input === 'do_check_cargo') {   
-    // If cargo isn't valid
-    // Head back to station to reload cargo
-    if(proposalResult?.reason && !proposalResult?.clear) {
-      moveBackToStation = true;
-      motor?.setPower(-30);
-      // reset
-      await updateInputMailbox('reset');
+
+  if(proposalResult) {
+    const motor = await getMotor();
+
+    if(trainMailbox?.input === 'do_check_cargo') {
+      // If cargo isn't valid
+      // Head back to station to reload cargo
+      if(proposalResult?.reason && !proposalResult?.clear) {
+        moveBackToStation = true;
+        motor?.setPower(-30);
+        stockedCargo = [];
+      }
     }
   }
 });
@@ -73,9 +73,18 @@ proposalListener(async snapshot => {
  * readCargo
  * ----------------------
  */ 
-async function readCargo(chunk, checkpoint, role) {  
+async function readCargo(chunk, role) {  
+  const motor = await getMotor();
+
+  // In either cargo error & reload stage (backwards to station)
+  // Or in victory lap mode (forwards to station)
+  if (moveBackToStation || moveForwardsToStation) {
+    await moveToStation(chunk, role);
+    return;
+  }
+  
   const tagId = new String(chunk);
-  const frontCar = '\x02330035AD1EB5\r';
+  const frontCar = '\x03\x02330035AD1EB5\r';
   const backCar = '\x03\x023300348E9019\r';
   
   const isFrontCar = frontCar.includes(tagId);
@@ -85,27 +94,24 @@ async function readCargo(chunk, checkpoint, role) {
   // MIDDLE: In the middle of train, store cargo chunk and continue on
   if(isCargo && beginReading) {
     stockedCargo.push(chunk);
-    try {
-      await updateLocation(chunk, role);
-    } catch(error) {
-      console.error(error);
-    }
   }
   // FRONT: Begin reading cargo
   if(isFrontCar) {
     beginReading = true
-    try {
-      await updateLocation(chunk, role);
-    } catch(error) {
-      console.error(error);
-    }
   }
   // BACK: At tailend of train, wrap up and send read cargo to firestore
   if(isBackCar) {
     beginReading = false;
-  }
+    motor?.brake();
+    motor?.stop();
 
-  return { isFrontCar, isBackCar };
+    try {
+      // Submit held cargo
+      await submitActualCargo(stockedCargo); 
+    } catch (error) {
+      console.error(error);
+    }
+  }
 }
 
 /**
@@ -138,15 +144,7 @@ async function moveToStation(chunk, role) {
  * Main game loop for train. Callback fn to all serialport / rfid readers
  * so state is not held within loop, but above (TODO: refactor later)
  */ 
-async function updateGameLoop(chunk, checkpoint, role) {  
-  //if(role !== 'station') return;
-  // In either cargo error & reload stage (backwards to station)
-  // Or in victory lap mode (forwards to station)
-  if (moveBackToStation || moveForwardsToStation) {
-    await moveToStation(chunk, role);
-    return;
-  }
-
+async function updateGameLoop() {  
   const motor = await getMotor();
   motor?.brake();
   motor?.stop();
@@ -154,19 +152,6 @@ async function updateGameLoop(chunk, checkpoint, role) {
   if(trainMailbox?.input === 'do_check_cargo') {
     motor?.setPower(35);  
     // read in cargo rfids
-    const { isBackCar } = await readCargo(chunk, checkpoint, role);
-    if(isBackCar) {
-      motor?.brake();
-      motor?.stop();
-
-      try {
-        // Submit held cargo
-        await submitActualCargo(stockedCargo); 
-        stockedCargo = [];
-      } catch (error) {
-        console.error(error);
-      }
-    }
     return;
   }
   
@@ -188,4 +173,4 @@ async function updateGameLoop(chunk, checkpoint, role) {
   }
 }
 
-module.exports = { updateGameLoop };
+module.exports = { readCargo,updateGameLoop };
