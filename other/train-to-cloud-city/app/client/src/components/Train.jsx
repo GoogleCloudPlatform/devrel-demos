@@ -30,6 +30,8 @@ const Train = (props) => {
   const state = useSelector((state) => state);
   const dispatch = useDispatch();
 
+  console.log(train);
+
   // TODO: revisit when global_simulation actual_cargo is updated
   let cargo = actual_cargo || [];
 
