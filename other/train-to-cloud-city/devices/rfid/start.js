@@ -24,7 +24,7 @@ const {
   updateLocation,
   updateInputMailbox,
 } = require("./utils/firestoreHelpers.js");
-const { readCargo, updateGameLoop } = require("./trainGame.js");
+const { readCargo, resetGameState, updateGameLoop } = require("./trainGame.js");
 
 const expressApp = express();
 expressApp.use(express.json());
@@ -70,20 +70,19 @@ async function listenToReaders() {
   await updateInputMailbox("reset");
 })();
 
-expressApp.get("/check-pattern", async (req, res) => {
-  console.log("Check cargo ...");
-});
-
 /**
  * GET /stop
  */
 expressApp.get("/stop", async (req, res) => {
   console.log("Stopping train ...");
 
-  const motor = await getMotor();
-  motor.stop();
-
-  res.redirect(`/?message=${encodeURIComponent("Stopping train")}`);
+  try {
+    const motor = await getMotor();
+    motor.stop();
+  } catch(error) {
+    res.send(`/?message=${encodeURIComponent("Stopping train")}`);
+    res.status(400).json({error});
+  }
 });
 
 /**
@@ -91,8 +90,15 @@ expressApp.get("/stop", async (req, res) => {
  */
 expressApp.get("/reset", async (req, res) => {
   console.log("Resetting train state ...");
-  await updateInputMailbox("reset");
-  res.redirect(`/?message=${encodeURIComponent("Resetting train")}`);
+  
+  try {
+    resetGameState();
+    await updateInputMailbox("reset");
+    res.status(200).redirect(`/?message=${encodeURIComponent("Resetting train")}`);
+  } catch(error) {
+    console.error(error);
+    res.status(400).json({error})
+  }
 });
 
 /**
@@ -106,9 +112,10 @@ expressApp.get("/start", async (req, res) => {
     const motor = await getMotor();
     motor.setPower(30);
     console.log("Starting train demo ...");
-    res.redirect(`/?message=${encodeURIComponent("Starting train")}`);
+    res.status(200).redirect(`/?message=${encodeURIComponent("Starting train")}`);
   } catch (error) {
     console.error(error);
+    res.status(400).json({error})
   }
 });
 
@@ -123,20 +130,19 @@ expressApp.get("/", (req, res) => {
 });
 
 async function gracefulExit() {
+  console.log("Caught interrupt signal. Resetting the game.");
   try {
-    console.log("Caught interrupt signal. Resetting the game.");
     await updateInputMailbox("reset");
     console.log("Reset completed, exiting out.");
   } catch (error) {
     console.log(error);
   }
-
-  setTimeout(async () => {
-    process.exit(0);
-  }, 5000);
+  process.exit(0);
 }
 
-process.on("SIGINT", gracefulExit);
-process.on("SIGTERM", gracefulExit);
+// Attempt graceful exit if ctrl-c or unexpected crash
+[`exit`, `SIGINT`, `uncaughtException`, `SIGTERM`].forEach((eventType) => 
+  process.on(eventType, gracefulExit)
+)
 
 expressApp.listen(3000, () => console.log("Listening to 3000"));

@@ -191,4 +191,16 @@ async function updateGameLoop() {
   }
 }
 
-module.exports = { readCargo, updateGameLoop };
+async function resetGameState() {
+  // Reset cargo reading
+  beginReading = false;
+  stockedCargo = [];
+  // Reset cargo results & Mailbox
+  trainMailbox = {};
+  proposalResult = {};
+  // Reset train movement states
+  moveBackToStation = false;
+  moveForwardsToStation = false;
+}
+
+module.exports = { readCargo, updateGameLoop, resetGameState };
