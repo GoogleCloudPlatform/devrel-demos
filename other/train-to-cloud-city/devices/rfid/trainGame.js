@@ -14,6 +14,7 @@
 
 const { StringDecoder } = require("node:string_decoder");
 const {
+  publishMessage,
   getTrain,
   getTrainMailbox,
   getSessionMailbox,
@@ -57,6 +58,12 @@ proposalListener(async (snapshot) => {
   if (proposalResult) {
     const motor = await getMotor();
 
+    await publishMessage("cargo-result", {
+      trainMailbox,
+      proposalResult,
+      timestamp: Date.now(),
+    });
+
     if (trainMailbox?.input === "do_check_cargo") {
       // If cargo isn't valid
       // Head back to station to reload cargo
@@ -64,7 +71,20 @@ proposalListener(async (snapshot) => {
         moveBackToStation = true;
         motor?.setPower(-30);
         stockedCargo = [];
+        await publishMessage("cargo-reload", {
+          trainMailbox,
+          proposalResult,
+          timestamp: Date.now(),
+        });
       }
+    }
+    if (trainMailbox?.input === "do_victory_lap") {
+      await publishMessage("victory", {
+        sessionComplete: true,
+        trainMailbox,
+        proposalResult,
+        timestamp: Date.now(),
+      });
     }
   }
 });

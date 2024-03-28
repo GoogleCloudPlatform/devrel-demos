@@ -15,6 +15,23 @@
 const { firebase, db, app, firestore } = require("./firebase.js");
 const { StringDecoder } = require("node:string_decoder");
 const { getMotor } = require("./train.js");
+const { PubSub } = require("@google-cloud/pubsub");
+
+const pubSubClient = new PubSub();
+
+async function publishMessage(topicNameOrId, data) {
+  const dataBuffer = Buffer.from(data);
+
+  try {
+    const messageId = await pubSubClient
+      .topic(topicNameOrId)
+      .publishMessage({ data: dataBuffer });
+    console.log(`Message ${messageId} published.`);
+  } catch (error) {
+    console.error(`Received error while publishing: ${error.message}`);
+    process.exitCode = 1;
+  }
+}
 
 /**
  * setMissionPattern
@@ -38,6 +55,13 @@ async function setMissionPattern(chunk, reader) {
         { pattern_slug: matchingTag?.pattern_slug },
         { merge: false },
       );
+
+      await publishMessage("mission-selected", {
+        chunk,
+        timestamp: Date.now(),
+        pattern_slug: matchingTag?.pattern_slug,
+      });
+
       console.log(
         `Mission has been read: ${JSON.stringify(matchingTag?.pattern_slug)}. Waiting for event input trigger.`,
       );
@@ -195,6 +219,11 @@ async function submitActualCargo(chunks) {
   const ref = db.collection("global").doc("cargo");
   try {
     await ref.update({ actual_cargo: cargos }, { merge: true });
+    await publishMessage("cargo-read", {
+      actualCargo: cargos,
+      timestamp: Date.now(),
+    });
+
     console.log(`Cargos read ${JSON.stringify(cargos)}`);
   } catch (error) {
     console.error(error);
@@ -209,6 +238,10 @@ async function updateLocation(location) {
   const ref = db.collection("global").doc("train");
   try {
     await ref.update({ actual_location: location }, { merge: true });
+    await publishMessage("location-updated", {
+      location,
+      timestamp: Date.now(),
+    });
     console.log(`Passed checkpoint ${location}`);
   } catch (error) {
     console.error(error);
@@ -248,6 +281,7 @@ async function proposalListener(cb = () => {}) {
 }
 
 module.exports = {
+  publishMessage,
   getTrain,
   getTrainMailbox,
   trainMailboxListener,
