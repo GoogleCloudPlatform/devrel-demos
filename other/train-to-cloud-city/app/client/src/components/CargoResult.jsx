@@ -22,14 +22,14 @@ import {
 import { Form, Field } from "react-final-form";
 import { updateCargo, getServices } from "../actions/coreActions";
 import ExtrasQRCode from "../assets/qrcode-extras.png";
-import "./styles/QuizForm.css";
+import "./styles/CargoResult.css";
 
 /**
- * QuizForm
+ * CargoResult
  * -----------------
  *
  */
-const QuizForm = (props) => {
+const CargoResult = (props) => {
   const { selectedPattern, proposalResult } = props;
   const state = useSelector((state) => state);
   const dispatch = useDispatch();
@@ -99,4 +99,4 @@ const QuizForm = (props) => {
   );
 };
 
-export default QuizForm;
+export default CargoResult;

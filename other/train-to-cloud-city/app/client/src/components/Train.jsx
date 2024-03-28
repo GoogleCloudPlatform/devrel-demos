@@ -24,23 +24,13 @@ import "./styles/Train.css";
  */
 const Train = (props) => {
   const { train, cargo } = props;
-  const state = useSelector((state) => state);
-  const dispatch = useDispatch();
-
-  let cars = [];
-  let location = "station";
-
-  cargo?.actual_cargo?.forEach((c, index) =>
-    cars?.push(<TrainCoach key={index} cargo={c} />),
-  );
-
   return (
     <div className="trainContainer">
       <div className="cloudTrain"></div>
       <div className="container">
         <div className="content">
-          <div className={`train ${location}`}>
-            {cars?.map((c) => c)}
+          <div className={`train ${train?.actual_location}`}>
+            {cargo?.actual_cargo?.map((c, index) => <TrainCoach key={index} cargo={c} />)}
             <TrainCoach name="front" />
           </div>
           <div className="track"></div>

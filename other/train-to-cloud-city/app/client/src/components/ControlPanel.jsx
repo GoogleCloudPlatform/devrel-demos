@@ -24,7 +24,7 @@ const ControlPanel = (props) => {
         <div className="controlPanel">
           <div className="sessionMailbox">
             <h3> Current Train Cloud Cargo: </h3>
-            {cargo?.actual_cargo ? (
+            {cargo?.actual_cargo.length ? (
               <p>{JSON.stringify(cargo?.actual_cargo)}</p>
             ) : (
               "Waiting for cargo to be loaded..."
@@ -41,7 +41,7 @@ const ControlPanel = (props) => {
           <div className="trainMailbox">
             <h3> Train: </h3>
             {trainMailbox ? (
-              <p>{JSON.stringify(trainMailbox)}</p>
+              <p>{trainMailbox?.input}</p>
             ) : (
               "Waiting for train events ..."
             )}

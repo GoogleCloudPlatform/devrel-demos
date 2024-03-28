@@ -19,7 +19,7 @@
   width: inherit;
   margin: 15px auto;
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 20px;
 }
 
 .controlPanel {
@@ -28,7 +28,7 @@
   justify-content: space-evenly;
   flex-direction: column;
   color: white;
-  height: 260px;
+  height: 450px;
   padding: 10px;
   border-radius: 10px;
   background: black;

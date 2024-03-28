@@ -15,7 +15,7 @@
 import React from "react";
 import { useSelector, useDispatch } from "react-redux";
 import ControlPanel from "./ControlPanel";
-import QuizForm from "./QuizForm";
+import CargoResult from "./CargoResult";
 import Train from "./Train";
 import Signal from "./Signal";
 import Ribbon from "./Ribbon";
@@ -49,7 +49,7 @@ const Dashboard = (props) => {
           <div className="missionTitle">
             <h3>{`Your Mission: ${proposal?.pattern_slug}`}</h3>
           </div>
-          <QuizForm
+          <CargoResult
             services={services}
             selectedPattern={proposal?.pattern_slug}
             proposalResult={proposal?.proposal_result}
