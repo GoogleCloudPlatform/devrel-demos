@@ -181,6 +181,8 @@ class Signal(BaseModel):
     name: str
     actual_state: str
     target_state: str
+    doc_valid_states: List[str] = Field(default=[state for state in SIGNAL_STATE.values()])
+
 
 SIGNALS = [
     Signal(slug="one", name="One", actual_state=SIGNAL_STATE["OFF"], target_state=SIGNAL_STATE["OFF"]),
