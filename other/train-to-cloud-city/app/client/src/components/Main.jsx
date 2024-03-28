@@ -20,6 +20,9 @@ import {
   getWorld,
   getPatterns,
   getServices,
+  signalsUpdated,
+  cargoUpdated,
+  trainUpdated,
   trainMailboxUpdated,
   updateInputMailbox,
   proposalUpdated
@@ -39,6 +42,10 @@ const Main = (props) => {
   const [adminView, setAdminView] = useState(false);
   const [toggled, setToggle] = useState(false);
   const [simulator, setSimulator] = useState(false);
+ 
+  const [signals, setSignals] = useState({});
+  const [cargo, setCargo] = useState({});
+  const [train, setTrain] = useState({});
   const [pattern, setPattern] = useState({});
   const [proposal, setProposal] = useState({});
     
@@ -69,20 +76,21 @@ const Main = (props) => {
     // Listen for when patterns are updated
     proposalUpdated((data) => {
       setToggle(!!data.pattern_slug);
-
       if(data.pattern_slug) {
         setToggle(true);
         setProposal(data);
       } else {
+        setProposal({});
         cleanSlate();
       }
     });
   
-    // Listen for when train mailbox recieves updates
+    signalsUpdated((data) => setSignals(data));
+    trainUpdated((data) => setTrain(data));
+    cargoUpdated((data) => setCargo(data));
+
     trainMailboxUpdated((data) => {
-      if(data.input) {
-      
-      }
+        console.log(data.input);
     });
   }, [dispatch]);
 
@@ -105,7 +113,7 @@ const Main = (props) => {
             </div>
           </div>
         )}
-        {toggled && <Dashboard proposal={proposal} selectedPattern={pattern} isSimulator={simulator} />}
+        {toggled && <Dashboard proposal={proposal} train={train} cargo={cargo} signals={signals} selectedPattern={pattern} isSimulator={simulator} />}
         {!toggled && (<a href="#" onClick={() => setAdminView(!adminView)}>Toggle admin view</a>)}
         {adminView && (
           <div>

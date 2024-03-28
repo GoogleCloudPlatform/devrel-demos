@@ -20,7 +20,6 @@ import {
   validateServices,
 } from "../helpers/formValidation";
 import { Form, Field } from "react-final-form";
-import { addCar, deleteCar } from "../actions/trainActions";
 import { updateCargo, getServices } from "../actions/coreActions";
 import ExtrasQRCode from "../assets/qrcode-extras.png";
 import "./styles/QuizForm.css";
@@ -31,7 +30,7 @@ import "./styles/QuizForm.css";
  *
  */
 const QuizForm = (props) => {
-  const { selectedPattern } = props;
+  const { selectedPattern, proposalResult } = props;
   const state = useSelector((state) => state);
   const dispatch = useDispatch();
 
@@ -76,19 +75,17 @@ const QuizForm = (props) => {
               {step.description}
             </p>
           ))}
-          // list of services
           <div className="resultContainer">
-            {submitting && "Calculating responses ...."}
-            {errorMessage?.message && (
+            {!proposalResult?.clear && (
               <div>
                 <h3>{"Oh no!"}</h3>
                 <p>{errorMessage.message}</p>
               </div>
             )}
-            {successMessage?.message && (
+            {proposalResult?.clear && (
               <div>
                 <h3>{"Huzzah!"}</h3>
-                <p>{successMessage.message}</p>
+                <p>{proposalResult?.reason}</p>
                 <img alt="Extras" src={ExtrasQRCode} className="qrcode" />
               </div>
             )}

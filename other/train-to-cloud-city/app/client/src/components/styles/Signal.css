@@ -54,12 +54,13 @@
 
 .connector:before {
   content: "";
+  display: block;
   position: relative;
   width: 95px;
   height: 1px;
   background-color: black;
   top: 5px;
-  display: block;
+  left: 9px;
 }
 
 .light {

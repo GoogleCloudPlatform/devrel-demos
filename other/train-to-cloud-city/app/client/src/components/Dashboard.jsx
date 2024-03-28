@@ -30,13 +30,12 @@ import "./styles/Dashboard.css";
 const Dashboard = (props) => {
   const state = useSelector((state) => state);
   const dispatch = useDispatch();
-  const { isSimulator, selectedPattern, proposal } = props;
+  const { isSimulator, selectedPattern, signals, cargo, train, proposal } = props || {};
 
   const showQuiz = !isSimulator;
+
   const { services,  worldState } = state.coreReducer;
-  
-  const { cargo, session_mailbox, signals, train, train_mailbox } =
-    worldState;
+  const { train_mailbox } = worldState;
 
   // Stop and reset whole mission
   const handleStopMission = (event) => {
@@ -59,7 +58,7 @@ const Dashboard = (props) => {
               <h3>{`Your Mission: ${proposal?.pattern_slug}`}</h3>
             </div>
             {selectedPattern && (
-              <QuizForm services={services} selectedPattern={selectedPattern} />
+              <QuizForm services={services} proposalResult={proposal?.proposal_result} selectedPattern={selectedPattern} />
             )}
           </div>
         )}
@@ -86,7 +85,7 @@ const Dashboard = (props) => {
               />
             </div>
           </div>
-          <Train train={train} />
+          <Train train={train} cargo={cargo} />
           <ControlPanel proposalResult={proposal?.proposal_result} trainMailbox={train_mailbox} />
         </div>
       </div>
