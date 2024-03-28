@@ -13,12 +13,10 @@
 // limitations under the License.
 
 import { configureStore } from "@reduxjs/toolkit";
-import { trainReducer } from "./reducers/trainReducer";
 import coreReducer from "./reducers/coreReducer";
 
 const store = configureStore({
   reducer: {
-    trainReducer,
     coreReducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware(),

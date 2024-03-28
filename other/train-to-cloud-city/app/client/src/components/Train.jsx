@@ -23,23 +23,14 @@ import "./styles/Train.css";
  *
  */
 const Train = (props) => {
-  const { train } = props;
-  const { actual_cargo, reader, target_location, actual_location } =
-    train || {};
+  const { train, cargo } = props;
+  const { actual_location } = train || {};
 
   const state = useSelector((state) => state);
   const dispatch = useDispatch();
 
-  // TODO: revisit when global_simulation actual_cargo is updated
-  let cargo = actual_cargo || [];
-
-  if (typeof actual_cargo === "string") {
-    cargo = actual_cargo?.split(",");
-  }
-
   let cars = [];
-  cargo.forEach((cargo, index) => cars.push(<TrainCoach key={index} />));
-
+  cargo?.actual_cargo?.forEach((c, index) => cars?.push(<TrainCoach key={index} />));
   const trainClasses = "train ".concat(actual_location || "station");
 
   return (

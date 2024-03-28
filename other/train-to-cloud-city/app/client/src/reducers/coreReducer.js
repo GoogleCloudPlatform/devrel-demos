@@ -18,6 +18,7 @@ import {
   getWorldSimulation,
   getServices,
   getPatterns,
+  getTrain,
   selectPattern,
   updateSelectedPattern,
 } from "../actions/coreActions";
@@ -48,6 +49,10 @@ const coreSlice = createSlice({
       })
       .addCase(getServices.fulfilled, (state, action) => {
         state.services = action?.payload?.services;
+        return state;
+      })
+      .addCase(getTrain.fulfilled, (state, action) => {
+        state.train = action?.payload?.train;
         return state;
       })
       .addCase(getPatterns.fulfilled, (state, action) => {

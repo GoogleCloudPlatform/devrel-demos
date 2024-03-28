@@ -107,22 +107,23 @@
   top: 16px;
 }
 
+.train.mission_check,
 .train.station {
   left: 35%;
 }
 
-.train.one {
+.train.checkpoint_1 {
   left: 47%;
 }
 
-.train.two {
+.train.checkpoint_2 {
   left: 60%;
 }
 
-.train.three {
+.train.checkpoint_3 {
   left: 70%;
 }
 
-.train.four {
+.train.checkpoint_4 {
   left: 85%;
 }

@@ -20,8 +20,7 @@ import {
   validateServices,
 } from "../helpers/formValidation";
 import { Form, Field } from "react-final-form";
-import { addCar, deleteCar } from "../actions/trainActions";
-import { getServices } from "../actions/coreActions";
+import { updateCargo, getServices } from "../actions/coreActions";
 import ExtrasQRCode from "../assets/qrcode-extras.png";
 import "./styles/QuizForm.css";
 
@@ -31,7 +30,7 @@ import "./styles/QuizForm.css";
  *
  */
 const QuizForm = (props) => {
-  const { selectedPattern } = props;
+  const { selectedPattern, proposalResult } = props;
   const state = useSelector((state) => state);
   const dispatch = useDispatch();
 
@@ -42,37 +41,21 @@ const QuizForm = (props) => {
   });
 
   useEffect(() => {
-    async function fetchData() {
-      await dispatch(getServices());
-    }
-    fetchData();
+    dispatch(getServices());
   }, [dispatch]);
 
   const services = state.coreReducer.services;
 
   const onSubmit = async (results) => {
-    const proposal = {
-      service_slugs: Object.keys(results).map((k) => results[k]),
-    };
-
-    let result, error;
-
+    const slugs = Object.keys(results).map((k) => results[k]);
     try {
-      // TODO: pass through current pattern/mission and proposal
-      result = await validateServices(selectedPattern, proposal);
-      setSuccessMessage(result);
+      dispatch(updateCargo(slugs));
+      setSuccessMessage('Submitted');
       setErrorMessage(); // reset
-      // TODO: pass through current pattern/mission and proposal
-      //values.map((service) => dispatch(addCar(service)));
     } catch (error) {
       setSuccessMessage(); // reset
       setErrorMessage(error);
     }
-  };
-
-  const onReset = async (formReset) => {
-    formReset();
-    dispatch(deleteCar());
   };
 
   return selectedPattern?.checkpoints?.length === 0 ? (
@@ -87,69 +70,26 @@ const QuizForm = (props) => {
             {selectedPattern?.description}
           </p>
           {selectedPattern?.checkpoints?.map((step, index) => (
-            <Field
-              key={`missionStep${index}`}
-              name={`missionStep${index}`}
-              validate={composeValidators(required)}
-            >
-              {({ input, meta }) => (
-                <div className="formMissionInputWrapper">
-                  <div className="formMissionDescription">
-                    <p>
-                      <b>{`Step ${index + 1}: `}</b>
-                      {step.description}
-                    </p>
-                  </div>
-                  <div className="formMissionInput">
-                    <label>
-                      <b>Service: </b>
-                    </label>
-                    <select {...input} name="gcp" id="gcpService">
-                      <option value="">--Choose a service--</option>
-                      {services?.map((s, index) => (
-                        <option key={index} value={`${s}`}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                    {meta.error && meta.touched && (
-                      <span className="formError">{meta.error}</span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </Field>
+            <p>
+              <b>{`Step ${index + 1}: `}</b>
+              {step.description}
+            </p>
           ))}
-          <div className="buttons">
-            <button type="submit" disabled={submitting}>
-              Submit
-            </button>
-            <button
-              type="button"
-              onClick={() => onReset(form.reset)}
-              disabled={submitting || pristine}
-            >
-              Reset
-            </button>
+          <div className="resultContainer">
+            {!proposalResult?.clear && (
+              <div>
+                <h3>{"Oh no!"}</h3>
+                <p>{errorMessage.message}</p>
+              </div>
+            )}
+            {proposalResult?.clear && (
+              <div>
+                <h3>{"Huzzah!"}</h3>
+                <p>{proposalResult?.reason}</p>
+                <img alt="Extras" src={ExtrasQRCode} className="qrcode" />
+              </div>
+            )}
           </div>
-          {(submitting || errorMessage?.message || successMessage?.message) && (
-            <div className="resultContainer">
-              {submitting && "Calculating responses ...."}
-              {errorMessage?.message && (
-                <div>
-                  <h3>{"Oh no!"}</h3>
-                  <p>{errorMessage.message}</p>
-                </div>
-              )}
-              {successMessage?.message && (
-                <div>
-                  <h3>{"Huzzah!"}</h3>
-                  <p>{successMessage.message}</p>
-                  <img alt="Extras" src={ExtrasQRCode} className="qrcode" />
-                </div>
-              )}
-            </div>
-          )}
         </form>
       )}
     />

@@ -30,7 +30,7 @@
 .ribbon .yellow,
 .ribbon .green {
   width: 100%;
-  height: 3px;
+  height: 5px;
 }
 .ribbon .red {
   background-color: var(--cinnabar);

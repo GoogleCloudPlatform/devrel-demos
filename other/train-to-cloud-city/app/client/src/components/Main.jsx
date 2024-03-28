@@ -16,7 +16,17 @@ import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import Dashboard from "./Dashboard";
 import ToggleButton from "./ToggleButton";
-import { getWorld, getPatterns, getServices } from "../actions/coreActions";
+import {
+  getWorld,
+  getPatterns,
+  getServices,
+  signalsUpdated,
+  cargoUpdated,
+  trainUpdated,
+  trainMailboxUpdated,
+  updateInputMailbox,
+  proposalUpdated
+} from "../actions/coreActions";
 import "./styles/Main.css";
 
 /**
@@ -29,19 +39,16 @@ const Main = (props) => {
   const state = useSelector((state) => state);
   const dispatch = useDispatch();
 
-  const [realtime, setRealtime] = useState(false);
   const [adminView, setAdminView] = useState(false);
   const [toggled, setToggle] = useState(false);
   const [simulator, setSimulator] = useState(false);
-
-  useEffect(() => {
-    async function fetchData() {
-      await Promise.all([dispatch(getServices()), dispatch(getPatterns())]);
-    }
-    fetchData();
-  }, [dispatch]);
-
-  // Turn on simulator
+ 
+  const [signals, setSignals] = useState({});
+  const [cargo, setCargo] = useState({});
+  const [train, setTrain] = useState({});
+  const [pattern, setPattern] = useState({});
+  const [proposal, setProposal] = useState({});
+    
   const handleSimulator = async (event) => {
     setToggle(event.target.checked);
     setSimulator(event.target.checked);
@@ -50,38 +57,47 @@ const Main = (props) => {
       isSimulator: event.target.checked,
     });
   };
-
-  // Manually select pattern
+  
   const handlePatternSelect = async (event, pattern) => {
     setToggle(true);
+    setPattern(pattern);
     await getWorld({ pattern, dispatch });
   };
 
-  const handleWatchRealtime = async (event) => {
-    setToggle(true);
-    setRealtime(true);
+  // Reset remnants of any previous game
+  // Fetch services + patterns
+  const cleanSlate = () => {
+    updateInputMailbox('reset');
+    Promise.all([dispatch(getServices()), dispatch(getPatterns())]);
   };
 
-  const showPatternSelect = !adminView && !realtime && !simulator;
+  useEffect(() => {  
+    cleanSlate();
+    // Listen for when patterns are updated
+    proposalUpdated((data) => {
+      setToggle(!!data.pattern_slug);
+      if(data.pattern_slug) {
+        setToggle(true);
+        setProposal(data);
+      } else {
+        setProposal({});
+        cleanSlate();
+      }
+    });
+  
+    signalsUpdated((data) => setSignals(data));
+    trainUpdated((data) => setTrain(data));
+    cargoUpdated((data) => setCargo(data));
+
+    trainMailboxUpdated((data) => {
+        console.log(data.input);
+    });
+  }, [dispatch]);
 
   return (
     <div className="mainContainer">
       <div className="mainWrapper">
-        <div>
-          {!toggled && (
-            <a href="#" onClick={handleWatchRealtime}>
-              Watch in real-time!
-            </a>
-          )}
-        </div>
-        <div>
-          {!toggled && (
-            <a href="#" onClick={() => setAdminView(!adminView)}>
-              Toggle admin view
-            </a>
-          )}
-        </div>
-        {showPatternSelect && (
+        {proposal && !proposal.pattern_slug && ( 
           <div className="mainContent">
             <h2>Choose your adventure</h2>
             <div className="row">
@@ -97,6 +113,8 @@ const Main = (props) => {
             </div>
           </div>
         )}
+        {toggled && <Dashboard proposal={proposal} train={train} cargo={cargo} signals={signals} selectedPattern={pattern} isSimulator={simulator} />}
+        {!toggled && (<a href="#" onClick={() => setAdminView(!adminView)}>Toggle admin view</a>)}
         {adminView && (
           <div>
             <h2>Admin View</h2>
@@ -110,7 +128,6 @@ const Main = (props) => {
             )}
           </div>
         )}
-        {toggled && <Dashboard isRealtime={realtime} isSimulator={simulator} />}
       </div>
     </div>
   );

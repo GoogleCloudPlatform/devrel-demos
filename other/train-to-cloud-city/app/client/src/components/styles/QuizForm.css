@@ -29,12 +29,18 @@
 
 form#missionForm,
 form#missionForm .formMissionInput {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   margin-top: 10px;
 }
 
 form#missionForm select {
   font-family: var(--font);
   font-size: 16px;
+  max-width: 90%;
+  padding: 10px auto;
 }
 
 form#missionForm .buttons {
