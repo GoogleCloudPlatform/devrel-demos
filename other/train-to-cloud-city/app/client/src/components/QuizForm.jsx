@@ -58,6 +58,9 @@ const QuizForm = (props) => {
     }
   };
 
+  const showSuccess = proposalResult?.clear && proposalResult?.reason;
+  const showError = !proposalResult?.clear && proposalResult?.reason;
+
   return selectedPattern?.checkpoints?.length === 0 ? (
     <div> No checkpoints available. </div>
   ) : (
@@ -75,15 +78,15 @@ const QuizForm = (props) => {
               {step.description}
             </p>
           ))}
-          <div className="resultContainer">
-            {!proposalResult?.clear && (
-              <div>
+          <div>
+            {showError && (
+              <div className="resultContainer">
                 <h3>{"Oh no!"}</h3>
                 <p>{errorMessage.message}</p>
               </div>
             )}
-            {proposalResult?.clear && (
-              <div>
+            {showSuccess && (
+              <div className="resultContainer">
                 <h3>{"Huzzah!"}</h3>
                 <p>{proposalResult?.reason}</p>
                 <img alt="Extras" src={ExtrasQRCode} className="qrcode" />

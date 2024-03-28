@@ -19,6 +19,24 @@ import firebaseInstance from "../Firebase";
 
 /**
  * -----------------
+ * getWorldState
+ * -----------------
+ */
+export const getWorldState = createAsyncThunk(
+  "getWorldState",
+  async (collectionName = "global") => {
+    const ref = firebaseInstance.db.collection(collectionName);
+    const snapshot = await ref.get();
+    let world = {};
+    snapshot.docs.forEach((doc) => (world[doc.id] = doc.data()));
+    return world;
+
+    return { state: world };
+  },
+);
+
+/**
+ * -----------------
  * getServices
  * -----------------
  */
@@ -49,112 +67,7 @@ export const getPatterns = createAsyncThunk("getPatterns", async () => {
   return { patterns };
 });
 
-/**
- * -----------------
- * getInitialWorldState
- * -----------------
- */
-export const getInitialWorldState = createAsyncThunk(
-  "getInitialWorldState",
-  async () => {
-    const ref = firebaseInstance.db.collection("global");
-    const state = await ref.get().then((querySnapshot) => {
-      let world = {};
-      querySnapshot.docs.forEach((doc) => (world[doc.id] = doc.data()));
-      return world;
-    });
-
-    return { state };
-  },
-);
-
-/**
- * -----------------
- * getTrain
- * -----------------
- */
-export const getTrain = createAsyncThunk("getTrain", async () => {
-  const ref = firebaseInstance.db.collection("global").doc("train");
-  const train = await ref.get().then((snapshot) => {
-    return snapshot.data();
-  });
-
-  return { train };
-});
-
-/**
- * -----------------
- * getWorld
- * -----------------
- */
-export const getWorld = async ({ dispatch, isSimulator, pattern }) => {
-  if (isSimulator) {
-    await worldSimulationStateUpdated(dispatch);
-  } else {
-    Promise.all([
-      worldStateUpdated(dispatch),
-      dispatch?.(updateSelectedPattern(pattern)),
-    ]).catch((err) => {
-      console.error(err);
-    });
-  }
-};
-
-/**
- * -----------------
- * getWorldSimulation
- * -----------------
- */
-export const getWorldSimulation = createAsyncThunk(
-  "getWorldSimulation",
-  async (changeType) => {
-    const ref = firebaseInstance.db.collection("global_simulation");
-    const simulationState = await ref.get().then((querySnapshot) => {
-      let world = {};
-      querySnapshot.docs.forEach((doc) => (world[doc.id] = doc.data()));
-      return world;
-    });
-
-    return { simulationState: { ...simulationState, changeType } };
-  },
-);
-
 /**** Updates ****/
-
-/**
- * -----------------
- * updateSelectedPattern
- * -----------------
- */
-export const updateSelectedPattern = createAsyncThunk(
-  "updateSelectedPattern",
-  async (pattern) => {
-    const ref = firebaseInstance.db.collection("global").doc("proposal");
-    const selectedPattern = await ref.update({ pattern_slug: pattern?.slug });
-
-    return { selectedPattern };
-  },
-);
-
-/**
- * -----------------
- * resetMission
- * -----------------
- * Solely resets chosen cargo, keeps the previously
- * selected mission
- */
-export const resetMission = createAsyncThunk("resetMission", async () => {
-  const cargoRef = firebaseInstance.db.collection("global").doc("cargo");
-  let result;
-
-  try {
-    result = await cargoRef.update({ actual_cargo: [] });
-  } catch (error) {
-    console.log(error);
-  }
-
-  return result;
-});
 
 /**
  * -----------------
@@ -164,8 +77,10 @@ export const resetMission = createAsyncThunk("resetMission", async () => {
  */
 export const updateCargo = createAsyncThunk(
   "updateCargo",
-  async (cargo = []) => {
-    const cargoRef = firebaseInstance.db.collection("global").doc("cargo");
+  async (cargo = [], collectionName = "global") => {
+    const cargoRef = firebaseInstance.db
+      .collection(collectionName)
+      .doc("cargo");
     try {
       await cargoRef.update({ actual_cargo: cargo });
     } catch (error) {
@@ -180,15 +95,22 @@ export const updateCargo = createAsyncThunk(
  * -----------------
  * Resets entire game and redirect user to homebase
  */
-export const stopMission = createAsyncThunk("stopMission", async () => {
-  const cargoRef = firebaseInstance.db.collection("global").doc("cargo");
-  const patternRef = firebaseInstance.db.collection("global").doc("proposal");
+export const stopMission = createAsyncThunk(
+  "stopMission",
+  async (collectionName = "global") => {
+    const cargoRef = firebaseInstance.db
+      .collection(collectionName)
+      .doc("cargo");
+    const patternRef = firebaseInstance.db
+      .collection(collectionName)
+      .doc("proposal");
 
-  return Promise.all([
-    cargoRef.update({ actual_cargo: [] }),
-    patternRef.update({ pattern_slug: "" }),
-  ]);
-});
+    return Promise.all([
+      cargoRef.update({ actual_cargo: [] }),
+      patternRef.update({ pattern_slug: "" }),
+    ]);
+  },
+);
 
 // ============== Listeners ============== //
 
@@ -197,26 +119,14 @@ export const stopMission = createAsyncThunk("stopMission", async () => {
  * worldStateUpdated
  * -----------------
  */
-export const worldStateUpdated = async (dispatch) => {
-  const ref = firebaseInstance.db.collection("global");
-
+export const worldStateUpdated = async (
+  dispatch,
+  collectionName = "global",
+) => {
+  const ref = firebaseInstance.db.collection(collectionName);
   await ref.onSnapshot((snapshot) => {
     snapshot.docChanges().forEach((change) => {
-      dispatch?.(getInitialWorldState());
-    });
-  });
-};
-
-/**
- * -----------------
- * worldSimulationStateUpdated
- * -----------------
- */
-export const worldSimulationStateUpdated = async (dispatch) => {
-  const ref = firebaseInstance.db.collection("global_simulation");
-  await ref.onSnapshot((snapshot) => {
-    snapshot.docChanges().forEach((change) => {
-      dispatch?.(getWorldSimulation(change.type));
+      dispatch?.(getWorldState());
     });
   });
 };
@@ -226,8 +136,13 @@ export const worldSimulationStateUpdated = async (dispatch) => {
  * trainMailboxUpdated
  * -----------------
  */
-export const trainMailboxUpdated = async (callback = () => {}) => {
-  const ref = firebaseInstance.db.collection("global").doc("train_mailbox");
+export const trainMailboxUpdated = async (
+  callback = () => {},
+  collectionName = "global",
+) => {
+  const ref = firebaseInstance.db
+    .collection(collectionName)
+    .doc("train_mailbox");
   try {
     await ref.onSnapshot((snapshot) => callback(snapshot.data()));
   } catch (error) {
@@ -240,8 +155,11 @@ export const trainMailboxUpdated = async (callback = () => {}) => {
  * proposalUpdated
  * -----------------
  */
-export const proposalUpdated = async (callback = () => {}) => {
-  const ref = firebaseInstance.db.collection("global").doc("proposal");
+export const proposalUpdated = async (
+  callback = () => {},
+  collectionName = "global",
+) => {
+  const ref = firebaseInstance.db.collection(collectionName).doc("proposal");
   try {
     await ref.onSnapshot((snapshot) => callback(snapshot.data()));
   } catch (error) {
@@ -254,8 +172,11 @@ export const proposalUpdated = async (callback = () => {}) => {
  * trainUpdated
  * -----------------
  */
-export const trainUpdated = async (callback = () => {}) => {
-  const ref = firebaseInstance.db.collection("global").doc("train");
+export const trainUpdated = async (
+  callback = () => {},
+  collectionName = "global",
+) => {
+  const ref = firebaseInstance.db.collection(collectionName).doc("train");
   try {
     await ref.onSnapshot((snapshot) => callback(snapshot.data()));
   } catch (error) {
@@ -268,8 +189,11 @@ export const trainUpdated = async (callback = () => {}) => {
  * cargoUpdated
  * -----------------
  */
-export const cargoUpdated = async (callback = () => {}) => {
-  const ref = firebaseInstance.db.collection("global").doc("cargo");
+export const cargoUpdated = async (
+  callback = () => {},
+  collectionName = "global",
+) => {
+  const ref = firebaseInstance.db.collection(collectionName).doc("cargo");
   try {
     await ref.onSnapshot((snapshot) => callback(snapshot.data()));
   } catch (error) {
@@ -282,8 +206,11 @@ export const cargoUpdated = async (callback = () => {}) => {
  * signalsUpdated
  * -----------------
  */
-export const signalsUpdated = async (callback = () => {}) => {
-  const ref = firebaseInstance.db.collection("global").doc("signals");
+export const signalsUpdated = async (
+  callback = () => {},
+  collectionName = "global",
+) => {
+  const ref = firebaseInstance.db.collection(collectionName).doc("signals");
   try {
     await ref.onSnapshot((snapshot) => callback(snapshot.data()));
   } catch (error) {

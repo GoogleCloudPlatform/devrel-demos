@@ -15,6 +15,7 @@
 import React from "react";
 import Station from "../assets/station.png";
 import SignalGreen from "../assets/signal-green.svg";
+import SignalOff from "../assets/signal-off.svg";
 import SignalYellow from "../assets/signal-yellow.svg";
 import SignalRed from "../assets/signal-red.svg";
 import "./styles/Signal.css";
@@ -35,16 +36,17 @@ const Signal = (props) => {
       : checkpointClasses;
 
   let signalLight;
-
-  switch (actual_state) {
+  switch (target_state) {
     case "stop": {
       signalLight = <img alt="SignalRed" src={SignalRed} />;
+      break;
     }
     case "clear": {
       signalLight = <img alt="SignalGreen" src={SignalGreen} />;
+      break;
     }
     default: {
-      signalLight = <img alt="SignalYellow" src={SignalYellow} />;
+      signalLight = <img alt="SignalOff" src={SignalOff} />;
     }
   }
 

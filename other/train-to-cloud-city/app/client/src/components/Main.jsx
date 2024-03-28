@@ -17,7 +17,7 @@ import { useSelector, useDispatch } from "react-redux";
 import Dashboard from "./Dashboard";
 import ToggleButton from "./ToggleButton";
 import {
-  getWorld,
+  getWorldState,
   getPatterns,
   getServices,
   signalsUpdated,
@@ -39,7 +39,6 @@ const Main = (props) => {
   const state = useSelector((state) => state);
   const dispatch = useDispatch();
 
-  const [adminView, setAdminView] = useState(false);
   const [toggled, setToggle] = useState(false);
   const [simulator, setSimulator] = useState(false);
 
@@ -48,51 +47,54 @@ const Main = (props) => {
   const [train, setTrain] = useState({});
   const [pattern, setPattern] = useState({});
   const [proposal, setProposal] = useState({});
+  const [trainMailbox, setTrainMailbox] = useState({});
 
+  /**
+   *
+   */
   const handleSimulator = async (event) => {
     setToggle(event.target.checked);
     setSimulator(event.target.checked);
-    await getWorld({
-      dispatch,
-      isSimulator: event.target.checked,
-    });
+    dispatch?.(getWorldState(simulator ? "global_simulation" : "global"));
   };
 
+  /**
+   *
+   */
   const handlePatternSelect = async (event, pattern) => {
     setToggle(true);
     setPattern(pattern);
-    await getWorld({ pattern, dispatch });
+    dispatch?.(getWorldState(simulator ? "global_simulation" : "global"));
   };
 
-  // Reset remnants of any previous game
-  // Fetch services + patterns
-  const cleanSlate = () => {
-    updateInputMailbox("reset");
-    Promise.all([dispatch(getServices()), dispatch(getPatterns())]);
+  const cleanSlate = async () => {
+    try {
+      await updateInputMailbox("reset");
+      Promise.all([dispatch(getServices()), dispatch(getPatterns())]);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   useEffect(() => {
+    const collection = simulator ? "global_simulation" : "global";
+
     cleanSlate();
     // Listen for when patterns are updated
     proposalUpdated((data) => {
       setToggle(!!data.pattern_slug);
-      if (data.pattern_slug) {
-        setToggle(true);
+      if (!!data.pattern_slug) {
         setProposal(data);
       } else {
         setProposal({});
         cleanSlate();
       }
-    });
-
-    signalsUpdated((data) => setSignals(data));
-    trainUpdated((data) => setTrain(data));
-    cargoUpdated((data) => setCargo(data));
-
-    trainMailboxUpdated((data) => {
-      console.log(data.input);
-    });
-  }, [dispatch]);
+    }, collection);
+    signalsUpdated((data) => setSignals(data), collection);
+    trainUpdated((data) => setTrain(data), collection);
+    cargoUpdated((data) => setCargo(data), collection);
+    trainMailboxUpdated((data) => setTrainMailbox(data), collection);
+  }, [simulator]);
 
   return (
     <div className="mainContainer">
@@ -119,26 +121,15 @@ const Main = (props) => {
             train={train}
             cargo={cargo}
             signals={signals}
-            selectedPattern={pattern}
-            isSimulator={simulator}
+            trainMailbox={trainMailbox}
           />
         )}
         {!toggled && (
-          <a href="#" onClick={() => setAdminView(!adminView)}>
-            Toggle admin view
-          </a>
-        )}
-        {adminView && (
-          <div>
-            <h2>Admin View</h2>
-            {!toggled && (
-              <div className="row">
-                <ToggleButton
-                  label="(Admin) Switch on simulator: "
-                  onChange={handleSimulator}
-                />
-              </div>
-            )}
+          <div className="row">
+            <ToggleButton
+              label="(Admin) Switch on simulator: "
+              onChange={handleSimulator}
+            />
           </div>
         )}
       </div>

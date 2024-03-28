@@ -19,7 +19,7 @@ import QuizForm from "./QuizForm";
 import Train from "./Train";
 import Signal from "./Signal";
 import Ribbon from "./Ribbon";
-import { stopMission, resetMission } from "../actions/coreActions";
+import { stopMission, updateInputMailbox } from "../actions/coreActions";
 import "./styles/Dashboard.css";
 
 /**
@@ -30,43 +30,31 @@ import "./styles/Dashboard.css";
 const Dashboard = (props) => {
   const state = useSelector((state) => state);
   const dispatch = useDispatch();
-  const { isSimulator, selectedPattern, signals, cargo, train, proposal } =
-    props || {};
+  const { signals, cargo, train, proposal, trainMailbox } = props || {};
+  const { patterns, services, worldState } = state.coreReducer;
 
-  const showQuiz = !isSimulator;
-
-  const { services, worldState } = state.coreReducer;
-  const { train_mailbox } = worldState;
+  console.log(patterns);
 
   // Stop and reset whole mission
-  const handleStopMission = (event) => {
+  const handleStopMission = async (event) => {
     dispatch(stopMission());
+    await updateInputMailbox("reset");
     window.location.replace("/");
-  };
-
-  // Keeps selected mission/pattern
-  // Removes previously selected cargo
-  const handleResetMission = (event) => {
-    dispatch(resetMission());
   };
 
   return (
     <div className="dashboardContainer">
       <div className="dashboardWrapper">
-        {showQuiz && (
-          <div className="dashboardPanel">
-            <div className="missionTitle">
-              <h3>{`Your Mission: ${proposal?.pattern_slug}`}</h3>
-            </div>
-            {selectedPattern && (
-              <QuizForm
-                services={services}
-                proposalResult={proposal?.proposal_result}
-                selectedPattern={selectedPattern}
-              />
-            )}
+        <div className="dashboardPanel">
+          <div className="missionTitle">
+            <h3>{`Your Mission: ${proposal?.pattern_slug}`}</h3>
           </div>
-        )}
+          <QuizForm
+            services={services}
+            selectedPattern={proposal?.pattern_slug}
+            proposalResult={proposal?.proposal_result}
+          />
+        </div>
         <div className="dashboardPanel">
           <div className="dashboardSignals">
             <div className="columns">
@@ -92,17 +80,15 @@ const Dashboard = (props) => {
           </div>
           <Train train={train} cargo={cargo} />
           <ControlPanel
+            cargo={cargo}
             proposalResult={proposal?.proposal_result}
-            trainMailbox={train_mailbox}
+            trainMailbox={trainMailbox}
           />
         </div>
       </div>
       <div className="actionPanel">
         <button className="stop" onClick={handleStopMission}>
           Stop Mission
-        </button>
-        <button className="reset" onClick={handleResetMission}>
-          Reset Mission
         </button>
       </div>
       <Ribbon />

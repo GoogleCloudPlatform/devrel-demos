@@ -16,12 +16,20 @@ import React from "react";
 import "./styles/ControlPanel.css";
 
 const ControlPanel = (props) => {
-  const { proposalResult, trainMailbox } = props;
+  const { cargo, proposalResult, trainMailbox } = props;
 
   return (
     <div className="controlPanelContainer">
       <div className="controlPanelWrapper">
         <div className="controlPanel">
+          <div className="sessionMailbox">
+            <h3> Current Train Cloud Cargo: </h3>
+            {cargo?.actual_cargo ? (
+              <p>{JSON.stringify(cargo?.actual_cargo)}</p>
+            ) : (
+              "Waiting for cargo to be loaded..."
+            )}
+          </div>
           <div className="sessionMailbox">
             <h3> Proposal Result: </h3>
             {proposalResult ? (

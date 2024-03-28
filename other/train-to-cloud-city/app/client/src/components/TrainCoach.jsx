@@ -23,7 +23,7 @@ import "./styles/TrainCoach.css";
  *
  */
 const TrainCoach = (props) => {
-  const { name } = props;
+  const { name, cargo } = props;
 
   return (
     <div className="trainCoachContainer">
