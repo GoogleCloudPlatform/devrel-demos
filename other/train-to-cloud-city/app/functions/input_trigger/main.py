@@ -19,24 +19,22 @@ from google.events.cloud import firestore as firestoredata
 
 client = firestore.Client()
 
-# Converts strings added to /messages/{pushId}/original to uppercase
 @functions_framework.cloud_event
 def input_trigger(cloud_event: CloudEvent) -> None:
     # print(cloud_event)
     firestore_payload = firestoredata.DocumentEventData()
     firestore_payload._pb.ParseFromString(cloud_event.data)
-    # print(firestoredata.DocumentEventData.to_json(firestore_payload))
+    print(firestoredata.DocumentEventData.to_json(firestore_payload).replace("\n", ""))
 
 
     # extract the actual data from protobuf nonsense
-    print("\nOld value:")
     old_input = firestore_payload.old_value.fields["input"].string_value
-    print(old_input)
+    # print(f"Old value: {repr(old_input)}")
 
-    print("\nNew value:")
     new_input = firestore_payload.value.fields["input"].string_value
-    print(new_input)
-    
+    # print(f"nNew value: {repr(new_input)}")
+    print(f"input: {repr(old_input)} --> {repr(new_input)}\n")
+
     if old_input == new_input:
         print("No change in mailbox, exiting")
         return
@@ -56,21 +54,21 @@ def input_trigger(cloud_event: CloudEvent) -> None:
         case None | "":
             print("Input was None or empty string, exiting")
         case "reset":
-            reset(global_ref, collection_path)
+            reset(global_ref)
         case "check_pattern":
-            check_pattern(global_ref, collection_path)
+            check_pattern(global_ref)
         case _:
             print(f"Input command not supported: {repr(new_input)}")
     return
 
-def check_pattern(global_ref, collection_path):
-    print(f"check_pattern({collection_path}")
+def check_pattern(global_ref):
+    print("check_pattern()")
 
     global_ref.document("train_mailbox").update({"input" : "do_check_cargo"})
     return 
 
-def reset(global_ref, collection_path):
-    print(f"reset({collection_path}")
+def reset(global_ref):
+    print("reset()")
 
     global_ref.document("train_mailbox").update({"input" : None})
     global_ref.document("input_mailbox").update({"input" : None})
