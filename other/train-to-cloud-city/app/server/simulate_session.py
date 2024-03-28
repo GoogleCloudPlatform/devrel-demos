@@ -66,6 +66,12 @@ while True:
     signals_doc.update({"three.target_state" : "off"})
     signals_doc.update({"four.target_state" : "off"})
 
+    # only clear these in simulation
+    signals_doc.update({"one.actual_state" : "off"})
+    signals_doc.update({"two.actual_state" : "off"})
+    signals_doc.update({"three.actual_state" : "off"})
+    signals_doc.update({"four.actual_state" : "off"})    
+ 
     train_doc = global_ref.document("train")
     change(train_doc, {"actual_location" : "station"})
     
