@@ -30,7 +30,9 @@ const Train = (props) => {
   const dispatch = useDispatch();
 
   let cars = [];
-  cargo?.actual_cargo?.forEach((c, index) => cars?.push(<TrainCoach key={index} />));
+  cargo?.actual_cargo?.forEach((c, index) =>
+    cars?.push(<TrainCoach key={index} />),
+  );
   const trainClasses = "train ".concat(actual_location || "station");
 
   return (

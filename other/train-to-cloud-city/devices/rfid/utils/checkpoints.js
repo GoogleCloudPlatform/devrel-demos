@@ -15,22 +15,22 @@
 const { SerialPort } = require("serialport");
 
 const roles = {
-  "A10LXV9L": "mission_check",
-  "A10LXV9Y": "station",
-  "A10LXV95": "checkpoint_1",
-  "A10LXVA5": "checkpoint_2",
-  "A10LY36P": "checkpoint_3",
-  "A10LY36T": "checkpoint_4",
+  A10LXV9L: "mission_check",
+  A10LXV9Y: "station",
+  A10LXV95: "checkpoint_1",
+  A10LXVA5: "checkpoint_2",
+  A10LY36P: "checkpoint_3",
+  A10LY36T: "checkpoint_4",
 };
 
 // Train checkpoints
-const getPorts = async function() {
+const getPorts = async function () {
   let ports = [];
   try {
-    const list = await SerialPort.list();    
+    const list = await SerialPort.list();
     list.forEach((port, index) => {
       const role = roles[port.serialNumber];
-      if(role) {
+      if (role) {
         ports.push({
           role,
           path: port.path,
@@ -39,7 +39,7 @@ const getPorts = async function() {
         });
       }
     });
-  } catch(error) {
+  } catch (error) {
     console.error(error);
   }
   return ports;

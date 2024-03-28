@@ -50,7 +50,7 @@ const QuizForm = (props) => {
     const slugs = Object.keys(results).map((k) => results[k]);
     try {
       dispatch(updateCargo(slugs));
-      setSuccessMessage('Submitted');
+      setSuccessMessage("Submitted");
       setErrorMessage(); // reset
     } catch (error) {
       setSuccessMessage(); // reset

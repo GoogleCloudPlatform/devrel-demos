@@ -19,14 +19,14 @@ const { getMotor } = require("./train.js");
 /**
  * setMissionPattern
  * ----------------------
- */ 
+ */
 async function setMissionPattern(chunk, reader) {
   const motor = await getMotor();
-  const matchingTag = await getMatchingTag({ chunk }); 
+  const matchingTag = await getMatchingTag({ chunk });
   const proposalRef = db.collection("global").doc("proposal");
   const mailboxRef = db.collection("global").doc("input_mailbox");
-  
-  /** 
+
+  /**
    * PATTERNS TO SELECT FROM
    * high complex - 3300348D69E3
    * medium complex -  33003558732D
@@ -34,15 +34,20 @@ async function setMissionPattern(chunk, reader) {
    */
   if (matchingTag?.pattern_slug) {
     try {
-      await proposalRef.set({ pattern_slug: matchingTag?.pattern_slug }, { merge: false });
-      console.log(`Mission has been read: ${JSON.stringify(matchingTag?.pattern_slug)}. Waiting for event input trigger.`);
-    } catch(error) {
+      await proposalRef.set(
+        { pattern_slug: matchingTag?.pattern_slug },
+        { merge: false },
+      );
+      console.log(
+        `Mission has been read: ${JSON.stringify(matchingTag?.pattern_slug)}. Waiting for event input trigger.`,
+      );
+    } catch (error) {
       console.error(error);
     }
     return;
   }
 
-  /** 
+  /**
    * EVENT RFID TAG (let's go magic wand)
    * check-pattern (GO) - 0D00876E4DA9
    * stop 330034B6B607
@@ -50,34 +55,36 @@ async function setMissionPattern(chunk, reader) {
    */
   if (matchingTag?.event_slug) {
     const { event_slug } = matchingTag;
-    
-    if(event_slug === 'check-pattern') {
-      console.log('Checking pattern ....');
+
+    if (event_slug === "check-pattern") {
+      console.log("Checking pattern ....");
       try {
-        await mailboxRef.set({ input: "check_pattern"});
+        await mailboxRef.set({ input: "check_pattern" });
         motor?.setPower(30); // move towards station
-        console.log(`Input mailbox has been triggered to check pattern and now moving to station.`);
-      } catch(error) {
+        console.log(
+          `Input mailbox has been triggered to check pattern and now moving to station.`,
+        );
+      } catch (error) {
         motor?.stop();
         console.error(error);
       }
     }
-    
-    if(event_slug === 'reset') {
-      console.log('Admin reset registered.');
+
+    if (event_slug === "reset") {
+      console.log("Admin reset registered.");
       try {
         motor.stop();
-        await mailboxRef.set({ input: "reset"});
+        await mailboxRef.set({ input: "reset" });
         moveBackToStation = true;
         motor?.setPower(30);
-      } catch(error) {
+      } catch (error) {
         console.error(error);
       }
     }
-    
-    if(event_slug === 'stop') {
-        console.log('Admin stop registered.');
-        motor?.stop();
+
+    if (event_slug === "stop") {
+      console.log("Admin stop registered.");
+      motor?.stop();
     }
   }
 }
@@ -89,7 +96,7 @@ async function setMissionPattern(chunk, reader) {
  */
 async function getMatchingTag(id) {
   const tagRef = db.collection("tags");
-  let tag = {};  
+  let tag = {};
   try {
     const snapshot = await tagRef.get();
     snapshot.docs.forEach((doc) => {
@@ -100,7 +107,7 @@ async function getMatchingTag(id) {
         tag = data;
       }
     });
-  } catch(error) {
+  } catch (error) {
     console.error(error);
   }
   return tag;
@@ -116,7 +123,7 @@ async function getTrain() {
   try {
     const snapshot = await trainRef.get();
     doc = snapshot.data();
-  } catch(error) {
+  } catch (error) {
     console.error(error);
   }
 
@@ -134,7 +141,7 @@ async function getTrainMailbox() {
   try {
     const snapshot = await trainRef.get();
     doc = snapshot.data();
-  } catch(error) {
+  } catch (error) {
     console.error(error);
   }
 
@@ -148,9 +155,9 @@ async function getTrainMailbox() {
 async function clearTrainMailbox() {
   const ref = db.collection("global").doc("train_mailbox");
   try {
-    await ref.update({ input: null}, { merge: true });
+    await ref.update({ input: null }, { merge: true });
     console.log(`Train mailbox cleared`);
-  } catch(error) {
+  } catch (error) {
     console.error(error);
   }
 }
@@ -163,13 +170,13 @@ async function clearTrainMailbox() {
 async function matchCargoToServices(chunks) {
   let cargos = [];
 
-  for(const chunk of chunks) {
+  for (const chunk of chunks) {
     const buffer = Buffer.from(JSON.stringify({ chunk }));
     const id = JSON.parse(buffer.toString());
     // Match read rfid chunk with correct service
     const matchingService = await getMatchingTag(id);
 
-    if(matchingService?.slug) {
+    if (matchingService?.slug) {
       cargos.push(matchingService.slug);
     }
   }
@@ -189,7 +196,7 @@ async function submitActualCargo(chunks) {
   try {
     await ref.update({ actual_cargo: cargos }, { merge: true });
     console.log(`Cargos read ${JSON.stringify(cargos)}`);
-  } catch(error) {
+  } catch (error) {
     console.error(error);
   }
 }
@@ -197,17 +204,13 @@ async function submitActualCargo(chunks) {
 /**
  * updateLocation
  *-------------------
- * index -> step train is on
  */
-async function updateLocation(chunk, location) {
+async function updateLocation(location) {
   const ref = db.collection("global").doc("train");
   try {
-    const trainUpdate = {
-      actual_location: location,
-    }; 
-    await ref.update(trainUpdate, { merge: true });
+    await ref.update({ actual_location: location }, { merge: true });
     console.log(`Passed checkpoint ${location}`);
-  } catch(error) {
+  } catch (error) {
     console.error(error);
   }
 }
@@ -221,10 +224,10 @@ async function updateInputMailbox(eventString) {
   const ref = db.collection("global").doc("input_mailbox");
   try {
     await ref.update({ input: eventString }, { merge: true });
-  } catch(error) {
+  } catch (error) {
     console.error(error);
   }
-};
+}
 
 /**
  * trainMailboxListener
@@ -233,7 +236,7 @@ async function updateInputMailbox(eventString) {
 async function trainMailboxListener(cb = () => {}) {
   const trainRef = db.collection("global").doc("train_mailbox");
   trainRef.onSnapshot(cb);
-};
+}
 
 /**
  * proposalListener
@@ -242,7 +245,7 @@ async function trainMailboxListener(cb = () => {}) {
 async function proposalListener(cb = () => {}) {
   const proposalRef = db.collection("global").doc("proposal");
   proposalRef.onSnapshot(cb);
-};
+}
 
 module.exports = {
   getTrain,

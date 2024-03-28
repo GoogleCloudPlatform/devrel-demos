@@ -25,7 +25,7 @@ import {
   trainUpdated,
   trainMailboxUpdated,
   updateInputMailbox,
-  proposalUpdated
+  proposalUpdated,
 } from "../actions/coreActions";
 import "./styles/Main.css";
 
@@ -42,13 +42,13 @@ const Main = (props) => {
   const [adminView, setAdminView] = useState(false);
   const [toggled, setToggle] = useState(false);
   const [simulator, setSimulator] = useState(false);
- 
+
   const [signals, setSignals] = useState({});
   const [cargo, setCargo] = useState({});
   const [train, setTrain] = useState({});
   const [pattern, setPattern] = useState({});
   const [proposal, setProposal] = useState({});
-    
+
   const handleSimulator = async (event) => {
     setToggle(event.target.checked);
     setSimulator(event.target.checked);
@@ -57,7 +57,7 @@ const Main = (props) => {
       isSimulator: event.target.checked,
     });
   };
-  
+
   const handlePatternSelect = async (event, pattern) => {
     setToggle(true);
     setPattern(pattern);
@@ -67,16 +67,16 @@ const Main = (props) => {
   // Reset remnants of any previous game
   // Fetch services + patterns
   const cleanSlate = () => {
-    updateInputMailbox('reset');
+    updateInputMailbox("reset");
     Promise.all([dispatch(getServices()), dispatch(getPatterns())]);
   };
 
-  useEffect(() => {  
+  useEffect(() => {
     cleanSlate();
     // Listen for when patterns are updated
     proposalUpdated((data) => {
       setToggle(!!data.pattern_slug);
-      if(data.pattern_slug) {
+      if (data.pattern_slug) {
         setToggle(true);
         setProposal(data);
       } else {
@@ -84,20 +84,20 @@ const Main = (props) => {
         cleanSlate();
       }
     });
-  
+
     signalsUpdated((data) => setSignals(data));
     trainUpdated((data) => setTrain(data));
     cargoUpdated((data) => setCargo(data));
 
     trainMailboxUpdated((data) => {
-        console.log(data.input);
+      console.log(data.input);
     });
   }, [dispatch]);
 
   return (
     <div className="mainContainer">
       <div className="mainWrapper">
-        {proposal && !proposal.pattern_slug && ( 
+        {proposal && !proposal.pattern_slug && (
           <div className="mainContent">
             <h2>Choose your adventure</h2>
             <div className="row">
@@ -113,8 +113,21 @@ const Main = (props) => {
             </div>
           </div>
         )}
-        {toggled && <Dashboard proposal={proposal} train={train} cargo={cargo} signals={signals} selectedPattern={pattern} isSimulator={simulator} />}
-        {!toggled && (<a href="#" onClick={() => setAdminView(!adminView)}>Toggle admin view</a>)}
+        {toggled && (
+          <Dashboard
+            proposal={proposal}
+            train={train}
+            cargo={cargo}
+            signals={signals}
+            selectedPattern={pattern}
+            isSimulator={simulator}
+          />
+        )}
+        {!toggled && (
+          <a href="#" onClick={() => setAdminView(!adminView)}>
+            Toggle admin view
+          </a>
+        )}
         {adminView && (
           <div>
             <h2>Admin View</h2>

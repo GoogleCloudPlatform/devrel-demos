@@ -24,7 +24,7 @@ const {
   updateInputMailbox,
   validateCargo,
   updateLocation,
-  submitActualCargo
+  submitActualCargo,
 } = require("./utils/firestoreHelpers.js");
 const { getMotor } = require("./utils/train.js");
 
@@ -42,25 +42,25 @@ let moveForwardsToStation = false;
 
 /**
  * Train mailbox listener
- */ 
-trainMailboxListener(async snapshot => {
-  trainMailbox = snapshot?.data(); 
-  trainMailbox && await updateGameLoop();
+ */
+trainMailboxListener(async (snapshot) => {
+  trainMailbox = snapshot?.data();
+  trainMailbox && (await updateGameLoop());
 });
 
 /**
  * Proposal listener
- */ 
-proposalListener(async snapshot => {
+ */
+proposalListener(async (snapshot) => {
   proposalResult = snapshot?.data()?.proposal_result;
 
-  if(proposalResult) {
+  if (proposalResult) {
     const motor = await getMotor();
 
-    if(trainMailbox?.input === 'do_check_cargo') {
+    if (trainMailbox?.input === "do_check_cargo") {
       // If cargo isn't valid
       // Head back to station to reload cargo
-      if(proposalResult?.reason && !proposalResult?.clear) {
+      if (proposalResult?.reason && !proposalResult?.clear) {
         moveBackToStation = true;
         motor?.setPower(-30);
         stockedCargo = [];
@@ -72,8 +72,8 @@ proposalListener(async snapshot => {
 /**
  * readCargo
  * ----------------------
- */ 
-async function readCargo(chunk, role) {  
+ */
+async function readCargo(chunk, role) {
   const motor = await getMotor();
 
   // In either cargo error & reload stage (backwards to station)
@@ -82,32 +82,32 @@ async function readCargo(chunk, role) {
     await moveToStation(chunk, role);
     return;
   }
-  
+
   const tagId = new String(chunk);
-  const frontCar = '\x03\x02330035AD1EB5\r';
-  const backCar = '\x03\x023300348E9019\r';
-  
+  const frontCar = "\x03\x02330035AD1EB5\r";
+  const backCar = "\x03\x023300348E9019\r";
+
   const isFrontCar = frontCar.includes(tagId);
   const isBackCar = backCar.includes(tagId);
   const isCargo = !isFrontCar && !isBackCar;
 
   // MIDDLE: In the middle of train, store cargo chunk and continue on
-  if(isCargo && beginReading) {
+  if (isCargo && beginReading) {
     stockedCargo.push(chunk);
   }
   // FRONT: Begin reading cargo
-  if(isFrontCar) {
-    beginReading = true
+  if (isFrontCar) {
+    beginReading = true;
   }
   // BACK: At tailend of train, wrap up and send read cargo to firestore
-  if(isBackCar) {
+  if (isBackCar) {
     beginReading = false;
     motor?.brake();
     motor?.stop();
 
     try {
       // Submit held cargo
-      await submitActualCargo(stockedCargo); 
+      await submitActualCargo(stockedCargo);
     } catch (error) {
       console.error(error);
     }
@@ -122,19 +122,19 @@ async function readCargo(chunk, role) {
  */
 async function moveToStation(chunk, role) {
   const tagId = new String(chunk);
-  const frontCar = '\x03\x02330035AD1EB5\r';
-  const isFrontCar = frontCar.includes(tagId); 
+  const frontCar = "\x03\x02330035AD1EB5\r";
+  const isFrontCar = frontCar.includes(tagId);
   const motor = await getMotor();
 
-  if(isFrontCar && role === 'station') {
+  if (isFrontCar && role === "station") {
     motor?.brake();
     motor?.stop();
     moveBackToStation = false;
     moveForwardsToStation = false;
     return;
-  } 
-    
-  moveForwardsToStation && motor?.setPower(35);
+  }
+
+  moveForwardsToStation && motor?.setPower(30);
   moveBackToStation && motor?.setPower(-40);
 }
 
@@ -143,34 +143,32 @@ async function moveToStation(chunk, role) {
  * ----------------------
  * Main game loop for train. Callback fn to all serialport / rfid readers
  * so state is not held within loop, but above (TODO: refactor later)
- */ 
-async function updateGameLoop() {  
+ */
+async function updateGameLoop() {
   const motor = await getMotor();
   motor?.brake();
   motor?.stop();
 
-  if(trainMailbox?.input === 'do_check_cargo') {
-    motor?.setPower(35);  
-    // read in cargo rfids
+  if (trainMailbox?.input === "do_check_cargo") {
+    motor?.setPower(30);
     return;
   }
-  
-  if(trainMailbox?.input === 'do_victory_lap') {
-    if(moveForwardsToStation) {
+
+  if (trainMailbox?.input === "do_victory_lap") {
+    if (moveForwardsToStation) {
       moveForwardsToStation = false; // reset
       motor?.stop();
       // Reset train mailbox
       await clearTrainMailbox();
       // TODO: Send metrics
-      console.log('Session success!');
-      // reset
-      await updateInputMailbox('reset');
+      console.log("Session success!");
+      await updateInputMailbox("reset");
     } else {
       moveForwardsToStation = true;
-      motor?.setPower(50);
-      console.log('Going on victory lap!');
+      motor?.setPower(40);
+      console.log("Going on victory lap!");
     }
   }
 }
 
-module.exports = { readCargo,updateGameLoop };
+module.exports = { readCargo, updateGameLoop };

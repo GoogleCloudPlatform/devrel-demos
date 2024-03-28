@@ -24,11 +24,19 @@ const ControlPanel = (props) => {
         <div className="controlPanel">
           <div className="sessionMailbox">
             <h3> Proposal Result: </h3>
-            {proposalResult ? <p>{JSON.stringify(proposalResult?.reason)}</p> : 'Waiting to process cargo ...'}
+            {proposalResult ? (
+              <p>{JSON.stringify(proposalResult?.reason)}</p>
+            ) : (
+              "Waiting to process cargo ..."
+            )}
           </div>
           <div className="trainMailbox">
             <h3> Train: </h3>
-            {trainMailbox ? <p>{JSON.stringify(trainMailbox)}</p> : 'Waiting for train events ...'}
+            {trainMailbox ? (
+              <p>{JSON.stringify(trainMailbox)}</p>
+            ) : (
+              "Waiting for train events ..."
+            )}
           </div>
         </div>
       </div>

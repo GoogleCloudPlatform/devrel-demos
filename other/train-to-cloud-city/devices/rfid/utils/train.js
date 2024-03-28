@@ -34,7 +34,7 @@ async function getMotor() {
   let motor;
   try {
     motor = await hubs[0]?.waitForDeviceAtPort("A");
-  } catch(error) {
+  } catch (error) {
     console.log(error);
   }
   return motor;
