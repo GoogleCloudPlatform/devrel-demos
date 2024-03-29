@@ -15,7 +15,6 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import Dashboard from "./Dashboard";
-import ToggleButton from "./ToggleButton";
 import {
   getWorldState,
   getPatterns,
@@ -27,6 +26,7 @@ import {
   updateInputMailbox,
   proposalUpdated,
 } from "../actions/coreActions";
+import ConductorWave from "../assets/conductor-wave.gif";
 import "./styles/Main.css";
 
 /**
@@ -49,18 +49,12 @@ const Main = (props) => {
   const [proposal, setProposal] = useState({});
   const [trainMailbox, setTrainMailbox] = useState({});
 
-  /**
-   *
-   */
   const handleSimulator = async (event) => {
-    setToggle(event.target.checked);
-    setSimulator(event.target.checked);
+    setToggle(!simulator);
+    setSimulator(!simulator);
     dispatch?.(getWorldState(simulator ? "global_simulation" : "global"));
   };
 
-  /**
-   *
-   */
   const handlePatternSelect = async (event, pattern) => {
     setToggle(true);
     setPattern(pattern);
@@ -100,38 +94,29 @@ const Main = (props) => {
     <div className="mainContainer">
       <div className="mainWrapper">
         {proposal && !proposal.pattern_slug && (
-          <div className="mainContent">
-            <h2>Choose your adventure</h2>
-            <div className="row">
-              {state.coreReducer.patterns?.map((p, index) => (
-                <button
-                  type="button"
-                  key={index}
-                  onClick={(event) => handlePatternSelect(event, p)}
-                >
-                  {`${p.name}`}
-                </button>
-              ))}
+          <div className="mainHeader" > 
+            <div className="welcomeImage">
+              <img alt="welcome-wave" src={ConductorWave} />
+            </div>
+            <div className="mainContent">
+              <h2>Choose your adventure</h2>
+              <div className="row">
+                {state.coreReducer.patterns?.map((p, index) => (
+                  <button
+                    type="button"
+                    key={index}
+                    onClick={(event) => handlePatternSelect(event, p)}
+                  >
+                    {`${p.name}`}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
-        {toggled && (
-          <Dashboard
-            proposal={proposal}
-            train={train}
-            cargo={cargo}
-            signals={signals}
-            trainMailbox={trainMailbox}
-          />
-        )}
-        {!toggled && (
-          <div className="row">
-            <ToggleButton
-              label="(Admin) Switch on simulator: "
-              onChange={handleSimulator}
-            />
-          </div>
-        )}
+        {toggled
+            ? <Dashboard proposal={proposal} train={train} cargo={cargo} signals={signals} trainMailbox={trainMailbox} />
+            : <a href="#" onClick={handleSimulator}>{'Turn on simulator'}</a>}
       </div>
     </div>
   );

@@ -14,13 +14,9 @@
 
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import {
-  required,
-  composeValidators,
-  validateServices,
-} from "../helpers/formValidation";
-import { Form, Field } from "react-final-form";
-import { updateCargo, getServices } from "../actions/coreActions";
+import { getPatterns } from "../actions/coreActions";
+import SuccessState from "../assets/conductor-success.gif";
+import TryAgainState from "../assets/conductor-try-again.gif";
 import ExtrasQRCode from "../assets/qrcode-extras.png";
 import "./styles/CargoResult.css";
 
@@ -30,72 +26,53 @@ import "./styles/CargoResult.css";
  *
  */
 const CargoResult = (props) => {
-  const { selectedPattern, proposalResult } = props;
+  const { proposal } = props;
+  const { pattern_slug, proposal_result } = proposal;
   const state = useSelector((state) => state);
   const dispatch = useDispatch();
 
-  const [errorMessage, setErrorMessage] = useState({ message: "", result: {} });
-  const [successMessage, setSuccessMessage] = useState({
-    message: "",
-    result: {},
-  });
-
   useEffect(() => {
-    dispatch(getServices());
+    dispatch(getPatterns());
   }, [dispatch]);
 
-  const services = state.coreReducer.services;
+  const { patterns } = state.coreReducer;
+  const selectedPattern = (patterns?.filter(p => p.slug === pattern_slug))?.[0]; 
+  
+  const showSuccess = proposal_result?.clear && proposal_result?.reason;
+  const showError = !proposal_result?.clear && proposal_result?.reason;
 
-  const onSubmit = async (results) => {
-    const slugs = Object.keys(results).map((k) => results[k]);
-    try {
-      dispatch(updateCargo(slugs));
-      setSuccessMessage("Submitted");
-      setErrorMessage(); // reset
-    } catch (error) {
-      setSuccessMessage(); // reset
-      setErrorMessage(error);
-    }
-  };
-
-  const showSuccess = proposalResult?.clear && proposalResult?.reason;
-  const showError = !proposalResult?.clear && proposalResult?.reason;
 
   return selectedPattern?.checkpoints?.length === 0 ? (
-    <div> No checkpoints available. </div>
+    <h3>{'No checkpoints available.'}</h3>
   ) : (
-    <Form
-      onSubmit={onSubmit}
-      render={({ handleSubmit, form, submitting, pristine, values }) => (
-        <form id="missionForm" onSubmit={handleSubmit}>
-          <p>
-            <b>Goal: </b>
-            {selectedPattern?.description}
-          </p>
-          {selectedPattern?.checkpoints?.map((step, index) => (
-            <p>
-              <b>{`Step ${index + 1}: `}</b>
-              {step.description}
-            </p>
-          ))}
-          <div>
-            {showError && (
-              <div className="resultContainer">
-                <h3>{"Oh no!"}</h3>
-                <p>{errorMessage.message}</p>
-              </div>
-            )}
-            {showSuccess && (
-              <div className="resultContainer">
-                <h3>{"Huzzah!"}</h3>
-                <p>{proposalResult?.reason}</p>
-                <img alt="Extras" src={ExtrasQRCode} className="qrcode" />
-              </div>
-            )}
+    <div className="missionForm">
+      <p><b>Goal: </b> {selectedPattern?.description}</p>
+      {selectedPattern?.checkpoints?.map((step, index) => (
+        <p>
+          <b>{`Step ${index + 1}: `}</b>
+          {step.description}
+        </p>
+      ))}
+      {showError && (
+        <div className="resultContainer">
+          <h3>{"Oh no!"}</h3>
+          <div className="tryAgainState">
+            <img alt="try again" src={TryAgainState} />
           </div>
-        </form>
+          <p>{proposal_result?.reason}</p>
+        </div>
       )}
-    />
+      {showSuccess && (
+        <div className="resultContainer">
+          <div className="successState">
+            <img alt="success" src={SuccessState} />
+          </div>
+          <div>{"Huzzah!"}</div>
+          <div>{proposal_result?.reason}</div>
+          <img alt="Extras" src={ExtrasQRCode} className="qrcode" />
+        </div>
+      )}
+    </div>
   );
 };
 

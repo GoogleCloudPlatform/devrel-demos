@@ -60,6 +60,7 @@ form#missionForm .formError {
 img.qrcode {
   height: auto;
   width: 200px;
+  margin: 15px;
 }
 
 .resultContainer {
@@ -70,3 +71,10 @@ img.qrcode {
   padding: 10px;
   width: inherit;
 }
+
+.tryAgainState img,
+.successState img {
+  width: 150px;
+  margin: 25px;
+}
+

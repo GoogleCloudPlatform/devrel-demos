@@ -33,6 +33,11 @@
   width: 100%;
 }
 
+.welcomeImage img {
+  width: 250px;
+  margin: 25px;
+}
+
 .row {
   margin: 10px;
   display: flex;

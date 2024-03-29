@@ -33,8 +33,6 @@ const Dashboard = (props) => {
   const { signals, cargo, train, proposal, trainMailbox } = props || {};
   const { patterns, services, worldState } = state.coreReducer;
 
-  console.log(patterns);
-
   // Stop and reset whole mission
   const handleStopMission = async (event) => {
     dispatch(stopMission());
@@ -49,11 +47,7 @@ const Dashboard = (props) => {
           <div className="missionTitle">
             <h3>{`Your Mission: ${proposal?.pattern_slug}`}</h3>
           </div>
-          <CargoResult
-            services={services}
-            selectedPattern={proposal?.pattern_slug}
-            proposalResult={proposal?.proposal_result}
-          />
+          <CargoResult proposal={proposal} />
         </div>
         <div className="dashboardPanel">
           <div className="dashboardSignals">

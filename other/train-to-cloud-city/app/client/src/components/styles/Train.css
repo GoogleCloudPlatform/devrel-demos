@@ -19,7 +19,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100px;
   width: 100%;
   background-image: url(../../assets/train-backdrop.png);
   background-size: cover;
@@ -32,7 +31,6 @@
 
 .content {
   position: relative;
-  height: 100px;
   overflow: hidden;
   border: 5px solid var(--melanzane);
 }
@@ -42,7 +40,7 @@
   width: 200em;
   height: 5px;
   background-color: #333;
-  top: 12px;
+  bottom: 30px;
 }
 
 .track:before {
@@ -99,12 +97,12 @@
 .train {
   position: relative;
   width: 50px;
-  height: 70px;
+  height: 150px;
   display: flex;
   justify-content: flex-end;
   align-items: flex-end;
-  z-index: 1;
-  top: 16px;
+  z-index: 2;
+  bottom: 22px;
 }
 
 .train.mission_check,
