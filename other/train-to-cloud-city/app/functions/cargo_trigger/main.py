@@ -93,7 +93,6 @@ def cargo_trigger(cloud_event: CloudEvent) -> None:
         if pr.clear:
             collection.document("train_mailbox").update({"input" : "do_victory_lap"})
     else:
-        # Value is already upper-case
         # Don't perform a second write (which can trigger an infinite loop)
         print("No change in cargo, exiting")
 
