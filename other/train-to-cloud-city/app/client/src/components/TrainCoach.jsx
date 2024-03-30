@@ -13,8 +13,8 @@
 // limitations under the License.
 
 import React from "react";
-import Car from "../assets/red-coach.svg";
-import FrontCar from "../assets/red-front.svg";
+import Car from "../assets/train-car.png";
+import FrontCar from "../assets/train-engine.png";
 import "./styles/TrainCoach.css";
 
 /**
@@ -23,13 +23,17 @@ import "./styles/TrainCoach.css";
  *
  */
 const TrainCoach = (props) => {
-  const { name } = props;
+  const { name, cargo } = props;
 
   return (
     <div className="trainCoachContainer">
       <div className="trainCoachWrapper">
         <div className="coach">
-          {name === "front" ? <img alt="FrontCar" src={FrontCar} /> : <img alt="Car" src={Car} />}
+          {name === "front" ? (
+            <img alt="FrontCar" src={FrontCar} />
+          ) : (
+            <img alt="Car" src={Car} />
+          )}
         </div>
       </div>
     </div>

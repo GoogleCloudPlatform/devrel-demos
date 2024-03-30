@@ -12,20 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const {Firestore} = require('@google-cloud/firestore');
+const { Firestore } = require("@google-cloud/firestore");
 
 const firestore = new Firestore();
 
 (async function quickstart() {
   const ref = firestore.collection("plants");
   let plants = [];
-  
+
   try {
     const snapshot = await ref.get();
     snapshot.docs.forEach((doc) => {
       plants.push(doc.data());
     });
-  } catch(error) {
+  } catch (error) {
     console.error(error);
   }
 })();

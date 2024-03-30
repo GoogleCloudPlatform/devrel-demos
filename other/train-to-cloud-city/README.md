@@ -5,7 +5,7 @@
 "Train to Cloud City" demo project is designed to physically represent mixing and matching [Google Cloud Platform](https://console.cloud.google.com/)
 resources that resolve common development use cases (patterns) in a kinesthetically whimsical fashion.
 
-The challenge is putting together physical components (train cars/blocks) that match control statements (coinciding GCP resources), 
+The challenge is putting together physical components (train cars/blocks) that match control statements (coinciding GCP resources),
 which will validate if the pattern fits. For every validated component, the train will move forward to the next stop till it makes the entire way around the circle track.
 
 ## Getting Started
@@ -17,10 +17,10 @@ which will validate if the pattern fits. For every validated component, the trai
 
 ## Technologies & hardware
 
-* [Google Cloud Platform](https://console.cloud.google.com/)
-* [Cloud Firestore](https://cloud.google.com/firestore/docs/)
-* [Firebase](https://firebase.google.com/)
-* [Terraform](https://cloud.google.com/docs/terraform)
+- [Google Cloud Platform](https://console.cloud.google.com/)
+- [Cloud Firestore](https://cloud.google.com/firestore/docs/)
+- [Firebase](https://firebase.google.com/)
+- [Terraform](https://cloud.google.com/docs/terraform)
 
 * [City Freight Lego Train](https://www.lego.com/en-us/product/freight-train-60336)
 * [Sparkfun RFID readers](https://www.sparkfun.com/products/9963)
@@ -33,5 +33,5 @@ Check out our [CONTRIBUTOR](../../CONTRIBUTING.md) guide!
 
 ## Disclaimer
 
-This is not an official Google project. "Train to Cloud City" demo project is 
+This is not an official Google project. "Train to Cloud City" demo project is
 designed particularly for in-person learning experiences at Google Cloud Next'24.

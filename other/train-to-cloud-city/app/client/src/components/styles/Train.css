@@ -16,12 +16,12 @@
 
 .trainContainer {
   position: relative;
-}
-
-.cloudTrain {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  background-image: url(../../assets/train-backdrop.png);
+  background-size: cover;
 }
 
 .container {
@@ -31,10 +31,8 @@
 
 .content {
   position: relative;
-  height: 100px;
   overflow: hidden;
   border: 5px solid var(--melanzane);
-  background: var(--lemonGrass);
 }
 
 .track {
@@ -42,6 +40,7 @@
   width: 200em;
   height: 5px;
   background-color: #333;
+  bottom: 30px;
 }
 
 .track:before {
@@ -98,30 +97,35 @@
 .train {
   position: relative;
   width: 50px;
-  height: 70px;
+  height: 150px;
   display: flex;
   justify-content: flex-end;
   align-items: flex-end;
-  z-index: 1;
-  top: 7px;
+  z-index: 2;
+  bottom: 22px;
 }
 
+.train.mission_check,
 .train.station {
-  left: 0%;
+  left: 35%;
 }
 
-.train.one {
-  left: 25%;
+.train.one,
+.train.checkpoint_1 {
+  left: 47%;
 }
 
-.train.two {
-  left: 45%;
+.train.two,
+.train.checkpoint_2 {
+  left: 60%;
 }
 
-.train.three {
-  left: 65%;
+.train.three,
+.train.checkpoint_3 {
+  left: 70%;
 }
 
-.train.four {
+.train.four,
+.train.checkpoint_4 {
   left: 85%;
 }

@@ -1,1490 +1,1490 @@
 {
-    "duet-ai": {
-        "slug": "duet-ai",
-        "name": "Duet AI in Google Cloud",
-        "four_words": "AI-powered collaborator",
-        "doc_url": "https://cloud.google.com/duet-ai"
-    },
-    "container-analysis": {
-        "slug": "container-analysis",
-        "name": "Container Analysis",
-        "four_words": "Automated security scanning",
-        "doc_url": "https://cloud.google.com/container-analysis/docs/container-scanning-overview"
-    },
-    "vertex-ai-workbench": {
-        "slug": "vertex-ai-workbench",
-        "name": "Vertex AI Workbench",
-        "four_words": "Jupyter-based environment for Data Science",
-        "doc_url": "https://cloud.google.com/vertex-ai/docs/workbench"
-    },
-    "api-gateway": {
-        "slug": "api-gateway",
-        "name": "API Gateway",
-        "four_words": "Fully managed API Gateway",
-        "doc_url": "https://cloud.google.com/api-gateway/docs"
-    },
-    "cloud-memorystore": {
-        "slug": "cloud-memorystore",
-        "name": "Cloud Memorystore",
-        "four_words": "Managed Redis and Memcached",
-        "doc_url": "https://cloud.google.com/memorystore/docs/"
-    },
-    "ml-kit-for-firebase": {
-        "slug": "ml-kit-for-firebase",
-        "name": "ML Kit for Firebase",
-        "four_words": "ML APIs for mobile",
-        "doc_url": "https://firebase.google.com/products/ml"
-    },
-    "web-security-scanner": {
-        "slug": "web-security-scanner",
-        "name": "Web Security Scanner",
-        "four_words": "Identifies web-app security vulnerabilities",
-        "doc_url": "https://cloud.google.com/security-command-center/docs/concepts-web-security-scanner-overview"
-    },
-    "traffic-director": {
-        "slug": "traffic-director",
-        "name": "Traffic Director",
-        "four_words": "Service mesh traffic management",
-        "doc_url": "https://cloud.google.com/traffic-director/docs/"
-    },
-    "migrate-from-teradata": {
-        "slug": "migrate-from-teradata",
-        "name": "Migrate from Teradata",
-        "four_words": "Migrate from Teradata to BigQuery",
-        "doc_url": "https://cloud.google.com/architecture/dw2bq/dw-bq-migration-overview"
-    },
-    "access-transparency": {
-        "slug": "access-transparency",
-        "name": "Access Transparency",
-        "four_words": "Audit cloud provider access",
-        "doc_url": "https://cloud.google.com/cloud-provider-access-management/access-transparency/docs/overview"
-    },
-    "maps-sdk-for-unity": {
-        "slug": "maps-sdk-for-unity",
-        "name": "Maps SDK for Unity",
-        "four_words": "Unity SDK for games",
-        "doc_url": "https://developers.google.com/maps/documentation"
-    },
-    "access-context-manager": {
-        "slug": "access-context-manager",
-        "name": "Access Context Manager",
-        "four_words": "Fine-grained, attribute based access-control",
-        "doc_url": "https://cloud.google.com/access-context-manager/docs"
-    },
-    "recaptcha-enterprise": {
-        "slug": "recaptcha-enterprise",
-        "name": "reCAPTCHA Enterprise",
-        "four_words": "Protect website against bots",
-        "doc_url": "https://cloud.google.com/recaptcha-enterprise/docs"
-    },
-    "cloud-vision": {
-        "slug": "cloud-vision",
-        "name": "Cloud Vision",
-        "four_words": "Image recognition and classification",
-        "doc_url": "https://cloud.google.com/vision/docs/"
-    },
-    "public-datasets": {
-        "slug": "public-datasets",
-        "name": "Public Datasets",
-        "four_words": "Hosted data in BigQuery",
-        "doc_url": "https://cloud.google.com/bigquery/public-data"
-    },
-    "cloud-tasks": {
-        "slug": "cloud-tasks",
-        "name": "Cloud Tasks",
-        "four_words": "Asynchronous task execution",
-        "doc_url": "https://cloud.google.com/tasks/docs/"
-    },
-    "dataprep-by-trifacta": {
-        "slug": "dataprep-by-trifacta",
-        "name": "Dataprep by Trifacta",
-        "four_words": "Visual data wrangling",
-        "doc_url": "https://docs.trifacta.com/display/dp/"
-    },
-    "appsheet": {
-        "slug": "appsheet",
-        "name": "AppSheet",
-        "four_words": "No-code App creation",
-        "doc_url": "https://cloud.google.com/appsheet"
-    },
-    "cloud-deployment-manager": {
-        "slug": "cloud-deployment-manager",
-        "name": "Cloud Deployment Manager",
-        "four_words": "Templated infrastructure deployment",
-        "doc_url": "https://cloud.google.com/deployment-manager/docs/"
-    },
-    "roads-api": {
-        "slug": "roads-api",
-        "name": "Roads API",
-        "four_words": "Convert coordinates to roads",
-        "doc_url": "https://developers.google.com/maps/documentation/roads/overview"
-    },
-    "anthos-config-management": {
-        "slug": "anthos-config-management",
-        "name": "Anthos Config Management",
-        "four_words": "Policy and security automation",
-        "doc_url": "https://cloud.google.com/anthos-config-management/docs"
-    },
-    "bigquery-data-transfer-service": {
-        "slug": "bigquery-data-transfer-service",
-        "name": "BigQuery Data Transfer Service",
-        "four_words": "Bulk import analytics data",
-        "doc_url": "https://cloud.google.com/bigquery-transfer/docs"
-    },
-    "sole-tenant-nodes": {
-        "slug": "sole-tenant-nodes",
-        "name": "Sole-tenant Nodes",
-        "four_words": "Dedicated physical servers",
-        "doc_url": "https://cloud.google.com/compute/docs/nodes/sole-tenant-nodes"
-    },
-    "cloud-code-for-intellij": {
-        "slug": "cloud-code-for-intellij",
-        "name": "Cloud Code for IntelliJ",
-        "four_words": "IntelliJ Google Cloud tools",
-        "doc_url": "https://cloud.google.com/code/docs"
-    },
-    "packet-mirroring": {
-        "slug": "packet-mirroring",
-        "name": "Packet Mirroring",
-        "four_words": "Monitor / analyze instance traffic",
-        "doc_url": "https://cloud.google.com/vpc/docs/packet-mirroring"
-    },
-    "cloud-armor": {
-        "slug": "cloud-armor",
-        "name": "Cloud Armor",
-        "four_words": "DDoS protection and WAF",
-        "doc_url": "https://cloud.google.com/armor/docs/"
-    },
-    "cloud-deploy": {
-        "slug": "cloud-deploy",
-        "name": "Cloud Deploy",
-        "four_words": "Continuous Delivery for GKE",
-        "doc_url": "https://cloud.google.com/deploy/docs"
-    },
-    "cloud-bigtable": {
-        "slug": "cloud-bigtable",
-        "name": "Cloud Bigtable",
-        "four_words": "Petabyte-scale, low-latency, non-relational",
-        "doc_url": "https://cloud.google.com/bigtable/docs/"
-    },
-    "anthos-service-mesh": {
-        "slug": "anthos-service-mesh",
-        "name": "Anthos Service Mesh",
-        "four_words": "Managed service mesh (Istio)",
-        "doc_url": "https://cloud.google.com/service-mesh/docs"
-    },
-    "cloud-trace": {
-        "slug": "cloud-trace",
-        "name": "Cloud Trace",
-        "four_words": "App latency insights",
-        "doc_url": "https://cloud.google.com/trace/docs/"
-    },
-    "healthcare-natural-language-ai": {
-        "slug": "healthcare-natural-language-ai",
-        "name": "Healthcare Natural Language AI",
-        "four_words": "Real-time insights from media-text",
-        "doc_url": "https://cloud.google.com/healthcare-api/docs/how-tos/nlp"
-    },
-    "migrate-from-amazon-redshift": {
-        "slug": "migrate-from-amazon-redshift",
-        "name": "Migrate from Amazon Redshift",
-        "four_words": "Migrate from Redshift to BigQuery",
-        "doc_url": "https://cloud.google.com/bigquery-transfer/docs/redshift-migration"
-    },
-    "maps-sdk-for-android": {
-        "slug": "maps-sdk-for-android",
-        "name": "Maps SDK for Android",
-        "four_words": "Maps for Android apps",
-        "doc_url": "https://developers.google.com/maps/documentation/android-sdk/overview"
-    },
-    "cloud-shell": {
-        "slug": "cloud-shell",
-        "name": "Cloud Shell",
-        "four_words": "Browser-based terminal / CLI",
-        "doc_url": "https://cloud.google.com/shell/docs/"
-    },
-    "pubsub": {
-        "slug": "pubsub",
-        "name": "Pub/Sub",
-        "four_words": "Global real-time messaging",
-        "doc_url": "https://cloud.google.com/pubsub/docs/"
-    },
-    "network-connectivity-center": {
-        "slug": "network-connectivity-center",
-        "name": "Network Connectivity Center",
-        "four_words": "Connect VPC & On-prem",
-        "doc_url": "https://cloud.google.com/network-connectivity/docs/network-connectivity-center/concepts/overview"
-    },
-    "document-ai": {
-        "slug": "document-ai",
-        "name": "Document AI",
-        "four_words": "Analyze, classify, search documents",
-        "doc_url": "https://cloud.google.com/document-ai/docs"
-    },
-    "dataplex": {
-        "slug": "dataplex",
-        "name": "Dataplex",
-        "four_words": "Centrally manage / monitor / govern data",
-        "doc_url": "https://cloud.google.com/dataplex"
-    },
-    "firebase-test-lab": {
-        "slug": "firebase-test-lab",
-        "name": "Firebase Test Lab",
-        "four_words": "Mobile testing device farm",
-        "doc_url": "https://firebase.google.com/docs/test-lab/"
-    },
-    "geocoding-api": {
-        "slug": "geocoding-api",
-        "name": "Geocoding API",
-        "four_words": "Convert address to/from coordinates",
-        "doc_url": "https://developers.google.com/maps/documentation/geocoding/overview"
-    },
-    "cloud-functions": {
-        "slug": "cloud-functions",
-        "name": "Cloud Functions",
-        "four_words": "Event-driven serverless functions",
-        "doc_url": "https://cloud.google.com/functions/docs/"
-    },
-    "security-key-enforcement": {
-        "slug": "security-key-enforcement",
-        "name": "Security Key Enforcement",
-        "four_words": "Two-step key verification",
-        "doc_url": "https://cloud.google.com/titan-security-key"
-    },
-    "identity-platform": {
-        "slug": "identity-platform",
-        "name": "Identity Platform",
-        "four_words": "Drop-in Authentication, Access - Management",
-        "doc_url": "https://cloud.google.com/identity-platform/docs"
-    },
-    "cloud-composer": {
-        "slug": "cloud-composer",
-        "name": "Cloud Composer",
-        "four_words": "Managed workflow orchestration service",
-        "doc_url": "https://cloud.google.com/composer/docs/"
-    },
-    "cloud-identity": {
-        "slug": "cloud-identity",
-        "name": "Cloud Identity",
-        "four_words": "Manage users, devices & apps",
-        "doc_url": "https://cloud.google.com/identity/solutions/overview/"
-    },
-    "assured-workloads": {
-        "slug": "assured-workloads",
-        "name": "Assured Workloads",
-        "four_words": "Workload compliance controls",
-        "doc_url": "https://cloud.google.com/assured-workloads/docs"
-    },
-    "service-directory": {
-        "slug": "service-directory",
-        "name": "Service Directory",
-        "four_words": "Centrally publish / discover / connect services",
-        "doc_url": "https://cloud.google.com/service-directory/docs"
-    },
-    "cloud-tools-for-eclipse": {
-        "slug": "cloud-tools-for-eclipse",
-        "name": "Cloud Tools for Eclipse",
-        "four_words": "Eclipse GCP tools",
-        "doc_url": "https://cloud.google.com/eclipse/docs/"
-    },
-    "cloud-spanner": {
-        "slug": "cloud-spanner",
-        "name": "Cloud Spanner",
-        "four_words": "Horizontally scaleable relational database",
-        "doc_url": "https://cloud.google.com/spanner/docs/"
-    },
-    "recommendations-ai": {
-        "slug": "recommendations-ai",
-        "name": "Recommendations AI",
-        "four_words": "Create custom recommendations",
-        "doc_url": "https://cloud.google.com/recommendations-ai/docs/"
-    },
-    "cloud-apis": {
-        "slug": "cloud-apis",
-        "name": "Cloud APIs",
-        "four_words": "APIs for cloud services",
-        "doc_url": "https://cloud.google.com/apis/docs/overview"
-    },
-    "apigee-healthcare-apix": {
-        "slug": "apigee-healthcare-apix",
-        "name": "Apigee Healthcare APIx",
-        "four_words": "Healthcare system GCP interoperability",
-        "doc_url": "https://cloud.google.com/solutions/apigee-health-apix#section-4"
-    },
-    "email-markup": {
-        "slug": "email-markup",
-        "name": "Email Markup",
-        "four_words": "Interactive email using schema.org",
-        "doc_url": "https://developers.google.com/gmail/markup/overview"
-    },
-    "eventarc": {
-        "slug": "eventarc",
-        "name": "Eventarc",
-        "four_words": "Event-driven Cloud Run services",
-        "doc_url": "https://cloud.google.com/eventarc/docs/"
-    },
-    "vpc-service-controls": {
-        "slug": "vpc-service-controls",
-        "name": "VPC Service Controls",
-        "four_words": "VPC data constraints",
-        "doc_url": "https://cloud.google.com/vpc-service-controls/docs/"
-    },
-    "vertex-ai-training": {
-        "slug": "vertex-ai-training",
-        "name": "Vertex AI Training",
-        "four_words": "Distributed AI training",
-        "doc_url": "https://cloud.google.com/ai-platform/training/docs/overview"
-    },
-    "automl": {
-        "slug": "automl",
-        "name": "AutoML",
-        "four_words": "Custom low-code models",
-        "doc_url": "https://cloud.google.com/vertex-ai/docs/start/automl-users"
-    },
-    "connected-sheets": {
-        "slug": "connected-sheets",
-        "name": "Connected Sheets",
-        "four_words": "Spreadsheet interface for (big) data",
-        "doc_url": "https://cloud.google.com/bigquery/docs/connected-sheets"
-    },
-    "preemptible-vms": {
-        "slug": "preemptible-vms",
-        "name": "Preemptible VMs",
-        "four_words": "Short-lived compute instances",
-        "doc_url": "https://cloud.google.com/compute/docs/instances/preemptible"
-    },
-    "apigee-sense": {
-        "slug": "apigee-sense",
-        "name": "Apigee Sense",
-        "four_words": "API protection from attacks",
-        "doc_url": "https://cloud.google.com/apigee/sense"
-    },
-    "cloud-ids": {
-        "slug": "cloud-ids",
-        "name": "Cloud IDS",
-        "four_words": "Detects Network based threats",
-        "doc_url": "https://cloud.google.com/intrusion-detection-system/docs"
-    },
-    "firebase-remote-config": {
-        "slug": "firebase-remote-config",
-        "name": "Firebase Remote Config",
-        "four_words": "Remotely configure installed apps",
-        "doc_url": "https://firebase.google.com/docs/remote-config/"
-    },
-    "vertex-ai": {
-        "slug": "vertex-ai",
-        "name": "Vertex AI",
-        "four_words": "Managed platform for ML",
-        "doc_url": "https://cloud.google.com/vertex-ai/docs"
-    },
-    "directions-api": {
-        "slug": "directions-api",
-        "name": "Directions API",
-        "four_words": "Get directions between locations",
-        "doc_url": "https://developers.google.com/maps/documentation/directions/overview"
-    },
-    "apigee-api-management": {
-        "slug": "apigee-api-management",
-        "name": "Apigee API Management",
-        "four_words": "API management, development, security",
-        "doc_url": "https://cloud.google.com/apigee/docs"
-    },
-    "gmail-api": {
-        "slug": "gmail-api",
-        "name": "Gmail API",
-        "four_words": "Enhance Gmail",
-        "doc_url": "https://developers.google.com/gmail/api"
-    },
-    "cloud-firestore": {
-        "slug": "cloud-firestore",
-        "name": "Cloud Firestore",
-        "four_words": "Serverless NoSQL document DB",
-        "doc_url": "https://cloud.google.com/firestore/docs/"
-    },
-    "deep-learning-vm-images": {
-        "slug": "deep-learning-vm-images",
-        "name": "Deep Learning VM Images ",
-        "four_words": "Preconfigured VMs for deep learning",
-        "doc_url": "https://cloud.google.com/deep-learning-vm/docs/"
-    },
-    "maps-urls": {
-        "slug": "maps-urls",
-        "name": "Maps URLs",
-        "four_words": "URL scheme for maps",
-        "doc_url": "https://developers.google.com/maps/documentation/urls/get-started"
-    },
-    "binary-authorization": {
-        "slug": "binary-authorization",
-        "name": "Binary Authorization",
-        "four_words": "Kubernetes deploy-time security",
-        "doc_url": "https://cloud.google.com/binary-authorization/docs/"
-    },
-    "vertex-ai-predictions": {
-        "slug": "vertex-ai-predictions",
-        "name": "Vertex AI Predictions",
-        "four_words": "Autoscaled model serving",
-        "doc_url": "https://cloud.google.com/vertex-ai/docs/"
-    },
-    "google-cloud-marketplace": {
-        "slug": "google-cloud-marketplace",
-        "name": "Google Cloud Marketplace",
-        "four_words": "Partner & open source marketplace",
-        "doc_url": "https://cloud.google.com/marketplace/docs"
-    },
-    "contact-center-ai": {
-        "slug": "contact-center-ai",
-        "name": "Contact Center AI",
-        "four_words": "AI in your contact center",
-        "doc_url": "https://cloud.google.com/solutions/contact-center"
-    },
-    "dataproc": {
-        "slug": "dataproc",
-        "name": "Dataproc",
-        "four_words": "Managed Spark and Hadoop",
-        "doc_url": "https://cloud.google.com/dataproc/docs/"
-    },
-    "maps-sdk-for-ios": {
-        "slug": "maps-sdk-for-ios",
-        "name": "Maps SDK for iOS",
-        "four_words": "Maps for iOS apps",
-        "doc_url": "https://developers.google.com/maps/documentation/ios-sdk/overview"
-    },
-    "cloud-sql": {
-        "slug": "cloud-sql",
-        "name": "Cloud SQL",
-        "four_words": "Managed MySQL, PostgreSQL, SQL Server",
-        "doc_url": "https://cloud.google.com/sql/docs/"
-    },
-    "maps-embed-api": {
-        "slug": "maps-embed-api",
-        "name": "Maps Embed API",
-        "four_words": "Display iframe embedded maps",
-        "doc_url": "https://developers.google.com/maps/documentation/embed/get-started"
-    },
-    "distance-matrix-api": {
-        "slug": "distance-matrix-api",
-        "name": "Distance Matrix API",
-        "four_words": "Multi-origin / destination travel times",
-        "doc_url": "https://developers.google.com/maps/documentation/distance-matrix/start"
-    },
-    "cloud-data-loss-prevention": {
-        "slug": "cloud-data-loss-prevention",
-        "name": "Cloud Data Loss Prevention",
-        "four_words": "Classify and redact sensitive data",
-        "doc_url": "https://cloud.google.com/dlp/docs/"
-    },
-    "firebase-extensions": {
-        "slug": "firebase-extensions",
-        "name": "Firebase Extensions",
-        "four_words": "Pre-packaged development solutions",
-        "doc_url": "https://firebase.google.com/docs/extensions"
-    },
-    "cloud-data-transfer": {
-        "slug": "cloud-data-transfer",
-        "name": "Cloud Data Transfer",
-        "four_words": "Data migration tools/CLI",
-        "doc_url": "https://cloud.google.com/storage-transfer/docs"
-    },
-    "google-cloud-marketplace-for-anthos": {
-        "slug": "google-cloud-marketplace-for-anthos",
-        "name": "Google Cloud Marketplace for Anthos",
-        "four_words": "Pre-configured containerized apps",
-        "doc_url": "https://cloud.google.com/marketplace/docs/kubernetes-apps"
-    },
-    "api-monetization": {
-        "slug": "api-monetization",
-        "name": "API Monetization",
-        "four_words": "Monetize APIs",
-        "doc_url": "https://cloud.google.com/apigee/docs"
-    },
-    "cloud-run": {
-        "slug": "cloud-run",
-        "name": "Cloud Run",
-        "four_words": "Serverless for containerized applications",
-        "doc_url": "https://cloud.google.com/run/docs"
-    },
-    "transcoder-api": {
-        "slug": "transcoder-api",
-        "name": "Transcoder API",
-        "four_words": "Optimized files for delivery",
-        "doc_url": "https://cloud.google.com/transcoder/docs"
-    },
-    "firebase-performance-monitoring": {
-        "slug": "firebase-performance-monitoring",
-        "name": "Firebase Performance Monitoring",
-        "four_words": "App/web performance monitoring",
-        "doc_url": "https://firebase.google.com/docs/perf-mon"
-    },
-    "firebase-ab-testing": {
-        "slug": "firebase-ab-testing",
-        "name": "Firebase A/B Testing",
-        "four_words": "Create A/B test experiments",
-        "doc_url": "https://firebase.google.com/docs/ab-testing"
-    },
-    "cloud-code-for-vs-code": {
-        "slug": "cloud-code-for-vs-code",
-        "name": "Cloud Code for VS Code",
-        "four_words": "VS Code Google Cloud tools",
-        "doc_url": "https://cloud.google.com/code/docs/vscode/"
-    },
-    "firebase-cloud-messaging": {
-        "slug": "firebase-cloud-messaging",
-        "name": "Firebase Cloud Messaging",
-        "four_words": "Send device notifications",
-        "doc_url": "https://firebase.google.com/docs/cloud-messaging"
-    },
-    "vertex-ai-pipelines": {
-        "slug": "vertex-ai-pipelines",
-        "name": "Vertex AI Pipelines",
-        "four_words": "Hosted ML workflows",
-        "doc_url": "https://cloud.google.com/ai-platform/pipelines/docs"
-    },
-    "workflows": {
-        "slug": "workflows",
-        "name": "Workflows",
-        "four_words": "HTTP services orchestration",
-        "doc_url": "https://cloud.google.com/workflows/docs/"
-    },
-    "anthos-clusters": {
-        "slug": "anthos-clusters",
-        "name": "Anthos Clusters",
-        "four_words": "Hybrid / on-prem GKE",
-        "doc_url": "https://cloud.google.com/anthos/clusters/docs/on-prem/1.9"
-    },
-    "crashlytics": {
-        "slug": "crashlytics",
-        "name": "Crashlytics",
-        "four_words": "Crash reporting and analytics",
-        "doc_url": "https://firebase.google.com/docs/crashlytics"
-    },
-    "calendar-api": {
-        "slug": "calendar-api",
-        "name": "Calendar API",
-        "four_words": "Create and manage calendars",
-        "doc_url": "https://developers.google.com/apps-script/add-ons/calendar"
-    },
-    "visual-inspection-ai": {
-        "slug": "visual-inspection-ai",
-        "name": "Visual Inspection AI",
-        "four_words": "Train / deploy models to detect defects",
-        "doc_url": "https://cloud.google.com/solutions/visual-inspection-ai"
-    },
-    "cloud-mobile-app": {
-        "slug": "cloud-mobile-app",
-        "name": "Cloud Mobile App",
-        "four_words": "iOS / Android Google Cloud manager app",
-        "doc_url": "https://cloud.google.com/console-app/"
-    },
-    "cloud-translation": {
-        "slug": "cloud-translation",
-        "name": "Cloud Translation",
-        "four_words": "Language detection and translation",
-        "doc_url": "https://cloud.google.com/translate/docs/"
-    },
-    "firebase-dynamic-links": {
-        "slug": "firebase-dynamic-links",
-        "name": "Firebase Dynamic Links",
-        "four_words": "Link to app content",
-        "doc_url": "https://firebase.google.com/docs/dynamic-links"
-    },
-    "migrate-for-anthos-and-gke": {
-        "slug": "migrate-for-anthos-and-gke",
-        "name": "Migrate for Anthos and GKE",
-        "four_words": "Migrate VMs to GKE",
-        "doc_url": "https://cloud.google.com/migrate/anthos/docs/getting-started"
-    },
-    "sheets-api": {
-        "slug": "sheets-api",
-        "name": "Sheets API",
-        "four_words": "Read and write spreadsheets",
-        "doc_url": "https://developers.google.com/sheets/api/reference/rest"
-    },
-    "alloydb": {
-        "slug": "alloydb",
-        "name": "AlloyDB",
-        "four_words": "Scalable & performant PostgreSQL - compatible DB",
-        "doc_url": "https://cloud.google.com/alloydb/docs"
-    },
-    "app-engine": {
-        "slug": "app-engine",
-        "name": "App Engine",
-        "four_words": "Managed app platform",
-        "doc_url": "https://cloud.google.com/appengine/docs/"
-    },
-    "time-zone-api": {
-        "slug": "time-zone-api",
-        "name": "Time Zone API",
-        "four_words": "Convert coordinates to timezone",
-        "doc_url": "https://developers.google.com/maps/documentation/timezone/get-started"
-    },
-    "video-intelligence-api": {
-        "slug": "video-intelligence-api",
-        "name": "Video Intelligence API",
-        "four_words": "Scene-level video annotation",
-        "doc_url": "https://cloud.google.com/video-intelligence/docs/"
-    },
-    "private-catalog": {
-        "slug": "private-catalog",
-        "name": "Private Catalog",
-        "four_words": "Internal Solutions Catalog",
-        "doc_url": "https://cloud.google.com/private-catalog/docs/"
-    },
-    "cloud-load-balancing": {
-        "slug": "cloud-load-balancing",
-        "name": "Cloud Load Balancing",
-        "four_words": "Multi-region load distribution / balancing",
-        "doc_url": "https://cloud.google.com/load-balancing/docs"
-    },
-    "bigquery-dts": {
-        "slug": "bigquery-dts",
-        "name": "BigQuery DTS",
-        "four_words": "Automated data ingestion service",
-        "doc_url": "https://cloud.google.com/bigquery-transfer/docs"
-    },
-    "vertex-ai-data-labeling": {
-        "slug": "vertex-ai-data-labeling",
-        "name": "Vertex AI Data Labeling",
-        "four_words": "Data labeling by humans",
-        "doc_url": "https://cloud.google.com/ai-platform/data-labeling/docs"
-    },
-    "chronicle": {
-        "slug": "chronicle",
-        "name": "Chronicle",
-        "four_words": "Find threats from security telemetry",
-        "doc_url": "https://cloud.google.com/chronicle/docs"
-    },
-    "api-analytics": {
-        "slug": "api-analytics",
-        "name": "API Analytics",
-        "four_words": "API metrics",
-        "doc_url": "https://cloud.google.com/apigee/docs"
-    },
-    "shielded-vms": {
-        "slug": "shielded-vms",
-        "name": "Shielded VMs",
-        "four_words": "Hardened VMs",
-        "doc_url": "https://cloud.google.com/security/shielded-cloud/shielded-vm/"
-    },
-    "places-sdk-for-ios": {
-        "slug": "places-sdk-for-ios",
-        "name": "Places SDK for iOS",
-        "four_words": "Places feature for iOS",
-        "doc_url": "https://developers.google.com/maps/documentation/places/ios-sdk/start"
-    },
-    "cloud-sdk": {
-        "slug": "cloud-sdk",
-        "name": "Cloud SDK",
-        "four_words": "Google Cloud CLI",
-        "doc_url": "https://cloud.google.com/sdk/docs/"
-    },
-    "virustotal": {
-        "slug": "virustotal",
-        "name": "VirusTotal",
-        "four_words": "Research / hunt for malware",
-        "doc_url": "https://cloud.google.com/chronicle/docs/investigation/view-virustotal-information"
-    },
-    "anthos": {
-        "slug": "anthos",
-        "name": "Anthos",
-        "four_words": "Enterprise hybrid / multi-cloud platform",
-        "doc_url": "https://cloud.google.com/anthos/docs/"
-    },
-    "dedicated-interconnect": {
-        "slug": "dedicated-interconnect",
-        "name": "Dedicated Interconnect",
-        "four_words": "Dedicated private network connection",
-        "doc_url": "https://cloud.google.com/network-connectivity/docs/interconnect/concepts/dedicated-overview"
-    },
-    "cloud-run-for-anthos": {
-        "slug": "cloud-run-for-anthos",
-        "name": "Cloud Run for Anthos",
-        "four_words": "Serverless development for Anthos",
-        "doc_url": "https://cloud.google.com/anthos/run/docs/quickstarts/prebuilt-deploy-gke"
-    },
-    "cloud-nat": {
-        "slug": "cloud-nat",
-        "name": "Cloud NAT",
-        "four_words": "Network address translation service",
-        "doc_url": "https://cloud.google.com/nat/docs"
-    },
-    "gke": {
-        "slug": "gke",
-        "name": "Kubernetes Engine",
-        "four_words": "Managed Kubernetes / containers",
-        "doc_url": "https://cloud.google.com/kubernetes-engine/docs/"
-    },
-    "media-cdn": {
-        "slug": "media-cdn",
-        "name": "Media CDN",
-        "four_words": "CDN for streaming & videos",
-        "doc_url": "https://cloud.google.com/media-cdn/docs/overview"
-    },
-    "cloud-storage-for-firebase": {
-        "slug": "cloud-storage-for-firebase",
-        "name": "Cloud Storage for Firebase",
-        "four_words": "Object storage and serving",
-        "doc_url": "https://firebase.google.com/docs/storage"
-    },
-    "admin-sdk": {
-        "slug": "admin-sdk",
-        "name": "Admin SDK",
-        "four_words": "Manage Google Workspace resources",
-        "doc_url": "https://developers.google.com/apps-script/advanced/admin-sdk-directory"
-    },
-    "google-analytics-for-firebase": {
-        "slug": "google-analytics-for-firebase",
-        "name": "Google Analytics for Firebase",
-        "four_words": "Mobile app analytics",
-        "doc_url": "https://firebase.google.com/docs/analytics"
-    },
-    "vm-manager": {
-        "slug": "vm-manager",
-        "name": "VM Manager",
-        "four_words": "Manage OS VM Fleets",
-        "doc_url": "https://cloud.google.com/compute/docs/vm-manager"
-    },
-    "error-reporting": {
-        "slug": "error-reporting",
-        "name": "Error Reporting",
-        "four_words": "App error reporting",
-        "doc_url": "https://cloud.google.com/error-reporting/docs/"
-    },
-    "beyondcorp-enterprise": {
-        "slug": "beyondcorp-enterprise",
-        "name": "BeyondCorp Enterprise",
-        "four_words": "Zero trust secure access",
-        "doc_url": "https://cloud.google.com/beyondcorp-enterprise/docs"
-    },
-    "dataflow": {
-        "slug": "dataflow",
-        "name": "Dataflow",
-        "four_words": "Stream / batch data processing",
-        "doc_url": "https://cloud.google.com/dataflow/docs/"
-    },
-    "risk-manager": {
-        "slug": "risk-manager",
-        "name": "Risk Manager",
-        "four_words": "Evaluate organization's security posture",
-        "doc_url": "https://cloud.google.com/risk-manager/docs"
-    },
-    "kf": {
-        "slug": "kf",
-        "name": "KF",
-        "four_words": "Cloud Foundry to Kubernetes",
-        "doc_url": "https://cloud.google.com/migrate/kf/docs/2.6"
-    },
-    "vision-product-search": {
-        "slug": "vision-product-search",
-        "name": "Vision Product Search",
-        "four_words": "Visual search for products",
-        "doc_url": "https://cloud.google.com/vision/product-search/docs/"
-    },
-    "carrier-peering": {
-        "slug": "carrier-peering",
-        "name": "Carrier Peering",
-        "four_words": "Peer through a carrier",
-        "doc_url": "https://cloud.google.com/network-connectivity/docs/carrier-peering"
-    },
-    "private-service-connect": {
-        "slug": "private-service-connect",
-        "name": "Private Service Connect",
-        "four_words": "Privately connect services across VPCs",
-        "doc_url": "https://cloud.google.com/vpc/docs/private-service-connect"
-    },
-    "cloud-audit-logs": {
-        "slug": "cloud-audit-logs",
-        "name": "Cloud Audit Logs",
-        "four_words": "Audit trails",
-        "doc_url": "https://cloud.google.com/logging/docs/audit/"
-    },
-    "vertex-explainable-ai": {
-        "slug": "vertex-explainable-ai",
-        "name": "Vertex Explainable AI",
-        "four_words": "Understand ML model predictions",
-        "doc_url": "https://cloud.google.com/vertex-ai/docs/explainable-ai"
-    },
-    "places-api": {
-        "slug": "places-api",
-        "name": "Places API",
-        "four_words": "Rest-based Places features",
-        "doc_url": "https://developers.google.com/maps/documentation/places/web-service/overview"
-    },
-    "vault-api": {
-        "slug": "vault-api",
-        "name": "Vault API",
-        "four_words": "Manage your organization's eDiscovery",
-        "doc_url": "https://developers.google.com/vault/reference/rest"
-    },
-    "managed-service-for-microsoft-active-directory": {
-        "slug": "managed-service-for-microsoft-active-directory",
-        "name": "Managed Service for Microsoft Active Directory",
-        "four_words": "Managed Microsoft Active Directory",
-        "doc_url": "https://cloud.google.com/managed-microsoft-ad/docs/"
-    },
-    "bigquery-gis": {
-        "slug": "bigquery-gis",
-        "name": "BigQuery GIS",
-        "four_words": "BigQuery geospatial functions / support",
-        "doc_url": "https://cloud.google.com/bigquery/docs/geospatial-intro"
-    },
-    "cloud-iam": {
-        "slug": "cloud-iam",
-        "name": "Cloud IAM",
-        "four_words": "Resource access control",
-        "doc_url": "https://cloud.google.com/iam/docs/"
-    },
-    "cloud-cdn": {
-        "slug": "cloud-cdn",
-        "name": "Cloud CDN",
-        "four_words": "Content delivery network",
-        "doc_url": "https://cloud.google.com/cdn/docs/"
-    },
-    "app-engine-plugins": {
-        "slug": "app-engine-plugins",
-        "name": "App Engine Plugins",
-        "four_words": "Gradle / Maven App Engine plugin",
-        "doc_url": "https://cloud.google.com/appengine/docs/standard/java/gradle-reference"
-    },
-    "vertex-ai-vizier": {
-        "slug": "vertex-ai-vizier",
-        "name": "Vertex AI Vizier",
-        "four_words": "Automated hyperparameter tuning",
-        "doc_url": "https://cloud.google.com/vertex-ai/docs/vizier"
-    },
-    "firebase-realtime-database": {
-        "slug": "firebase-realtime-database",
-        "name": "Firebase Realtime Database",
-        "four_words": "Real-time data synchronization",
-        "doc_url": "https://firebase.google.com/docs/database"
-    },
-    "certificate-authority-service": {
-        "slug": "certificate-authority-service",
-        "name": "Certificate Authority Service",
-        "four_words": "Managed private CAs",
-        "doc_url": "https://cloud.google.com/certificate-authority-service/docs"
-    },
-    "bigquery-bi-engine": {
-        "slug": "bigquery-bi-engine",
-        "name": "BigQuery BI Engine",
-        "four_words": "In-memory analytics engine",
-        "doc_url": "https://cloud.google.com/bi-engine/docs/"
-    },
-    "virtual-private-cloud": {
-        "slug": "virtual-private-cloud",
-        "name": "Virtual Private Cloud",
-        "four_words": "Software defined networking",
-        "doc_url": "https://cloud.google.com/vpc/docs/"
-    },
-    "firebase-in-app-messaging": {
-        "slug": "firebase-in-app-messaging",
-        "name": "Firebase In-App Messaging",
-        "four_words": "Send in-app contextual messages",
-        "doc_url": "https://firebase.google.com/docs/in-app-messaging"
-    },
-    "drive-activity-api": {
-        "slug": "drive-activity-api",
-        "name": "Drive Activity API",
-        "four_words": "Retrieve Google Drive activity",
-        "doc_url": "https://developers.google.com/drive/activity/"
-    },
-    "google-chat-api": {
-        "slug": "google-chat-api",
-        "name": "Google Chat API",
-        "four_words": "Conversational bots in chat",
-        "doc_url": "https://developers.google.com/chat"
-    },
-    "cloud-code": {
-        "slug": "cloud-code",
-        "name": "Cloud Code",
-        "four_words": "Google Cloud IDE extensions",
-        "doc_url": "https://cloud.google.com/code/docs/"
-    },
-    "speech-to-text": {
-        "slug": "speech-to-text",
-        "name": "Speech-To-Text",
-        "four_words": "Convert audio to text",
-        "doc_url": "https://cloud.google.com/speech-to-text/docs"
-    },
-    "firebase-hosting": {
-        "slug": "firebase-hosting",
-        "name": "Firebase Hosting",
-        "four_words": "Web hosting with CDN/SSL",
-        "doc_url": "https://firebase.google.com/docs/hosting"
-    },
-    "vertex-ai-feature-store": {
-        "slug": "vertex-ai-feature-store",
-        "name": "Vertex AI Feature Store",
-        "four_words": "Managed ML feature repository",
-        "doc_url": "https://cloud.google.com/vertex-ai/docs/featurestore"
-    },
-    "places-sdk-for-android": {
-        "slug": "places-sdk-for-android",
-        "name": "Places SDK for Android",
-        "four_words": "Places features for Android",
-        "doc_url": "https://developers.google.com/maps/documentation/places/android-sdk/start"
-    },
-    "firebase-predictions": {
-        "slug": "firebase-predictions",
-        "name": "Firebase Predictions",
-        "four_words": "Predict user targeting",
-        "doc_url": "https://firebase.google.com/docs/predictions"
-    },
-    "resource-manager": {
-        "slug": "resource-manager",
-        "name": "Resource Manager",
-        "four_words": "Cloud project metadata management",
-        "doc_url": "https://cloud.google.com/resource-manager/docs"
-    },
-    "cloud-filestore": {
-        "slug": "cloud-filestore",
-        "name": "Cloud Filestore",
-        "four_words": "Managed NFS server",
-        "doc_url": "https://cloud.google.com/filestore/docs/"
-    },
-    "developer-portal": {
-        "slug": "developer-portal",
-        "name": "Developer Portal",
-        "four_words": "API management portal",
-        "doc_url": "https://cloud.google.com/apigee/docs"
-    },
-    "cloud-console": {
-        "slug": "cloud-console",
-        "name": "Cloud Console",
-        "four_words": "Web-based management console",
-        "doc_url": "https://cloud.google.com/cloud-console/"
-    },
-    "migrate-for-anthos": {
-        "slug": "migrate-for-anthos",
-        "name": "Migrate for Anthos",
-        "four_words": "Migrate VMs to Kubernetes Engine",
-        "doc_url": "https://cloud.google.com/migrate/anthos/docs/getting-started"
-    },
-    "datastream": {
-        "slug": "datastream",
-        "name": "Datastream",
-        "four_words": "Change data capture / replication service",
-        "doc_url": "https://cloud.google.com/datastream/docs"
-    },
-    "cloud-ekm": {
-        "slug": "cloud-ekm",
-        "name": "Cloud EKM",
-        "four_words": "External keys you control / manage",
-        "doc_url": "https://cloud.google.com/kms/docs/ekm/"
-    },
-    "google-cloud-game-servers": {
-        "slug": "google-cloud-game-servers",
-        "name": "Google Cloud Game Servers",
-        "four_words": "Orchestrate Agones clusters",
-        "doc_url": "https://cloud.google.com/game-servers/docs"
-    },
-    "apigee-hybrid": {
-        "slug": "apigee-hybrid",
-        "name": "Apigee Hybrid",
-        "four_words": "Manage hybrid / multi-cloud API environments",
-        "doc_url": "https://cloud.google.com/apigee/docs/hybrid/v1.6/what-is-hybrid"
-    },
-    "street-view-static-api": {
-        "slug": "street-view-static-api",
-        "name": "Street View Static API",
-        "four_words": "Static street view images",
-        "doc_url": "https://developers.google.com/maps/documentation/streetview/overview"
-    },
-    "context-aware-access": {
-        "slug": "context-aware-access",
-        "name": "Context-aware Access",
-        "four_words": "End-user attribute-based access control",
-        "doc_url": "https://cloud.google.com/iap/docs/cloud-iap-context-aware-access-howto/"
-    },
-    "vmware-engine": {
-        "slug": "vmware-engine",
-        "name": "VMware Engine",
-        "four_words": "VMware as a service",
-        "doc_url": "https://cloud.google.com/vmware-engine/docs"
-    },
-    "maps-static-api": {
-        "slug": "maps-static-api",
-        "name": "Maps Static API",
-        "four_words": "Display static map images",
-        "doc_url": "https://developers.google.com/maps/documentation/maps-static/start"
-    },
-    "cloud-foundation-toolkit": {
-        "slug": "cloud-foundation-toolkit",
-        "name": "Cloud Foundation Toolkit",
-        "four_words": "Infrastructure as Code templates",
-        "doc_url": "https://github.com/GoogleCloudPlatform/cloud-foundation-toolkit/blob/master/docs/terraform.md"
-    },
-    "drive-picker": {
-        "slug": "drive-picker",
-        "name": "Drive Picker",
-        "four_words": "Drive file selection widget",
-        "doc_url": "https://developers.google.com/picker/docs/reference"
-    },
-    "drive-api": {
-        "slug": "drive-api",
-        "name": "Drive API",
-        "four_words": "Read and write files",
-        "doc_url": "https://developers.google.com/apps-script/reference/drive"
-    },
-    "vertex-ai-model-monitoring": {
-        "slug": "vertex-ai-model-monitoring",
-        "name": "Vertex AI Model Monitoring",
-        "four_words": "Monitor models for skew/drift",
-        "doc_url": "https://cloud.google.com/vertex-ai/docs/model-monitoring"
-    },
-    "database-migration-service": {
-        "slug": "database-migration-service",
-        "name": "Database Migration Service",
-        "four_words": "Migrate to Cloud SQL",
-        "doc_url": "https://cloud.google.com/database-migration/docs"
-    },
-    "secret-manager": {
-        "slug": "secret-manager",
-        "name": "Secret Manager",
-        "four_words": "Store and manage secrets",
-        "doc_url": "https://cloud.google.com/secret-manager/docs/"
-    },
-    "google-workspace-marketplace": {
-        "slug": "google-workspace-marketplace",
-        "name": "Google Workspace Marketplace",
-        "four_words": "Storefront for integrated applications",
-        "doc_url": "https://developers.google.com/workspace/marketplace/reference/rest"
-    },
-    "vertex-ml-metadata": {
-        "slug": "vertex-ml-metadata",
-        "name": "Vertex ML Metadata",
-        "four_words": "Artifact, lineage, and execution tracking",
-        "doc_url": "https://cloud.google.com/vertex-ai/docs/ml-metadata"
-    },
-    "cloud-endpoints": {
-        "slug": "cloud-endpoints",
-        "name": "Cloud Endpoints",
-        "four_words": "Cloud API gateway",
-        "doc_url": "https://cloud.google.com/endpoints/docs"
-    },
-    "firebase-app-distribution": {
-        "slug": "firebase-app-distribution",
-        "name": "Firebase App Distribution",
-        "four_words": "Trusted tester early access",
-        "doc_url": "https://firebase.google.com/docs/app-distribution"
-    },
-    "network-telemetry": {
-        "slug": "network-telemetry",
-        "name": "Network Telemetry",
-        "four_words": "Network telemetry service",
-        "doc_url": "https://cloud.google.com/vpc/docs/using-flow-logs/"
-    },
-    "cloud-identity-aware-proxy": {
-        "slug": "cloud-identity-aware-proxy",
-        "name": "Cloud Identity-Aware Proxy",
-        "four_words": "Identity-based app access",
-        "doc_url": "https://cloud.google.com/iap/docs/"
-    },
-    "transfer-appliance": {
-        "slug": "transfer-appliance",
-        "name": "Transfer Appliance",
-        "four_words": "Rentable data transport box",
-        "doc_url": "https://cloud.google.com/transfer-appliance/docs/4.0"
-    },
-    "maps-javascript-api": {
-        "slug": "maps-javascript-api",
-        "name": "Maps JavaScript API",
-        "four_words": "Dynamic web maps",
-        "doc_url": "https://developers.google.com/maps/documentation/javascript/overview"
-    },
-    "cloud-scheduler": {
-        "slug": "cloud-scheduler",
-        "name": "Cloud Scheduler",
-        "four_words": "Managed cron job service",
-        "doc_url": "https://cloud.google.com/scheduler/docs/"
-    },
-    "storage-transfer-service": {
-        "slug": "storage-transfer-service",
-        "name": "Storage Transfer Service",
-        "four_words": "Online / on-premises data transfer",
-        "doc_url": "https://cloud.google.com/storage-transfer/docs"
-    },
-    "network-intelligence-center": {
-        "slug": "network-intelligence-center",
-        "name": "Network Intelligence Center",
-        "four_words": "Network monitoring and topology",
-        "doc_url": "https://cloud.google.com/network-intelligence-center/docs/"
-    },
-    "persistent-disk": {
-        "slug": "persistent-disk",
-        "name": "Persistent Disk",
-        "four_words": "Block storage for VMs",
-        "doc_url": "https://cloud.google.com/compute/docs/disks/"
-    },
-    "google-workspace-add-ons": {
-        "slug": "google-workspace-add-ons",
-        "name": "Google Workspace Add-ons",
-        "four_words": "Extend Google Workspace apps",
-        "doc_url": "https://developers.google.com/apps-script/add-ons/overview"
-    },
-    "cloud-storage": {
-        "slug": "cloud-storage",
-        "name": "Cloud Storage",
-        "four_words": "Multi-class multi-region object storage",
-        "doc_url": "https://cloud.google.com/storage/docs/"
-    },
-    "cloud-life-sciences": {
-        "slug": "cloud-life-sciences",
-        "name": "Cloud Life Sciences",
-        "four_words": "Manage, process, transform biomedical-data",
-        "doc_url": "https://cloud.google.com/life-sciences/docs"
-    },
-    "street-view-service": {
-        "slug": "street-view-service",
-        "name": "Street View Service",
-        "four_words": "Street view for JavaScript",
-        "doc_url": "https://developers.google.com/maps/documentation/javascript/streetview/"
-    },
-    "bigquery-ml": {
-        "slug": "bigquery-ml",
-        "name": "BigQuery ML",
-        "four_words": "BigQuery model training / serving",
-        "doc_url": "https://cloud.google.com/bigquery-ml/docs/"
-    },
-    "partner-interconnect": {
-        "slug": "partner-interconnect",
-        "name": "Partner Interconnect",
-        "four_words": "Connect on-prem network to VPC",
-        "doc_url": "https://cloud.google.com/network-connectivity/docs/interconnect/concepts/partner-overview"
-    },
-    "cloud-hsm": {
-        "slug": "cloud-hsm",
-        "name": "Cloud HSM",
-        "four_words": "Hardware security module service",
-        "doc_url": "https://cloud.google.com/kms/docs/hsm/"
-    },
-    "migrate-for-compute-engine": {
-        "slug": "migrate-for-compute-engine",
-        "name": "Migrate for Compute Engine",
-        "four_words": "Compute Engine migration tools",
-        "doc_url": "https://cloud.google.com/migrate/compute-engine/docs/5.0"
-    },
-    "slides-api": {
-        "slug": "slides-api",
-        "name": "Slides API",
-        "four_words": "Create and edit presentations",
-        "doc_url": "https://developers.google.com/slides/api"
-    },
-    "people-api": {
-        "slug": "people-api",
-        "name": "People API",
-        "four_words": "Manage user's Contacts",
-        "doc_url": "https://developers.google.com/people/api/rest"
-    },
-    "artifact-registry": {
-        "slug": "artifact-registry",
-        "name": "Artifact Registry",
-        "four_words": "Universal package manager",
-        "doc_url": "https://cloud.google.com/artifact-registry/docs"
-    },
-    "cloud-data-fusion": {
-        "slug": "cloud-data-fusion",
-        "name": "Cloud Data Fusion",
-        "four_words": "Graphically manage data pipelines",
-        "doc_url": "https://cloud.google.com/data-fusion/docs/"
-    },
-    "cloud-sql-insights": {
-        "slug": "cloud-sql-insights",
-        "name": "Cloud SQL Insights",
-        "four_words": "SQL Inspector",
-        "doc_url": "https://cloud.google.com/sql/docs/postgres/using-query-insights"
-    },
-    "cloud-billing": {
-        "slug": "cloud-billing",
-        "name": "Cloud Billing",
-        "four_words": "Billing and cost management tools",
-        "doc_url": "https://cloud.google.com/billing/docs/"
-    },
-    "cloud-source-repositories": {
-        "slug": "cloud-source-repositories",
-        "name": "Cloud Source Repositories",
-        "four_words": "Hosted private git repos",
-        "doc_url": "https://cloud.google.com/source-repositories/docs/"
-    },
-    "compute-engine": {
-        "slug": "compute-engine",
-        "name": "Compute Engine",
-        "four_words": "VMs, GPUs, TPUs, Disks",
-        "doc_url": "https://cloud.google.com/compute/docs/"
-    },
-    "cloud-dns": {
-        "slug": "cloud-dns",
-        "name": "Cloud DNS",
-        "four_words": "Programmable DNS serving",
-        "doc_url": "https://cloud.google.com/dns/docs/"
-    },
-    "cloud-monitoring": {
-        "slug": "cloud-monitoring",
-        "name": "Cloud Monitoring",
-        "four_words": "Infrastructure and application monitoring",
-        "doc_url": "https://cloud.google.com/monitoring/docs/"
-    },
-    "cloud-asset-inventory": {
-        "slug": "cloud-asset-inventory",
-        "name": "Cloud Asset Inventory",
-        "four_words": "All assets, one place",
-        "doc_url": "https://cloud.google.com/asset-inventory/docs/overview"
-    },
-    "cloud-kms": {
-        "slug": "cloud-kms",
-        "name": "Cloud KMS",
-        "four_words": "Hosted key management service",
-        "doc_url": "https://cloud.google.com/kms/docs/"
-    },
-    "places-library-maps-js-api": {
-        "slug": "places-library-maps-js-api",
-        "name": "Places Library, Maps JS API",
-        "four_words": "Places features for web",
-        "doc_url": "https://developers.google.com/maps/documentation/javascript/places"
-    },
-    "cloud-tpu": {
-        "slug": "cloud-tpu",
-        "name": "Cloud TPU",
-        "four_words": "Hardware acceleration for ML",
-        "doc_url": "https://cloud.google.com/tpu/docs/"
-    },
-    "geolocation-api": {
-        "slug": "geolocation-api",
-        "name": "Geolocation API",
-        "four_words": "Derive location without GPS",
-        "doc_url": "https://developers.google.com/maps/documentation/geolocation/overview"
-    },
-    "cloud-functions-for-firebase": {
-        "slug": "cloud-functions-for-firebase",
-        "name": "Cloud Functions for Firebase",
-        "four_words": "Event-driven serverless applications",
-        "doc_url": "https://firebase.google.com/docs/functions"
-    },
-    "vertex-ai-edge-manager": {
-        "slug": "vertex-ai-edge-manager",
-        "name": "Vertex AI Edge Manager",
-        "four_words": "Deploy monitor edge inferences",
-        "doc_url": "https://cloud.google.com/vertex-ai"
-    },
-    "cloud-tools-for-visual-studio": {
-        "slug": "cloud-tools-for-visual-studio",
-        "name": "Cloud Tools for Visual Studio",
-        "four_words": "Visual Studio Google Cloud tools",
-        "doc_url": "https://cloud.google.com/tools/visual-studio/docs"
-    },
-    "cloud-vpn": {
-        "slug": "cloud-vpn",
-        "name": "Cloud VPN",
-        "four_words": "Virtual private network connection",
-        "doc_url": "https://cloud.google.com/network-connectivity/docs/vpn/concepts/overview"
-    },
-    "cloud-billing-api": {
-        "slug": "cloud-billing-api",
-        "name": "Cloud Billing API",
-        "four_words": "Programmatically manage Google Cloud billing",
-        "doc_url": "https://cloud.google.com/billing/docs/"
-    },
-    "direct-peering": {
-        "slug": "direct-peering",
-        "name": "Direct Peering",
-        "four_words": "Peer with Google Cloud",
-        "doc_url": "https://cloud.google.com/network-connectivity/docs/direct-peering"
-    },
-    "amp-for-email": {
-        "slug": "amp-for-email",
-        "name": "AMP for Email",
-        "four_words": "Dynamic interactive email",
-        "doc_url": "https://developers.google.com/apps-script/add-ons/gmail"
-    },
-    "cloud-search": {
-        "slug": "cloud-search",
-        "name": "Cloud Search",
-        "four_words": "Unified search for enterprise",
-        "doc_url": "https://developers.google.com/cloud-search/docs/guides/"
-    },
-    "operations-suite": {
-        "slug": "operations-suite",
-        "name": "Operations suite",
-        "four_words": "Monitoring, logging, troubleshooting",
-        "doc_url": "https://cloud.google.com/stackdriver/docs"
-    },
-    "confidential-computing": {
-        "slug": "confidential-computing",
-        "name": "Confidential Computing",
-        "four_words": "Encrypt data in-use",
-        "doc_url": "https://cloud.google.com/compute/confidential-vm/docs"
-    },
-    "talent-solutions": {
-        "slug": "talent-solutions",
-        "name": "Talent Solutions",
-        "four_words": "Job search with ML",
-        "doc_url": "https://cloud.google.com/talent-solution/docs"
-    },
-    "classroom-api": {
-        "slug": "classroom-api",
-        "name": "Classroom API",
-        "four_words": "Provision and manage classrooms",
-        "doc_url": "https://developers.google.com/classroom/guides/get-started"
-    },
-    "event-threat-detection": {
-        "slug": "event-threat-detection",
-        "name": "Event Threat Detection",
-        "four_words": "Scans for suspicious activity",
-        "doc_url": "https://cloud.google.com/security-command-center/docs/how-to-use-event-threat-detection"
-    },
-    "cloud-build": {
-        "slug": "cloud-build",
-        "name": "Cloud Build",
-        "four_words": "DevOps Automation Platform",
-        "doc_url": "https://cloud.google.com/build/docs"
-    },
-    "vertex-ai-tensorboard": {
-        "slug": "vertex-ai-tensorboard",
-        "name": "Vertex AI Tensorboard",
-        "four_words": "Managed TensorBoard for ML-experiment Visualization",
-        "doc_url": "https://cloud.google.com/vertex-ai/docs/experiments"
-    },
-    "text-to-speech": {
-        "slug": "text-to-speech",
-        "name": "Text-To-Speech",
-        "four_words": "Convert text to audio",
-        "doc_url": "https://cloud.google.com/text-to-speech/docs/"
-    },
-    "bare-metal-solution": {
-        "slug": "bare-metal-solution",
-        "name": "Bare Metal Solution",
-        "four_words": "Hardware for specialized workloads",
-        "doc_url": "https://cloud.google.com/bare-metal/docs/bms-planning"
-    },
-    "data-studio": {
-        "slug": "data-studio",
-        "name": "Data Studio",
-        "four_words": "Collaborative data exploration / dashboarding",
-        "doc_url": "https://cloud.google.com/bigquery/docs/visualize-data-studio"
-    },
-    "local-ssd": {
-        "slug": "local-ssd",
-        "name": "Local SSD",
-        "four_words": "VM locally attached SSDs",
-        "doc_url": "https://cloud.google.com/compute/docs/disks/local-ssd"
-    },
-    "docs-api": {
-        "slug": "docs-api",
-        "name": "Docs API",
-        "four_words": "Create and edit documents",
-        "doc_url": "https://developers.google.com/docs/api/how-tos/overview"
-    },
-    "cloud-profiler": {
-        "slug": "cloud-profiler",
-        "name": "Cloud Profiler",
-        "four_words": "CPU and heap profiling",
-        "doc_url": "https://cloud.google.com/profiler/docs/"
-    },
-    "security-command-center": {
-        "slug": "security-command-center",
-        "name": "Security Command Center",
-        "four_words": "Security management and data risk platform",
-        "doc_url": "https://cloud.google.com/security-command-center/docs/"
-    },
-    "deep-learning-containers": {
-        "slug": "deep-learning-containers",
-        "name": "Deep Learning Containers",
-        "four_words": "Preconfigured containers for deep learning",
-        "doc_url": "https://cloud.google.com/deep-learning-containers/docs"
-    },
-    "cloud-domains": {
-        "slug": "cloud-domains",
-        "name": "Cloud Domains",
-        "four_words": "Register, transfer, manager domains",
-        "doc_url": "https://cloud.google.com/domains/docs"
-    },
-    "apps-script": {
-        "slug": "apps-script",
-        "name": "Apps Script",
-        "four_words": "Extend and automate everything",
-        "doc_url": "https://developers.google.com/apps-script/"
-    },
-    "cloud-logging": {
-        "slug": "cloud-logging",
-        "name": "Cloud Logging",
-        "four_words": "Centralized logging",
-        "doc_url": "https://cloud.google.com/logging/docs/"
-    },
-    "apigee-api-platform": {
-        "slug": "apigee-api-platform",
-        "name": "Apigee API Platform",
-        "four_words": "Develop, secure, monitor APIs",
-        "doc_url": "https://cloud.google.com/apigee/docs"
-    },
-    "looker": {
-        "slug": "looker",
-        "name": "Looker",
-        "four_words": "Enterprise BI and Analytics",
-        "doc_url": "https://cloud.google.com/looker"
-    },
-    "network-service-tiers": {
-        "slug": "network-service-tiers",
-        "name": "Network Service Tiers",
-        "four_words": "Price vs performance tiering",
-        "doc_url": "https://cloud.google.com/network-tiers/docs/"
-    },
-    "container-registry": {
-        "slug": "container-registry",
-        "name": "Container Registry",
-        "four_words": "Private container registry / storage",
-        "doc_url": "https://cloud.google.com/container-registry/docs/"
-    },
-    "bigquery": {
-        "slug": "bigquery",
-        "name": "BigQuery",
-        "four_words": "Data warehouse / analytics",
-        "doc_url": "https://cloud.google.com/bigquery/docs/"
-    },
-    "data-catalog": {
-        "slug": "data-catalog",
-        "name": "Data Catalog",
-        "four_words": "Metadata management service",
-        "doc_url": "https://cloud.google.com/data-catalog/docs/"
-    },
-    "titan-security-key": {
-        "slug": "titan-security-key",
-        "name": "Titan Security Key",
-        "four_words": "Two-factor authentication (2FA) device",
-        "doc_url": "https://cloud.google.com/titan-security-key/#section-3"
-    },
-    "firebase-authentication": {
-        "slug": "firebase-authentication",
-        "name": "Firebase Authentication",
-        "four_words": "Drop-in authentication",
-        "doc_url": "https://firebase.google.com/docs/auth"
-    },
-    "cloud-healthcare-api": {
-        "slug": "cloud-healthcare-api",
-        "name": "Cloud Healthcare API",
-        "four_words": "Healthcare system GCP interoperability",
-        "doc_url": "https://cloud.google.com/healthcare-api/docs"
-    },
-    "dialogflow": {
-        "slug": "dialogflow",
-        "name": "Dialogflow",
-        "four_words": "Create conversational interfaces",
-        "doc_url": "https://cloud.google.com/dialogflow/docs"
-    },
-    "cloud-router": {
-        "slug": "cloud-router",
-        "name": "Cloud Router",
-        "four_words": "VPC / on-prem network route exchange (BGP)",
-        "doc_url": "https://cloud.google.com/network-connectivity/docs/router"
-    },
-    "vertex-ai-matching-engine": {
-        "slug": "vertex-ai-matching-engine",
-        "name": "Vertex AI Matching Engine",
-        "four_words": "Vector similarity searches",
-        "doc_url": "https://cloud.google.com/vertex-ai/docs/matching-engine"
-    },
-    "task-api": {
-        "slug": "task-api",
-        "name": "Task API",
-        "four_words": "Search, read & update Tasks",
-        "doc_url": "https://developers.google.com/tasks/reference/rest"
-    }
+  "duet-ai": {
+    "slug": "duet-ai",
+    "name": "Duet AI in Google Cloud",
+    "four_words": "AI-powered collaborator",
+    "doc_url": "https://cloud.google.com/duet-ai"
+  },
+  "container-analysis": {
+    "slug": "container-analysis",
+    "name": "Container Analysis",
+    "four_words": "Automated security scanning",
+    "doc_url": "https://cloud.google.com/container-analysis/docs/container-scanning-overview"
+  },
+  "vertex-ai-workbench": {
+    "slug": "vertex-ai-workbench",
+    "name": "Vertex AI Workbench",
+    "four_words": "Jupyter-based environment for Data Science",
+    "doc_url": "https://cloud.google.com/vertex-ai/docs/workbench"
+  },
+  "api-gateway": {
+    "slug": "api-gateway",
+    "name": "API Gateway",
+    "four_words": "Fully managed API Gateway",
+    "doc_url": "https://cloud.google.com/api-gateway/docs"
+  },
+  "cloud-memorystore": {
+    "slug": "cloud-memorystore",
+    "name": "Cloud Memorystore",
+    "four_words": "Managed Redis and Memcached",
+    "doc_url": "https://cloud.google.com/memorystore/docs/"
+  },
+  "ml-kit-for-firebase": {
+    "slug": "ml-kit-for-firebase",
+    "name": "ML Kit for Firebase",
+    "four_words": "ML APIs for mobile",
+    "doc_url": "https://firebase.google.com/products/ml"
+  },
+  "web-security-scanner": {
+    "slug": "web-security-scanner",
+    "name": "Web Security Scanner",
+    "four_words": "Identifies web-app security vulnerabilities",
+    "doc_url": "https://cloud.google.com/security-command-center/docs/concepts-web-security-scanner-overview"
+  },
+  "traffic-director": {
+    "slug": "traffic-director",
+    "name": "Traffic Director",
+    "four_words": "Service mesh traffic management",
+    "doc_url": "https://cloud.google.com/traffic-director/docs/"
+  },
+  "migrate-from-teradata": {
+    "slug": "migrate-from-teradata",
+    "name": "Migrate from Teradata",
+    "four_words": "Migrate from Teradata to BigQuery",
+    "doc_url": "https://cloud.google.com/architecture/dw2bq/dw-bq-migration-overview"
+  },
+  "access-transparency": {
+    "slug": "access-transparency",
+    "name": "Access Transparency",
+    "four_words": "Audit cloud provider access",
+    "doc_url": "https://cloud.google.com/cloud-provider-access-management/access-transparency/docs/overview"
+  },
+  "maps-sdk-for-unity": {
+    "slug": "maps-sdk-for-unity",
+    "name": "Maps SDK for Unity",
+    "four_words": "Unity SDK for games",
+    "doc_url": "https://developers.google.com/maps/documentation"
+  },
+  "access-context-manager": {
+    "slug": "access-context-manager",
+    "name": "Access Context Manager",
+    "four_words": "Fine-grained, attribute based access-control",
+    "doc_url": "https://cloud.google.com/access-context-manager/docs"
+  },
+  "recaptcha-enterprise": {
+    "slug": "recaptcha-enterprise",
+    "name": "reCAPTCHA Enterprise",
+    "four_words": "Protect website against bots",
+    "doc_url": "https://cloud.google.com/recaptcha-enterprise/docs"
+  },
+  "cloud-vision": {
+    "slug": "cloud-vision",
+    "name": "Cloud Vision",
+    "four_words": "Image recognition and classification",
+    "doc_url": "https://cloud.google.com/vision/docs/"
+  },
+  "public-datasets": {
+    "slug": "public-datasets",
+    "name": "Public Datasets",
+    "four_words": "Hosted data in BigQuery",
+    "doc_url": "https://cloud.google.com/bigquery/public-data"
+  },
+  "cloud-tasks": {
+    "slug": "cloud-tasks",
+    "name": "Cloud Tasks",
+    "four_words": "Asynchronous task execution",
+    "doc_url": "https://cloud.google.com/tasks/docs/"
+  },
+  "dataprep-by-trifacta": {
+    "slug": "dataprep-by-trifacta",
+    "name": "Dataprep by Trifacta",
+    "four_words": "Visual data wrangling",
+    "doc_url": "https://docs.trifacta.com/display/dp/"
+  },
+  "appsheet": {
+    "slug": "appsheet",
+    "name": "AppSheet",
+    "four_words": "No-code App creation",
+    "doc_url": "https://cloud.google.com/appsheet"
+  },
+  "cloud-deployment-manager": {
+    "slug": "cloud-deployment-manager",
+    "name": "Cloud Deployment Manager",
+    "four_words": "Templated infrastructure deployment",
+    "doc_url": "https://cloud.google.com/deployment-manager/docs/"
+  },
+  "roads-api": {
+    "slug": "roads-api",
+    "name": "Roads API",
+    "four_words": "Convert coordinates to roads",
+    "doc_url": "https://developers.google.com/maps/documentation/roads/overview"
+  },
+  "anthos-config-management": {
+    "slug": "anthos-config-management",
+    "name": "Anthos Config Management",
+    "four_words": "Policy and security automation",
+    "doc_url": "https://cloud.google.com/anthos-config-management/docs"
+  },
+  "bigquery-data-transfer-service": {
+    "slug": "bigquery-data-transfer-service",
+    "name": "BigQuery Data Transfer Service",
+    "four_words": "Bulk import analytics data",
+    "doc_url": "https://cloud.google.com/bigquery-transfer/docs"
+  },
+  "sole-tenant-nodes": {
+    "slug": "sole-tenant-nodes",
+    "name": "Sole-tenant Nodes",
+    "four_words": "Dedicated physical servers",
+    "doc_url": "https://cloud.google.com/compute/docs/nodes/sole-tenant-nodes"
+  },
+  "cloud-code-for-intellij": {
+    "slug": "cloud-code-for-intellij",
+    "name": "Cloud Code for IntelliJ",
+    "four_words": "IntelliJ Google Cloud tools",
+    "doc_url": "https://cloud.google.com/code/docs"
+  },
+  "packet-mirroring": {
+    "slug": "packet-mirroring",
+    "name": "Packet Mirroring",
+    "four_words": "Monitor / analyze instance traffic",
+    "doc_url": "https://cloud.google.com/vpc/docs/packet-mirroring"
+  },
+  "cloud-armor": {
+    "slug": "cloud-armor",
+    "name": "Cloud Armor",
+    "four_words": "DDoS protection and WAF",
+    "doc_url": "https://cloud.google.com/armor/docs/"
+  },
+  "cloud-deploy": {
+    "slug": "cloud-deploy",
+    "name": "Cloud Deploy",
+    "four_words": "Continuous Delivery for GKE",
+    "doc_url": "https://cloud.google.com/deploy/docs"
+  },
+  "cloud-bigtable": {
+    "slug": "cloud-bigtable",
+    "name": "Cloud Bigtable",
+    "four_words": "Petabyte-scale, low-latency, non-relational",
+    "doc_url": "https://cloud.google.com/bigtable/docs/"
+  },
+  "anthos-service-mesh": {
+    "slug": "anthos-service-mesh",
+    "name": "Anthos Service Mesh",
+    "four_words": "Managed service mesh (Istio)",
+    "doc_url": "https://cloud.google.com/service-mesh/docs"
+  },
+  "cloud-trace": {
+    "slug": "cloud-trace",
+    "name": "Cloud Trace",
+    "four_words": "App latency insights",
+    "doc_url": "https://cloud.google.com/trace/docs/"
+  },
+  "healthcare-natural-language-ai": {
+    "slug": "healthcare-natural-language-ai",
+    "name": "Healthcare Natural Language AI",
+    "four_words": "Real-time insights from media-text",
+    "doc_url": "https://cloud.google.com/healthcare-api/docs/how-tos/nlp"
+  },
+  "migrate-from-amazon-redshift": {
+    "slug": "migrate-from-amazon-redshift",
+    "name": "Migrate from Amazon Redshift",
+    "four_words": "Migrate from Redshift to BigQuery",
+    "doc_url": "https://cloud.google.com/bigquery-transfer/docs/redshift-migration"
+  },
+  "maps-sdk-for-android": {
+    "slug": "maps-sdk-for-android",
+    "name": "Maps SDK for Android",
+    "four_words": "Maps for Android apps",
+    "doc_url": "https://developers.google.com/maps/documentation/android-sdk/overview"
+  },
+  "cloud-shell": {
+    "slug": "cloud-shell",
+    "name": "Cloud Shell",
+    "four_words": "Browser-based terminal / CLI",
+    "doc_url": "https://cloud.google.com/shell/docs/"
+  },
+  "pubsub": {
+    "slug": "pubsub",
+    "name": "Pub/Sub",
+    "four_words": "Global real-time messaging",
+    "doc_url": "https://cloud.google.com/pubsub/docs/"
+  },
+  "network-connectivity-center": {
+    "slug": "network-connectivity-center",
+    "name": "Network Connectivity Center",
+    "four_words": "Connect VPC & On-prem",
+    "doc_url": "https://cloud.google.com/network-connectivity/docs/network-connectivity-center/concepts/overview"
+  },
+  "document-ai": {
+    "slug": "document-ai",
+    "name": "Document AI",
+    "four_words": "Analyze, classify, search documents",
+    "doc_url": "https://cloud.google.com/document-ai/docs"
+  },
+  "dataplex": {
+    "slug": "dataplex",
+    "name": "Dataplex",
+    "four_words": "Centrally manage / monitor / govern data",
+    "doc_url": "https://cloud.google.com/dataplex"
+  },
+  "firebase-test-lab": {
+    "slug": "firebase-test-lab",
+    "name": "Firebase Test Lab",
+    "four_words": "Mobile testing device farm",
+    "doc_url": "https://firebase.google.com/docs/test-lab/"
+  },
+  "geocoding-api": {
+    "slug": "geocoding-api",
+    "name": "Geocoding API",
+    "four_words": "Convert address to/from coordinates",
+    "doc_url": "https://developers.google.com/maps/documentation/geocoding/overview"
+  },
+  "cloud-functions": {
+    "slug": "cloud-functions",
+    "name": "Cloud Functions",
+    "four_words": "Event-driven serverless functions",
+    "doc_url": "https://cloud.google.com/functions/docs/"
+  },
+  "security-key-enforcement": {
+    "slug": "security-key-enforcement",
+    "name": "Security Key Enforcement",
+    "four_words": "Two-step key verification",
+    "doc_url": "https://cloud.google.com/titan-security-key"
+  },
+  "identity-platform": {
+    "slug": "identity-platform",
+    "name": "Identity Platform",
+    "four_words": "Drop-in Authentication, Access - Management",
+    "doc_url": "https://cloud.google.com/identity-platform/docs"
+  },
+  "cloud-composer": {
+    "slug": "cloud-composer",
+    "name": "Cloud Composer",
+    "four_words": "Managed workflow orchestration service",
+    "doc_url": "https://cloud.google.com/composer/docs/"
+  },
+  "cloud-identity": {
+    "slug": "cloud-identity",
+    "name": "Cloud Identity",
+    "four_words": "Manage users, devices & apps",
+    "doc_url": "https://cloud.google.com/identity/solutions/overview/"
+  },
+  "assured-workloads": {
+    "slug": "assured-workloads",
+    "name": "Assured Workloads",
+    "four_words": "Workload compliance controls",
+    "doc_url": "https://cloud.google.com/assured-workloads/docs"
+  },
+  "service-directory": {
+    "slug": "service-directory",
+    "name": "Service Directory",
+    "four_words": "Centrally publish / discover / connect services",
+    "doc_url": "https://cloud.google.com/service-directory/docs"
+  },
+  "cloud-tools-for-eclipse": {
+    "slug": "cloud-tools-for-eclipse",
+    "name": "Cloud Tools for Eclipse",
+    "four_words": "Eclipse GCP tools",
+    "doc_url": "https://cloud.google.com/eclipse/docs/"
+  },
+  "cloud-spanner": {
+    "slug": "cloud-spanner",
+    "name": "Cloud Spanner",
+    "four_words": "Horizontally scaleable relational database",
+    "doc_url": "https://cloud.google.com/spanner/docs/"
+  },
+  "recommendations-ai": {
+    "slug": "recommendations-ai",
+    "name": "Recommendations AI",
+    "four_words": "Create custom recommendations",
+    "doc_url": "https://cloud.google.com/recommendations-ai/docs/"
+  },
+  "cloud-apis": {
+    "slug": "cloud-apis",
+    "name": "Cloud APIs",
+    "four_words": "APIs for cloud services",
+    "doc_url": "https://cloud.google.com/apis/docs/overview"
+  },
+  "apigee-healthcare-apix": {
+    "slug": "apigee-healthcare-apix",
+    "name": "Apigee Healthcare APIx",
+    "four_words": "Healthcare system GCP interoperability",
+    "doc_url": "https://cloud.google.com/solutions/apigee-health-apix#section-4"
+  },
+  "email-markup": {
+    "slug": "email-markup",
+    "name": "Email Markup",
+    "four_words": "Interactive email using schema.org",
+    "doc_url": "https://developers.google.com/gmail/markup/overview"
+  },
+  "eventarc": {
+    "slug": "eventarc",
+    "name": "Eventarc",
+    "four_words": "Event-driven Cloud Run services",
+    "doc_url": "https://cloud.google.com/eventarc/docs/"
+  },
+  "vpc-service-controls": {
+    "slug": "vpc-service-controls",
+    "name": "VPC Service Controls",
+    "four_words": "VPC data constraints",
+    "doc_url": "https://cloud.google.com/vpc-service-controls/docs/"
+  },
+  "vertex-ai-training": {
+    "slug": "vertex-ai-training",
+    "name": "Vertex AI Training",
+    "four_words": "Distributed AI training",
+    "doc_url": "https://cloud.google.com/ai-platform/training/docs/overview"
+  },
+  "automl": {
+    "slug": "automl",
+    "name": "AutoML",
+    "four_words": "Custom low-code models",
+    "doc_url": "https://cloud.google.com/vertex-ai/docs/start/automl-users"
+  },
+  "connected-sheets": {
+    "slug": "connected-sheets",
+    "name": "Connected Sheets",
+    "four_words": "Spreadsheet interface for (big) data",
+    "doc_url": "https://cloud.google.com/bigquery/docs/connected-sheets"
+  },
+  "preemptible-vms": {
+    "slug": "preemptible-vms",
+    "name": "Preemptible VMs",
+    "four_words": "Short-lived compute instances",
+    "doc_url": "https://cloud.google.com/compute/docs/instances/preemptible"
+  },
+  "apigee-sense": {
+    "slug": "apigee-sense",
+    "name": "Apigee Sense",
+    "four_words": "API protection from attacks",
+    "doc_url": "https://cloud.google.com/apigee/sense"
+  },
+  "cloud-ids": {
+    "slug": "cloud-ids",
+    "name": "Cloud IDS",
+    "four_words": "Detects Network based threats",
+    "doc_url": "https://cloud.google.com/intrusion-detection-system/docs"
+  },
+  "firebase-remote-config": {
+    "slug": "firebase-remote-config",
+    "name": "Firebase Remote Config",
+    "four_words": "Remotely configure installed apps",
+    "doc_url": "https://firebase.google.com/docs/remote-config/"
+  },
+  "vertex-ai": {
+    "slug": "vertex-ai",
+    "name": "Vertex AI",
+    "four_words": "Managed platform for ML",
+    "doc_url": "https://cloud.google.com/vertex-ai/docs"
+  },
+  "directions-api": {
+    "slug": "directions-api",
+    "name": "Directions API",
+    "four_words": "Get directions between locations",
+    "doc_url": "https://developers.google.com/maps/documentation/directions/overview"
+  },
+  "apigee-api-management": {
+    "slug": "apigee-api-management",
+    "name": "Apigee API Management",
+    "four_words": "API management, development, security",
+    "doc_url": "https://cloud.google.com/apigee/docs"
+  },
+  "gmail-api": {
+    "slug": "gmail-api",
+    "name": "Gmail API",
+    "four_words": "Enhance Gmail",
+    "doc_url": "https://developers.google.com/gmail/api"
+  },
+  "cloud-firestore": {
+    "slug": "cloud-firestore",
+    "name": "Cloud Firestore",
+    "four_words": "Serverless NoSQL document DB",
+    "doc_url": "https://cloud.google.com/firestore/docs/"
+  },
+  "deep-learning-vm-images": {
+    "slug": "deep-learning-vm-images",
+    "name": "Deep Learning VM Images ",
+    "four_words": "Preconfigured VMs for deep learning",
+    "doc_url": "https://cloud.google.com/deep-learning-vm/docs/"
+  },
+  "maps-urls": {
+    "slug": "maps-urls",
+    "name": "Maps URLs",
+    "four_words": "URL scheme for maps",
+    "doc_url": "https://developers.google.com/maps/documentation/urls/get-started"
+  },
+  "binary-authorization": {
+    "slug": "binary-authorization",
+    "name": "Binary Authorization",
+    "four_words": "Kubernetes deploy-time security",
+    "doc_url": "https://cloud.google.com/binary-authorization/docs/"
+  },
+  "vertex-ai-predictions": {
+    "slug": "vertex-ai-predictions",
+    "name": "Vertex AI Predictions",
+    "four_words": "Autoscaled model serving",
+    "doc_url": "https://cloud.google.com/vertex-ai/docs/"
+  },
+  "google-cloud-marketplace": {
+    "slug": "google-cloud-marketplace",
+    "name": "Google Cloud Marketplace",
+    "four_words": "Partner & open source marketplace",
+    "doc_url": "https://cloud.google.com/marketplace/docs"
+  },
+  "contact-center-ai": {
+    "slug": "contact-center-ai",
+    "name": "Contact Center AI",
+    "four_words": "AI in your contact center",
+    "doc_url": "https://cloud.google.com/solutions/contact-center"
+  },
+  "dataproc": {
+    "slug": "dataproc",
+    "name": "Dataproc",
+    "four_words": "Managed Spark and Hadoop",
+    "doc_url": "https://cloud.google.com/dataproc/docs/"
+  },
+  "maps-sdk-for-ios": {
+    "slug": "maps-sdk-for-ios",
+    "name": "Maps SDK for iOS",
+    "four_words": "Maps for iOS apps",
+    "doc_url": "https://developers.google.com/maps/documentation/ios-sdk/overview"
+  },
+  "cloud-sql": {
+    "slug": "cloud-sql",
+    "name": "Cloud SQL",
+    "four_words": "Managed MySQL, PostgreSQL, SQL Server",
+    "doc_url": "https://cloud.google.com/sql/docs/"
+  },
+  "maps-embed-api": {
+    "slug": "maps-embed-api",
+    "name": "Maps Embed API",
+    "four_words": "Display iframe embedded maps",
+    "doc_url": "https://developers.google.com/maps/documentation/embed/get-started"
+  },
+  "distance-matrix-api": {
+    "slug": "distance-matrix-api",
+    "name": "Distance Matrix API",
+    "four_words": "Multi-origin / destination travel times",
+    "doc_url": "https://developers.google.com/maps/documentation/distance-matrix/start"
+  },
+  "cloud-data-loss-prevention": {
+    "slug": "cloud-data-loss-prevention",
+    "name": "Cloud Data Loss Prevention",
+    "four_words": "Classify and redact sensitive data",
+    "doc_url": "https://cloud.google.com/dlp/docs/"
+  },
+  "firebase-extensions": {
+    "slug": "firebase-extensions",
+    "name": "Firebase Extensions",
+    "four_words": "Pre-packaged development solutions",
+    "doc_url": "https://firebase.google.com/docs/extensions"
+  },
+  "cloud-data-transfer": {
+    "slug": "cloud-data-transfer",
+    "name": "Cloud Data Transfer",
+    "four_words": "Data migration tools/CLI",
+    "doc_url": "https://cloud.google.com/storage-transfer/docs"
+  },
+  "google-cloud-marketplace-for-anthos": {
+    "slug": "google-cloud-marketplace-for-anthos",
+    "name": "Google Cloud Marketplace for Anthos",
+    "four_words": "Pre-configured containerized apps",
+    "doc_url": "https://cloud.google.com/marketplace/docs/kubernetes-apps"
+  },
+  "api-monetization": {
+    "slug": "api-monetization",
+    "name": "API Monetization",
+    "four_words": "Monetize APIs",
+    "doc_url": "https://cloud.google.com/apigee/docs"
+  },
+  "cloud-run": {
+    "slug": "cloud-run",
+    "name": "Cloud Run",
+    "four_words": "Serverless for containerized applications",
+    "doc_url": "https://cloud.google.com/run/docs"
+  },
+  "transcoder-api": {
+    "slug": "transcoder-api",
+    "name": "Transcoder API",
+    "four_words": "Optimized files for delivery",
+    "doc_url": "https://cloud.google.com/transcoder/docs"
+  },
+  "firebase-performance-monitoring": {
+    "slug": "firebase-performance-monitoring",
+    "name": "Firebase Performance Monitoring",
+    "four_words": "App/web performance monitoring",
+    "doc_url": "https://firebase.google.com/docs/perf-mon"
+  },
+  "firebase-ab-testing": {
+    "slug": "firebase-ab-testing",
+    "name": "Firebase A/B Testing",
+    "four_words": "Create A/B test experiments",
+    "doc_url": "https://firebase.google.com/docs/ab-testing"
+  },
+  "cloud-code-for-vs-code": {
+    "slug": "cloud-code-for-vs-code",
+    "name": "Cloud Code for VS Code",
+    "four_words": "VS Code Google Cloud tools",
+    "doc_url": "https://cloud.google.com/code/docs/vscode/"
+  },
+  "firebase-cloud-messaging": {
+    "slug": "firebase-cloud-messaging",
+    "name": "Firebase Cloud Messaging",
+    "four_words": "Send device notifications",
+    "doc_url": "https://firebase.google.com/docs/cloud-messaging"
+  },
+  "vertex-ai-pipelines": {
+    "slug": "vertex-ai-pipelines",
+    "name": "Vertex AI Pipelines",
+    "four_words": "Hosted ML workflows",
+    "doc_url": "https://cloud.google.com/ai-platform/pipelines/docs"
+  },
+  "workflows": {
+    "slug": "workflows",
+    "name": "Workflows",
+    "four_words": "HTTP services orchestration",
+    "doc_url": "https://cloud.google.com/workflows/docs/"
+  },
+  "anthos-clusters": {
+    "slug": "anthos-clusters",
+    "name": "Anthos Clusters",
+    "four_words": "Hybrid / on-prem GKE",
+    "doc_url": "https://cloud.google.com/anthos/clusters/docs/on-prem/1.9"
+  },
+  "crashlytics": {
+    "slug": "crashlytics",
+    "name": "Crashlytics",
+    "four_words": "Crash reporting and analytics",
+    "doc_url": "https://firebase.google.com/docs/crashlytics"
+  },
+  "calendar-api": {
+    "slug": "calendar-api",
+    "name": "Calendar API",
+    "four_words": "Create and manage calendars",
+    "doc_url": "https://developers.google.com/apps-script/add-ons/calendar"
+  },
+  "visual-inspection-ai": {
+    "slug": "visual-inspection-ai",
+    "name": "Visual Inspection AI",
+    "four_words": "Train / deploy models to detect defects",
+    "doc_url": "https://cloud.google.com/solutions/visual-inspection-ai"
+  },
+  "cloud-mobile-app": {
+    "slug": "cloud-mobile-app",
+    "name": "Cloud Mobile App",
+    "four_words": "iOS / Android Google Cloud manager app",
+    "doc_url": "https://cloud.google.com/console-app/"
+  },
+  "cloud-translation": {
+    "slug": "cloud-translation",
+    "name": "Cloud Translation",
+    "four_words": "Language detection and translation",
+    "doc_url": "https://cloud.google.com/translate/docs/"
+  },
+  "firebase-dynamic-links": {
+    "slug": "firebase-dynamic-links",
+    "name": "Firebase Dynamic Links",
+    "four_words": "Link to app content",
+    "doc_url": "https://firebase.google.com/docs/dynamic-links"
+  },
+  "migrate-for-anthos-and-gke": {
+    "slug": "migrate-for-anthos-and-gke",
+    "name": "Migrate for Anthos and GKE",
+    "four_words": "Migrate VMs to GKE",
+    "doc_url": "https://cloud.google.com/migrate/anthos/docs/getting-started"
+  },
+  "sheets-api": {
+    "slug": "sheets-api",
+    "name": "Sheets API",
+    "four_words": "Read and write spreadsheets",
+    "doc_url": "https://developers.google.com/sheets/api/reference/rest"
+  },
+  "alloydb": {
+    "slug": "alloydb",
+    "name": "AlloyDB",
+    "four_words": "Scalable & performant PostgreSQL - compatible DB",
+    "doc_url": "https://cloud.google.com/alloydb/docs"
+  },
+  "app-engine": {
+    "slug": "app-engine",
+    "name": "App Engine",
+    "four_words": "Managed app platform",
+    "doc_url": "https://cloud.google.com/appengine/docs/"
+  },
+  "time-zone-api": {
+    "slug": "time-zone-api",
+    "name": "Time Zone API",
+    "four_words": "Convert coordinates to timezone",
+    "doc_url": "https://developers.google.com/maps/documentation/timezone/get-started"
+  },
+  "video-intelligence-api": {
+    "slug": "video-intelligence-api",
+    "name": "Video Intelligence API",
+    "four_words": "Scene-level video annotation",
+    "doc_url": "https://cloud.google.com/video-intelligence/docs/"
+  },
+  "private-catalog": {
+    "slug": "private-catalog",
+    "name": "Private Catalog",
+    "four_words": "Internal Solutions Catalog",
+    "doc_url": "https://cloud.google.com/private-catalog/docs/"
+  },
+  "cloud-load-balancing": {
+    "slug": "cloud-load-balancing",
+    "name": "Cloud Load Balancing",
+    "four_words": "Multi-region load distribution / balancing",
+    "doc_url": "https://cloud.google.com/load-balancing/docs"
+  },
+  "bigquery-dts": {
+    "slug": "bigquery-dts",
+    "name": "BigQuery DTS",
+    "four_words": "Automated data ingestion service",
+    "doc_url": "https://cloud.google.com/bigquery-transfer/docs"
+  },
+  "vertex-ai-data-labeling": {
+    "slug": "vertex-ai-data-labeling",
+    "name": "Vertex AI Data Labeling",
+    "four_words": "Data labeling by humans",
+    "doc_url": "https://cloud.google.com/ai-platform/data-labeling/docs"
+  },
+  "chronicle": {
+    "slug": "chronicle",
+    "name": "Chronicle",
+    "four_words": "Find threats from security telemetry",
+    "doc_url": "https://cloud.google.com/chronicle/docs"
+  },
+  "api-analytics": {
+    "slug": "api-analytics",
+    "name": "API Analytics",
+    "four_words": "API metrics",
+    "doc_url": "https://cloud.google.com/apigee/docs"
+  },
+  "shielded-vms": {
+    "slug": "shielded-vms",
+    "name": "Shielded VMs",
+    "four_words": "Hardened VMs",
+    "doc_url": "https://cloud.google.com/security/shielded-cloud/shielded-vm/"
+  },
+  "places-sdk-for-ios": {
+    "slug": "places-sdk-for-ios",
+    "name": "Places SDK for iOS",
+    "four_words": "Places feature for iOS",
+    "doc_url": "https://developers.google.com/maps/documentation/places/ios-sdk/start"
+  },
+  "cloud-sdk": {
+    "slug": "cloud-sdk",
+    "name": "Cloud SDK",
+    "four_words": "Google Cloud CLI",
+    "doc_url": "https://cloud.google.com/sdk/docs/"
+  },
+  "virustotal": {
+    "slug": "virustotal",
+    "name": "VirusTotal",
+    "four_words": "Research / hunt for malware",
+    "doc_url": "https://cloud.google.com/chronicle/docs/investigation/view-virustotal-information"
+  },
+  "anthos": {
+    "slug": "anthos",
+    "name": "Anthos",
+    "four_words": "Enterprise hybrid / multi-cloud platform",
+    "doc_url": "https://cloud.google.com/anthos/docs/"
+  },
+  "dedicated-interconnect": {
+    "slug": "dedicated-interconnect",
+    "name": "Dedicated Interconnect",
+    "four_words": "Dedicated private network connection",
+    "doc_url": "https://cloud.google.com/network-connectivity/docs/interconnect/concepts/dedicated-overview"
+  },
+  "cloud-run-for-anthos": {
+    "slug": "cloud-run-for-anthos",
+    "name": "Cloud Run for Anthos",
+    "four_words": "Serverless development for Anthos",
+    "doc_url": "https://cloud.google.com/anthos/run/docs/quickstarts/prebuilt-deploy-gke"
+  },
+  "cloud-nat": {
+    "slug": "cloud-nat",
+    "name": "Cloud NAT",
+    "four_words": "Network address translation service",
+    "doc_url": "https://cloud.google.com/nat/docs"
+  },
+  "gke": {
+    "slug": "gke",
+    "name": "Kubernetes Engine",
+    "four_words": "Managed Kubernetes / containers",
+    "doc_url": "https://cloud.google.com/kubernetes-engine/docs/"
+  },
+  "media-cdn": {
+    "slug": "media-cdn",
+    "name": "Media CDN",
+    "four_words": "CDN for streaming & videos",
+    "doc_url": "https://cloud.google.com/media-cdn/docs/overview"
+  },
+  "cloud-storage-for-firebase": {
+    "slug": "cloud-storage-for-firebase",
+    "name": "Cloud Storage for Firebase",
+    "four_words": "Object storage and serving",
+    "doc_url": "https://firebase.google.com/docs/storage"
+  },
+  "admin-sdk": {
+    "slug": "admin-sdk",
+    "name": "Admin SDK",
+    "four_words": "Manage Google Workspace resources",
+    "doc_url": "https://developers.google.com/apps-script/advanced/admin-sdk-directory"
+  },
+  "google-analytics-for-firebase": {
+    "slug": "google-analytics-for-firebase",
+    "name": "Google Analytics for Firebase",
+    "four_words": "Mobile app analytics",
+    "doc_url": "https://firebase.google.com/docs/analytics"
+  },
+  "vm-manager": {
+    "slug": "vm-manager",
+    "name": "VM Manager",
+    "four_words": "Manage OS VM Fleets",
+    "doc_url": "https://cloud.google.com/compute/docs/vm-manager"
+  },
+  "error-reporting": {
+    "slug": "error-reporting",
+    "name": "Error Reporting",
+    "four_words": "App error reporting",
+    "doc_url": "https://cloud.google.com/error-reporting/docs/"
+  },
+  "beyondcorp-enterprise": {
+    "slug": "beyondcorp-enterprise",
+    "name": "BeyondCorp Enterprise",
+    "four_words": "Zero trust secure access",
+    "doc_url": "https://cloud.google.com/beyondcorp-enterprise/docs"
+  },
+  "dataflow": {
+    "slug": "dataflow",
+    "name": "Dataflow",
+    "four_words": "Stream / batch data processing",
+    "doc_url": "https://cloud.google.com/dataflow/docs/"
+  },
+  "risk-manager": {
+    "slug": "risk-manager",
+    "name": "Risk Manager",
+    "four_words": "Evaluate organization's security posture",
+    "doc_url": "https://cloud.google.com/risk-manager/docs"
+  },
+  "kf": {
+    "slug": "kf",
+    "name": "KF",
+    "four_words": "Cloud Foundry to Kubernetes",
+    "doc_url": "https://cloud.google.com/migrate/kf/docs/2.6"
+  },
+  "vision-product-search": {
+    "slug": "vision-product-search",
+    "name": "Vision Product Search",
+    "four_words": "Visual search for products",
+    "doc_url": "https://cloud.google.com/vision/product-search/docs/"
+  },
+  "carrier-peering": {
+    "slug": "carrier-peering",
+    "name": "Carrier Peering",
+    "four_words": "Peer through a carrier",
+    "doc_url": "https://cloud.google.com/network-connectivity/docs/carrier-peering"
+  },
+  "private-service-connect": {
+    "slug": "private-service-connect",
+    "name": "Private Service Connect",
+    "four_words": "Privately connect services across VPCs",
+    "doc_url": "https://cloud.google.com/vpc/docs/private-service-connect"
+  },
+  "cloud-audit-logs": {
+    "slug": "cloud-audit-logs",
+    "name": "Cloud Audit Logs",
+    "four_words": "Audit trails",
+    "doc_url": "https://cloud.google.com/logging/docs/audit/"
+  },
+  "vertex-explainable-ai": {
+    "slug": "vertex-explainable-ai",
+    "name": "Vertex Explainable AI",
+    "four_words": "Understand ML model predictions",
+    "doc_url": "https://cloud.google.com/vertex-ai/docs/explainable-ai"
+  },
+  "places-api": {
+    "slug": "places-api",
+    "name": "Places API",
+    "four_words": "Rest-based Places features",
+    "doc_url": "https://developers.google.com/maps/documentation/places/web-service/overview"
+  },
+  "vault-api": {
+    "slug": "vault-api",
+    "name": "Vault API",
+    "four_words": "Manage your organization's eDiscovery",
+    "doc_url": "https://developers.google.com/vault/reference/rest"
+  },
+  "managed-service-for-microsoft-active-directory": {
+    "slug": "managed-service-for-microsoft-active-directory",
+    "name": "Managed Service for Microsoft Active Directory",
+    "four_words": "Managed Microsoft Active Directory",
+    "doc_url": "https://cloud.google.com/managed-microsoft-ad/docs/"
+  },
+  "bigquery-gis": {
+    "slug": "bigquery-gis",
+    "name": "BigQuery GIS",
+    "four_words": "BigQuery geospatial functions / support",
+    "doc_url": "https://cloud.google.com/bigquery/docs/geospatial-intro"
+  },
+  "cloud-iam": {
+    "slug": "cloud-iam",
+    "name": "Cloud IAM",
+    "four_words": "Resource access control",
+    "doc_url": "https://cloud.google.com/iam/docs/"
+  },
+  "cloud-cdn": {
+    "slug": "cloud-cdn",
+    "name": "Cloud CDN",
+    "four_words": "Content delivery network",
+    "doc_url": "https://cloud.google.com/cdn/docs/"
+  },
+  "app-engine-plugins": {
+    "slug": "app-engine-plugins",
+    "name": "App Engine Plugins",
+    "four_words": "Gradle / Maven App Engine plugin",
+    "doc_url": "https://cloud.google.com/appengine/docs/standard/java/gradle-reference"
+  },
+  "vertex-ai-vizier": {
+    "slug": "vertex-ai-vizier",
+    "name": "Vertex AI Vizier",
+    "four_words": "Automated hyperparameter tuning",
+    "doc_url": "https://cloud.google.com/vertex-ai/docs/vizier"
+  },
+  "firebase-realtime-database": {
+    "slug": "firebase-realtime-database",
+    "name": "Firebase Realtime Database",
+    "four_words": "Real-time data synchronization",
+    "doc_url": "https://firebase.google.com/docs/database"
+  },
+  "certificate-authority-service": {
+    "slug": "certificate-authority-service",
+    "name": "Certificate Authority Service",
+    "four_words": "Managed private CAs",
+    "doc_url": "https://cloud.google.com/certificate-authority-service/docs"
+  },
+  "bigquery-bi-engine": {
+    "slug": "bigquery-bi-engine",
+    "name": "BigQuery BI Engine",
+    "four_words": "In-memory analytics engine",
+    "doc_url": "https://cloud.google.com/bi-engine/docs/"
+  },
+  "virtual-private-cloud": {
+    "slug": "virtual-private-cloud",
+    "name": "Virtual Private Cloud",
+    "four_words": "Software defined networking",
+    "doc_url": "https://cloud.google.com/vpc/docs/"
+  },
+  "firebase-in-app-messaging": {
+    "slug": "firebase-in-app-messaging",
+    "name": "Firebase In-App Messaging",
+    "four_words": "Send in-app contextual messages",
+    "doc_url": "https://firebase.google.com/docs/in-app-messaging"
+  },
+  "drive-activity-api": {
+    "slug": "drive-activity-api",
+    "name": "Drive Activity API",
+    "four_words": "Retrieve Google Drive activity",
+    "doc_url": "https://developers.google.com/drive/activity/"
+  },
+  "google-chat-api": {
+    "slug": "google-chat-api",
+    "name": "Google Chat API",
+    "four_words": "Conversational bots in chat",
+    "doc_url": "https://developers.google.com/chat"
+  },
+  "cloud-code": {
+    "slug": "cloud-code",
+    "name": "Cloud Code",
+    "four_words": "Google Cloud IDE extensions",
+    "doc_url": "https://cloud.google.com/code/docs/"
+  },
+  "speech-to-text": {
+    "slug": "speech-to-text",
+    "name": "Speech-To-Text",
+    "four_words": "Convert audio to text",
+    "doc_url": "https://cloud.google.com/speech-to-text/docs"
+  },
+  "firebase-hosting": {
+    "slug": "firebase-hosting",
+    "name": "Firebase Hosting",
+    "four_words": "Web hosting with CDN/SSL",
+    "doc_url": "https://firebase.google.com/docs/hosting"
+  },
+  "vertex-ai-feature-store": {
+    "slug": "vertex-ai-feature-store",
+    "name": "Vertex AI Feature Store",
+    "four_words": "Managed ML feature repository",
+    "doc_url": "https://cloud.google.com/vertex-ai/docs/featurestore"
+  },
+  "places-sdk-for-android": {
+    "slug": "places-sdk-for-android",
+    "name": "Places SDK for Android",
+    "four_words": "Places features for Android",
+    "doc_url": "https://developers.google.com/maps/documentation/places/android-sdk/start"
+  },
+  "firebase-predictions": {
+    "slug": "firebase-predictions",
+    "name": "Firebase Predictions",
+    "four_words": "Predict user targeting",
+    "doc_url": "https://firebase.google.com/docs/predictions"
+  },
+  "resource-manager": {
+    "slug": "resource-manager",
+    "name": "Resource Manager",
+    "four_words": "Cloud project metadata management",
+    "doc_url": "https://cloud.google.com/resource-manager/docs"
+  },
+  "cloud-filestore": {
+    "slug": "cloud-filestore",
+    "name": "Cloud Filestore",
+    "four_words": "Managed NFS server",
+    "doc_url": "https://cloud.google.com/filestore/docs/"
+  },
+  "developer-portal": {
+    "slug": "developer-portal",
+    "name": "Developer Portal",
+    "four_words": "API management portal",
+    "doc_url": "https://cloud.google.com/apigee/docs"
+  },
+  "cloud-console": {
+    "slug": "cloud-console",
+    "name": "Cloud Console",
+    "four_words": "Web-based management console",
+    "doc_url": "https://cloud.google.com/cloud-console/"
+  },
+  "migrate-for-anthos": {
+    "slug": "migrate-for-anthos",
+    "name": "Migrate for Anthos",
+    "four_words": "Migrate VMs to Kubernetes Engine",
+    "doc_url": "https://cloud.google.com/migrate/anthos/docs/getting-started"
+  },
+  "datastream": {
+    "slug": "datastream",
+    "name": "Datastream",
+    "four_words": "Change data capture / replication service",
+    "doc_url": "https://cloud.google.com/datastream/docs"
+  },
+  "cloud-ekm": {
+    "slug": "cloud-ekm",
+    "name": "Cloud EKM",
+    "four_words": "External keys you control / manage",
+    "doc_url": "https://cloud.google.com/kms/docs/ekm/"
+  },
+  "google-cloud-game-servers": {
+    "slug": "google-cloud-game-servers",
+    "name": "Google Cloud Game Servers",
+    "four_words": "Orchestrate Agones clusters",
+    "doc_url": "https://cloud.google.com/game-servers/docs"
+  },
+  "apigee-hybrid": {
+    "slug": "apigee-hybrid",
+    "name": "Apigee Hybrid",
+    "four_words": "Manage hybrid / multi-cloud API environments",
+    "doc_url": "https://cloud.google.com/apigee/docs/hybrid/v1.6/what-is-hybrid"
+  },
+  "street-view-static-api": {
+    "slug": "street-view-static-api",
+    "name": "Street View Static API",
+    "four_words": "Static street view images",
+    "doc_url": "https://developers.google.com/maps/documentation/streetview/overview"
+  },
+  "context-aware-access": {
+    "slug": "context-aware-access",
+    "name": "Context-aware Access",
+    "four_words": "End-user attribute-based access control",
+    "doc_url": "https://cloud.google.com/iap/docs/cloud-iap-context-aware-access-howto/"
+  },
+  "vmware-engine": {
+    "slug": "vmware-engine",
+    "name": "VMware Engine",
+    "four_words": "VMware as a service",
+    "doc_url": "https://cloud.google.com/vmware-engine/docs"
+  },
+  "maps-static-api": {
+    "slug": "maps-static-api",
+    "name": "Maps Static API",
+    "four_words": "Display static map images",
+    "doc_url": "https://developers.google.com/maps/documentation/maps-static/start"
+  },
+  "cloud-foundation-toolkit": {
+    "slug": "cloud-foundation-toolkit",
+    "name": "Cloud Foundation Toolkit",
+    "four_words": "Infrastructure as Code templates",
+    "doc_url": "https://github.com/GoogleCloudPlatform/cloud-foundation-toolkit/blob/master/docs/terraform.md"
+  },
+  "drive-picker": {
+    "slug": "drive-picker",
+    "name": "Drive Picker",
+    "four_words": "Drive file selection widget",
+    "doc_url": "https://developers.google.com/picker/docs/reference"
+  },
+  "drive-api": {
+    "slug": "drive-api",
+    "name": "Drive API",
+    "four_words": "Read and write files",
+    "doc_url": "https://developers.google.com/apps-script/reference/drive"
+  },
+  "vertex-ai-model-monitoring": {
+    "slug": "vertex-ai-model-monitoring",
+    "name": "Vertex AI Model Monitoring",
+    "four_words": "Monitor models for skew/drift",
+    "doc_url": "https://cloud.google.com/vertex-ai/docs/model-monitoring"
+  },
+  "database-migration-service": {
+    "slug": "database-migration-service",
+    "name": "Database Migration Service",
+    "four_words": "Migrate to Cloud SQL",
+    "doc_url": "https://cloud.google.com/database-migration/docs"
+  },
+  "secret-manager": {
+    "slug": "secret-manager",
+    "name": "Secret Manager",
+    "four_words": "Store and manage secrets",
+    "doc_url": "https://cloud.google.com/secret-manager/docs/"
+  },
+  "google-workspace-marketplace": {
+    "slug": "google-workspace-marketplace",
+    "name": "Google Workspace Marketplace",
+    "four_words": "Storefront for integrated applications",
+    "doc_url": "https://developers.google.com/workspace/marketplace/reference/rest"
+  },
+  "vertex-ml-metadata": {
+    "slug": "vertex-ml-metadata",
+    "name": "Vertex ML Metadata",
+    "four_words": "Artifact, lineage, and execution tracking",
+    "doc_url": "https://cloud.google.com/vertex-ai/docs/ml-metadata"
+  },
+  "cloud-endpoints": {
+    "slug": "cloud-endpoints",
+    "name": "Cloud Endpoints",
+    "four_words": "Cloud API gateway",
+    "doc_url": "https://cloud.google.com/endpoints/docs"
+  },
+  "firebase-app-distribution": {
+    "slug": "firebase-app-distribution",
+    "name": "Firebase App Distribution",
+    "four_words": "Trusted tester early access",
+    "doc_url": "https://firebase.google.com/docs/app-distribution"
+  },
+  "network-telemetry": {
+    "slug": "network-telemetry",
+    "name": "Network Telemetry",
+    "four_words": "Network telemetry service",
+    "doc_url": "https://cloud.google.com/vpc/docs/using-flow-logs/"
+  },
+  "cloud-identity-aware-proxy": {
+    "slug": "cloud-identity-aware-proxy",
+    "name": "Cloud Identity-Aware Proxy",
+    "four_words": "Identity-based app access",
+    "doc_url": "https://cloud.google.com/iap/docs/"
+  },
+  "transfer-appliance": {
+    "slug": "transfer-appliance",
+    "name": "Transfer Appliance",
+    "four_words": "Rentable data transport box",
+    "doc_url": "https://cloud.google.com/transfer-appliance/docs/4.0"
+  },
+  "maps-javascript-api": {
+    "slug": "maps-javascript-api",
+    "name": "Maps JavaScript API",
+    "four_words": "Dynamic web maps",
+    "doc_url": "https://developers.google.com/maps/documentation/javascript/overview"
+  },
+  "cloud-scheduler": {
+    "slug": "cloud-scheduler",
+    "name": "Cloud Scheduler",
+    "four_words": "Managed cron job service",
+    "doc_url": "https://cloud.google.com/scheduler/docs/"
+  },
+  "storage-transfer-service": {
+    "slug": "storage-transfer-service",
+    "name": "Storage Transfer Service",
+    "four_words": "Online / on-premises data transfer",
+    "doc_url": "https://cloud.google.com/storage-transfer/docs"
+  },
+  "network-intelligence-center": {
+    "slug": "network-intelligence-center",
+    "name": "Network Intelligence Center",
+    "four_words": "Network monitoring and topology",
+    "doc_url": "https://cloud.google.com/network-intelligence-center/docs/"
+  },
+  "persistent-disk": {
+    "slug": "persistent-disk",
+    "name": "Persistent Disk",
+    "four_words": "Block storage for VMs",
+    "doc_url": "https://cloud.google.com/compute/docs/disks/"
+  },
+  "google-workspace-add-ons": {
+    "slug": "google-workspace-add-ons",
+    "name": "Google Workspace Add-ons",
+    "four_words": "Extend Google Workspace apps",
+    "doc_url": "https://developers.google.com/apps-script/add-ons/overview"
+  },
+  "cloud-storage": {
+    "slug": "cloud-storage",
+    "name": "Cloud Storage",
+    "four_words": "Multi-class multi-region object storage",
+    "doc_url": "https://cloud.google.com/storage/docs/"
+  },
+  "cloud-life-sciences": {
+    "slug": "cloud-life-sciences",
+    "name": "Cloud Life Sciences",
+    "four_words": "Manage, process, transform biomedical-data",
+    "doc_url": "https://cloud.google.com/life-sciences/docs"
+  },
+  "street-view-service": {
+    "slug": "street-view-service",
+    "name": "Street View Service",
+    "four_words": "Street view for JavaScript",
+    "doc_url": "https://developers.google.com/maps/documentation/javascript/streetview/"
+  },
+  "bigquery-ml": {
+    "slug": "bigquery-ml",
+    "name": "BigQuery ML",
+    "four_words": "BigQuery model training / serving",
+    "doc_url": "https://cloud.google.com/bigquery-ml/docs/"
+  },
+  "partner-interconnect": {
+    "slug": "partner-interconnect",
+    "name": "Partner Interconnect",
+    "four_words": "Connect on-prem network to VPC",
+    "doc_url": "https://cloud.google.com/network-connectivity/docs/interconnect/concepts/partner-overview"
+  },
+  "cloud-hsm": {
+    "slug": "cloud-hsm",
+    "name": "Cloud HSM",
+    "four_words": "Hardware security module service",
+    "doc_url": "https://cloud.google.com/kms/docs/hsm/"
+  },
+  "migrate-for-compute-engine": {
+    "slug": "migrate-for-compute-engine",
+    "name": "Migrate for Compute Engine",
+    "four_words": "Compute Engine migration tools",
+    "doc_url": "https://cloud.google.com/migrate/compute-engine/docs/5.0"
+  },
+  "slides-api": {
+    "slug": "slides-api",
+    "name": "Slides API",
+    "four_words": "Create and edit presentations",
+    "doc_url": "https://developers.google.com/slides/api"
+  },
+  "people-api": {
+    "slug": "people-api",
+    "name": "People API",
+    "four_words": "Manage user's Contacts",
+    "doc_url": "https://developers.google.com/people/api/rest"
+  },
+  "artifact-registry": {
+    "slug": "artifact-registry",
+    "name": "Artifact Registry",
+    "four_words": "Universal package manager",
+    "doc_url": "https://cloud.google.com/artifact-registry/docs"
+  },
+  "cloud-data-fusion": {
+    "slug": "cloud-data-fusion",
+    "name": "Cloud Data Fusion",
+    "four_words": "Graphically manage data pipelines",
+    "doc_url": "https://cloud.google.com/data-fusion/docs/"
+  },
+  "cloud-sql-insights": {
+    "slug": "cloud-sql-insights",
+    "name": "Cloud SQL Insights",
+    "four_words": "SQL Inspector",
+    "doc_url": "https://cloud.google.com/sql/docs/postgres/using-query-insights"
+  },
+  "cloud-billing": {
+    "slug": "cloud-billing",
+    "name": "Cloud Billing",
+    "four_words": "Billing and cost management tools",
+    "doc_url": "https://cloud.google.com/billing/docs/"
+  },
+  "cloud-source-repositories": {
+    "slug": "cloud-source-repositories",
+    "name": "Cloud Source Repositories",
+    "four_words": "Hosted private git repos",
+    "doc_url": "https://cloud.google.com/source-repositories/docs/"
+  },
+  "compute-engine": {
+    "slug": "compute-engine",
+    "name": "Compute Engine",
+    "four_words": "VMs, GPUs, TPUs, Disks",
+    "doc_url": "https://cloud.google.com/compute/docs/"
+  },
+  "cloud-dns": {
+    "slug": "cloud-dns",
+    "name": "Cloud DNS",
+    "four_words": "Programmable DNS serving",
+    "doc_url": "https://cloud.google.com/dns/docs/"
+  },
+  "cloud-monitoring": {
+    "slug": "cloud-monitoring",
+    "name": "Cloud Monitoring",
+    "four_words": "Infrastructure and application monitoring",
+    "doc_url": "https://cloud.google.com/monitoring/docs/"
+  },
+  "cloud-asset-inventory": {
+    "slug": "cloud-asset-inventory",
+    "name": "Cloud Asset Inventory",
+    "four_words": "All assets, one place",
+    "doc_url": "https://cloud.google.com/asset-inventory/docs/overview"
+  },
+  "cloud-kms": {
+    "slug": "cloud-kms",
+    "name": "Cloud KMS",
+    "four_words": "Hosted key management service",
+    "doc_url": "https://cloud.google.com/kms/docs/"
+  },
+  "places-library-maps-js-api": {
+    "slug": "places-library-maps-js-api",
+    "name": "Places Library, Maps JS API",
+    "four_words": "Places features for web",
+    "doc_url": "https://developers.google.com/maps/documentation/javascript/places"
+  },
+  "cloud-tpu": {
+    "slug": "cloud-tpu",
+    "name": "Cloud TPU",
+    "four_words": "Hardware acceleration for ML",
+    "doc_url": "https://cloud.google.com/tpu/docs/"
+  },
+  "geolocation-api": {
+    "slug": "geolocation-api",
+    "name": "Geolocation API",
+    "four_words": "Derive location without GPS",
+    "doc_url": "https://developers.google.com/maps/documentation/geolocation/overview"
+  },
+  "cloud-functions-for-firebase": {
+    "slug": "cloud-functions-for-firebase",
+    "name": "Cloud Functions for Firebase",
+    "four_words": "Event-driven serverless applications",
+    "doc_url": "https://firebase.google.com/docs/functions"
+  },
+  "vertex-ai-edge-manager": {
+    "slug": "vertex-ai-edge-manager",
+    "name": "Vertex AI Edge Manager",
+    "four_words": "Deploy monitor edge inferences",
+    "doc_url": "https://cloud.google.com/vertex-ai"
+  },
+  "cloud-tools-for-visual-studio": {
+    "slug": "cloud-tools-for-visual-studio",
+    "name": "Cloud Tools for Visual Studio",
+    "four_words": "Visual Studio Google Cloud tools",
+    "doc_url": "https://cloud.google.com/tools/visual-studio/docs"
+  },
+  "cloud-vpn": {
+    "slug": "cloud-vpn",
+    "name": "Cloud VPN",
+    "four_words": "Virtual private network connection",
+    "doc_url": "https://cloud.google.com/network-connectivity/docs/vpn/concepts/overview"
+  },
+  "cloud-billing-api": {
+    "slug": "cloud-billing-api",
+    "name": "Cloud Billing API",
+    "four_words": "Programmatically manage Google Cloud billing",
+    "doc_url": "https://cloud.google.com/billing/docs/"
+  },
+  "direct-peering": {
+    "slug": "direct-peering",
+    "name": "Direct Peering",
+    "four_words": "Peer with Google Cloud",
+    "doc_url": "https://cloud.google.com/network-connectivity/docs/direct-peering"
+  },
+  "amp-for-email": {
+    "slug": "amp-for-email",
+    "name": "AMP for Email",
+    "four_words": "Dynamic interactive email",
+    "doc_url": "https://developers.google.com/apps-script/add-ons/gmail"
+  },
+  "cloud-search": {
+    "slug": "cloud-search",
+    "name": "Cloud Search",
+    "four_words": "Unified search for enterprise",
+    "doc_url": "https://developers.google.com/cloud-search/docs/guides/"
+  },
+  "operations-suite": {
+    "slug": "operations-suite",
+    "name": "Operations suite",
+    "four_words": "Monitoring, logging, troubleshooting",
+    "doc_url": "https://cloud.google.com/stackdriver/docs"
+  },
+  "confidential-computing": {
+    "slug": "confidential-computing",
+    "name": "Confidential Computing",
+    "four_words": "Encrypt data in-use",
+    "doc_url": "https://cloud.google.com/compute/confidential-vm/docs"
+  },
+  "talent-solutions": {
+    "slug": "talent-solutions",
+    "name": "Talent Solutions",
+    "four_words": "Job search with ML",
+    "doc_url": "https://cloud.google.com/talent-solution/docs"
+  },
+  "classroom-api": {
+    "slug": "classroom-api",
+    "name": "Classroom API",
+    "four_words": "Provision and manage classrooms",
+    "doc_url": "https://developers.google.com/classroom/guides/get-started"
+  },
+  "event-threat-detection": {
+    "slug": "event-threat-detection",
+    "name": "Event Threat Detection",
+    "four_words": "Scans for suspicious activity",
+    "doc_url": "https://cloud.google.com/security-command-center/docs/how-to-use-event-threat-detection"
+  },
+  "cloud-build": {
+    "slug": "cloud-build",
+    "name": "Cloud Build",
+    "four_words": "DevOps Automation Platform",
+    "doc_url": "https://cloud.google.com/build/docs"
+  },
+  "vertex-ai-tensorboard": {
+    "slug": "vertex-ai-tensorboard",
+    "name": "Vertex AI Tensorboard",
+    "four_words": "Managed TensorBoard for ML-experiment Visualization",
+    "doc_url": "https://cloud.google.com/vertex-ai/docs/experiments"
+  },
+  "text-to-speech": {
+    "slug": "text-to-speech",
+    "name": "Text-To-Speech",
+    "four_words": "Convert text to audio",
+    "doc_url": "https://cloud.google.com/text-to-speech/docs/"
+  },
+  "bare-metal-solution": {
+    "slug": "bare-metal-solution",
+    "name": "Bare Metal Solution",
+    "four_words": "Hardware for specialized workloads",
+    "doc_url": "https://cloud.google.com/bare-metal/docs/bms-planning"
+  },
+  "data-studio": {
+    "slug": "data-studio",
+    "name": "Data Studio",
+    "four_words": "Collaborative data exploration / dashboarding",
+    "doc_url": "https://cloud.google.com/bigquery/docs/visualize-data-studio"
+  },
+  "local-ssd": {
+    "slug": "local-ssd",
+    "name": "Local SSD",
+    "four_words": "VM locally attached SSDs",
+    "doc_url": "https://cloud.google.com/compute/docs/disks/local-ssd"
+  },
+  "docs-api": {
+    "slug": "docs-api",
+    "name": "Docs API",
+    "four_words": "Create and edit documents",
+    "doc_url": "https://developers.google.com/docs/api/how-tos/overview"
+  },
+  "cloud-profiler": {
+    "slug": "cloud-profiler",
+    "name": "Cloud Profiler",
+    "four_words": "CPU and heap profiling",
+    "doc_url": "https://cloud.google.com/profiler/docs/"
+  },
+  "security-command-center": {
+    "slug": "security-command-center",
+    "name": "Security Command Center",
+    "four_words": "Security management and data risk platform",
+    "doc_url": "https://cloud.google.com/security-command-center/docs/"
+  },
+  "deep-learning-containers": {
+    "slug": "deep-learning-containers",
+    "name": "Deep Learning Containers",
+    "four_words": "Preconfigured containers for deep learning",
+    "doc_url": "https://cloud.google.com/deep-learning-containers/docs"
+  },
+  "cloud-domains": {
+    "slug": "cloud-domains",
+    "name": "Cloud Domains",
+    "four_words": "Register, transfer, manager domains",
+    "doc_url": "https://cloud.google.com/domains/docs"
+  },
+  "apps-script": {
+    "slug": "apps-script",
+    "name": "Apps Script",
+    "four_words": "Extend and automate everything",
+    "doc_url": "https://developers.google.com/apps-script/"
+  },
+  "cloud-logging": {
+    "slug": "cloud-logging",
+    "name": "Cloud Logging",
+    "four_words": "Centralized logging",
+    "doc_url": "https://cloud.google.com/logging/docs/"
+  },
+  "apigee-api-platform": {
+    "slug": "apigee-api-platform",
+    "name": "Apigee API Platform",
+    "four_words": "Develop, secure, monitor APIs",
+    "doc_url": "https://cloud.google.com/apigee/docs"
+  },
+  "looker": {
+    "slug": "looker",
+    "name": "Looker",
+    "four_words": "Enterprise BI and Analytics",
+    "doc_url": "https://cloud.google.com/looker"
+  },
+  "network-service-tiers": {
+    "slug": "network-service-tiers",
+    "name": "Network Service Tiers",
+    "four_words": "Price vs performance tiering",
+    "doc_url": "https://cloud.google.com/network-tiers/docs/"
+  },
+  "container-registry": {
+    "slug": "container-registry",
+    "name": "Container Registry",
+    "four_words": "Private container registry / storage",
+    "doc_url": "https://cloud.google.com/container-registry/docs/"
+  },
+  "bigquery": {
+    "slug": "bigquery",
+    "name": "BigQuery",
+    "four_words": "Data warehouse / analytics",
+    "doc_url": "https://cloud.google.com/bigquery/docs/"
+  },
+  "data-catalog": {
+    "slug": "data-catalog",
+    "name": "Data Catalog",
+    "four_words": "Metadata management service",
+    "doc_url": "https://cloud.google.com/data-catalog/docs/"
+  },
+  "titan-security-key": {
+    "slug": "titan-security-key",
+    "name": "Titan Security Key",
+    "four_words": "Two-factor authentication (2FA) device",
+    "doc_url": "https://cloud.google.com/titan-security-key/#section-3"
+  },
+  "firebase-authentication": {
+    "slug": "firebase-authentication",
+    "name": "Firebase Authentication",
+    "four_words": "Drop-in authentication",
+    "doc_url": "https://firebase.google.com/docs/auth"
+  },
+  "cloud-healthcare-api": {
+    "slug": "cloud-healthcare-api",
+    "name": "Cloud Healthcare API",
+    "four_words": "Healthcare system GCP interoperability",
+    "doc_url": "https://cloud.google.com/healthcare-api/docs"
+  },
+  "dialogflow": {
+    "slug": "dialogflow",
+    "name": "Dialogflow",
+    "four_words": "Create conversational interfaces",
+    "doc_url": "https://cloud.google.com/dialogflow/docs"
+  },
+  "cloud-router": {
+    "slug": "cloud-router",
+    "name": "Cloud Router",
+    "four_words": "VPC / on-prem network route exchange (BGP)",
+    "doc_url": "https://cloud.google.com/network-connectivity/docs/router"
+  },
+  "vertex-ai-matching-engine": {
+    "slug": "vertex-ai-matching-engine",
+    "name": "Vertex AI Matching Engine",
+    "four_words": "Vector similarity searches",
+    "doc_url": "https://cloud.google.com/vertex-ai/docs/matching-engine"
+  },
+  "task-api": {
+    "slug": "task-api",
+    "name": "Task API",
+    "four_words": "Search, read & update Tasks",
+    "doc_url": "https://developers.google.com/tasks/reference/rest"
+  }
 }

@@ -1,21 +1,23 @@
-[{
-  "collection": "plants",
-  "data": {
-    "name": "String of Hearts",
-    "type": "succulents"
+[
+  {
+    "collection": "plants",
+    "data": {
+      "name": "String of Hearts",
+      "type": "succulents"
+    }
+  },
+  {
+    "collection": "plants",
+    "data": {
+      "name": "String of Pearls",
+      "type": "succulents"
+    }
+  },
+  {
+    "collection": "plants",
+    "data": {
+      "name": "String of Rubies",
+      "type": "succulents"
+    }
   }
-},
-{
-  "collection": "plants",
-  "data": {
-    "name": "String of Pearls",
-    "type": "succulents"
-  }
-},
-{
-  "collection": "plants",
-  "data": {
-    "name": "String of Rubies",
-    "type": "succulents"
-  }
-}]
+]

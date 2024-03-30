@@ -12,34 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { SerialPort, ReadlineParser } = require("serialport");
+const { SerialPort } = require("serialport");
+
+const roles = {
+  A10LXV9L: "mission_check",
+  A10LXV9Y: "station",
+  A10LXV95: "checkpoint_1",
+  A10LXVA5: "checkpoint_2",
+  A10LY36P: "checkpoint_3",
+  A10LY36T: "checkpoint_4",
+};
 
 // Train checkpoints
-const ports = [
-  new SerialPort({
-    path: "/dev/ttyUSB0",
-    baudRate: 9600,
-  }),
-  new SerialPort({
-    path: "/dev/ttyUSB1",
-    baudRate: 9600,
-  }),
-  new SerialPort({
-    path: "/dev/ttyUSB2",
-    baudRate: 9600,
-  }),
-  new SerialPort({
-    path: "/dev/ttyUSB3",
-    baudRate: 9600,
-  }),
-];
+const getPorts = async function () {
+  let ports = [];
+  try {
+    const list = await SerialPort.list();
+    list.forEach((port, index) => {
+      const role = roles[port.serialNumber];
+      if (role) {
+        ports.push({
+          role,
+          path: port.path,
+          serialNumber: port.serialNumber,
+          baudRate: 9600,
+        });
+      }
+    });
+  } catch (error) {
+    console.error(error);
+  }
+  return ports;
+};
 
-// Parsers
-const parsers = [
-  ports[0].pipe(new ReadlineParser()),
-  ports[1].pipe(new ReadlineParser()),
-  ports[2].pipe(new ReadlineParser()),
-  ports[3].pipe(new ReadlineParser()),
-];
-
-module.exports = { ports, parsers };
+module.exports = { getPorts };

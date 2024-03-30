@@ -1,24 +1,54 @@
 <!doctype html>
 <html lang="en">
-  <title>Cloud Train Admin</title>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" type="text/css" href="/index.css" />
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
-  />
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title></title>
+    <link rel="stylesheet" type="text/css" href="index.css" />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap");
+    </style>
+  </head>
   <body>
     <div class="header">
-      <h1>Cloud Train Admin</h1>
+      <div class="headerBanner">
+        <h1>Cloud Train Admin</h1>
+      </div>
+    </div>
+    <div class="retroBorder">
+      <div class="blue"></div>
+      <div class="red"></div>
+      <div class="yellow"></div>
+      <div class="green"></div>
     </div>
     <div class="container">
       <div class="adminPanel">
-        <a href="/start">Start Train</a>
-        <a href="/reset">Reset Train State</a>
-        <a href="/stop">Stop Train</a>
-        <a href="/start?train=dummy">Start Dummy Train</a>
+        <div class="button start">
+          <img src="./assets/start.svg" alt="start" />
+          <a href="/start">Start Train</a>
+        </div>
+        <div class="button reset">
+          <img src="./assets/reset.svg" alt="reset" />
+          <a href="/reset">Reset Train State</a>
+        </div>
+        <div class="button stop">
+          <img src="./assets/stop.svg" alt="stop" />
+          <a href="/stop">Stop Train</a>
+        </div>
       </div>
     </div>
   </body>
+  <footer>
+    <div class="signals">
+      <img src="./assets/signal-green.svg" alt="signal-green" />
+      <img src="./assets/signal-red.svg" alt="signal-red" />
+      <img src="./assets/signal-yellow.svg" alt="signal-yellow" />
+    </div>
+    <div class="retroBorder">
+      <div class="blue"></div>
+      <div class="red"></div>
+      <div class="yellow"></div>
+      <div class="green"></div>
+    </div>
+  </footer>
 </html>

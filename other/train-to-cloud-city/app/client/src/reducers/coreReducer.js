@@ -14,20 +14,15 @@
 
 import { createSlice } from "@reduxjs/toolkit";
 import {
-  getInitialWorldState,
-  getWorldSimulation,
+  getWorldState,
   getServices,
   getPatterns,
-  selectPattern,
-  updateSelectedPattern
 } from "../actions/coreActions";
 
 const initialState = {
-  selectedPattern: {},
   services: [],
   patterns: [],
   worldState: [],
-  simulationState: [],
 };
 
 const coreSlice = createSlice({
@@ -38,12 +33,8 @@ const coreSlice = createSlice({
       // Note: intentionally using same property worldState for
       // both actual and simulated world state (doesn't matter for web app)
       // They just need to have one source of truth.
-      .addCase(getInitialWorldState.fulfilled, (state, action) => {
+      .addCase(getWorldState.fulfilled, (state, action) => {
         state.worldState = action?.payload?.state;
-        return state;
-      })
-      .addCase(getWorldSimulation.fulfilled, (state, action) => {
-        state.worldState = action?.payload?.simulationState;
         return state;
       })
       .addCase(getServices.fulfilled, (state, action) => {
@@ -52,11 +43,6 @@ const coreSlice = createSlice({
       })
       .addCase(getPatterns.fulfilled, (state, action) => {
         state.patterns = action?.payload?.patterns;
-        return state;
-      })
-      .addCase(updateSelectedPattern.fulfilled, (state, action) => {
-        const pattern = action?.payload?.selectedPattern;
-        state.selectedPattern = pattern;
         return state;
       })
       .addDefaultCase((state, action) => initialState);

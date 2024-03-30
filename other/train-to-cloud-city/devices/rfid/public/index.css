@@ -1,10 +1,116 @@
-body {
-  font-family: "monospace";
+:root {
+  --font: "Pixelify Sans";
+  --melanzane: #211e20;
+  --smoky: #555568;
+  --lemonGrass: #a0a08b;
+  --lilyWhite: #e9efec;
+  --darkOrange: #ff8100;
+  --cinnabar: #e94434;
+  --dodgerblue: #4286f5;
+  --selectiveyellow: #fbbb06;
+  --eucalyptus: #34a752;
 }
 
-.adminPanel {
+body {
+  font-family: var(--font);
+  font-size: larger;
+  background-color: var(--lilyWhite);
+  margin: auto 0;
+}
+
+.button {
   display: flex;
+  align-items: center;
+  padding: 10px;
+  margin: 5px;
+  background: var(--selectiveyellow);
+  border: 2px solid var(--melanzane);
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.button a {
+  text-decoration: none;
+  color: var(--melanzane);
+  font-family: var(--font);
+  font-size: larger;
+}
+
+.button img {
+  width: 20px;
+  height: auto;
+  margin-right: 15px;
+}
+
+.button.start {
+  background-color: var(--eucalyptus);
+}
+
+.button.reset {
+  background-color: var(--dodgerblue);
+}
+
+.button.stop {
+  background-color: var(--cinnabar);
+}
+
+.headerBanner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 155px;
+  background-image: url(./assets/top-banner.svg);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.retroBorder .blue {
+  height: 3px;
+  background: var(--dodgerblue);
+}
+
+.retroBorder .red {
+  height: 3px;
+  background: var(--cinnabar);
+}
+
+.retroBorder .yellow {
+  height: 3px;
+  background: var(--selectiveyellow);
+}
+
+.retroBorder .green {
+  height: 3px;
+  background: var(--eucalyptus);
+}
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-direction: column;
-  justify-content: space-evenly;
-  margin: 10px auto;
+  margin: 50px;
+}
+
+.section {
+  border: 1px solid var(--melanzane);
+  padding: 10px;
+  border-bottom-right-radius: 10px;
+  border-bottom-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-top-left-radius: 10px;
+  background-color: white;
+  margin: 10px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.signals {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
 }

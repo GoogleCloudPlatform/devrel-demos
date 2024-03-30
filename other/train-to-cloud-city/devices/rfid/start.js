@@ -17,76 +17,106 @@ const express = require("express");
 const path = require("path");
 const url = require("url");
 
-const { initTrain } = require("./utils/train.js");
-const { ports, parsers } = require("./utils/checkpoints.js");
-const { poweredUP } = require("./utils/firebase.js");
+const { initTrain, getMotor } = require("./utils/train.js");
+const { getPorts } = require("./utils/checkpoints.js");
 const {
-  readTrain,
-  updateTrainMovement,
-} = require("./utils/trainState.js");
+  setMissionPattern,
+  updateLocation,
+  updateInputMailbox,
+} = require("./utils/firestoreHelpers.js");
+const { readCargo, resetGameState, updateGameLoop } = require("./trainGame.js");
 
 const expressApp = express();
 expressApp.use(express.json());
 expressApp.use(express.static("express"));
 expressApp.use(express.static("public"));
 
+const { SerialPort, ReadlineParser } = require("serialport");
+
 /**
- * listenToReaders
+ * listenToReaders (setup)
  * ----------------------
  * -> should update state of current train location
  * -> push up information to firestore
  */
-function listenToReaders() {
-  parsers[0].on("data", (chunk) => readTrain(chunk, 0));
-  parsers[1].on("data", (chunk) => readTrain(chunk, 1));
-  parsers[2].on("data", (chunk) => readTrain(chunk, 2));
-  parsers[3].on("data", (chunk) => readTrain(chunk, 3));
+async function listenToReaders() {
+  const ports = await getPorts();
+
+  ports?.forEach((port, index) => {
+    const listener = new SerialPort(port).pipe(new ReadlineParser());
+    // listeners are passed their location role (i.e station, checkpoint, etc);
+    switch (port?.role) {
+      case "mission_check": {
+        listener.on("data", (chunk) => setMissionPattern(chunk, port?.role));
+        break;
+      }
+      case "station": {
+        listener.on("data", (chunk) => readCargo(chunk, port?.role));
+        break;
+      }
+      default: {
+        listener.on("data", () => updateLocation(port?.role));
+      }
+    }
+  });
 }
 
 /**
  * initialize
  */
-(function initialize(useStubTrain = false) {
-  !useStubTrain && initTrain();
+(async function initialize() {
+  initTrain();
   listenToReaders();
+  await updateInputMailbox("reset");
 })();
 
 /**
  * GET /stop
  */
-expressApp.get("/stop", (req, res) => {
+expressApp.get("/stop", async (req, res) => {
   console.log("Stopping train ...");
-  updateTrainMovement(false);
-  res.redirect(`/?message=${encodeURIComponent("Stopping train")}`);
+
+  try {
+    const motor = await getMotor();
+    motor.stop();
+  } catch(error) {
+    res.send(`/?message=${encodeURIComponent("Stopping train")}`);
+    res.status(400).json({error});
+  }
 });
 
 /**
  * get /reset
  */
-expressApp.get("/reset", (req, res) => {
+expressApp.get("/reset", async (req, res) => {
   console.log("Resetting train state ...");
-  // TODO: Move train to station
-  res.redirect(`/?message=${encodeURIComponent("Resetting train")}`);
+  
+  try {
+    resetGameState();
+    await updateInputMailbox("reset");
+    res.status(200).redirect(`/?message=${encodeURIComponent("Resetting train")}`);
+  } catch(error) {
+    console.error(error);
+    res.status(400).json({error})
+  }
 });
 
 /**
  * GET /start
  */
-expressApp.get("/start", (req, res) => {
+expressApp.get("/start", async (req, res) => {
   const urlParts = url.parse(req.url, true);
   const query = urlParts.query;
 
-  const useStubTrain = query["train"] === "dummy";
-  // Start train movment
-  updateTrainMovement(true, 30);
-  
-  useStubTrain
-    ? console.log("Starting dummy train ...")
-    : console.log("Starting train ...");
-
-  res.redirect(
-    `/?message=${encodeURIComponent(useStubTrain ? "Starting dummy train" : "Starting train")}`,
-  );
+  try {
+    const motor = await getMotor();
+    motor.setPower(30);
+    console.log("Starting train demo ...");
+    res.status(200).redirect(`/?message=${encodeURIComponent("Starting train")}`);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({error})
+  }
 });
 
 /**
@@ -98,5 +128,21 @@ expressApp.get("/", (req, res) => {
 
   res.sendFile(path.join(__dirname + "/public/index.html"));
 });
+
+async function gracefulExit() {
+  console.log("Caught interrupt signal. Resetting the game.");
+  try {
+    await updateInputMailbox("reset");
+    console.log("Reset completed, exiting out.");
+  } catch (error) {
+    console.log(error);
+  }
+  process.exit(0);
+}
+
+// Attempt graceful exit if ctrl-c or unexpected crash
+[`exit`, `SIGINT`, `uncaughtException`, `SIGTERM`].forEach((eventType) => 
+  process.on(eventType, gracefulExit)
+)
 
 expressApp.listen(3000, () => console.log("Listening to 3000"));

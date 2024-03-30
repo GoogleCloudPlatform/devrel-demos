@@ -11,10 +11,29 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import firebaseInstance from "../Firebase";
 
 /**** Getters ****/
+
+/**
+ * -----------------
+ * getWorldState
+ * -----------------
+ */
+export const getWorldState = createAsyncThunk(
+  "getWorldState",
+  async (collectionName = "global") => {
+    const ref = firebaseInstance.db.collection(collectionName);
+    const snapshot = await ref.get();
+    let world = {};
+    snapshot.docs.forEach((doc) => (world[doc.id] = doc.data()));
+    return world;
+
+    return { state: world };
+  },
+);
 
 /**
  * -----------------
@@ -25,9 +44,7 @@ export const getServices = createAsyncThunk("getServices", async () => {
   const ref = firebaseInstance.db.collection("services");
   const services = await ref.get().then((querySnapshot) => {
     let serviceList = [];
-    querySnapshot.docs.forEach((doc) => {
-      serviceList.push(`${doc.id}`);
-    });
+    querySnapshot.docs.forEach((doc) => serviceList.push(`${doc.id}`));
     return serviceList;
   });
 
@@ -50,121 +67,167 @@ export const getPatterns = createAsyncThunk("getPatterns", async () => {
   return { patterns };
 });
 
-/**
- * -----------------
- * getSinglePattern
- * -----------------
- */
-export const getSinglePattern = async(id) => {
-  const ref = firebaseInstance.db.collection("patterns").where("pattern_slug", "==", id);
-  const pattern = await ref.get();
-      
-  let list = [];
-  pattern.docs.forEach((doc) => list.push(doc.data()));
-
-  return list[0];
-};
-
-/**
- * -----------------
- * getInitialWorldState
- * -----------------
- */
-export const getInitialWorldState = createAsyncThunk(
-  "getInitialWorldState",
-  async () => {
-    const ref = firebaseInstance.db.collection("global");
-
-    const state = await ref.get().then((querySnapshot) => {
-      let list = [];
-      querySnapshot.docs.forEach((doc) => list.push(doc.data()));
-      return list[0];
-    });
-
-    return { state };
-  },
-);
-
-/**
- * -----------------
- * getWorld
- * -----------------
- */
-export const getWorld = async ({ dispatch, isSimulator, pattern }) => {
-  if(isSimulator) {
-    await worldSimulationStateUpdated(dispatch);
-  } else {
-    await worldStateUpdated(dispatch);
-    dispatch?.(updateSelectedPattern(pattern));
-  }
-};
-
-/**
- * -----------------
- * getWorldSimulation
- * -----------------
- */
-export const getWorldSimulation = createAsyncThunk(
-  "getWorldSimulation",
-  async (changeType) => {
-    const ref = firebaseInstance.db.collection("global_simulation");
-    const simulationState = await ref.get().then((querySnapshot) => {
-      let list = [];
-      querySnapshot.docs.forEach((doc) => list.push(doc.data()));
-      return list[0];
-    });
-    
-    return { simulationState: { ...simulationState, changeType } };
-  },
-);
-
 /**** Updates ****/
 
 /**
  * -----------------
- * updateSelectedPattern
+ * updateCargo
  * -----------------
+ * Submit loaded cargo to firestore for validation
  */
-export const updateSelectedPattern = createAsyncThunk(
-  "updateSelectedPattern",
-  async (pattern) => {
-    const ref = firebaseInstance.db.collection("global").doc("world");
-    const selectedPattern = await ref.update({ pattern_slug: pattern?.pattern_slug });
-    console.log("Pattern selection updated.");
+export const updateCargo = createAsyncThunk(
+  "updateCargo",
+  async (cargo = [], collectionName = "global") => {
+    const cargoRef = firebaseInstance.db
+      .collection(collectionName)
+      .doc("cargo");
+    try {
+      await cargoRef.update({ actual_cargo: cargo });
+    } catch (error) {
+      console.error(error);
+    }
+  },
+);
 
-    return { selectedPattern: pattern };
-  });
+/**
+ * -----------------
+ * stopMission
+ * -----------------
+ * Resets entire game and redirect user to homebase
+ */
+export const stopMission = createAsyncThunk(
+  "stopMission",
+  async (collectionName = "global") => {
+    const cargoRef = firebaseInstance.db
+      .collection(collectionName)
+      .doc("cargo");
+    const patternRef = firebaseInstance.db
+      .collection(collectionName)
+      .doc("proposal");
 
+    return Promise.all([
+      cargoRef.update({ actual_cargo: [] }),
+      patternRef.update({ pattern_slug: "" }),
+    ]);
+  },
+);
 
-/**** Listeners ****/
+// ============== Listeners ============== //
+
 /**
  * -----------------
  * worldStateUpdated
  * -----------------
  */
-export const worldStateUpdated = async (dispatch) => {
-  const ref = firebaseInstance.db.collection("global");
-
+export const worldStateUpdated = async (
+  dispatch,
+  collectionName = "global",
+) => {
+  const ref = firebaseInstance.db.collection(collectionName);
   await ref.onSnapshot((snapshot) => {
     snapshot.docChanges().forEach((change) => {
-      dispatch?.(getInitialWorldState());
+      dispatch?.(getWorldState());
     });
   });
 };
 
 /**
  * -----------------
- * worldSimulationStateUpdated
+ * trainMailboxUpdated
  * -----------------
  */
-export const worldSimulationStateUpdated = async (dispatch) => {
-  const ref = firebaseInstance.db.collection("global_simulation");
-  const patternRef = firebaseInstance.db.collection("patterns");
-
-  await ref.onSnapshot((snapshot) => {
-    snapshot.docChanges().forEach((change) => {
-      dispatch?.(getWorldSimulation(change.type));
-    });
-  });
+export const trainMailboxUpdated = async (
+  callback = () => {},
+  collectionName = "global",
+) => {
+  const ref = firebaseInstance.db
+    .collection(collectionName)
+    .doc("train_mailbox");
+  try {
+    await ref.onSnapshot((snapshot) => callback(snapshot.data()));
+  } catch (error) {
+    console.error(error);
+  }
 };
 
+/**
+ * -----------------
+ * proposalUpdated
+ * -----------------
+ */
+export const proposalUpdated = async (
+  callback = () => {},
+  collectionName = "global",
+) => {
+  const ref = firebaseInstance.db.collection(collectionName).doc("proposal");
+  try {
+    await ref.onSnapshot((snapshot) => callback(snapshot.data()));
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+/**
+ * -----------------
+ * trainUpdated
+ * -----------------
+ */
+export const trainUpdated = async (
+  callback = () => {},
+  collectionName = "global",
+) => {
+  const ref = firebaseInstance.db.collection(collectionName).doc("train");
+  try {
+    await ref.onSnapshot((snapshot) => callback(snapshot.data()));
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+/**
+ * -----------------
+ * cargoUpdated
+ * -----------------
+ */
+export const cargoUpdated = async (
+  callback = () => {},
+  collectionName = "global",
+) => {
+  const ref = firebaseInstance.db.collection(collectionName).doc("cargo");
+  try {
+    await ref.onSnapshot((snapshot) => callback(snapshot.data()));
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+/**
+ * -----------------
+ * signalsUpdated
+ * -----------------
+ */
+export const signalsUpdated = async (
+  callback = () => {},
+  collectionName = "global",
+) => {
+  const ref = firebaseInstance.db.collection(collectionName).doc("signals");
+  try {
+    await ref.onSnapshot((snapshot) => callback(snapshot.data()));
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+/**
+ * -----------------
+ * updateInputMailbox
+ * -----------------
+ */
+export const updateInputMailbox = async (eventString) => {
+  const ref = firebaseInstance.db.collection("global").doc("input_mailbox");
+  try {
+    await ref.update({ input: eventString });
+  } catch (error) {
+    console.error(error);
+  }
+};

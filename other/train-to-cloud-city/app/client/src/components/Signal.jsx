@@ -13,7 +13,11 @@
 // limitations under the License.
 
 import React from "react";
-import Station from "../assets/station.svg";
+import Station from "../assets/station.png";
+import SignalGreen from "../assets/signal-green.svg";
+import SignalOff from "../assets/signal-off.svg";
+import SignalYellow from "../assets/signal-yellow.svg";
+import SignalRed from "../assets/signal-red.svg";
 import "./styles/Signal.css";
 
 /**
@@ -31,33 +35,27 @@ const Signal = (props) => {
       ? checkpointClasses.concat(" here")
       : checkpointClasses;
 
-  const redLightClasses =
-    actual_state === "stop"
-      ? "light red on"
-      : target_state === "stop"
-        ? "light red blinking"
-        : "light red";
-  const greenLightClasses =
-    actual_state === "clear"
-      ? "light green on"
-      : target_state === "clear"
-        ? "light green blinking"
-        : "light green";
+  let signalLight;
+  switch (target_state) {
+    case "stop": {
+      signalLight = <img alt="SignalRed" src={SignalRed} />;
+      break;
+    }
+    case "clear": {
+      signalLight = <img alt="SignalGreen" src={SignalGreen} />;
+      break;
+    }
+    default: {
+      signalLight = <img alt="SignalOff" src={SignalOff} />;
+    }
+  }
 
   return (
     <div className="signalContainer">
+      <div className={`signal ${position}`}>
+        {isStation ? <img alt="Station" src={Station} /> : signalLight}
+      </div>
       <div className={locationClasses}></div>
-      {isStation ? (
-        <div className="stationCheckpoint">
-          <img alt="Station" src={Station} />
-        </div>
-      ) : (
-        <div className="signal">
-          <div className={redLightClasses}></div>
-          <div className={greenLightClasses}></div>
-          <div className={"light yellow"}></div>
-        </div>
-      )}
     </div>
   );
 };

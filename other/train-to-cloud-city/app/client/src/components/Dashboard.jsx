@@ -13,11 +13,13 @@
 // limitations under the License.
 
 import React from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import ControlPanel from "./ControlPanel";
-import QuizForm from "./QuizForm";
+import CargoResult from "./CargoResult";
 import Train from "./Train";
 import Signal from "./Signal";
+import Ribbon from "./Ribbon";
+import { stopMission, updateInputMailbox } from "../actions/coreActions";
 import "./styles/Dashboard.css";
 
 /**
@@ -27,47 +29,63 @@ import "./styles/Dashboard.css";
  */
 const Dashboard = (props) => {
   const state = useSelector((state) => state);
-  const { isSimulator } = props;
-  const { services, selectedPattern, worldState } = state.coreReducer;
-  const { signals, train, proposal, proposal_result } = worldState || {};
+  const dispatch = useDispatch();
+  const { signals, cargo, train, proposal, trainMailbox } = props || {};
+  const { patterns, services, worldState } = state.coreReducer;
+
+  // Stop and reset whole mission
+  const handleStopMission = async (event) => {
+    dispatch(stopMission());
+    await updateInputMailbox("reset");
+    window.location.replace("/");
+  };
 
   return (
     <div className="dashboardContainer">
       <div className="dashboardWrapper">
         <div className="dashboardPanel">
-          <Train train={train} />
-          <div className="columns">
-            <Signal isStation={true} trainLocation={train?.actual_location} />
-            <Signal
-              trainLocation={train?.actual_location}
-              signal={signals?.one}
-            />
-            <Signal
-              trainLocation={train?.actual_location}
-              signal={signals?.two}
-            />
-            <Signal
-              trainLocation={train?.actual_location}
-              signal={signals?.three}
-            />
-            <Signal
-              trainLocation={train?.actual_location}
-              signal={signals?.four}
-            />
+          <div className="missionTitle">
+            <h3>{`Your Mission: ${proposal?.pattern_slug}`}</h3>
           </div>
+          <CargoResult proposal={proposal} />
+        </div>
+        <div className="dashboardPanel">
+          <div className="dashboardSignals">
+            <div className="columns">
+              <p>Loaded cargo ...</p>
+              <Signal isStation={true} trainLocation={train?.actual_location} />
+              <Signal
+                trainLocation={train?.actual_location}
+                signal={signals?.one}
+              />
+              <Signal
+                trainLocation={train?.actual_location}
+                signal={signals?.two}
+              />
+              <Signal
+                trainLocation={train?.actual_location}
+                signal={signals?.three}
+              />
+              <Signal
+                trainLocation={train?.actual_location}
+                signal={signals?.four}
+              />
+            </div>
+          </div>
+          <Train train={train} cargo={cargo} />
           <ControlPanel
-            worldState={worldState}
-            proposal={proposal}
-            proposal_result={proposal_result}
+            cargo={cargo}
+            proposalResult={proposal?.proposal_result}
+            trainMailbox={trainMailbox}
           />
         </div>
-        {!isSimulator && (
-          <div className="dashboardPanel">
-            <h3>{`Your Mission: ${selectedPattern?.name}`}</h3>
-            {selectedPattern && <QuizForm services={services} selectedPattern={selectedPattern} />}
-          </div>
-        )}
       </div>
+      <div className="actionPanel">
+        <button className="stop" onClick={handleStopMission}>
+          Stop Mission
+        </button>
+      </div>
+      <Ribbon />
     </div>
   );
 };

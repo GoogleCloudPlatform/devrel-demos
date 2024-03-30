@@ -15,17 +15,35 @@
  */
 
 :root {
+  --font: "Pixelify Sans";
   --melanzane: #211e20;
   --smoky: #555568;
   --lemonGrass: #a0a08b;
   --lilyWhite: #e9efec;
   --darkOrange: #ff8100;
+  --cinnabar: #e94434;
+  --dodgerblue: #4286f5;
+  --selectiveyellow: #fbbb06;
+  --eucalyptus: #34a752;
+  --font: "Pixelify Sans", sans-serif;
+}
 
+button {
+  padding: 10px;
+  margin: 5px;
+  font-family: var(--font);
+  font-size: larger;
+  background: var(--selectiveyellow);
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
 }
 
 body {
-  background-color: var(--melanzane);
-  color: var(--lilyWhite);
-  font-family: monospace;
+  background-color: var(--lilyWhite);
+  color: var(--melanzane);
+  font-family: "Pixelify Sans", sans-serif;
+  font-optical-sizing: auto;
   margin: 0;
 }

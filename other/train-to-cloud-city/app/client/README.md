@@ -24,8 +24,9 @@ REACT_APP_FIREBASE_MEASUREMENT_ID=<firebase-measurement-id>
 3. Install npm dependencies and start up the client app.
 
 ```bash
-npm install 
+npm install
 npm run build
 npm start
 ```
+
 Your browser should open up to `localhost:3000`.

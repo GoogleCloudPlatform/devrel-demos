@@ -18,22 +18,29 @@
   display: flex;
   align-items: center;
   flex-direction: column;
-  font-size: 12px;
-  font-style: italic;
+  font-size: 16px;
   text-align: center;
   border: 1px solid black;
   padding: 10px;
   background: var(--lilyWhite);
   color: var(--melanzane);
+  margin-bottom: 10px;
 }
 
 form#missionForm,
 form#missionForm .formMissionInput {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   margin-top: 10px;
 }
 
 form#missionForm select {
-  margin: 10px auto;
+  font-family: var(--font);
+  font-size: 16px;
+  max-width: 90%;
+  padding: 10px auto;
 }
 
 form#missionForm .buttons {
@@ -47,19 +54,27 @@ form#missionForm .buttons {
 form#missionForm .formError {
   color: red;
   display: block;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 img.qrcode {
   height: auto;
   width: 200px;
+  margin: 15px;
 }
 
 .resultContainer {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid black;
+  flex-direction: column;
   padding: 10px;
-  background: white;
+  width: inherit;
 }
+
+.tryAgainState img,
+.successState img {
+  width: 150px;
+  margin: 25px;
+}
+

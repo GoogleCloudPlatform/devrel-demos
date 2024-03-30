@@ -23,30 +23,14 @@ import "./styles/Train.css";
  *
  */
 const Train = (props) => {
-  const { train } = props;
-  const { actual_cargo , reader, target_location, actual_location } = train || {};
-
-  const state = useSelector((state) => state);
-  const dispatch = useDispatch();
-  
-  // TODO: revisit when global_simulation actual_cargo is updated 
-  let cargo = actual_cargo || [];
-
-  if(typeof actual_cargo === "string") {
-    cargo = actual_cargo?.split(',');
-  }
-
-  let cars = [];
-  cargo.forEach((cargo, index) => cars.push(<TrainCoach key={index} />));
-
-  const trainClasses = "train".concat(` ${actual_location}`);
-
+  const { train, cargo } = props;
   return (
     <div className="trainContainer">
+      <div className="cloudTrain"></div>
       <div className="container">
         <div className="content">
-          <div className={trainClasses}>
-            {cars?.map(c => c)}
+          <div className={`train ${train?.actual_location}`}>
+            {cargo?.actual_cargo?.map((c, index) => <TrainCoach key={index} cargo={c} />)}
             <TrainCoach name="front" />
           </div>
           <div className="track"></div>

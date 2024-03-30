@@ -15,22 +15,36 @@
 import React from "react";
 import "./styles/ControlPanel.css";
 
-const ControlPanel = (worldState, proposal, result) => {
+const ControlPanel = (props) => {
+  const { cargo, proposalResult, trainMailbox } = props;
+
   return (
     <div className="controlPanelContainer">
       <div className="controlPanelWrapper">
         <div className="controlPanel">
-          <div className="worldState">
-            World State:
-            <p>{JSON.stringify(worldState)}</p>
+          <div className="sessionMailbox">
+            <h3> Current Train Cloud Cargo: </h3>
+            {cargo?.actual_cargo.length ? (
+              <p>{JSON.stringify(cargo?.actual_cargo)}</p>
+            ) : (
+              "Waiting for cargo to be loaded..."
+            )}
           </div>
-          <div className="proposal">
-            Proposal:
-            <p>{JSON.stringify(proposal)}</p>
+          <div className="sessionMailbox">
+            <h3> Proposal Result: </h3>
+            {proposalResult ? (
+              <p>{JSON.stringify(proposalResult?.reason)}</p>
+            ) : (
+              "Waiting to process cargo ..."
+            )}
           </div>
-          <div className="proposalResult">
-            Proposal Result:
-            <p>{JSON.stringify(result)}</p>
+          <div className="trainMailbox">
+            <h3> Train: </h3>
+            {trainMailbox ? (
+              <p>{trainMailbox?.input}</p>
+            ) : (
+              "Waiting for train events ..."
+            )}
           </div>
         </div>
       </div>

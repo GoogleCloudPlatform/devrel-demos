@@ -12,28 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export const DELETE_CAR = "DELETE_CAR";
-export const ADD_CAR = "ADD_CAR";
+import React from "react";
+import "./styles/Ribbon.css";
 
-// Default train state
-const initialState = {
-  numOfCars: 0,
+/**
+ * Ribbon
+ * -----------------
+ *
+ */
+const Ribbon = () => {
+  return (
+    <div className="ribbonContainer">
+      <div className="ribbon">
+        <div className="blue"></div>
+        <div className="red"></div>
+        <div className="yellow"></div>
+        <div className="green"></div>
+      </div>
+    </div>
+  );
 };
 
-export const trainReducer = (state = initialState, action) => {
-  switch (action.type) {
-    case ADD_CAR: {
-      return {
-        ...state,
-        numOfCars: state.numOfCars + 1,
-      };
-    }
-    case DELETE_CAR:
-      return {
-        ...state,
-        numOfCars: state.numOfCars - 1,
-      };
-    default:
-      return state;
-  }
-};
+export default Ribbon;

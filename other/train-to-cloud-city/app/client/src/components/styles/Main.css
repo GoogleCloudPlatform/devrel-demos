@@ -17,14 +17,25 @@
 .mainContainer {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   text-align: center;
   flex-direction: column;
   margin: auto;
+  font-family: var(--font);
+  font-size: larger;
+}
+
+.mainContainer a {
+  font-size: 10px;
 }
 
 .mainWrapper {
   width: 100%;
+}
+
+.welcomeImage img {
+  width: 250px;
+  margin: 25px;
 }
 
 .row {
@@ -32,9 +43,4 @@
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.row button {
-  padding: 10px;
-  margin: 5px;
 }

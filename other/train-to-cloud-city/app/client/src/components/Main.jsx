@@ -15,78 +15,108 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import Dashboard from "./Dashboard";
-import ToggleButton from "./ToggleButton";
 import {
-  getWorld,
+  getWorldState,
   getPatterns,
   getServices,
+  signalsUpdated,
+  cargoUpdated,
+  trainUpdated,
+  trainMailboxUpdated,
+  updateInputMailbox,
+  proposalUpdated,
 } from "../actions/coreActions";
+import ConductorWave from "../assets/conductor-wave.gif";
 import "./styles/Main.css";
 
 /**
  * Main
  * -----------------
- *
+ * Sets environment and data to populate into dashboard
+ * which is in 3 different states (simulator, realtime, virtual input)
  */
 const Main = (props) => {
   const state = useSelector((state) => state);
   const dispatch = useDispatch();
+
   const [toggled, setToggle] = useState(false);
   const [simulator, setSimulator] = useState(false);
 
-  useEffect(() => {
-    async function fetchData() {
-      await Promise.all([
-        dispatch(getServices()),
-        dispatch(getPatterns())
-      ]);
-    };
-    fetchData();
-  }, [dispatch]);
+  const [signals, setSignals] = useState({});
+  const [cargo, setCargo] = useState({});
+  const [train, setTrain] = useState({});
+  const [pattern, setPattern] = useState({});
+  const [proposal, setProposal] = useState({});
+  const [trainMailbox, setTrainMailbox] = useState({});
 
-  // Turn on simulator
   const handleSimulator = async (event) => {
-    setToggle(event.target.checked);
-    setSimulator(event.target.checked);
-    await getWorld({
-      dispatch,
-      isSimulator: event.target.checked,
-    });
+    setToggle(!simulator);
+    setSimulator(!simulator);
+    dispatch?.(getWorldState(simulator ? "global_simulation" : "global"));
   };
 
-  // Manually select pattern
   const handlePatternSelect = async (event, pattern) => {
     setToggle(true);
-    await getWorld({ pattern, dispatch });
+    setPattern(pattern);
+    dispatch?.(getWorldState(simulator ? "global_simulation" : "global"));
   };
+
+  const cleanSlate = async () => {
+    try {
+      await updateInputMailbox("reset");
+      Promise.all([dispatch(getServices()), dispatch(getPatterns())]);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    const collection = simulator ? "global_simulation" : "global";
+
+    cleanSlate();
+    // Listen for when patterns are updated
+    proposalUpdated((data) => {
+      setToggle(!!data.pattern_slug);
+      if (!!data.pattern_slug) {
+        setProposal(data);
+      } else {
+        setProposal({});
+        cleanSlate();
+      }
+    }, collection);
+    signalsUpdated((data) => setSignals(data), collection);
+    trainUpdated((data) => setTrain(data), collection);
+    cargoUpdated((data) => setCargo(data), collection);
+    trainMailboxUpdated((data) => setTrainMailbox(data), collection);
+  }, [simulator]);
 
   return (
     <div className="mainContainer">
       <div className="mainWrapper">
-        {toggled ? (
-          <Dashboard isSimulator={simulator} />
-        ) : (
-          <div className="mainContent">
-            <h2>Choose your adventure</h2>
-            <div className="row">
-              <ToggleButton
-                label="(Admin) Switch on simulator: "
-                onChange={handleSimulator}
-              />
+        {proposal && !proposal.pattern_slug && (
+          <div className="mainHeader" > 
+            <div className="welcomeImage">
+              <img alt="welcome-wave" src={ConductorWave} />
             </div>
-            <div className="row">
-              {state.coreReducer.patterns?.map((p, index) => (
-                <button
-                  type="button"
-                  key={index}
-                  onClick={(event) => handlePatternSelect(event, p)}
-                >
-                  {`${p.name}`}
-                </button>
-              ))}
+            <div className="mainContent">
+              <h2>Choose your adventure</h2>
+              <div className="row">
+                {state.coreReducer.patterns?.map((p, index) => (
+                  <button
+                    type="button"
+                    key={index}
+                    onClick={(event) => handlePatternSelect(event, p)}
+                  >
+                    {`${p.name}`}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
+        {toggled
+            ? <Dashboard proposal={proposal} train={train} cargo={cargo} signals={signals} trainMailbox={trainMailbox} />
+            : <a href="#" onClick={handleSimulator}>{'Turn on simulator'}</a>}
       </div>
     </div>
   );
