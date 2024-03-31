@@ -13,9 +13,8 @@
 # limitations under the License.
 
 from typing import Union, List, Dict, Tuple, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import json
-import enum
 
 class Service(BaseModel):
     slug: str
@@ -43,14 +42,48 @@ class Proposal(BaseModel):
 
 class CheckpointResult(BaseModel):
     checkpoint: Checkpoint
-    blocked: bool  # change name... to something else? blocked
-    reason: str
+    clear: bool = Field(default=False)
+    reason: str = Field(default="default state")
+
+    def validate(self, service_slugs: List[str]):
+        self.clear = False
+        if not self.checkpoint:
+            self.reason = "No checkpoint set."
+            return
+
+        for service in service_slugs:
+            if service in self.checkpoint.satisfying_services:
+                self.clear = True
+                # TODO: lookup service name from slug here
+                self.reason = f"{service} satisfys this check"
+                # TODO: refactor to collect all services which satisfy
+                return
+            else:
+                self.reason = "None of the services satisfy this check"
 
 class ProposalResult(BaseModel):
-    blocked: bool 
-    reason: str
+    clear: bool = Field(default=False)
+    reason: str = Field(default="default state")
     pattern: Pattern
     checkpoint_results: List[CheckpointResult]
+
+    def validate(self, service_slugs: List[str]):
+        self.clear = False
+        if not self.pattern:
+            self.checkpoint_results = list()
+            self.reason = "No pattern set."
+            return
+        for checkpoint in self.pattern.checkpoints:
+            result = CheckpointResult(checkpoint=checkpoint)
+            result.validate(service_slugs=service_slugs)
+            self.checkpoint_results.append(result)
+        if all(cpr.clear for cpr in self.checkpoint_results):
+            self.clear = True
+            self.reason = "All checkpoints satisfied!"
+        else:
+            self.reason = "Some checkpoints unsatisfied."
+
+
 
 PATTERNS = {
     "always_success" : Pattern(slug="always_success",name = "Always Success", description= "Always Successful", checkpoints=list()),
@@ -79,6 +112,26 @@ PATTERNS = {
                     name = "Compute Checkpoint",
                     description = "We need some kind of compute.",
                     satisfying_services = ["app-engine", "cloud-functions", "cloud-run", "gke", "compute-engine"],
+                ),
+            ],
+        ),
+    "pattern_d" : 
+        Pattern(
+            slug =  "pattern_d",
+            name = "Pattern D",
+            description = "Host a database backed website",
+            checkpoints = [
+                Checkpoint(
+                    slug = "website",
+                    name = "Website",
+                    description = "Some way to serve the website to the internet",
+                    satisfying_services = ["app-engine", "cloud-functions", "cloud-run", "gke", "compute-engine"],
+                ),
+                Checkpoint(
+                    slug = "database",
+                    name = "Database",
+                    description = "The database, it's in the goal description :) ",
+                    satisfying_services = ["alloydb",  "cloud-bigtable", "cloud-firestore", "cloud-memorystore", "cloud-sql", "cloud-sql-insights", "cloud-spanner"],
                 ),
             ],
         ),
@@ -120,6 +173,7 @@ LOCATION = {
 SIGNAL_STATE = {
     "STOP": "stop",
     "CLEAR": "clear",
+    "OFF": "off",
 }
 
 class Signal(BaseModel):
@@ -127,18 +181,23 @@ class Signal(BaseModel):
     name: str
     actual_state: str
     target_state: str
+    doc_valid_states: List[str] = Field(default=[state for state in SIGNAL_STATE.values()])
+
 
 SIGNALS = [
-    Signal(slug="one", name="One", actual_state=SIGNAL_STATE["STOP"], target_state=SIGNAL_STATE["STOP"]),
-    Signal(slug="two", name="Two", actual_state=SIGNAL_STATE["STOP"], target_state=SIGNAL_STATE["STOP"]),
-    Signal(slug="three", name="Three", actual_state=SIGNAL_STATE["STOP"], target_state=SIGNAL_STATE["STOP"]),
-    Signal(slug="four", name="Four", actual_state=SIGNAL_STATE["STOP"], target_state=SIGNAL_STATE["STOP"]),
+    Signal(slug="one", name="One", actual_state=SIGNAL_STATE["OFF"], target_state=SIGNAL_STATE["OFF"]),
+    Signal(slug="two", name="Two", actual_state=SIGNAL_STATE["OFF"], target_state=SIGNAL_STATE["OFF"]),
+    Signal(slug="three", name="Three", actual_state=SIGNAL_STATE["OFF"], target_state=SIGNAL_STATE["OFF"]),
+    Signal(slug="four", name="Four", actual_state=SIGNAL_STATE["OFF"], target_state=SIGNAL_STATE["OFF"]),
 ]
 
 
 class Train(BaseModel):
     actual_location: str
-    target_location: str
+    actual_state: str = Field(default="at_station")
+    doc_valid_states: List[str] = Field(default=["at_station", "checking_cargo", "victory_lap"])
+
+class Cargo(BaseModel):
     actual_cargo: List[str]
 
 # world

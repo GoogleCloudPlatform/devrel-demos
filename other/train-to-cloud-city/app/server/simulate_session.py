@@ -11,18 +11,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import logging
 import time
-from train_types import *
+import train_types
 from google.cloud import firestore
 from fastapi.encoders import jsonable_encoder
 
 PROJECT = "train-to-cloud-city-4"
+COLLECTION = "global_simulation"
 STEP_SEC = 5
 
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(message)s')
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 log = logging.info
 
 def sleep(duration):
@@ -35,68 +48,92 @@ def change(doc, data):
 
 # ----
 
-world = WorldState(
-    train=Train(
-        actual_location=LOCATION["STATION"],
-        target_location=LOCATION["STATION"],
-        actual_cargo=list(),
-    ),
-    signals={s.slug: s for s in SIGNALS},
-    pattern_slug="medium_complexity",
-    proposal=None,
-    proposal_result=None,
-)
+
+train=train_types.Train(
+        actual_location=train_types.LOCATION["STATION"],
+    )
+cargo = train_types.Cargo(actual_cargo=list())
+signals={s.slug: s.model_dump(mode="json") for s in train_types.SIGNALS}
+
 
 log("connecting to DB")
 db = firestore.Client(project=PROJECT)
-global_ref = db.collection("global_simulation")
+global_ref = db.collection(COLLECTION)
 
 while True:
     log("set starting world state")
-    global_ref.document("world").set(jsonable_encoder(world))
+    
+    global_ref.document("train_mailbox").update({"input" : None})
+    global_ref.document("input_mailbox").update({"input" : None})
 
-    # print(json.dumps(jsonable_encoder(world), indent=4))
+    proposal_doc = global_ref.document("proposal")
+    proposal_doc.update({"pattern_slug":None, "proposal_result":None})
 
-    world_ref = global_ref.document("world")
+    cargo_doc = global_ref.document("cargo")
+    cargo_doc.update({"actual_cargo": []})
+
+    signals_doc = global_ref.document("signals")
+    signals_doc.update({"one.target_state" : "off"})
+    signals_doc.update({"two.target_state" : "off"})
+    signals_doc.update({"three.target_state" : "off"})
+    signals_doc.update({"four.target_state" : "off"})
+
+    # only clear these in simulation
+    signals_doc.update({"one.actual_state" : "off"})
+    signals_doc.update({"two.actual_state" : "off"})
+    signals_doc.update({"three.actual_state" : "off"})
+    signals_doc.update({"four.actual_state" : "off"})    
+ 
+    train_doc = global_ref.document("train")
+    change(train_doc, {"actual_location" : "station"})
+    
+    sleep(STEP_SEC)    
+
+
+    log("start simulation activity")
+    change(proposal_doc, {"pattern_slug":"pattern_d"})
+    
+    sleep(STEP_SEC)
+    change(cargo_doc, {"actual_cargo" : ['cloud-storage']})
 
     sleep(STEP_SEC)
-    change(world_ref, {"train.actual_cargo" : "['compute-engine']"})
+    change(cargo_doc, {"actual_cargo" : ['compute-engine', 'cloud-storage']})
+    
+    sleep(STEP_SEC)
+    change(cargo_doc, {"actual_cargo" : ['compute-engine', 'cloud-storage', 'cloud-sql']})
+    
+    #exit()
 
     sleep(STEP_SEC)
-    change(world_ref, {"train.actual_cargo" : "['compute-engine', 'cloud-storage']"})
-
-    sleep(STEP_SEC)
-    change(world_ref, {"signals.one.target_state" : "clear"})
+    change(signals_doc, {"one.target_state" : "clear"})
     sleep(STEP_SEC / 2)
-    change(world_ref, {"signals.one.actual_state" : "clear"})
+    change(signals_doc, {"one.actual_state" : "clear"})
 
     sleep(STEP_SEC)
-    change(world_ref, {"signals.two.target_state" : "clear"})
+    change(signals_doc, {"two.target_state" : "clear"})
     sleep(STEP_SEC / 2)
-    change(world_ref, {"signals.two.actual_state" : "clear"})
+    change(signals_doc, {"two.actual_state" : "clear"})
 
     sleep(STEP_SEC)
-    change(world_ref, {"signals.three.target_state" : "clear"})
+    change(signals_doc, {"three.target_state" : "clear"})
     sleep(STEP_SEC / 2)
-    change(world_ref, {"signals.three.actual_state" : "clear"})
+    change(signals_doc, {"three.actual_state" : "clear"})
 
     sleep(STEP_SEC)
-    change(world_ref, {"signals.four.target_state" : "clear"})
+    change(signals_doc, {"four.target_state" : "clear"})
     sleep(STEP_SEC / 2)
-    change(world_ref, {"signals.four.actual_state" : "clear"})
+    change(signals_doc, {"four.actual_state" : "clear"})
 
     sleep(STEP_SEC)
-    change(world_ref, {"train.target_location" : "one"})
+    change(train_doc, {"actual_location" : "one"})
     sleep(STEP_SEC)
-    change(world_ref, {"train.target_location" : "two", "train.actual_location" : "one"})
+    change(train_doc, {"actual_location" : "two"})
     sleep(STEP_SEC)
-    change(world_ref, {"train.target_location" : "three", "train.actual_location" : "two"})
+    change(train_doc, {"actual_location" : "three"})
     sleep(STEP_SEC)
-    change(world_ref, {"train.target_location" : "four", "train.actual_location" : "three"})
+    change(train_doc, {"actual_location" : "four"})
     sleep(STEP_SEC)
-    change(world_ref, {"train.target_location" : "station", "train.actual_location" : "four"})
-    sleep(STEP_SEC)
-    change(world_ref, {"train.actual_location" : "station"})
+    change(train_doc, {"actual_location" : "station"})
 
     sleep(20)
 
