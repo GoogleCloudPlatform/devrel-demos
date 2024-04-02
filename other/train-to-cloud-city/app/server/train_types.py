@@ -91,25 +91,6 @@ class ProposalResult(BaseModel):
 
 
 PATTERNS = {
-    "test_pattern": Pattern(
-        slug="test_pattern",
-        name="Test Pattern",
-        description="A test pattern. Need to compute something.",
-        checkpoints=[
-            Checkpoint(
-                slug="compute",
-                name="Compute Checkpoint",
-                description="We need some kind of compute.",
-                satisfying_services=[
-                    "app-engine",
-                    "cloud-functions",
-                    "cloud-run",
-                    "gke",
-                    "compute-engine",
-                ],
-            ),
-        ],
-    ),
     "pattern_a": Pattern(
         slug="pattern_a",
         complexity="low_complexity",
