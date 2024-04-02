@@ -35,6 +35,7 @@ class Checkpoint(BaseModel):
 class Pattern(BaseModel):
     slug: str
     name: str
+    complexity: str
     description: str
     checkpoints: List[Checkpoint]
 
@@ -100,8 +101,11 @@ PATTERNS = {
             Checkpoint(
                 slug="compute",
                 name="Compute",
-                description="Select a compute engine that allows you to create and run virtual machines on Google Cloud.",
-                satisfying_services=["gke", "compute-engine"],
+                description="Select a service that allows you to create and run virtual machines on Google Cloud.",
+                satisfying_services=[
+                    "app-engine",
+                    "gke", 
+                    "compute-engine"],
             ),
         ],
     ),
@@ -130,6 +134,7 @@ PATTERNS = {
                 name="Compute",
                 description="Select a computing resource where we will display database data.",
                 satisfying_services=[
+                    "app-engine",
                     "cloud-functions",
                     "cloud-run",
                     "gke",
@@ -205,10 +210,9 @@ PATTERNS = {
             Checkpoint(
                 slug="compute",
                 name="Compute",
-                description="Select a compute engine that allows you to create and run virtual machines on Google Cloud.",
+                description="Select a service that allows you to create and run virtual machines on Google Cloud.",
                 satisfying_services=[
                     "app-engine",
-                    "cloud-functions",
                     "gke",
                     "compute-engine",
                 ],
