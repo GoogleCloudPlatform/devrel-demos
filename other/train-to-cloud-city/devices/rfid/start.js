@@ -43,20 +43,36 @@ async function listenToReaders() {
   const ports = await getPorts();
 
   ports?.forEach((port, index) => {
-    const listener = new SerialPort(port).pipe(new ReadlineParser());
     // listeners are passed their location role (i.e station, checkpoint, etc);
-    switch (port?.role) {
-      case "mission_check": {
-        listener.on("data", (chunk) => setMissionPattern(chunk, port?.role));
-        break;
-      }
-      case "station": {
-        listener.on("data", (chunk) => readCargo(chunk, port?.role));
-        break;
-      }
-      default: {
-        listener.on("data", () => updateLocation(port?.role));
-      }
+    if (port?.role === "mission_check") {
+      const listener = new SerialPort(port).pipe(new ReadlineParser());
+      console.log('--- mission');
+      listener.on("data", (chunk) => setMissionPattern(chunk, port?.role));
+      return;
+    }
+    
+    if(port?.role === "station") {
+      const listener = new SerialPort(port).pipe(new ReadlineParser());
+      console.log('--- station');
+      listener.on("data", (chunk) => readCargo(chunk, port?.role));
+      return;
+    }
+    
+    if(port?.role.indexOf("checkpoint") > -1) {
+      const listener = new SerialPort(port).pipe(new ReadlineParser());
+      console.log('--- checkpoint');
+      listener.on("data", () => updateLocation(port?.role));
+      return;
+    }
+    
+    if(port?.role.indexOf("signal") > -1) {
+      const listener = new SerialPort(port);
+      listener.on("open", () => {
+        setTimeout(() => listener.write('CLEAR\n'), 1000);
+        setTimeout(() => listener.write('STOP\n'), 2000);
+        setTimeout(() => listener.write('OFF\n'), 0);
+        console.log("---- open signal");
+      });
     }
   });
 }
