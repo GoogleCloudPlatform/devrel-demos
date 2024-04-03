@@ -58,11 +58,11 @@ proposalListener(async (snapshot) => {
   if (proposalResult) {
     const motor = await getMotor();
 
-    await publishMessage("cargo-result", {
+    /*await publishMessage("cargo-result", {
       trainMailbox,
       proposalResult,
       timestamp: Date.now(),
-    });
+    });*/
 
     if (trainMailbox?.input === "do_check_cargo") {
       // If cargo isn't valid
@@ -71,20 +71,20 @@ proposalListener(async (snapshot) => {
         moveBackToStation = true;
         motor?.setPower(-30);
         stockedCargo = [];
-        await publishMessage("cargo-reload", {
+        /*await publishMessage("cargo-reload", {
           trainMailbox,
           proposalResult,
           timestamp: Date.now(),
-        });
+        });*/
       }
     }
     if (trainMailbox?.input === "do_victory_lap") {
-      await publishMessage("victory", {
+      /*await publishMessage("victory", {
         sessionComplete: true,
         trainMailbox,
         proposalResult,
         timestamp: Date.now(),
-      });
+      });*/
     }
   }
 });

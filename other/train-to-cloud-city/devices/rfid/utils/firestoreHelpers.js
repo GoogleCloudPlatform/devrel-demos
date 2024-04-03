@@ -53,11 +53,11 @@ async function setMissionPattern(chunk, reader) {
         { merge: false },
       );
 
-      await publishMessage("mission-selected", {
+      /*await publishMessage("mission-selected", {
         chunk,
         timestamp: Date.now(),
         pattern_slug: matchingTag?.pattern_slug,
-      });
+      });*/
 
       console.log(
         `Mission has been read: ${JSON.stringify(matchingTag?.pattern_slug)}. Waiting for event input trigger.`,
@@ -216,10 +216,10 @@ async function submitActualCargo(chunks) {
   const ref = db.collection("global").doc("cargo");
   try {
     await ref.update({ actual_cargo: cargos }, { merge: true });
-    await publishMessage("cargo-read", {
+    /*await publishMessage("cargo-read", {
       actualCargo: cargos,
       timestamp: Date.now(),
-    });
+    });*/
 
     console.log(`Cargos read ${JSON.stringify(cargos)}`);
   } catch (error) {
@@ -235,10 +235,10 @@ async function updateLocation(location) {
   const ref = db.collection("global").doc("train");
   try {
     await ref.update({ actual_location: location }, { merge: true });
-    await publishMessage("location-updated", {
+    /*await publishMessage("location-updated", {
       location,
       timestamp: Date.now(),
-    });
+    });*/
     console.log(`Passed checkpoint ${location}`);
   } catch (error) {
     console.error(error);
