@@ -42,7 +42,7 @@ let proposalResult = {};
 let moveBackToStation = false;
 let moveForwardsToStation = false;
 let signalLights = {};
-let signalLightsUpdate = {};
+
 /**
  * Train mailbox listener
  */
@@ -56,12 +56,11 @@ trainMailboxListener(async (snapshot) => {
  */
 
 signalListener(async(snapshot) => {
-  signalLightsUpdate = snapshot?.data() || {};
- 
-  signalLights["signal_1"](signalLightsUpdate["one"]?.target_state);
-  signalLights["signal_2"](signalLightsUpdate["two"]?.target_state);
-  signalLights["signal_3"](signalLightsUpdate["three"]?.target_state);
-  signalLights["signal_4"](signalLightsUpdate["four"]?.target_state);
+  const { one, two, three, four } = snapshot?.data() || {};
+  signalLights?.["signal_1"](one?.target_state || 'off');
+  signalLights?.["signal_2"](two?.target_state || 'off');
+  signalLights?.["signal_3"](three?.target_state || 'off');
+  signalLights?.["signal_4"](four?.target_state || 'off');
 });
 
 /**

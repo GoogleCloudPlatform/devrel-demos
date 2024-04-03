@@ -21,7 +21,6 @@ const roles = {
   A10LXVA5: "checkpoint_2",
   A10LY36P: "checkpoint_3",
   A10LY36T: "checkpoint_4",
-  DF6310711B7F2138: "signal_station",
   DF6310711B41482E: "signal_1",
   DF6310711B6E2537: "signal_2",
   DF6310711B640F38: "signal_3",
