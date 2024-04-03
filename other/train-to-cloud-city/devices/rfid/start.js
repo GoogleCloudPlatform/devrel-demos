@@ -24,7 +24,12 @@ const {
   updateLocation,
   updateInputMailbox,
 } = require("./utils/firestoreHelpers.js");
-const { readCargo, resetGameState, updateGameLoop } = require("./trainGame.js");
+const {
+  readCargo,
+  resetGameState,
+  updateGameLoop,
+  storeSignal
+} = require("./trainGame.js");
 
 const expressApp = express();
 expressApp.use(express.json());
@@ -67,12 +72,7 @@ async function listenToReaders() {
     
     if(port?.role.indexOf("signal") > -1) {
       const listener = new SerialPort(port);
-      listener.on("open", () => {
-        setTimeout(() => listener.write('CLEAR\n'), 1000);
-        setTimeout(() => listener.write('STOP\n'), 2000);
-        setTimeout(() => listener.write('OFF\n'), 0);
-        console.log("---- open signal");
-      });
+      storeSignal(listener?.settings?.role, listener);
     }
   });
 }

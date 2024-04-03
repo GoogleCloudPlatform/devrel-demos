@@ -269,6 +269,15 @@ async function trainMailboxListener(cb = () => {}) {
 }
 
 /**
+ * signalListener
+ * ----------------------
+ */
+async function signalListener(cb = () => {}) {
+  const signalRef = db.collection("global").doc("signals");
+  signalRef.onSnapshot(cb);
+}
+
+/**
  * proposalListener
  * ----------------------
  */
@@ -283,6 +292,7 @@ module.exports = {
   getTrainMailbox,
   trainMailboxListener,
   proposalListener,
+  signalListener,
   setMissionPattern,
   updateLocation,
   updateInputMailbox,

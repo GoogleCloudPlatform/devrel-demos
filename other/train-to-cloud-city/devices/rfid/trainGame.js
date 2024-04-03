@@ -21,6 +21,7 @@ const {
   getProposalResult,
   clearTrainMailbox,
   trainMailboxListener,
+  signalListener,
   proposalListener,
   updateInputMailbox,
   validateCargo,
@@ -40,20 +41,34 @@ let proposalResult = {};
 // Train movement states
 let moveBackToStation = false;
 let moveForwardsToStation = false;
-
+let signalLights = {};
+let signalLightsUpdate = {};
 /**
  * Train mailbox listener
  */
 trainMailboxListener(async (snapshot) => {
-  trainMailbox = snapshot?.data();
+  trainMailbox = snapshot?.data() || {};
   trainMailbox && (await updateGameLoop());
+});
+
+/**
+ * Signal listener
+ */
+
+signalListener(async(snapshot) => {
+  signalLightsUpdate = snapshot?.data() || {};
+ 
+  signalLights["signal_1"](signalLightsUpdate["one"]?.target_state);
+  signalLights["signal_2"](signalLightsUpdate["two"]?.target_state);
+  signalLights["signal_3"](signalLightsUpdate["three"]?.target_state);
+  signalLights["signal_4"](signalLightsUpdate["four"]?.target_state);
 });
 
 /**
  * Proposal listener
  */
 proposalListener(async (snapshot) => {
-  proposalResult = snapshot?.data()?.proposal_result;
+  proposalResult = snapshot?.data()?.proposal_result || {};
 
   if (proposalResult) {
     const motor = await getMotor();
@@ -191,7 +206,17 @@ async function updateGameLoop() {
   }
 }
 
+function changeSignalLight(state) {
+  this.write(`${state}\n`);
+}
+
+async function storeSignal(role="", listener={}) {
+  signalLights[role] = changeSignalLight.bind(listener);
+}
+
 async function resetGameState() {
+  signalLights = {};
+  signalLightsUpdate = {};
   // Reset cargo reading
   beginReading = false;
   stockedCargo = [];
@@ -203,4 +228,4 @@ async function resetGameState() {
   moveForwardsToStation = false;
 }
 
-module.exports = { readCargo, updateGameLoop, resetGameState };
+module.exports = { readCargo, storeSignal, updateGameLoop, resetGameState };
