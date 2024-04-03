@@ -21,7 +21,7 @@ intent_template = PromptTemplate.from_template(textwrap.dedent("""\
 	Answer the following questions as a Json string based solely on provided chat history. Do not assume anything that the user did not expicitly say.
 
 	isOnTopic: true or false, indicating whether the most recent query is on topic.
-	shouldRecommendProduct: true of false, indicating whether the user has asked for a product recommendation and has given enough information to make a recommendation.
+	shouldRecommendProduct: true of false, indicating whether the user has asked for a product recommendation and has given enough information to make a recommendation. If it is a follow up question related to a product or to a previous recommendation then it is true.
 	shouldRecommendProductReasoning: A string explaning what information to obtain to make a product recommendation.
 	summary: If isOnTopic is true, output a summary of what the user is looking for.
 

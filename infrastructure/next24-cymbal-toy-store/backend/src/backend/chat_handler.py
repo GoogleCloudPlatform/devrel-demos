@@ -19,7 +19,9 @@ class ChatHandler():
 		self,
 		db: sqlalchemy.engine.base.Engine):
 		self.db = db
-		self.embeddings_service = VertexAIEmbeddings()
+		self.embeddings_service = VertexAIEmbeddings(
+			model_name="textembedding-gecko@003",
+		)
 		self.chat_llm = ChatVertexAI(
 			max_output_tokens=512,
 			temperature=0.0,
@@ -108,7 +110,7 @@ class ChatHandler():
 			products = self._find_similar_products(prompts[-1].content, 5)
 			products_str = "\n".join(str(row) for row in products.values())
 			prompts[0] = self._gen_system_template(
-				f"Recommend a suitable product for the user from the below.\n{products_str}\nIn 35 words or less, mention the name (leave out the brand name) and price of the toy, and why the recommended product is a good fit.\n")
+				f"Recommend a suitable product for the user from the below.\n{products_str}\nIn 35 words or less, mention the name (leave out the brand name) and price of the toy, and why the recommended product is a good fit.Choose product only from the provided list.\n")
 		return self.chat_llm(prompts).content		
 
 
