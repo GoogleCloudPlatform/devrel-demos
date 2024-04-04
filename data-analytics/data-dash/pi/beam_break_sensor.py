@@ -20,7 +20,7 @@ class BeamBreakSensor:
     broken_time = 0
     unbroken_time = 0
     is_broken = False
-    car_id = None
+    rowkey = None
 
     def __init__(self, id, pin, table=None):
         self.id = id
@@ -31,8 +31,8 @@ class BeamBreakSensor:
     def init_pin(self):
         GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-    def read(self, car_id):
-        self.car_id = car_id
+    def read(self, rowkey):
+        self.rowkey = rowkey
         _read = GPIO.input(self.pin)
         _time = time.time()
         self.unbroken(_time) if _read else self.broken(_time)
@@ -52,15 +52,10 @@ class BeamBreakSensor:
             self.is_broken = False
 
     def upload(self, cur_time):
-        print((self.car_id, self.id, self.broken_time))
+        print((self.rowkey, self.id, self.broken_time))
 
         column_family_id = "cf"
 
-        row = self.table.direct_row(f"{self.car_id}#{cur_time}")
+        row = self.table.direct_row(self.rowkey)
         row.set_cell(column_family_id, f"cp{self.id}", str(cur_time))
         row.commit()
-
-#        self.calculate_speed()
-
-    def calculate_speed(self):
-        print(float(self.unbroken_time - self.broken_time) / 2.5)
