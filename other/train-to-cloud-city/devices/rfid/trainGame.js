@@ -29,6 +29,7 @@ const {
   submitActualCargo,
 } = require("./utils/firestoreHelpers.js");
 const { getMotor } = require("./utils/train.js");
+const { queueMessageToPublish } = require("./utils/metrics.js");
 
 // Cargo reading
 let beginReading = false;
@@ -77,6 +78,7 @@ proposalListener(async (snapshot) => {
       if (proposalResult?.reason && !proposalResult?.clear) {
         moveBackToStation = true;
         motor?.setPower(-30);
+        queueMessageToPublish("cargo-reload", {stockedCargo});
         stockedCargo = [];
       }
     }
@@ -122,6 +124,7 @@ async function readCargo(chunk, role) {
     try {
       // Submit held cargo
       await submitActualCargo(stockedCargo);
+      queueMessageToPublish("cargo-read", {stockedCargo});
     } catch (error) {
       console.error(error);
     }
@@ -177,11 +180,13 @@ async function updateGameLoop() {
       resetGameState();
       await clearTrainMailbox();
       console.log("Session success!");
-      await updateInputMailbox("reset");
+      await updateInputMailbox("reset"); 
     } else {
       // Go on victory lap
       moveForwardsToStation = true;
       motor?.setPower(40);
+
+      queueMessageToPublish("victory", {});
     }
   }
 }
