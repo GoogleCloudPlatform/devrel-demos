@@ -47,7 +47,7 @@ COLORS ={
 
 project_id = os.environ["PROJECT_ID"]
 instance_id = "testing-instance"
-lookup_table_id = "data_dash_lookup"
+lookup_table_id = "data_dash_lookup2"
 race_table_id = "data_dash_live_test"
 
 client = bigtable.Client(project=project_id)
@@ -109,10 +109,12 @@ def get_status():
 def background_thread():
     while True:
         socketio.sleep(1)
-        left_id, right_id, car_ids = get_ids()
+        left_id, right_id = get_ids()
+        print("IDS:", flush=True)
         print(left_id, right_id, flush=True)
         socketio.emit("set_pictures", {"left_id": left_id, "right_id": right_id})
-        
+
+        continue 
         left_status = None
         right_status = None
         left_data = None
@@ -123,7 +125,7 @@ def background_thread():
         if right_id == DEFAULT_ID:
             right_status = OK
 
-        if not status or not status:
+        if not left_status or not right_status:
             status = get_status()
         
             if not left_status:
@@ -149,7 +151,6 @@ def connect():
     with thread_lock:
         if thread is None:
             thread = socketio.start_background_task(background_thread)
-    left_id, right_id = get_ids()
     socketio.emit(
         "set_pictures", {"left_id": f"{DEFAULT_ID}", "right_id": f"{DEFAULT_ID}"}
     )

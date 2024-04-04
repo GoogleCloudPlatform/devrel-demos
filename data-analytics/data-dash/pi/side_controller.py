@@ -19,14 +19,12 @@ class SideController:
 
     LEFT_CONST = 0
     RIGHT_CONST =  1
-    
+
     LEFT_CARDS = {
-        1,
-        2
+        173448457841
     }
     RIGHT_CARDS = {
-        3,
-        4
+        769013855813
     }
 
     def __init__(self):
