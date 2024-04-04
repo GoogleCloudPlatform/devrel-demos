@@ -22,12 +22,10 @@ class BeamBreakSensor:
     is_broken = False
     car_id = None
 
-    def __init__(self, id, pin, table=None, write_to_bt=False, debug=False):
+    def __init__(self, id, pin, table=None):
         self.id = id
         self.pin = pin
         self.table = table
-        self.write_to_bt = write_to_bt
-        self.debug = debug
         self.init_pin()
 
     def init_pin(self):
@@ -41,7 +39,7 @@ class BeamBreakSensor:
 
     def broken(self, cur_time):
         if not self.is_broken:
-            print(f"SENSOR {self.id}: BROKEN") if self.debug else None
+            print(f"SENSOR {self.id}: BROKEN")
             self.is_broken = True
             if cur_time - self.broken_time > 10:
                 self.broken_time = cur_time
@@ -50,18 +48,17 @@ class BeamBreakSensor:
     def unbroken(self, cur_time):
         self.unbroken_time = cur_time
         if self.is_broken:
-            print(f"SENSOR {self.id}: UNBROKEN") if self.debug else None
+            print(f"SENSOR {self.id}: UNBROKEN")
             self.is_broken = False
 
     def upload(self, cur_time):
         print((self.car_id, self.id, self.broken_time))
-        if self.write_to_bt:
-            print("writing to bigtable")
-            column_family_id = "cf"
 
-            row = self.table.direct_row(f"{self.car_id}#{cur_time}")
-            row.set_cell(column_family_id, f"cp{self.id}", str(cur_time))
-            row.commit()
+        column_family_id = "cf"
+
+        row = self.table.direct_row(f"{self.car_id}#{cur_time}")
+        row.set_cell(column_family_id, f"cp{self.id}", str(cur_time))
+        row.commit()
 
 #        self.calculate_speed()
 
