@@ -56,6 +56,7 @@ class BeamBreakSensor:
     def upload(self, cur_time):
         print((self.car_id, self.id, self.broken_time))
         if self.write_to_bt:
+            print("writing to bigtable")
             column_family_id = "cf"
 
             row = self.table.direct_row(f"{self.car_id}#{cur_time}")
