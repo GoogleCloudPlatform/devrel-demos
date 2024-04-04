@@ -140,6 +140,7 @@ def background_thread():
              "left_data": left_data,
              "right_data": right_data})
 
+
 @app.route("/")
 def index():
     return render_template("index.html", async_mode=socketio.async_mode)
