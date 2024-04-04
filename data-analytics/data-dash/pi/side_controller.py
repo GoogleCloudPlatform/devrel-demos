@@ -32,7 +32,7 @@ class SideController:
     def __init__(self):
         if os.path.isfile(self.STATE_FILE):
             with open("state.txt") as f:
-                self.side = f.readline()
+                self.side = int(f.readline().strip())
         else:
             self.side = self.LEFT_CONST
 

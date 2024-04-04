@@ -36,13 +36,14 @@ write_to_bt = bool(args.write_to_bt)
 PINS = [i for i in range(19, 27)]
 LEFT_CARDS = {1,2}
 RIGHT_CARDS = {3,4}
+DEFAULT_ID = 999999999999
 
 side_controller = SideController()
 
 project_id = os.environ["PROJECT_ID"]
 instance_id = os.environ["BIGTABLE_INSTANCE"]
-lookup_table_id = ["BIGTABLE_LOOKUP_TABLE"]
-race_table_id = ["BIGTABLE_RACE_TABLE"]
+lookup_table_id = os.environ["BIGTABLE_LOOKUP_TABLE"]
+race_table_id = os.environ["BIGTABLE_RACE_TABLE"]
 
 client = bigtable.Client(project=project_id)
 instance = client.instance(instance_id)
@@ -57,10 +58,17 @@ try:
 
     reader = SimpleMFRC522()
 
-    car_id = 9999
     last_scan = 0
     RFID_WAIT = 3
 
+    car_side_map = {
+        side_controller.LEFT_CONST: "car1",
+        side_controller.RIGHT_CONST: "car2",
+    }
+
+    side = side_controller.get_side()
+
+    print(f"STARTING SIDE: {car_side_map[side]}")
     while True:
         _time = time.time()
         id = reader.read_id_no_block()
@@ -68,17 +76,13 @@ try:
         # Check if ID controls Pi sides for webapp
         if side_controller.is_side(id):
             side = side_controller.get_side()
-            if side == side_controller.LEFT_CONST:
-                side = "car1"
-            else:
-                side = "car2"
-        
+
         if id and _time - last_scan > RFID_WAIT:
             print(id)
             car_id = id
             last_scan = _time
             
-            row = lookup_table.direct_row(side)
+            row = lookup_table.direct_row(car_side_map(side))
             row.set_cell("cf", "id", str(car_id))
             row.commit()
 
