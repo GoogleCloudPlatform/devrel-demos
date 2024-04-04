@@ -97,7 +97,7 @@ const Main = (props) => {
               <p>Pick a mission wand and wave it over the center RFID reader to select!</p>
               <div className="section">
                 {state.coreReducer.patterns?.map((pattern, index) => (
-                  <div className="buttonStyle">
+                  <div className="buttonStyle" key={index}>
                     <b>{pattern.name}</b><br/>
                     ({` ${pattern.complexity.split('_').join(' ')}`})
                   </div>
@@ -107,7 +107,14 @@ const Main = (props) => {
           </div>
         )}
         {toggled
-            ? <Dashboard proposal={proposal} train={train} cargo={cargo} signals={signals} trainMailbox={trainMailbox} />
+            ? <Dashboard
+                proposal={proposal}
+                pattern={pattern}
+                train={train}
+                cargo={cargo}
+                signals={signals}
+                trainMailbox={trainMailbox}
+              />
             : <a href="#" onClick={handleSimulator}>{'Turn on simulator'}</a>}
       </div>
     </div>

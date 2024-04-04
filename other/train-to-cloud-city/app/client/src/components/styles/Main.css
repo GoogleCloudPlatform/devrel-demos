@@ -22,7 +22,7 @@
   flex-direction: column;
   margin: auto;
   font-family: var(--font);
-  font-size: larger;
+  font-size: medium;
 }
 
 .mainContainer a {

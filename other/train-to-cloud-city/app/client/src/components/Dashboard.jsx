@@ -45,9 +45,9 @@ const Dashboard = (props) => {
       <div className="dashboardWrapper">
         <div className="dashboardPanel">
           <div className="missionTitle">
-            <h3>{`Your Mission: ${proposal?.pattern_slug}`}</h3>
+            <h3>{`Your Mission: ${proposal?.pattern_slug?.split('_')?.join(' ')}`}</h3>
           </div>
-          <CargoResult proposal={proposal} />
+          <CargoResult train={train} signals={signals} proposal={proposal} />
         </div>
         <div className="dashboardPanel">
           <div className="dashboardSignals">

@@ -26,7 +26,7 @@ import "./styles/Signal.css";
  *
  */
 const Signal = (props) => {
-  const { isStation, trainLocation, signal } = props;
+  const { isStation, trainLocation, signal, showTrainLocation=true } = props;
   const { name, slug, actual_state, target_state } = signal || {};
   const position = isStation ? "station" : slug;
   const checkpointClasses = slug === "four" ? "circle" : "circle connector";
@@ -55,7 +55,7 @@ const Signal = (props) => {
       <div className={`signal ${position}`}>
         {isStation ? <img alt="Station" src={Station} /> : signalLight}
       </div>
-      <div className={locationClasses}></div>
+      {showTrainLocation && <div className={locationClasses}></div>}
     </div>
   );
 };

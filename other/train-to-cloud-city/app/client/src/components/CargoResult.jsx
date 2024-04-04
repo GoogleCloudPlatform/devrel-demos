@@ -14,6 +14,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import Signal from "./Signal";
 import { getPatterns } from "../actions/coreActions";
 import SuccessState from "../assets/conductor-success.gif";
 import TryAgainState from "../assets/conductor-try-again.gif";
@@ -26,7 +27,7 @@ import "./styles/CargoResult.css";
  *
  */
 const CargoResult = (props) => {
-  const { proposal } = props;
+  const { proposal, signals, train } = props;
   const { pattern_slug, proposal_result } = proposal;
   const state = useSelector((state) => state);
   const dispatch = useDispatch();
@@ -40,18 +41,31 @@ const CargoResult = (props) => {
   
   const showSuccess = proposal_result?.clear && proposal_result?.reason;
   const showError = !proposal_result?.clear && proposal_result?.reason;
-
+  const results = proposal_result?.checkpoint_results;
 
   return selectedPattern?.checkpoints?.length === 0 ? (
     <h3>{'No checkpoints available.'}</h3>
   ) : (
-    <div className="missionForm">
+    <div className="cargoResultContainer">
       <p><b>Goal: </b> {selectedPattern?.description}</p>
       {selectedPattern?.checkpoints?.map((step, index) => (
-        <p>
-          <b>{`Step ${index + 1}: `}</b>
-          {step.description}
-        </p>
+        <div className="stepWrapper">
+          <div className="stepResults">
+              <Signal
+                trainLocation={train?.actual_location}
+                signal={{target_state: results?.[index]?.clear ? 'clear' : 'stop'}}
+                showTrainLocation={false}  
+              />
+          </div>
+          <div className="step">
+            <b>{`Step ${index + 1}: `}</b>
+            {step.description}
+            <p className={results?.[index]?.clear ? "resultSuccess" : "resultError"}>
+              <span>{results?.[index]?.clear}</span>
+              <span>{results?.[index]?.reason}</span>
+            </p>
+          </div>
+        </div>
       ))}
       {showError && (
         <div className="resultContainer">

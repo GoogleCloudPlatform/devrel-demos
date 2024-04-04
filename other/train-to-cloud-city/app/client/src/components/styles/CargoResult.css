@@ -14,47 +14,29 @@
  * limitations under the License.
  */
 
-.formMissionInputWrapper {
+.stepWrapper {
   display: flex;
   align-items: center;
-  flex-direction: column;
-  font-size: 16px;
-  text-align: center;
-  border: 1px solid black;
-  padding: 10px;
-  background: var(--lilyWhite);
-  color: var(--melanzane);
-  margin-bottom: 10px;
 }
 
-form#missionForm,
-form#missionForm .formMissionInput {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-top: 10px;
+.stepResults {
+  margin-right: 10px;
 }
 
-form#missionForm select {
-  font-family: var(--font);
-  font-size: 16px;
-  max-width: 90%;
-  padding: 10px auto;
+.resultError {
+  color: var(--cinnabar);
 }
 
-form#missionForm .buttons {
+.resultSuccess {
+  color: var(--eucalyptus);
+}
+
+.cargoResultContainer .buttons {
   display: flex;
   align-items: center;
   justify-content: space-evenly;
   margin: 10px auto;
   width: 50%;
-}
-
-form#missionForm .formError {
-  color: red;
-  display: block;
-  font-size: 12px;
 }
 
 img.qrcode {
