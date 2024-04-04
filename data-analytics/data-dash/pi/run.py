@@ -68,6 +68,8 @@ try:
 
     side = side_controller.get_side()
 
+    car_id = DEFAULT_ID
+    
     print(f"STARTING SIDE: {car_side_map[side]}")
     while True:
         _time = time.time()
