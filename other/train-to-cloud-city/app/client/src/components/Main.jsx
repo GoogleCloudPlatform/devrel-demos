@@ -55,12 +55,6 @@ const Main = (props) => {
     dispatch?.(getWorldState(simulator ? "global_simulation" : "global"));
   };
 
-  const handlePatternSelect = async (event, pattern) => {
-    setToggle(true);
-    setPattern(pattern);
-    dispatch?.(getWorldState(simulator ? "global_simulation" : "global"));
-  };
-
   const cleanSlate = async () => {
     try {
       await updateInputMailbox("reset");
@@ -100,15 +94,13 @@ const Main = (props) => {
             </div>
             <div className="mainContent">
               <h2>Choose your adventure</h2>
-              <div className="row">
-                {state.coreReducer.patterns?.map((p, index) => (
-                  <button
-                    type="button"
-                    key={index}
-                    onClick={(event) => handlePatternSelect(event, p)}
-                  >
-                    {`${p.name}`}
-                  </button>
+              <p>Pick a mission wand and wave it over the center RFID reader to select!</p>
+              <div className="section">
+                {state.coreReducer.patterns?.map((pattern, index) => (
+                  <div className="buttonStyle">
+                    <b>{pattern.name}</b><br/>
+                    ({` ${pattern.complexity.split('_').join(' ')}`})
+                  </div>
                 ))}
               </div>
             </div>
