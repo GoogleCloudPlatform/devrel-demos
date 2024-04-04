@@ -3,7 +3,7 @@ sudo apt update
 sudo apt upgrade
 
 # Download credentials and copy file over to Pi
-echo "export GOOGLE_APPLICATION_CREDENTIALS=/user/google/.keys/key.json"  >> . .bashrc
+echo "export GOOGLE_APPLICATION_CREDENTIALS=/user/google/.keys/key.json"  >> ~/.bashrc
 . .bashrc
 
 # Install venv
@@ -15,17 +15,18 @@ python3 -m venv sensors
 # Activate virtual env
 . sensors/bin/activate
 
-# Turn on SPI for RFID reader
-sudo raspi-config nonint do_spi 0
-
 # Install requirements
 python3 -m pip install -r requirements.txt 
+
+# Turn on SPI for RFID reader
+sudo raspi-config nonint do_spi 0
 
 # Clone repo
 git clone https://github.com/GoogleCloudPlatform/devrel-demos.git
 cd devrel-demos/data-analytics/data-dash/pi
 
-python run.py > /dev/null 2>&1 &
+echo ". sensors/bin/activate" >> ~/.bashrc
+echo "python run.py > /dev/null 2>&1 &" >> ~/.bashrc
 
 # Set some VIM confg (optional)
 # echo "set number" >> .vimrc

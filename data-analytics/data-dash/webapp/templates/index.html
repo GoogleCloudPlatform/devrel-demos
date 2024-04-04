@@ -39,8 +39,6 @@ limitations under the License.-->
     <script type="text/javascript" charset="utf-8">
         $(document).ready(function() {
             const baseColor = "yellow"
-            const winColor = "green"
-            const errColor = "red"
             const carLeftDiv = "#car_left"
             const carRightDiv = "#car_right"
 
@@ -60,14 +58,26 @@ limitations under the License.-->
                 setPic(carLeftDiv, data.left_id);
                 setPic(carRightDiv, data.right_id);
             });
+            socket.on('set_status', function(data) {
+              setBoxShadow(data.left_color);
+              setBoxShadow(data.left_color);
+              if (data.left_data !== null) {
+                document.getElementById("stats").textContent=data.left_data;
+              }
+              if (data.right_data !== null) {
+                document.getElementById("stats2").textContent=data.right_data;
+              }
+            })
         });
     </script>
 </head>
 <body>
-    <p style="font-size:100px;color:white;position:top;">Data Dash</p>
+    <!-- <p style="font-size:100px;color:white;position:top;">Data Dash</p> -->
     <div id="imgc" class="image-container">
       <img class="image" id="car_left" src=""  width="300" height="300" />
       <img class="image" id="car_right" src="" width="300" height="300" />
     </div>
+    <p id="stats" style="position:bottom;">hello world!\n</p>
+    <p id="stats2" style="position:bottom;">hello world again!</p>
 </body>
 </html >

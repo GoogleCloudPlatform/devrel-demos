@@ -22,6 +22,7 @@ from mfrc522 import SimpleMFRC522
 import RPi.GPIO as GPIO
 
 from beam_break_sensor import BeamBreakSensor
+from side_controller import SideController
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', help='Print to console')
@@ -35,10 +36,8 @@ write_to_bt = bool(args.write_to_bt)
 PINS = [i for i in range(19, 27)]
 LEFT_CARDS = {1,2}
 RIGHT_CARDS = {3,4}
-LEFT_CONST = 0
-RIGHT_CONST = 1
 
-#side_controller = SideController()
+side_controller = SideController()
 
 project_id = os.environ["PROJECT_ID"]
 instance_id = os.environ["BIGTABLE_INSTANCE"]
@@ -65,14 +64,21 @@ try:
     while True:
         _time = time.time()
         id = reader.read_id_no_block()
+
         # Check if ID controls Pi sides for webapp
-        #side_controller(id)
+        if side_controller.is_side(id):
+            side = side_controller.get_side()
+            if side == side_controller.LEFT_CONST:
+                side = "car1"
+            else:
+                side = "car2"
+        
         if id and _time - last_scan > RFID_WAIT:
             print(id)
             car_id = id
             last_scan = _time
             
-            row = lookup_table.direct_row("left")
+            row = lookup_table.direct_row(side)
             row.set_cell("cf", "id", str(car_id))
             row.commit()
 

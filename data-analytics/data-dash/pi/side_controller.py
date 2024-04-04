@@ -12,12 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 
 class SideController:
     STATE_FILE = "state.txt"
 
     LEFT_CONST = 0
-    RIGHT_CONST =  0
+    RIGHT_CONST =  1
     
     LEFT_CARDS = {
         1,
@@ -33,16 +34,15 @@ class SideController:
             with open("state.txt") as f:
                 self.side = f.readline()
         else:
-            self.side = LEFT_CONST
+            self.side = self.LEFT_CONST
 
     def set_side(self, id):
         if id in self.LEFT_CARDS:
-            self.side = LEFT_CONST
+            self.side = self.LEFT_CONST
             print("SIDE SET TO LEFT")
         else:
-            self.side = RIGHT_CONST
-            print("SIDE SET TO RIGHT")
-        
+            self.side = self.RIGHT_CONST
+            print("SIDE SET TO RIGHT")        
         with open(self.STATE_FILE, "w") as f:
             f.writelines(self.side)
 
@@ -52,3 +52,4 @@ class SideController:
     def is_side(self, id):
         if id in self.LEFT_CARDS or id in self.RIGHT_CARDS:
             self.set_side(id)
+            return True
