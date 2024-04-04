@@ -88,34 +88,41 @@ const Main = (props) => {
     <div className="mainContainer">
       <div className="mainWrapper">
         {proposal && !proposal.pattern_slug && (
-          <div className="mainHeader" > 
+          <div className="mainHeader">
             <div className="welcomeImage">
               <img alt="welcome-wave" src={ConductorWave} />
             </div>
             <div className="mainContent">
               <h2>Choose your adventure</h2>
-              <p>Pick a mission wand and wave it over the center RFID reader to select!</p>
+              <p>
+                Pick a mission wand and wave it over the center RFID reader to
+                select!
+              </p>
               <div className="section">
                 {state.coreReducer.patterns?.map((pattern, index) => (
                   <div className="buttonStyle" key={index}>
-                    <b>{pattern.name}</b><br/>
-                    ({` ${pattern.complexity.split('_').join(' ')}`})
+                    <b>{pattern.name}</b>
+                    <br />({` ${pattern.complexity.split("_").join(" ")}`})
                   </div>
                 ))}
               </div>
             </div>
           </div>
         )}
-        {toggled
-            ? <Dashboard
-                proposal={proposal}
-                pattern={pattern}
-                train={train}
-                cargo={cargo}
-                signals={signals}
-                trainMailbox={trainMailbox}
-              />
-            : <a href="#" onClick={handleSimulator}>{'Turn on simulator'}</a>}
+        {toggled ? (
+          <Dashboard
+            proposal={proposal}
+            pattern={pattern}
+            train={train}
+            cargo={cargo}
+            signals={signals}
+            trainMailbox={trainMailbox}
+          />
+        ) : (
+          <a href="#" onClick={handleSimulator}>
+            {"Turn on simulator"}
+          </a>
+        )}
       </div>
     </div>
   );

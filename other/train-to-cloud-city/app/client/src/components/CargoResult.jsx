@@ -19,6 +19,7 @@ import { getPatterns } from "../actions/coreActions";
 import SuccessState from "../assets/conductor-success.gif";
 import TryAgainState from "../assets/conductor-try-again.gif";
 import ExtrasQRCode from "../assets/qrcode-extras.png";
+import { publishMessage } from "../utils/pubsub";
 import "./styles/CargoResult.css";
 
 /**
@@ -36,31 +37,63 @@ const CargoResult = (props) => {
     dispatch(getPatterns());
   }, [dispatch]);
 
-  const { patterns } = state.coreReducer;
-  const selectedPattern = (patterns?.filter(p => p.slug === pattern_slug))?.[0]; 
-  
   const showSuccess = proposal_result?.clear && proposal_result?.reason;
   const showError = !proposal_result?.clear && proposal_result?.reason;
+
+  useEffect(async () => {
+    if (proposal_result?.reason) {
+      await publishMessage("cargo_read", {
+        result: proposal_result,
+        timestamp: Date.now(),
+      });
+    }
+    // Session complete!
+    if (showSuccess) {
+      await publishMessage("victory", {
+        result: proposal_result,
+        timestamp: Date.now(),
+      });
+    }
+    // Wrong cargo
+    if (showError) {
+      await publishMessage("cargo_reload", {
+        result: proposal_result,
+        timestamp: Date.now(),
+      });
+    }
+  }, [proposal_result]);
+
+  const { patterns } = state.coreReducer;
+  const selectedPattern = patterns?.filter((p) => p.slug === pattern_slug)?.[0];
+
   const results = proposal_result?.checkpoint_results;
 
   return selectedPattern?.checkpoints?.length === 0 ? (
-    <h3>{'No checkpoints available.'}</h3>
+    <h3>{"No checkpoints available."}</h3>
   ) : (
     <div className="cargoResultContainer">
-      <p><b>Goal: </b> {selectedPattern?.description}</p>
+      <p>
+        <b>Goal: </b> {selectedPattern?.description}
+      </p>
       {selectedPattern?.checkpoints?.map((step, index) => (
         <div className="stepWrapper">
           <div className="stepResults">
-              <Signal
-                trainLocation={train?.actual_location}
-                signal={{target_state: results?.[index]?.clear ? 'clear' : 'stop'}}
-                showTrainLocation={false}  
-              />
+            <Signal
+              trainLocation={train?.actual_location}
+              signal={{
+                target_state: results?.[index]?.clear ? "clear" : "stop",
+              }}
+              showTrainLocation={false}
+            />
           </div>
           <div className="step">
             <b>{`Step ${index + 1}: `}</b>
             {step.description}
-            <p className={results?.[index]?.clear ? "resultSuccess" : "resultError"}>
+            <p
+              className={
+                results?.[index]?.clear ? "resultSuccess" : "resultError"
+              }
+            >
               <span>{results?.[index]?.clear}</span>
               <span>{results?.[index]?.reason}</span>
             </p>

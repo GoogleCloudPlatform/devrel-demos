@@ -26,7 +26,7 @@ import "./styles/Signal.css";
  *
  */
 const Signal = (props) => {
-  const { isStation, trainLocation, signal, showTrainLocation=true } = props;
+  const { isStation, trainLocation, signal, showTrainLocation = true } = props;
   const { name, slug, actual_state, target_state } = signal || {};
   const position = isStation ? "station" : slug;
   const checkpointClasses = slug === "four" ? "circle" : "circle connector";

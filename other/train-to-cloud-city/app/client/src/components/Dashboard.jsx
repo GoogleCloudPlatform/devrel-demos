@@ -20,6 +20,7 @@ import Train from "./Train";
 import Signal from "./Signal";
 import Ribbon from "./Ribbon";
 import { stopMission, updateInputMailbox } from "../actions/coreActions";
+import { publishMessage } from "../utils/pubsub";
 import "./styles/Dashboard.css";
 
 /**
@@ -33,6 +34,27 @@ const Dashboard = (props) => {
   const { signals, cargo, train, proposal, trainMailbox } = props || {};
   const { patterns, services, worldState } = state.coreReducer;
 
+  useEffect(async () => {
+    // Mission selected
+    if (proposal?.pattern_slug) {
+      await publishMessage("begin_mission", { timestamp: Date.now() });
+    }
+  }, [proposal?.pattern_slug]);
+
+  useEffect(async () => {
+    // Location update
+    if (train?.actual_location) {
+      await publishMessage("location_update", { train, timestamp: Date.now() });
+    }
+  }, [train?.actual_location]);
+
+  useEffect(async () => {
+    // Updated cargo
+    if (cargo?.actual_cargo.length) {
+      await publishMessage("cargo_read", { cargo, timestamp: Date.now() });
+    }
+  }, [cargo?.actual_cargo]);
+
   // Stop and reset whole mission
   const handleStopMission = async (event) => {
     dispatch(stopMission());
@@ -45,7 +67,7 @@ const Dashboard = (props) => {
       <div className="dashboardWrapper">
         <div className="dashboardPanel">
           <div className="missionTitle">
-            <h3>{`Your Mission: ${proposal?.pattern_slug?.split('_')?.join(' ')}`}</h3>
+            <h3>{`Your Mission: ${proposal?.pattern_slug?.split("_")?.join(" ")}`}</h3>
           </div>
           <CargoResult train={train} signals={signals} proposal={proposal} />
         </div>
