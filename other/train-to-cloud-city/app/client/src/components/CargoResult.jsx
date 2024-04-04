@@ -19,7 +19,6 @@ import { getPatterns } from "../actions/coreActions";
 import SuccessState from "../assets/conductor-success.gif";
 import TryAgainState from "../assets/conductor-try-again.gif";
 import ExtrasQRCode from "../assets/qrcode-extras.png";
-import { publishMessage } from "../utils/pubsub";
 import "./styles/CargoResult.css";
 
 /**
@@ -39,29 +38,6 @@ const CargoResult = (props) => {
 
   const showSuccess = proposal_result?.clear && proposal_result?.reason;
   const showError = !proposal_result?.clear && proposal_result?.reason;
-
-  useEffect(async () => {
-    if (proposal_result?.reason) {
-      await publishMessage("cargo_read", {
-        result: proposal_result,
-        timestamp: Date.now(),
-      });
-    }
-    // Session complete!
-    if (showSuccess) {
-      await publishMessage("victory", {
-        result: proposal_result,
-        timestamp: Date.now(),
-      });
-    }
-    // Wrong cargo
-    if (showError) {
-      await publishMessage("cargo_reload", {
-        result: proposal_result,
-        timestamp: Date.now(),
-      });
-    }
-  }, [proposal_result]);
 
   const { patterns } = state.coreReducer;
   const selectedPattern = patterns?.filter((p) => p.slug === pattern_slug)?.[0];
