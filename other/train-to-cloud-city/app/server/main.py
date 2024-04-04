@@ -40,14 +40,14 @@ def get_patterns() -> Dict[str, Pattern]:
 
 @app.post("/proposal/")
 def post_proposal(proposal: Proposal) -> ProposalResult:
-    return ProposalResult(valid=True, reason= "placeholder", pattern= PATTERNS["always_success"], checkpoints = list())
+    return ProposalResult(valid=True, reason= "placeholder", pattern= PATTERNS["pattern_a"], checkpoints = list())
 
 @app.get("/default_world/")
 def get_default_world() -> WorldState:
     return WorldState(
         train = Train(actual_location = LOCATION["STATION"], target_location = LOCATION["STATION"], actual_cargo=list()),
         signals = {s.slug: s for s in SIGNALS},
-        pattern_slug = "medium_complexity",
+        pattern_slug = "pattern_a",
         proposal = None,
         proposal_result = None,
     )
