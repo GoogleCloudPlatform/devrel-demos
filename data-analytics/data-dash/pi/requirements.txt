@@ -1,0 +1,3 @@
+google-cloud-bigtable==2.23.0
+mfrc522==0.0.7
+spidev==3.6

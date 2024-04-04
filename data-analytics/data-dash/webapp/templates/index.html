@@ -38,80 +38,46 @@ limitations under the License.-->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js" integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==" crossorigin="anonymous"></script>
     <script type="text/javascript" charset="utf-8">
         $(document).ready(function() {
-            // Connect to the Socket.IO server.
-            // The connection URL has the following format, relative to the current page:
-            //     http[s]://<domain>:<port>[/<namespace>]
+            const baseColor = "yellow"
+            const carLeftDiv = "#car_left"
+            const carRightDiv = "#car_right"
+
             var socket = io();
 
-            // Event handler for new connections.
-            // The callback function is invoked when a connection with the
-            // server is established.
-            socket.on('connect', function() {
-                socket.emit('my_event', {data: 'I\'m connected!'});
-            });
-
-            // Handlers for the different forms in the page.
-            // These accept data from the user and send it to the server in a
-            // variety of ways
-            var image1 = "https://storage.googleapis.com/data-analytics-demos/TextOCR_images/41b6cf0a7d56a228.jpg"
-            var image2 = "https://storage.googleapis.com/data-analytics-demos/TextOCR_images/3edad0da48a81b9c.jpg"
-            var image_post1 = image1
-            var image_post2 = image2
-            $("#car1").attr("src", image_post1);
-            $("#car2").attr("src", image_post2);
-
-            function flipPics (){
-              const colors = ["red", "yellow", "green"]
-              const randomIndex = Math.floor(Math.random() * colors.length);
-              const color = colors[randomIndex];
-              if (image_post1 == image1) {
-                image_post1 = image2
-                image_post2 = image1
-              } else {
-                image_post1 = image1
-                image_post2 = image2
-              }
-              $("#car1").attr("src", image_post1);
-              $("#car1").css("box-shadow", `0 0 0px 50px ${color}`)
-              $("#car2").attr("src", image_post2);
-              $("#car2").css("box-shadow", `0 0 0px 50px ${color}`)
-
+            function setBoxShadow(div, color) {
+              $(div).css("box-shadow", `0 0 0px 50px ${color}`);
             }
-            $("#car1").click(function(){
-                    flipPics()
-                });
-            $("#car2").click(function(){
-                    flipPics()
-                });
-            // $(document).ready(function(){
-            //     $("car1").click(function(){
-            //       $(this).style.boxShadow = `0 0 0px 50px yellow`
-            //     });
-            //     //});    
-            //     // $("car2").click(function(){
-            //     //     flipPics()
-            //     // });
-            // });
-            $('form#emit').submit(function(event) {
-                socket.emit('my_event', {data: $('#emit_data').val()});
-                return false;
+            function setPic(div, id) {
+              $(div).attr("src", `https://storage.googleapis.com/data-analytics-demos/next2024/cars/${id}.jpg`);
+            }
+            socket.on('connect', function() {
+                setBoxShadow(carLeftDiv, baseColor);
+                setBoxShadow(carRightDiv, baseColor);
             });
+            socket.on('set_pictures', function(data) {
+                setPic(carLeftDiv, data.left_id);
+                setPic(carRightDiv, data.right_id);
+            });
+            socket.on('set_status', function(data) {
+              setBoxShadow(data.left_color);
+              setBoxShadow(data.left_color);
+              if (data.left_data !== null) {
+                document.getElementById("stats").textContent=data.left_data;
+              }
+              if (data.right_data !== null) {
+                document.getElementById("stats2").textContent=data.right_data;
+              }
+            })
         });
     </script>
 </head>
 <body>
-    <!-- <p>
-      Async mode is: <b>{{ async_mode }}</b><br>
-      Current transport is: <b><span id="transport"></span></b><br>
-      Average ping/pong latency: <b><span id="ping-pong"></span>ms</b>
-    </p> -->
-    <p style="font-size:100px;color:white;position:top;">Data Dash</p>
+    <!-- <p style="font-size:100px;color:white;position:top;">Data Dash</p> -->
     <div id="imgc" class="image-container">
-      <img class="image" id="car1" src=""  width="300" height="300" />
-      <img class="image" id="car2" src="" width="300" height="300" />
+      <img class="image" id="car_left" src=""  width="300" height="300" />
+      <img class="image" id="car_right" src="" width="300" height="300" />
     </div>
-    <!-- <h2>Send:</h2>
-    <h2>Receive:</h2> -->
-    <div id="log"></div>
+    <p id="stats" style="position:bottom;">hello world!\n</p>
+    <p id="stats2" style="position:bottom;">hello world again!</p>
 </body>
 </html >
