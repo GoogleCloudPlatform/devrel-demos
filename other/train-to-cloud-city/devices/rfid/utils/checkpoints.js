@@ -14,6 +14,9 @@
 
 const { SerialPort } = require("serialport");
 
+// Hardcoded for the game, 
+// specific to currently used
+// rfid readers and adafruit qtpy(s)
 const roles = {
   A10LXV9L: "mission_check",
   A10LXV9Y: "station",

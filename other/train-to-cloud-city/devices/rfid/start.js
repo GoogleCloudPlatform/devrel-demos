@@ -51,21 +51,18 @@ async function listenToReaders() {
     // listeners are passed their location role (i.e station, checkpoint, etc);
     if (port?.role === "mission_check") {
       const listener = new SerialPort(port).pipe(new ReadlineParser());
-      console.log('--- mission');
       listener.on("data", (chunk) => setMissionPattern(chunk, port?.role));
       return;
     }
     
     if(port?.role === "station") {
       const listener = new SerialPort(port).pipe(new ReadlineParser());
-      console.log('--- station');
       listener.on("data", (chunk) => readCargo(chunk, port?.role));
       return;
     }
     
     if(port?.role.indexOf("checkpoint") > -1) {
       const listener = new SerialPort(port).pipe(new ReadlineParser());
-      console.log('--- checkpoint');
       listener.on("data", () => updateLocation(port?.role));
       return;
     }

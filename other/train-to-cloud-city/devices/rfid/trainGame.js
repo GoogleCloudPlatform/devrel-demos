@@ -71,13 +71,6 @@ proposalListener(async (snapshot) => {
 
   if (proposalResult) {
     const motor = await getMotor();
-
-    /*await publishMessage("cargo-result", {
-      trainMailbox,
-      proposalResult,
-      timestamp: Date.now(),
-    });*/
-
     if (trainMailbox?.input === "do_check_cargo") {
       // If cargo isn't valid
       // Head back to station to reload cargo
@@ -85,20 +78,7 @@ proposalListener(async (snapshot) => {
         moveBackToStation = true;
         motor?.setPower(-30);
         stockedCargo = [];
-        /*await publishMessage("cargo-reload", {
-          trainMailbox,
-          proposalResult,
-          timestamp: Date.now(),
-        });*/
       }
-    }
-    if (trainMailbox?.input === "do_victory_lap") {
-      /*await publishMessage("victory", {
-        sessionComplete: true,
-        trainMailbox,
-        proposalResult,
-        timestamp: Date.now(),
-      });*/
     }
   }
 });
@@ -190,17 +170,18 @@ async function updateGameLoop() {
 
   if (trainMailbox?.input === "do_victory_lap") {
     if (moveForwardsToStation) {
-      moveForwardsToStation = false; // reset
+      // Victory lap completed, now reset
+      moveForwardsToStation = false;
       motor?.stop();
       // Reset train mailbox
+      resetGameState();
       await clearTrainMailbox();
-      // TODO: Send metrics
       console.log("Session success!");
       await updateInputMailbox("reset");
     } else {
+      // Go on victory lap
       moveForwardsToStation = true;
       motor?.setPower(40);
-      console.log("Going on victory lap!");
     }
   }
 }
