@@ -23,10 +23,18 @@ sudo raspi-config nonint do_spi 0
 
 # Clone repo
 git clone https://github.com/GoogleCloudPlatform/devrel-demos.git
-cd devrel-demos/data-analytics/data-dash/pi
 
-echo ". sensors/bin/activate" >> ~/.bashrc
-echo "python run.py > /dev/null 2>&1 &" >> ~/.bashrc
+# When the Pi is turned on:
+# 1. Activate the Python environment
+# 2. Pull the latest version of the demo repo
+# 3. Change to the `pi` directly
+# 4. Run the script
+{
+  echo ". sensors/bin/activate"
+  echo "git pull https://github.com/GoogleCloudPlatform/devrel-demos.git"
+  echo "cd devrel-demos/data-analytics/data-dash/pi"
+  echo "python run.py > /dev/null 2>&1 &"
+} >> ~/.bashrc
 
 # Set some VIM confg (optional)
 # echo "set number" >> .vimrc
