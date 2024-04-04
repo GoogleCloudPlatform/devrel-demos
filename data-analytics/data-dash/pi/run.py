@@ -33,61 +33,68 @@ args = parser.parse_args()
 debug = bool(args.debug)
 write_to_bt = bool(args.write_to_bt)
 
+# Pins as mapped to the Pis
 PINS = [i for i in range(19, 27)]
-LEFT_CARDS = {1,2}
-RIGHT_CARDS = {3,4}
-DEFAULT_ID = 999999999999
 
-side_controller = SideController()
+# DEFAULT ID
+RFID_WAIT = 3
 
+# Load args
 project_id = os.environ["PROJECT_ID"]
 instance_id = os.environ["BIGTABLE_INSTANCE"]
 lookup_table_id = os.environ["BIGTABLE_LOOKUP_TABLE"]
 race_table_id = os.environ["BIGTABLE_RACE_TABLE"]
 
+# Bigtable objects
 client = bigtable.Client(project=project_id)
 instance = client.instance(instance_id)
 lookup_table = instance.table(lookup_table_id)
 race_table = instance.table(race_table_id)
 
 try:
+    # Initialize Pi connections to read as BCM
     GPIO.setmode(GPIO.BCM)
+
+    # Initialize sensors
     sensors = [BeamBreakSensor(i, pin, race_table,
                 debug=debug, write_to_bt=write_to_bt) \
                for i, pin in enumerate(PINS, start=1)]
 
+    # Initialize RFID sensor
     reader = SimpleMFRC522()
 
-    last_scan = 0
-    RFID_WAIT = 3
+    # SideController controls if this Pi should 
+    side_controller = SideController()
 
+    # Column mappings of side_controller
     car_side_map = {
         side_controller.LEFT_CONST: "car1",
         side_controller.RIGHT_CONST: "car2",
     }
 
+    # Initialize the "side" of the webapp this Pi streams
     side = side_controller.get_side()
 
-    car_id = DEFAULT_ID
-
+    id = None
+    last_scan = 0
     print(f"STARTING SIDE: {car_side_map[side]}")
     while True:
         _time = time.time()
-        id = reader.read_id_no_block()
 
-        # Check if ID controls Pi sides for webapp
-        if side_controller.is_side(id):
-            side = side_controller.get_side()
-
-        if id and _time - last_scan > RFID_WAIT:
-            print(id)
-            car_id = id
+        # Only accept RFID reads after a certain period
+        if _time - last_scan > RFID_WAIT:
+            id = reader.read_id_no_block()
             last_scan = _time
-            
+
+        # If there is an ID and the ID does not update the Pi sides
+        if id and not side_controller.is_side(id):
+
+            # Write scanned ID to lookup table
             row = lookup_table.direct_row(car_side_map[side])
-            row.set_cell("cf", "id", str(car_id))
+            row.set_cell("cf", "id", str(id))
             row.commit()
 
+        # Poll sensors
         for sensor in sensors:
             sensor.read(car_id)
 finally:
