@@ -69,7 +69,7 @@ try:
     side = side_controller.get_side()
 
     car_id = DEFAULT_ID
-    
+
     print(f"STARTING SIDE: {car_side_map[side]}")
     while True:
         _time = time.time()
@@ -84,7 +84,7 @@ try:
             car_id = id
             last_scan = _time
             
-            row = lookup_table.direct_row(car_side_map(side))
+            row = lookup_table.direct_row(car_side_map[side])
             row.set_cell("cf", "id", str(car_id))
             row.commit()
 
