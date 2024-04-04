@@ -54,7 +54,7 @@ class BeamBreakSensor:
             self.is_broken = False
 
     def upload(self, cur_time):
-        print((self.car_id, self.broken_time))
+        print((self.car_id, self.id, self.broken_time))
         if self.write_to_bt:
             column_family_id = "cf"
 

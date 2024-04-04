@@ -91,7 +91,7 @@ try:
         # If there is an ID and the ID does not update the Pi sides
         if id and not side_controller.is_side(id):
             car_id = id
-
+            print(f"CAR ID: {car_id}")
             # Write scanned ID to lookup table
             row = lookup_table.direct_row(car_side_map[side])
             row.set_cell("cf", "id", str(id))
