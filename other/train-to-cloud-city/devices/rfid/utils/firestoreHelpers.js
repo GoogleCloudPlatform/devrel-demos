@@ -65,6 +65,9 @@ async function setMissionPattern(chunk, reader) {
 
     if (event_slug === "check-pattern") {
       console.log("Checking pattern ....");
+      
+      queueMessageToPublish("begin-game", { pattern_slug: matchingTag?.pattern_slug });
+      
       try {
         await mailboxRef.set({ input: "check_pattern" });
         motor?.setPower(30); // move towards station
@@ -272,7 +275,6 @@ async function proposalListener(cb = () => {}) {
 }
 
 module.exports = {
-  publishMessage,
   getTrain,
   getTrainMailbox,
   trainMailboxListener,

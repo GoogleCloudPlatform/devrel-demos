@@ -31,6 +31,8 @@ const {
   storeSignal
 } = require("./trainGame.js");
 
+require("./utils/metrics.js");
+
 const expressApp = express();
 expressApp.use(express.json());
 expressApp.use(express.static("express"));
