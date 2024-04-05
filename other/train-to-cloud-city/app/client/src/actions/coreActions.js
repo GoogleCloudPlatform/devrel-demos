@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import firebaseInstance from "../Firebase";
+import firebaseInstance from "../Firebase.js";
 
 /**** Getters ****/
 
@@ -29,7 +29,6 @@ export const getWorldState = createAsyncThunk(
     const snapshot = await ref.get();
     let world = {};
     snapshot.docs.forEach((doc) => (world[doc.id] = doc.data()));
-    return world;
 
     return { state: world };
   },

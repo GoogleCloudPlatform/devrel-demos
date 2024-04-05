@@ -40,7 +40,7 @@ const ControlPanel = (props) => {
           </div>
           <div className="trainMailbox">
             <h3> Train: </h3>
-            {trainMailbox ? (
+            {trainMailbox?.input ? (
               <p>{trainMailbox?.input}</p>
             ) : (
               "Waiting for train events ..."

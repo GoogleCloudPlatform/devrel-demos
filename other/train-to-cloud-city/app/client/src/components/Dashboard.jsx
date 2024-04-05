@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import React from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useDispatch } from "react-redux";
 import ControlPanel from "./ControlPanel";
 import CargoResult from "./CargoResult";
 import Train from "./Train";
@@ -28,10 +28,8 @@ import "./styles/Dashboard.css";
  *
  */
 const Dashboard = (props) => {
-  const state = useSelector((state) => state);
   const dispatch = useDispatch();
   const { signals, cargo, train, proposal, trainMailbox } = props || {};
-  const { patterns, services, worldState } = state.coreReducer;
 
   // Stop and reset whole mission
   const handleStopMission = async (event) => {
@@ -45,9 +43,9 @@ const Dashboard = (props) => {
       <div className="dashboardWrapper">
         <div className="dashboardPanel">
           <div className="missionTitle">
-            <h3>{`Your Mission: ${proposal?.pattern_slug}`}</h3>
+            <h3>{`Your Mission: ${proposal?.pattern_slug?.split("_")?.join(" ")}`}</h3>
           </div>
-          <CargoResult proposal={proposal} />
+          <CargoResult train={train} signals={signals} proposal={proposal} />
         </div>
         <div className="dashboardPanel">
           <div className="dashboardSignals">

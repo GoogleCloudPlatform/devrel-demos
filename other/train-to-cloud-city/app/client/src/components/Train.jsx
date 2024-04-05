@@ -14,7 +14,6 @@
 
 import React from "react";
 import TrainCoach from "./TrainCoach";
-import { useSelector, useDispatch } from "react-redux";
 import "./styles/Train.css";
 
 /**
@@ -30,7 +29,9 @@ const Train = (props) => {
       <div className="container">
         <div className="content">
           <div className={`train ${train?.actual_location}`}>
-            {cargo?.actual_cargo?.map((c, index) => <TrainCoach key={index} cargo={c} />)}
+            {cargo?.actual_cargo?.map((c, index) => (
+              <TrainCoach key={index} cargo={c} />
+            ))}
             <TrainCoach name="front" />
           </div>
           <div className="track"></div>

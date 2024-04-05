@@ -22,7 +22,7 @@ resource "time_sleep" "wait" {
 }
 
 locals {
-  skaffold    = templatefile("${path.module}/yaml/skaffold.yaml.tftpl", { name = "deployment-pattern-a" })
+  skaffold    = templatefile("${path.module}/yaml/skaffold.yaml.tftpl", { name = "deployment" })
   default_env = templatefile("${path.module}/yaml/default.yaml.tftpl", { service_name = "hello" })
 }
 
@@ -55,11 +55,11 @@ resource "google_project_service" "artifactregistry_api" {
 }
 
 # Artifact Registry
-resource "google_artifact_registry_repository" "pattern_a_repo" {
+resource "google_artifact_registry_repository" "ar_repo" {
   project       = var.project
   location      = var.region
-  repository_id = "cloud-train-pattern-a"
-  description   = "Cloud Train Demo: Pattern A"
+  repository_id = "cloud-train"
+  description   = "Cloud Train Demo Repo"
   format        = "DOCKER"
   depends_on = [
     time_sleep.wait
@@ -161,7 +161,7 @@ resource "google_cloudbuild_trigger" "new_build" {
     }
     step {
       name    = "gcr.io/cloud-builders/gcloud"
-      args    = ["builds", "submit", "--tag", "${var.region}-docker.pkg.dev/${var.project}/cloud-train-pattern-a/image", "target/"]
+      args    = ["builds", "submit", "--tag", "${var.region}-docker.pkg.dev/${var.project}/cloud-train/image", "target/"]
       timeout = "120s"
     }
   }
@@ -203,7 +203,7 @@ resource "google_cloudbuild_trigger" "new_release" {
     }
     step {
       name    = "gcr.io/cloud-builders/gcloud"
-      args    = ["deploy", "releases", "create", "pattern-A-release", "--project=${var.project}", "--region=${var.region}", "--delivery-pipeline=${google_clouddeploy_delivery_pipeline.default.name}", "--images=${"${var.region}-docker.pkg.dev/${var.project}/cloud-train-pattern-a/image:default"}"]
+      args    = ["deploy", "releases", "create", "cicd-release", "--project=${var.project}", "--region=${var.region}", "--delivery-pipeline=${google_clouddeploy_delivery_pipeline.default.name}", "--images=${"${var.region}-docker.pkg.dev/${var.project}/cloud-train/image:default"}"]
       timeout = "120s"
     }
   }

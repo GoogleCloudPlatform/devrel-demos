@@ -24,7 +24,14 @@ const {
   updateLocation,
   updateInputMailbox,
 } = require("./utils/firestoreHelpers.js");
-const { readCargo, resetGameState, updateGameLoop } = require("./trainGame.js");
+const {
+  readCargo,
+  resetGameState,
+  updateGameLoop,
+  storeSignal
+} = require("./trainGame.js");
+
+require("./utils/metrics.js");
 
 const expressApp = express();
 expressApp.use(express.json());
@@ -43,20 +50,28 @@ async function listenToReaders() {
   const ports = await getPorts();
 
   ports?.forEach((port, index) => {
-    const listener = new SerialPort(port).pipe(new ReadlineParser());
     // listeners are passed their location role (i.e station, checkpoint, etc);
-    switch (port?.role) {
-      case "mission_check": {
-        listener.on("data", (chunk) => setMissionPattern(chunk, port?.role));
-        break;
-      }
-      case "station": {
-        listener.on("data", (chunk) => readCargo(chunk, port?.role));
-        break;
-      }
-      default: {
-        listener.on("data", () => updateLocation(port?.role));
-      }
+    if (port?.role === "mission_check") {
+      const listener = new SerialPort(port).pipe(new ReadlineParser());
+      listener.on("data", (chunk) => setMissionPattern(chunk, port?.role));
+      return;
+    }
+    
+    if(port?.role === "station") {
+      const listener = new SerialPort(port).pipe(new ReadlineParser());
+      listener.on("data", (chunk) => readCargo(chunk, port?.role));
+      return;
+    }
+    
+    if(port?.role.indexOf("checkpoint") > -1) {
+      const listener = new SerialPort(port).pipe(new ReadlineParser());
+      listener.on("data", () => updateLocation(port?.role));
+      return;
+    }
+    
+    if(port?.role.indexOf("signal") > -1) {
+      const listener = new SerialPort(port);
+      storeSignal(listener?.settings?.role, listener);
     }
   });
 }
