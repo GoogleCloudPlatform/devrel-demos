@@ -1,5 +1,6 @@
 .wrapper {
-  width: 330px;
+  width: auto;
+  max-width: 75%;
   height: 560px;
   box-shadow: 0px 0px 4px 0px #00000040;
   border-bottom-right-radius: 24px;
