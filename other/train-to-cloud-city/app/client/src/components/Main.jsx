@@ -26,7 +26,7 @@ import {
   updateInputMailbox,
   proposalUpdated,
 } from "../actions/coreActions";
-import ConductorWave from "../assets/conductor-wave.svg";
+import ConductorWave from "../assets/conductor-wave.gif";
 import "./styles/Main.css";
 
 /**

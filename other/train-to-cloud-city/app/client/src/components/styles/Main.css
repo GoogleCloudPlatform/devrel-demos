@@ -35,6 +35,8 @@
 
 .welcomeImage img {
   margin: 25px;
+  width: auto;
+  height: 250px;
 }
 
 .section {
