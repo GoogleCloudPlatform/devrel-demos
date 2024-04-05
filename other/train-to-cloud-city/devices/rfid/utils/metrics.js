@@ -21,7 +21,6 @@ function queueMessageToPublish(topic, data) {
  * continue pushing items up to google-cloud pubsub
  */ 
 (async function publishQueuedMessages() {
-  console.log("----- finding metrics ...");
   setInterval(() => {
     queuedMetricsToPublish?.forEach(async (metric) => {
       try {
