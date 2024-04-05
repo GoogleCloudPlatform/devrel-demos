@@ -47,20 +47,18 @@ COLORS ={
 }
 
 project_id = os.environ["PROJECT_ID"]
-instance_id = "testing-instance"
-lookup_table_id = "data_dash_lookup2"
-race_table_id = "data_dash_live_test"
+instance_id = "data-dash"
+table_id = "races"
 
 client = bigtable.Client(project=project_id)
 instance = client.instance(instance_id)
-lookup_table = instance.table(lookup_table_id)
-race_table = instance.table(race_table_id)
+table = instance.table(table_id)
 column_family_id = "cf"    
 
 def get_data(track_id):
-    # get_data returns the data for the last race on a track
+    # get_track_data returns the data for the last race on a track
     data = {}
-    _r = race_table.read_rows(
+    _r = table.read_rows(
         filter_=row_filters.RowKeyRegexFilter(
             bytes(f"^track{track_id}#.*", "utf-8")),
             limit=1
@@ -73,23 +71,23 @@ def get_data(track_id):
         row = _
 
     data["car_id"] = row.cells["cf"][b"car_id"][0].value.decode("utf-8")
-    data["timestamp"] = row.cells["cf"][b"car_id"][0].timestamp
+    data["timestamp"] = datetime.timestamp(row.cells["cf"][b"car_id"][0].timestamp)
 
     col_strf = "t{i}_s"
     checkpoints = {}
     for i in range(1,9):
         col_name = bytes(col_strf.format(i=i), "utf-8")
         col = row.cells["cf"].get(col_name)
-        checkpoints[str(i)] = int(col[0].value.decode("utf-8")) if col else None
+        checkpoints[i] = int(col[0].value.decode("utf-8")) if col else None
 
     for i in range(1,3):
-        ts = int(checkpoints.get(i))
+        ts = checkpoints.get(i)
         if ts:
-            if checkpoints.get(i):
+            if checkpoints.get(8):
                 status = DONE
                 break
             else:
-                status = ERR if time.time() - ts > CAR_ERR_TIMEOUT else OK
+                status = ERR if time.time() - int(ts) > CAR_ERR_TIMEOUT else OK
                 break
         else:
             status = ERR
