@@ -124,13 +124,13 @@ while True:
             change(train_doc, {"actual_state" : "victory_lap"})
 
             sleep(STEP_SEC)
-            change(train_doc, {"actual_location" : "one"})
+            change(train_doc, {"actual_location" : "checkpoint_1"})
             sleep(STEP_SEC)
-            change(train_doc, {"actual_location" : "two"})
+            change(train_doc, {"actual_location" : "checkpoint_2"})
             sleep(STEP_SEC)
-            change(train_doc, {"actual_location" : "three"})
+            change(train_doc, {"actual_location" : "checkpoint_3"})
             sleep(STEP_SEC)
-            change(train_doc, {"actual_location" : "four"})
+            change(train_doc, {"actual_location" : "checkpoint_4"})
             sleep(STEP_SEC)
             change(train_doc, {"actual_location" : "station"})
 
