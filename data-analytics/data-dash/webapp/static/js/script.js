@@ -14,8 +14,8 @@ $(document).ready(function() {
     var color = statusClassesMap[status]
     console.log("setting box shadow");
     console.log(color);
-    statusClassesMap.forEach(c => {
-      $(div).removeClass(c);
+    Object.keys(statusClassesMap).forEach(c => {
+      $(div).removeClass(statusClassesMap[c]);
     })
     $(div).addClass(color)
   }
@@ -27,7 +27,7 @@ $(document).ready(function() {
     setBoxShadow(carLeftDivId, baseStatus);
     setBoxShadow(carRightDivId, baseStatus);
   });
-  socket.on('data', function(data) {
+  socket.on('send_data', function(data) {
     setBoxShadow(carLeftDivId, baseColor);
     setBoxShadow(carRightDivId, baseColor);
   })
