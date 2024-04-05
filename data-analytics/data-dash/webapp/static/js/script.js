@@ -29,6 +29,7 @@ $(document).ready(function () {
 
   function setCheckpoints(div, checkpointsMap) {
     // console.log("setting checkpoints");
+    console.log(checkpointsMap)
     for (let i = 0; i < 8; i++) {
       let checkpoint = i + 1
       let selector = div + " tr";
@@ -68,7 +69,7 @@ $(document).ready(function () {
   function setPic(div, id) {
     $(div + " .img").css(
         "background-image",
-        `url("https://storage.googleapis.com/data-analytics-demos/next2024/cars/${id}.jpg")`,
+        `url("https://storage.googleapis.com/data-analytics-demos/next2024/cars/${id}.png")`,
     );
   }
 
@@ -80,8 +81,8 @@ $(document).ready(function () {
   socket.on("send_data", function (data) {
     console.log("send_data")
 
-    // console.log(data.left);
-    // console.log(data.right);
+    console.log(data.left);
+    console.log(data.right);
     leftData = data.left;
     rightData = data.right;
 
@@ -113,10 +114,10 @@ $(document).ready(function () {
     setCheckpoints(carRightDivId, rightData.checkpoints);
   });
 
-  setInterval(() => {
-    setCheckpoints(carLeftDivId, leftData.checkpoints);
-    setCheckpoints(carRightDivId, rightData.checkpoints);
-  }, 100)
+  // setInterval(() => {
+  //   setCheckpoints(carLeftDivId, leftData.checkpoints);
+  //   setCheckpoints(carRightDivId, rightData.checkpoints);
+  // }, 100)
 
   // socket.on('set_pictures', function(data) {
   //   setPic(carLeftDivId, data.left.car_id);
