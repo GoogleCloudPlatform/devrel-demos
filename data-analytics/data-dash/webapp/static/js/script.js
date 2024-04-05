@@ -98,19 +98,17 @@ $(document).ready(function () {
       },
       'status': 1
     }
-    leftData = exData;
-    rightData = exData;
+    // leftData = exData;
+    // rightData = exData;
 
     setBoxShadow(carLeftDivId, baseStatus);
     setBoxShadow(carRightDivId, baseStatus);
-    // setPic(carLeftDivId, data.left.car_id);
-    // setPic(carRightDivId, data.right.car_id);
-    //
-    setPic(carLeftDivId, exData);
-    setPic(carRightDivId, exData);
 
-    setCheckpoints(carLeftDivId, exData.checkpoints);
-    setCheckpoints(carRightDivId, exData.checkpoints);
+    setPic(carLeftDivId, leftData.car_id);
+    setPic(carRightDivId, rightData.car_id);
+
+    setCheckpoints(carLeftDivId, leftData.checkpoints);
+    setCheckpoints(carRightDivId, rightData.checkpoints);
   });
 
   setInterval(() => {
