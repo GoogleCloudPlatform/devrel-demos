@@ -95,13 +95,13 @@ PATTERNS = {
     "pattern_a": Pattern(
         slug="pattern_a",
         complexity="low_complexity",
-        name="Deploy a simple VM server",
-        description="Create and deploy a simple virtual machine in Google Cloud.",
+        name="Virtual Machine",
+        description="Choose services from the available blocks to create and deploy a virtual machine.",
         checkpoints=[
             Checkpoint(
                 slug="compute",
                 name="Compute",
-                description="Select a service that allows you to create and run virtual machines on Google Cloud.",
+                description="Create and run virtual machines.",
                 satisfying_services=[
                     "app-engine",
                     "gke", 
@@ -112,27 +112,27 @@ PATTERNS = {
     "pattern_b": Pattern(
         slug="pattern_b",
         complexity="medium_complexity",
-        name="Build & deploy a container image that displays database contents",
-        description="Create a pattern from the Google Cloud Platform resources available that creates and deploys a container image that displays contents of a seeded database.",
+        name="Build & deploy a container image with database",
+        description="Choose services from the available blocks to create and deploy a container image which displays the contents of a database.",
         checkpoints=[
             Checkpoint(
                 slug="database",
                 name="Database",
-                description="Choose a resource where the can container retrieve stored data to display.",
+                description="Store the data.",
                 satisfying_services=[
                     "alloydb",
                     "cloud-bigtable",
                     "cloud-firestore",
                     "cloud-memorystore",
                     "cloud-sql",
-                    "cloud-sql-insights",
                     "cloud-spanner",
+                    "cloud-storage",
                 ],
             ),
             Checkpoint(
                 slug="compute",
                 name="Compute",
-                description="Select a computing resource where we will display database data.",
+                description="Computing resource to serve database data.",
                 satisfying_services=[
                     "app-engine",
                     "cloud-functions",
@@ -144,13 +144,13 @@ PATTERNS = {
             Checkpoint(
                 slug="devops",
                 name="Build Image",
-                description="Select a resource that can create a container image",
+                description="Create a container image",
                 satisfying_services=["cloud-build"],
             ),
             Checkpoint(
                 slug="devops",
                 name="Store Image",
-                description="Select a resource where the built container image can be stored.",
+                description="Store the built container image.",
                 satisfying_services=["artifact-registry"],
             ),
         ],
@@ -159,12 +159,12 @@ PATTERNS = {
         slug="pattern_c",
         complexity="medium_complexity",
         name="Host a database backed website",
-        description="Choose Google Cloud Platform services from the available blocks which could be used to host a website and database. Example: dynamic blog, ecommerce site, etc.",
+        description="Choose services from the available blocks to host a website and database. Example: dynamic blog, ecommerce site, etc.",
         checkpoints=[
             Checkpoint(
                 slug="website",
                 name="Website",
-                description="Some way to serve the website to the internet",
+                description="Serve the website to the internet",
                 satisfying_services=[
                     "app-engine",
                     "cloud-functions",
@@ -176,15 +176,15 @@ PATTERNS = {
             Checkpoint(
                 slug="database",
                 name="Database",
-                description="Select the database that will store website data.",
+                description="Store website data.",
                 satisfying_services=[
                     "alloydb",
                     "cloud-bigtable",
                     "cloud-firestore",
                     "cloud-memorystore",
                     "cloud-sql",
-                    "cloud-sql-insights",
                     "cloud-spanner",
+                    "cloud-storage",
                 ],
             ),
         ],
@@ -193,24 +193,24 @@ PATTERNS = {
         slug="pattern_d",
         complexity="high_complexity",
         name="Build a CI/CD pipeline",
-        description="Create a pattern from the Google Cloud Platform resources available that sets up a basic CI/CD (continuous integration/ continuous deployment) pipeline.",
+        description="Choose services from the available blocks to set up a basic CI/CD (continuous integration/ continuous deployment) pipeline.",
         checkpoints=[
             Checkpoint(
                 slug="build_image",
                 name="Build Image",
-                description="Select a resource to create your build image.",
+                description="Create build image.",
                 satisfying_services=["cloud-build"],
             ),
             Checkpoint(
                 slug="store_image",
                 name="Store built image",
-                description="Select a resource to store your built images",
+                description="Store built images",
                 satisfying_services=["artifact-registry"],
             ),
             Checkpoint(
                 slug="compute",
                 name="Compute",
-                description="Select a service that allows you to create and run virtual machines on Google Cloud.",
+                description="Create and run virtual machines.",
                 satisfying_services=[
                     "app-engine",
                     "gke",
@@ -220,7 +220,7 @@ PATTERNS = {
             Checkpoint(
                 slug="deploy",
                 name="Deploy targets",
-                description="Select a resource that allows you to create a streamlined continuous delivery with multiple deploy targets (staging, canary, prod).",
+                description="Create a continuous delivery system with multiple deploy targets (staging, canary, prod).",
                 satisfying_services=["cloud-deploy"],
             ),
         ],
