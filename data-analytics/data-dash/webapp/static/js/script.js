@@ -114,8 +114,12 @@ $(document).ready(function () {
   });
 
   setInterval(() => {
-    setCheckpoints(carLeftDivId, leftData.checkpoints);
-    setCheckpoints(carRightDivId, rightData.checkpoints);
+    if (leftData) {
+      setCheckpoints(carLeftDivId, leftData.checkpoints);
+    }
+    if (rightData) {
+      setCheckpoints(carRightDivId, rightData.checkpoints);
+    }
   }, 100)
 
   // socket.on('set_pictures', function(data) {
