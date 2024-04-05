@@ -12,19 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { StringDecoder } = require("node:string_decoder");
 const {
-  getTrain,
-  getTrainMailbox,
-  getSessionMailbox,
-  getProposalResult,
   clearTrainMailbox,
   trainMailboxListener,
   signalListener,
   proposalListener,
   updateInputMailbox,
-  validateCargo,
-  updateLocation,
   submitActualCargo,
 } = require("./utils/firestoreHelpers.js");
 const { getMotor } = require("./utils/train.js");
@@ -42,6 +35,11 @@ let proposalResult = {};
 let moveBackToStation = false;
 let moveForwardsToStation = false;
 let signalLights = {};
+  
+// Hardcoded rfid tag id to capture front car 
+// and back car (to calculate middle cargo)
+const frontCar = "\x03\x02330035AD1EB5\r";
+const backCar = "\x03\x023300348E9019\r";
 
 /**
  * Train mailbox listener
@@ -53,8 +51,8 @@ trainMailboxListener(async (snapshot) => {
 
 /**
  * Signal listener
+ * ----------------------
  */
-
 signalListener(async(snapshot) => {
   const { one, two, three, four } = snapshot?.data() || {};
   signalLights?.["signal_1"](one?.target_state || 'off');
@@ -65,6 +63,7 @@ signalListener(async(snapshot) => {
 
 /**
  * Proposal listener
+ * ----------------------
  */
 proposalListener(async (snapshot) => {
   proposalResult = snapshot?.data()?.proposal_result || {};
@@ -72,8 +71,7 @@ proposalListener(async (snapshot) => {
   if (proposalResult) {
     const motor = await getMotor();
     if (trainMailbox?.input === "do_check_cargo") {
-      // If cargo isn't valid
-      // Head back to station to reload cargo
+      // If cargo isn't valid, head back to station to reload cargo
       if (proposalResult?.reason && !proposalResult?.clear) {
         moveBackToStation = true;
         motor?.setPower(-30);
@@ -99,9 +97,6 @@ async function readCargo(chunk, role) {
   }
 
   const tagId = new String(chunk);
-  const frontCar = "\x03\x02330035AD1EB5\r";
-  const backCar = "\x03\x023300348E9019\r";
-
   const isFrontCar = frontCar.includes(tagId);
   const isBackCar = backCar.includes(tagId);
   const isCargo = !isFrontCar && !isBackCar;
@@ -138,9 +133,9 @@ async function readCargo(chunk, role) {
  */
 async function moveToStation(chunk, role) {
   const tagId = new String(chunk);
-  const frontCar = "\x03\x02330035AD1EB5\r";
-  const isFrontCar = frontCar.includes(tagId);
   const motor = await getMotor();
+  
+  const isFrontCar = frontCar.includes(tagId);
 
   if (isFrontCar && role === "station") {
     motor?.brake();
@@ -149,7 +144,6 @@ async function moveToStation(chunk, role) {
     moveForwardsToStation = false;
     return;
   }
-
   moveForwardsToStation && motor?.setPower(30);
   moveBackToStation && motor?.setPower(-40);
 }
@@ -157,8 +151,8 @@ async function moveToStation(chunk, role) {
 /**
  * updateGameLoop
  * ----------------------
- * Main game loop for train. Callback fn to all serialport / rfid readers
- * so state is not held within loop, but above (TODO: refactor later)
+ * Main game loop for train. Callback fn to all 
+ * serialport / rfid readers so state is not held within loop
  */
 async function updateGameLoop() {
   const motor = await getMotor();
@@ -190,14 +184,43 @@ async function updateGameLoop() {
   }
 }
 
+
+/**
+ * changeSignalLight
+ * ----------------------
+ * "this" refers to opened serial
+ * port & sends in one of three states
+ * to Adafruit QTPy RP2040 signal.
+ * ----------------------
+ * clear (green led) - "cleared" to proceed
+ * stop (red led) 
+ * off (led should be off)
+ *
+ */ 
 function changeSignalLight(state) {
-  this.write(`${state}\n`);
+  if(state === "clear" || state === "stop" || state === "off") {
+    this?.write(`${state}\n`);
+  }
 }
 
-async function storeSignal(role="", listener={}) {
-  signalLights[role] = changeSignalLight.bind(listener);
+/**
+ * storeSignal
+ * ----------------------
+ * Stores function to change light states
+ * that is binded to serial port reference
+ */ 
+async function storeSignal(role="", listener=()=>{}) {
+  if(role !== "") {
+    signalLights[role] = changeSignalLight.bind(listener);
+  }
 }
 
+/**
+ * resetGameState
+ * ----------------------
+ * Clears & resets global variables
+ * and any other game states
+ */ 
 async function resetGameState() {
   signalLights = {};
   signalLightsUpdate = {};
@@ -212,4 +235,9 @@ async function resetGameState() {
   moveForwardsToStation = false;
 }
 
-module.exports = { readCargo, storeSignal, updateGameLoop, resetGameState };
+module.exports = {
+  readCargo,
+  storeSignal,
+  updateGameLoop,
+  resetGameState
+};
