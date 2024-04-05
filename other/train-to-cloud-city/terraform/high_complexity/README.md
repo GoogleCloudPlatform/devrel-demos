@@ -1,4 +1,4 @@
-# Basic CI/CD pattern
+# Build CI/CD pipeline
 
 ### Requirements
 

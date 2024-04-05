@@ -26,14 +26,14 @@ import {
   updateInputMailbox,
   proposalUpdated,
 } from "../actions/coreActions";
-import ConductorWave from "../assets/conductor-wave.gif";
+import ConductorWave from "../assets/conductor-wave.svg";
 import "./styles/Main.css";
 
 /**
  * Main
  * -----------------
  * Sets environment and data to populate into dashboard
- * which is in 3 different states (simulator, realtime, virtual input)
+ * which is in 3 different states (simulator, realtime from physical train)
  */
 const Main = (props) => {
   const state = useSelector((state) => state);
@@ -45,35 +45,20 @@ const Main = (props) => {
   const [signals, setSignals] = useState({});
   const [cargo, setCargo] = useState({});
   const [train, setTrain] = useState({});
-  const [pattern, setPattern] = useState({});
   const [proposal, setProposal] = useState({});
   const [trainMailbox, setTrainMailbox] = useState({});
 
-  const handleSimulator = async (event) => {
-    setToggle(!simulator);
-    setSimulator(!simulator);
-    dispatch?.(getWorldState(simulator ? "global_simulation" : "global"));
-  };
-
-  const handlePatternSelect = async (event, pattern) => {
-    setToggle(true);
-    setPattern(pattern);
-    dispatch?.(getWorldState(simulator ? "global_simulation" : "global"));
-  };
-
-  const cleanSlate = async () => {
-    try {
-      await updateInputMailbox("reset");
-      Promise.all([dispatch(getServices()), dispatch(getPatterns())]);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
   useEffect(() => {
+    const cleanSlate = async() => {
+      try {
+        await updateInputMailbox("reset");
+        Promise.all([dispatch(getServices()), dispatch(getPatterns())]);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    
     const collection = simulator ? "global_simulation" : "global";
-
-    cleanSlate();
     // Listen for when patterns are updated
     proposalUpdated((data) => {
       setToggle(!!data.pattern_slug);
@@ -84,39 +69,55 @@ const Main = (props) => {
         cleanSlate();
       }
     }, collection);
+    
     signalsUpdated((data) => setSignals(data), collection);
     trainUpdated((data) => setTrain(data), collection);
     cargoUpdated((data) => setCargo(data), collection);
     trainMailboxUpdated((data) => setTrainMailbox(data), collection);
-  }, [simulator]);
+  }, [simulator, dispatch]);
+
+  const handleSimulator = async (event) => {
+    setToggle(!simulator);
+    setSimulator(!simulator);
+    dispatch?.(getWorldState(simulator ? "global_simulation" : "global"));
+  };
 
   return (
     <div className="mainContainer">
       <div className="mainWrapper">
         {proposal && !proposal.pattern_slug && (
-          <div className="mainHeader" > 
+          <div className="mainHeader">
             <div className="welcomeImage">
               <img alt="welcome-wave" src={ConductorWave} />
             </div>
             <div className="mainContent">
               <h2>Choose your adventure</h2>
-              <div className="row">
-                {state.coreReducer.patterns?.map((p, index) => (
-                  <button
-                    type="button"
-                    key={index}
-                    onClick={(event) => handlePatternSelect(event, p)}
-                  >
-                    {`${p.name}`}
-                  </button>
+              <p>
+                Pick a mission wand and wave it over the center RFID reader to
+                select!
+              </p>
+              <div className="section">
+                {state.coreReducer.patterns?.map((pattern, index) => (
+                  <div className="buttonStyle" key={index}>
+                    <b>{pattern.name}</b>
+                    <br />({` ${pattern.complexity.split("_").join(" ")}`})
+                  </div>
                 ))}
               </div>
             </div>
           </div>
         )}
-        {toggled
-            ? <Dashboard proposal={proposal} train={train} cargo={cargo} signals={signals} trainMailbox={trainMailbox} />
-            : <a href="#" onClick={handleSimulator}>{'Turn on simulator'}</a>}
+        {toggled ? (
+          <Dashboard
+            proposal={proposal}
+            train={train}
+            cargo={cargo}
+            signals={signals}
+            trainMailbox={trainMailbox}
+          />
+        ) : (
+          <a href="#" onClick={handleSimulator}>{"Turn on simulator"}</a>
+        )}
       </div>
     </div>
   );

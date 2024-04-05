@@ -16,7 +16,6 @@ import React from "react";
 import Station from "../assets/station.png";
 import SignalGreen from "../assets/signal-green.svg";
 import SignalOff from "../assets/signal-off.svg";
-import SignalYellow from "../assets/signal-yellow.svg";
 import SignalRed from "../assets/signal-red.svg";
 import "./styles/Signal.css";
 
@@ -26,8 +25,8 @@ import "./styles/Signal.css";
  *
  */
 const Signal = (props) => {
-  const { isStation, trainLocation, signal } = props;
-  const { name, slug, actual_state, target_state } = signal || {};
+  const { isStation, trainLocation, signal, showTrainLocation = true } = props;
+  const { slug, target_state } = signal || {};
   const position = isStation ? "station" : slug;
   const checkpointClasses = slug === "four" ? "circle" : "circle connector";
   const locationClasses =
@@ -55,7 +54,7 @@ const Signal = (props) => {
       <div className={`signal ${position}`}>
         {isStation ? <img alt="Station" src={Station} /> : signalLight}
       </div>
-      <div className={locationClasses}></div>
+      {showTrainLocation && <div className={locationClasses}></div>}
     </div>
   );
 };

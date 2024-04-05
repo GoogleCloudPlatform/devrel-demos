@@ -22,7 +22,7 @@
   flex-direction: column;
   margin: auto;
   font-family: var(--font);
-  font-size: larger;
+  font-size: medium;
 }
 
 .mainContainer a {
@@ -34,13 +34,13 @@
 }
 
 .welcomeImage img {
-  width: 250px;
   margin: 25px;
 }
 
-.row {
+.section {
   margin: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
 }

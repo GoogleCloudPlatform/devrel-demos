@@ -28,12 +28,14 @@
   --font: "Pixelify Sans", sans-serif;
 }
 
-button {
+button,
+.buttonStyle {
   padding: 10px;
   margin: 5px;
   font-family: var(--font);
   font-size: larger;
   background: var(--selectiveyellow);
+  border: 3px solid var(--melanzane);
   border-bottom-left-radius: 10px;
   border-bottom-right-radius: 10px;
   border-top-left-radius: 10px;
