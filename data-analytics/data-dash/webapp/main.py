@@ -20,7 +20,8 @@ import time
 
 from flask import Flask, render_template
 from flask_socketio import SocketIO
-from google.cloud import bigtable, row_filters
+from google.cloud import bigtable
+import google.cloud.bigtable.row_filters as row_filters
 
 async_mode = None
 
