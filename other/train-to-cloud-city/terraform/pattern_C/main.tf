@@ -21,81 +21,92 @@ provider "google" {
 # Enable APIs #
 ###############
 
-# Enable Compute API
-resource "google_project_service" "compute_api" {
-  project    = var.project
-  service            = "compute.googleapis.com"
+# Enable Cloud Run API
+resource "google_project_service" "cloudrun_api" {
+  service            = "run.googleapis.com"
   disable_on_destroy = false
 }
 
-##################
-# Compute Engine #
-##################
-
-resource "google_compute_network" "vpc" {
-  project    = var.project
-  name                    = "network"
-  auto_create_subnetworks = false
-  mtu                     = 1460
+# Enable Cloud Build API
+resource "google_project_service" "cloudbuild_api" {
+  service            = "cloudbuild.googleapis.com"
+  disable_on_destroy = false
 }
 
-resource "google_compute_subnetwork" "default" {
-  project    = var.project
-  name          = "subnet"
-  ip_cidr_range = "10.0.1.0/24"
-  region        = var.region
-  network       = google_compute_network.vpc_network.id
+# Enable Artifact Registry API
+resource "google_project_service" "artifactregistry_api" {
+  service            = "artifactregistry.googleapis.com"
+  disable_on_destroy = false
 }
 
-resource "google_compute_instance" "subnet" {
-  project    = var.project
-  name         = "node-virtual-machine"
-  machine_type = "f1-micro"
-  zone         = "${var.region}-a"
-  tags         = ["ssh"]
+####################
+# Service Accounts #
+####################
 
-  boot_disk {
-    initialize_params {
-      image = "debian-cloud/debian-11"
+resource "google_cloud_run_service_iam_member" "member" {
+    service = google_cloud_run_service.run.name
+    location = google_cloud_run_service.run.location
+    role = "roles/run.invoker"
+    member = "allUsers"
+}
+
+####################
+#     Cloud SQL    #
+####################
+
+resource "google_sql_database_instance" "instance" {
+    name = "cloud_train_pattern_c_sql_db"
+    region = var.region
+    database_version="POSTGRES_13"
+    deletion_protection = false
+    settings{
+        tier="db-f1-micro"
     }
-  }
-  # Install Flask
-  metadata_startup_script = "sudo apt-get update; sudo apt-get install -yq nodejs npm rsync; npm install express"
-
-  network_interface {
-    subnetwork = google_compute_subnetwork.subnet.id
-    access_config {}
-  }
 }
 
-resource "google_compute_firewall" "ssh-firewall" {
-  name = "allow-ssh"
-  allow {
-    ports    = ["22"]
-    protocol = "tcp"
-  }
-  direction     = "INGRESS"
-  network       = google_compute_network.vpc_network.id
-  priority      = 1000
-  source_ranges = ["0.0.0.0/0"]
-  target_tags   = ["ssh"]
+resource "google_sql_database" "database"{
+    name="cloud_train_sql_db"
+    instance=google_sql_database_instance.instance.name
 }
 
-resource "google_compute_firewall" "node-firewall" {
-  name    = "node-firewall"
-  network = google_compute_network.vpc_network.id
-
-  allow {
-    protocol = "tcp"
-    ports    = ["5000"]
-  }
-  source_ranges = ["0.0.0.0/0"]
+resource "google_sql_user" "database-user" {
+    name = var.database_user
+    instance = google_sql_database_instance.instance.name
+    password = var.database_password
 }
 
-##########
-# Output #
-##########
+####################
+#     Cloud Run    #
+####################
 
-output "external-url" {
- value = join("",["http://",google_compute_instance.default.network_interface.0.access_config.0.nat_ip,":5000"])
+resource "google_cloud_run_v2_service" "pattern_c_run" {
+    name="pattern_c_service"
+    location = "us-central1"
+    template {
+        spec {
+            containers {
+                image = "us-docker.pkg.dev/cloudrun/container/hello"
+                ports {
+                    container_port = 5000
+                }
+                env {
+                    name="ENV"
+                    value = "production"
+                }
+                env {
+                    name="JWT_KEY"
+                    value = var.jwt_key
+                }
+                env {
+                    name="DB_URL"
+                    value = "postgresql://${var.database_user}:${var.database_password}@/cloud_train_sql_db?host=/cloudsql/${google_sql_database_instance.instance.connection_name}"
+                }
+            }
+        }
+        metadata {
+            annotations = {
+                "run.googleapis.com/cloudsql-instances"=google_sql_database_instance.instance.connection_name
+            }
+        }
+    }
 }

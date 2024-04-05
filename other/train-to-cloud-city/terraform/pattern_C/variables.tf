@@ -14,11 +14,25 @@
 
 variable "region" {
   type        = string
-  description = "Google Cloud project region"
+  description = "GCP project region"
   default     = "us-central1"
 }
 
 variable "project" {
   type        = string
-  description = "Google Cloud project id"
+  description = "GCP project id"
 }
+
+variable "database_password" {
+type = string
+}
+variable "database_user" {
+    type = string
+}
+variable "project_name" {
+    type=string
+}
+variable "jwt_key" {
+    type = string
+}
+

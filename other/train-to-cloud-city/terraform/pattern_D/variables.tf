@@ -22,3 +22,14 @@ variable "project" {
   type        = string
   description = "Google Cloud project id"
 }
+
+variable "repo_owner" {
+  type        = string
+  description = "Connected Github repository owner in Cloud Build Triggers. (i.e GoogleCloudPlatform in GoogleCloudPlatform/train-to-cloud-city)"
+}
+
+variable "repo_name" {
+  type        = string
+  description = "Connected Github repository name in Cloud Build Triggers. (i.e train-to-cloud-city in GoogleCloudPlatform/train-to-cloud-city)"
+}
+

@@ -1,4 +1,4 @@
-# Basic CI/CD pattern
+# Compute Engine with Node.js
 
 ### Requirements
 
@@ -8,10 +8,7 @@
 
 ## Technologies
 
-- [Cloud Run](https://cloud.google.com/run)
-- [Cloud Build](https://cloud.google.com/build)
-- [Cloud Deploy](https://cloud.google.com/deploy)
-- [Artifact Registry](https://cloud.google.com/artifact-registry)
+- [Compute Engine](https://cloud.google.com/compute)
 - [Terraform](https://registry.terraform.io)
 
 ## Instructions
@@ -28,9 +25,7 @@ gcloud auth application-default login
 gcloud config set project <project-id>
 ```
 
-3. Navigate to Cloud Build page to [connect your repository](https://console.cloud.google.com/cloud-build/repositories/1st-gen) in global region.
-
-4. Initialize and apply terraform like so.
+3. Initialize and apply terraform like so:
 
 ```bash
 terraform init  // Initializes and installs all required modules
@@ -38,13 +33,26 @@ terraform plan  // Displays preview of resources being applied to project
 terraform apply // Executes application of resources
 ```
 
-5. Once your set up is complete, you can test it by doing the following:
-   a. Add new `target/` directory in your connected repository. This should contain code with relevant `cloudbuild.yaml` or `Dockerfile`.
-   b. Pushing a test commit inside `target/` in your connected repository.
-   c. Watch the build in Cloud Build complete pushing an image to Artifact Registry.
-   d. Watch completion of push in Artifact Registry triggers `gcr` topic for Cloud Deploy to commence.
+4. Open up node provisioned [virtual machine `node-virtual-machine`](https://console.cloud.google.com/compute/instances)
 
-6. Clean up terraform resources by executing:
+5. click `SSH` option of `node-virtual-machine` vm instance.
+
+6. Inside the vm instance:
+
+```bash
+touch server.js // create app.js and copy contents of this directory's `./app.js`
+node server.js // run server at port 5000
+```
+
+Continue to have the server running when you continue to the next step.
+
+7. Execute the following in Cloud Shell to see the server response through an external url from Compute engine.
+
+```bash
+curl "$(terraform output --raw external-url)"
+```
+
+8. Clean up terraform resources by executing:
 
 ```bash
 terraform destroy
@@ -52,5 +60,4 @@ terraform destroy
 
 ## What's next?
 
-- Try out walkthrough using Cloud Deploy with Cloud Run [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/?show=ide%2Cterminal&walkthrough_id=deploy--cloud-deploy-e2e-run)
-- Try out walkthrough using Cloud Deploy with GKE [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/?show=ide%2Cterminal&walkthrough_id=deploy--cloud-deploy-e2e-gke)
+- [Deploy a Java application with Compute Engine](https://pantheon.corp.google.com/products/solutions/details/java-application)
