@@ -24,10 +24,15 @@ $(document).ready(function () {
     Object.values(statusClassesMap).forEach(s => {
       el.removeClass(s);
     });
-    el.addClass(statusClassesMap[status]);
+
+    if (status) {
+      el.addClass(statusClassesMap[status]);
+    }
   }
 
   function setCheckpoints(div, checkpointsMap) {
+
+
     // console.log("setting checkpoints");
     for (let i = 0; i < 8; i++) {
       let checkpoint = i + 1
@@ -36,11 +41,16 @@ $(document).ready(function () {
       let valEl = row.find("td.checkpoint_val");
       let checkpointValue = checkpointsMap[checkpoint];
 
+      // Reset board if nothing to show.
+      if (!checkpointsMap[0]) {
+        updateStatus(row);
+        valEl.text(0);
+        continue;
+      }
+
       if (checkpointValue) {
         updateStatus(row, 1)
         valEl.text(formatTimestamp(checkpointValue));
-      } else if (i === 0) {
-        return;
       } else {
         let now = new Date();
         updateStatus(row, 0)
@@ -78,8 +88,9 @@ $(document).ready(function () {
     setBoxShadow(carRightDivId, baseStatus);
   });
   socket.on("send_data", function (data) {
-    console.log("send_data")
+    // console.log("send_data")
 
+    console.log(data);
     // console.log(data.left);
     // console.log(data.right);
     leftData = data.left;
