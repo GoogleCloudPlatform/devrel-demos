@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import Signal from "./Signal";
 import { getPatterns } from "../actions/coreActions";
-import SuccessState from "../assets/conductor-success.gif";
-import TryAgainState from "../assets/conductor-try-again.gif";
+import SuccessState from "../assets/conductor-success.svg";
+import TryAgainState from "../assets/conductor-try-again.svg";
 import ExtrasQRCode from "../assets/qrcode-extras.png";
 import "./styles/CargoResult.css";
 
@@ -27,7 +27,7 @@ import "./styles/CargoResult.css";
  *
  */
 const CargoResult = (props) => {
-  const { proposal, signals, train } = props;
+  const { proposal, train } = props;
   const { pattern_slug, proposal_result } = proposal;
   const state = useSelector((state) => state);
   const dispatch = useDispatch();

@@ -14,7 +14,6 @@
 
 import React from "react";
 import TrainCoach from "./TrainCoach";
-import { useSelector, useDispatch } from "react-redux";
 import "./styles/Train.css";
 
 /**

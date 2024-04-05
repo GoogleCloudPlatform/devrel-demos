@@ -25,9 +25,12 @@ const firebaseConfig = {
   appId: process.env.REACT_APP_FIREBASE_APP_ID,
   measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
 };
-
+  
 const app = firebase.initializeApp(firebaseConfig);
-const analytics = firebase.analytics(app);
-const db = firebase.firestore();
+const bundle = {
+  app,
+  analytics: firebase.analytics(app),
+  db: firebase.firestore()
+};
 
-export default { app, analytics, db };
+export default bundle;
