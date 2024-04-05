@@ -73,6 +73,26 @@ h1 {
   font-weight: 900;
 }
 
+table {
+  width: 100%;
+  padding: 10px;
+}
+
+th:first-child {
+  width: 50%;
+}
+
+
+tr.race-going  {
+  background: rgba(255, 243, 0, 0.25);
+}
+tr.race-over {
+  background: rgba(114, 217, 4, 0.25);
+}
+tr.race-failed {
+  background: #F23005;
+}
+
 .time_view {
   height: 35px;
 }
