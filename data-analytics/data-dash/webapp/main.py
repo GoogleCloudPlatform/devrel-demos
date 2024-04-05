@@ -67,7 +67,6 @@ def get_data(track_id):
     # Expand Bigtable read to a reusable object
     row = None
     for _ in _r:
-        print(1)
         row = _
 
     data["car_id"] = row.cells["cf"][b"car_id"][0].value.decode("utf-8")
