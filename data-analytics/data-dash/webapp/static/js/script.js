@@ -28,7 +28,7 @@ $(document).ready(function () {
   }
 
   function setCheckpoints(div, checkpointsMap) {
-    console.log("setting checkpoints");
+    // console.log("setting checkpoints");
     for (let i = 0; i < 8; i++) {
       let checkpoint = i + 1
       let selector = div + " tr";
@@ -39,6 +39,8 @@ $(document).ready(function () {
       if (checkpointValue) {
         updateStatus(row, 1)
         valEl.text(formatTimestamp(checkpointValue));
+      } else if (i === 0) {
+        return;
       } else {
         let now = new Date();
         updateStatus(row, 0)
