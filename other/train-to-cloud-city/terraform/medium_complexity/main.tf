@@ -68,11 +68,11 @@ resource "google_project_service" "firestore" {
 # Artifact Registry #
 #####################
 
-resource "google_artifact_registry_repository" "pattern_b_repo" {
+resource "google_artifact_registry_repository" "ar_repo" {
   project       = var.project
   location      = var.region
-  repository_id = "cloud-train-pattern-b"
-  description   = "Cloud Train Demo: Pattern B"
+  repository_id = "cloud-train"
+  description   = "Cloud Train Demo Repo"
   format        = "DOCKER"
 }
 

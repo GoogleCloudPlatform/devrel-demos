@@ -10,10 +10,11 @@
 
 1. Navigate to any of the following patterns directories:
 
-   - [Pattern A - CI/CD pipeline](./pattern_A/)
-   - [Pattern B - Provision Cloud Firestore with Cloud Run](./pattern_B/)
-   - [Pattern C - Compute Engine with Node.js](./pattern_C/)
-   - [Pattern D - Host a database backed website](./pattern_D/)
+   - [Mission A - Compute Engine with Node.js](./low_complexity/)
+   - [Mission B - Provision Cloud Firestore with Cloud Run](./medium_complexity/)
+   - [Mission D - CI/CD pipeline](./high_complexity/)
+
+  Note: [Mission C - Host a database backed website](https://console.cloud.google.com/welcome?walkthrough_id=sql--mysql--quickstart-cloud-run) is a walkthrough. Try it out!
 
 2. Apply Google Cloud resources with `terraform`:
 
