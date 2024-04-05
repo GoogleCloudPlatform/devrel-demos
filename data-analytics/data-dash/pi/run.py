@@ -36,8 +36,8 @@ RFID_WAIT = 3
 
 # Load args
 project_id = os.environ["PROJECT_ID"]
-instance_id = os.environ["BIGTABLE_INSTANCE"]
-table_id = os.environ["BIGTABLE_TABLE"]
+instance_id = "data-dash"
+table_id = "races"
 
 # Bigtable objects
 client = bigtable.Client(project=project_id)
@@ -87,8 +87,9 @@ try:
 
             if id and not side_controller.is_side(id):
                 last_seen = _time
+                side = side_controller.get_side()
                 rowkey = f"track{side+1}#{MAX_VALUE - _time}"
-                row = table.direct_row(car_side_map[side])
+                row = table.direct_row(rowkey)
                 row.set_cell("cf", "car_id", str(id))
                 row.commit()
 

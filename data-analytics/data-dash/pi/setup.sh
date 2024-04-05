@@ -3,7 +3,8 @@ sudo apt update -y
 sudo apt upgrade -y
 
 # Download credentials and copy file over to Pi
-echo "export GOOGLE_APPLICATION_CREDENTIALS=/user/google/.keys/key.json"  >> ~/.bashrc
+echo "export GOOGLE_APPLICATION_CREDENTIALS=/home/google/.keys/key.json"  >> ~/.bashrc
+echo "export PROJECT_ID=${1}"
 . .bashrc
 
 # Install venv
