@@ -17,10 +17,16 @@
 .stepWrapper {
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .stepResults {
   margin-right: 10px;
+}
+
+.step {
+  max-width: 500px;
+  width: 100%;
 }
 
 .resultError {
