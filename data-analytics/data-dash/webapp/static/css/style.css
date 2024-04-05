@@ -82,6 +82,10 @@ th:first-child {
   width: 50%;
 }
 
+tr:last-child {
+  padding: 10px;
+}
+
 
 tr.race-going  {
   background: rgba(255, 243, 0, 0.25);
