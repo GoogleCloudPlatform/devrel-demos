@@ -205,11 +205,10 @@ async function submitActualCargo(chunks) {
   const ref = db.collection("global").doc("cargo");
   try {
     await ref.update({ actual_cargo: cargos }, { merge: true });
-    /*await publishMessage("cargo-read", {
+    queueMessageToPublish("cargo-read", {
       actualCargo: cargos,
       timestamp: Date.now(),
-    });*/
-
+    });
     console.log(`Cargos read ${JSON.stringify(cargos)}`);
   } catch (error) {
     console.error(error);

@@ -14,7 +14,6 @@
 
 const { StringDecoder } = require("node:string_decoder");
 const {
-  publishMessage,
   getTrain,
   getTrainMailbox,
   getSessionMailbox,
