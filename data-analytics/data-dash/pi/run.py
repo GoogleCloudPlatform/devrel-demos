@@ -37,21 +37,19 @@ RFID_WAIT = 3
 # Load args
 project_id = os.environ["PROJECT_ID"]
 instance_id = os.environ["BIGTABLE_INSTANCE"]
-lookup_table_id = os.environ["BIGTABLE_LOOKUP_TABLE"]
-race_table_id = os.environ["BIGTABLE_RACE_TABLE"]
+table_id = os.environ["BIGTABLE_TABLE"]
 
 # Bigtable objects
 client = bigtable.Client(project=project_id)
 instance = client.instance(instance_id)
-lookup_table = instance.table(lookup_table_id)
-race_table = instance.table(race_table_id)
+table = instance.table(table_id)
 
 try:
     # Initialize Pi connections to read as BCM
     GPIO.setmode(GPIO.BCM)
 
     # Initialize sensors
-    sensors = [BeamBreakSensor(i, pin, race_table,) \
+    sensors = [BeamBreakSensor(i, pin, table) \
                for i, pin in enumerate(PINS, start=1)]
 
     # Initialize RFID sensor
@@ -86,17 +84,13 @@ try:
         if _time - last_scan > RFID_WAIT:
             id = reader.read_id_no_block()
             last_scan = _time
-            if id:
-                last_seen = _time
-                rowkey = f"{id}#{MAX_VALUE - _time}"
-                print(f"CAR ID: {rowkey}")
 
-        # If there is an ID and the ID does not update the Pi sides
-        if id and not side_controller.is_side(id):
-            # Write scanned ID to lookup table
-            row = lookup_table.direct_row(car_side_map[side])
-            row.set_cell("cf", "id", str(id))
-            row.commit()
+            if id and not side_controller.is_side(id):
+                last_seen = _time
+                rowkey = f"track{side+1}#{MAX_VALUE - _time}"
+                row = table.direct_row(car_side_map[side])
+                row.set_cell("cf", "car_id", str(id))
+                row.commit()
 
         # Poll sensors
         if rowkey:
