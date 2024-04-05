@@ -1,37 +1,39 @@
 $(document).ready(function() {
-  const baseColor = "yellow"
+  const baseStatus = "0"
   const carLeftDivId = "#car_1"
   const carRightDivId = "#car_2"
-  const statusClasses = ["race-going", "race-over", "race-failed"]
+  const statusClassesMap = {
+    "0": "race-going",
+    "1": "race-over",
+    "2": "race-failed"
+  }
 
   var socket = io();
 
-  function setBoxShadow(div, color) {
-    console.log("setting box shaddow");
+  function setBoxShadow(div, status) {
+    var color = statusClassesMap[status]
+    console.log("setting box shadow");
     console.log(color);
-    statusClasses.forEach(c => {
+    statusClassesMap.forEach(c => {
       $(div).removeClass(c);
     })
-    if (color === "yellow") {
-      $(div).addClass("race-going")
-    }
-    if (color === "green") {
-      $(div).addClass("race-over")
-    }
-    if (color === "red") {
-      $(div).addClass("race-failed")
-    }
+    $(div).addClass(color)
   }
   function setPic(div, id) {
-    // $(div + " .img").css("background-image", `url("https://storage.googleapis.com/data-analytics-demos/next2024/cars/${id}.jpg")`);
+    $(div + " .img").css("background-image", `url("https://storage.googleapis.com/data-analytics-demos/next2024/cars/${id}.jpg")`);
   }
+
   socket.on('connect', function() {
+    setBoxShadow(carLeftDivId, baseStatus);
+    setBoxShadow(carRightDivId, baseStatus);
+  });
+  socket.on('data', function(data) {
     setBoxShadow(carLeftDivId, baseColor);
     setBoxShadow(carRightDivId, baseColor);
-  });
+  })
   socket.on('set_pictures', function(data) {
-    setPic(carLeftDivId, data.left_id);
-    setPic(carRightDivId, data.right_id);
+    setPic(carLeftDivId, data.left.car_id);
+    setPic(carRightDivId, data.right.car_id);
   });
   socket.on('set_status', function(data) {
     console.log(data)

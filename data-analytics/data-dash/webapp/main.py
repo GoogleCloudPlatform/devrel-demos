@@ -13,14 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
+from datetime import datetime
 import os
 from threading import Lock
 import time
 
 from flask import Flask, render_template
 from flask_socketio import SocketIO
-from google.cloud import bigtable
+from google.cloud import bigtable, row_filters
 
 async_mode = None
 
@@ -39,10 +39,10 @@ WIN = 2
 ERR =  3
 
 COLORS ={
-    OK: "yellow",
-    DONE: "green",
-    WIN: "rgb(0, 255, 0)",
-    ERR: "red",
+    OK: 0,
+    DONE: 1,
+    WIN: 2,
+    ERR: 3,
 }
 
 project_id = os.environ["PROJECT_ID"]
@@ -54,96 +54,74 @@ client = bigtable.Client(project=project_id)
 instance = client.instance(instance_id)
 lookup_table = instance.table(lookup_table_id)
 race_table = instance.table(race_table_id)
-column_family_id = "cf"
+column_family_id = "cf"    
 
-def get_ids():
-    _dt_end = (datetime.datetime.now(datetime.UTC)
-                 - datetime.timedelta(seconds=RESET_ID_TIMEOUT))
-    _cells = {}
-    rows = lookup_table.read_rows()
-    for row in rows:
-        _row_key = row.row_key.decode("utf-8")
-        _cells[_row_key] = (
-            row.cells["cf"][b"id"][0].value.decode("utf-8"),
-            row.cells["cf"][b"id"][0].timestamp,
-        )
-    if not _cells:
-        return (DEFAULT_ID, DEFAULT_ID)
-    elif _cells["car1"][1] > _dt_end or _cells["car2"][1] > _dt_end:
-        return (
-            _cells["car1"][0],
-            _cells["car2"][0],
-        )
-    else:
-        return (DEFAULT_ID, DEFAULT_ID)
+def get_data(track_id):
+    # get_data returns the data for the last race on a track
+    data = {}
+    _r = race_table.read_rows(
+        filter_=row_filters.RowKeyRegexFilter(
+            bytes(f"^track{track_id}#.*", "utf-8")),
+            limit=1
+    )
 
-def get_status():
-    _cells = {}
-    _times = {}
-    rows = race_table.read_rows(limit=2)
-    for row in rows:
-        id, ts =row.row_key.decode("utf-8").split("#")
-        _times[id] = ts
-        row_cells = row.cells["cf"]
-        if row.cells["cf"][b"cp8"][0].value.decode("utf-8"):
-            _cells[id] = (DONE, None)
-        elif time.time() - ts > CAR_ERR_TIMEOUT:
-            if (row_cells.get(b"t1_s") or
-                row_cells.get(b"t2_s") or
-                row_cells.get(b"t3_s")):
-                for i in reversed(range(1,9)):
-                    val = row_cells.get(b"" + f"t{i}_s")
-                    if val:
-                        _cells[id] = (ERR, val[0].value.decode("utf-8"))
+    # Expand Bigtable read to a reusable object
+    row = None
+    for _ in _r:
+        print(1)
+        row = _
+
+    data["car_id"] = row.cells["cf"][b"car_id"][0].value.decode("utf-8")
+    data["timestamp"] = row.cells["cf"][b"car_id"][0].timestamp
+
+    col_strf = "t{i}_s"
+    checkpoints = {}
+    for i in range(1,9):
+        col_name = bytes(col_strf.format(i=i), "utf-8")
+        col = row.cells["cf"].get(col_name)
+        checkpoints[str(i)] = int(col[0].value.decode("utf-8")) if col else None
+
+    for i in range(1,3):
+        ts = int(checkpoints.get(i))
+        if ts:
+            if checkpoints.get(i):
+                status = DONE
+                break
+            else:
+                status = ERR if time.time() - ts > CAR_ERR_TIMEOUT else OK
+                break
         else:
-            _cells[id] = (OK, None)
+            status = ERR
 
-        c1, c2 = _cells.keys()
-    if _cells[c1][0] == DONE and _cells[c2][0] == DONE:
-        if _times[c1] < _times[c2]:
-            _cells[c1][0] = WIN
-        else:
-            _cells[c2][0] = WIN
-    return _cells
+    data["checkpoints"] = checkpoints
+    data["status"] = status
+    return data
 
 def background_thread():
     while True:
         socketio.sleep(1)
-        left_id, right_id = get_ids()
-        print("IDS:", flush=True)
-        print(left_id, right_id, flush=True)
-        socketio.emit("set_pictures", {"left_id": left_id, "right_id": right_id})
-
-        continue 
-        left_status = None
-        right_status = None
-        left_data = None
-        right_data = None
+        left_data = get_data(1)
+        right_data = get_data(2)
         
-        if left_id == DEFAULT_ID:
-            left_status = OK
-        if right_id == DEFAULT_ID:
-            right_status = OK
+        # Determine if there's a winner
+        if left_data["status"] == DONE and right_data["status"] == DONE:
+            if left_data["checkpoints"]["8"] < right_data["checkpoints"]["8"]:
+                left_data["status"] = WIN
+            else:
+                right_data["status"] = WIN
+        elif left_data["status"] == DONE:
+            left_data["status"] = WIN
+        elif right_data["status"] == DONE:
+            right_data["status"] = WIN
+        socketio.emit(
+            "send_data",
+            {"left": left_data, "right": right_data}
+        )
 
-        if not left_status or not right_status:
-            status = get_status()
-        
-            if not left_status:
-                left_status, left_data = status[left_id]
-
-            if not right_status:
-                right_status, right_data = status[right_id]
-
-        socketio.emit("set_status", 
-            {"left_color": COLORS[left_status],
-             "right_color": COLORS[left_status],
-             "left_data": left_data,
-             "right_data": right_data})
 
 @app.route("/")
 def index():
     return render_template("index.html", async_mode=socketio.async_mode)
-
 
 @socketio.event
 def connect():
@@ -152,7 +130,8 @@ def connect():
         if thread is None:
             thread = socketio.start_background_task(background_thread)
     socketio.emit(
-        "set_pictures", {"left_id": f"{DEFAULT_ID}", "right_id": f"{DEFAULT_ID}"}
+        "set_pictures",
+        {"left_id": f"{DEFAULT_ID}", "right_id": f"{DEFAULT_ID}"}
     )
 
 

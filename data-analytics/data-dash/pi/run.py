@@ -12,8 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import argparse
 import os
 import time
 
@@ -24,40 +22,34 @@ import RPi.GPIO as GPIO
 from beam_break_sensor import BeamBreakSensor
 from side_controller import SideController
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--debug', help='Print to console')
-parser.add_argument('--write-to-bt', help='Toggle writing to BT')
-
-args = parser.parse_args()
-
-debug = bool(args.debug)
-write_to_bt = bool(args.write_to_bt)
-
 # Pins as mapped to the Pis
 PINS = [i for i in range(19, 27)]
 
-# DEFAULT ID
+# Subtract current_time from this value to get rows ordered last to first
+MAX_VALUE = 9999999999
+
+# Reset rowkey if the last RFID read was N seconds ago
+ROWKEY_RESET = 30
+
+# Read RFID every N seconds
 RFID_WAIT = 3
 
 # Load args
 project_id = os.environ["PROJECT_ID"]
 instance_id = os.environ["BIGTABLE_INSTANCE"]
-lookup_table_id = os.environ["BIGTABLE_LOOKUP_TABLE"]
-race_table_id = os.environ["BIGTABLE_RACE_TABLE"]
+table_id = os.environ["BIGTABLE_TABLE"]
 
 # Bigtable objects
 client = bigtable.Client(project=project_id)
 instance = client.instance(instance_id)
-lookup_table = instance.table(lookup_table_id)
-race_table = instance.table(race_table_id)
+table = instance.table(table_id)
 
 try:
     # Initialize Pi connections to read as BCM
     GPIO.setmode(GPIO.BCM)
 
     # Initialize sensors
-    sensors = [BeamBreakSensor(i, pin, race_table,
-                debug=debug, write_to_bt=write_to_bt) \
+    sensors = [BeamBreakSensor(i, pin, table) \
                for i, pin in enumerate(PINS, start=1)]
 
     # Initialize RFID sensor
@@ -76,29 +68,33 @@ try:
     side = side_controller.get_side()
 
     id = None
-    car_id = None
+    rowkey = None
     last_scan = 0
+    last_seen = 0
+
     print(side)
     print(f"STARTING SIDE: {car_side_map[side]}")
     while True:
         _time = time.time()
+
+        if _time - last_seen > ROWKEY_RESET:
+            rowkey = None
 
         # Only accept RFID reads after a certain period
         if _time - last_scan > RFID_WAIT:
             id = reader.read_id_no_block()
             last_scan = _time
 
-        # If there is an ID and the ID does not update the Pi sides
-        if id and not side_controller.is_side(id):
-            car_id = id
-            print(f"CAR ID: {car_id}")
-            # Write scanned ID to lookup table
-            row = lookup_table.direct_row(car_side_map[side])
-            row.set_cell("cf", "id", str(id))
-            row.commit()
+            if id and not side_controller.is_side(id):
+                last_seen = _time
+                rowkey = f"track{side+1}#{MAX_VALUE - _time}"
+                row = table.direct_row(car_side_map[side])
+                row.set_cell("cf", "car_id", str(id))
+                row.commit()
 
         # Poll sensors
-        for sensor in sensors:
-            sensor.read(car_id)
+        if rowkey:
+            for sensor in sensors:
+                sensor.read(rowkey)
 finally:
     GPIO.cleanup()
