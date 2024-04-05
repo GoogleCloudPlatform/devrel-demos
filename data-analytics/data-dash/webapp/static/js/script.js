@@ -42,7 +42,7 @@ $(document).ready(function () {
       let checkpointValue = checkpointsMap[checkpoint];
 
       // Reset board if nothing to show.
-      if (!checkpointsMap[0]) {
+      if (!checkpointsMap[1]) {
         updateStatus(row);
         valEl.text(0);
         continue;
@@ -52,10 +52,10 @@ $(document).ready(function () {
         updateStatus(row, 1)
         valEl.text(formatTimestamp(checkpointValue));
       } else {
-        let now = new Date();
-        updateStatus(row, 0)
-        valEl.text(formatTimestamp(now));
-        return;
+        // let now = new Date();
+        // updateStatus(row, 0)
+        // valEl.text(formatTimestamp(now));
+        // return;
       }
     }
   }
@@ -78,7 +78,7 @@ $(document).ready(function () {
   function setPic(div, id) {
     $(div + " .img").css(
         "background-image",
-        `url("https://storage.googleapis.com/data-analytics-demos/next2024/cars/${id}.jpg")`,
+        `url("https://storage.googleapis.com/data-analytics-demos/next2024/cars/${id}.png")`,
     );
   }
 

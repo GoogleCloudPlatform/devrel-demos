@@ -79,7 +79,12 @@ table {
 }
 
 th:first-child {
-  width: 50%;
+  width: 100%;
+}
+
+tr th:last-child, tr td:last-child {
+  width: 0%;
+  display: none;
 }
 
 tr:last-child {
