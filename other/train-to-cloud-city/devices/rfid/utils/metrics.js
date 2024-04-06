@@ -11,7 +11,9 @@ let queuedMetricsToPublish = [];
  */ 
 function queueMessageToPublish(topic, data) {
   const dataBuffer = Buffer.from(JSON.stringify(data));
-  queuedMetricsToPublish.push({ topic, data: dataBuffer, timestamp: Date.now() });
+  const publishTimeBuffer = Buffer.from(JSON.stringify({ timestamp: Date.now() }));
+  
+  queuedMetricsToPublish.push({ topic, publishTime: publishTimeBuffer, data: dataBuffer });
 }
 
 /**
@@ -22,10 +24,14 @@ function queueMessageToPublish(topic, data) {
  */ 
 (async function publishQueuedMessages() {
   setInterval(() => {
-    queuedMetricsToPublish?.forEach(async (metric) => {
+    queuedMetricsToPublish?.forEach(async (metrics) => {
+      const topicBuffer = Buffer.from(JSON.stringify(metrics?.topic));
       try {
-        const messageId = await pubSubClient.topic(metric?.topic).publishMessage({ data: metric?.data, timestamp: metric?.timestamp });
-        console.log(messageId);
+        const messageId = await pubSubClient.topic(metrics?.topic).publishMessage({ 
+          data: metrics?.data,
+          topic: topicBuffer,
+          timestamp: metrics?.publishTime
+        });
         console.log(`Message ${messageId} published.`);
         // clear published metrics
         queuedMetricsToPublish = [];
@@ -34,7 +40,7 @@ function queueMessageToPublish(topic, data) {
         process.exitCode = 1;
       }
     });
-  }, 500);
+  }, 5000);
 })();
 
 module.exports = { queueMessageToPublish };

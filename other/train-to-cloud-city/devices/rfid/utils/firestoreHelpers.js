@@ -83,7 +83,7 @@ async function setMissionPattern(chunk, reader) {
     if (event_slug === "reset") {
       console.log("Admin reset registered.");
       try {
-        motor.stop();
+        motor?.stop();
         await mailboxRef.set({ input: "reset" });
         moveBackToStation = true;
         motor?.setPower(30);
