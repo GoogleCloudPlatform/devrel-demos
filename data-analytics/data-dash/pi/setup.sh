@@ -35,6 +35,6 @@ sudo raspi-config nonint do_spi 0
 } >> ~/.bashrc
 
 # Set some VIM confg (optional)
-# echo "set number" >> .vimrc
-# echo "set backspace=indent,eol,start" >> .vimrc
-# echo "set nocompatible" >> .vimrc
+# echo "set number" >> ~/.vimrc
+# echo "set backspace=indent,eol,start" >> ~/.vimrc
+# echo "set nocompatible" >> ~/.vimrc
