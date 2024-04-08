@@ -28,7 +28,7 @@ const {
   readCargo,
   resetGameState,
   updateGameLoop,
-  storeSignal
+  storeSignal,
 } = require("./trainGame.js");
 
 require("./utils/metrics.js");
@@ -56,20 +56,20 @@ async function listenToReaders() {
       listener.on("data", (chunk) => setMissionPattern(chunk, port?.role));
       return;
     }
-    
-    if(port?.role === "station") {
+
+    if (port?.role === "station") {
       const listener = new SerialPort(port).pipe(new ReadlineParser());
       listener.on("data", (chunk) => readCargo(chunk, port?.role));
       return;
     }
-    
-    if(port?.role.indexOf("checkpoint") > -1) {
+
+    if (port?.role.indexOf("checkpoint") > -1) {
       const listener = new SerialPort(port).pipe(new ReadlineParser());
       listener.on("data", () => updateLocation(port?.role));
       return;
     }
-    
-    if(port?.role.indexOf("signal") > -1) {
+
+    if (port?.role.indexOf("signal") > -1) {
       const listener = new SerialPort(port);
       storeSignal(listener?.settings?.role, listener);
     }
@@ -94,9 +94,9 @@ expressApp.get("/stop", async (req, res) => {
   try {
     const motor = await getMotor();
     motor.stop();
-  } catch(error) {
+  } catch (error) {
     res.send(`/?message=${encodeURIComponent("Stopping train")}`);
-    res.status(400).json({error});
+    res.status(400).json({ error });
   }
 });
 
@@ -105,14 +105,16 @@ expressApp.get("/stop", async (req, res) => {
  */
 expressApp.get("/reset", async (req, res) => {
   console.log("Resetting train state ...");
-  
+
   try {
     resetGameState();
     await updateInputMailbox("reset");
-    res.status(200).redirect(`/?message=${encodeURIComponent("Resetting train")}`);
-  } catch(error) {
+    res
+      .status(200)
+      .redirect(`/?message=${encodeURIComponent("Resetting train")}`);
+  } catch (error) {
     console.error(error);
-    res.status(400).json({error})
+    res.status(400).json({ error });
   }
 });
 
@@ -127,10 +129,12 @@ expressApp.get("/start", async (req, res) => {
     const motor = await getMotor();
     motor.setPower(30);
     console.log("Starting train demo ...");
-    res.status(200).redirect(`/?message=${encodeURIComponent("Starting train")}`);
+    res
+      .status(200)
+      .redirect(`/?message=${encodeURIComponent("Starting train")}`);
   } catch (error) {
     console.error(error);
-    res.status(400).json({error})
+    res.status(400).json({ error });
   }
 });
 
@@ -156,8 +160,8 @@ async function gracefulExit() {
 }
 
 // Attempt graceful exit if ctrl-c or unexpected crash
-[`exit`, `SIGINT`, `uncaughtException`, `SIGTERM`].forEach((eventType) => 
-  process.on(eventType, gracefulExit)
-)
+[`exit`, `SIGINT`, `uncaughtException`, `SIGTERM`].forEach((eventType) =>
+  process.on(eventType, gracefulExit),
+);
 
 expressApp.listen(3000, () => console.log("Listening to 3000"));

@@ -8,12 +8,18 @@ let queuedMetricsToPublish = [];
  * queueMessageToPublish
  * ---------------------------
  * Queue up metrics to publish while game is going on
- */ 
+ */
 function queueMessageToPublish(topic, data) {
   const dataBuffer = Buffer.from(JSON.stringify(data));
-  const publishTimeBuffer = Buffer.from(JSON.stringify({ timestamp: Date.now() }));
-  
-  queuedMetricsToPublish.push({ topic, publishTime: publishTimeBuffer, data: dataBuffer });
+  const publishTimeBuffer = Buffer.from(
+    JSON.stringify({ timestamp: Date.now() }),
+  );
+
+  queuedMetricsToPublish.push({
+    topic,
+    publishTime: publishTimeBuffer,
+    data: dataBuffer,
+  });
 }
 
 /**
@@ -21,17 +27,19 @@ function queueMessageToPublish(topic, data) {
  * ---------------------------
  * As long as there are items in the queue to publish
  * continue pushing items up to google-cloud pubsub
- */ 
+ */
 (async function publishQueuedMessages() {
   setInterval(() => {
     queuedMetricsToPublish?.forEach(async (metrics) => {
       const topicBuffer = Buffer.from(JSON.stringify(metrics?.topic));
       try {
-        const messageId = await pubSubClient.topic(metrics?.topic).publishMessage({ 
-          data: metrics?.data,
-          topic: topicBuffer,
-          timestamp: metrics?.publishTime
-        });
+        const messageId = await pubSubClient
+          .topic(metrics?.topic)
+          .publishMessage({
+            data: metrics?.data,
+            topic: topicBuffer,
+            timestamp: metrics?.publishTime,
+          });
         console.log(`Message ${messageId} published.`);
         // clear published metrics
         queuedMetricsToPublish = [];
@@ -40,8 +48,7 @@ function queueMessageToPublish(topic, data) {
         process.exitCode = 1;
       }
     });
-  }, 5000);
+  }, 500);
 })();
 
 module.exports = { queueMessageToPublish };
-

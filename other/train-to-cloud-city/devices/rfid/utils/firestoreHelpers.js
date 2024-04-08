@@ -65,12 +65,14 @@ async function setMissionPattern(chunk, reader) {
 
     if (event_slug === "check-pattern") {
       console.log("Checking pattern ....");
-      
-      queueMessageToPublish("begin-game", { pattern_slug: matchingTag?.pattern_slug });
-      
+
+      queueMessageToPublish("begin-game", {
+        pattern_slug: matchingTag?.pattern_slug,
+      });
+
       try {
         await mailboxRef.set({ input: "check_pattern" });
-        motor?.setPower(30); // move towards station
+        motor?.setPower(25); // move towards station
         console.log(
           `Input mailbox has been triggered to check pattern and now moving to station.`,
         );
@@ -85,8 +87,7 @@ async function setMissionPattern(chunk, reader) {
       try {
         motor?.stop();
         await mailboxRef.set({ input: "reset" });
-        moveBackToStation = true;
-        motor?.setPower(30);
+        motor?.setPower(25);
       } catch (error) {
         console.error(error);
       }
@@ -223,9 +224,9 @@ async function updateLocation(location) {
   const ref = db.collection("global").doc("train");
   try {
     await ref.update({ actual_location: location }, { merge: true });
-    
+
     queueMessageToPublish("location-updated", { location });
-    
+
     console.log(`Passed checkpoint ${location}`);
   } catch (error) {
     console.error(error);
