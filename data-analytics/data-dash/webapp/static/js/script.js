@@ -24,10 +24,15 @@ $(document).ready(function () {
     Object.values(statusClassesMap).forEach(s => {
       el.removeClass(s);
     });
-    el.addClass(statusClassesMap[status]);
+
+    if (status) {
+      el.addClass(statusClassesMap[status]);
+    }
   }
 
   function setCheckpoints(div, checkpointsMap) {
+
+
     // console.log("setting checkpoints");
     console.log(checkpointsMap)
     for (let i = 0; i < 8; i++) {
@@ -37,16 +42,21 @@ $(document).ready(function () {
       let valEl = row.find("td.checkpoint_val");
       let checkpointValue = checkpointsMap[checkpoint];
 
+      // Reset board if nothing to show.
+      if (!checkpointsMap[1]) {
+        updateStatus(row);
+        valEl.text(0);
+        continue;
+      }
+
       if (checkpointValue) {
         updateStatus(row, 1)
         valEl.text(formatTimestamp(checkpointValue));
-      } else if (i === 0) {
-        return;
       } else {
-        let now = new Date();
-        updateStatus(row, 0)
-        valEl.text(formatTimestamp(now));
-        return;
+        // let now = new Date();
+        // updateStatus(row, 0)
+        // valEl.text(formatTimestamp(now));
+        // return;
       }
     }
   }
@@ -79,10 +89,12 @@ $(document).ready(function () {
     setBoxShadow(carRightDivId, baseStatus);
   });
   socket.on("send_data", function (data) {
-    console.log("send_data")
+    // console.log("send_data")
+
 
     console.log(data.left);
     console.log(data.right);
+
     leftData = data.left;
     rightData = data.right;
 
@@ -114,10 +126,14 @@ $(document).ready(function () {
     setCheckpoints(carRightDivId, rightData.checkpoints);
   });
 
-  // setInterval(() => {
-  //   setCheckpoints(carLeftDivId, leftData.checkpoints);
-  //   setCheckpoints(carRightDivId, rightData.checkpoints);
-  // }, 100)
+  setInterval(() => {
+    if (leftData) {
+      setCheckpoints(carLeftDivId, leftData.checkpoints);
+    }
+    if (rightData) {
+      setCheckpoints(carRightDivId, rightData.checkpoints);
+    }
+  }, 100)
 
   // socket.on('set_pictures', function(data) {
   //   setPic(carLeftDivId, data.left.car_id);

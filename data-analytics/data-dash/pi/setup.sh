@@ -4,7 +4,7 @@ sudo apt upgrade -y
 
 # Download credentials and copy file over to Pi
 echo "export GOOGLE_APPLICATION_CREDENTIALS=/home/google/.keys/key.json"  >> ~/.bashrc
-echo "export PROJECT_ID=${1}"
+echo "export PROJECT_ID=${1}" >> ~/.bashrc
 . .bashrc
 
 # Install venv
@@ -35,6 +35,6 @@ sudo raspi-config nonint do_spi 0
 } >> ~/.bashrc
 
 # Set some VIM confg (optional)
-# echo "set number" >> .vimrc
-# echo "set backspace=indent,eol,start" >> .vimrc
-# echo "set nocompatible" >> .vimrc
+# echo "set number" >> ~/.vimrc
+# echo "set backspace=indent,eol,start" >> ~/.vimrc
+# echo "set nocompatible" >> ~/.vimrc
