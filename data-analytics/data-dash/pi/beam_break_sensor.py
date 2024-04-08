@@ -43,19 +43,19 @@ class BeamBreakSensor:
             self.is_broken = True
             if cur_time - self.broken_time > 10:
                 self.broken_time = cur_time
-                self.upload(cur_time)
+                self.upload(cur_time, True)
 
     def unbroken(self, cur_time):
         self.unbroken_time = cur_time
+        self.upload(cur_time, False)
         if self.is_broken:
             print(f"SENSOR {self.id}: UNBROKEN")
             self.is_broken = False
 
-    def upload(self, cur_time):
-        print((self.rowkey, self.id, self.broken_time))
-
+    def upload(self, cur_time, broken):
+        col = f"t{self.id}_s" if broken else f"t{self.id}_e"
         column_family_id = "cf"
 
         row = self.table.direct_row(self.rowkey)
-        row.set_cell(column_family_id, f"cp{self.id}", str(cur_time))
+        row.set_cell(column_family_id, col, str(cur_time))
         row.commit()

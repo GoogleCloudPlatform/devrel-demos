@@ -34,6 +34,7 @@ $(document).ready(function () {
 
 
     // console.log("setting checkpoints");
+    console.log(checkpointsMap)
     for (let i = 0; i < 8; i++) {
       let checkpoint = i + 1
       let selector = div + " tr";
@@ -90,9 +91,10 @@ $(document).ready(function () {
   socket.on("send_data", function (data) {
     // console.log("send_data")
 
-    console.log(data);
-    // console.log(data.left);
-    // console.log(data.right);
+
+    console.log(data.left);
+    console.log(data.right);
+
     leftData = data.left;
     rightData = data.right;
 
