@@ -22,7 +22,7 @@ class SideController:
     STATE_FILE = "state.txt"
 
     LEFT_CONST = 0
-    RIGHT_CONST =  1
+    RIGHT_CONST = 1
 
     LEFT_CARDS = {
         173448457841,
@@ -32,8 +32,8 @@ class SideController:
         103979249382
     }
 
-    def __init__(self, table):
-        self.table = table
+    def __init__(self, meta_table):
+        self.meta_table = meta_table
         if os.path.isfile(self.STATE_FILE):
             with open("state.txt") as f:
                 self.side = int(f.readline().strip())
@@ -45,8 +45,8 @@ class SideController:
         ip = subprocess.run(
             ["curl", "https://api.ipify.org/"],
             stdout=subprocess.PIPE).stdout.decode("utf-8")
-        row = self.table.direct_row("ip")
-        row.set_cell("cf", f"track{self.side + 1}", str(ip))
+        row = self.meta_table.direct_row("ip")
+        row.set_cell("cf", f"track{self.side + 1} ip", str(ip))
         row.commit()
 
     def set_side(self, id, table):
