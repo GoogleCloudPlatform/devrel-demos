@@ -21,15 +21,23 @@ class BeamBreakSensor:
     unbroken_time = 0
     is_broken = False
     rowkey = None
-
-    def __init__(self, id, pin, table=None):
+    COLUMN_FAMILY = "cf"
+    SENSOR_READ_INTERVAL = 10
+    def __init__(self, id, pin, table=None, meta_table=None):
         self.id = id
         self.pin = pin
         self.table = table
+        self.meta_table = meta_table
         self.init_pin()
 
     def init_pin(self):
         GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        # write initial sensor value to meta table
+        row = self.meta_table.direct_row(self.rowkey)
+        gpio_input = GPIO.input(self.pin)
+        row.set_cell(self.COLUMN_FAMILY, self.pin, gpio_input)
+        print(f"initializing sensor {self.id} (pin {self.pin}) with value {gpio_input}")
+        row.commit()
 
     def read(self, rowkey):
         self.rowkey = rowkey
@@ -38,24 +46,27 @@ class BeamBreakSensor:
         self.unbroken(_time) if _read else self.broken(_time)
 
     def broken(self, cur_time):
-        if not self.is_broken:
-            print(f"SENSOR {self.id}: BROKEN")
-            self.is_broken = True
-            if cur_time - self.broken_time > 10:
-                self.broken_time = cur_time
-                self.upload(cur_time, True)
+        # Return if state is already broken.
+        if self.is_broken:
+            return
+
+        print(f"SENSOR {self.id}: BROKEN")
+        self.is_broken = True
+
+        if cur_time - self.broken_time > self.SENSOR_READ_INTERVAL:
+            self.broken_time = cur_time
+            self.upload(cur_time, True)
 
     def unbroken(self, cur_time):
         self.unbroken_time = cur_time
-        self.upload(cur_time, False)
         if self.is_broken:
+            self.upload(cur_time, False)
             print(f"SENSOR {self.id}: UNBROKEN")
             self.is_broken = False
 
     def upload(self, cur_time, broken):
         col = f"t{self.id}_s" if broken else f"t{self.id}_e"
-        column_family_id = "cf"
 
         row = self.table.direct_row(self.rowkey)
-        row.set_cell(column_family_id, col, str(cur_time))
+        row.set_cell(self.COLUMN_FAMILY, col, str(cur_time))
         row.commit()

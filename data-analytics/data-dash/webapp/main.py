@@ -72,7 +72,7 @@ def get_data(track_id):
     data["car_id"] = row.cells["cf"][b"car_id"][0].value.decode("utf-8")
     data["timestamp"] = datetime.timestamp(row.cells["cf"][b"car_id"][0].timestamp)
 
-    col_strf = "cp{i}"
+    col_strf = "t{i}_s"
     checkpoints = {}
     for i in range(1, 9):
         col_name = bytes(col_strf.format(i=i), "utf-8")

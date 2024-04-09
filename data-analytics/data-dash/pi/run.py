@@ -29,36 +29,36 @@ PINS = [i for i in range(19, 27)]
 MAX_VALUE = 9999999999
 
 # Reset rowkey if the last RFID read was N seconds ago
-ROWKEY_RESET = 30
+RACE_TIMEOUT = 30
 
 # Read RFID every N seconds
-RFID_WAIT = 3
+RFID_READ_INTERVAL = 3
 
 # Load args
 project_id = os.environ["PROJECT_ID"]
 instance_id = "data-dash"
 table_id = "races"
-table_id_ip = "ip_addresses"
+table_id_meta = "metadata"
 
 # Bigtable objects
 client = bigtable.Client(project=project_id)
 instance = client.instance(instance_id)
 table = instance.table(table_id)
-table_ip = instance.table_ip(table_id_ip)
+meta_table = instance.table(table_id_meta)
 
 try:
     # Initialize Pi connections to read as BCM
     GPIO.setmode(GPIO.BCM)
 
     # Initialize sensors
-    sensors = [BeamBreakSensor(i, pin, table) \
+    sensors = [BeamBreakSensor(i, pin, table, meta_table)
                for i, pin in enumerate(PINS, start=1)]
 
     # Initialize RFID sensor
     reader = SimpleMFRC522()
 
     # SideController controls if this Pi should 
-    side_controller = SideController(table_ip)
+    side_controller = SideController(meta_table)
 
     # Column mappings of side_controller
     car_side_map = {
@@ -79,18 +79,22 @@ try:
     while True:
         _time = time.time()
 
-        if _time - last_seen > ROWKEY_RESET:
+        if _time - last_seen > RACE_TIMEOUT:
+            print("Race timed out. Resetting.")
             rowkey = None
 
         # Only accept RFID reads after a certain period
-        if _time - last_scan > RFID_WAIT:
+        if _time - last_scan > RFID_READ_INTERVAL:
             id = reader.read_id_no_block()
             last_scan = _time
 
-            if id and not side_controller.is_side(id):
+            id_is_car = id and not side_controller.is_side(id)
+            # todo: When does side get reset? – (a: side gets reset in is_side cmd)
+            if id_is_car:
                 last_seen = _time
                 side = side_controller.get_side()
                 rowkey = f"track{side+1}#{MAX_VALUE - _time}"
+                print(f"starting race for {rowkey}")
                 row = table.direct_row(rowkey)
                 row.set_cell("cf", "car_id", str(id))
                 row.commit()
@@ -98,6 +102,9 @@ try:
         # Poll sensors
         if rowkey:
             for sensor in sensors:
-                sensor.read(rowkey)
+                try:
+                    sensor.read(rowkey)
+                except Exception as e:
+                    print(f"Error reading sensor {sensor.id}")
 finally:
     GPIO.cleanup()
