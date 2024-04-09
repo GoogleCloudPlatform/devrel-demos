@@ -24,6 +24,7 @@ class BeamBreakSensor:
     COLUMN_FAMILY = "cf"
     SENSOR_READ_INTERVAL = 10
     def __init__(self, id, pin, table=None, meta_table=None):
+        self.init_time = time.time()
         self.id = id
         self.pin = pin
         self.table = table
@@ -33,7 +34,8 @@ class BeamBreakSensor:
     def init_pin(self):
         GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         # write initial sensor value to meta table
-        row = self.meta_table.direct_row(self.rowkey)
+        rowkey = f"sensors#{self.init_time}"
+        row = self.meta_table.direct_row(rowkey)
         gpio_input = GPIO.input(self.pin)
         row.set_cell(self.COLUMN_FAMILY, self.pin, gpio_input)
         print(f"initializing sensor {self.id} (pin {self.pin}) with value {gpio_input}")
