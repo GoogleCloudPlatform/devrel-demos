@@ -59,7 +59,6 @@ export const getPatterns = createAsyncThunk("getPatterns", async () => {
   const ref = firebaseInstance.db.collection("patterns");
   const patterns = await ref.get().then((querySnapshot) => {
     let patternList = [];
-    console.log(patternList);
     querySnapshot.docs.forEach((doc) => patternList.push(doc.data()));
     return patternList;
   });
