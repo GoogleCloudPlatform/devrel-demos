@@ -36,8 +36,8 @@ class BeamBreakSensor:
         # write initial sensor value to meta table
         rowkey = f"sensors#{self.init_time}"
         row = self.meta_table.direct_row(rowkey)
-        gpio_input = GPIO.input(self.pin)
-        row.set_cell(self.COLUMN_FAMILY, self.pin, gpio_input)
+        gpio_input = str(GPIO.input(self.pin))
+        row.set_cell(self.COLUMN_FAMILY, str(self.pin), gpio_input)
         print(f"initializing sensor {self.id} (pin {self.pin}) with value {gpio_input}")
         row.commit()
 
