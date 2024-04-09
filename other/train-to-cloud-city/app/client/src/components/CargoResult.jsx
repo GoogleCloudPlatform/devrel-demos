@@ -57,7 +57,7 @@ const CargoResult = (props) => {
             <Signal
               trainLocation={train?.actual_location}
               signal={{
-                target_state: results?.[index]?.clear ? "clear" : "stop",
+                actual_state: results?.[index]?.clear ? "clear" : "stop",
               }}
               showTrainLocation={false}
             />

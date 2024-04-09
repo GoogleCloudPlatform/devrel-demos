@@ -91,16 +91,15 @@ const Main = (props) => {
               <img alt="welcome-wave" src={ConductorWave} />
             </div>
             <div className="mainContent">
-              <h2>Choose your adventure</h2>
+              <h2>Choose your adventure!</h2>
               <p>
-                Pick a mission wand and wave it over the center RFID reader to
-                select!
+                Pick a mission wand and wave it over the center RFID reader to select!
               </p>
               <div className="section">
                 {state.coreReducer.patterns?.map((pattern, index) => (
                   <div className="buttonStyle" key={index}>
-                    <b>{pattern.name}</b>
-                    <br />({` ${pattern.complexity.split("_").join(" ")}`})
+                    <b>{`${pattern?.slug?.split("_")[1]}: ${pattern.name}`}</b>
+                    <br />({` ${pattern?.complexity.split("_").join(" ")}`})
                   </div>
                 ))}
               </div>

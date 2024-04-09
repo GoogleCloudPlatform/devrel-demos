@@ -35,8 +35,8 @@
 
 .welcomeImage img {
   margin: 25px;
-  width: auto;
-  height: 250px;
+  max-width: 250px;
+  max-height: 250px;
 }
 
 .section {

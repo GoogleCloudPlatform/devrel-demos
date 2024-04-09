@@ -150,6 +150,7 @@ expressApp.get("/", (req, res) => {
 
 async function gracefulExit() {
   console.log("Caught interrupt signal. Resetting the game.");
+  resetGameState();
   try {
     await updateInputMailbox("reset");
     console.log("Reset completed, exiting out.");

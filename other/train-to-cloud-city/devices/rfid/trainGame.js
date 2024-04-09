@@ -55,10 +55,10 @@ trainMailboxListener(async (snapshot) => {
  */
 signalListener(async (snapshot) => {
   const { one, two, three, four } = snapshot?.data() || {};
-  signalLights?.["signal_1"](one?.target_state || "off");
-  signalLights?.["signal_2"](two?.target_state || "off");
-  signalLights?.["signal_3"](three?.target_state || "off");
-  signalLights?.["signal_4"](four?.target_state || "off");
+  signalLights?.["signal_1"]?.(one?.target_state || "off");
+  signalLights?.["signal_2"]?.(two?.target_state || "off");
+  signalLights?.["signal_3"]?.(three?.target_state || "off");
+  signalLights?.["signal_4"]?.(four?.target_state || "off");
 });
 
 /**
@@ -85,6 +85,7 @@ proposalListener(async (snapshot) => {
 /**
  * readCargo
  * ----------------------
+ * We're at station at this point
  */
 async function readCargo(chunk, role) {
   const motor = await getMotor();
