@@ -27,12 +27,14 @@ sudo raspi-config nonint do_spi 0
 # 2. Pull the latest version of the demo repo
 # 3. Change to the `pi` directly
 # 4. Run the script
-{
-  echo "cd devrel-demos/data-analytics/data-dash/pi"
-  echo "git pull https://github.com/GoogleCloudPlatform/devrel-demos.git"
-  echo ". sensors/bin/activate"
-  echo "python run.py > /dev/null 2>&1 &"
-} >> ~/.bashrc
+# {
+#   echo "cd devrel-demos/data-analytics/data-dash/pi"
+#   echo "git pull https://github.com/GoogleCloudPlatform/devrel-demos.git"
+#   echo ". sensors/bin/activate"
+#   echo "python run.py > /dev/null 2>&1 &"
+# } >> ~/.bashrc
+
+(crontab -l; echo "@reboot bash /home/google/devrel-demos/data-analytics/data-dash/pi/run.sh ${1}") | crontab -
 
 # Set some VIM confg (optional)
 # echo "set number" >> ~/.vimrc

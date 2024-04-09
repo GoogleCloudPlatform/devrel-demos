@@ -38,11 +38,13 @@ RFID_WAIT = 3
 project_id = os.environ["PROJECT_ID"]
 instance_id = "data-dash"
 table_id = "races"
+table_id_ip = "ip_addresses"
 
 # Bigtable objects
 client = bigtable.Client(project=project_id)
 instance = client.instance(instance_id)
 table = instance.table(table_id)
+table_ip = instance.table_ip(table_id_ip)
 
 try:
     # Initialize Pi connections to read as BCM
@@ -56,7 +58,7 @@ try:
     reader = SimpleMFRC522()
 
     # SideController controls if this Pi should 
-    side_controller = SideController()
+    side_controller = SideController(table_ip)
 
     # Column mappings of side_controller
     car_side_map = {

@@ -16,6 +16,7 @@
 # Side controller controls the side of the webapp that the Pis stream to
 
 import os
+import subprocess
 
 class SideController:
     STATE_FILE = "state.txt"
@@ -31,14 +32,24 @@ class SideController:
         103979249382
     }
 
-    def __init__(self):
+    def __init__(self, table):
+        self.table = table
         if os.path.isfile(self.STATE_FILE):
             with open("state.txt") as f:
                 self.side = int(f.readline().strip())
         else:
             self.side = self.LEFT_CONST
+        self.write_ip()
 
-    def set_side(self, id):
+    def write_ip(self):
+        ip = subprocess.run(
+            ["curl", "https://api.ipify.org/"],
+            stdout=subprocess.PIPE).stdout.decode("utf-8")
+        row = self.table.direct_row("ip")
+        row.set_cell("cf", f"track{self.side + 1}", str(ip))
+        row.commit()
+
+    def set_side(self, id, table):
         if id in self.LEFT_CARDS:
             self.side = self.LEFT_CONST
             print("SIDE SET TO LEFT")
@@ -47,6 +58,7 @@ class SideController:
             print("SIDE SET TO RIGHT")        
         with open(self.STATE_FILE, "w") as f:
             f.writelines([str(self.side)])
+        self.write_ip()
 
     def get_side(self):
         return self.side

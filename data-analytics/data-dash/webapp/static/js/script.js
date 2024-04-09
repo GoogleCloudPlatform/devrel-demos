@@ -135,19 +135,8 @@ $(document).ready(function () {
     }
   }, 100)
 
-  // socket.on('set_pictures', function(data) {
-  //   setPic(carLeftDivId, data.left.car_id);
-  //   setPic(carRightDivId, data.right.car_id);
-  // });
-  // socket.on('set_status', function(data) {
-  //   console.log(data)
-  //   setBoxShadow(data.left_color);
-  //   setBoxShadow(data.left_color);
-  //   if (data.left_data !== null) {
-  //     document.getElementById("stats").textContent=data.left_data;
-  //   }
-  //   if (data.right_data !== null) {
-  //     document.getElementById("stats2").textContent=data.right_data;
-  //   }
-  // })
+  socket.on('set_default', function(data) {
+    setPic(carLeftDivId, data.left_id);
+    setPic(carRightDivId, data.right_id);
+  });
 });
