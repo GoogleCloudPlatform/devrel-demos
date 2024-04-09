@@ -127,7 +127,7 @@ def connect():
         if thread is None:
             thread = socketio.start_background_task(background_thread)
     socketio.emit(
-        "set_pictures", {"left_id": f"{DEFAULT_ID}", "right_id": f"{DEFAULT_ID}"}
+        "set_default", {"left_id": f"{DEFAULT_ID}", "right_id": f"{DEFAULT_ID}"}
     )
 
 
