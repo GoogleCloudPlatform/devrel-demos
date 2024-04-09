@@ -58,6 +58,7 @@ class SideController:
             print("SIDE SET TO RIGHT")        
         with open(self.STATE_FILE, "w") as f:
             f.writelines([str(self.side)])
+        self.write_ip()
 
     def get_side(self):
         return self.side
