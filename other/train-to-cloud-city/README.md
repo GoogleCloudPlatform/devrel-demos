@@ -1,7 +1,5 @@
 # [Google Cloud Next '24] Train to Cloud City Demo 🚂
 
-## 🚧 Work In Progress 🚧
-
 "Train to Cloud City" demo project is designed to physically represent mixing and matching [Google Cloud Platform](https://console.cloud.google.com/)
 resources that resolve common development use cases (patterns) in a kinesthetically whimsical fashion.
 

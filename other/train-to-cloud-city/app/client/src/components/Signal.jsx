@@ -26,7 +26,7 @@ import "./styles/Signal.css";
  */
 const Signal = (props) => {
   const { isStation, trainLocation, signal, showTrainLocation = true } = props;
-  const { slug, target_state } = signal || {};
+  const { slug, actual_state } = signal || {};
   const position = isStation ? "station" : slug;
   const checkpointClasses = slug === "four" ? "circle" : "circle connector";
   const locationClasses =
@@ -35,7 +35,7 @@ const Signal = (props) => {
       : checkpointClasses;
 
   let signalLight;
-  switch (target_state) {
+  switch (actual_state) {
     case "stop": {
       signalLight = <img alt="SignalRed" src={SignalRed} />;
       break;

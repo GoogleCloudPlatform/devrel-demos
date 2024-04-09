@@ -61,7 +61,7 @@ class CheckpointResult(BaseModel):
             if service in self.checkpoint.satisfying_services:
                 self.clear = True
                 # TODO: lookup service name from slug here
-                self.reason = f"{service} satisfys this check"
+                self.reason = f"{service} satisfies this check"
                 # TODO: refactor to collect all services which satisfy
                 return
             else:

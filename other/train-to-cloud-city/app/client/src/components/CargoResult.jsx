@@ -16,8 +16,8 @@ import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import Signal from "./Signal";
 import { getPatterns } from "../actions/coreActions";
-import SuccessState from "../assets/conductor-success.svg";
-import TryAgainState from "../assets/conductor-try-again.svg";
+import SuccessState from "../assets/conductor-success.gif";
+import TryAgainState from "../assets/conductor-try-again.gif";
 import ExtrasQRCode from "../assets/qrcode-extras.png";
 import "./styles/CargoResult.css";
 
@@ -57,7 +57,7 @@ const CargoResult = (props) => {
             <Signal
               trainLocation={train?.actual_location}
               signal={{
-                target_state: results?.[index]?.clear ? "clear" : "stop",
+                actual_state: results?.[index]?.clear ? "clear" : "stop",
               }}
               showTrainLocation={false}
             />
