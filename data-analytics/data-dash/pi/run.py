@@ -28,9 +28,6 @@ PINS = [i for i in range(19, 27)]
 # Subtract current_time from this value to get rows ordered last to first
 MAX_VALUE = 9999999999
 
-# Reset rowkey if the last RFID read was N seconds ago
-RACE_TIMEOUT = 30
-
 # Read RFID every N seconds
 RFID_READ_INTERVAL = 3
 
@@ -79,10 +76,6 @@ try:
     while True:
         _time = time.time()
 
-        if _time - last_seen > RACE_TIMEOUT:
-            print("Race timed out. Resetting.")
-            rowkey = None
-
         # Only accept RFID reads after a certain period
         if _time - last_scan > RFID_READ_INTERVAL:
             id = reader.read_id_no_block()
@@ -91,7 +84,6 @@ try:
             id_is_car = id and not side_controller.is_side(id)
             # todo: When does side get reset? – (a: side gets reset in is_side cmd)
             if id_is_car:
-                last_seen = _time
                 side = side_controller.get_side()
                 rowkey = f"track{side+1}#{MAX_VALUE - _time}"
                 print(f"starting race for {rowkey}")
