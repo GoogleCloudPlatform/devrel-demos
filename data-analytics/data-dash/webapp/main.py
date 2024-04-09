@@ -23,7 +23,7 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO
 from google.cloud import bigtable
 
-async_mode = None
+async_mode = "threading"
 
 app = Flask(__name__)
 socketio = SocketIO(app, async_mode=async_mode)

@@ -31,9 +31,7 @@ $(document).ready(function () {
   }
 
   function setCheckpoints(div, checkpointsMap) {
-
-
-    // console.log("setting checkpoints");
+    console.log("setting checkpoints");
     console.log(checkpointsMap)
     for (let i = 0; i < 8; i++) {
       let checkpoint = i + 1
