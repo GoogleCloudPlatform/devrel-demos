@@ -1,0 +1,108 @@
+#colors {
+  color: #033E8C;
+  color: #72A603;
+  color: #ABD904;
+  color: #F23005;
+  color: #BF0404;
+  color: #FFF300;
+}
+
+body {
+  margin: 0px;
+  background-color: #232323;
+  color: white;
+  height: 100vh; /* Make the body take up full viewport height */
+  /*display: flex;*/
+  /*justify-content: center; !* Center horizontally *!*/
+  /*align-items: center;     !* Center vertically  *!*/
+}
+
+* {
+  font-family: "Open Sans", sans-serif;
+  text-align: center;
+}
+
+h1 {
+  text-transform: uppercase;
+  font-size: 60px;
+  text-indent: 30px;
+  letter-spacing: 30px;
+  margin-top: 4%;
+}
+
+#data-area {
+  width: 100%;
+}
+
+#car_1 {
+  margin-right: 2.5%;
+}
+
+.car-container {
+  width: 28%;
+  border-radius: 5px;
+  background: #373737;
+  display: inline-block;
+  border-left: 10px solid #FFF300;
+  box-shadow: 3px 3px 5px #0000005e;
+}
+.race-going  {
+  border-color: #FFF300;
+}
+.race-over {
+  border-color: #72d904;
+}
+.race-failed {
+  border-color: #F23005;
+}
+
+.car-container .img {
+  height: 250px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-image: url(https://m.media-amazon.com/images/I/51ckj8-C4CL.__AC_SX300_SY300_QL70_FMwebp_.jpg);
+  box-shadow: inset 0 0 0 2000px rgb(0 0 0 / 40%);
+  background-size: cover;
+  background-position: center;
+}
+
+.car-container .img p {
+  font-size: 50px;
+  font-weight: 900;
+}
+
+table {
+  width: 100%;
+  padding: 10px;
+}
+
+th:first-child {
+  width: 100%;
+}
+
+tr th:last-child, tr td:last-child {
+  width: 0%;
+  display: none;
+}
+
+tr:last-child {
+  padding: 10px;
+}
+
+
+tr.race-going  {
+  background: rgba(255, 243, 0, 0.25);
+}
+tr.race-over {
+  background: rgba(114, 217, 4, 0.25);
+}
+tr.race-failed {
+  background: #F23005;
+}
+
+.time_view {
+  height: 35px;
+}
+
