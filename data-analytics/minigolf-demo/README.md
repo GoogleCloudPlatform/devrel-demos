@@ -1,36 +1,62 @@
 # Golf with Gemini
-This repository contains the code for the `Golf with Gemini` demo, an interactive mini-golf experience that showcases a new approach to broadcasting the sport.
+This repository contains the code for the `Golf with Gemini` demo, an interactive mini-golf experience that showcases cutting-edge technology to transform the way we engage with the sport.
 
 ## Project Overview
-`Golf with Gemini` utilizes live data visualization and analysis to enhance the spectating experience. The system captures gameplay data through a GoPro camera and processes it using OpenCV and Python. This data drives two key features:
+`Golf with Gemini` combines live data visualization and analysis to create an insightful experience. The system captures gameplay data using a camera and processes it with OpenCV. This data drives two key features:
 
-- AI-Powered Announcer: Gemini, a large language model, provides real-time commentary based on the player's performance, offering insights and observations in a professional sportscaster style.
-- Personalized User Dashboard: A user-friendly dashboard visualizes key gameplay data, including shot heatmap and relevant statistics.
+- AI-Powered Announcer: Gemini, a large language model, provides real-time commentary based on the player's performance, offering insights and engaging commentary in the style of a professional sportscaster.
+- Personalized User Dashboard: A dashboard visualizes key gameplay data, including statistics and plots of each shot, providing players with valuable insights into their performance.
+
+The key aspect of this demo is how Gemini combines video and text information. It doesn't just analyze the video or generate text independently; it uses the video data to inform and enrich the generated commentary, making it more relevant and insightful.
+This demonstrates the power of multimodal AI, where different modalities complement each other to create a richer and more comprehensive understanding of the situation.
 
 ## Technical Details
-- Data Capture: Gameplay is recorded using a GoPro camera and transferred to a Pixel phone.
-- Data Processing: The downloaded video is transferred to a Raspberry Pi and uploaded to a cloud bucket. A cloud function analyzes the video frame-by-frame using OpenCV to detect the ball and hole locations, calculating distances.
-- AI Announcer: The analysis data is used as input for Gemini, which generates real-time commentary based on the player's performance.
-- User Dashboard: The analysis data is also used to populate a user-friendly dashboard with visualizations and statistics.
+- Data Capture: Gameplay is recorded using a camera and transferred to the Cloud Storage bucket.
+- Data Processing: Once a cloud bucket contains the video, a Cloud Function analyzes the video frame-by-frame using OpenCV to detect the ball and hole locations, calculating distances and other metrics, like number of shots.
+- AI Announcer: The analyzed data is fed into Gemini, which generates real-time commentary based on the player's performance.
+- User Dashboard: The analyzed data is also used to populate a user-friendly dashboard with visualizations and statistics.
+
+## File Structure
+Here's a breakdown of each file in the repository and how they contribute to the `Golf with Gemini` demo:
+
+### helper.py: 
+This script handles various helper functions for the demo, including:
+
+- Defining ROI(Regions Of Interest): It allows you to specify the areas in the video frame where the golf ball and hole are located.
+- Video processing: It uses OpenCV to track the ball's movement in the video, calculating distances and other metrics.
+- Background image extraction: It extracts the first frame of the video and uploads it to Cloud Storage to serve as a background image for visualizations.
+- Video file management: It can copy video files from the GoPro storage to the user's video folder.
+
+### upload.py: 
+This script continuously monitors a specified directory (e.g., the Pixel phone's DCIM folder) for new video files. When a new video is detected, it automatically uploads it to the designated Cloud Storage bucket, triggering the image_recognition Cloud Function to process the video.
+
+### image_recognition.py: 
+This script is deployed as a Cloud Function and is triggered whenever a new video is uploaded to Cloud Storage. It performs the following tasks:
+
+- Video processing: Similar to helper.py, it uses OpenCV to track the ball's movement and detect shots.
+- Data storage: It stores the extracted tracking data (ball position, distance, shot number, etc.) in BigQuery for further analysis and visualization.
+
+### bq_notebook.ipynb: 
+This Jupyter Notebook is responsible for data analysis and visualization. It connects to BigQuery to retrieve the processed data and generates insights such as:
+
+- Overall player statistics: It calculates and displays metrics like the average and median number of shots taken by all players.
+- Individual player journey visualization: It creates a scatter plot showing the trajectory of the ball for a specific player, allowing them to visualize their performance.
+- AI-powered commentary generation: It leverages Gemini to generate real-time commentary based on the player's performance data.
+
+## Initial Setup
+### Hardware:
+- Webcam: Mounted above the hole, capturing the tee and hole, and connected to the laptop.
+- Chromebook (x1): Connects to the webcam to control recording and uploading a video.
+
+### Software:
+- OpenCV: For object detection and ball tracking.
+- Gemini Pro: For generating real-time commentary.
+- Cloud Functions: For serverless data processing and analysis.
 
 ## Demo Execution
-The demo is designed to be run at events and showcases. It requires a designated space with a single-hole minigolf course, a GoPro camera, a Pixel phone, a Raspberry Pi, and a display for the user dashboard.
-
-## Getting Started
-To run the demo, follow these steps:
-
-1. Set up the hardware components as described in the PRD.
-1. Clone this repository.
-1. Install the required dependencies.
-1. Configure the cloud function and storage bucket.
-1. Run the Python script for data analysis.
-1. Start the Gemini announcer and user dashboard applications.
-
-## Technologies Used
-- OpenCV: For object detection and trajectory tracking of the ball.
-- Gemini Pro: For text-based real-time commentary generation.
-- Cloud Functions: For serverless data processing and analysis.
-- Raspberry Pi: For data transfer and cloud upload.
+The demo is designed for events and showcases, requiring a dedicated space with a single-hole minigolf course, a camera supports 1080p/60fps, a laptop (preferrably Chromebook), and a display for the user dashboard.
 
 ## License
 This project is licensed under the Apache License, Version 2.0. See the LICENSE file for details.
+Gemini's Multimodal Capabilities in the Mini-Golf Demo
+This notebook showcases Gemini's multimodal capabilities, meaning its ability to process and generate content using multiple modalities like video and text. Here's how:
