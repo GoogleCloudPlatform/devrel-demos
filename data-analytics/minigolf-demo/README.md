@@ -31,6 +31,10 @@ This script handles various helper functions for the demo, including:
 ### upload.py: 
 This script continuously monitors a specified directory (e.g., the Pixel phone's DCIM folder) for new video files. When a new video is detected, it automatically uploads it to the designated Cloud Storage bucket, triggering the image_recognition Cloud Function to process the video.
 
+### upload_webcam.py: 
+(Use this instead of `upload.py`) This script captures video from a webcam, allows the user to start and stop recording.
+It is compatible with webcams supporting 1080p/60fps, including the Pixel phone.
+
 ### image_recognition.py: 
 This script is deployed as a Cloud Function and is triggered whenever a new video is uploaded to Cloud Storage. It performs the following tasks:
 
