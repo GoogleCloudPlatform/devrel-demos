@@ -1,7 +1,16 @@
-import cv2
-from datetime import datetime
-import os
-from google.cloud import storage
+# Copyright 2024 Google LLC
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     https://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 """
 This script captures video from a webcam, allows the user to start and stop recording, 
@@ -9,6 +18,10 @@ and provides options to save the recorded video locally or upload it to Google C
 For Google Cloud Storage upload, ensure you have set up authentication and have a bucket created. 
 """
 
+import cv2
+from datetime import datetime
+import os
+from google.cloud import storage
 
 # Constants for bucket name and subfolder
 BUCKET_NAME = ""
@@ -16,6 +29,7 @@ BUCKET_NAME = ""
 VIDEO_SUBFOLDER = os.path.join(os.getcwd(), "video")
 # Create the video subfolder if it doesn't exist
 os.makedirs(VIDEO_SUBFOLDER, exist_ok=True)
+
 
 # Function to upload a file to Google Cloud Storage
 def upload_blob(bucket_name, source, destination):
