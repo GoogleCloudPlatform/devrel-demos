@@ -14,7 +14,8 @@
 
 """
 This script monitors a designated folder for new video files and uploads them to a Google Cloud Storage bucket. 
-It is designed to run continuously, checking for new files at regular intervals.
+It is designed to run continuously, checking for new files at regular intervals. 
+It waits for a specified period of inactivity before considering a file "complete" and uploading it.
 
 - Replace `STORAGE_BUCKET_NAME` and `PROJECT_ID` with your Google Cloud Storage bucket name and project ID.
 - (Optional) Modify `MONITORING_INTERVAL` to change how often the script checks for new files.
@@ -37,6 +38,9 @@ TEMP_FOLDER = "/tmp"
 
 # Monitoring interval (in seconds)
 MONITORING_INTERVAL = 3     
+
+# Inactivity threshold (in seconds) - adjust this based on your recording software's behavior
+INACTIVITY_THRESHOLD = 10  
 
 # Helper Functions
 def get_latest_file(directory):
@@ -86,25 +90,32 @@ def monitor_and_upload(folder_path):
         print(f"Error: Invalid folder path '{folder_path}'.")
         sys.exit(1)  # Exit with an error code
 
-    # Keep track of existing files and their modification times
-    existing_files = {
-        file_path.name: file_path.stat().st_mtime 
-        for file_path in Path(folder_path).iterdir() if file_path.is_file()
-    }
+    # Keep track of existing files and their last modified times
+    existing_files = {} 
 
     while True:
         latest_file = get_latest_file(folder_path)
-        if latest_file and latest_file.name not in existing_files:
+
+        if latest_file:
             file_path = str(latest_file.absolute())
-            print(f"New file detected: {file_path}")
-            print(f"File size: {os.path.getsize(file_path)}")
+            last_modified = latest_file.stat().st_mtime
 
-            # Extract video name (without extension) for GCS destination
-            dst_name = latest_file.name.split("_")[0]  
-            upload_file_to_gcs(file_path, dst_name + ".MP4")
+            if file_path not in existing_files:
+                # New file detected
+                existing_files[file_path] = last_modified
+                print(f"New file detected: {file_path} (monitoring for inactivity...)")
+            else:
+                # Check for inactivity
+                if time.time() - last_modified > INACTIVITY_THRESHOLD:
+                    # File has been inactive, upload it
+                    print(f"File inactive: {file_path}")
 
-            # Update existing files dictionary
-            existing_files[latest_file.name] = latest_file.stat().st_mtime  
+                    # Extract video name (without extension) for GCS destination
+                    dst_name = latest_file.name.split("_")[0]  
+                    upload_file_to_gcs(file_path, dst_name + ".MP4")
+
+                    # Remove from existing files
+                    del existing_files[file_path] 
         else:
             print("No new file detected. Waiting...")
 
