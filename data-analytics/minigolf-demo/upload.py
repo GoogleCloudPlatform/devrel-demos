@@ -13,14 +13,17 @@
 # limitations under the License.
 
 """
-This script monitors a directory (specifically, the Pixel phone's DCIM folder when mounted on a Raspberry Pi) 
-for new video files and uploads them to a Google Cloud Storage bucket. 
+This script monitors a designated folder for new video files and uploads them to a Google Cloud Storage bucket. 
 It is designed to run continuously, checking for new files at regular intervals.
+
+- Replace `STORAGE_BUCKET_NAME` and `PROJECT_ID` with your Google Cloud Storage bucket name and project ID.
+- (Optional) Modify `MONITORING_INTERVAL` to change how often the script checks for new files.
+- Run the Script: python3 upload.py /path/to/folder
 """
 
 import os
 import time
-import platform
+import sys
 from pathlib import Path
 from google.cloud import storage
 
@@ -30,12 +33,7 @@ STORAGE_BUCKET_NAME = ""
 PROJECT_ID = ""
 
 # Directory paths
-PIXEL_FOLDER = "/media/pixel/Internal shared storage/DCIM/GoPro-Exports"
 TEMP_FOLDER = "/tmp"
-
-# Adjust this path for testing on macOS
-if platform.system() == 'Darwin':  
-    PIXEL_FOLDER = "/Users/hyunuklim" + PIXEL_FOLDER
 
 # Monitoring interval (in seconds)
 MONITORING_INTERVAL = 3     
@@ -80,18 +78,22 @@ def upload_file_to_gcs(src_path, dst_path):
 
 
 # Main Monitoring Logic
-def monitor_and_upload():
+def monitor_and_upload(folder_path):
     """
     Continuously monitors the Pixel folder for new video files and uploads them to GCS.
     """
+    if not os.path.isdir(folder_path):
+        print(f"Error: Invalid folder path '{folder_path}'.")
+        sys.exit(1)  # Exit with an error code
+
     # Keep track of existing files and their modification times
     existing_files = {
         file_path.name: file_path.stat().st_mtime 
-        for file_path in Path(PIXEL_FOLDER).iterdir() if file_path.is_file()
+        for file_path in Path(folder_path).iterdir() if file_path.is_file()
     }
 
     while True:
-        latest_file = get_latest_file(PIXEL_FOLDER)
+        latest_file = get_latest_file(folder_path)
         if latest_file and latest_file.name not in existing_files:
             file_path = str(latest_file.absolute())
             print(f"New file detected: {file_path}")
@@ -109,4 +111,9 @@ def monitor_and_upload():
         time.sleep(MONITORING_INTERVAL)
 
 if __name__ == "__main__":
-    monitor_and_upload()
+    if len(sys.argv) < 2:
+        print("Usage: python3 upload.py /path/to/folder")
+        sys.exit(1)
+
+    folder_path = sys.argv[1]
+    monitor_and_upload(folder_path)
