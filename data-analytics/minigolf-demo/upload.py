@@ -26,8 +26,8 @@ from google.cloud import storage
 
 # Configuration
 # Replace these values with your actual bucket name and project ID
-STORAGE_BUCKET_NAME = "test_golf"  
-PROJECT_ID = "next-2024-golf-demo-01"
+STORAGE_BUCKET_NAME = ""  
+PROJECT_ID = ""
 
 # Directory paths
 PIXEL_FOLDER = "/media/pixel/Internal shared storage/DCIM/GoPro-Exports"
