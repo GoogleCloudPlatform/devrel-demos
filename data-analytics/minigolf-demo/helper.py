@@ -27,8 +27,6 @@ Usage:
 Commands:
     roi: Sets the ROIs for the ball and hole in the specified video.
     process: Processes the video, tracking the ball's movement and print it to the terminal.
-    background: Get the first frame of the video, upload it to the Cloud so that it can work as a background image.
-    cp: Copies a video file from the GoPro storage to the user's video folder.
 
 Example: To process video number 481, you would use:
     python3 image_local.py process 481
@@ -39,10 +37,8 @@ import cv2
 import math
 import os
 import platform
-import shutil
 
 from collections import deque
-from google.cloud import storage
 
 # Constants
 BACKGROUND_IMAGE_BUCKET = "background_image_storage"  # Cloud Storage bucket for background images
@@ -65,20 +61,6 @@ def get_video_name(num):
     return f"{PREFIX}{num:04d}{SUFFIX}"
 
 
-def copy_file(num):
-    """Copies a video file from the GoPro storage to the user's video folder."""
-    video_name = f"GX01{num:04d}"
-    GOPRO_SUFFIX = "_ALTA787042484087914200.MP4"
-    source_file = os.path.join(PIXEL_FOLDER[:-5], video_name + GOPRO_SUFFIX)
-    destination_file = os.path.join(PREFIX[:-5], video_name + ".MP4")
-
-    try:
-        shutil.copyfile(source_file, destination_file)
-        print(f"File '{video_name}' copied successfully!")
-    except Exception as e:
-        print(f"Error copying file '{video_name}': {e}")
-
-
 def set_roi(num):
     """Allows the user to manually set the ROIs for the ball and hole in a video."""
     cap = cv2.VideoCapture(get_video_name(num))
@@ -93,24 +75,6 @@ def set_roi(num):
     print(f'The position of the hole is: {hole_roi}')
     cap.release()
     cv2.destroyAllWindows()
-
-
-def set_background(num):
-    """Extracts the first frame of a video and uploads it to Cloud Storage as a background image."""
-    cap = cv2.VideoCapture(get_video_name(num))
-    ret, frame = cap.read()
-    if not ret:
-        print(f"Error: {get_video_name(num)} is not a valid file.")
-        return
-
-    cv2.imwrite('output_image.jpg', frame)
-
-    # Upload the image to Cloud Storage
-    storage_client = storage.Client()
-    bucket = storage_client.get_bucket(BACKGROUND_IMAGE_BUCKET)
-    blob = bucket.blob('output_image.jpg')
-    blob.upload_from_filename('output_image.jpg')
-    cap.release()
 
 
 def calculate_distance(center_x, center_y):
@@ -158,7 +122,6 @@ def process_video(num):
             # Draw ROIs for the ball and hole
             cv2.rectangle(frame, (int(x), int(y)), (int(x + w), int(y + h)), (0, 0, 255), 2)
             cv2.rectangle(frame, (HOLE[0], HOLE[1]), (HOLE[0] + HOLE[2], HOLE[1] + HOLE[3]), (0, 0, 255), 2)
-
             distance = calculate_distance(center_x, center_y)
             is_moving = check_if_moving(dist_history, distance)
             dist_history.append(distance)
@@ -185,7 +148,6 @@ def process_video(num):
                 "is_moving": is_moving,
                 "shot_number": num_shots,
             })
-
             cv2.imshow("Tracking", frame)
             if cv2.waitKey(1) == ord('q'):
                 break
@@ -206,10 +168,6 @@ def main():
     set_roi_parser.add_argument('video_number', type=int, help='The video number to process')
     process_video_parser = subparsers.add_parser('process')
     process_video_parser.add_argument('video_number', type=int, help='The video number to process')
-    get_bg_parser = subparsers.add_parser('bg')
-    get_bg_parser.add_argument('video_number', type=int, help='The video number to process')
-    copy_file_parser = subparsers.add_parser('copy')
-    copy_file_parser.add_argument('video_number', type=int, help='The video number to process')
 
     args = parser.parse_args()
 
@@ -217,10 +175,6 @@ def main():
         set_roi(args.video_number)
     elif args.command == 'process':
         process_video(args.video_number)
-    elif args.command == 'bg':
-        set_background(args.video_number)
-    elif args.command == 'copy':
-        copy_file(args.video_number)
     else:
         print("Invalid command. Please use either of following commands: roi, process, bg, copy")
 

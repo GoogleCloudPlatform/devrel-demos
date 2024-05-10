@@ -25,15 +25,9 @@ This script handles various helper functions for the demo, including:
 
 - Defining ROI(Regions Of Interest): It allows you to specify the areas in the video frame where the golf ball and hole are located.
 - Video processing: It uses OpenCV to track the ball's movement in the video, calculating distances and other metrics.
-- Background image extraction: It extracts the first frame of the video and uploads it to Cloud Storage to serve as a background image for visualizations.
-- Video file management: It can copy video files from the GoPro storage to the user's video folder.
 
 ### upload.py: 
 This script continuously monitors a specified directory (e.g., the Pixel phone's DCIM folder) for new video files. When a new video is detected, it automatically uploads it to the designated Cloud Storage bucket, triggering the image_recognition Cloud Function to process the video.
-
-### upload_webcam.py: 
-(Use this instead of `upload.py`) This script captures video from a webcam, allows the user to start and stop recording.
-It is compatible with webcams supporting 1080p/60fps, including the Pixel phone.
 
 ### image_recognition.py: 
 This script is deployed as a Cloud Function and is triggered whenever a new video is uploaded to Cloud Storage. It performs the following tasks:

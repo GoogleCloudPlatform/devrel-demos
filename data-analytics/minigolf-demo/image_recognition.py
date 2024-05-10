@@ -47,10 +47,16 @@ TRACKING_SCHEMA = [
     bigquery.SchemaField("shot_number", "INTEGER"),
 ]
 
+# Set Cloud Storage bucket for background image upload
+BG_BUCKET = "test_golf_2"
+
 # Initialize BigQuery client and table reference
 bq_client = bigquery.Client()
 dataset_ref = bq_client.dataset(BIGQUERY_DATASET_ID)
 tracking_table_ref = dataset_ref.table(BIGQUERY_TRACKING_TABLE_ID)
+
+# Initialize Storage client
+storage_client = storage.Client()
 
 # List to store any errors during BigQuery inserts
 ERRORS = []
@@ -100,6 +106,21 @@ def process_and_upload_video(video_file, user_id):
     cap = cv2.VideoCapture(video_file)  # Open the video
     tracker = cv2.legacy.TrackerCSRT_create()  # Create a CSRT tracker
     ret, frame = cap.read()  # Read the first frame
+    if ret:
+        # Generate a unique filename for the image
+        image_filename = f"BG_{user_id}.jpg"
+
+        # Save the first frame as a JPEG image
+        cv2.imwrite(f"/tmp/{image_filename}", frame)
+        
+        # Upload the image to the bucket
+        bucket = storage_client.get_bucket(BG_BUCKET)
+        blob = bucket.blob(image_filename)
+        blob.upload_from_filename(f"/tmp/{image_filename}")
+        
+        # Clean up temporary image file
+        os.remove(f"/tmp/{image_filename}")
+
     tracker.init(frame, BALL)  # Initialize the tracker with the ball's initial position
 
     frame_number = 0
@@ -165,8 +186,6 @@ def image_recognition(cloud_event):
     bucket_name = data["bucket"]
     file_name = data["name"]
     user_id = file_name.split(".")[0]
-
-    storage_client = storage.Client()
 
     # Create BigQuery table if it doesn't exist
     try:
