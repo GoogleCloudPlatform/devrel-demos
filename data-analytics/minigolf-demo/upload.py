@@ -113,6 +113,7 @@ def monitor_and_upload(folder_path):
     # Keep track of existing files and their last modified times
     existing_files = {
         file_path.name: file_path.stat().st_mtime
+
         for file_path in Path(folder_path).iterdir() if file_path.is_file()
     }
 
