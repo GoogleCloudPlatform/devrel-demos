@@ -27,7 +27,7 @@ This script handles various helper functions for the demo, including:
 - Video processing: It uses OpenCV to track the ball's movement in the video, calculating distances and other metrics.
 
 ### upload.py: 
-This script continuously monitors a specified directory (e.g., the Pixel phone's DCIM folder) for new video files. When a new video is detected, it automatically uploads it to the designated Cloud Storage bucket, triggering the image_recognition Cloud Function to process the video.
+This script continuously monitors a designated directory for new video files. When a new video is detected, it automatically uploads it to the designated Cloud Storage bucket, triggering the image_recognition Cloud Function to process the video.
 
 ### image_recognition.py: 
 This script is deployed as a Cloud Function and is triggered whenever a new video is uploaded to Cloud Storage. It performs the following tasks:
