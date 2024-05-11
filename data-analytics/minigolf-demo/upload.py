@@ -30,7 +30,7 @@ from google.cloud import storage
 
 # Configuration
 # Replace these values with your actual bucket name and project ID
-STORAGE_BUCKET_NAME = ""  
+STORAGE_BUCKET_NAME = ""
 PROJECT_ID = ""
 
 # Directory paths
@@ -38,9 +38,6 @@ TEMP_FOLDER = "/tmp"
 
 # Monitoring interval (in seconds)
 MONITORING_INTERVAL = 3     
-
-# Inactivity threshold (in seconds) - adjust this based on your recording software's behavior
-INACTIVITY_THRESHOLD = 10  
 
 # Helper Functions
 def get_latest_file(directory):
@@ -59,26 +56,49 @@ def get_latest_file(directory):
     except ValueError:  # Handle empty directory
         return None
     
+def get_file_number():
+    """
+    Gets the next available file number based on existing files in Cloud Storage.
 
-def upload_file_to_gcs(src_path, dst_path):
+    Returns:
+        str: The formatted file name string, like "minigolf_0001.mp4".
+    """
+
+    storage_client = storage.Client(project=PROJECT_ID)
+    bucket = storage_client.bucket(STORAGE_BUCKET_NAME)
+
+    blobs = list(bucket.list_blobs(prefix="minigolf_"))  # List "minigolf_" files
+    blobs.sort(key=lambda blob: blob.name, reverse=True)  # Sort by name descending 
+
+    if blobs:
+        latest_file = blobs[0].name  # Get the latest file name 
+        latest_number = int(latest_file[9:13])  # Extract the number
+        next_number = latest_number + 1
+    else:
+        next_number = 1  # Start from 1 if no files exist
+
+    return f"minigolf_{next_number:04d}.mp4"
+    
+
+def upload_file_to_gcs(src_path):
     """
     Uploads a file from the local filesystem to a Google Cloud Storage bucket.
 
     Args:
         src_path (str): The path to the local file to upload.
-        dst_path (str): The destination path within the GCS bucket.
     """
     storage_client = storage.Client(project=PROJECT_ID)
     print(f"Uploading {src_path}")
 
     bucket = storage_client.bucket(STORAGE_BUCKET_NAME)
-    blob = bucket.blob(dst_path)
+    dst_file = get_file_number()
+    blob = bucket.blob(dst_file)
 
     start_time = time.time()
     blob.upload_from_filename(src_path)
     end_time = time.time()
 
-    print(f"Uploaded {src_path} to gs://{STORAGE_BUCKET_NAME}/{dst_path} in {end_time - start_time:.2f} seconds.")
+    print(f"Uploaded {src_path} to gs://{STORAGE_BUCKET_NAME}/{dst_file} in {end_time - start_time:.2f} seconds.")
 
 
 # Main Monitoring Logic
@@ -91,34 +111,25 @@ def monitor_and_upload(folder_path):
         sys.exit(1)  # Exit with an error code
 
     # Keep track of existing files and their last modified times
-    existing_files = {} 
+    existing_files = {
+        file_path.name: file_path.stat().st_mtime
+        for file_path in Path(folder_path).iterdir() if file_path.is_file()
+    }
 
     while True:
         latest_file = get_latest_file(folder_path)
-
-        if latest_file:
+        if latest_file and latest_file.name not in existing_files:
             file_path = str(latest_file.absolute())
-            last_modified = latest_file.stat().st_mtime
-
-            if file_path not in existing_files:
-                # New file detected
-                existing_files[file_path] = last_modified
-                print(f"New file detected: {file_path} (monitoring for inactivity...)")
-            else:
-                # Check for inactivity
-                if time.time() - last_modified > INACTIVITY_THRESHOLD:
-                    # File has been inactive, upload it
-                    print(f"File inactive: {file_path}")
-
-                    # Extract video name (without extension) for GCS destination
-                    dst_name = latest_file.name.split("_")[0]  
-                    upload_file_to_gcs(file_path, dst_name + ".MP4")
-
-                    # Remove from existing files
-                    del existing_files[file_path] 
+            file_size = 0
+            while file_size < os.path.getsize(file_path):
+                print("File is recording, waiting until recording is completed...")
+                file_size = os.path.getsize(file_path)
+                time.sleep(1)
+            print("recording is completed. Uploading...")
+            upload_file_to_gcs(file_path)
+            existing_files[latest_file.name] = latest_file.stat().st_mtime
         else:
-            print("No new file detected. Waiting...")
-
+            print("No new file detected. Monitoring...")
         time.sleep(MONITORING_INTERVAL)
 
 if __name__ == "__main__":
