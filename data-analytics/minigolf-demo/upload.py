@@ -17,7 +17,7 @@ This script monitors a designated folder for new video files and uploads them to
 It is designed to run continuously, checking for new files at regular intervals. 
 It waits for a specified period of inactivity before considering a file "complete" and uploading it.
 
-- Replace `STORAGE_BUCKET_NAME` and `PROJECT_ID` with your Google Cloud Storage bucket name and project ID.
+- Replace `VIDEO_BUCKET` and `PROJECT_ID` with your Google Cloud Storage bucket name and project ID.
 - (Optional) Modify `MONITORING_INTERVAL` to change how often the script checks for new files.
 - Run the Script: python3 upload.py /path/to/folder
 """
@@ -28,9 +28,8 @@ import sys
 from pathlib import Path
 from google.cloud import storage
 
-# Configuration
 # Replace these values with your actual bucket name and project ID
-STORAGE_BUCKET_NAME = ""
+VIDEO_BUCKET = ""
 PROJECT_ID = ""
 
 # Directory paths
@@ -38,6 +37,9 @@ TEMP_FOLDER = "/tmp"
 
 # Monitoring interval (in seconds)
 MONITORING_INTERVAL = 3     
+
+storage_client = storage.Client(project=PROJECT_ID)
+bucket = storage_client.bucket(VIDEO_BUCKET)
 
 # Helper Functions
 def get_latest_file(directory):
@@ -63,10 +65,6 @@ def get_file_number():
     Returns:
         str: The formatted file name string, like "minigolf_0001.mp4".
     """
-
-    storage_client = storage.Client(project=PROJECT_ID)
-    bucket = storage_client.bucket(STORAGE_BUCKET_NAME)
-
     blobs = list(bucket.list_blobs(prefix="minigolf_"))  # List "minigolf_" files
     blobs.sort(key=lambda blob: blob.name, reverse=True)  # Sort by name descending 
 
@@ -87,18 +85,14 @@ def upload_file_to_gcs(src_path):
     Args:
         src_path (str): The path to the local file to upload.
     """
-    storage_client = storage.Client(project=PROJECT_ID)
+    start_time = time.time()
     print(f"Uploading {src_path}")
-
-    bucket = storage_client.bucket(STORAGE_BUCKET_NAME)
     dst_file = get_file_number()
     blob = bucket.blob(dst_file)
 
-    start_time = time.time()
     blob.upload_from_filename(src_path)
     end_time = time.time()
-
-    print(f"Uploaded {src_path} to gs://{STORAGE_BUCKET_NAME}/{dst_file} in {end_time - start_time:.2f} seconds.")
+    print(f"Uploaded {src_path} to gs://{VIDEO_BUCKET}/{dst_file} in {end_time - start_time:.2f} seconds.")
 
 
 # Main Monitoring Logic
