@@ -17,56 +17,37 @@ This script defines regions of interest (ROIs) for the golf ball and hole within
 It also includes a process_video() function that utilizes a tracker to monitor the ball's movement,
 providing a way to assess the tracker's performance.
 
-Assumptions:
-    - You have a recorded video using a GoPro camera. If not, you need to change constants such as PREFIX/SUFFIX.
-    - The video is stored in the user's video folder (e.g., /Users/{USERNAME}/video/).
-
 Usage:
-    python3 image_local.py <command> <video_number>
+    python3 image_local.py <command> <file_path>
 
 Commands:
     roi: Sets the ROIs for the ball and hole in the specified video.
     process: Processes the video, tracking the ball's movement and print it to the terminal.
 
-Example: To process video number 481, you would use:
-    python3 image_local.py process 481
+Example: If the video is located in "/Users/hyunuklim/video/minigolf_0481.mp4", you would use:
+    python3 image_local.py process /Users/hyunuklim/video/minigolf_0481.mp4
 """
 
-import argparse
 import cv2
 import math
 import os
-import platform
+import sys
 
 from collections import deque
 
-# Constants
-BACKGROUND_IMAGE_BUCKET = "background_image_storage"  # Cloud Storage bucket for background images
-USERNAME = os.environ.get('USER', os.environ.get('USERNAME'))
-PIXEL_FOLDER = "/media/pixel/Internal shared storage/DCIM/GoPro-Exports"  # GoPro storage path
-PREFIX = f"/home/{USERNAME}/video/GX01"  # User's video folder path
-if platform.system() == 'Darwin':  # Adjust paths for macOS
-    PIXEL_FOLDER = f"/Users/{USERNAME}" + PIXEL_FOLDER
-    PREFIX = f"/Users/{USERNAME}/video/GX01"
-SUFFIX = ".MP4"  # Video file extension
-
 # Initial ROI values (can be adjusted using the 'roi' command)
-BALL = (1434, 495, 15, 15)
-HOLE = (752, 586, 11, 8)
+BALL = (212, 602, 26, 20)
+HOLE = (1411, 558, 46, 42)
+
 MOVEMENT_THRESHOLD = 5  # Threshold for detecting ball movement
 
 
-def get_video_name(num):
-    """Constructs the video file name based on the video number."""
-    return f"{PREFIX}{num:04d}{SUFFIX}"
-
-
-def set_roi(num):
+def set_roi(file):
     """Allows the user to manually set the ROIs for the ball and hole in a video."""
-    cap = cv2.VideoCapture(get_video_name(num))
+    cap = cv2.VideoCapture(file)
     _, frame = cap.read()
     if not _:
-        print(f"Error: {get_video_name(num)} is not loaded.")
+        print(f"Error: {file} is not loaded.")
         return
 
     ball_roi = cv2.selectROI('Select Ball', frame, False)
@@ -91,9 +72,9 @@ def check_if_moving(dist_arr, distance):
     return abs(distance - curr_avg) >= MOVEMENT_THRESHOLD
 
 
-def process_video(num):
+def process_video(file):
     """Processes a video, tracking the ball's movement and printing relevant data."""
-    cap = cv2.VideoCapture(get_video_name(num))
+    cap = cv2.VideoCapture(file)
     tracker = cv2.legacy.TrackerCSRT_create()  # Create a CSRT tracker
 
     ret, frame = cap.read()  # Read the first frame
@@ -158,26 +139,16 @@ def process_video(num):
     cv2.destroyAllWindows()
 
 
-def main():
-    """Parses command-line arguments and executes the corresponding functions."""
-    parser = argparse.ArgumentParser(description='Process video or set ROI for ball and hole')
-    subparsers = parser.add_subparsers(dest='command')
-
-    # Subparsers for different commands
-    set_roi_parser = subparsers.add_parser('roi')
-    set_roi_parser.add_argument('video_number', type=int, help='The video number to process')
-    process_video_parser = subparsers.add_parser('process')
-    process_video_parser.add_argument('video_number', type=int, help='The video number to process')
-
-    args = parser.parse_args()
-
-    if args.command == 'roi':
-        set_roi(args.video_number)
-    elif args.command == 'process':
-        process_video(args.video_number)
-    else:
-        print("Invalid command. Please use either of following commands: roi, process, bg, copy")
-
-
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) != 3 or sys.argv[1] not in ["roi", "process"]:
+        print("Usage: python3 helper.py roi(or process) /path/to/folder")
+        sys.exit(1)
+    instruction, file_path = sys.argv[1], sys.argv[2]
+    if not os.path.isfile(file_path):
+        print(f"Error: Invalid file path '{file_path}'.")
+        sys.exit(1)  # Exit with an error code
+
+    if instruction == "roi":
+        set_roi(file_path)
+    elif instruction == "process":
+        process_video(file_path)
