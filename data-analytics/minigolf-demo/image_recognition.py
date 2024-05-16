@@ -30,6 +30,9 @@ from collections import deque
 BALL = (1434, 495, 15, 15)  # (x, y, width, height)
 HOLE = (752, 586, 11, 8)
 
+# Set Cloud Storage bucket for background image upload
+BACKGROUND_IMAGE_BUCKET = ""
+
 # Threshold for considering distance change as significant movement
 MOVEMENT_THRESHOLD = 5
 
@@ -46,9 +49,6 @@ TRACKING_SCHEMA = [
     bigquery.SchemaField("is_moving", "BOOLEAN"),
     bigquery.SchemaField("shot_number", "INTEGER"),
 ]
-
-# Set Cloud Storage bucket for background image upload
-BG_BUCKET = "test_golf_2"
 
 # Initialize BigQuery client and table reference
 bq_client = bigquery.Client()
@@ -114,7 +114,7 @@ def process_and_upload_video(video_file, user_id):
         cv2.imwrite(f"/tmp/{image_filename}", frame)
         
         # Upload the image to the bucket
-        bucket = storage_client.get_bucket(BG_BUCKET)
+        bucket = storage_client.get_bucket(BACKGROUND_IMAGE_BUCKET)
         blob = bucket.blob(image_filename)
         blob.upload_from_filename(f"/tmp/{image_filename}")
         
