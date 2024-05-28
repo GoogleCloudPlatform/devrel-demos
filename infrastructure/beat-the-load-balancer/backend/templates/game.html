@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block content %}
+    <script src="{{url_for('static', filename='vm_updates.js')}}"></script>
+    <script>
+    // API CALL WAIT TIME in milliseconds
+    const API_WAIT_TIME = 750;
+
+    // API CALL COUNT
+    // const API_CALL_ITERATIONS = ((75 * 1000 ) / API_WAIT_TIME);
+    const API_CALL_ITERATIONS = 50;
+
+    // Define the REST API URLs
+    // const apiUrl = 'http://127.0.0.1:8000/load';
+    const api1Url = 'http://{{vm_wh_ips['vm-wh01']}}:8000/load';
+    const api2Url = 'http://{{vm_wh_ips['vm-wh02']}}:8000/load';
+    const api3Url = 'http://{{vm_wh_ips['vm-wh03']}}:8000/load';
+    const api4Url = 'http://{{vm_wh_ips['vm-wh04']}}:8000/load';
+
+
+    // Function to call a REST API and update the result in the table
+    function updateResults() {
+
+        // Set/Rest the Logs
+        document.getElementById("logging").innerHTML = "<p>Adding Logs: Started! </p>";
+
+        // Call the REST APIs and update the results in the table
+        for (let i = 0; i < API_CALL_ITERATIONS; i++) {
+            setTimeout(() => {
+
+                // REST API - Calls
+                document.getElementById("result1").innerHTML = newMakeAPICallSync(api1Url)
+                document.getElementById("result2").innerHTML = newMakeAPICallSync(api2Url)
+                document.getElementById("result3").innerHTML = newMakeAPICallSync(api3Url)
+                document.getElementById("result4").innerHTML = newMakeAPICallSync(api4Url)
+
+                // Adding visible logs
+                // Create a new Date object
+                var now = new Date();
+
+                // Format the date in "YYY-MM-DD HH:MM:SS" format
+                var formattedDate = "# Time:" + now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds() + "." + now.getMilliseconds();
+                document.getElementById("logging").innerHTML += "#" + formattedDate + "!";
+
+                if (i + 1 == API_CALL_ITERATIONS){
+                    // Set/Rest the Logs
+                    document.getElementById("logging").innerHTML += "<p>Adding Logs: Completed! </p>";
+                    }
+
+            }, API_WAIT_TIME);
+        }
+    }
+
+    </script>
+    <div>
+        <!-- Top Body -->
+        <p>
+            <b>Loader IP</b>: {{ vm_loader_ip | safe }}
+            <button onclick="window.open('http://{{ vm_loader_ip }}/', '_blank')">Open in New Tab</button>
+        </p>
+        <p>
+            <b>Warehouse VMs</b>: {{ vm_wh_ips | safe }}
+        </p>
+    </div>
+    <div>
+        <!-- Table Body -->
+    </div>
+    <div>
+        <!-- Footer Body -->
+    </div>
+    <div>
+        <div align="center">
+            <table border="1">
+                <tr>
+                    <td>
+                        <div id="cell1_1">WareHouse VM-01</div>
+                    </td>
+                    <td>
+                        <div id="result1">Results from http://{{ vm_wh_ips['vm-wh01'] }}:8000/load</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div id="cell2_1">WareHouse VM-02</div>
+                    </td>
+                    <td>
+                        <div id="result2">Results from http://{{ vm_wh_ips['vm-wh02'] }}:8000/load</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div id="cell3_1">WareHouse VM-03</div>
+                    </td>
+                    <td>
+                        <div id="result3">Results from http://{{ vm_wh_ips['vm-wh03'] }}:8000/load</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div id="cell4_1">WareHouse VM-04</div>
+                    </td>
+                    <td>
+                        <div id="result4">Results from http://{{ vm_wh_ips['vm-wh04'] }}:8000/load</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <br>
+        <div align="center">
+            <button onclick="updateResults()">Update Results</button>
+        </div>
+        <hr>
+        <h4># Health Check - Update Logs</h4>
+        <div id="logging"></div>
+    </div>
+{% endblock %}

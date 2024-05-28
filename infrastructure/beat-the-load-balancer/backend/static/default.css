@@ -1,0 +1,31 @@
+/*
+example comments!
+
+https://www.w3schools.com/colors/colors_picker.asp
+
+*/
+
+body {
+    font-family: "Lucida Console", "Courier New", monospace;
+    margin: 0;
+    padding: 0;
+    background-color: #fff;
+    color: #000; /* Light text */
+}
+
+h1 {
+    font-family: "Lucida Console", "Courier New", monospace;
+    background-color: #003399;
+    padding: 1em;
+    text-align: center;
+    color: #fff;
+}
+div {
+    font-family: "Lucida Console", "Courier New", monospace;
+}
+ul {
+    font-family: "Lucida Console", "Courier New", monospace;
+}
+th, td {
+  padding: 15px;
+}
