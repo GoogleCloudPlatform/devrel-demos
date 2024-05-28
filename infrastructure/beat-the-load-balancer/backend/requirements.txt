@@ -1,0 +1,16 @@
+celery
+flask
+flask_cors
+google-cloud-pubsub
+gunicorn
+psutil
+pip
+redis
+supervisor
+
+# testing tools
+black
+locust
+djlint
+
+firebase_admin
