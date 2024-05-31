@@ -239,3 +239,18 @@ purge:
 # ps -eaf | grep celery | grep venv | awk '{print $2}' | xargs kill -9
 # ps -eaf | grep python | grep venv | awk '{print $2}' | xargs kill -9
 ################################################################################
+
+## ==> docker build
+
+VERSION=01
+
+build: ## build docker image
+	podman build --tag blb:${VERSION} --file ./Dockerfile
+
+run:
+	podman rm -f main-vm && podman run -d --hostname main-vm --name main-vm blb:${VERSION}
+
+game:
+	podman exec -it main-vm bash
+
+
