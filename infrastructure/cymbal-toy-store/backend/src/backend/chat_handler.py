@@ -30,7 +30,7 @@ class ChatHandler():
 			verbose=True,
 		)
 		self.llm = VertexAI(
-			model_name="gemini-pro",
+			model_name="gemini-1.0-pro-001",
 			max_output_tokens=512,
 			temperature=0.0,
 			top_p=0.8,
