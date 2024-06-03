@@ -1,6 +1,6 @@
 This directory contains the code accompanying the Automatic Docker Image inter-organizational release Cloud blog post. 
 
-Link to the blog post: https://docs.google.com/document/d/1s7MdYgypO6o7H9k6EKAwjHA1xvk7uWzsJXZIZx3rWDY/edit (To be updated with the published link)
+Link to the blog post: https://cloud.google.com/blog/products/serverless/artifact-registry-across-your-cloud
 
 TL;DR of the post
 The specific use case is that we have at least one Container Image residing in an Artifact Registry Repository that has frequent updates to it, that need to be propagated to Artifact Registry Repositories inter-organizationally. Although the images are released to external organizations they should still be private and may not be available for public use.
