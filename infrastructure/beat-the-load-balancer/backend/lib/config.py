@@ -89,3 +89,7 @@ if HOSTNAME == "vm-loader":
 elif HOSTNAME == "vm-loader2":
     # GLB static IP
     GAME_LOADER_TARGET_HOST = "http://10.10.10.1000:8000"
+
+
+# Pubsub SA Account
+pubsub_sa_account_file = "path-to-file.json"
