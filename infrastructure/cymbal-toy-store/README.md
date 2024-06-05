@@ -15,12 +15,12 @@
 ## Requirements
 - Project in Google Cloud with enabled APIs for all components.
 - AlloyDB cluster and primary instance created 
-- A laptop or a VM with Python 3.11+,git and postggres utilities such as psql
+- A laptop or a VM with Python 3.11+,git and postgres utilities such as psql
 
 ### Clone the software
 Clone the software using git:
 ```
-git clone https://github.com/gotochkin/devrel-demos.git
+git clone https://github.com/GoogleCloudPlatform/devrel-demos.git
 ```
 
 
@@ -147,8 +147,7 @@ gcloud  run services list --filter="(cymbal-toystore)" --format="value(URL)"
 - You can use proxy 
 - You can put a load balancer before it
 
-# Licence
-
+# License
 Apache License Version 2.0; 
 Copyright 2024 Google LLC
 
