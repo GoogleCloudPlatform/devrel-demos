@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="Blitz"
+              description="This is Tester GUI for Infra setup & testing!">
+        <meta name="keywords" content="HTML, CSS, JavaScript">
+        <title>Load Balancing Blitz!</title>
+        <link rel="stylesheet"
+              type="text/css"
+              href="{{ url_for('static',filename='default.css') }}">
+        <!-- https://usbrandcolors.com/google-colors/ -->
+    </head>
+    <body>
+        <h1>Welcome to Load Balancing Blitz!</h1>
+        <hr />
+        <div id="content">
+            {% block content %}{% endblock %}
+        </div>
+        <div id="footer"></div>
+        <hr />
+        <footer>
+            <p align="center">Copyright 2023 Google LLC.</p>
+            <p align="center">All Rights Reserved.</p>
+        </footer>
+    </body>
+</html>

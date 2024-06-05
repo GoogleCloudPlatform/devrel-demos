@@ -1,0 +1,143 @@
+/**
+ * Copyright 2024 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.trainContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background-image: url(../../assets/train-backdrop.png);
+  background-size: cover;
+}
+
+.container {
+  position: relative;
+  overflow: hidden;
+}
+
+.content {
+  position: relative;
+  overflow: hidden;
+  border: 5px solid var(--melanzane);
+}
+
+.track {
+  position: relative;
+  width: 200em;
+  height: 5px;
+  background-color: #333;
+  bottom: 30px;
+}
+
+.track:before {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 5px;
+  background-color: #333;
+  top: 4px;
+  box-shadow:
+    20px 0 #333,
+    -20px 0 #333,
+    -40px 0 #333,
+    -60px 0 #333,
+    -80px 0 #333,
+    40px 0 #333,
+    60px 0 #333,
+    80px 0 #333,
+    100px 0 #333,
+    120px 0 #333,
+    140px 0 #333,
+    160px 0 #333,
+    180px 0 #333,
+    200px 0 #333,
+    220px 0 #333,
+    240px 0 #333,
+    260px 0 #333,
+    280px 0 #333,
+    300px 0 #333,
+    320px 0 #333,
+    340px 0 #333,
+    360px 0 #333,
+    380px 0 #333,
+    400px 0 #333,
+    420px 0 #333,
+    440px 0 #333,
+    -100px 0 #333,
+    -120px 0 #333,
+    -140px 0 #333,
+    460px 0 #333,
+    480px 0 #333,
+    500px 0 #333,
+    520px 0 #333,
+    540px 0 #333,
+    560px 0 #333,
+    580px 0 #333,
+    600px 0 #333,
+    620px 0 #333,
+    640px 0 #333,
+    660px 0 #333,
+    680px 0 #333,
+    700px 0 #333,
+    720px 0 #333;
+  animation: move 1s linear infinite reverse;
+}
+
+@keyframes move {
+  from {
+    left: -100px;
+  }
+  to {
+    left: 100px;
+  }
+}
+
+.train {
+  position: relative;
+  width: 50px;
+  height: 150px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  z-index: 2;
+  bottom: 22px;
+}
+
+.train.mission_check,
+.train.station {
+  left: 35%;
+}
+
+.train.one,
+.train.checkpoint_1 {
+  left: 47%;
+}
+
+.train.two,
+.train.checkpoint_2 {
+  left: 60%;
+}
+
+.train.three,
+.train.checkpoint_3 {
+  left: 70%;
+}
+
+.train.four,
+.train.checkpoint_4 {
+  left: 85%;
+}

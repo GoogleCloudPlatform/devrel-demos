@@ -1,0 +1,136 @@
+<!-- !/usr/bin/python
+Copyright 2024 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.-->
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+      href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap"
+      rel="stylesheet">
+  <link rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}">
+  <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
+      integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg=="
+      crossorigin="anonymous"></script>
+  <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"
+      integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
+      crossorigin="anonymous"></script>
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+</head>
+<body>
+<h1>Data Dash</h1>
+<div id="data-area">
+  <div id="car_1" class="car-container">
+    <div class="img">
+      <p>CAR 1</p>
+    </div>
+    <table>
+      <tr>
+        <th>Checkpoint</th>
+        <th>Time</th>
+      </tr>
+      <tr>
+        <td class="checkpoint">Checkpoint 1</td>
+        <td class="checkpoint_val">0</td>
+      </tr>
+      <tr>
+        <td class="checkpoint">Checkpoint 2</td>
+        <td class="checkpoint_val">0</td>
+      </tr>
+      <tr>
+        <td class="checkpoint">Checkpoint 3</td>
+        <td class="checkpoint_val">0</td>
+      </tr>
+      <tr>
+        <td class="checkpoint">Checkpoint 4</td>
+        <td class="checkpoint_val">0</td>
+      </tr>
+      <tr>
+        <td class="checkpoint">Checkpoint 5</td>
+        <td class="checkpoint_val">0</td>
+      </tr>
+      <tr>
+        <td class="checkpoint">Checkpoint 6</td>
+        <td class="checkpoint_val">0</td>
+      </tr>
+      <tr>
+        <td class="checkpoint">Checkpoint 7</td>
+        <td class="checkpoint_val">0</td>
+      </tr>
+      <tr>
+        <td class="checkpoint">Checkpoint 8</td>
+        <td class="checkpoint_val">0</td>
+      </tr>
+<!--?      <tr>-->
+<!--?        <td class="checkpoint">Total time</td>-->
+<!--?        <td class="checkpoint_val">0</td>-->
+<!--?      </tr>-->
+    </table>
+  </div>
+  <div id="car_2" class="car-container">
+    <div class="img">
+      <p>CAR 2</p>
+    </div>
+    <table>
+      <tr>
+        <th>Checkpoint</th>
+        <th>Time</th>
+      </tr>
+      <tr>
+        <td class="checkpoint">Checkpoint 1</td>
+        <td class="checkpoint_val">0</td>
+      </tr>
+      <tr>
+        <td class="checkpoint">Checkpoint 2</td>
+        <td class="checkpoint_val">0</td>
+      </tr>
+      <tr>
+        <td class="checkpoint">Checkpoint 3</td>
+        <td class="checkpoint_val">0</td>
+      </tr>
+      <tr>
+        <td class="checkpoint">Checkpoint 4</td>
+        <td class="checkpoint_val">0</td>
+      </tr>
+      <tr>
+        <td class="checkpoint">Checkpoint 5</td>
+        <td class="checkpoint_val">0</td>
+      </tr>
+      <tr>
+        <td class="checkpoint">Checkpoint 6</td>
+        <td class="checkpoint_val">0</td>
+      </tr>
+      <tr>
+        <td class="checkpoint">Checkpoint 7</td>
+        <td class="checkpoint_val">0</td>
+      </tr>
+      <tr>
+        <td class="checkpoint">Checkpoint 8</td>
+        <td class="checkpoint_val">0</td>
+      </tr>
+<!--?      <tr>-->
+<!--?        <td class="checkpoint">Total time</td>-->
+<!--?        <td class="checkpoint_val">0</td>-->
+<!--?      </tr>-->
+    </table>
+  </div>
+</div>
+</body>
+</html>

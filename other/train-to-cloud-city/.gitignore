@@ -1,0 +1,18 @@
+# Logs
+logs
+*.log
+
+# npm
+node_modules/
+.npm
+npm-debug.log*
+
+# firebase
+firebase-debug.log*
+firebase-debug.*.log*
+.firebaserc
+.firebase/
+
+.eslintcache
+.env
+.DS_Store

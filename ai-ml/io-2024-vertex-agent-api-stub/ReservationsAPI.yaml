@@ -1,0 +1,107 @@
+# Copyright 2024 Google LLC
+
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+
+#   http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+openapi: 3.0.0
+info:
+  title: Park Reservation API
+  description: API for managing picnic shelter reservations in parks
+  version: 1.0.0
+
+servers:
+  - url: <PLACE HOLDER>
+
+paths:
+  /list-available-reservations:
+    get:
+      summary: List available picnic shelter reservations
+      operationId: list-available-reservations
+      description: Retrieve available reservation slots for picnic shelters in a given park.
+      parameters:
+        - name: parkName
+          in: query
+          description: The name of the park
+          required: true
+          schema:
+            type: string
+        - name: requestedDate
+          in: query
+          description: The date for which to check availability (YYYY-MM-DD)
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Successful retrieval of available reservations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    parkName:
+                      type: string
+                    reservationDateTime:
+                      type: string
+                      format: date-time
+        '400':
+          description: Bad request (e.g., invalid park name or date)
+        '500':
+          description: Internal server error
+
+  /makeReservation:
+    post:
+      summary: Make a picnic shelter reservation
+      operationId: makeReservations
+      description: Attempt to reserve a picnic shelter in a given park for a specified date and time.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                parkName:
+                  type: string
+                  description: Name of the park where the shelter is located.
+                dateTime:
+                  type: string
+                  format: date-time
+                  description: Date and time of the reservation.
+      responses:
+        '200':
+          description: Successful reservation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: True if the reservation was successful, False otherwise.
+                  reservationID:
+                    type: string
+                    description: (Optional) a reservation ID string
+        '400':
+          description: Bad request (e.g., invalid park name, date, or time)
+        '409':
+          description: Conflict (the shelter is already reserved for the specified time)
+        '500':
+          description: Internal server error
