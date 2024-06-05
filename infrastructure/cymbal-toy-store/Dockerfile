@@ -9,7 +9,8 @@ RUN npm run build
 
 FROM python:3.11
 
-ENV GOOGLE_CLOUD_PROJECT=dbs-next-demo-01
+# Put your project here
+ENV GOOGLE_CLOUD_PROJECT=cymbal-demo
 
 COPY --from=0 /opt/frontend/out /opt/frontend/out
 COPY backend /opt/backend
@@ -21,4 +22,3 @@ ENV POETRY_CACHE_DIR="/root/.cache/pypoetry"
 #COPY credentials.json /opt/credentials.json
 
 CMD ["poetry", "run", "python", "src/backend/app.py"]
-#CMD ["poetry", "config", "--list"]

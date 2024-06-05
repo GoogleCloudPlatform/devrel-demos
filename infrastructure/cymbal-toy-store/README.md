@@ -1,5 +1,17 @@
 
 # Cymbal toystore demo
+## Description
+- The demo shows a sample retail application deployed in the cloud. It has a chat component which is the main point of the discussion.
+- The chat application is using Vertex AI integration to provide the answers related to inventory and other available information.
+- The LLM in general might be not a fully reliable source of information lacking factual information about inventory and availability for some products. 
+- AlloyDB is used as a backend database for the retail application and has products inventory. 
+- It helps to generate RAG reasoning for LLM when it comes to answers in the chat. It improves the reliability and usefulness of the chat application keeping it fully flexible and able to provide answers based on semantic search.
+- The application is using native integration between Google Databases and LangChain 
+
+### Architecture
+
+![Overview](./cymbal-toystore-01.png)
+
 ## Requirements
 - Project in Google Cloud with enabled APIs for all components.
 - AlloyDB cluster and primary instance created 
@@ -25,7 +37,8 @@ gcloud services enable alloydb.googleapis.com \
                        cloudbuild.googleapis.com \
                        artifactregistry.googleapis.com \
                        run.googleapis.com \
-                       iam.googleapis.com
+                       iam.googleapis.com \
+                       secretmanager.googleapis.com
 ```
 
 ### Create AlloyDB cluster
@@ -38,6 +51,14 @@ For example after creating the instance you get:
 - Instance IP:10.3.141.2
 - Postgres user:postgres
 - Postgres password:StrongPassword
+
+Enable integration with Vertex AI for the AlloyDB instance
+```
+PROJECT_ID=$(gcloud config get-value project)
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:service-$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")@gcp-sa-alloydb.iam.gserviceaccount.com" \
+  --role="roles/aiplatform.user"
+```
 
 ### Enable virtual environment for Python
 You can use either your laptop or a virtual machnie for deployment. I am using a VM deployed in the same Google pCloud project. On a Debian Linux you can enable it in the shell using the following command:
@@ -70,11 +91,44 @@ cd ~/devrel-demos/infrastructure/cymbal-toy-store/data/
 psql "host=10.3.141.2 user=cymbal dbname=cymbal_store" <cymbal_toystore.sql
 ```
 
-### Deploy in Cloud Run 
-* Switch to the directory 
+Calculate the embeddings
+```
+psql "host=10.3.141.2 user=cymbal dbname=cymbal_store" -c "insert into cymbal_embeddings select uniq_id,embedding( 'textembedding-gecko@003',product_name||':  '||product_description) from cymbal_products;"
+```
+
+### Deploy the applicaion to Cloud Run
+
+* Create a secret for the cymbal user password
+```
+gcloud secrets create cymbal-user-pw
+echo -n "StrongPassword" | gcloud secrets versions add cymbal-user-pw --data-file=- 
+```
+
+* create service account for the application
+```
+export PROJECT_ID=$(gcloud config get-value project)
+gcloud iam service-accounts create cymbal-shop-identity
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:cymbal-shop-identity@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/aiplatform.user"
+gcloud secrets add-iam-policy-binding cymbal-user-pw --member="serviceAccount:cymbal-shop-identity@$PROJECT_ID.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
+
+```
+
 * Create configuration file
+```
+echo "DB_USER='cymbal'
+DB_USER_SECRET_ID='cymbal-user-pw'
+DB_NAME='cymbal_store'
+GCP_PROJECT='cymbal-demo'
+GCP_REGION='us-central1'
+USE_ALLOYDB='True'
+INSTANCE_HOST='10.3.141.2'
+DB_PORT=5432" >~/devrel-demos/infrastructure/cymbal-toy-store/backend/src/backend/.env-prod
+```
 * Deploy the application to Cloud rRun 
 ```
+cd ~/devrel-demos/infrastructure/cymbal-toy-store
 gcloud alpha run deploy cymbal-toystore \
    --source=./ \
    --no-allow-unauthenticated \
@@ -84,7 +138,14 @@ gcloud alpha run deploy cymbal-toystore \
    --quiet
    ```
 
-* Get endpoint 
+* Get endpoint from output of the previous command, from the web console for cloud run or using the following command:
+```
+gcloud  run services list --filter="(cymbal-toystore)" --format="value(URL)"
+```
+* Access to the endpoint
+- You can open the endpoint to the public access 
+- You can use proxy 
+- You can put a load balancer before it
 
 # Licence
 
