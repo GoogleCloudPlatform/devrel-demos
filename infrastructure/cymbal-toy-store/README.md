@@ -54,10 +54,20 @@ git clone https://github.com/gotochkin/devrel-demos.git
 ```
 
 ### Load the data
-Create a database with the name cymbal_store
+Create a database with the name cymbal_store and the user cymbal
 ```
 export PGPASSWORD=StrongPassword
 psql "host=10.3.141.2 user=postgres dbname=postgres" -c "create database cymbal_store"
+psql "host=10.3.141.2 user=postgres dbname=postgres" -c "create user cymbal with password 'StrongPassword'"
+psql "host=10.3.141.2 user=postgres dbname=postgres" -c "GRANT ALL ON DATABASE cymbal_store to cymbal;"
+psql "host=10.3.141.2 user=postgres dbname=cymbal_store" -c "GRANT ALL ON SCHEMA public TO cymbal;"
+psql "host=10.3.141.2 user=postgres dbname=cymbal_store" -c "CREATE EXTENSION IF NOT EXISTS vector;"
+psql "host=10.3.141.2 user=postgres dbname=cymbal_store" -c "CREATE EXTENSION IF NOT EXISTS google_ml_integration;"
+```
+Load the data
+```
+cd ~/devrel-demos/infrastructure/cymbal-toy-store/data/
+psql "host=10.3.141.2 user=cymbal dbname=cymbal_store" <cymbal_toystore.sql
 ```
 
 ### Deploy in Cloud Run 

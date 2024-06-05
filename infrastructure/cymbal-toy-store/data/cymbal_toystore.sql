@@ -64,21 +64,13 @@ CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public;
 
 COMMENT ON EXTENSION vector IS 'vector data type and ivf access method';
 
---
--- User CYMBAL
---
-create user cymbal with password 'StrongPassword';
-
-grant all on database cymbal_store to cymbal;
-
-GRANT ALL ON SCHEMA public TO cymbal;
 
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
 --
--- Name: cymbal_embeddings; Type: TABLE; Schema: public; Owner: postgres
+-- Name: cymbal_embeddings; Type: TABLE; Schema: public; Owner: cymbal
 --
 
 CREATE TABLE public.cymbal_embeddings (
@@ -87,7 +79,7 @@ CREATE TABLE public.cymbal_embeddings (
 );
 
 
-ALTER TABLE public.cymbal_embeddings OWNER TO postgres;
+ALTER TABLE public.cymbal_embeddings OWNER TO cymbal;
 
 --
 -- Name: cymbal_products; Type: TABLE; Schema: public; Owner: cymbal
@@ -114,6 +106,22 @@ CREATE TABLE public.cymbal_products (
 ALTER TABLE public.cymbal_products OWNER TO cymbal;
 
 --
+-- Name: combined_embedding_products; Type: VIEW; Schema: public; Owner: cymbal
+--
+
+CREATE VIEW public.combined_embedding_products AS
+ SELECT cp.uniq_id,
+    cp.product_name,
+    cp.product_description AS embed_description,
+    cp.sale_price,
+    ce.product_embedding AS embedding
+   FROM (public.cymbal_products cp
+     JOIN public.cymbal_embeddings ce ON ((cp.uniq_id = ce.uniq_id)));
+
+
+ALTER TABLE public.combined_embedding_products OWNER TO cymbal;
+
+--
 -- Name: cymbal_products_uniq_id_seq1; Type: SEQUENCE; Schema: public; Owner: cymbal
 --
 
@@ -128,7 +136,7 @@ ALTER TABLE public.cymbal_products ALTER COLUMN uniq_id ADD GENERATED ALWAYS AS 
 
 
 --
--- Data for Name: cymbal_embeddings; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: cymbal_embeddings; Type: TABLE DATA; Schema: public; Owner: cymbal
 --
 
 COPY public.cymbal_embeddings (uniq_id, product_embedding) FROM stdin;
@@ -2344,7 +2352,7 @@ SELECT pg_catalog.setval('public.cymbal_products_uniq_id_seq1', 2199, true);
 
 
 --
--- Name: cymbal_embeddings cymbal_embeddings_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: cymbal_embeddings cymbal_embeddings_pkey; Type: CONSTRAINT; Schema: public; Owner: cymbal
 --
 
 ALTER TABLE ONLY public.cymbal_embeddings
