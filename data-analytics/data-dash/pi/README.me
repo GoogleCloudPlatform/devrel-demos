@@ -1,0 +1,9 @@
+To Setup Pi:
+
+1. Format card using Raspberry Pi Imager
+2. ssh into it
+3. `git clone https://github.com/GoogleCloudPlatform/devrel-demos.git`
+4. `cd devrel-demos/data-analytics/data-dash/pi`
+5. `bash setup.sh ${PROJECT_ID}
+6. Copy a service account key with `roles/bigtable.user` permissions to `/home/USER/.keys/key.json`
+7. Enable Private Google Access on a subnet

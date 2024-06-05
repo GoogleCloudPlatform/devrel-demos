@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+    <script src="{{url_for('static', filename='default.js')}}"></script>
+    <table border="0" align="center">
+        <tr>
+            <!-- navigation -->
+            <td>
+                <h4>
+                    Script:  <b>{{ filename | safe }}</b>
+                </h4>
+                <h4>
+                    Hostname:  <b>{{ hostname | safe }}</b>
+                </h4>
+            </td>
+            <!-- navigation -->
+            <td>
+                <ul id="navigation">
+                    {% for each in urls %}
+                        <li>
+                            <a href="{{ each }}">{{ each }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </td>
+        </tr>
+    </table>
+    <br>
+    {{ html_block | safe }}
+{% endblock %}
