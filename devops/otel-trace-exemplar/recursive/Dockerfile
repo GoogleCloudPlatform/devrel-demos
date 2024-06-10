@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.21-bullseye AS builder
+FROM golang:1.22-bullseye AS builder
 WORKDIR /app
 COPY main.go go.mod go.sum ./
 RUN go mod download
