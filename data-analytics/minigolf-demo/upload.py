@@ -90,7 +90,7 @@ def upload_file_to_gcs(src_path):
     dst_file = get_file_number()
     blob = bucket.blob(dst_file)
 
-    blob.upload_from_filename(src_path)
+    blob.upload_from_filename(src_path, timeout=300)
     end_time = time.time()
     print(f"Uploaded {src_path} to gs://{VIDEO_BUCKET}/{dst_file} in {end_time - start_time:.2f} seconds.")
 
@@ -118,7 +118,7 @@ def monitor_and_upload(folder_path):
             while file_size < os.path.getsize(file_path):
                 print("File is recording, waiting until recording is completed...")
                 file_size = os.path.getsize(file_path)
-                time.sleep(1)
+                time.sleep(3)
             print("recording is completed. Uploading...")
             upload_file_to_gcs(file_path)
             existing_files[latest_file.name] = latest_file.stat().st_mtime
