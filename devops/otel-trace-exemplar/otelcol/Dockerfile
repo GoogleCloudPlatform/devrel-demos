@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.94.0-amd64
+FROM ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.102.1-amd64
 COPY config.yaml /etc/otel/config.yaml
 EXPOSE 4317
 CMD ["--config", "/etc/otel/config.yaml"]
