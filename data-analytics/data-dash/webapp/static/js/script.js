@@ -9,6 +9,7 @@ $(document).ready(function () {
     0: "race-going",
     1: "race-over",
     2: "race-failed",
+    3: "race-won",
   };
 
   var socket = io();
@@ -87,9 +88,6 @@ $(document).ready(function () {
     setBoxShadow(carRightDivId, baseStatus);
   });
   socket.on("send_data", function (data) {
-    // console.log("send_data")
-
-
     console.log(data.left);
     console.log(data.right);
 
@@ -114,8 +112,8 @@ $(document).ready(function () {
     // leftData = exData;
     // rightData = exData;
 
-    setBoxShadow(carLeftDivId, baseStatus);
-    setBoxShadow(carRightDivId, baseStatus);
+    setBoxShadow(carLeftDivId, leftData.status);
+    setBoxShadow(carRightDivId, rightData.status);
 
     setPic(carLeftDivId, leftData.car_id);
     setPic(carRightDivId, rightData.car_id);
