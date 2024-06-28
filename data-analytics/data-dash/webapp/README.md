@@ -1,3 +1,7 @@
+## Webapp code
+
+This is the code for the monitoring dashboard for the demo.
+
 To run this locally from within the `./webapp` directory:
 
 1. Set your project id in the environment:
