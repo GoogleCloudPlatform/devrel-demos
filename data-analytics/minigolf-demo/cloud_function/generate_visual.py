@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 CUSTOM_PALETTE = {
         1: "#4285F4", # Google Core scheme
@@ -22,7 +23,8 @@ CUSTOM_PALETTE = {
 def generate_visual(df, user_id):
     img = plt.imread(f"/tmp/BG_{user_id}.jpg")
     fig, ax = plt.subplots(figsize=(19.20, 10.80))
-    
+    img = np.rot90(img, k=1, axes=(1,0))
+
     color_palette = [CUSTOM_PALETTE[shot_number] for shot_number in df['shot_number'].unique()]
     df['x'], df['y'] = 1080 - df['y'], df['x'] # For vertical visual
 

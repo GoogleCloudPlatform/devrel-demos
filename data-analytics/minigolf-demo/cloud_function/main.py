@@ -24,7 +24,7 @@ from storage_utils import download_video, upload_image
 from generate_visual import generate_visual
 from video_processing import process_video
 
-PROJECT_ID = "summit-seoul-2024-demo-01"
+PROJECT_ID = "gml-seoul-2024-demo-01"
 BACKGROUND_IMAGE_BUCKET = "image_gml_test"
 
 # Cloud Function entry point
@@ -52,8 +52,8 @@ def image_recognition(cloud_event):
     df = query_data_to_dataframe(PROJECT_ID, user_id)
     generate_visual(df, user_id)
     upload_image(BACKGROUND_IMAGE_BUCKET, user_id)
-    commentary = generate_commentary()
-    insert_data("commentary", commentary)
+    commentary = generate_commentary(PROJECT_ID, bucket_name, user_id, df)
+    insert_data("commentary", {"commentary": commentary})
 
     # Clean up the temporary file
     if os.path.isfile(temp_video_file):
