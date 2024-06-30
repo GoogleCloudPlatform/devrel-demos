@@ -1,8 +1,22 @@
+# Copyright 2024 Google LLC
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     https://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import vertexai
 from vertexai.generative_models import GenerativeModel, Image, Part
 import vertexai.preview.generative_models as generative_models
 
-TITLE = "Google Marketing Live Seoul"
+TITLE = "Google Marketing Live - Minigolf Championship final"
 VENUE = "Grand Intercontinental Seoul Parnas Grand Ballroom"
 LANGUAGE = "Korean"
 GEMINI_MODEL = "gemini-1.5-pro-001"
@@ -141,3 +155,17 @@ def generate_commentary(project_id, bucket_name, user_id, df):
         safety_settings=SAFETY_SETTINGS,
     )
     return responses.text
+
+# def query_data_to_dataframe(project_id, user_id):
+#     from google.cloud import bigquery
+#     bq_client = bigquery.Client()
+
+#     BIGQUERY = f"{project_id}.minigolf_a.tracking"
+#     query = f'SELECT * FROM {BIGQUERY} WHERE user_id = "{user_id}" AND shot_number > 0'
+#     df = bq_client.query(query).to_dataframe()
+#     return df
+
+# if __name__ == "__main__":
+#     df = query_data_to_dataframe("gml-seoul-2024-demo-01", "minigolf_0015")
+#     res = generate_commentary("gml-seoul-2024-demo-01", "video_gml_test_a", "minigolf_0015", df)
+#     print(res)

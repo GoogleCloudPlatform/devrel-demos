@@ -53,7 +53,11 @@ def image_recognition(cloud_event):
     generate_visual(df, user_id)
     upload_image(BACKGROUND_IMAGE_BUCKET, user_id)
     commentary = generate_commentary(PROJECT_ID, bucket_name, user_id, df)
-    insert_data("commentary", {"commentary": commentary})
+    commentary_data = {
+        "user_id": user_id, 
+        "commentary": commentary,
+    }
+    insert_data("commentary", commentary_data)
 
     # Clean up the temporary file
     if os.path.isfile(temp_video_file):
