@@ -15,12 +15,11 @@
 import os
 import re
 from google.cloud import bigquery, storage
-import firebase_admin
-from firebase_admin import firestore
+from cloud_function.firestore_utils import get_firestore_client
 
 MONITORING_INTERVAL = 5
 BACKGROUND_IMAGE_BUCKET = "image_gml_test_a"
-PROJECT_ID = "summit-seoul-2024-demo-01"
+PROJECT_ID = "gml-seoul-2024-demo-01"
 BIGQUERY_A = f"{PROJECT_ID}.minigolf_a.tracking"
 BIGQUERY_B = f"{PROJECT_ID}.minigolf_b.tracking"
 COMMENTARY = f"{PROJECT_ID}.minigolf_a.commentary" # MAKE SURE TO SELECT A RIGHT LANE!
@@ -31,8 +30,7 @@ PERSONAL_DATA_PATH = os.path.join(BASE_PATH, "personalData")
 
 client = bigquery.Client()
 storage_client = storage.Client()
-app = firebase_admin.get_app()
-db = firestore.client(app)
+db = get_firestore_client()
 
 def create_totals_directory(totals_path):
     """Creates the totals directory if it doesn't exist."""
@@ -98,7 +96,7 @@ if __name__ == "__main__":
         update_stats(TOTALS_PATH, num_users, average_shots_per_user)
 
         # --- Check USER_ID Status in Firestore ---
-        status = check_user_status(db, USER_ID)
+        status = check_user_status(USER_ID)
         if status == "completed":            
             user_folder_name = None
             with open(LIST_FILE_PATH, 'r') as file:

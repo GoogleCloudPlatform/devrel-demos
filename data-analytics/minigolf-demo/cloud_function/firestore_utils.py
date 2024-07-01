@@ -25,8 +25,10 @@ def get_firestore_client():
         db = firestore.client(app)
 
         # Create 'users' collection if it doesn't exist
-        if not db.collection('users').get():
-            db.collection('users').document().set({})
+        if not db.collection('users_a').get():
+            db.collection('users_a').document().set({})
+        if not db.collection('users_b').get():
+            db.collection('users_b').document().set({})
         return db
     
 def update_user_status(db, id, status):
