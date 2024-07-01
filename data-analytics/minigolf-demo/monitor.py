@@ -13,17 +13,17 @@
 # limitations under the License.
 
 import os
-import re
+import time
 from google.cloud import bigquery, storage
-from cloud_function.firestore_utils import get_firestore_client
+from cloud_function.firestore_utils import get_firestore_client, update_user_status
 
 LANE = "a"
 MONITORING_INTERVAL = 5
-BACKGROUND_IMAGE_BUCKET = "image_gml_test_a"
+BACKGROUND_IMAGE_BUCKET = f"image_gml_test_{LANE}"
 PROJECT_ID = "gml-seoul-2024-demo-01"
 BIGQUERY_A = f"{PROJECT_ID}.minigolf_a.tracking"
 BIGQUERY_B = f"{PROJECT_ID}.minigolf_b.tracking"
-COMMENTARY = f"{PROJECT_ID}.minigolf_a.commentary" # MAKE SURE TO SELECT A RIGHT LANE!
+COMMENTARY = f"{PROJECT_ID}.minigolf_{LANE}.commentary" # MAKE SURE TO SELECT A RIGHT LANE!
 BASE_PATH = "C:/Users/pc/desktop/Google_Share_Sample/"
 TOTALS_PATH = os.path.join(BASE_PATH, "totals")
 LIST_FILE_PATH = os.path.join(BASE_PATH, "list.txt")
@@ -73,17 +73,25 @@ def check_user_status(lane, user_id):
         return None
     
 
+def download_data(full_path, user_id):
+    bucket = storage_client.get_bucket(BACKGROUND_IMAGE_BUCKET)
+    blob = bucket.blob(f"minigolf_{user_id}.png")
+    blob.download_to_filename(os.path.join(full_path, "result.png"))
+
+    commentary_query = f'SELECT commentary FROM {COMMENTARY} WHERE user_id="minigolf_{user_id}"'
+    commentary_df = client.query(commentary_query).to_dataframe()
+    commentary_string = commentary_df['commentary'].iloc[0]["commentary"]
+
+    textPath = os.path.join(full_path,'result.txt')
+    with open(textPath, 'w', encoding='utf-8') as file:
+        file.write(commentary_string)
+    print("Commentary saved to /tmp/result.txt")
+
+
 if __name__ == "__main__":
     create_totals_directory(TOTALS_PATH)
 
     while True:
-        USER_ID = input("Enter USER_ID (four digits, e.g., 0001, or type 'exit'): ")
-        if USER_ID.lower() == 'exit':
-            break
-        if not re.match(r'^\d{4}$', USER_ID): 
-            print("Invalid USER_ID. Please enter exactly four digits.")
-            continue
-        
         num_users_a, average_shots_per_user_a = query_data(BIGQUERY_A)
         num_users_b, average_shots_per_user_b = query_data(BIGQUERY_B)
 
@@ -93,45 +101,35 @@ if __name__ == "__main__":
 
         update_stats(TOTALS_PATH, num_users, average_shots_per_user)
 
-        # --- Check USER_ID Status in Firestore ---
-        status = check_user_status(LANE, USER_ID)
-        if status == "completed":
-            print(f"{USER_ID} is completed. Find the user folder.")
-            user_folder_name = None
-            with open(LIST_FILE_PATH, 'r') as file:
-                for line in file:
-                    line = line.strip()
-                    if line:
-                        parts = line.split('_')
-                        if len(parts) >= 5:
-                            print(parts[5])  # Log the third value
-                            if parts[5] == USER_ID:
-                                user_folder_name = f"{parts[0]}_{parts[1]}"
-                                break
-            if not user_folder_name:
-                raise ValueError(f"USER_ID {USER_ID} not found in the list file.")
-        elif status == "processing":
-            print(f"{USER_ID} is currently being processed. Please wait.")
-            continue  # Skip to the next user 
+        docs = db.collection(f'users_{LANE}').stream()
+        for doc in docs:
+            doc_dict = doc.to_dict()
+            user_id = doc_dict.get('user_id')
+            status = doc_dict.get('status')
 
-        full_path = os.path.join(PERSONAL_DATA_PATH, user_folder_name)
-        if not os.path.exists(full_path):
-            os.makedirs(full_path)
-            print(f"Folder created: {full_path}")
-        else:
-            print(f"Folder already exists: {full_path}")
-        
-        bucket = storage_client.get_bucket(BACKGROUND_IMAGE_BUCKET)
-        blob = bucket.blob(f"minigolf_{USER_ID}.png")
-        blob.download_to_filename(os.path.join(full_path, "result.png"))
+            if status == "completed":
+                print(f"{user_id}'s image processing is completed. Find the user folder.")
+                user_folder_name = None
+                with open(LIST_FILE_PATH, 'r') as file:
+                    for line in file:
+                        line = line.strip()
+                        if line:
+                            parts = line.split('_')
+                            if len(parts) >= 5:
+                                print(parts[5])  # Log the third value
+                                if parts[5] == user_id:
+                                    user_folder_name = f"{parts[0]}_{parts[1]}"
+                                    break
+                if not user_folder_name:
+                    raise ValueError(f"USER_ID {user_id} not found in the list file.")
+                update_user_status(db, LANE, user_id, "saved")
 
-        commentary_query = f'SELECT commentary FROM {COMMENTARY} WHERE user_id="minigolf_{USER_ID}"'
-        commentary_df = client.query(commentary_query).to_dataframe()
-        commentary_string = commentary_df['commentary'].iloc[0]["commentary"]
-
-        textPath = os.path.join(full_path,'result.txt')
-        with open(textPath, 'w', encoding='utf-8') as file:
-            file.write(commentary_string)
-
-        print("Content saved to /tmp/result.txt")
-
+                full_path = os.path.join(PERSONAL_DATA_PATH, user_folder_name)
+                if not os.path.exists(full_path):
+                    os.makedirs(full_path)
+                    print(f"Folder created: {full_path}")
+                else:
+                    print(f"Folder already exists: {full_path}")
+                
+                download_data(full_path, user_id)
+        time.sleep(MONITORING_INTERVAL)
