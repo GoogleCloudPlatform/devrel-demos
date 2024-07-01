@@ -38,7 +38,7 @@ CUSTOM_PALETTE = {
 def generate_visual(df, user_id):
     img = plt.imread(f"/tmp/BG_{user_id}.jpg")
     img = np.rot90(img, k=1, axes=(1,0))
-    fig, ax = plt.subplots(figsize=(10.80, 19.20))
+    fig, ax = plt.subplots(figsize=(5.40, 9.60))
     plt.subplots_adjust(left=0, right=1, bottom=0, top=1)
 
     color_palette = [CUSTOM_PALETTE[shot_number] for shot_number in df['shot_number'].unique()]
@@ -51,10 +51,10 @@ def generate_visual(df, user_id):
             data['y'], 
             label=f"Shot {shot_number}", 
             color=color_palette[i], 
-            s=15, 
-            marker='o', 
-            edgecolors='white', 
-            linewidths=0.25
+            s=30,
+            marker='o',
+            edgecolors='white',
+            linewidths=0.5
         )
     ax.legend()
 
