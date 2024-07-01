@@ -31,8 +31,8 @@ def get_firestore_client():
             db.collection('users_b').document().set({})
         return db
     
-def update_user_status(db, id, status):
+def update_user_status(db, lane, id, status):
     # Save user information to Firestore
-    users_ref = db.collection('users').document(id)
+    users_ref = db.collection(f'users_{lane}').document(id)
     users_ref.set({"user_id": id, "status": status})
     return

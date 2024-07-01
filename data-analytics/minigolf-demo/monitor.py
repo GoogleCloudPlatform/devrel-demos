@@ -17,6 +17,7 @@ import re
 from google.cloud import bigquery, storage
 from cloud_function.firestore_utils import get_firestore_client
 
+LANE = "a"
 MONITORING_INTERVAL = 5
 BACKGROUND_IMAGE_BUCKET = "image_gml_test_a"
 PROJECT_ID = "gml-seoul-2024-demo-01"
@@ -37,8 +38,6 @@ def create_totals_directory(totals_path):
     if not os.path.exists(totals_path):
         os.makedirs(totals_path)
         print(f"폴더가 생성되었습니다 : {totals_path}")
-    else:
-        print(f"폴더가 이미 존재합니다.: {totals_path}")
 
 def query_data(dataset):
     """Fetches data from BigQuery, filters it, and calculates statistics."""
@@ -61,11 +60,10 @@ def update_stats(totals_path, num_users, average_shots_per_user):
         file.write(REStxt)
 
 
-def check_user_status(user_id):
+def check_user_status(lane, user_id):
     """Checks the status of a user in Firestore."""
-    users_ref = db.collection('users').document(user_id)
+    users_ref = db.collection(f'users_{lane}').document(f"minigolf_{user_id}")
     user_doc = users_ref.get()
-
     if user_doc.exists:
         status = user_doc.to_dict().get('status')
         print(f"USER_ID {user_id} status: {status}")
@@ -96,8 +94,9 @@ if __name__ == "__main__":
         update_stats(TOTALS_PATH, num_users, average_shots_per_user)
 
         # --- Check USER_ID Status in Firestore ---
-        status = check_user_status(USER_ID)
-        if status == "completed":            
+        status = check_user_status(LANE, USER_ID)
+        if status == "completed":
+            print(f"{USER_ID} is completed. Find the user folder.")
             user_folder_name = None
             with open(LIST_FILE_PATH, 'r') as file:
                 for line in file:
@@ -109,7 +108,7 @@ if __name__ == "__main__":
                             if parts[5] == USER_ID:
                                 user_folder_name = f"{parts[0]}_{parts[1]}"
                                 break
-            if user_folder_name is None:
+            if not user_folder_name:
                 raise ValueError(f"USER_ID {USER_ID} not found in the list file.")
         elif status == "processing":
             print(f"{USER_ID} is currently being processed. Please wait.")
@@ -128,7 +127,7 @@ if __name__ == "__main__":
 
         commentary_query = f'SELECT commentary FROM {COMMENTARY} WHERE user_id="minigolf_{USER_ID}"'
         commentary_df = client.query(commentary_query).to_dataframe()
-        commentary_string = commentary_df['commentary'].iloc[0] 
+        commentary_string = commentary_df['commentary'].iloc[0]["commentary"]
 
         textPath = os.path.join(full_path,'result.txt')
         with open(textPath, 'w', encoding='utf-8') as file:
