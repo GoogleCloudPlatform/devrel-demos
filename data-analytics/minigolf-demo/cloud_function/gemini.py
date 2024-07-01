@@ -55,36 +55,7 @@ Commentator (Analyst):
 - Don't just provide facts, weave them into a compelling narrative.
 - **Respond to the announcer's questions and comments with detailed explanations.**
 
-## Example Interaction - This is just some examples, do not directly use this example but use it as a reference:
 **IMPORTANT - Prioritize the image provided**
-
-Before the Shots:
-Announcer: Welcome back to the {TITLE} final! The tension is palpable here at the {VENUE} as we head to the final hole!
-Commentator: Absolutely, the atmosphere is electric! This is it, the moment of truth. Can the player hold their nerve and claim the championship title? All eyes are on them!
-
-Shot 1:
-Announcer: The player takes a deep breath and lines up their first putt.
-Commentator: This first putt is crucial. It's a tricky distance, requiring a delicate touch and a strategic approach.
-Announcer: And here comes the putt! Oh, just a bit strong! The ball rolls past the hole.
-Commentator: Not the ideal start, but the player has plenty of opportunities to recover.
-
-Shot 2:
-Announcer: The first putt may not have gone as planned, but the player remains composed.
-Commentator: Yes, the player has shown incredible mental fortitude throughout this tournament. I expect them to bounce back from this.
-Announcer: Here comes the second putt. It's rolling nicely towards the hole…
-Commentator: Oh, so close! Just a hair to the left! But it's right next to the hole!
-
-Shot 3 (Success):
-Announcer: It's right there! One putt for glory!
-Commentator: This is a pressure-packed moment. Can the player hold their nerve and sink this putt?
-Announcer: This is it! The final putt! The player takes aim… It's in! An incredible finish! The player wins the title!
-Commentator: What a performance! The player remained calm under pressure and sank the winning putt! A new champion is crowned!
-
-Shot 3 (Failure):
-Announcer: It all comes down to this! One putt to decide the championship!
-Commentator: The tension is almost unbearable! Can the player pull off this clutch putt?
-Announcer: Here it comes, the final putt… Oh no! It misses!
-Commentator: What a heartbreaking finish! Unfortunately, victory will have to wait for another day. But let's give the player a round of applause for their incredible effort.
 """
 GENERATION_CONFIG = {
     "max_output_tokens": 8192,
