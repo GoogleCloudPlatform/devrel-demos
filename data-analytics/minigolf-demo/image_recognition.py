@@ -17,14 +17,16 @@ This Cloud Function processes uploaded videos to track a golf ball's movement an
 It then stores the tracking data in BigQuery for further analysis.
 """
 
+import firebase_admin
 import functions_framework
 import cv2
 import math
 import os
-from datetime import datetime
 
-from google.cloud import bigquery, storage
 from collections import deque
+from datetime import datetime
+from firebase_admin import firestore
+from google.cloud import bigquery, storage
 
 # Constants for ball and hole positions (assuming fixed locations in the video)
 BALL = (1434, 495, 15, 15)  # (x, y, width, height)
@@ -57,6 +59,15 @@ tracking_table_ref = dataset_ref.table(BIGQUERY_TRACKING_TABLE_ID)
 
 # Initialize Storage client
 storage_client = storage.Client()
+
+
+def get_firestore_client():
+    try:
+        app = firebase_admin.get_app()
+    except ValueError:
+        app = firebase_admin.initialize_app()
+    finally:
+        return firestore.client(app)
 
 # List to store any errors during BigQuery inserts
 ERRORS = []
@@ -181,11 +192,23 @@ def image_recognition(cloud_event):
     Processes the video and uploads tracking data to BigQuery.
     """
     start_time = datetime.now()
+    db = get_firestore_client()
 
     data = cloud_event.data
     bucket_name = data["bucket"]
     file_name = data["name"]
     user_id = file_name.split(".")[0]
+    user = {
+        "user_id": user_id,
+        "status": "processing",  # Initial status is 'waiting'
+    }
+    # Create 'users' collection if it doesn't exist
+    if not db.collection('users').get():
+        db.collection('users').document().set({})
+    
+    # Save user information to Firestore
+    users_ref = db.collection('users').document(user_id)  # Use user_number as document ID
+    users_ref.set(user)
 
     # Create BigQuery table if it doesn't exist
     try:
@@ -212,6 +235,11 @@ def image_recognition(cloud_event):
     else:
         print(f"Downloaded file not found: {temp_file}")
 
-    end_time = datetime.now()
+    # Update user status to 'completed' in 'users' collection
+    user_ref = db.collection('users').document(user_id)
+    user_ref.update({'status': 'completed'})
+
+    end_time = datetime.now()    
     elapsed_time = (end_time - start_time).total_seconds()
+    print(f"Processing {file_name} is completed.")
     print(f"Function execution time: {elapsed_time:.2f} seconds")

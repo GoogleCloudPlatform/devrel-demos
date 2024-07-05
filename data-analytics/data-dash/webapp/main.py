@@ -36,19 +36,12 @@ CAR_ERR_TIMEOUT = 15
 
 OK = 0
 DONE = 1
-WIN = 2
-ERR = 3
-
-COLORS = {
-    OK: 0,
-    DONE: 1,
-    WIN: 2,
-    ERR: 3,
-}
+ERR = 2
+WIN = 3
 
 project_id = os.environ["PROJECT_ID"]
 instance_id = "data-dash"
-table_id = "races"
+table_id = "races_demo"
 
 client = bigtable.Client(project=project_id)
 instance = client.instance(instance_id)
@@ -77,12 +70,12 @@ def get_data(track_id):
     for i in range(1, 9):
         col_name = bytes(col_strf.format(i=i), "utf-8")
         col = row.cells["cf"].get(col_name)
-        checkpoints[i] = float(col[0].value.decode("utf-8")) if col else None
+        checkpoints[str(i)] = float(col[0].value.decode("utf-8")) if col else None
 
     for i in range(1, 3):
-        ts = checkpoints.get(i)
+        ts = checkpoints.get(str(i))
         if ts:
-            if checkpoints.get(8):
+            if checkpoints.get("8"):
                 status = DONE
                 break
             else:
