@@ -1,6 +1,6 @@
 module recursive
 
-go 1.21
+go 1.22
 
 require (
 	go.opentelemetry.io/contrib/detectors/gcp v1.24.0

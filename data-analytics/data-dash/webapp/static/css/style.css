@@ -50,12 +50,14 @@ h1 {
   border-color: #FFF300;
 }
 .race-over {
-  border-color: #72d904;
+  border-color: #267203bf;
 }
 .race-failed {
   border-color: #F23005;
 }
-
+.race-won {
+  border-color: #72d904;
+}
 .car-container .img {
   height: 250px;
   width: 100%;
