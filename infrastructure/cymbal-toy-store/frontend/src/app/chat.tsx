@@ -122,6 +122,10 @@ export default function Chat({
               <Image alt="send" src="/cart_add.svg" height="30" width="30" />
               Add to cart
             </button>
+
+            <a href="https://toys-uxu5wi2jpa-uc.a.run.app" target="_blank">Toys like this!
+            </a>
+            
           </div>
         )}
         <div ref={messagesEndRef}></div>
