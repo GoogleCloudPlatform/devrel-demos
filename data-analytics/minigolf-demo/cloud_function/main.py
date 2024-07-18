@@ -24,9 +24,9 @@ from storage_utils import download_video, upload_image
 from generate_visual import generate_visual
 from video_processing import process_video
 
-PROJECT_ID = "gml-seoul-2024-demo-01"
-BACKGROUND_IMAGE_BUCKET = "image_gml_test"
-LANE = "a"
+PROJECT_ID = ""
+BACKGROUND_IMAGE_BUCKET = ""
+
 
 # Cloud Function entry point
 @functions_framework.cloud_event
@@ -43,7 +43,7 @@ def image_recognition(cloud_event):
     user_id = file_name.split(".")[0]
 
     db = get_firestore_client()
-    update_user_status(db, LANE, user_id, "processing")
+    update_user_status(db, user_id, "processing")
     initialize_bq_tables()
 
     temp_video_file = f"/tmp/{file_name}"
@@ -52,7 +52,7 @@ def image_recognition(cloud_event):
 
     df = query_data_to_dataframe(PROJECT_ID, user_id)
     generate_visual(df, user_id)
-    upload_image(f"{BACKGROUND_IMAGE_BUCKET}_{LANE}", user_id)
+    upload_image(f"{BACKGROUND_IMAGE_BUCKET}", user_id)
     commentary = generate_commentary(PROJECT_ID, bucket_name, user_id, df)
     commentary_data = {
         "user_id": user_id, 
@@ -66,7 +66,7 @@ def image_recognition(cloud_event):
     else:
         print(f"Downloaded file not found: {temp_video_file}")
 
-    update_user_status(db, LANE, user_id, "completed")
+    update_user_status(db, user_id, "completed")
 
     end_time = datetime.now()    
     elapsed_time = (end_time - start_time).total_seconds()

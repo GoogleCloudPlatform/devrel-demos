@@ -51,10 +51,10 @@ def generate_visual(df, user_id):
             data['y'], 
             label=f"Shot {shot_number}", 
             color=color_palette[i], 
-            s=30,
+            s=35,
             marker='o',
             edgecolors='white',
-            linewidths=0.5
+            linewidths=0.4
         )
     ax.legend()
 

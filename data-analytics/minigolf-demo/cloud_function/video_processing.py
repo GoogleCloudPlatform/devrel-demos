@@ -20,7 +20,7 @@ from bigquery_utils import insert_data
 
 # Constants for ball and hole positions (assuming fixed locations in the video)
 BALL = (1700, 520, 40, 40)
-HOLE = (725, 536, 7, 6)
+HOLE = (1170, 519, 1, 1)
 MOVEMENT_THRESHOLD = 5
 
 def check_if_moving(dist_arr, distance):

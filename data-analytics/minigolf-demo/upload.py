@@ -33,8 +33,7 @@ VIDEO_BUCKET = ""
 PROJECT_ID = ""
 
 # Directory paths
-TEMP_FOLDER = "C:/Users/pc/Desktop/Google_Share_Sample/"
-LIST_FILE_PATH = TEMP_FOLDER + "list.txt"
+TEMP_FOLDER = "/tmp"
 
 # Monitoring interval (in seconds)
 MONITORING_INTERVAL = 3     
@@ -59,7 +58,8 @@ def get_latest_file(directory):
         return max((p for p in directory_path.iterdir() if p.is_file()), key=os.path.getmtime)
     except ValueError:  # Handle empty directory
         return None
-    
+
+
 def get_file_number():
     """
     Gets the next available file number based on existing files in Cloud Storage.
@@ -80,27 +80,6 @@ def get_file_number():
     return f"minigolf_{next_number:04d}.mp4"
 
 
-def append_to_list_file(file_path, next_number):
-    """
-    Appends the filename (without extension) followed by the next number to list.txt.
-
-    Args:
-        file_path (str): The path to the local file.
-        next_number (int): The next available file number.
-    """
-    list_file = Path(LIST_FILE_PATH)
-    file_name = Path(file_path).stem
-    entry = f"{file_name}_{next_number:04d}\n"
-
-    # If list.txt does not exist, create it and add an empty first line
-    if not list_file.exists():
-        with list_file.open("w") as f:
-            f.write("\n")
-
-    with list_file.open("a") as f:
-        f.write(entry)
-
-
 def upload_file_to_gcs(src_path):
     """
     Uploads a file from the local filesystem to a Google Cloud Storage bucket.
@@ -117,9 +96,6 @@ def upload_file_to_gcs(src_path):
     end_time = time.time()
     print(f"Uploaded {src_path} to gs://{VIDEO_BUCKET}/{dst_file} in {end_time - start_time:.2f} seconds.")
 
-    # Append to list.txt
-    next_number = int(dst_file[9:13])
-    append_to_list_file(src_path, next_number)
 
 # Main Monitoring Logic
 def monitor_and_upload(folder_path):
@@ -151,6 +127,7 @@ def monitor_and_upload(folder_path):
         else:
             print("No new file detected. Monitoring...")
         time.sleep(MONITORING_INTERVAL)
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

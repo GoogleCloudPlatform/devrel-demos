@@ -14,9 +14,9 @@
 
 from google.cloud import bigquery
 
-LANE = "b"
+
 bq_client = bigquery.Client()
-dataset_ref = bq_client.dataset(f"minigolf_{LANE}")
+dataset_ref = bq_client.dataset(f"minigolf")
 tracking_table_ref = dataset_ref.table("tracking")
 commentary_table_ref = dataset_ref.table("commentary")
 
@@ -63,7 +63,7 @@ def insert_data(table, data):
 
 
 def query_data_to_dataframe(project_id, user_id):
-    BIGQUERY = f"{project_id}.minigolf_{LANE}.tracking"
+    BIGQUERY = f"{project_id}.minigolf.tracking"
     query = f'SELECT * FROM {BIGQUERY} WHERE user_id = "{user_id}" AND shot_number > 0'
     df = bq_client.query(query).to_dataframe()
     return df
