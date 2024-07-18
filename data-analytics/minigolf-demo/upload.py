@@ -41,6 +41,7 @@ MONITORING_INTERVAL = 3
 storage_client = storage.Client(project=PROJECT_ID)
 bucket = storage_client.bucket(VIDEO_BUCKET)
 
+
 # Helper Functions
 def get_latest_file(directory):
     """
@@ -57,7 +58,8 @@ def get_latest_file(directory):
         return max((p for p in directory_path.iterdir() if p.is_file()), key=os.path.getmtime)
     except ValueError:  # Handle empty directory
         return None
-    
+
+
 def get_file_number():
     """
     Gets the next available file number based on existing files in Cloud Storage.
@@ -76,7 +78,7 @@ def get_file_number():
         next_number = 1  # Start from 1 if no files exist
 
     return f"minigolf_{next_number:04d}.mp4"
-    
+
 
 def upload_file_to_gcs(src_path):
     """
@@ -125,6 +127,7 @@ def monitor_and_upload(folder_path):
         else:
             print("No new file detected. Monitoring...")
         time.sleep(MONITORING_INTERVAL)
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
