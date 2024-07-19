@@ -49,15 +49,15 @@ h1 {
 .race-going  {
   border-color: #FFF300;
 }
-.race-over {
-  border-color: #267203bf;
-}
-.race-failed {
+.race-lose {
   border-color: #F23005;
 }
-.race-won {
+.race-win {
   border-color: #72d904;
 }
+/* .checkpoint {
+  border-color: #267203bf;
+} */
 .car-container .img {
   height: 250px;
   width: 100%;
@@ -97,11 +97,11 @@ tr:last-child {
 tr.race-going  {
   background: rgba(255, 243, 0, 0.25);
 }
-tr.race-over {
-  background: rgba(114, 217, 4, 0.25);
-}
 tr.race-failed {
   background: #F23005;
+}
+tr.checkpoint {
+  background: rgba(114, 217, 4, 0.25);
 }
 
 .time_view {

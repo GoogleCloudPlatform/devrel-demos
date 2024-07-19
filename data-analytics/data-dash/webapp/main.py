@@ -14,34 +14,32 @@
 # limitations under the License.
 
 import os
+import eventlet
 import time
 from datetime import datetime
-from threading import Lock
 
 import google.cloud.bigtable.row_filters as row_filters
 from flask import Flask, render_template
+from flask_cors import CORS
 from flask_socketio import SocketIO
 from google.cloud import bigtable
 
-async_mode = "threading"
+async_mode = "eventlet"
 
 app = Flask(__name__)
-socketio = SocketIO(app, async_mode=async_mode)
-thread = None
-thread_lock = Lock()
+CORS(app, resources={r"/*": {"origins": "*"}})
+socketio = SocketIO(app, async_mode=async_mode, cors_allowed_origins="*")
 
 DEFAULT_ID = 999999999999
-RESET_ID_TIMEOUT = 30
-CAR_ERR_TIMEOUT = 15
 
 OK = 0
-DONE = 1
-ERR = 2
-WIN = 3
+WIN = 1
+LOSE = 2
+DONE = 3
 
 project_id = os.environ["PROJECT_ID"]
 instance_id = "data-dash"
-table_id = "races_demo"
+table_id = "races"
 
 client = bigtable.Client(project=project_id)
 instance = client.instance(instance_id)
@@ -72,53 +70,53 @@ def get_data(track_id):
         col = row.cells["cf"].get(col_name)
         checkpoints[str(i)] = float(col[0].value.decode("utf-8")) if col else None
 
-    for i in range(1, 3):
-        ts = checkpoints.get(str(i))
-        if ts:
-            if checkpoints.get("8"):
-                status = DONE
-                break
-            else:
-                status = ERR if time.time() - int(ts) > CAR_ERR_TIMEOUT else OK
-                break
-        else:
-            status = ERR
-
     data["checkpoints"] = checkpoints
-    data["status"] = status
+    data["status"] = DONE if checkpoints.get("8") else OK
     return data
 
 
 def background_thread():
     while True:
         socketio.sleep(1)
+        
+        lt = time.time()
+        print("GETTING LEFT DATA")
         left_data = get_data(1)
+        print(f"RECEIVED LEFT DATA AFTER {time.time() - lt} SECONDS")
+
+        rt = time.time()
+        print("GETTING RIGHT DATA")
         right_data = get_data(2)
+        print(f"RECEIVED RIGHT DATA AFTER {time.time() - rt} SECONDS")
 
         # Determine if there's a winner
         if left_data["status"] == DONE and right_data["status"] == DONE:
             if left_data["checkpoints"]["8"] < right_data["checkpoints"]["8"]:
                 left_data["status"] = WIN
+                right_data["status"] = LOSE
             else:
                 right_data["status"] = WIN
+                left_data["status"] = LOSE
         elif left_data["status"] == DONE:
             left_data["status"] = WIN
+            right_data["status"] = LOSE
         elif right_data["status"] == DONE:
             right_data["status"] = WIN
+            left_data["status"] = LOSE
+        
+        print("EMITTING DATA")
         socketio.emit("send_data", {"left": left_data, "right": right_data})
-
+        print("DATA EMITTED")
 
 @app.route("/")
 def index():
     return render_template("index.html", async_mode=socketio.async_mode)
 
 
-@socketio.event
+@socketio.on('connect')
 def connect():
-    global thread
-    with thread_lock:
-        if thread is None:
-            thread = socketio.start_background_task(background_thread)
+    socketio.start_background_task(background_thread)
+    print('connecting')
     socketio.emit(
         "set_default", {"left_id": f"{DEFAULT_ID}", "right_id": f"{DEFAULT_ID}"}
     )
