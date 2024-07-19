@@ -1,0 +1,12 @@
+functions-framework==3.*
+opencv-python
+google-cloud-bigquery
+google-cloud-storage
+google-cloud-bigquery-storage
+opencv-contrib-python
+firestore
+matplotlib
+vertexai
+pandas
+db-dtypes
+numpy

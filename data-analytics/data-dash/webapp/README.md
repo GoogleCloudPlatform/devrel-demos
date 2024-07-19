@@ -1,3 +1,7 @@
+## Webapp code
+
+This is the code for the monitoring dashboard for the demo.
+
 To run this locally from within the `./webapp` directory:
 
 1. Set your project id in the environment:
@@ -17,6 +21,3 @@ To run this locally from within the `./webapp` directory:
     `python main.py`
 
 5. In your browser go to `localhost:8080`
-   
-
-
