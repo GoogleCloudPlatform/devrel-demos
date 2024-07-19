@@ -7,9 +7,9 @@ $(document).ready(function () {
   const carRightDivId = "#car_2";
   const statusClassesMap = {
     0: "race-going",
-    1: "race-over",
-    2: "race-failed",
-    3: "race-won",
+    1: "race-win",
+    2: "race-lose",
+    3: "checkpoint",
   };
 
   var socket = io();
@@ -32,8 +32,8 @@ $(document).ready(function () {
   }
 
   function setCheckpoints(div, checkpointsMap) {
-    console.log("setting checkpoints");
-    console.log(checkpointsMap)
+    // console.log("setting checkpoints");
+    // console.log(checkpointsMap)
     for (let i = 0; i < 8; i++) {
       let checkpoint = i + 1
       let selector = div + " tr";
@@ -42,14 +42,14 @@ $(document).ready(function () {
       let checkpointValue = checkpointsMap[checkpoint];
 
       // Reset board if nothing to show.
-      if (!checkpointsMap[1]) {
+      if (!checkpointValue) {
         updateStatus(row);
         valEl.text(0);
         continue;
       }
 
       if (checkpointValue) {
-        updateStatus(row, 1)
+        updateStatus(row, 3)
         valEl.text(formatTimestamp(checkpointValue));
       } else {
         // let now = new Date();
@@ -88,9 +88,7 @@ $(document).ready(function () {
     setBoxShadow(carRightDivId, baseStatus);
   });
   socket.on("send_data", function (data) {
-    console.log(data.left);
-    console.log(data.right);
-
+    console.log("data received")
     leftData = data.left;
     rightData = data.right;
 
@@ -114,24 +112,38 @@ $(document).ready(function () {
 
     setBoxShadow(carLeftDivId, leftData.status);
     setBoxShadow(carRightDivId, rightData.status);
-
+    
+    console.log("LEFT DATA:")
+    console.log(leftData)
     setPic(carLeftDivId, leftData.car_id);
+
+    console.log("RIGHT DATA:")
+    console.log(rightData)
     setPic(carRightDivId, rightData.car_id);
 
     setCheckpoints(carLeftDivId, leftData.checkpoints);
     setCheckpoints(carRightDivId, rightData.checkpoints);
   });
 
-  setInterval(() => {
-    if (leftData) {
-      setCheckpoints(carLeftDivId, leftData.checkpoints);
-    }
-    if (rightData) {
-      setCheckpoints(carRightDivId, rightData.checkpoints);
-    }
-  }, 100)
+  socket.on('disconnect', function() {
+    console.log('Disconnected from server');
+
+    // Attempt reconnection every 3 seconds
+    setTimeout(function() {
+        socket.connect();
+    }, 3000); 
+});
+  // setInterval(() => {
+  //   if (leftData) {
+  //     setCheckpoints(carLeftDivId, leftData.checkpoints);
+  //   }
+  //   if (rightData) {
+  //     setCheckpoints(carRightDivId, rightData.checkpoints);
+  //   }
+  // }, 100)
 
   socket.on('set_default', function(data) {
+    console.log("setting default")
     setPic(carLeftDivId, data.left_id);
     setPic(carRightDivId, data.right_id);
   });
