@@ -15,8 +15,6 @@ $(document).ready(function () {
   var socket = io();
 
   function setBoxShadow(div, status) {
-    // console.log("setting box shadow");
-    // console.log(color);
     updateStatus(div, status)
   }
 
@@ -32,8 +30,6 @@ $(document).ready(function () {
   }
 
   function setCheckpoints(div, checkpointsMap) {
-    // console.log("setting checkpoints");
-    // console.log(checkpointsMap)
     for (let i = 0; i < 8; i++) {
       let checkpoint = i + 1
       let selector = div + " tr";
@@ -51,12 +47,7 @@ $(document).ready(function () {
       if (checkpointValue) {
         updateStatus(row, 3)
         valEl.text(formatTimestamp(checkpointValue));
-      } else {
-        // let now = new Date();
-        // updateStatus(row, 0)
-        // valEl.text(formatTimestamp(now));
-        // return;
-      }
+      } 
     }
   }
 
@@ -92,24 +83,6 @@ $(document).ready(function () {
     leftData = data.left;
     rightData = data.right;
 
-    exData = {
-      'car_id': 'CAR0001',
-      'timestamp': 1712342069.785,
-      'checkpoints': {
-        1: 1707596526,
-        2: 1707601628,
-        3: 1707608768,
-        4: 1707616369,
-        5: 1707624172,
-        6: 1707630592,
-        7: 1707631702,
-        8: 1707634954
-      },
-      'status': 1
-    }
-    // leftData = exData;
-    // rightData = exData;
-
     setBoxShadow(carLeftDivId, leftData.status);
     setBoxShadow(carRightDivId, rightData.status);
     
@@ -133,14 +106,6 @@ $(document).ready(function () {
         socket.connect();
     }, 3000); 
 });
-  // setInterval(() => {
-  //   if (leftData) {
-  //     setCheckpoints(carLeftDivId, leftData.checkpoints);
-  //   }
-  //   if (rightData) {
-  //     setCheckpoints(carRightDivId, rightData.checkpoints);
-  //   }
-  // }, 100)
 
   socket.on('set_default', function(data) {
     console.log("setting default")

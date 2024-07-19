@@ -17,7 +17,6 @@ import os
 import eventlet
 import time
 from datetime import datetime
-# from threading import Lock
 
 import google.cloud.bigtable.row_filters as row_filters
 from flask import Flask, render_template
@@ -30,19 +29,15 @@ async_mode = "eventlet"
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 socketio = SocketIO(app, async_mode=async_mode, cors_allowed_origins="*")
-# thread = None
-# thread_lock = Lock()
 
 DEFAULT_ID = 999999999999
-RESET_ID_TIMEOUT = 30
-CAR_ERR_TIMEOUT = 15
 
 OK = 0
 WIN = 1
 LOSE = 2
 DONE = 3
 
-project_id = "data-dash-demo"#os.environ["PROJECT_ID"]
+project_id = os.environ["PROJECT_ID"]
 instance_id = "data-dash"
 table_id = "races"
 
@@ -75,24 +70,8 @@ def get_data(track_id):
         col = row.cells["cf"].get(col_name)
         checkpoints[str(i)] = float(col[0].value.decode("utf-8")) if col else None
 
-    if checkpoints.get("8"):
-        status = DONE
-    else:
-        status = OK
-    # for i in range(1, 3):
-    #     ts = checkpoints.get(str(i))
-    #     if ts:
-    #         if checkpoints.get("8"):
-    #             status = DONE
-    #             break
-    #         else:
-    #             status = ERR if time.time() - int(ts) > CAR_ERR_TIMEOUT else OK
-    #             break
-    #     else:
-    #         status = OK
-
     data["checkpoints"] = checkpoints
-    data["status"] = status
+    data["status"] = DONE if checkpoints.get("8") else OK
     return data
 
 
@@ -136,19 +115,11 @@ def index():
 
 @socketio.on('connect')
 def connect():
-    # global thread
-    # with thread_lock:
-    #     if thread is None:
-    #         thread = socketio.start_background_task(background_thread)
     socketio.start_background_task(background_thread)
     print('connecting')
     socketio.emit(
         "set_default", {"left_id": f"{DEFAULT_ID}", "right_id": f"{DEFAULT_ID}"}
     )
-
-    # while True:
-    #     background_thread()
-
 
 
 if __name__ == "__main__":
