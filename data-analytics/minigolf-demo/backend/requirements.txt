@@ -1,0 +1,10 @@
+functions-framework==3.*
+firebase-admin
+flask
+flask-cors
+google-cloud-bigquery
+google-cloud-storage
+google-cloud-bigquery-storage
+matplotlib
+pandas
+db-dtypes
