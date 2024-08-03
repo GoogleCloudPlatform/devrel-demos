@@ -17,7 +17,9 @@
 import openai
 import gradio as gr
 import llm
+import os
 
+K_SERVICE = os.getenv("K_SERVICE", "local")
 client = llm.get_chat_client(llm.PROJECT_ID, llm.LOCATION)
 
 def predict(message, history):
@@ -38,4 +40,7 @@ def predict(message, history):
               partial_message = partial_message + chunk.choices[0].delta.content
               yield partial_message
 
-gr.ChatInterface(predict).launch(share=True)
+gr.ChatInterface(predict).launch(
+        share=(False if K_SERVICE == "local" else True),
+        server_name="0.0.0.0",
+        server_port=8080)
