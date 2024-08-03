@@ -22,7 +22,7 @@ from google.auth import default, transport
 
 # TODO(Developer): Update project name
 MODEL_NAME = "google/gemini-1.5-flash-001"
-PROJECT_ID = "emanuel-ai"
+PROJECT_ID = "your-project-id"
 LOCATION = "us-central1"
 
 
