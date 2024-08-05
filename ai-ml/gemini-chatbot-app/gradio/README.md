@@ -24,7 +24,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install -r requirements.txt
 
-python3 run app.py
+python3 run gradio_app.py
 ```
 
 ## Folder structure
@@ -32,18 +32,20 @@ python3 run app.py
 Here is the folder structure of the repository.
 ```
 
-├── Procfile
+├── Dockerfile
 ├── requirements.txt
 ├── gradio_app.py
+├── deploy.sh
 ├── LICENSE
 └── README.md
 ```
 
 
 * `deploy.sh` for deploying your code to Cloud Run
-* `Procfile` has configuration for deploying the Gradio application in Cloud Run.
+* `Dockerfile` Docker container configuration for deploying the Gradio application in Cloud Run.
 * `requirements.txt` has required packages for this applicaiton.
 * `gradio_app.py` has the Gradio application code.
+* `deploy.sh` deployment script
 * `llm.py` contains the application code found in https://github.com/GoogleCloudPlatform/python-docs-samples/tree/main/generative_ai/inference
 
 
