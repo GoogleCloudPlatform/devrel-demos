@@ -126,7 +126,7 @@ export default function Chat({
             <Link className={styles.addToCartButton} href="https://toys-uxu5wi2jpa-uc.a.run.app" target="_blank">
             <Image alt="send" src="/camera.svg" height="30" width="30" />
             Toys like this!
-            </a>
+            </Link>
             
           </div>
         )}
