@@ -1,4 +1,4 @@
-This particular demo works as a stand alone, using the %/full directory.
+This particular demo works as a stand alone, using the /full directory.
 You may also build it yourself using the skeleton and following the instructions below. 
 
 # Overview
@@ -15,7 +15,7 @@ In streaming, many pieces need to fit together in order for you to truly benefit
 * How to write to multiple outputs 
 
 # Overview of the pipeline
-Note: There are 2 folders, $/skeleton and $/full. 
+Note: There are 2 folders, /skeleton and /full. 
 
 For those who’d like a challenge, please feel free to use the next paragraph to go ahead and build it all from scratch. 
 
@@ -48,7 +48,7 @@ You can also opt to window and join the elements after the state check, for exam
 Let’s get started!  
 
 Here's the pipeline you'll be building. 
-![alt text](https://github.com/GoogleCloudPlatform/devrel-demos/tree/main/data-analytics/beam_multimodal_streaming/pipeline.jpg)
+![alt text](https://github.com/GoogleCloudPlatform/devrel-demos/tree/main/data-analytics/beam_multimodal_streaming/pipeline.jpg?raw=true)
 
 ## Task 1. Setup your environment
 If you’re using Google Cloud shell or any other CLI, clone the repo into your local directory. 
