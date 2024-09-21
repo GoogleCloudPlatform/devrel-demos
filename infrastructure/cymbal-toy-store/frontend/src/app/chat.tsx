@@ -15,6 +15,7 @@
 import React, { FormEventHandler, useEffect, useRef, useState } from "react";
 import { api } from "@/app/api";
 import Image from "next/image";
+import Link from 'next/link';
 
 import styles from "./chat.module.css";
 
@@ -122,9 +123,10 @@ export default function Chat({
               <Image alt="send" src="/cart_add.svg" height="30" width="30" />
               Add to cart
             </button>
-
-            <a href="https://toys-uxu5wi2jpa-uc.a.run.app" target="_blank">Toys like this!
-            </a>
+            <Link className={styles.addToCartButton} href="https://toys-uxu5wi2jpa-uc.a.run.app" target="_blank">
+            <Image alt="send" src="/camera.svg" height="30" width="30" />
+            Toys like this!
+            </Link>
             
           </div>
         )}

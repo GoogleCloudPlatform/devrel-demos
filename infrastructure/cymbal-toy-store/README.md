@@ -63,6 +63,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 ### Enable virtual environment for Python
 You can use either your laptop or a virtual machnie for deployment. I am using a VM deployed in the same Google pCloud project. On a Debian Linux you can enable it in the shell using the following command:
 ```
+sudo apt-get update
 sudo apt install python3.11-venv git postgresql-client
 python3 -m venv venv
 source venv/bin/activate
@@ -143,10 +144,12 @@ gcloud alpha run deploy cymbal-toystore \
 gcloud  run services list --filter="(cymbal-toystore)" --format="value(URL)"
 ```
 * Access to the endpoint
-- You can open the endpoint to the public access 
-- You can use proxy 
-- You can put a load balancer before it
-
+  - You can open the endpoint to the public access 
+  - You can use proxy 
+  - You can put a load balancer before it
+* Requests to Try 
+  - Ask in the chat - "What is the best toy of a 5yo boy liking science?"
+  - Try to take a picture of another toy using a link "Toy like this" and get a description of a toy to find out.
 # License
 Apache License Version 2.0; 
 Copyright 2024 Google LLC
