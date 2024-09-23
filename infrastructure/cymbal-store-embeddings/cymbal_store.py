@@ -193,32 +193,7 @@ def init_db() -> sqlalchemy.engine.base.Engine:
     global db
     if db is None:
         db = init_connection_pool()
-        # migrate_db(db)
 
-def get_tables_info(db: sqlalchemy.engine.base.Engine) -> dict:
-    tables=[]
-    db_user = os.environ["DB_USER"]
-    with db.connect() as conn:
-        stmt = sqlalchemy.text(
-            "select schemaname,tablename from pg_tables where tableowner=:db_user"
-        )
-        app_tables = conn.execute(stmt, parameters={"db_user": db_user}).fetchall()
-        
-        for row in app_tables:
-            tables.append({"schemaname": row[0], "tablename": row[1]})
-        stmt = sqlalchemy.text(
-            "SELECT COUNT(*) FROM users"
-        )
-        users_count = conn.execute(stmt).scalar()
-        stmt = sqlalchemy.text(
-            "SELECT COUNT(*) FROM messages"
-        )
-        messages_count = conn.execute(stmt).scalar()
-        
-    return {
-        "users_count": users_count,
-        "messages_count": messages_count,
-    }
 
 def get_products(db: sqlalchemy.engine.base.Engine, embeddings: str) -> dict:
     products=[]
@@ -377,8 +352,6 @@ def page():
         state.input = e.value
         print(state.input)
         yield from send_prompt(e)
-        # me.focus_component(key=f"input-{len(state.output)}")
-        # yield
 
 
     with me.box(style=_STYLE_APP_CONTAINER):
@@ -452,9 +425,6 @@ def switch_model(e: me.ClickEvent):
     dialog_state = me.state(ModelDialogState)
     dialog_state.selected_models = state.models[:]
 
-# @me.stateclass
-# class State:
-#     input: str = ""
 
 def on_blur(e: me.InputBlurEvent):
     state = me.state(State)
@@ -468,7 +438,6 @@ def send_prompt(e: me.ClickEvent):
             state.conversations.append(Conversation(model=model, messages=[]))
     input = state.input
     state.input = ""
-    #handler_id = me.page.handler_id
 
     for conversation in state.conversations:
         model = conversation.model
@@ -503,7 +472,6 @@ def send_prompt(e: me.ClickEvent):
                 safeguards="You should give information about the product, price and any supplemental information. Do not invent any new products and use for the answer the product defined in the context"
                 system_instruction=[persona,safeguards]
             llm_response = gemini_model.send_prompt_flash(input, history,system_instruction)
-            #llm_response = gemini_model.classify_intent(input, history)
             
         elif model == Models.OPENAI.value:
             llm_response = openai_model.call_openai_gpt4o_mini(input, history)
@@ -515,13 +483,4 @@ def send_prompt(e: me.ClickEvent):
             yield
         messages[-1].in_progress = False
         yield
-        #print(handler_id)
-        # print(input)
-        # print(messages[-1])
-        # print(messages[-1].role)
-        # print(messages[-1].content)
-        # save_messages_db(db, "sess_id", "2", model, "user", input)
-        # save_messages_db(db, "sess_id", "2", model, messages[-1].role, messages[-1].content)
-        # tables_info = get_tables_info(db)
-        # for key in tables_info:
-        #     print ("key: %s , value: %s" % (key, tables_info[key]))
+

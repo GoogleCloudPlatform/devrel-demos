@@ -38,8 +38,6 @@ def classify_intent(input: str) -> str:
         system_instruction=[intent_prompt],
     )
     json_resp = model.generate_content(input)
-    #json_resp = self.llm(prompt).replace("```", "")
-    #print(json_resp.text)
     logging.info(f"INTENT: {json_resp}")
     return json_resp.text
 
@@ -53,38 +51,7 @@ def generate_embedding(text: str) -> list[float]:
 
 
 def send_prompt_flash(input: str, history: list[ChatMessage],sys_instruction: list[str]) -> Iterable[str]:
-    # intent_str = classify_intent(input)
-    # try:
-    #     json_intent = json.loads(intent_str)
-    # except json.JSONDecodeError as e:
-    #     print(f"Error decoding JSON: {e}")
-    # json_intent = json.loads(intent_str)
-    # if json_intent["shouldRecommendProduct"] is True:
-    #     print("we need embeddings")
-    #     search_embedding = generate_embedding(json_intent["summary"])
-    #     persona="You are friendly assistance in a store helping to find a products based on the client's request"
-    #     safeguards="You should give information about the product, price and any supplemental information. Do not invent any new products and use for the answer the product defined in the context"
-    #     context=""
-    #     system_instruction=[persona,safeguards]
-    # else:
-    #     persona="You are friendly assistance in a store helping to find a products based on the client's request"
-    #     safeguards="You should give information about the product, price and any supplemental information. Do not invent any new products and use for the answer the product defined in the context"
-    #     system_instruction=[persona,safeguards]
     configure_gemini()
-    # print(search_embedding)
-    # system_instructions = {
-    #     "persona":"You are friendly assistance in a store helping to find a products based on the client's request",
-    #     "context":"The list in JSON format with list of values like {'product_name':'some name','product_description':'some description','sale_price':10} Here is the list of products: ",
-    #     "safeguard":"You should give information about the product, price and any supplemental information. Do not invent any new products and use for the answer the product defined in the context",
-    # }
-    # for prompt in system_instructions:
-    #     if prompt["prompt_part"] == "persona":
-    #         persona = prompt["prompt"]
-    #     elif prompt["prompt_part"] == "safeguards":
-    #         safeguards = prompt["prompt"]
-    #     elif prompt["prompt_part"] == "context":
-    #         context = prompt["prompt"]
-    # system_instruction=[persona,safeguards]
     model = genai.GenerativeModel(
         model_name="gemini-1.5-flash-latest",
         generation_config=generation_config,
