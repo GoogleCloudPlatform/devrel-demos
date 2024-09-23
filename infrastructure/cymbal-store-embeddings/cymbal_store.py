@@ -19,7 +19,6 @@ import openai_model
 import os
 import logging
 import json
-
 import sqlalchemy
 from connect_tcp import connect_tcp_socket
 from dataclasses import dataclass, field
@@ -449,17 +448,17 @@ def send_prompt(e: me.ClickEvent):
 
         if model == Models.GEMINI_1_5_FLASH.value:
             intent_str = gemini_model.classify_intent(input)
+            print(intent_str)
+            logging.info(f"PRODUCTS LIST: {intent_str}")
             try:
                 json_intent = json.loads(intent_str)
             except json.JSONDecodeError as e:
                 print(f"Error decoding JSON: {e}")
             json_intent = json.loads(intent_str)
             if json_intent["shouldRecommendProduct"] is True:
-                print(json_intent["summary"])
                 search_embedding = gemini_model.generate_embedding(json_intent["summary"])
-                print(len(search_embedding["embedding"]))
-                print(search_embedding["embedding"])
                 products_list = get_products(db, str(search_embedding["embedding"]))
+                logging.info(f"PRODUCTS LIST: {products_list}")
                 print(products_list)
                 persona="You are friendly assistance in a store helping to find a products based on the client's request"
                 safeguards="You should give information about the product, price and any supplemental information. Do not invent any new products and use for the answer the product defined in the context"
