@@ -333,7 +333,7 @@ ROOT_BOX_STYLE = me.Style(
 
 
 def page():
-    bot_user = "Model"
+    bot_user = "model"
     global db
     # initialize db within request context
     if not db:
@@ -455,8 +455,10 @@ def send_prompt(e: me.ClickEvent):
                 print(f"Error decoding JSON: {e}")
             json_intent = json.loads(intent_str)
             if json_intent["shouldRecommendProduct"] is True:
-                print("we need embeddings")
+                print(json_intent["summary"])
                 search_embedding = gemini_model.generate_embedding(json_intent["summary"])
+                print(len(search_embedding["embedding"]))
+                print(search_embedding["embedding"])
                 products_list = get_products(db, str(search_embedding["embedding"]))
                 print(products_list)
                 persona="You are friendly assistance in a store helping to find a products based on the client's request"

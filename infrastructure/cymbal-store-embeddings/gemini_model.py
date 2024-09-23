@@ -41,10 +41,10 @@ def classify_intent(input: str) -> str:
     logging.info(f"INTENT: {json_resp}")
     return json_resp.text
 
-def generate_embedding(text: str) -> list[float]:
+def generate_embedding(input: str) -> list[float]:
     result = genai.embed_content(
         model="models/text-embedding-004",
-        content="What is the meaning of life?",
+        content=input,
         task_type="retrieval_document",
         title="Embedding of single string")
     return result
