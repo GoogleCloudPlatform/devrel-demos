@@ -59,6 +59,9 @@ git clone https://github.com/gotochkin/devrel-demos.git
 ```
 
 ### Load the data
+```
+cd devrel-demos/infrastructure/cymbal-store-embeddings
+```
 Create a database with the name cymbal_store and the user cymbal
 
 
@@ -66,7 +69,7 @@ Calculate the embeddings
 
 ### Run the application 
 ```
-gunicorn --bind :8085 --reload --workers 1 --threads 8 --timeout 0 cymbal_store:me
+gunicorn --bind :8080 --reload --workers 1 --threads 8 --timeout 0 cymbal_store:me
 ```
 
 ### Deploy the applicaion to Cloud Run
