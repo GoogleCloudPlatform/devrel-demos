@@ -229,24 +229,6 @@ def get_products(db: sqlalchemy.engine.base.Engine, embeddings: str) -> dict:
         products.append({"product_name":row[0],"description":row[1],"sale_price":row[2],"zip_code": row[3]})
     return products
 
-
-def save_messages_db(db: sqlalchemy.engine.base.Engine, session_id, user_id, model, role, message):
-    
-    stmt = sqlalchemy.text(
-        "insert into messages(session_id,user_id,model, role,message,message_date) values (:session_id, :user_id, :model, :role, :message, now())"
-    )
-    try:
-        # Using a with statement ensures that the connection is always released
-        # back into the pool at the end of statement (even if an error occurs)
-        with db.connect() as conn:
-            conn.execute(stmt, parameters={"session_id": session_id, "user_id": user_id, "model": model, "role": role, "message": message})
-            conn.commit()
-    except Exception as e:
-        # If something goes wrong, handle the error in this section. This might
-        # involve retrying or adjusting parameters depending on the situation.
-        # [START_EXCLUDE]
-        logger.exception(e)
-
 def change_model_option(e: me.CheckboxChangeEvent):
     s = me.state(ModelDialogState)
     if e.checked:

@@ -8,7 +8,7 @@
 
 ## Requirements
 - Platform to deploy the application supporting Python 3.11
-- Token in Google AI studio
+- Token in Google AI studio (you can get it from [here](https://ai.google.dev/gemini-api/docs/api-key))
 - Token for OpenAI API (optional)
 - Project in Google Cloud with enabled APIs for all components.
 
@@ -68,14 +68,41 @@ Create a database with the name cymbal_store and the user cymbal
 Calculate the embeddings
 
 ### Run the application 
+#### Install Python 3.11 and dependencies
+```
+sudo apt install -y python3.11-venv git
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+#### export variables
+```
+export DB_USER=cymbaldb_owner
+export DB_PASS=StrongPassword
+export DB_NAME=cymbaldb
+export INSTANCE_HOST=127.0.0.1
+export DB_PORT=5432
+```
+##### Run the application
 ```
 gunicorn --bind :8080 --reload --workers 1 --threads 8 --timeout 0 cymbal_store:me
 ```
 
 ### Deploy the applicaion to Cloud Run
-
+```
+gcloud alpha run deploy cymbal-store \
+   --source=./ \
+   --no-allow-unauthenticated \
+   --service-account cymbal-store-identity \
+   --region us-central1 \
+   --network=default \
+   --quiet
+```
 
 * Requests to Try 
+  - Choose model using button in the chat and providing your Google AI token and choosing the Gemini model (Open AI is not supported yet)
+  - Confirm the choice of the model
   - Ask in the chat - "What kind of fruit trees grow well here?"
 
 # License
