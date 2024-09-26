@@ -335,6 +335,7 @@ def page():
         yield from send_prompt(e)
 
 
+
     with me.box(style=_STYLE_APP_CONTAINER):
         with me.content_button(
             type="icon",
@@ -419,6 +420,7 @@ def send_prompt(e: me.ClickEvent):
             state.conversations.append(Conversation(model=model, messages=[]))
     input = state.input
     state.input = ""
+    yield
 
     for conversation in state.conversations:
         model = conversation.model
@@ -429,14 +431,17 @@ def send_prompt(e: me.ClickEvent):
         yield
 
         if model == Models.GEMINI_1_5_FLASH.value:
-            intent_str = gemini_model.classify_intent(input)
-            print(intent_str)
-            logging.info(f"PRODUCTS LIST: {intent_str}")
-            try:
-                json_intent = json.loads(intent_str)
-            except json.JSONDecodeError as e:
-                print(f"Error decoding JSON: {e}")
-            json_intent = json.loads(intent_str)
+            while True:
+                intent_str = gemini_model.classify_intent(input)
+                print(intent_str)
+                logging.info(f"PRODUCTS LIST: {intent_str}")
+                try:
+                    json_intent = json.loads(intent_str)
+                except json.JSONDecodeError as e:
+                    print(f"Error decoding JSON: {e}")
+                    continue
+                break
+
             if json_intent["shouldRecommendProduct"] is True:
                 search_embedding = gemini_model.generate_embedding(json_intent["summary"])
                 products_list = get_products(db, str(search_embedding["embedding"]))

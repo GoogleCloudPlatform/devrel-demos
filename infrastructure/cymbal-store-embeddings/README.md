@@ -90,6 +90,9 @@ gunicorn --bind :8080 --reload --workers 1 --threads 8 --timeout 0 cymbal_store:
 ```
 
 ### Deploy the applicaion to Cloud Run
+Create a service account cymbal-store-identity and grant role VertexAI User to the account - optional now since we are not using Vertex AI as of now.
+Build and deploy application to the Cloud Run service.
+
 ```
 gcloud alpha run deploy cymbal-store \
    --source=./ \
@@ -97,13 +100,27 @@ gcloud alpha run deploy cymbal-store \
    --service-account cymbal-store-identity \
    --region us-central1 \
    --network=default \
+   --set-env-vars=DB_USER=cymbaldb_owner,DB_PASS=StrongPassword,DB_NAME=cymbaldb,INSTANCE_HOST=127.0.0.1,DB_PORT=5432 \
    --quiet
 ```
+### Use the application
+#### Choose the model
+- Click "Model" on the bottom of the application and new dialog window will be opened
+- Provide your Google AI API token 
+- Switch focus to models and click checkbox for Gemeini 1.5 flash model
+- Click "Confirm"
 
-* Requests to Try 
+#### Ask questions
+- Ask questions in the chat
+- Please report all the issues with the application 
+- Requests to Try 
   - Choose model using button in the chat and providing your Google AI token and choosing the Gemini model (Open AI is not supported yet)
   - Confirm the choice of the model
   - Ask in the chat - "What kind of fruit trees grow well here?"
+
+# TO DO
+- Add support for other models and providers
+- Add error handlers when AI provider returns an error
 
 # License
 Apache License Version 2.0; 
