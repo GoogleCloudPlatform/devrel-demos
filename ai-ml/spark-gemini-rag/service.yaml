@@ -1,0 +1,34 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: gemini-app
+  annotations:
+    run.googleapis.com/launch-stage: BETA
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/container-dependencies: '{app:[collector]}'
+    spec:
+      containers:
+      - image: us-central1-docker.pkg.dev/PROJECT_ID/my-repo/gemini-app
+        name: app
+        resources:
+          limits:
+            memory: 4Gi
+        ports:
+        - containerPort: 8080
+        env:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://localhost:4317
+        - name: PROJECT
+          value: PROJECT_ID
+        - name: REGION
+          value: us-central1
+
+      - image: us-central1-docker.pkg.dev/PROJECT_ID/my-repo/otel-collector-metrics
+        name: collector
+        startupProbe:
+          httpGet:
+            path: /
+            port: 13133

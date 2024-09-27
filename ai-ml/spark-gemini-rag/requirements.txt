@@ -1,0 +1,7 @@
+google-cloud-bigquery
+google-cloud-firestore
+nicegui
+opentelemetry-distro
+pandas
+sentence_transformers
+vertexai
