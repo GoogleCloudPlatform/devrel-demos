@@ -110,7 +110,7 @@ source venv/bin/activate
 ### Clone the software
 Clone the software using git:
 ```
-git clone https://github.com/gotochkin/devrel-demos.git
+git clone https://github.com/GoogleCloudPlatform/devrel-demos.git
 ```
 ### Run the application
 - Change directory
@@ -121,7 +121,7 @@ cd devrel-demos/infrastructure/movie-search-app
 ```
 pip install -r requirements.txt
 ```
-- Set environment variables (Pinecone index name)
+- Here are the environment variables used by the application
 ```
 export PINECONE_INDEX_NAME=netflix-index-01
 export PORT=8080
@@ -131,15 +131,17 @@ export DB_NAME=movies
 export INSTANCE_HOST=ALLOYDB_IP
 export DB_PORT=5432
 ```
-- Start the application from command line
+- Here is the command used to start the application
+
 ```
 gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 movie_search:me
 ```
 - Connect to the chat using the VM host:port to get the application interface
 
 ### Deploy the applicaion to Cloud Run
-Create a service account cymbal-store-identity and grant role VertexAI User to the account - optional now since we are not using Vertex AI as of now.
+Create a service account movie-search-identity and grant role VertexAI User to the account - optional now since we are not using Vertex AI as of now.
 Build and deploy application to the Cloud Run service.
+The environment variables values should be replaced by the database owner, password, database name and the AlloyDB IP
 
 ```
 gcloud alpha run deploy movie-search-app \
@@ -148,7 +150,7 @@ gcloud alpha run deploy movie-search-app \
    --service-account movie-search-identity \
    --region us-central1 \
    --network=default \
-   --set-env-vars=DB_USER=cymbaldb_owner,DB_PASS=StrongPassword,DB_NAME=cymbaldb,INSTANCE_HOST=127.0.0.1,DB_PORT=5432 \
+   --set-env-vars=DB_USER=movies_owner,DB_PASS=StrongPassword,DB_NAME=movies,INSTANCE_HOST=127.0.0.1,DB_PORT=5432 \
    --quiet
 ```
 ### Work with application
