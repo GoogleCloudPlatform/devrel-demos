@@ -8,8 +8,8 @@ Demos in this folder primarily focus on Google Cloud's application development p
 * Cloud APIs
 * Cloud Code
 * Cloud Console
-* Cloud Functions
 * Cloud Run
+* Cloud Run functions
 * Cloud SDK
 * Cloud Scheduler
 * Cloud Shell 
