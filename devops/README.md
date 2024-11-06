@@ -9,5 +9,4 @@ Demos in this folder primarily focus on Google Cloud's DevOps products. Below is
 * Cloud Monitoring
 * Cloud Profiler
 * Cloud Trace
-* Container Registry
 * Container Security
