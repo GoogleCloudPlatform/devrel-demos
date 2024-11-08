@@ -55,7 +55,7 @@ source venv/bin/activate
 ### Clone the software
 Clone the software using git:
 ```
-git clone https://github.com/gotochkin/devrel-demos.git
+git clone https://github.com/GoogleCloudPlatform/devrel-demos.git
 ```
 
 ### Load the data
