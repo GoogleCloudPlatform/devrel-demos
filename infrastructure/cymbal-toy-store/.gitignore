@@ -1,3 +1,11 @@
 .idea/
 *.pyc
+
+# Python
+# Environments
+.env
+*.pyc
 credentials.json
+.venv
+env/
+venv/
