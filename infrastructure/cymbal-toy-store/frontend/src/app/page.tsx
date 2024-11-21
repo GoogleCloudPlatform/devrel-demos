@@ -37,20 +37,35 @@ const items = [
     image: "allie",
   },
   {
-    title: "Wooden Trio",
-    price: "22.99",
-    image: "wooden",
+    title: "Socks",
+    price: "6.99",
+    image: "socks",
   },
   {
-    title: "Slouch",
-    price: "24.99",
-    image: "slouch",
+    title: "Waist belt",
+    price: "15.99",
+    image: "waistbelt",
   },
   {
-    title: "Splat",
-    price: "24.99",
-    image: "splat",
+    title: "Headband",
+    price: "12.99",
+    image: "sweatband",
   },
+  // {
+  //   title: "Wooden Trio",
+  //   price: "22.99",
+  //   image: "wooden",
+  // },
+  // {
+  //   title: "Slouch",
+  //   price: "24.99",
+  //   image: "slouch",
+  // },
+  // {
+  //   title: "Splat",
+  //   price: "24.99",
+  //   image: "splat",
+  // },
 ];
 
 export default function Home() {
@@ -90,7 +105,7 @@ export default function Home() {
         </div>
         <div className={styles.right}>
           <div className={styles.header}>
-            <h1>For Kids</h1>
+            <h1>For Kids and Their Parents!</h1>
             <div className={styles.chat} onClick={handleChatClick}>
               <Image alt="open chat" src="/chat.svg" width="30" height="30" />
             </div>

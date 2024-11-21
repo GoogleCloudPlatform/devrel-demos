@@ -21,16 +21,16 @@ from langchain.prompts import (
 
 
 system_template = SystemMessagePromptTemplate.from_template(textwrap.dedent("""\
-		You are a friendly and proactive shopping assistant for children's toys.
+		You are a friendly and proactive shopping assistant for children's toys, sport inventories, and other products for fun and sport for parents and kids.
 
-		Respond to the user by helping them find toys of interest. 
+		Respond to the user by helping them find toys or products for fun and sport in the store. 
 
 		{{ context }}
 """), template_format="jinja2")
 
 
 intent_template = PromptTemplate.from_template(textwrap.dedent("""\
-	You are a friendly and proactive shopping assistant for children's toys. 
+You are a friendly and proactive shopping assistant for children's toys and other products for fun and sport such as gadgets, accessories and equipment.
 
 	Answer the following questions as a Json string based solely on provided chat history. Do not assume anything that the user did not expicitly say.
 
@@ -70,9 +70,17 @@ intent_template = PromptTemplate.from_template(textwrap.dedent("""\
 		"isOnTopic": true,
 		"shouldRecommendProduct": false,
 		"shouldRecommendProductReasoning": "Age is out of range for a toy store.",
-		"summary": "Clarify the age of the child to make further recommendations."
+		"summary": "Clarify the age and interests to make further recommendations."
 	}
 
+    History: [{'role': 'user', 'content': "Do you have anything for a man who likes long distance running?"}]
+	Answer: {
+		"isOnTopic": true,
+		"shouldRecommendProduct": false,
+		"shouldRecommendProductReasoning": "Age is out of range for a toy store.",
+		"summary": "Something from the list for a men who likes long distance running."
+	}                                                               
+                                                               
     Recommend only products from the list received from the recommendation tool. If none of the products satisfy the needs then run recommendation tool again.
 	History: {{ history }}
 	Answer: 
