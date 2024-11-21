@@ -29,7 +29,7 @@ ENV GOOGLE_CLOUD_PROJECT=cymbal-demo
 COPY --from=0 /opt/frontend/out /opt/frontend/out
 COPY backend /opt/backend
 WORKDIR /opt/backend
-RUN pip install poetry==1.4.0
+RUN pip install poetry
 RUN poetry install
 RUN mv /opt/backend/src/backend/.env-prod /opt/backend/src/backend/.env
 ENV POETRY_CACHE_DIR="/root/.cache/pypoetry"
