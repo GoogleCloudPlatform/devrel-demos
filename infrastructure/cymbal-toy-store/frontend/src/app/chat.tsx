@@ -86,6 +86,14 @@ export default function Chat({
       handleSubmit(evt as unknown as React.FormEvent<HTMLFormElement>);
     }
   }
+  //Image uploader
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setSelectedImage(URL.createObjectURL(event.target.files[0]));
+    }
+  };
 
   return (
     <div
@@ -109,13 +117,13 @@ export default function Chat({
         )}
         {showExtra && (
           <div className={styles.extra}>
-            <Image
+            {/* <Image
               className={styles.extraPhoto}
               alt="send"
               src="/toy.png"
               height="140"
               width="140"
-            />
+            /> */}
             <button
               className={styles.addToCartButton}
               onClick={handleAddToCart}
@@ -127,7 +135,20 @@ export default function Chat({
             <Image alt="send" src="/camera.svg" height="30" width="30" />
             Toys like this!
             </Link>
-            
+            {/* Image uploader */}
+            <label htmlFor="image-upload" className={styles.imageFileupload}>
+              <Image alt="send" src="/add_picture.svg" height="30" width="30" />
+              <span>Upload Image</span> {/* Custom caption */}
+              <input 
+                type="file" 
+                id="image-upload"
+                accept="image/*" 
+                onChange={handleImageChange}
+              />
+            </label>
+              {selectedImage && (
+                <img src={selectedImage} alt="Uploaded image" width="200" height="200" />
+              )}
           </div>
         )}
         <div ref={messagesEndRef}></div>

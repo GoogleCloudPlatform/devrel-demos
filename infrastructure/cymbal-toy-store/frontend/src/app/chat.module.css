@@ -152,3 +152,21 @@
   border-radius: 24px;
   margin-bottom: 12px;
 }
+
+.imageFileupload {
+  all: unset;
+  cursor: pointer;
+  transition: background-color 200ms;
+  display: inline-flex;
+  align-items: center;
+  background-color: rgba(var(--primary-rgb), 100%);
+  padding: 8px 16px;
+  border-top-left-radius: 24px;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+  color: white;
+}
+
+.imageFileupload input[type="file"] {
+  display: none; /* Hide the default input */
+}

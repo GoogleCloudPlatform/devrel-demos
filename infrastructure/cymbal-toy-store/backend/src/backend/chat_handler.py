@@ -37,6 +37,7 @@ class ChatHandler():
 			model_name="textembedding-gecko@003",
 		)
 		self.chat_llm = ChatVertexAI(
+			model_name="gemini-1.5-flash-002",
 			max_output_tokens=512,
 			temperature=0.0,
 			top_p=0.8,
@@ -44,7 +45,7 @@ class ChatHandler():
 			verbose=True,
 		)
 		self.llm = VertexAI(
-			model_name="gemini-1.0-pro-001",
+			model_name="gemini-1.5-flash-002",
 			max_output_tokens=512,
 			temperature=0.0,
 			top_p=0.8,
@@ -70,7 +71,7 @@ class ChatHandler():
 
 	def _classify_intent(self, messages: list[dict[str, str]]) -> str:
 		prompt = chat_prompts.intent_template.format(history=f"{messages}")
-		json_resp = self.llm(prompt).replace("```", "")
+		json_resp = self.llm(prompt).replace("```", "").replace("json", "").strip()
 		logging.info(f"INTENT: {json_resp}")
 		return json_resp
 
@@ -117,14 +118,14 @@ class ChatHandler():
 
 	def _create_response(self, prompts: list[BaseMessage], intent: dict[str, Any]) -> str:
 		if not intent["isOnTopic"]:
-			prompts[0] = self._gen_system_template("Gently redirect the conversation back to toys.")
+			prompts[0] = self._gen_system_template("Gently redirect the conversation back to toys and other products in the store. Do not use markdown for output")
 		elif not intent["shouldRecommendProduct"]:
 			prompts[0] = self._gen_system_template(f"Need more information - {intent['shouldRecommendProductReasoning']}")
 		else:
 			products = self._find_similar_products(prompts[-1].content, 5)
 			products_str = "\n".join(str(row) for row in products.values())
 			prompts[0] = self._gen_system_template(
-				f"Recommend a suitable product for the user from the below.\n{products_str}\nIn 35 words or less, mention the name (leave out the brand name) and price of the toy, and why the recommended product is a good fit.Choose product only from the provided list.\n")
+				f"Recommend a suitable product for the user from the below.\n{products_str}\nIn 35 words or less, mention the name (leave out the brand name) and price of the toy, and why the recommended product is a good fit. \nChoose product only from the provided list and suggest only one product from the list.\n")
 		return self.chat_llm(prompts).content		
 
 
