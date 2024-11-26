@@ -39,7 +39,7 @@ export default function Chat({
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showExtra, setShowExtra] = useState(false);
+  const [showExtra, setShowExtra] = useState(true);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
@@ -69,6 +69,7 @@ export default function Chat({
     setData(newData);
 
     setLoading(true);
+    console.log(newData.slice(1))
     const response = await api(newData.slice(1));
     const body = await response.json();
     setLoading(false);
@@ -92,6 +93,7 @@ export default function Chat({
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setSelectedImage(URL.createObjectURL(event.target.files[0]));
+      console.log(URL.createObjectURL(event.target.files[0]));
     }
   };
 
@@ -147,8 +149,9 @@ export default function Chat({
               />
             </label>
               {selectedImage && (
-                <img src={selectedImage} alt="Uploaded image" width="200" height="200" />
+                <img src={selectedImage} alt="Uploaded image" width="200" height="200" />             
               )}
+              {selectedImage && (btoa(selectedImage))}
           </div>
         )}
         <div ref={messagesEndRef}></div>

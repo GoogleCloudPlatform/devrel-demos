@@ -66,12 +66,16 @@ class ChatHandler():
 				prev_prompts.append(HumanMessage(content=prev['text']))
 			elif prev['role'] == 'assistant':
 				prev_prompts.append(AIMessage(content=prev['text']))
+			elif prev['role'] == 'image':
+				prev_prompts.append(AIMessage(content=prev['image_url']['url']))
+		print(prev_prompts)
 		return prev_prompts
 
 
 	def _classify_intent(self, messages: list[dict[str, str]]) -> str:
 		prompt = chat_prompts.intent_template.format(history=f"{messages}")
-		json_resp = self.llm(prompt).replace("```", "").replace("json", "").strip()
+		print(prompt)
+		json_resp = self.llm.invoke(prompt).replace("```", "").replace("json", "").strip()
 		logging.info(f"INTENT: {json_resp}")
 		return json_resp
 
@@ -126,7 +130,7 @@ class ChatHandler():
 			products_str = "\n".join(str(row) for row in products.values())
 			prompts[0] = self._gen_system_template(
 				f"Recommend a suitable product for the user from the below.\n{products_str}\nIn 35 words or less, mention the name (leave out the brand name) and price of the toy, and why the recommended product is a good fit. \nChoose product only from the provided list and suggest only one product from the list.\n")
-		return self.chat_llm(prompts).content		
+		return self.chat_llm.invoke(prompts).content		
 
 
 	def respond(self, messages: dict[str, Any]) -> str:
@@ -148,6 +152,13 @@ class ChatHandler():
 		response = self._create_response(prompts, intent)
 		logging.info(f"Returning response: {response}")
 		return response
-
-
-
+	
+	def image_description(self, image_url: str) -> str:
+		message = HumanMessage( content=[ { "type": "text", "text": "What’s in this image?", }, { "type": "image_url", "image_url": {"url": image_url}, }, ] )
+		# Base64 encoding
+		#message = HumanMessage( content=[ { "type": "text", "text": "What’s in this image?", }, { "type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_url}"}, }, ] )
+		image_descr = self.llm.invoke([message])
+		# prompt = chat_prompts.intent_template.format(history=f"{messages}")
+		# json_resp = self.llm(prompt).replace("```", "").replace("json", "").strip()
+		logging.info(f"Picture description: {image_descr}")
+		return image_descr
