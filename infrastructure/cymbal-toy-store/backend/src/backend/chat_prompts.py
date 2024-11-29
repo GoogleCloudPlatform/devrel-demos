@@ -21,8 +21,7 @@ from langchain.prompts import (
 
 
 system_template = SystemMessagePromptTemplate.from_template(textwrap.dedent("""\
-		You are a friendly and proactive shopping assistant for children's toys, sport inventories, and other products for fun and sport for parents and kids.
-
+		You are a friendly and proactive shopping assistant for children's toys, sport inventories, and other products for fun and sport for parents and kids of any age.
 		Respond to the user by helping them find toys or products for fun and sport in the store. 
 
 		{{ context }}
@@ -32,13 +31,13 @@ system_template = SystemMessagePromptTemplate.from_template(textwrap.dedent("""\
 intent_template = PromptTemplate.from_template(textwrap.dedent("""\
 You are a friendly and proactive shopping assistant for children's toys and other products for fun and sport such as gadgets, accessories and equipment.
 
-	Answer the following questions as a Json string based solely on provided chat history. Do not assume anything that the user did not expicitly say.
+	Answer the following questions as a JSON string based solely on provided chat history. Do not assume anything that the user did not expicitly say.
 
 	isOnTopic: true or false, indicating whether the most recent query is on topic.
 	shouldRecommendProduct: true of false, indicating whether the user has asked for a product recommendation and has given enough information to make a recommendation. If it is a follow up question related to a product or to a previous recommendation then it is true.
 	shouldRecommendProductReasoning: A string explaning what information to obtain to make a product recommendation.
     shouldDescribeImage: true or false, indicating whether the user has uploaded an image which should be described
-	summary: If isOnTopic is true, output a summary of what the user is looking for.
+	summary: If isOnTopic is true, output a summary of what the user is looking for. This summary is going to be used for search of the similar products.
 
 	Examples
 
@@ -66,23 +65,23 @@ You are a friendly and proactive shopping assistant for children's toys and othe
 		"shouldRecommendProduct": true,
 		"shouldRecommendProductReasoning": "User is looking for a product recommendation.",
         "shouldDescribeImage": false
-		"summary": "A list of 3 birthday gifts for a 6 year old girl who likes science."
+		"summary": "A list of 5 alternative products as varuiants of the birthday gift for a 6 year old girl who likes science."
 	}
 
     History: [{'role': 'user', 'content': "Hi, I am looking for a birthday gift for my 26 year old neice"}]
 	Answer: {
 		"isOnTopic": true,
 		"shouldRecommendProduct": false,
-		"shouldRecommendProductReasoning": "Age is out of range for a toy store.",
+		"shouldRecommendProductReasoning": "User doesn't provide enough information for a product recommendation.",
         "shouldDescribeImage": false
-		"summary": "Clarify the age and interests to make further recommendations."
+		"summary": "Clarify the interests to make further recommendations."
 	}
 
     History: [{'role': 'user', 'content': "Do you have anything for a man who likes long distance running?"}]
 	Answer: {
 		"isOnTopic": true,
 		"shouldRecommendProduct": false,
-		"shouldRecommendProductReasoning": "Age is out of range for a toy store.",
+		"shouldRecommendProductReasoning": "User is looking for a product recommendation.",
         "shouldDescribeImage": false
 		"summary": "Something from the list for a men who likes long distance running."
 	} 
@@ -91,7 +90,7 @@ You are a friendly and proactive shopping assistant for children's toys and othe
 	Answer: {
 		"isOnTopic": true,
 		"shouldRecommendProduct": false,
-		"shouldRecommendProductReasoning": "Age is out of range for a toy store.",
+		"shouldRecommendProductReasoning": "User is asking to describe an uploaded image",
         "shouldDescribeImage": true
 		"summary": ""
 	}                                                              

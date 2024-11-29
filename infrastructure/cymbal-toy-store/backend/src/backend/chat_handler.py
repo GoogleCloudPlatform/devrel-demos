@@ -15,6 +15,8 @@
 import chat_prompts
 import json
 import logging
+import base64
+import httpx
 
 from langchain.prompts import (
 	ChatPromptTemplate,
@@ -67,14 +69,12 @@ class ChatHandler():
 			elif prev['role'] == 'assistant':
 				prev_prompts.append(AIMessage(content=prev['text']))
 			elif prev['role'] == 'image':
-				prev_prompts.append(AIMessage(content=prev['image_url']['url']))
-		print(prev_prompts)
+				prev_prompts.append(HumanMessage(content=prev['image_url']['url']))
 		return prev_prompts
 
 
 	def _classify_intent(self, messages: list[dict[str, str]]) -> str:
 		prompt = chat_prompts.intent_template.format(history=f"{messages}")
-		print(prompt)
 		json_resp = self.llm.invoke(prompt).replace("```", "").replace("json", "").strip()
 		logging.info(f"INTENT: {json_resp}")
 		return json_resp
@@ -84,7 +84,6 @@ class ChatHandler():
 		for key in ["isOnTopic", "shouldRecommendProduct", "shouldRecommendProductReasoning", "summary"]:
 			if key not in intent:
 				return False
-		# We should also check type here
 		return True
 
 
@@ -92,6 +91,7 @@ class ChatHandler():
 		added_context=f"Instruction: {context}"		
 		template = chat_prompts.system_template.format(context=added_context)
 		logging.info(f"SYSTEM: {template.content}")
+		print(template)
 		return template
 
 
@@ -100,7 +100,7 @@ class ChatHandler():
 
 		stmt = sqlalchemy.text(
 			"""
-				SELECT uniq_id, product_name, sale_price, embed_description
+				SELECT uniq_id, product_name, sale_price, embed_description, product_url
 				FROM combined_embedding_products
 				ORDER BY embedding <=> :ref_embedding ASC
 				LIMIT :num_matches
@@ -116,21 +116,48 @@ class ChatHandler():
 			)
 			matches = {}
 			for row in res:
-				matches[row[0]] = {"name": row[1], "price": float(row[2]), "description": row[3]}
+				matches[row[0]] = {"uniq_id": row[0], "name": row[1], "price": float(row[2]), "description": row[3], "image_url": row[4]}
+			print(matches)
 		return matches
 
 
-	def _create_response(self, prompts: list[BaseMessage], intent: dict[str, Any]) -> str:
+	def _create_response(self, prompts: list[BaseMessage], intent: dict[str, Any],messages: dict[str, Any]) -> dict:
+		image_url = f"https://storage.googleapis.com/gleb-genai-002-cymbal-images-01/100001.jpeg"
+		if intent["shouldDescribeImage"]:
+			image_prompt = messages[-1]["text"]
+			image_data=messages[-1]["image_url"]["url"]
+			prompts[0] = HumanMessage(
+				content=[
+					{"type": "text", "text": f"{image_prompt}"},
+					{
+						"type": "image_url",
+						"image_url": {"url": f"{image_data}"},
+					},
+				],
+			)
+			model_response = self.chat_llm.invoke([prompts[0]])
+			res_json={}
+			res_json['content'] = {'type':'text','text':f'{model_response.content}'}
+			res_json['image_url'] = {'type': "image_url", "image_url": {"url": f"{image_data}"}}
+			return res_json
 		if not intent["isOnTopic"]:
 			prompts[0] = self._gen_system_template("Gently redirect the conversation back to toys and other products in the store. Do not use markdown for output")
 		elif not intent["shouldRecommendProduct"]:
 			prompts[0] = self._gen_system_template(f"Need more information - {intent['shouldRecommendProductReasoning']}")
 		else:
-			products = self._find_similar_products(prompts[-1].content, 5)
+			products = self._find_similar_products(intent["summary"], 1)
+			print(f"The products: {products}")
+			image_url= products[list(products.keys())[0]]["image_url"]
 			products_str = "\n".join(str(row) for row in products.values())
 			prompts[0] = self._gen_system_template(
 				f"Recommend a suitable product for the user from the below.\n{products_str}\nIn 35 words or less, mention the name (leave out the brand name) and price of the toy, and why the recommended product is a good fit. \nChoose product only from the provided list and suggest only one product from the list.\n")
-		return self.chat_llm.invoke(prompts).content		
+		model_response = self.chat_llm.invoke(prompts)
+		res_json={}
+		res_json['content'] = {'type':'text','text':f'{model_response.content}'}
+		res_json['image_url'] = {'type': "image_url", "image_url": {"url": f"{image_url}"}}
+		print(f"Here is model response: {res_json}")
+		return res_json #model_response.content + "\n" + image_url
+
 
 
 	def respond(self, messages: dict[str, Any]) -> str:
@@ -149,16 +176,7 @@ class ChatHandler():
 			return self._generic_error()
 
 		# Create response
-		response = self._create_response(prompts, intent)
+		response = self._create_response(prompts, intent, messages)
 		logging.info(f"Returning response: {response}")
 		return response
-	
-	def image_description(self, image_url: str) -> str:
-		message = HumanMessage( content=[ { "type": "text", "text": "What’s in this image?", }, { "type": "image_url", "image_url": {"url": image_url}, }, ] )
-		# Base64 encoding
-		#message = HumanMessage( content=[ { "type": "text", "text": "What’s in this image?", }, { "type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_url}"}, }, ] )
-		image_descr = self.llm.invoke([message])
-		# prompt = chat_prompts.intent_template.format(history=f"{messages}")
-		# json_resp = self.llm(prompt).replace("```", "").replace("json", "").strip()
-		logging.info(f"Picture description: {image_descr}")
-		return image_descr
+
