@@ -19,13 +19,22 @@ from langchain.prompts import (
     SystemMessagePromptTemplate,
 )
 
-
+# With RAG
 system_template = SystemMessagePromptTemplate.from_template(textwrap.dedent("""\
 		You are a friendly and proactive shopping assistant for children's toys, sport inventories, and other products for fun and sport for parents and kids of any age.
 		Respond to the user by helping them find toys or products for fun and sport in the store. 
 
 		{{ context }}
 """), template_format="jinja2")
+
+# Without RAG
+# system_template = SystemMessagePromptTemplate.from_template(textwrap.dedent("""\
+# 		You are a friendly and proactive shopping assistant for children's toys, sport inventories, and other products for fun and sport for parents and kids of any age.
+# 		Respond to the user by helping them find toys or products for fun and sport in the store. 
+#         Suggest a headband for 16.99 for a man who likes long distance running using phrase like - What about the headband selling only for 12.99 helping to keep ears warm and stopping sweat coming to your eyes while you are running?        
+# 		Only If user is asking about something else for running folks propose a treadmill for 15.99                                                                    
+# 		{{ context }}
+# """), template_format="jinja2")
 
 
 intent_template = PromptTemplate.from_template(textwrap.dedent("""\

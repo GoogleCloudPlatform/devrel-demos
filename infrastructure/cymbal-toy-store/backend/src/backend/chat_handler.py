@@ -17,6 +17,7 @@ import json
 import logging
 import base64
 import httpx
+import re
 
 from langchain.prompts import (
 	ChatPromptTemplate,
@@ -106,6 +107,7 @@ class ChatHandler():
 				LIMIT :num_matches
 			"""
 		)
+		print(stmt)
 		with self.db.connect() as conn:
 			res = conn.execute(
 				stmt,
@@ -117,12 +119,28 @@ class ChatHandler():
 			matches = {}
 			for row in res:
 				matches[row[0]] = {"uniq_id": row[0], "name": row[1], "price": float(row[2]), "description": row[3], "image_url": row[4]}
-			print(matches)
+			print(f"Here is the list of products: {matches}")
 		return matches
+	
+	def _extract_url(self,input: str):
+    	# Define a regex pattern to match the structure {key: value}
+		search_pattern = r"\{[^{}]*?:\s*([^{}]*?)\}"
+    	# Search for the first occurrence of the pattern
+		match = re.search(search_pattern, input)    
+		if match:
+        	# Extract the matched piece
+			image_url = match.group(1).strip()        
+       		 # Remove the matched piece from the original text
+			remaining_text = input[:match.start()] + input[match.end():]        
+			# Strip extra whitespace (optional)
+			remaining_text = remaining_text.strip()        
+			return remaining_text, image_url    
+		# If no match is found, return the original text and None
+		return input, ""
 
 
 	def _create_response(self, prompts: list[BaseMessage], intent: dict[str, Any],messages: dict[str, Any]) -> dict:
-		image_url = f"https://storage.googleapis.com/gleb-genai-002-cymbal-images-01/100001.jpeg"
+		image_url = ""
 		if intent["shouldDescribeImage"]:
 			image_prompt = messages[-1]["text"]
 			image_data=messages[-1]["image_url"]["url"]
@@ -145,25 +163,31 @@ class ChatHandler():
 		elif not intent["shouldRecommendProduct"]:
 			prompts[0] = self._gen_system_template(f"Need more information - {intent['shouldRecommendProductReasoning']}")
 		else:
-			products = self._find_similar_products(intent["summary"], 1)
+			products = self._find_similar_products(intent["summary"], 5)
 			print(f"The products: {products}")
 			image_url= products[list(products.keys())[0]]["image_url"]
 			products_str = "\n".join(str(row) for row in products.values())
 			prompts[0] = self._gen_system_template(
-				f"Recommend a suitable product for the user from the below.\n{products_str}\nIn 35 words or less, mention the name (leave out the brand name) and price of the toy, and why the recommended product is a good fit. \nChoose product only from the provided list and suggest only one product from the list.\n")
+				#With RAG
+				f"Recommend a suitable product for the user from the below.\n{products_str}\nIn 35 words or less, mention the name (leave out the brand name) and price of the toy, and why the recommended product is a good fit. \nChoose product only from the provided list and suggest only one product from the list.\n Add url for the chosen product to the very end of the responce like: \n {{image_url:https://storage.googleapis.com/gleb-genai-002-cymbal-images-01/1053.jpeg}}\n")
+				#Without RAG
+				#f"Recommend a suitable product for the user \nIn 35 words or less, mention the name (leave out the brand name) and price of the toy or product, and why the recommended product is a good fit.\n")
 		model_response = self.chat_llm.invoke(prompts)
+		print(f"Here is model response: {model_response.content}")
+		content,image_url = self._extract_url(model_response.content)
+		
+		print(f"Here is content: {content}")
+		print(f"Here is url: {image_url}")
 		res_json={}
-		res_json['content'] = {'type':'text','text':f'{model_response.content}'}
+		res_json['content'] = {'type':'text','text':f'{content}'}
 		res_json['image_url'] = {'type': "image_url", "image_url": {"url": f"{image_url}"}}
 		print(f"Here is model response: {res_json}")
-		return res_json #model_response.content + "\n" + image_url
-
+		return res_json 
 
 
 	def respond(self, messages: dict[str, Any]) -> str:
 		# Parse input
 		prompts = self._parse_history(messages)
-
 		# Figure out what to do
 		intent_json = self._classify_intent(messages)
 		try:
