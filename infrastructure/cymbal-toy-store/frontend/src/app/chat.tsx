@@ -16,6 +16,7 @@ import React, { FormEventHandler, useEffect, useRef, useState } from "react";
 import { api } from "@/app/api";
 import Image from "next/image";
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
 
 import styles from "./chat.module.css";
 
@@ -32,6 +33,7 @@ export default function Chat({
     {
       text: "Welcome to Cymbal support! How can I help you today?",
       role: "assistant",
+      image:  "",
     },
   ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -39,7 +41,7 @@ export default function Chat({
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showExtra, setShowExtra] = useState(false);
+  const [showExtra, setShowExtra] = useState(true);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
@@ -65,15 +67,16 @@ export default function Chat({
       textAreaRef.current.style.height = "";
     }
 
-    const newData = [...data, { text: input, role: "user" }];
+    const newData = [...data, { text: input, role: "user", image:"" }];
     setData(newData);
 
     setLoading(true);
+    console.log(newData.slice(1))
     const response = await api(newData.slice(1));
     const body = await response.json();
     setLoading(false);
 
-    setData([...newData, { text: body.content.text, role: "assistant" }]);
+    setData([...newData, { text: body.content.text, role: "assistant", image: body.image_url.image_url.url }]);
     setShowExtra(true);
   }
 
@@ -88,12 +91,34 @@ export default function Chat({
   }
   //Image uploader
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [base64Image, setBase64Image] = useState<string | null>(null);
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+function handleImageChange(event: React.ChangeEvent<HTMLInputElement>) {
+    
     if (event.target.files && event.target.files[0]) {
       setSelectedImage(URL.createObjectURL(event.target.files[0]));
+      const file = event.target.files[0]; // Get the file
+      if (file) {
+        const reader = new FileReader(); // Create FileReader to convert to Base64
+        reader.onloadend = () => {
+          
+          setBase64Image(reader.result as string);
+          const base64data = reader.result; // Get Base64 data
+          var image_base64 = "data:image/jpeg;base64," + base64data
+          const newData = [...data, { text: "Please describe this image", image_url: { url: base64data}, role: "user" , image: ""}];
+          setData(newData);
+          setLoading(true);
+          console.log(newData.slice(1))
+          api(newData.slice(1))
+            .then(response => response.json())
+            .then(body => setData([...newData, { text: body.content.text, role: "assistant", image: body.image_url.image_url.url }]))
+          setLoading(false);
+          setShowExtra(true);
+        };
+        reader.readAsDataURL(file); // Convert to Base64
+      }
     }
-  };
+  }
 
   return (
     <div
@@ -107,7 +132,11 @@ export default function Chat({
             }
             key={idx}
           >
-            {item.text}
+            <ReactMarkdown>{item.text}</ReactMarkdown>
+            <br></br>
+            {item.image && (
+              <img src={item.image} width="100" height="100" />
+            )}           
           </div>
         ))}
         {loading && (
@@ -117,13 +146,6 @@ export default function Chat({
         )}
         {showExtra && (
           <div className={styles.extra}>
-            {/* <Image
-              className={styles.extraPhoto}
-              alt="send"
-              src="/toy.png"
-              height="140"
-              width="140"
-            /> */}
             <button
               className={styles.addToCartButton}
               onClick={handleAddToCart}
@@ -146,9 +168,6 @@ export default function Chat({
                 onChange={handleImageChange}
               />
             </label>
-              {selectedImage && (
-                <img src={selectedImage} alt="Uploaded image" width="200" height="200" />
-              )}
           </div>
         )}
         <div ref={messagesEndRef}></div>

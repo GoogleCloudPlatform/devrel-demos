@@ -114,6 +114,7 @@ CREATE VIEW public.combined_embedding_products AS
     cp.product_name,
     cp.product_description AS embed_description,
     cp.sale_price,
+    cp.product_url,
     ce.product_embedding AS embedding
    FROM (public.cymbal_products cp
      JOIN public.cymbal_embeddings ce ON ((cp.uniq_id = ce.uniq_id)));
