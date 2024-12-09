@@ -446,7 +446,7 @@ def send_prompt(e: me.ClickEvent):
                 search_embedding = gemini_model.generate_embedding(json_intent["summary"])
                 products_list = get_products(db, str(search_embedding["embedding"]))
                 logging.info(f"PRODUCTS LIST: {products_list}")
-                print(products_list)
+                print(f"PRODUCTS LIST: {products_list}")
                 persona="You are friendly assistance in a store helping to find a products based on the client's request"
                 safeguards="You should give information about the product, price and any supplemental information. Do not invent any new products and use for the answer the product defined in the context"
                 context="""

@@ -39,7 +39,7 @@ def classify_intent(input: str) -> str:
     )
     json_resp = model.generate_content(input)
     logging.info(f"INTENT: {json_resp}")
-    return json_resp.text
+    return json_resp.text.replace("```", "").replace("json", "").strip()
 
 def generate_embedding(input: str) -> list[float]:
     result = genai.embed_content(
