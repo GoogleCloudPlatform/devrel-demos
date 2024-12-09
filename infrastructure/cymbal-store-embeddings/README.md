@@ -103,20 +103,84 @@ gcloud alpha run deploy cymbal-store \
    --set-env-vars=DB_USER=cymbaldb_owner,DB_PASS=StrongPassword,DB_NAME=cymbaldb,INSTANCE_HOST=127.0.0.1,DB_PORT=5432 \
    --quiet
 ```
+### Deploy the applicaion to GKE
+- Grant to the default GCE service account (PROJECT_NUMBER-compute@developer.gserviceaccount.com) roles/artifactregistry.reader role
+- Create artifact registry repository 
+```
+gcloud artifacts repositories create cymbal-store-embeddings --location us-central1 --repository-format=docker --project $PROJECT_ID
+``` 
+- Build the image
+```
+gcloud builds submit --pack image=us-central1-docker.pkg.dev/$PROJECT_ID/cymbal-store-embeddings/cymbal_store .
+```
+- Create secret
+```
+kubectl create secret generic cymbal-store-embeddings-secret \
+  --from-literal=database=cymbal_store \
+  --from-literal=username=cymbal \
+  --from-literal=password=ChangeMe123
+```
+- Create manifest file
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cymbal-store-embeddings
+spec:
+  selector:
+    matchLabels:
+      app: cymbal-store
+  template:
+    metadata:
+      labels:
+        app: cymbal-store
+    spec:
+      containers:
+      - name: cymbal-store
+        # Replace <PROJECT_ID> and <REGION> with your project ID and region.
+        image: us-central1-docker.pkg.dev/$PROJECT_ID/cymbal-store-embeddings/cymbal_store:latest
+        imagePullPolicy: Always
+        # This app listens on port 8080 for web traffic by default.
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        - name: INSTANCE_HOST
+          value: "34.118.228.131"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: cymbal-store-embeddings-secret
+              key: username
+        - name: DB_PASS
+          valueFrom:
+           secretKeyRef:
+              name: cymbal-store-embeddings-secret
+              key: password
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: cymbal-store-embeddings-secret
+              key: database
+```
+- Apply the manifest
+- Create service 
+
 ### Use the application
 #### Choose the model
 - Click "Model" on the bottom of the application and new dialog window will be opened
+  ![Choose the model](./cymbal-store-embeddings-01.png)
 - Provide your Google AI API token 
-- Switch focus to models and click checkbox for Gemeini 1.5 flash model
+- Switch focus to models and click checkbox for Gemini 1.5 flash model
 - Click "Confirm"
 
 #### Ask questions
 - Ask questions in the chat
-- Please report all the issues with the application 
-- Requests to Try 
-  - Choose model using button in the chat and providing your Google AI token and choosing the Gemini model (Open AI is not supported yet)
-  - Confirm the choice of the model
-  - Ask in the chat - "What kind of fruit trees grow well here?"
+  ![CPost the question](./cymbal-store-embeddings-02.png)
+- Ask in the chat - "What kind of fruit trees grow well here?"
 
 # TO DO
 - Add support for other models and providers
