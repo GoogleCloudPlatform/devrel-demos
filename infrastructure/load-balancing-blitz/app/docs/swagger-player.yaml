@@ -1,0 +1,60 @@
+openapi: 3.0.0
+info:
+  title: Load Balancer Blitz
+  description: |
+    This is a demo game appliction, where users play and compete with Google cloud Balancer at routing http request to the warehouse server.
+  
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 0.1.9
+
+servers:
+  - url: http://35.225.8.236:8000/
+    description: Player Server or Main Server
+
+paths:
+  /:
+    get:
+      summary: Returns details of the server
+      description: Optional extended description in CommonMark or HTML.
+      responses:
+        '200':    # status code
+          description: OK
+  /health:
+    get:
+      summary: Returns the health of the server
+      description: Optional extended description in CommonMark or HTML.
+      responses:
+        '200':    # status code
+          description: Text reponse `OK`
+  /load:
+    get:
+      summary: Returns the CPU and Memory load (in %) of the server
+      description: Optional extended description in CommonMark or HTML.
+      responses:
+        '200':    # status code
+          description: A JSON object of cpu and memory load
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cpu:
+                    type: number
+                  memory:
+                    type: number
+  /vm/active:
+    get:
+      summary: Returns object of VM selected details
+      description: Optional extended description in CommonMark or HTML.
+      responses:
+        '200':    # status code
+          description: A JSON object of cpu and memory load
+          
+  /vm/active/cache:
+    get:
+      summary: Returns object of VM selected details
+      description: Optional extended description in CommonMark or HTML.
+      responses:
+        '200':    # status code

@@ -1,0 +1,12 @@
+[Unit]
+Description=Gunicorn instance to serve Load Balancing Blitz flaskapp
+After=network.target
+[Service]
+User=sampathm
+Group=sampathm
+WorkingDirectory=/home/sampathm/load-balancing-blitz/app/
+Environment="PATH=home/sampathm/load-balancing-blitz/venv/bin"
+ExecStart=/home/sampathm/load-balancing-blitz/venv/bin/gunicorn --bind 0.0.0.0:8096 game:flaskapp
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,22 @@
+{
+  "project": "beat-the-load-balancer",
+  "region": "us-west4",
+  "zone": "us-west4-a",
+
+  "create_vms": true,
+  "vms": ["main"],
+  "vms2": ["loader", "loader2"],
+
+  "wh-vms": ["wh01", "wh02", "wh03", "wh04", "loader", "loader2", "wh91", "wh92", "wh93", "wh94"],
+  "wh-vms2": ["wh91", "wh92", "wh93", "wh94"],
+  "empty_list": [],
+
+  "source_machine_image": "projects/beat-the-load-balancer/global/machineImages/vm-main-backup-2024-07-08",
+  "compute_regions": "https://cloud.google.com/compute/docs/regions-zones",
+
+  "send_pubsub_topic": "game-scores",
+  "send_pubsub_subscription": "score-subscription",
+
+  "receive_pubsub_topic_scores": "game-health",
+  "receive_pubsub_subscription": "process-healthcheck"
+}

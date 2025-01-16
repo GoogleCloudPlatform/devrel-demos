@@ -1,0 +1,17 @@
+syntax = "proto3";
+message ProtocolBuffer {
+  string datetime = 1;
+  float cpu = 2;
+  float memory = 3;
+  string vm = 4;
+  bool is_processing = 5;
+  string uniqueid = 6;
+}
+
+
+{"datetime": "2024-02-28 22:13:45.078784",
+"cpu": 0.1,
+"memory": 0.2,
+"vm": "vm-wh01",
+"is_processing": true,
+"uniqueid": "chilling-rabbit"}
