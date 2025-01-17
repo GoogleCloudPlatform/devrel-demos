@@ -1,13 +1,32 @@
 # Chatbot Web App with Streamlit and Ollama-Gemma 2 on Cloud Run
 
-## Deploy Ollama on Cloud Run
+## 1. Deploy Ollama Backend on Cloud Run
 
-## Deploy Streamlit App
+see this [README.md](ollama-cloudrun-deploy/README.md)
 
-- Set permission for ollama cloud run service account, add cloud_run/invoker
-- Put the service account key (json file) in the working directory. NOTES: this is only for tutorial purpose, as it is not secure. The best way is to use gcloud secret manager.  
+## 2. Deploy Streamlit App
+
+- Set permission for created ollama cloud run service account (the one created in the `Deploy Ollama Backend` step), add cloud_run/invoker permission
+- Put the service account key (json file) in the working directory. IMPORTANT NOTES: this is only for tutorial purpose, as it is not secure. The best way is to use gcloud secret manager.  
 - Copy `settings.yaml.example` to `settings.yaml` and change the value respective to your ollama deployment
-- run gcloud build
-- run cloud run deploy
+- Run cloud build
 
-## Connect to the Chatbot Streamlit App
+    ```console
+    gcloud builds submit --tag us-central1-docker.pkg.dev/{PROJECT_ID}/{REPOSITORY_NAME}/ollama-gemma-streamlit
+    ```
+
+- Run cloud run deploy
+
+    ```console
+    gcloud beta run deploy ollama-gemma-streamlit --image us-central1-docker.pkg.dev/{PROJECT_ID}/{REPOSITORY_NAME}/ollama-gemma-streamlit --allow-unauthenticated --port 8501
+    ```
+
+    Notes that we set `--allow-unauthenticated` so that we can access the web page without any authentication. 
+
+## 3. Connect to the Chatbot Streamlit App
+
+After successful deployment, it we can access it on the shown Service URL. E.g
+
+```console
+https://ollama-gemma-streamlit-xxxxxxxxx.us-central1.run.app
+```
