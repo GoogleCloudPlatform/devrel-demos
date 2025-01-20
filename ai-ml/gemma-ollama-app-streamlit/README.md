@@ -13,7 +13,7 @@ Change back working directory to example root directory `devrel-demos/ai-ml/gemm
 - Set permission for created ollama cloud run service account (the one created in the `Deploy Ollama Backend` step), add `Cloud Run Invoker` permission. See [this docs](https://cloud.google.com/iam/docs/manage-access-service-accounts)
 - Put the service account key (json file) in the working directory. IMPORTANT NOTES: this is only for tutorial purpose, as it is not secure. The best way is to use [gcloud secret manager](https://cloud.google.com/secret-manager/docs)  
 - Copy `settings.yaml.example` to `settings.yaml` and change the value respective to your ollama deployment
-  - `ollama_cloudrun_service_url` key denotes the ollama cloudrun service URL. E.g. "https://ollama-gemma-gpu-xxxxxxxx.us-central1.run.app"
+  - `ollama_cloudrun_service_url` key denotes the ollama cloudrun service URL. E.g. `https://ollama-gemma-gpu-xxxxxxxx.us-central1.run.app`
   - `ollama_cloudrun_service_account` key denotes the service account key (json file). For this example, we rename the key file `ollama-cloudrun-sa.json` and put it in this example directory
 - Run cloud build
 
@@ -27,7 +27,7 @@ Change back working directory to example root directory `devrel-demos/ai-ml/gemm
     gcloud beta run deploy ollama-gemma-streamlit --image us-central1-docker.pkg.dev/{PROJECT_ID}/{REPOSITORY_NAME}/ollama-gemma-streamlit --allow-unauthenticated --port 8501
     ```
 
-    Notes that we set `--allow-unauthenticated` so that we can access the web page without any authentication. 
+    Notes that we set `--allow-unauthenticated` so that we can access the web page without any authentication.
 
 ## 3. Connect to the Chatbot Streamlit App
 
