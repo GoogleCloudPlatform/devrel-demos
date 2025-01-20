@@ -10,7 +10,7 @@ Change working directory to `./ollama-cloudrun-deploy` and see this [README.md](
 
 Change back working directory to example root directory `devrel-demos/ai-ml/gemma-ollama-app-streamlit`
 
-- Set permission for created ollama cloud run service account (the one created in the `Deploy Ollama Backend` step), add cloud_run/invoker permission
+- Set permission for created ollama cloud run service account (the one created in the `Deploy Ollama Backend` step), add `Cloud Run Invoker` permission. See [this docs](https://cloud.google.com/iam/docs/manage-access-service-accounts)
 - Put the service account key (json file) in the working directory. IMPORTANT NOTES: this is only for tutorial purpose, as it is not secure. The best way is to use [gcloud secret manager](https://cloud.google.com/secret-manager/docs)  
 - Copy `settings.yaml.example` to `settings.yaml` and change the value respective to your ollama deployment
   - `ollama_cloudrun_service_url` key denotes the ollama cloudrun service URL. E.g. "https://ollama-gemma-gpu-xxxxxxxx.us-central1.run.app"
