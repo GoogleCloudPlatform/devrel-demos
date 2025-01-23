@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useState } from "react";
-import { checkSecretPasswordExists } from "./actions";
+import { useState } from "react";
 import Play from "@/components/Play";
 import { Canvas } from '@react-three/fiber'
 import MessagePretty from "@/components/MessagePretty";

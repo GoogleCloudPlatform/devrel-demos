@@ -4,7 +4,6 @@ import React, { memo, useEffect, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 const MessagePath = memo(Line);
-import { getVmAllStats, resetGame, setVm, startLoader, stopGame } from '@/app/actions'
 import UtilizationBox from '@/components/UtilizationBox'
 import EmptyVmBox from '@/components/EmptyVmBox'
 import LoadBalancerBox from '@/components/LoadBalancerBox'
@@ -141,11 +140,6 @@ export default function Play() {
   const timeRemaining = Math.min(totalGameTime - timeElapsed, totalGameTime);
 
   useEffect(() => {
-    setVm({ vmId: playerOneActiveVmId }, localStorage.getItem("secretPassword") || '');
-
-  }, [playerOneActiveVmId])
-
-  useEffect(() => {
     // add success block to any vm that has more than 0% in the queue
     const newSuccessXPosition = [];
     // add player one success block
@@ -169,8 +163,7 @@ export default function Play() {
   useEffect(() => {
     const getStartLoader = async (playerName: string) => {
       try {
-        const {player_name} = await startLoader({playerName, secretPassword: localStorage.getItem("secretPassword") || ''});
-        setPlayerName(player_name);
+        setPlayerName(playerName);
       } catch (error) {
         console.error('Failed to start')
       }
@@ -184,13 +177,38 @@ export default function Play() {
   useEffect(() => {
     const getVMStatus = async () => {
       if (timeElapsed < totalGameTime + 5) {
-        var startTime = performance.now()
-        const vmStats = await getVmAllStats(localStorage.getItem("secretPassword") || '');
-        var endTime = performance.now()
-        console.log({ vmStats });
-        setVmStats(vmStats);
-        const duration = Math.floor(endTime - startTime);
-        console.log(`Call to vmStatuses took ${duration} milliseconds`)
+        const updatedVmStats = {
+          ...vmStats,
+          statusArray: vmStats.statusArray.map((vmDetails, index) => {
+            const rate = 0.01;
+            if (index === playerOneActiveVmIndex) {
+              return {
+                ...vmDetails,
+                utilization: Math.min(vmDetails.utilization + rate * 3, 1),
+              }
+            }
+            if (index < 4) {
+              return {
+                ...vmDetails,
+                utilization: Math.max(vmDetails.utilization - rate, 0),
+              }
+            }
+            return {
+              ...vmDetails,
+              utilization: Math.min(vmDetails.utilization + rate, 1),
+            }
+          }),
+          playerOneScore: vmStats.playerOneScore + vmStats.statusArray.slice(0, 4).reduce((aggregate, vmDetails) => {
+            return aggregate + (vmDetails.utilization > 0 ? 1 : 0);
+          }, 0),
+          playerTwoScore: vmStats.playerTwoScore + vmStats.statusArray.slice(3).reduce((aggregate, vmDetails) => {
+            return aggregate + (vmDetails.utilization > 0 ? 1 : 0);
+          }, 0),
+          playerOneAtMaxCapacity: vmStats.statusArray[playerOneActiveVmIndex].utilization >= 1,
+          playerTwoAtMaxCapacity: vmStats.statusArray[playerTwoActiveVmIndex + 4].utilization >= 1,
+        }
+        console.log({ updatedVmStats });
+        setVmStats(updatedVmStats);
       }
     }
     getVMStatus();
@@ -216,7 +234,6 @@ export default function Play() {
   }, []);
 
   useEffect(() => {
-    resetGame(localStorage.getItem("secretPassword") || '');
     window.addEventListener("keydown", handleKeyDown);
 
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -244,7 +261,6 @@ export default function Play() {
 
   useEffect(() => {
     if (timeElapsed >= totalGameTime && !showResults) {
-      stopGame(localStorage.getItem("secretPassword") || '');
       setShowResults(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

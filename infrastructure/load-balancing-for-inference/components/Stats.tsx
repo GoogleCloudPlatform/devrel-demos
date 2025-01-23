@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { getRawStats } from '@/app/actions'
 
 export default function Stats() {
   const [timer, setTimer] = useState(-5);
@@ -12,7 +11,12 @@ export default function Stats() {
   useEffect(() => {
     const getVMStatus = async () => {
       var startTime = performance.now()
-      const rawStats = await getRawStats(localStorage.getItem("secretPassword") || '');
+      const rawStats = {
+        GAME_CURRENT_TIME: 61 - timer,
+        GAME_SCORE_PLAYER: 0,
+        GAME_SCORE_GCLB: 0,
+        GAME_IS_IN_PROGRESS: true,
+      };
       var endTime = performance.now()
       setPlayerOneScore(rawStats.GAME_SCORE_PLAYER);
       setPlayerTwoScore(rawStats.GAME_SCORE_GCLB);
