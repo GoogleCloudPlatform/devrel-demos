@@ -14,7 +14,7 @@
 
 import google.generativeai as genai
 from typing import Iterable
-from pinecone import Pinecone # as Pinecone
+from pinecone.grpc import PineconeGRPC as Pinecone
 import logging
 import os
 from data_model import ChatMessage, State
@@ -58,10 +58,10 @@ def get_movies(embedding: list[float]) -> dict:
         logging.warning("PINECONE_INDEX_NAME not set, using default: %s", PINECONE_INDEX_NAME)
     pc = Pinecone(api_key=state.pinecone_api_key)
     index = pc.Index(name=PINECONE_INDEX_NAME)
-    query_resp = index.query(vector=embedding, namespace="sandpaper", top_k=5)
+    query_resp = index.query(vector=embedding, namespace="sandpaper", top_k=5, include_metadata=True)
     movies_list = []
     for match in query_resp.matches:
-        meta = index.fetch(ids=[match['id']], namespace="sandpaper")["vectors"][match['id']]["metadata"]
+        meta = match["metadata"]
         movies_list.append({"title":meta["title"],"summary":meta["summary"],"director":meta["director"],"genre": meta["genre"],"actors": meta["actors"]})
     return movies_list
 

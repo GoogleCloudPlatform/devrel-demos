@@ -209,13 +209,13 @@ def get_movies(db: sqlalchemy.engine.base.Engine, embeddings: str) -> dict:
     stmt = sqlalchemy.text(
         """
         SELECT
-                mj.metadata->'title' as title,
-                mj.metadata->'summary' as summary,
-                mj.metadata->'director' as director,
-                mj.metadata->'actors' as actors,
+                mj.langchain_metadata->'title' as title,
+                mj.langchain_metadata->'summary' as summary,
+                mj.langchain_metadata->'director' as director,
+                mj.langchain_metadata->'actors' as actors,
                 (mj.embedding <=> (:embeddings)::vector) as distance
         FROM
-                movies_json mj
+                alloydb_table mj
         ORDER BY
                 distance ASC
         LIMIT 5;

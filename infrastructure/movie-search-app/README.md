@@ -96,7 +96,59 @@ Here is the [link to the documentation for AlloyDB](https://cloud.google.com/all
 Create a database with the name movies and the user movies_owner. You can choose your own names for the database and the user. The application takes it from environment variables. Optionally you can modify the application to use secret manager in Google Cloud as more secured approach.
 
 ### Migrate data from Pinecone to AlloyDB
-- Move the data from Pinecone to AlloyDB
+Move the data from Pinecone to AlloyDB
+- Pinecone index structure consists primarily from 3 main parts:
+  ID - unique row ID
+  VALUES	- vector embedding value (text-embedding-004 from Google)
+  METADATA	- Supplemental information about the data in key/value format
+
+- The future AlloyDB/PostreSQL table as it is defined in the app will have the following structure:
+   ```
+                     Table "public.alloydb_table"
+         Column       |    Type     | Collation | Nullable | Default
+   --------------------+-------------+-----------+----------+---------
+   langchain_id       | uuid        |           | not null |
+   content            | text        |           | not null |
+   embedding          | vector(768) |           | not null |
+   langchain_metadata | json        |           |          |
+   Indexes:
+      "alloydb_table_pkey" PRIMARY KEY, btree (langchain_id)
+   ```
+   And here is the json keys for the langchain_metadata column (from the movie dataset):
+   ```
+     jsonb_object_keys
+   ---------------------
+   tags
+   genre
+   image
+   title
+   actors
+   poster
+   writer
+   runtime
+   summary
+   director
+   imdblink
+   boxoffice
+   imdbscore
+   imdbvotes
+   languages
+   viewrating
+   netflixlink
+   releasedate
+   tmdbtrailer
+   trailersite
+   seriesormovie
+   awardsreceived
+   hiddengemscore
+   metacriticscore
+   productionhouse
+   awardsnominatedfor
+   netflixreleasedate
+   countryavailability
+   rottentomatoesscore
+   ```
+- All the metadata keys are taken from the Pinecone metadata keeping the same structure.
 
 ### Enable virtual environment for Python
 You can use either your laptop or a virtual machnie for deployment. Using a VM deployed in the same Google Cloud project simplifies deployeent and network configuration. On a Debian Linux you can enable it in the shell using the following command:
@@ -126,9 +178,9 @@ pip install -r requirements.txt
 export PINECONE_INDEX_NAME=netflix-index-01
 export PORT=8080
 export DB_USER=movies_owner
-export DB_PASS=DatabasePassword
+export DB_PASS={DATABASEPASSSWORD}
 export DB_NAME=movies
-export INSTANCE_HOST=ALLOYDB_IP
+export INSTANCE_HOST={ALLOYDB_IP}
 export DB_PORT=5432
 ```
 - Here is the command used to start the application
