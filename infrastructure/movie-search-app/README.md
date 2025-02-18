@@ -1,7 +1,7 @@
 
 # Sample app for genai embeddings using Pinecone or PostgreSQL compaible database
 ## Description
-- The demo shows a sample moview seach chat assistant using either Pinecone or PostgreSQL compatible database as a backend. 
+- The demo shows a sample movie search chat assistant using either Pinecone or PostgreSQL compatible database as a backend. 
 - In both cases the Google AI studio is used for conversations and embedding generation.
 
 ### Architecture
