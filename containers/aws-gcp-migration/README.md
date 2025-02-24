@@ -2,5 +2,22 @@
 
 This demo shows how to migrate an AWS application, hosted on Elastic Kubernetes Service (EKS) and Relational Database Service (RDS), to Google Cloud Platform (GCP) using Google Kubernetes Engine (GKE) and Cloud SQL (via Database Migration Service).
 
-We use the CymbalBank (Bank of Anthos) sample application to demonstrate the migration. 
+We use the CymbalBank (Bank of Anthos) sample application to demonstrate the migration.
 
+
+## Deploy Google Cloud infrastructure
+
+1. Open Cloud Shell
+
+1. Clone this repository
+
+1. Provision the infrastructure on Google Cloud
+
+  ```bash
+  GOOGLE_CLOUD_PROJECT_ID="<GOOGLE_CLOUD_PROJECT_ID>" containers/aws-gcp-migration/google-cloud-infra-deploy.sh
+  ```
+
+  Where:
+
+  - `<GOOGLE_CLOUD_PROJECT_ID>` is the ID of the Google Cloud project where you
+    want to provision the resources for this demo.
