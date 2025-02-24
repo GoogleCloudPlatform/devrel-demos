@@ -52,7 +52,3 @@ ACCELERATED_PLATFORMS_REPOSITORY_PATH="${REPOSITORY_ROOT_DIRECTORY_PATH}/contain
 export ACP_REPO_DIR="${ACCELERATED_PLATFORMS_REPOSITORY_PATH}"
 export ACP_PLATFORM_BASE_DIR="${ACCELERATED_PLATFORMS_REPOSITORY_PATH}/platforms/gke/base"
 export ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
-
-export TF_VAR_cluster_project_id="${GOOGLE_CLOUD_PROJECT_ID}"
-export TF_VAR_platform_name="a-g-demo"
-export TF_VAR_terraform_project_id="${TF_VAR_cluster_project_id}"

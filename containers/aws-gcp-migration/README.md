@@ -32,11 +32,25 @@ To deploy this demo on Google Cloud, you need:
   - `<GOOGLE_CLOUD_PROJECT_ID>` is the ID of the Google Cloud project where you
     want to provision the resources for this demo.
 
-
 1. Provision the infrastructure on Google Cloud
 
   ```bash
   GOOGLE_CLOUD_PROJECT_ID="<GOOGLE_CLOUD_PROJECT_ID>" containers/aws-gcp-migration/google-cloud-infra-deploy.sh
+  ```
+
+  Where:
+
+  - `<GOOGLE_CLOUD_PROJECT_ID>` is the ID of the Google Cloud project where you
+    want to provision the resources for this demo.
+
+## Destroy Google Cloud infrastructure
+
+1. Open [Cloud Shell](https://cloud.google.com/shell).
+
+1. Provision the infrastructure on Google Cloud
+
+  ```bash
+  GOOGLE_CLOUD_PROJECT_ID="<GOOGLE_CLOUD_PROJECT_ID>" containers/aws-gcp-migration/google-cloud-infra-teardown.sh
   ```
 
   Where:

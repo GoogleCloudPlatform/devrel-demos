@@ -40,6 +40,10 @@ git -C "${ACCELERATED_PLATFORMS_REPOSITORY_PATH}" checkout b59583d
 
 start_timestamp_aws_gcp_migration=$(date +%s)
 
+export TF_VAR_cluster_project_id="${GOOGLE_CLOUD_PROJECT_ID}"
+export TF_VAR_platform_name="a-g-demo"
+export TF_VAR_terraform_project_id="${TF_VAR_cluster_project_id}"
+
 echo "Provisioning the core platform"
 gcloud services enable cloudresourcemanager.googleapis.com
 gcloud services enable serviceusage.googleapis.com
