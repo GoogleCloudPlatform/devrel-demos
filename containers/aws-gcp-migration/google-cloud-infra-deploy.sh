@@ -28,7 +28,7 @@ echo "Repository root directory path: ${REPOSITORY_ROOT_DIRECTORY_PATH}"
 source "${SCRIPT_DIRECTORY}/common.sh" || exit 3
 
 if [ ! -e "${ACCELERATED_PLATFORMS_REPOSITORY_PATH}/.git" ]; then
-  echo "Cloning the Accelerated Platforms repository"
+  echo "Cloning the Accelerated Platforms repository to ${ACCELERATED_PLATFORMS_REPOSITORY_PATH}"
   git -C "${SCRIPT_DIRECTORY}" clone "https://github.com/GoogleCloudPlatform/accelerated-platforms.git"
 else
   echo "Skip cloning the accelerated platforms repository because we already cloned it"
@@ -41,7 +41,8 @@ git -C "${ACCELERATED_PLATFORMS_REPOSITORY_PATH}" checkout b59583d
 start_timestamp_aws_gcp_migration=$(date +%s)
 
 echo "Provisioning the core platform"
-gcloud services enable "cloudresourcemanager.googleapis.com"
+gcloud services enable cloudresourcemanager.googleapis.com
+gcloud services enable serviceusage.googleapis.com
 # shellcheck disable=SC1091,SC2034,SC2154 # Variable is used in other scripts
 CORE_TERRASERVICES_APPLY="${core_platform_terraservices[*]}" \
   "${ACP_PLATFORM_CORE_DIR}/deploy.sh"

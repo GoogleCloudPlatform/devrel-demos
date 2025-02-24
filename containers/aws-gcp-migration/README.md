@@ -18,7 +18,7 @@ To deploy this demo on Google Cloud, you need:
 1. Clone this repository and change the working directory:
 
    ```bash
-   git clone https://github.com/GoogleCloudPlatform/devrel-demos.git && \
+   git clone https://github.com/askmeegs/devrel-demos.git && \
    cd devrel-demos && \
    git switch next25-aws-gcp-migration
    ```
