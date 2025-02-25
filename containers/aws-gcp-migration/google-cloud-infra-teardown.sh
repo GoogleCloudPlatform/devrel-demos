@@ -29,6 +29,15 @@ source "${SCRIPT_DIRECTORY}/common.sh" || exit 3
 
 start_timestamp_aws_gcp_migration=$(date +%s)
 
+# Destroy the demo platform services in reverse provisioning order to account
+# for dependencies
+echo "Destroing the demo platform"
+# shellcheck disable=SC2154 # variable defined in common.sh
+for ((i = ${#aws_to_gcp_migration_demo_terraservices[@]} - 1; i >= 0; i--)); do
+  terraservice=${aws_to_gcp_migration_demo_terraservices[i]}
+  destroy_terraservice "${terraservice}"
+done
+
 # Destroy the core platform services in reverse provisioning order to account
 # for dependencies
 echo "Destroying the core platform"

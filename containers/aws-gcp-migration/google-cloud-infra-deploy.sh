@@ -34,9 +34,9 @@ else
   echo "Skip cloning the accelerated platforms repository because we already cloned it"
 fi
 
-# TODO: refactor this command to switch to a commit on main, after we merge
+# TODO: refactor this command to switch to a commit on main after we merge
 # https://github.com/GoogleCloudPlatform/accelerated-platforms/pull/70
-git -C "${ACCELERATED_PLATFORMS_REPOSITORY_PATH}" checkout b59583d
+git -C "${ACCELERATED_PLATFORMS_REPOSITORY_PATH}" checkout 6f38e62
 
 start_timestamp_aws_gcp_migration=$(date +%s)
 
@@ -46,6 +46,22 @@ gcloud services enable serviceusage.googleapis.com
 # shellcheck disable=SC1091,SC2034,SC2154 # Variable is used in other scripts
 CORE_TERRASERVICES_APPLY="${core_platform_terraservices[*]}" \
   "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
+
+for service in "${aws_to_gcp_migration_demo_terraservices[@]}"; do
+  cd "${AWS_TO_GCP_DEMO_TERRAFORM_DIRECTORY_PATH}/${service}"
+  if [ ! -e "backend.tf" ]; then
+    ln -sv "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf" "backend.tf"
+  fi
+
+  for configuration_file in "${core_platform_configuration_files[@]}"; do
+    configuration_file_name="_${configuration_file}"
+    if [ ! -e "${configuration_file_name}" ]; then
+      ln -sv "${ACP_PLATFORM_CORE_DIR}/_shared_config/${configuration_file}" "${configuration_file_name}"
+    fi
+  done
+
+  provision_terraservice "${terraservice}"
+done
 
 end_timestamp_aws_gcp_migration=$(date +%s)
 total_runtime_value_aws_gcp_migration=$((end_timestamp_aws_gcp_migration - start_timestamp_aws_gcp_migration))
