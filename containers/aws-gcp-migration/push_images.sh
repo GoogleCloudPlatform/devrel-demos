@@ -48,7 +48,7 @@ docker push $LEDGERWRITER_URL
 TRANSACTIONHISTORY="transactionhistory"
 TRANSACTIONHISTORY_URL=$ECR_URL$TRANSACTIONHISTORY:$IMAGE_TAG
 echo "🐳 Building $TRANSACTIONHISTORY_URL"
-docker build --platform linux/amd64 -t $TRANSACTIONHISTORY_URL cymbalbank/src/ledger$TRANSACTIONHISTORY
+docker build --platform linux/amd64 -t $TRANSACTIONHISTORY_URL cymbalbank/src/ledger/$TRANSACTIONHISTORY
 echo "⬆️ Pushing $TRANSACTIONHISTORY_URL"
 docker push $TRANSACTIONHISTORY_URL
 

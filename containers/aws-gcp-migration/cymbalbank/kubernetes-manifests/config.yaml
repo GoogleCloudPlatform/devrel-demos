@@ -60,5 +60,5 @@ data:
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: Chiapet22!
   SPRING_DATASOURCE_URL: jdbc:postgresql://cymbalbank.cx6oakwa20qh.us-west-1.rds.amazonaws.com:5432/ledger-db
-  SPRING_DATASOURCE_USERNAME: postgres # should match POSTGRES_USER
-  SPRING_DATASOURCE_PASSWORD: Chiapet22! # should match POSTGRES_PASSWORD
+  SPRING_DATASOURCE_USERNAME: postgres  
+  SPRING_DATASOURCE_PASSWORD: Chiapet22!  
