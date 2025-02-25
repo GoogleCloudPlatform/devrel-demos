@@ -113,6 +113,7 @@ core_platform_terraservices=(
 
 aws_to_gcp_migration_demo_terraservices=(
   container_image_repository
+  cloud_sql
 )
 
 core_platform_configuration_files=(

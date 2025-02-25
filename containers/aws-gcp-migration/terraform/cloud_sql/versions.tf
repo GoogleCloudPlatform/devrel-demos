@@ -23,6 +23,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "cloud-solutions/hyperscalers-migration-aws-gcp-demo-container-repo-v1"
+    module_name = "cloud-solutions/hyperscalers-migration-aws-gcp-demo-sql-v1"
   }
 }

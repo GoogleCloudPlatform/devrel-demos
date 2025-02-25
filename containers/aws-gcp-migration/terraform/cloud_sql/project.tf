@@ -12,17 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-terraform {
-  required_version = ">= 1.5.7"
+data "google_project" "default" {
+  project_id = var.cluster_project_id
+}
 
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "6.12.0"
-    }
-  }
-
-  provider_meta "google" {
-    module_name = "cloud-solutions/hyperscalers-migration-aws-gcp-demo-container-repo-v1"
-  }
+resource "google_project_service" "sqladmin_googleapis_com" {
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.default.project_id
+  service                    = "sqladmin.googleapis.com"
 }

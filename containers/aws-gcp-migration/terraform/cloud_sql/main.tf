@@ -12,17 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-terraform {
-  required_version = ">= 1.5.7"
+resource "google_sql_database_instance" "demo_cloudsql_instance" {
+  name = "${local.unique_identifier_prefix}-instance"
 
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "6.12.0"
-    }
-  }
+  database_version    = "POSTGRES_16"
+  deletion_protection = false
+  project             = google_project_service.sqladmin_googleapis_com.project
+  region              = var.cluster_region
 
-  provider_meta "google" {
-    module_name = "cloud-solutions/hyperscalers-migration-aws-gcp-demo-container-repo-v1"
+  settings {
+    tier = "db-f1-micro"
   }
 }

@@ -13,16 +13,7 @@
 # limitations under the License.
 
 terraform {
-  required_version = ">= 1.5.7"
-
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "6.12.0"
-    }
-  }
-
-  provider_meta "google" {
-    module_name = "cloud-solutions/hyperscalers-migration-aws-gcp-demo-container-repo-v1"
+  backend "gcs" {
+    prefix = "terraform/aws-to-gcp-migration/cloud-sql"
   }
 }
