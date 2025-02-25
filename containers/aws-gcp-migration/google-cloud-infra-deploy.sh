@@ -58,7 +58,6 @@ for service in "${aws_to_gcp_migration_demo_terraservices[@]}"; do
     cat >"${TERRAFORM_GCS_BACKEND_FILE_NAME}" <<EOF
 bucket = "${terraform_bucket_name}"
 EOF
-    ln -sv "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf" "backend.tf"
   fi
 
   for configuration_file in "${core_platform_configuration_files[@]}"; do
