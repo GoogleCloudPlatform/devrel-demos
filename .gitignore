@@ -147,6 +147,7 @@ README-TOC*.md
 
 .terraform*
 .Terraform*
+tfplan
 # Terraform dependency lock files should be committed in the repo
 # Ref: https://developer.hashicorp.com/terraform/language/files/dependency-lock
 !.terraform.lock.hcl
