@@ -36,6 +36,12 @@ echo "Destroing the demo platform"
 for ((i = ${#aws_to_gcp_migration_demo_terraservices[@]} - 1; i >= 0; i--)); do
   terraservice=${aws_to_gcp_migration_demo_terraservices[i]}
   destroy_terraservice "${terraservice}"
+
+  rm -f backend.tf
+  for configuration_file in "${core_platform_configuration_files[@]}"; do
+    configuration_file_name="_${configuration_file}"
+    rm -f "${configuration_file_name}"
+  done
 done
 
 # Destroy the core platform services in reverse provisioning order to account

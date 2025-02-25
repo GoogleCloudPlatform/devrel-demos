@@ -57,7 +57,7 @@ for service in "${aws_to_gcp_migration_demo_terraservices[@]}"; do
   for configuration_file in "${core_platform_configuration_files[@]}"; do
     configuration_file_name="_${configuration_file}"
     if [ ! -e "${configuration_file_name}" ]; then
-      ln -sv "${ACP_PLATFORM_CORE_DIR}/_shared_config/${configuration_file}" "${configuration_file_name}"
+      ln -sv "${ACP_PLATFORM_SHARED_CONFIG_DIR}/${configuration_file}" "${configuration_file_name}"
     fi
   done
 
