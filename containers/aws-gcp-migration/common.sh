@@ -32,6 +32,8 @@ export ACP_PLATFORM_BASE_DIR="${ACCELERATED_PLATFORMS_REPOSITORY_PATH}/platforms
 export ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
 ACP_PLATFORM_SHARED_CONFIG_DIR="${ACP_PLATFORM_BASE_DIR}/_shared_config"
 
+TERRAFORM_GCS_BACKEND_FILE_NAME="backend.gcs.tfbackend"
+
 # Terraform runtime variables
 export TF_IN_AUTOMATION="1"
 export TF_VAR_cluster_project_id="${GOOGLE_CLOUD_PROJECT_ID}"
@@ -55,7 +57,7 @@ apply_or_destroy_terraservice() {
 
   echo "Initializing ${terraservice} Terraform environment"
   cd "${AWS_TO_GCP_DEMO_TERRAFORM_DIRECTORY_PATH}/${terraservice}" &&
-    terraform init -input=false
+    terraform init -backend-config="${TERRAFORM_GCS_BACKEND_FILE_NAME}" -input=false
 
   echo "Current working directory: $(pwd)"
 
