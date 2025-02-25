@@ -61,7 +61,7 @@ for service in "${aws_to_gcp_migration_demo_terraservices[@]}"; do
     fi
   done
 
-  provision_terraservice "${terraservice}"
+  provision_terraservice "${service}"
 done
 
 end_timestamp_aws_gcp_migration=$(date +%s)
