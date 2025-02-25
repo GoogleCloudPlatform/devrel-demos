@@ -21,6 +21,8 @@ resource "google_sql_database_instance" "demo_cloudsql_instance" {
   region              = var.cluster_region
 
   settings {
-    tier = "db-f1-micro"
+    disk_type = "PD_SSD"
+    edition   = "ENTERPRISE_PLUS"
+    tier      = "db-perf-optimized-N-2"
   }
 }
