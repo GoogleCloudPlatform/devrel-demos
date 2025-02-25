@@ -32,6 +32,7 @@ if [ ! -e "${ACCELERATED_PLATFORMS_REPOSITORY_PATH}/.git" ]; then
   git -C "${SCRIPT_DIRECTORY}" clone "https://github.com/GoogleCloudPlatform/accelerated-platforms.git"
 else
   echo "Skip cloning the accelerated platforms repository because we already cloned it"
+  git -C "${ACCELERATED_PLATFORMS_REPOSITORY_PATH}" fetch
 fi
 
 # TODO: refactor this command to switch to a commit on main after we merge
