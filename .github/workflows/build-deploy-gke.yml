@@ -7,6 +7,10 @@ on:
     branches:
       - "next25-aws-gcp-migration"
 
+defaults: 
+  run:
+    working-directory: './containers/aws-gcp-migration'
+
 env:
   PROJECT_ID: 'next25migration'  
   GAR_LOCATION: 'us-central1' 
