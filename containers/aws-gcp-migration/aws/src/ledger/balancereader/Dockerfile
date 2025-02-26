@@ -1,5 +1,3 @@
-# Java dockerfile for balancereader 
-# Use an official OpenJDK runtime as a parent image
 FROM openjdk:17-jdk-alpine
 
 # Set the working directory inside the container
@@ -15,4 +13,4 @@ RUN ./mvnw package -DskipTests
 EXPOSE 8080
 
 # Command to run the executable jar
-CMD ["java", "-jar", "/app/target/balancereader-1.0.jar.original"]
+CMD ["java", "-jar", "/app/target/balancereader-1.0.jar"]
