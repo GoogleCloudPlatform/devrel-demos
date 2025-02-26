@@ -28,7 +28,7 @@ resource "google_database_migration_service_connection_profile" "amazon_rds_prof
 
 resource "google_database_migration_service_connection_profile" "cloud_sql_profile_destination" {
   location              = var.cluster_region
-  connection_profile_id = "${local.unique_identifier_prefix}-destination"
+  connection_profile_id = "${local.unique_identifier_prefix}-dest"
   display_name          = "${local.unique_identifier_prefix} destination connection profile"
 
   cloudsql {
