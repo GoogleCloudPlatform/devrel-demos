@@ -26,3 +26,15 @@ resource "google_sql_database_instance" "demo_cloudsql_instance" {
     tier      = "db-perf-optimized-N-2"
   }
 }
+
+resource "google_sql_database" "accounts" {
+  name     = "accounts-db"
+  instance = google_sql_database_instance.demo_cloudsql_instance.name
+  project  = google_project_service.sqladmin_googleapis_com.project
+}
+
+resource "google_sql_database" "ledger" {
+  name     = "ledger-db"
+  instance = google_sql_database_instance.demo_cloudsql_instance.name
+  project  = google_project_service.sqladmin_googleapis_com.project
+}
