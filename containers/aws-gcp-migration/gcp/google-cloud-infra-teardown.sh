@@ -25,7 +25,7 @@ echo "Repository root directory path: ${REPOSITORY_ROOT_DIRECTORY_PATH}"
 
 # Don't use ERR_LIBRARY_NOT_AVAILABLE because we didn't source common.sh yet
 # shellcheck disable=SC1091 # do not follow
-source "${SCRIPT_DIRECTORY}/common.sh" || exit 3
+source "${REPOSITORY_ROOT_DIRECTORY_PATH}/devrel-demos/containers/aws-gcp-migration/common.sh" || exit 3
 
 start_timestamp_aws_gcp_migration=$(date +%s)
 
