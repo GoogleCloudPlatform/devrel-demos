@@ -34,11 +34,22 @@ ACP_PLATFORM_SHARED_CONFIG_DIR="${ACP_PLATFORM_BASE_DIR}/_shared_config"
 
 TERRAFORM_GCS_BACKEND_FILE_NAME="backend.gcs.tfbackend"
 
+DMS_USER_PASSWORD_SOURCE_DATABASE_FILE_PATH="${AWS_TO_GCP_DEMO_DIRECTORY_PATH}/dms-user-password-source-database.txt"
+
+if [ ! -e "${DMS_USER_PASSWORD_SOURCE_DATABASE_FILE_PATH}" ]; then
+  echo "Cannot find the file where the Database Migration Service user passowrd is stored: ${DMS_USER_PASSWORD_SOURCE_DATABASE_FILE_PATH}. Create the file and save the password in the file."
+fi
+
+SOURCE_DATABASE_DMS_PASSWORD="$(cat "${DMS_USER_PASSWORD_SOURCE_DATABASE_FILE_PATH}")"
+
 # Terraform runtime variables
 export TF_IN_AUTOMATION="1"
 export TF_VAR_cluster_project_id="${GOOGLE_CLOUD_PROJECT_ID}"
 export TF_VAR_platform_name="a-g-demo"
 export TF_VAR_terraform_project_id="${TF_VAR_cluster_project_id}"
+export TF_VAR_source_database_password="${SOURCE_DATABASE_DMS_PASSWORD}"
+export TF_VAR_source_database_host="${SOURCE_DATABASE_HOSTNAME}"
+export TF_VAR_source_database_username="${SOURCE_DATABASE_DMS_USERNAME}"
 
 is_command_available() {
   if command -v "${1}" >/dev/null 2>&1; then

@@ -11,3 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+variable "source_database_host" {
+  type = string
+}
+
+variable "source_database_port" {
+  default = 5432
+  type    = number
+}
+
+variable "source_database_password" {
+  sensitive = true
+  type      = string
+}
+
+variable "source_database_username" {
+  sensitive = true
+  type      = string
+}

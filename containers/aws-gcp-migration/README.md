@@ -20,7 +20,8 @@ To deploy this demo on Google Cloud, you need:
    ```bash
    git clone https://github.com/askmeegs/devrel-demos.git && \
    cd devrel-demos && \
-   git switch next25-aws-gcp-migration
+   git switch next25-aws-gcp-migration && \
+   cd containers/aws-gcp-migration/gcp
    ```
 
 1. Set the default Google Cloud project:
@@ -29,19 +30,27 @@ To deploy this demo on Google Cloud, you need:
   gcloud config set project "<GOOGLE_CLOUD_PROJECT_ID>"
   ```
 
+  Where:
+
   - `<GOOGLE_CLOUD_PROJECT_ID>` is the ID of the Google Cloud project where you
     want to provision the resources for this demo.
 
 1. Provision the infrastructure on Google Cloud
 
   ```bash
-  GOOGLE_CLOUD_PROJECT_ID="<GOOGLE_CLOUD_PROJECT_ID>" containers/aws-gcp-migration/google-cloud-infra-deploy.sh
+  GOOGLE_CLOUD_PROJECT_ID="<GOOGLE_CLOUD_PROJECT_ID>" \
+  SOURCE_DATABASE_HOSTNAME="<SOURCE_DATABASE_HOSTNAME>" \
+  SOURCE_DATABASE_DMS_USERNAME="<SOURCE_DATABASE_DMS_USERNAME>" \
+    containers/aws-gcp-migration/google-cloud-infra-deploy.sh
   ```
 
   Where:
 
   - `<GOOGLE_CLOUD_PROJECT_ID>` is the ID of the Google Cloud project where you
     want to provision the resources for this demo.
+  - `<SOURCE_DATABASE_HOSTNAME>` is the hostname of the source database.
+  - `<SOURCE_DATABASE_DMS_USERNAME>` is the username of the user that Database
+    Migration Service uses to connect to the source database.
 
 ## Destroy Google Cloud infrastructure
 
@@ -50,7 +59,10 @@ To deploy this demo on Google Cloud, you need:
 1. Provision the infrastructure on Google Cloud
 
   ```bash
-  GOOGLE_CLOUD_PROJECT_ID="<GOOGLE_CLOUD_PROJECT_ID>" containers/aws-gcp-migration/google-cloud-infra-teardown.sh
+  GOOGLE_CLOUD_PROJECT_ID="<GOOGLE_CLOUD_PROJECT_ID>" \
+  SOURCE_DATABASE_HOSTNAME="<SOURCE_DATABASE_HOSTNAME>" \
+  SOURCE_DATABASE_DMS_USERNAME="<SOURCE_DATABASE_DMS_USERNAME>" \
+    containers/aws-gcp-migration/google-cloud-infra-teardown.sh
   ```
 
   Where:

@@ -22,3 +22,10 @@ resource "google_project_service" "sqladmin_googleapis_com" {
   project                    = data.google_project.default.project_id
   service                    = "sqladmin.googleapis.com"
 }
+
+resource "google_project_service" "datamigration_googleapis_com" {
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.default.project_id
+  service                    = "datamigration.googleapis.com"
+}
