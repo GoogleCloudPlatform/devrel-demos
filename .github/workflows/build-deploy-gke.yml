@@ -16,7 +16,7 @@ env:
   GAR_LOCATION: 'us-central1' 
   GKE_CLUSTER: 'acp-a-g-demo' 
   GKE_REGION: 'us-central1'  
-  DEPLOYMENT_NAME: 'cymbalbank'  
+  DEPLOYMENT_NAME: 'busybox'  
   REPOSITORY: 'acp-a-g-demo-repository'  
   IMAGE: 'busybox'
   WORKLOAD_IDENTITY_PROVIDER: 'projects/588514511495/locations/global/workloadIdentityPools/github/providers/cymbalbank-gha' 
@@ -51,11 +51,15 @@ jobs:
           registry: '${{ env.GAR_LOCATION }}-docker.pkg.dev'
 
       - name: 'Set up GKE credentials'
-        uses: 'google-github-actions/get-gke-credentials@6051de21ad50fbb1767bc93c11357a49082ad116' # 
+        uses: 'google-github-actions/get-gke-credentials@v2' # 
         with:
           cluster_name: '${{ env.GKE_CLUSTER }}'
           location: '${{ env.GKE_REGION }}'
 
+      - name: 'Test access to GKE cluster'
+        run: |-
+          kubectl get nodes
+          
       # Build the Docker image
       - name: 'Build and push Docker container'
         run: |-
