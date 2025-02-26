@@ -30,3 +30,8 @@ variable "source_database_username" {
   sensitive = true
   type      = string
 }
+
+variable "destination_database_zone" {
+  default = "us-central1-f"
+  type    = string
+}

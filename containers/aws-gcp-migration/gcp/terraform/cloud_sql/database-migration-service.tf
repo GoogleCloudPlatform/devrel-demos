@@ -41,6 +41,7 @@ resource "google_database_migration_service_connection_profile" "cloud_sql_profi
       source_id                 = "projects/${google_project_service.datamigration_googleapis_com.project}/locations/us-central1/connectionProfiles/${google_database_migration_service_connection_profile.amazon_rds_profile_source.connection_profile_id}"
       storage_auto_resize_limit = "0"
       tier                      = "db-perf-optimized-N-2"
+      zone                      = var.destination_database_zone
 
       ip_config {
         enable_ipv4 = true
