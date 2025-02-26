@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_database_migration_service_connection_profile" "cloud_sql_profile_source" {
+resource "google_database_migration_service_connection_profile" "amazon_rds_profile_source" {
   location              = var.cluster_region
   connection_profile_id = "${local.unique_identifier_prefix}-source"
   display_name          = "${local.unique_identifier_prefix} source connection profile"
@@ -47,5 +47,17 @@ resource "google_database_migration_service_connection_profile" "cloud_sql_profi
         require_ssl = true
       }
     }
+  }
+}
+
+resource "google_database_migration_service_migration_job" "demo_migration_job" {
+  destination      = google_database_migration_service_connection_profile.cloud_sql_profile_destination.name
+  display_name     = "Demo migration job"
+  location         = var.cluster_region
+  migration_job_id = "demo-migration-job"
+  source           = google_database_migration_service_connection_profile.amazon_rds_profile_source.name
+  type             = "CONTINUOUS"
+
+  static_ip_connectivity {
   }
 }
