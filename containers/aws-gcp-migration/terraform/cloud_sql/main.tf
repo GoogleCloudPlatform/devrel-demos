@@ -38,3 +38,14 @@ resource "google_sql_database" "ledger" {
   instance = google_sql_database_instance.demo_cloudsql_instance.name
   project  = google_project_service.sqladmin_googleapis_com.project
 }
+
+ephemeral "random_password" "dms_user_password" {
+  length  = 16
+  special = true
+}
+
+resource "google_sql_user" "dms_user" {
+  name     = "dms"
+  instance = google_sql_database_instance.demo_cloudsql_instance.name
+  password = random_password.dms_user_password.result
+}
