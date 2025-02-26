@@ -16,6 +16,7 @@ resource "google_database_migration_service_connection_profile" "cloud_sql_profi
   location              = var.cluster_region
   connection_profile_id = "${local.unique_identifier_prefix}-source"
   display_name          = "${local.unique_identifier_prefix} source connection profile"
+  project               = google_project_service.datamigration_googleapis_com.project
 
   postgresql {
     host     = var.source_database_host
