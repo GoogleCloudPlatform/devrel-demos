@@ -16,8 +16,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
-  labels:
-    app: frontend
 spec:
   selector:
     matchLabels:
@@ -27,23 +25,30 @@ spec:
       labels:
         app: frontend
     spec:
-      serviceAccountName: cymbalbank-sa
+      serviceAccountName: default
       terminationGracePeriodSeconds: 5
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
       containers:
       - name: front
-        image: 127214177435.dkr.ecr.us-west-1.amazonaws.com/cymbalbank/frontend:latest
-        imagePullPolicy: Always
-        volumeMounts:
-        - name: publickey
-          mountPath: "/root/.ssh"
-          readOnly: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - all
+          privileged: false
+          readOnlyRootFilesystem: true
+        image: frontend
         env:
         - name: VERSION
-          value: "v0.5.11"
+          value: "dev"
         - name: PORT
           value: "8080"
         - name: ENABLE_TRACING
-          value: "false"
+          value: "true"
         - name: SCHEME
           value: "http"
          # Valid levels are debug, info, warning, error, critical. If no valid level is set, gunicorn will default to info.
@@ -57,7 +62,7 @@ spec:
         #   value: ""
         # Customize the cluster name if it cannot be retrieved from the metadata server
         - name: CLUSTER_NAME
-          value: "🟧 AWS Elastic Kubernetes Service (EKS) - Auto Mode - us-west-1"
+          value: "AWS EKS Auto Mode: CymbalBank"
         - name: DEFAULT_USERNAME
           valueFrom:
             configMapKeyRef:
@@ -78,13 +83,8 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: oauth-config
-              key: DEMO_OAUTH_REDIRECT_URI              
+              key: DEMO_OAUTH_REDIRECT_URI
               optional: true
-        envFrom:
-        - configMapRef:
-            name: environment-config
-        - configMapRef:
-            name: service-api-config
         # Customize the metadata server hostname to query for metadata
         #- name: METADATA_SERVER
         #  value: "my-metadata-server"
@@ -94,6 +94,11 @@ spec:
         # Customize the platform banner, options [alibaba, aws, azure, gcp, local, onprem]
         # - name: ENV_PLATFORM
         #   value: "gcp"
+        envFrom:
+        - configMapRef:
+            name: environment-config
+        - configMapRef:
+            name: service-api-config
         readinessProbe:
           httpGet:
             path: /ready
@@ -113,56 +118,18 @@ spec:
             cpu: 100m
             memory: 64Mi
           limits:
-            cpu: 500m
-            memory: 256Mi
-      volumes:
-      - name: publickey
-        secret:
-          secretName: jwt-key
-          items:
-          - key: jwtRS256.key.pub
-            path: publickey
---- 
+            cpu: 250m
+            memory: 128Mi
+---
 apiVersion: v1
 kind: Service
 metadata:
   name: frontend
 spec:
-  ports:
-    - port: 80
-      targetPort: 8080
-      protocol: TCP
-  type: ClusterIP # This can be changed to ClusterIP with target-type: ip
+  type: LoadBalancer
   selector:
-    app: frontend # Changed selector to match deployment labels
---- 
-apiVersion: networking.k8s.io/v1
-kind: IngressClass
-metadata:
-  labels:
-    app.kubernetes.io/name: LoadBalancerController
-  name: alb
-spec:
-  controller: eks.amazonaws.com/alb
---- 
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  namespace: default
-  name: frontend
-  annotations:
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
-spec:
-  ingressClassName: alb
-  rules:
-    - http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: frontend
-                port:
-                  number: 80
+    app: frontend
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
