@@ -1,11 +1,11 @@
 # Sources: 
     # https://github.com/google-github-actions/auth 
-name: 'Build and Deploy to GKE'
+name: 'Busybox - Test Build and deploy to GKE'
 
 on:
   push:
     branches:
-      - '"next25-aws-gcp-migration"'
+      - "next25-aws-gcp-migration"
 
 env:
   PROJECT_ID: 'next25migration'  
@@ -20,7 +20,7 @@ env:
 
 jobs:
   setup-build-publish-deploy:
-    name: 'Setup, Build, Publish, and Deploy'
+    name: 'Build and Deploy to GKE'
     runs-on: 'ubuntu-latest'
     environment: 'production'
 
