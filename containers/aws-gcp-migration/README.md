@@ -20,8 +20,7 @@ To deploy this demo on Google Cloud, you need:
    ```bash
    git clone https://github.com/askmeegs/devrel-demos.git && \
    cd devrel-demos && \
-   git switch next25-aws-gcp-migration && \
-   cd containers/aws-gcp-migration/gcp
+   git switch next25-aws-gcp-migration
    ```
 
 1. Set the default Google Cloud project:
@@ -41,7 +40,7 @@ To deploy this demo on Google Cloud, you need:
   GOOGLE_CLOUD_PROJECT_ID="<GOOGLE_CLOUD_PROJECT_ID>" \
   SOURCE_DATABASE_HOSTNAME="<SOURCE_DATABASE_HOSTNAME>" \
   SOURCE_DATABASE_DMS_USERNAME="<SOURCE_DATABASE_DMS_USERNAME>" \
-    containers/aws-gcp-migration/google-cloud-infra-deploy.sh
+    containers/aws-gcp-migration/gcp/google-cloud-infra-deploy.sh
   ```
 
   Where:
@@ -62,7 +61,7 @@ To deploy this demo on Google Cloud, you need:
   GOOGLE_CLOUD_PROJECT_ID="<GOOGLE_CLOUD_PROJECT_ID>" \
   SOURCE_DATABASE_HOSTNAME="<SOURCE_DATABASE_HOSTNAME>" \
   SOURCE_DATABASE_DMS_USERNAME="<SOURCE_DATABASE_DMS_USERNAME>" \
-    containers/aws-gcp-migration/google-cloud-infra-teardown.sh
+    containers/aws-gcp-migration//gcp/google-cloud-infra-teardown.sh
   ```
 
   Where:
