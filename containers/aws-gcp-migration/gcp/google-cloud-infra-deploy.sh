@@ -20,12 +20,12 @@ set -o pipefail
 
 PATH_TO_THIS_SCRIPT="${0}"
 SCRIPT_DIRECTORY="$(dirname "${0}")"
-REPOSITORY_ROOT_DIRECTORY_PATH="$(readlink -f "${SCRIPT_DIRECTORY}/../../")"
+REPOSITORY_ROOT_DIRECTORY_PATH="$(readlink -f "${SCRIPT_DIRECTORY}/../../../")"
 echo "Repository root directory path: ${REPOSITORY_ROOT_DIRECTORY_PATH}"
 
 # Don't use ERR_LIBRARY_NOT_AVAILABLE because we didn't source common.sh yet
 # shellcheck disable=SC1091 # do not follow
-source "${REPOSITORY_ROOT_DIRECTORY_PATH}/devrel-demos/containers/aws-gcp-migration/common.sh" || exit 3
+source "${REPOSITORY_ROOT_DIRECTORY_PATH}/containers/aws-gcp-migration/common.sh" || exit 3
 
 if [ ! -e "${ACCELERATED_PLATFORMS_REPOSITORY_PATH}/.git" ]; then
   echo "Cloning the Accelerated Platforms repository to ${ACCELERATED_PLATFORMS_REPOSITORY_PATH}"
