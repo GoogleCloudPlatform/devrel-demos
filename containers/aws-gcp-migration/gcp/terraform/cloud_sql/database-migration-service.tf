@@ -45,7 +45,7 @@ resource "google_database_migration_service_connection_profile" "cloud_sql_profi
 
       ip_config {
         enable_ipv4 = true
-        require_ssl = true
+        require_ssl = false
       }
     }
   }
