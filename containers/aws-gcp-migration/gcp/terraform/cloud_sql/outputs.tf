@@ -11,16 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-output "dms_user_name" {
-  value     = google_sql_user.dms_user.name
-}
-
-output "dms_user_password" {
-  sensitive = true
-  value     = google_sql_user.dms_user.password
-}
-
-output "cloud_sql_instance_name" {
-  value = google_sql_database_instance.demo_cloudsql_instance.name
-}
