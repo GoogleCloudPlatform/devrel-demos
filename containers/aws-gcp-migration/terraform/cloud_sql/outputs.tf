@@ -17,7 +17,6 @@ output "dms_user_name" {
 }
 
 output "dms_user_password" {
-  ephemeral = true
   sensitive = true
   value     = google_sql_user.dms_user.password
 }

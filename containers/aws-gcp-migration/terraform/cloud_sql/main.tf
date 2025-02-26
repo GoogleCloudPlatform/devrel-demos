@@ -27,19 +27,7 @@ resource "google_sql_database_instance" "demo_cloudsql_instance" {
   }
 }
 
-resource "google_sql_database" "accounts" {
-  name     = "accounts-db"
-  instance = google_sql_database_instance.demo_cloudsql_instance.name
-  project  = google_project_service.sqladmin_googleapis_com.project
-}
-
-resource "google_sql_database" "ledger" {
-  name     = "ledger-db"
-  instance = google_sql_database_instance.demo_cloudsql_instance.name
-  project  = google_project_service.sqladmin_googleapis_com.project
-}
-
-ephemeral "random_password" "dms_user_password" {
+resource "random_password" "dms_user_password" {
   length  = 16
   special = true
 }
