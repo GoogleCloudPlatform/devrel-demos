@@ -38,7 +38,7 @@ resource "google_database_migration_service_connection_profile" "cloud_sql_profi
       data_disk_type            = "PD_SSD"
       database_version          = "POSTGRES_16"
       edition                   = "ENTERPRISE_PLUS"
-      source_id                 = "projects/${google_project_service.datamigration_googleapis_com.project}/locations/us-central1/connectionProfiles/${google_database_migration_service_connection_profile.cloud_sql_profile_source.connection_profile_id}"
+      source_id                 = "projects/${google_project_service.datamigration_googleapis_com.project}/locations/us-central1/connectionProfiles/${google_database_migration_service_connection_profile.amazon_rds_profile_source.connection_profile_id}"
       storage_auto_resize_limit = "0"
       tier                      = "db-perf-optimized-N-2"
 
