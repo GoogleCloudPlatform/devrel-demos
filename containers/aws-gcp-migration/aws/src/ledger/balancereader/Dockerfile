@@ -9,11 +9,10 @@ WORKDIR /app
 COPY . .
 
 # Package the application
-RUN ls
 RUN ./mvnw package -DskipTests
 
 # Expose the port the application runs on
 EXPOSE 8080
 
 # Command to run the executable jar
-CMD ["java", "-jar", "target/balancereader-0.0.1-SNAPSHOT.jar"]
+CMD ["java", "-jar", "/app/target/balancereader-1.0.jar.original"]
