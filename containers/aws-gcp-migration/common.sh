@@ -38,6 +38,7 @@ DMS_USER_PASSWORD_SOURCE_DATABASE_FILE_PATH="${AWS_TO_GCP_DEMO_DIRECTORY_PATH}/d
 
 if [ ! -e "${DMS_USER_PASSWORD_SOURCE_DATABASE_FILE_PATH}" ]; then
   echo "Cannot find the file where the Database Migration Service user passowrd is stored: ${DMS_USER_PASSWORD_SOURCE_DATABASE_FILE_PATH}. Create the file and save the password in the file."
+  exit "${ERR_ARGUMENT_EVAL}"
 fi
 
 SOURCE_DATABASE_DMS_PASSWORD="$(cat "${DMS_USER_PASSWORD_SOURCE_DATABASE_FILE_PATH}")"
