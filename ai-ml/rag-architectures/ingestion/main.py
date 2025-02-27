@@ -14,9 +14,8 @@ storage_client = storage.Client()  # Cloud Storage
 genai_client = genai.Client()  # Embbeddings API
 
 # Vertex AI Vector Search
-# https://console.cloud.google.com/vertex-ai/locations/us-central1/index-endpoints/5070556201163423744/deployed-indexes/megan_text_index_endpoint?inv=1&invt=AbqtAQ&project=next25rag
 aiplatform_client = aiplatform.init(project="next25rag", location="us-central1")
-index = aiplatform.MatchingEngineIndex("1858152660708884480")
+index = aiplatform.MatchingEngineIndex("4890482584812781568")
 index_endpoint = aiplatform.MatchingEngineIndexEndpoint(
     index_endpoint_name="projects/427092883710/locations/us-central1/indexEndpoints/5070556201163423744"
 )
@@ -84,24 +83,44 @@ def store_embeddings_vavs(infile):
 
 
 # https://cloud.google.com/vertex-ai/docs/vector-search/query-index-public-endpoint
-# def test_nearest_neighbors_query():
-#    neighbors = index_endpoint.find_neighbors(
-#         deployed_index_id="index-id"
-#         queries=queries,
-#         num_neighbors=3
-#     )
+def test_nearest_neighbors_query(emb_dict):
+    query = "quantum computing"
+    response = genai_client.models.embed_content(
+        model="text-embedding-005",
+        contents=[query],
+        config=EmbedContentConfig(
+            task_type="RETRIEVAL_QUERY",
+            output_dimensionality=768,
+        ),
+    )
+    query_embedding = response.embeddings[0].values
+
+    neighbors = index_endpoint.find_neighbors(
+        deployed_index_id="megan_text_index_endpoint2_1740675419602",
+        queries=[query_embedding],
+        num_neighbors=3,
+    )
+    print("Got # neighbors: " + str(len(neighbors[0])))
+    for n in neighbors[0]:
+        n_id = n.id  # Access the id attribute directly
+        print(f"Neighbor ID: {n_id}, Distance: {n.distance}")
+        print(f"Text: {emb_dict[n_id]}")
 
 
 def ingest_text_document(filename):
-    # gcs_bucket = "ingest-67ab"
-    # raw_text = gcs_download_document(gcs_bucket, filename)
-    # print("\n📄 Raw text is char length: " + str(len(raw_text)))
-    # text_chunks = chunk_text(raw_text)
-    # print("\n✂️ Created " + str(len(text_chunks)) + " text chunks from document.")
-    # embeddings = get_embeddings(text_chunks)
-    # print("🧠 Created 1 embedding per chunk.")
-    # write_embeddings_to_jsonl(embeddings, "embeddings.json")
+    gcs_bucket = "ingest-67ab"
+    raw_text = gcs_download_document(gcs_bucket, filename)
+    print("\n📄 Raw text is char length: " + str(len(raw_text)))
+    text_chunks = chunk_text(raw_text)
+    print("\n✂️ Created " + str(len(text_chunks)) + " text chunks from document.")
+    embeddings = get_embeddings(text_chunks)
+    emb_dict = {}
+    for emb in embeddings:
+        emb_dict[emb["id"]] = emb["text"]
+    print("🧠 Created 1 embedding per chunk.")
+    write_embeddings_to_jsonl(embeddings, "embeddings.json")
     store_embeddings_vavs("embeddings.json")
+    test_nearest_neighbors_query(emb_dict)
 
 
 if __name__ == "__main__":
