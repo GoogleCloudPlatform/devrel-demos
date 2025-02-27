@@ -1,0 +1,4 @@
+google.genai
+langchain
+google-cloud-storage
+google-cloud-aiplatform
