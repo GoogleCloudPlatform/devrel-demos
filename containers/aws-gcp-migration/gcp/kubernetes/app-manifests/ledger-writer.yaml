@@ -25,11 +25,11 @@ spec:
       labels:
         app: ledgerwriter
     spec:
-      serviceAccountName: cymbalbank-sa
+      serviceAccountName: default
       terminationGracePeriodSeconds: 5
       containers:
       - name: ledgerwriter
-        image: 127214177435.dkr.ecr.us-west-1.amazonaws.com/cymbalbank/ledgerwriter:latest
+        image: ledgerwriter
         imagePullPolicy: Always
         volumeMounts:
         - name: publickey

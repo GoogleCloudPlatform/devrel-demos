@@ -28,12 +28,12 @@ spec:
       annotations:
         sidecar.istio.io/rewriteAppHTTPProbers: "true"
     spec:
-      serviceAccountName: cymbalbank-sa
+      serviceAccountName: default
       terminationGracePeriodSeconds: 5
       restartPolicy: Always
       containers:
       - name: loadgenerator
-        image: 127214177435.dkr.ecr.us-west-1.amazonaws.com/cymbalbank/loadgenerator:latest
+        image: loadgenerator
         imagePullPolicy: Always
         env:
         - name: FRONTEND_ADDR

@@ -25,11 +25,11 @@ spec:
       labels:
         app: userservice
     spec:
-      serviceAccountName: cymbalbank-sa
+      serviceAccountName: default
       terminationGracePeriodSeconds: 5
       containers:
       - name: userservice
-        image: 127214177435.dkr.ecr.us-west-1.amazonaws.com/cymbalbank/userservice:latest
+        image: userservice
         imagePullPolicy: Always
         volumeMounts:
         - name: keys

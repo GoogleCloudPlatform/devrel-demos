@@ -25,11 +25,11 @@ spec:
       labels:
         app: balancereader
     spec:
-      serviceAccountName: cymbalbank-sa
+      serviceAccountName: default
       terminationGracePeriodSeconds: 5
       containers:
       - name: balancereader
-        image: 127214177435.dkr.ecr.us-west-1.amazonaws.com/cymbalbank/balancereader:latest
+        image: balancereader
         imagePullPolicy: Always
         volumeMounts:
         - name: publickey

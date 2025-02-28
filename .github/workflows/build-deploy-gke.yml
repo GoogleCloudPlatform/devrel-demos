@@ -1,6 +1,4 @@
-# Sources: 
-  # https://github.com/google-github-actions/auth 
-  name: 'Busybox - Test Build and deploy to GKE'
+  name: 'CymbalBank - Build and deploy to GKE'
 
   on:
     push:
@@ -15,12 +13,10 @@
     PROJECT_ID: 'next25migration'  
     REGION: 'us-central1'
     GKE_CLUSTER: 'megan-test-cluster' 
-    DEPLOYMENT_NAME: 'busybox'  
     REPOSITORY: 'megan-test-ar'  
-    IMAGE: 'busybox'
   
   jobs:
-    list-instances:
+    build-and-deploy-gke:
       runs-on: ubuntu-latest
   
       permissions:
@@ -42,21 +38,24 @@
           run: |-
             gcloud --quiet auth configure-docker ${REGION}-docker.pkg.dev
         
-        - name: 'List Instances'
+        - name: 'Install GKE auth plugin and kustomize' 
           run: |-
-            gcloud compute instances list
+            gcloud components install gke-gcloud-auth-plugin
+            gcloud components install --quiet kustomize
 
         - name: 'Auth to GKE cluster' 
           run: |-
-            gcloud components install gke-gcloud-auth-plugin
             gcloud container clusters get-credentials $GKE_CLUSTER --region $REGION --project $PROJECT_ID
   
         - name: 'Test access to GKE cluster'
           run: |-
             kubectl get pods --all-namespaces
             
-        - name: 'Build and push container image'
-          run: |-
+        - name: 'CONTACTS - build and push'
+          run: |- 
+            IMAGE="contacts"
+            cd containers/aws-gcp-migration/gcp/src/accounts/contacts 
+
             DOCKER_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}"
   
             echo "🐳 Building Docker image: ${DOCKER_TAG}"
@@ -68,7 +67,13 @@
               .
   
             docker push "${DOCKER_TAG}"
+            cd ../../../../ 
+
+            cd containers/aws-gcp-migration/gcp/kubernetes/app-manifests
+            kustomize edit set image contacts=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}=${GITHUB_SHA} 
+            cd ../../../../
   
-        - name: 'Deploy to GKE'
+        - name: 'Deploy CymbalBank to GKE'
           run: |-
-            kubectl run busybox --image=$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA
+            cd containers/aws-gcp-migration/gcp/kubernetes/app-manifests
+            kubectl apply -k .

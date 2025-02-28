@@ -31,7 +31,7 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
       - name: front
-        image: 127214177435.dkr.ecr.us-west-1.amazonaws.com/cymbalbank/frontend:latest
+        image: frontend
         imagePullPolicy: Always
         volumeMounts:
         - name: publickey
