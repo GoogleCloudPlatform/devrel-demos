@@ -69,7 +69,7 @@
               .
   
             docker push "${DOCKER_TAG}"
-            cd 
+            cd $WORKING_DIRECTORY
             pwd 
             ls 
             cd gcp/kubernetes/app-manifests
