@@ -40,7 +40,7 @@
   
         - name: 'Docker Auth'
           run: |-
-            gcloud --quiet auth configure-docker
+            gcloud --quiet auth configure-docker ${REGION}-docker.pkg.dev
         
         - name: 'List Instances'
           run: |-
@@ -59,6 +59,8 @@
           run: |-
             DOCKER_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}"
   
+            echo "🐳 Building Docker image: ${DOCKER_TAG}"
+
             docker build \
               --tag "${DOCKER_TAG}" \
               --build-arg GITHUB_SHA="${GITHUB_SHA}" \
