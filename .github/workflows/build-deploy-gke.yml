@@ -40,7 +40,7 @@
   
         - name: 'Docker Auth'
           run: |-
-            gcloud auth configure-docker
+            gcloud --quiet auth configure-docker
   
         - name: 'Set up GKE credentials'
           uses: 'google-github-actions/get-gke-credentials@db150f2cc60d1716e61922b832eae71d2a45938f'
