@@ -52,7 +52,7 @@
           run: |- 
             IMAGE="contacts" 
             pwd 
-            cd $WORKING_DIRECTORY/gcp/src/accounts/contacts 
+            cd gcp/src/accounts/contacts 
 
             DOCKER_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}"
   
@@ -65,14 +65,14 @@
               .
   
             docker push "${DOCKER_TAG}"
-            cd
-
-            cd $WORKING_DIRECTORY/gcp/kubernetes/app-manifests
+            cd $WORKING_DIRECTORY
+            cd gcp/kubernetes/app-manifests
             kustomize edit set image contacts=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}=${GITHUB_SHA}  
-            cat $WORKING_DIRECTORY/gcp/kubernetes/app-manifests/contacts.yaml
-            cd  
+
+            cat contacts.yaml
+            cd $WORKING_DIRECTORY
   
         - name: 'Deploy CymbalBank to GKE'
           run: |-
-            cd containers/aws-gcp-migration/gcp/kubernetes/app-manifests
+            cd gcp/kubernetes/app-manifests
             kubectl apply -k .
