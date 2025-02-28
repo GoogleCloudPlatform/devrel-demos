@@ -14,6 +14,7 @@
     REGION: 'us-central1'
     GKE_CLUSTER: 'megan-test-cluster' 
     REPOSITORY: 'megan-test-ar'  
+    WORKING_DIRECTORY: './containers/aws-gcp-migration'
   
   jobs:
     build-and-deploy-gke:
@@ -46,19 +47,16 @@
         - name: 'Auth to GKE cluster' 
           run: |-
             gcloud container clusters get-credentials $GKE_CLUSTER --region $REGION --project $PROJECT_ID
-  
-        - name: 'Test access to GKE cluster'
-          run: |-
-            kubectl get pods --all-namespaces
-            
+     
         - name: 'CONTACTS - build and push'
           run: |- 
-            IMAGE="contacts"
-            cd /gcp/src/accounts/contacts 
+            IMAGE="contacts" 
+            pwd 
+            cd $WORKING_DIRECTORY/gcp/src/accounts/contacts 
 
             DOCKER_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}"
   
-            echo "🐳 Building Docker image: ${DOCKER_TAG}"
+            echo "🐳 Build and push container image: ${DOCKER_TAG}"
 
             docker build \
               --tag "${DOCKER_TAG}" \
@@ -69,8 +67,9 @@
             docker push "${DOCKER_TAG}"
             cd
 
-            cd /gcp/kubernetes/app-manifests
-            kustomize edit set image contacts=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}=${GITHUB_SHA} 
+            cd $WORKING_DIRECTORY/gcp/kubernetes/app-manifests
+            kustomize edit set image contacts=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}=${GITHUB_SHA}  
+            cat $WORKING_DIRECTORY/gcp/kubernetes/app-manifests/contacts.yaml
             cd  
   
         - name: 'Deploy CymbalBank to GKE'
