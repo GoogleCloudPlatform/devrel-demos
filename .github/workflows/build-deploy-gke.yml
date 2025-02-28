@@ -41,8 +41,12 @@ jobs:
           workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
           service_account: '${{ env.SERVICE_ACCOUNT }}'
 
+      - name: 'Set up gcloud CLI' 
+        uses: google-github-actions/setup-gcloud@1bee7de035d65ec5da40a31f8589e240eba8fde5
+        with:
+          project_id: ${{ env.PROJECT_ID }}
 
-      - name: 'Docker Auth'
+      - name: 'Docker Login'
         uses: 'docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567'  
         with:
           username: 'oauth2accesstoken'
@@ -50,10 +54,11 @@ jobs:
           registry: '${{ env.REGION }}-docker.pkg.dev'
 
       - name: 'Set up GKE credentials'
-        uses: 'google-github-actions/get-gke-credentials@v2' # 
+        uses: 'google-github-actions/get-gke-credentials@db150f2cc60d1716e61922b832eae71d2a45938f' # 
         with:
           cluster_name: '${{ env.GKE_CLUSTER }}'
-          location: '${{ env.REGION }}'
+          location: '${{ env.REGION }}' 
+          credentials: '${{ steps.auth.outputs.auth_token }}'
 
       - name: 'Test access to GKE cluster'
         run: |-
