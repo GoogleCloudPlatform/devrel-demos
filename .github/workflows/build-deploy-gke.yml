@@ -45,7 +45,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@1bee7de035d65ec5da40a31f8589e240eba8fde5
         with:
           project_id: ${{ env.PROJECT_ID }}
-          service_account_key: ${{ steps.auth.outputs.service_account_key }}
+          credentials: '${{ steps.auth.outputs.auth_token }}'
 
       - name: 'Docker Login'
         uses: 'docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567'  
