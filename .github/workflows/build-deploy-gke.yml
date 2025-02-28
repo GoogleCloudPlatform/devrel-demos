@@ -13,11 +13,10 @@ defaults:
 
 env:
   PROJECT_ID: 'next25migration'  
-  GAR_LOCATION: 'us-central1' 
-  GKE_CLUSTER: 'acp-a-g-demo' 
-  GKE_REGION: 'us-central1'  
+  REGION: 'us-central1'
+  GKE_CLUSTER: 'megan-test-cluster' 
   DEPLOYMENT_NAME: 'busybox'  
-  REPOSITORY: 'acp-a-g-demo-repository'  
+  REPOSITORY: 'megan-test-ar'  
   IMAGE: 'busybox'
   WORKLOAD_IDENTITY_PROVIDER: 'projects/588514511495/locations/global/workloadIdentityPools/github/providers/cymbalbank-gha' 
   SERVICE_ACCOUNT: 'cymbalbank-gha-sa@next25migration.iam.gserviceaccount.com'
@@ -48,22 +47,21 @@ jobs:
         with:
           username: 'oauth2accesstoken'
           password: '${{ steps.auth.outputs.auth_token }}'
-          registry: '${{ env.GAR_LOCATION }}-docker.pkg.dev'
+          registry: '${{ env.REGION }}-docker.pkg.dev'
 
       - name: 'Set up GKE credentials'
         uses: 'google-github-actions/get-gke-credentials@v2' # 
         with:
           cluster_name: '${{ env.GKE_CLUSTER }}'
-          location: '${{ env.GKE_REGION }}'
+          location: '${{ env.REGION }}'
 
       - name: 'Test access to GKE cluster'
         run: |-
           kubectl get nodes
           
-      # Build the Docker image
-      - name: 'Build and push Docker container'
+      - name: 'Build and push container image'
         run: |-
-          DOCKER_TAG="${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}"
+          DOCKER_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}"
 
           docker build \
             --tag "${DOCKER_TAG}" \
@@ -73,17 +71,6 @@ jobs:
 
           docker push "${DOCKER_TAG}"
 
-      # Set up kustomize
-      - name: 'Set up Kustomize'
-        run: |-
-          curl -sfLo kustomize https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz
-          chmod u+x ./kustomize
-
-      # Deploy the Docker image to the GKE cluster
       - name: 'Deploy to GKE'
         run: |-
-          # replacing the image name in the k8s template
-          ./kustomize edit set image LOCATION-docker.pkg.dev/PROJECT_ID/REPOSITORY/IMAGE:TAG=$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA
-          ./kustomize build . | kubectl apply -f -
-          kubectl rollout status deployment/$DEPLOYMENT_NAME
-          kubectl get services -o wide
+          kubectl run busybox --image=$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA 
