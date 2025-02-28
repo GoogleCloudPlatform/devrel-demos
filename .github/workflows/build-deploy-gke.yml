@@ -41,16 +41,18 @@
         - name: 'Docker Auth'
           run: |-
             gcloud --quiet auth configure-docker
-  
-        - name: 'Set up GKE credentials'
-          uses: 'google-github-actions/get-gke-credentials@db150f2cc60d1716e61922b832eae71d2a45938f'
-          with:
-            cluster_name: '${{ env.GKE_CLUSTER }}'
-            location: '${{ env.REGION }}' 
+        
+        - name: 'List Instances'
+          run: |-
+            gcloud compute instances list
+
+        - name: 'Auth to GKE cluster' 
+          run: |-
+            gcloud container clusters get-credentials $GKE_CLUSTER --region $REGION --project $PROJECT_ID
   
         - name: 'Test access to GKE cluster'
           run: |-
-            kubectl get nodes
+            kubectl get pods --all-namespaces
             
         - name: 'Build and push container image'
           run: |-
