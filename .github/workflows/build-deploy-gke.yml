@@ -1,102 +1,69 @@
 # Sources: 
-    # https://github.com/google-github-actions/auth 
-name: 'Busybox - Test Build and deploy to GKE'
+  # https://github.com/google-github-actions/auth 
+  name: 'Busybox - Test Build and deploy to GKE'
 
-on:
-  push:
-    branches:
-      - "next25-aws-gcp-migration"
-
-defaults: 
-  run:
-    working-directory: './containers/aws-gcp-migration'
-
-env:
-  PROJECT_ID: 'next25migration'  
-  REGION: 'us-central1'
-  GKE_CLUSTER: 'megan-test-cluster' 
-  DEPLOYMENT_NAME: 'busybox'  
-  REPOSITORY: 'megan-test-ar'  
-  IMAGE: 'busybox'
-
-jobs:
-  list-instances:
-    runs-on: ubuntu-latest
-
-    permissions:
-      id-token: write # Required for workload identity federation
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: List Compute Instances
-        run: gcloud compute instances list --project=$PROJECT_ID
-
-# jobs:
-#   setup-build-publish-deploy:
-#     name: 'Build and Deploy to GKE'
-#     runs-on: 'ubuntu-latest'
-#     environment: 'production'
-
-#     permissions:
-#       contents: 'read'
-#       id-token: 'write'
-
-#     steps:
-#       - name: 'Checkout'
-#         uses: 'actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332' # 
-#       - id: 'auth'
-#         name: 'Authenticate to Google Cloud'
-#         uses: 'google-github-actions/auth@f112390a2df9932162083945e46d439060d66ec2'  
-#         with:
-#           workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
-#           service_account: '${{ env.SERVICE_ACCOUNT }}'
-
-      # - name: 'Set up gcloud CLI' 
-      #   uses: google-github-actions/setup-gcloud@1bee7de035d65ec5da40a31f8589e240eba8fde5
-      #   with:
-      #     project_id: ${{ env.PROJECT_ID }}
-      #     credentials: '${{ steps.auth.outputs.auth_token }}'
-
-      # - name: 'Docker Login'
-      #   uses: 'docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567'  
-      #   with:
-      #     username: 'oauth2accesstoken'
-      #     password: '${{ steps.auth.outputs.auth_token }}'
-      #     registry: '${{ env.REGION }}-docker.pkg.dev'
-
-      # - name: 'Set up GKE credentials'
-      #   uses: 'google-github-actions/get-gke-credentials@db150f2cc60d1716e61922b832eae71d2a45938f' # 
-      #   with:
-      #     cluster_name: '${{ env.GKE_CLUSTER }}'
-      #     location: '${{ env.REGION }}' 
-      #     credentials: '${{ steps.auth.outputs.auth_token }}'
-
-      # - name: 'Test access to GKE cluster'
-      #   run: |-
-      #     kubectl get nodes
-          
-      # - name: 'Build and push container image'
-      #   run: |-
-      #     DOCKER_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}"
-
-      #     docker build \
-      #       --tag "${DOCKER_TAG}" \
-      #       --build-arg GITHUB_SHA="${GITHUB_SHA}" \
-      #       --build-arg GITHUB_REF="${GITHUB_REF}" \
-      #       .
-
-      #     docker push "${DOCKER_TAG}"
-
-      # - name: 'Deploy to GKE'
-      #   run: |-
-      #     kubectl run busybox --image=$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA 
+  on:
+    push:
+      branches:
+        - "next25-aws-gcp-migration"
+  
+  defaults: 
+    run:
+      working-directory: './containers/aws-gcp-migration'
+  
+  env:
+    PROJECT_ID: 'next25migration'  
+    REGION: 'us-central1'
+    GKE_CLUSTER: 'megan-test-cluster' 
+    DEPLOYMENT_NAME: 'busybox'  
+    REPOSITORY: 'megan-test-ar'  
+    IMAGE: 'busybox'
+  
+  jobs:
+    list-instances:
+      runs-on: ubuntu-latest
+  
+      permissions:
+        id-token: write # Required for workload identity federation
+  
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+  
+        - name: Authenticate to Google Cloud
+          uses: google-github-actions/auth@v2
+          with:
+            credentials_json: ${{ secrets.GCP_SA_KEY }}
+  
+        - name: Set up Cloud SDK
+          uses: google-github-actions/setup-gcloud@v2
+  
+        - name: 'Docker Auth'
+          run: |-
+            gcloud auth configure-docker
+  
+        - name: 'Set up GKE credentials'
+          uses: 'google-github-actions/get-gke-credentials@db150f2cc60d1716e61922b832eae71d2a45938f'
+          with:
+            cluster_name: '${{ env.GKE_CLUSTER }}'
+            location: '${{ env.REGION }}' 
+  
+        - name: 'Test access to GKE cluster'
+          run: |-
+            kubectl get nodes
+            
+        - name: 'Build and push container image'
+          run: |-
+            DOCKER_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}"
+  
+            docker build \
+              --tag "${DOCKER_TAG}" \
+              --build-arg GITHUB_SHA="${GITHUB_SHA}" \
+              --build-arg GITHUB_REF="${GITHUB_REF}" \
+              .
+  
+            docker push "${DOCKER_TAG}"
+  
+        - name: 'Deploy to GKE'
+          run: |-
+            kubectl run busybox --image=$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA
