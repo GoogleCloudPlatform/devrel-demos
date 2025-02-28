@@ -48,6 +48,7 @@
 
         - name: 'Auth to GKE cluster' 
           run: |-
+            gcloud components install gke-gcloud-auth-plugin
             gcloud container clusters get-credentials $GKE_CLUSTER --region $REGION --project $PROJECT_ID
   
         - name: 'Test access to GKE cluster'
