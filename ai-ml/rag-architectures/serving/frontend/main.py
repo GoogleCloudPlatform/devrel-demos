@@ -3,16 +3,16 @@ import os
 import requests
 import streamlit as st
 
-backend_url = os.environ.get("BACKEND_URL", "http://localhost:8080")
+backend_url = os.environ.get("BACKEND_URL", "http://localhost:8000")
 
 
 # helper function - send prompt to backend --> model
 def get_chat_response(user_prompt: str, messages: []) -> str:
     # call Java backend
-    request = {"prompt": user_prompt}
-    response = requests.post(backend_url + "/chat", json=request)
+    request = {"prompt": user_prompt, "use_context": True, "num_neighbors": 3}
+    response = requests.post(backend_url + "/prompt", json=request)
     if response.status_code != 200:
-        raise Exception(f"Bad response from backend: {response.text}")
+        raise Exception(f"Bad response from backend: {response}")
     return response.json()["response"]
 
 

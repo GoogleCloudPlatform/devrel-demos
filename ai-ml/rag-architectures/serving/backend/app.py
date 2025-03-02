@@ -1,17 +1,24 @@
 import os
 from typing import List, Dict, Any, Optional
-
+import uvicorn
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-import google.cloud.aiplatform as aiplatform
-from google.cloud.aiplatform.matching_engine import MatchingEngineIndexEndpoint
-import vertexai
-from vertexai.generative_models import GenerativeModel, ChatSession, Content
+from google import genai
+from google.genai.types import HttpOptions
+from google.genai.types import EmbedContentConfig
+
+
+from google.cloud import aiplatform
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
-app = FastAPI(title="RAG App Serving Backend with FastAPI")
+app = FastAPI(title="Quantum Chatbot Backend")
 
 # Add CORS middleware
 app.add_middleware(
@@ -26,17 +33,26 @@ app.add_middleware(
 # Configuration model
 class AppConfig:
     def __init__(self):
-        # Google Cloud project settings
-        self.project_id = os.environ.get("GCP_PROJECT_ID")
-        self.location = os.environ.get("GCP_LOCATION", "us-central1")
+        # GCP Project settings
+        self.project_id = os.environ.get("PROJECT_ID")
+        self.location = os.environ.get("GCP_REGION", "us-central1")
 
-        # Vector Search settings
-        self.index_endpoint_id = os.environ.get("VECTOR_SEARCH_ENDPOINT_ID")
+        logger.info(
+            f"Initializing with project_id: {self.project_id}, location: {self.location}"
+        )
+
+        # Vertex AI Vector Search settings
+        self.index_endpoint_id = os.environ.get("VECTOR_SEARCH_INDEX_ENDPOINT_NAME")
         self.index_id = os.environ.get("VECTOR_SEARCH_INDEX_ID")
         self.deployed_index_id = os.environ.get("VECTOR_SEARCH_DEPLOYED_INDEX_ID")
 
-        # Gemini settings
+        logger.info(
+            f"Vector Search settings - endpoint: {self.index_endpoint_id}, index: {self.index_id}, deployed: {self.deployed_index_id}"
+        )
+
+        # Gemini API settings
         self.model_name = os.environ.get("GEMINI_MODEL_NAME", "gemini-flash-2.0")
+        self.embedding_model = os.environ.get("EMBEDDING_MODEL", "text-embedding-005")
 
         # RAG settings
         self.num_neighbors = int(os.environ.get("NUM_NEIGHBORS", "5"))
@@ -47,17 +63,32 @@ class AppConfig:
 
     def initialize_clients(self):
         """Initialize Google Cloud clients"""
-        # Initialize Vertex AI
-        aiplatform.init(project=self.project_id, location=self.location)
-        vertexai.init(project=self.project_id, location=self.location)
+        try:
+            # Initialize Vertex AI for Vector Search
+            aiplatform.init(project=self.project_id, location=self.location)
 
-        # Initialize Vector Search endpoint
-        self.index_endpoint = MatchingEngineIndexEndpoint(
-            index_endpoint_name=self.index_endpoint_id
-        )
+            # Initialize Vector Search Index and Endpoint
+            self.index = aiplatform.MatchingEngineIndex(self.index_id)
+            logger.info(f"Successfully initialized index: {self.index_id}")
 
-        # Initialize Gemini model
-        self.gemini_model = GenerativeModel(self.model_name)
+            self.index_endpoint = aiplatform.MatchingEngineIndexEndpoint(
+                index_endpoint_name=self.index_endpoint_id
+            )
+            logger.info(
+                f"Successfully initialized index endpoint: {self.index_endpoint_id}"
+            )
+
+            # Initialize Vertex AI for Gemini
+            os.environ["GOOGLE_CLOUD_PROJECT"] = self.project_id
+            os.environ["GOOGLE_CLOUD_LOCATION"] = self.location
+            os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "true"
+
+            self.genai_client = genai.Client()
+            logger.info("Successfully initialized Gemini client")
+
+        except Exception as e:
+            logger.error(f"Error initializing clients: {str(e)}")
+            raise
 
 
 # Global config instance
@@ -66,12 +97,13 @@ def get_config():
 
 
 # Request/Response models
-class QueryRequest(BaseModel):
-    query: str
+class PromptRequest(BaseModel):
+    prompt: str
     num_neighbors: Optional[int] = None
+    use_context: Optional[bool] = True
 
 
-class QueryResponse(BaseModel):
+class PromptResponse(BaseModel):
     response: str
     context_used: bool
     neighbors_found: int
@@ -80,124 +112,175 @@ class QueryResponse(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     """Initialize app state on startup"""
-    app.state.config = AppConfig()
+    logger.info("Initializing app state...")
+    try:
+        app.state.config = AppConfig()
+        logger.info("App state initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize app state: {str(e)}")
+        raise
 
 
 @app.get("/")
 async def root():
     """Health check endpoint"""
-    return {"status": "healthy", "service": "RAG API"}
+    return {"status": "healthy", "service": "Quantum Chatbot Backend"}
 
 
-@app.post("/query", response_model=QueryResponse)
-async def process_query(request: QueryRequest, config: AppConfig = Depends(get_config)):
+@app.post("/prompt", response_model=PromptResponse)
+async def process_prompt(
+    request: PromptRequest, config: AppConfig = Depends(get_config)
+):
     """
-    Process a user query through the RAG pipeline:
+    Process a user prompt through the RAG pipeline:
     1. Retrieve context from Vector Search
-    2. Augment the query with retrieved context
-    3. Generate a response using Gemini
+    2. Augment the prompt with retrieved context
+    3. Generate a response using Gemini 2.0 Flash
     """
     try:
+        logger.info(f"Processing prompt: {request.prompt[:50]}...")
+
         # Determine number of neighbors to retrieve
         num_neighbors = request.num_neighbors or config.num_neighbors
 
-        # 1. Retrieve context from Vector Search
-        neighbors = query_vector_search(request.query, num_neighbors, config)
+        # 1. Retrieve context from Vector Search, 2. Augment prompt with context
+        if request.use_context:
+            logger.info("✅ Use Context was True - Retrieving context")
+            neighbors = prompt_vector_search(request.prompt, num_neighbors, config)
 
-        # 2. Augment query with context
-        context = extract_context_from_neighbors(neighbors)
-        augmented_prompt = create_augmented_prompt(request.query, context)
+            # 2. Augment prompt with context
+            augmented_prompt = create_augmented_prompt(request.prompt, neighbors)
+        else:
+            logger.info("❌ Use Context was False - Skipping context retrieval")
+            augmented_prompt = request.prompt
+            neighbors = []
 
         # 3. Generate response with Gemini
-        response = query_gemini(augmented_prompt, config)
+        response = prompt_gemini(augmented_prompt, config)
+        logger.info("Generated response from Gemini")
 
-        return QueryResponse(
+        return PromptResponse(
             response=response,
             context_used=len(neighbors) > 0,
             neighbors_found=len(neighbors),
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
-
-
-def query_vector_search(
-    query: str, num_neighbors: int, config: AppConfig
-) -> List[Dict[str, Any]]:
-    """Query Vector Search to find relevant documents"""
-    try:
-        # Get nearest neighbors from Vector Search
-        response = config.index_endpoint.match(
-            deployed_index_id=config.deployed_index_id,
-            queries=[query],
-            num_neighbors=num_neighbors,
+        logger.error(f"Error processing prompt: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error processing prompt: {str(e)}"
         )
 
-        # Extract neighbor data
-        neighbors = []
-        for match in response[0]:
-            # Only include the 'text' field from the neighbor data
-            if hasattr(match, "neighbor") and hasattr(match.neighbor, "restricts"):
-                for restrict in match.neighbor.restricts:
-                    if restrict.namespace == "allow" and restrict.string_val == "text":
-                        neighbors.append(
-                            {
-                                "id": match.neighbor.corpus_document_id,
-                                "distance": match.distance,
-                                "text": restrict.string_val,
-                            }
-                        )
 
-        return neighbors
+def extract_id_and_text(neighbor):
+    """
+    Extract ID and text from a Vertex AI Vector Search "MatchNeighbor" object
+    """
+    id_value = neighbor.id
+    text_value = None
+    if hasattr(neighbor, "restricts") and neighbor.restricts:
+        for restrict in neighbor.restricts:
+            if hasattr(restrict, "name") and restrict.name == "text":
+                if hasattr(restrict, "allow_tokens") and restrict.allow_tokens:
+                    text_value = restrict.allow_tokens[0]
+                    break
 
-    except Exception as e:
-        print(f"Error querying Vector Search: {str(e)}")
-        return []
+    return {"id": id_value, "text": text_value}
 
 
-def extract_context_from_neighbors(neighbors: List[Dict[str, Any]]) -> str:
-    """Extract and format context from retrieved neighbors"""
-    if not neighbors:
-        return ""
-
-    context_pieces = []
-    for idx, neighbor in enumerate(neighbors):
-        if "text" in neighbor:
-            context_pieces.append(f"Document {idx+1}:\n{neighbor['text']}")
-
-    return "\n\n".join(context_pieces)
-
-
-def create_augmented_prompt(query: str, context: str) -> str:
-    """Create a prompt augmented with retrieved context"""
-    if not context:
-        return query
-
-    return f"""Answer the following query based on the provided context. If the context doesn't contain relevant information, respond based on your knowledge but clearly indicate when you're doing so.
-
-Context:
-{context}
-
-Query: {query}
-"""
-
-
-def query_gemini(prompt: str, config: AppConfig) -> str:
-    """Query Gemini model with the augmented prompt"""
+def prompt_vector_search(
+    prompt: str, num_neighbors: int, config: AppConfig
+) -> List[Dict[str, Any]]:
+    """Prompt Vector Search to find relevant documents"""
     try:
-        # Create a chat session
-        chat = config.gemini_model.start_chat()
+        logger.info("Creating embeddings for query")
+        # Convert prompt to embeddings
+        response = config.genai_client.models.embed_content(
+            model=config.embedding_model,
+            contents=[prompt],
+            config=EmbedContentConfig(
+                task_type="RETRIEVAL_QUERY",
+                output_dimensionality=768,
+            ),
+        )
+        query_embedding = response.embeddings[0].values
+        logger.info("Query embeddings: " + str(query_embedding[:10]) + "...")
 
-        # Send the prompt and get a response
-        response = chat.send_message(prompt)
+        # Get nearest neighbors from Vector Search
+        logger.info(
+            f"❓ Querying Vector Search with deployed_index_id: {config.deployed_index_id}"
+        )
+        neighbors = config.index_endpoint.find_neighbors(
+            deployed_index_id=config.deployed_index_id,
+            queries=[query_embedding],
+            num_neighbors=num_neighbors,
+            return_full_datapoint=True,  # Make sure this is True
+        )
 
+        logger.info(f"Vector Search returned {len(neighbors[0])} matches")
+        return neighbors[0]
+    except Exception as e:
+        logger.error(f"Error querying Vector Search: {str(e)}")
+        raise
+
+
+def extract_id_and_text(neighbor):
+    """
+    Extract ID and text from a Vertex AI Vector Search "MatchNeighbor" object
+    """
+    id_value = neighbor.id
+    text_value = None
+    if hasattr(neighbor, "restricts") and neighbor.restricts:
+        for restrict in neighbor.restricts:
+            if hasattr(restrict, "name") and restrict.name == "text":
+                if hasattr(restrict, "allow_tokens") and restrict.allow_tokens:
+                    text_value = restrict.allow_tokens[0]
+                    break
+
+    return {"id": id_value, "text": text_value}
+
+
+def create_augmented_prompt(prompt: str, neighbors: list) -> str:
+    """Create a prompt augmented with retrieved context"""
+    if not neighbors or len(neighbors) == 0:
+        return prompt
+
+    print("Got # neighbors: " + str(len(neighbors)))
+    augment = []
+    for n in neighbors:
+        result = extract_id_and_text(n)
+        print(f"ID: {result['id']}")
+        print(f"Text: {result['text']}")
+        augment.append(result["text"])
+    context = "\n".join(augment)
+
+    final_prompt = f"""You are an expert chatbot in quantum computing. Use the provided up-to-date information to answer the user's question. Only respond on topics related to quantum computing. Answer in 3 sentences or less!  
+
+    Context:
+    {context}
+
+    User Prompt: {prompt}
+    """
+    print("⭐ Augmented Prompt: ", final_prompt)
+    return final_prompt
+
+
+def prompt_gemini(prompt: str, config: AppConfig) -> str:
+    """Prompt Gemini model with the augmented prompt
+    https://cloud.google.com/vertex-ai/generative-ai/docs/gemini-v2#google-gen
+    """
+    try:
+        logger.info(f"Calling Gemini with model: {config.model_name}")
+        client = genai.Client(http_options=HttpOptions(api_version="v1"))
+        response = client.models.generate_content(
+            model="gemini-2.0-flash-001",  # Using hardcoded model name for consistency
+            contents=[prompt],
+        )
         return response.text
     except Exception as e:
-        print(f"Error querying Gemini: {str(e)}")
+        logger.error(f"Error prompting Gemini: {str(e)}")
         raise
 
 
 if __name__ == "__main__":
-    import uvicorn
-
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
