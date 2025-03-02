@@ -7,10 +7,9 @@ from google.genai.types import EmbedContentConfig
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from google.cloud import storage
 from google.cloud import aiplatform
+import functions_framework
 
-# Initialize GCP clients
-
-# Cloud Storage
+# Cloud Storage Client
 storage_client = storage.Client()
 
 # Vertex AI Embeddings API (genai SDK)
@@ -186,9 +185,21 @@ def ingest_text_document(filename):
     print("🧠 Created 1 embedding per chunk.")
     write_embeddings_to_jsonl(embeddings, "embeddings.json")
     store_embeddings_vavs("embeddings.json")
-    test_nearest_neighbors_query("qubit")
+    test_nearest_neighbors_query(filename)
 
 
-if __name__ == "__main__":
-    filename = os.getenv("INPUT_DOC_FILENAME")
-    ingest_text_document(filename)
+"""
+Process the CloudEvent data (GCS file upload) to trigger Vertex AI Vector Search ingestion for that file.
+"""
+
+
+@functions_framework.cloud_event
+def process_data(cloud_event):
+    data = cloud_event.data
+    print(f"CloudEvent data: \n {data}")
+    """ 
+     {'message': {'attributes': {'bucketId': 'ingest-67ab', 'eventTime': '2025-02-27T15:44:39.422831Z', 'eventType': 'OBJECT_FINALIZE', 'notificationConfig': 'projects/_/buckets/ingest-67ab/notificationConfigs/1', 'objectGeneration': '1740671079418498', 'objectId': 'willow_processor.txt', 'payloadFormat': 'JSON_API_V1'}, 'data': '...', 'messageId': '14113274556428337', 'message_id': '14113274556428337', 'publishTime': '2025-02-27T15:44:39.603Z', 'publish_time': '2025-02-27T15:44:39.603Z'}, 'subscription': 'projects/next25rag/subscriptions/eventarc-us-central1-ingestion-67ab-481379-sub-361'}
+    """
+    os.environ["GCS_BUCKET"] = data["message"]["attributes"]["bucketId"]
+    os.environ["INPUT_DOC_FILENAME"] = data["message"]["attributes"]["objectId"]
+    ingest_text_document(os.getenv("INPUT_DOC_FILENAME"))
