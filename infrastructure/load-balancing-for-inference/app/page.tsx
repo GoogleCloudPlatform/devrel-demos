@@ -1,67 +1,56 @@
-'use client'
+"use client"
 
-import { useState } from "react";
-import Play from "@/components/Play";
-import { Canvas } from '@react-three/fiber'
-import MessagePretty from "@/components/MessagePretty";
-import StartButton from "@/components/StartButton";
+import { useState } from "react"
+import Play from "@/components/Play"
+import StartButton from "@/components/StartButton"
+import Image from "next/image"
+import Play3D from "@/components/play3d"; // 3D effect for home screen
 
 export default function Home() {
-  const [showPlayComponent, setShowPlayComponent] = useState<boolean>(false);
-
-  if (showPlayComponent) {
-    return (
-      <Play />
-    );
-  }
-
-  const colors = ['#EA4335', '#34A853','#FBBC04', '#4285F4'];
-  const playerOneBlocks = Array.from(Array(50).keys()).map((index) => {
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    const randomNumber = Math.random() - 0.5;
-    const xPosition = randomNumber * 10;
-    const yPosition = (index / 5) + randomNumber;
-    const uuid = crypto.randomUUID();
-    return { randomNumber, xPosition, yPosition, uuid, color }
-  });
-
+  const [showPlayComponent, setShowPlayComponent] = useState<boolean>(false)
 
   return (
-    <>
-      <div className="absolute min-h-screen top-0 bottom-0 left-0 right-0 -z-10">
-        <Canvas>
-          <ambientLight intensity={Math.PI / 2} />
-          <pointLight position={[-10, -10, -10]} decay={0} intensity={2} />
-          <pointLight position={[5, 5, 5]} decay={0} intensity={3} />
-          {playerOneBlocks.map(({ randomNumber, xPosition, yPosition, uuid, color }) => {
-            return (
-              <MessagePretty
-                key={uuid}
-                position={[xPosition, yPosition, -3]}
-                endPoint={[randomNumber,0,0]}
-                color={color}
-              />
-            )
-          })}
-        </Canvas>
-      </div>
-      <main className="flex flex-col min-h-screen items-center justify-between p-24">
-        <h1 className={`mb-3 text-7xl font-mono -z-20`}>
-          Load Balancing Blitz
-        </h1>
-        <StartButton
-          onClick={() => setShowPlayComponent(true)}
-        />
-        <div>
-          <p>
-            Press 1, 2, 3, and 4 to distribute the incoming requests
-            across the four virtual machines.
-          </p>
-          <p>
-            Hint: Keep moving! Be careful not to direct all of the requests to a single machine.
-          </p>
+    <div className="relative min-h-screen bg-[#FBBC04]">
+      {/* Show Play3D only on Home Screen, Hide it when game starts */}
+      {!showPlayComponent && (
+        <div className="absolute top-0 left-0 w-full h-full z-0">
+          <Play3D /> 
         </div>
-      </main>
-    </>
-  );
+      )}
+
+      {/* Game UI: Only Show Play when "S" is Pressed */}
+      {showPlayComponent ? (
+        <Play />
+      ) : (
+        <main className="relative flex flex-col min-h-screen items-center justify-between p-8 z-10">
+          {/* Title Image */}
+          <div className="w-full max-w-4xl relative mt-2 -mb-8 z-20">
+            <Image
+              src="/LB-blitz title.png"
+              alt="Load Balancing Blitz"
+              width={800}
+              height={200}
+              className="w-full h-auto"
+              priority
+            />
+          </div>
+
+          {/* Instruction Box */}
+          <div className="bg-[#FFF8E7] rounded-xl p-6 max-w-3xl relative z-10"> 
+            <p className="text-gray-800 text-center mb-2">
+              Press 1, 2, 3, and 4 to distribute the incoming requests across the four virtual machines.
+            </p>
+            <p className="text-gray-800 text-center font-medium">
+              <span className="font-bold">Hint:</span> Keep moving! Be careful not to direct all of the requests to a single machine.
+            </p>
+          </div>
+
+          {/* Start Button */}
+          <StartButton onClick={() => setShowPlayComponent(true)} className="z-20" />
+
+          <div className="h-24" />
+        </main>
+      )}
+    </div>
+  )
 }
