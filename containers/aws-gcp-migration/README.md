@@ -34,6 +34,11 @@ To deploy this demo on Google Cloud, you need:
   - `<GOOGLE_CLOUD_PROJECT_ID>` is the ID of the Google Cloud project where you
     want to provision the resources for this demo.
 
+1. Create a file at the
+  `containers/aws-gcp-migration/dms-user-password-source-database.txt` path, and
+  save the password of the database user that Database Migration Service uses to
+  connect to the source database.
+
 1. Provision the infrastructure on Google Cloud
 
   ```bash
@@ -50,6 +55,25 @@ To deploy this demo on Google Cloud, you need:
   - `<SOURCE_DATABASE_HOSTNAME>` is the hostname of the source database.
   - `<SOURCE_DATABASE_DMS_USERNAME>` is the username of the user that Database
     Migration Service uses to connect to the source database.
+
+1. Start the
+  [Database Migration Service migration job](https://console.cloud.google.com/dbmigration/migrations)
+  from the Cloud Console.
+
+### Limitations
+
+- Database Migration Service doesn't migrate database users and user roles. For
+  simplicity, we use only the `postgres` user through this migration, so you
+  need to update the password of the `postgres` user in the destination Cloud
+  SQL instance. For simplicity (again), we use the same password of the
+  `postgres` user in the source Amazon RDS database. To change the `postgres`
+  user password in the Cloud SQL instance, open Cloud Shell and run the
+  following command:
+
+    ```bash
+    gcloud sql users set-password postgres --instance=acp-a-g-demo-dest --password=$(cat containers/aws-gcp-migration/dms-user-password-source-database.txt)
+    ```
+
 
 ## Destroy Google Cloud infrastructure
 
