@@ -87,7 +87,7 @@ spec:
                 name: service-api-config
             - configMapRef:
                 name: ledger-db-config
-          image: us-central1-docker.pkg.dev/bank-of-anthos-ci/bank-of-anthos/ledgerwriter:v0.6.6@sha256:097fef6887147b64e5741075fc6b495e429b8ab9a22819b431972f68eee1e478
+          image: ledgerwriter
           name: ledgerwriter
           readinessProbe:
             httpGet:
