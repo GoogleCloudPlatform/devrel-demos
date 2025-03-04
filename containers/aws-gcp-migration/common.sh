@@ -37,7 +37,7 @@ TERRAFORM_GCS_BACKEND_FILE_NAME="backend.gcs.tfbackend"
 DMS_USER_PASSWORD_SOURCE_DATABASE_FILE_PATH="${AWS_TO_GCP_DEMO_DIRECTORY_PATH}/dms-user-password-source-database.txt"
 
 if [ ! -e "${DMS_USER_PASSWORD_SOURCE_DATABASE_FILE_PATH}" ]; then
-  echo "Cannot find the file where the Database Migration Service user passowrd is stored: ${DMS_USER_PASSWORD_SOURCE_DATABASE_FILE_PATH}. Create the file and save the password in the file."
+  echo "Cannot find the file where the Database Migration Service user password is stored: ${DMS_USER_PASSWORD_SOURCE_DATABASE_FILE_PATH}. Create the file and save the password in the file."
   exit "${ERR_ARGUMENT_EVAL}"
 fi
 

@@ -40,3 +40,8 @@ data:
   DEMO_LOGIN_USERNAME: "testuser"
   # All demo user accounts are hardcoded to use the login password 'bankofanthos'
   DEMO_LOGIN_PASSWORD: "bankofanthos"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bank-of-anthos
