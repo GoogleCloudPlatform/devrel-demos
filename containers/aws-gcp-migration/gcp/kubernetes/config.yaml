@@ -1,10 +1,10 @@
-# Copyright 2024 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     https://www.apache.org/licenses/LICENSE-2.0
+#      http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,7 +18,7 @@ metadata:
   name: environment-config
 data:
   LOCAL_ROUTING_NUM: "883745000"
-  PUB_KEY_PATH: "/tmp/.ssh/publickey"
+  PUB_KEY_PATH: "/root/.ssh/publickey"
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -38,10 +38,27 @@ metadata:
 data:
   USE_DEMO_DATA: "True"
   DEMO_LOGIN_USERNAME: "testuser"
-  # All demo user accounts are hardcoded to use the login password 'bankofanthos'
   DEMO_LOGIN_PASSWORD: "bankofanthos"
 ---
 apiVersion: v1
-kind: ServiceAccount
+kind: ConfigMap
 metadata:
-  name: bank-of-anthos
+  name: accounts-db-config
+  labels:
+    app: accounts-db
+data:
+  ACCOUNTS_DB_URI: postgresql://postgres:Chiapet22!@34.57.221.70:5432/accounts-db
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ledger-db-config
+  labels:
+    app: postgres
+data:
+  POSTGRES_DB: ledger-db
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: Chiapet22!
+  SPRING_DATASOURCE_URL: jdbc:postgresql://34.57.221.70:5432/ledger-db
+  SPRING_DATASOURCE_USERNAME: postgres  
+  SPRING_DATASOURCE_PASSWORD: Chiapet22!  

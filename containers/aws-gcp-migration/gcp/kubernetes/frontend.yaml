@@ -74,6 +74,10 @@ spec:
               value: http
             - name: LOG_LEVEL
               value: info
+            - name: CYMBAL_LOGO
+              value: "true"
+            - name: CLUSTER_NAME
+              value: "🟦 GKE Cluster - Next '25 Migration Demo"
             - name: DEFAULT_USERNAME
               valueFrom:
                 configMapKeyRef:
