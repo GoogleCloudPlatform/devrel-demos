@@ -22,22 +22,23 @@ PATH_TO_THIS_SCRIPT="${0}"
 SCRIPT_DIRECTORY="$(dirname "${0}")"
 REPOSITORY_ROOT_DIRECTORY_PATH="$(readlink -f "${SCRIPT_DIRECTORY}/../../../")"
 echo "Repository root directory path: ${REPOSITORY_ROOT_DIRECTORY_PATH}"
+ACCELERATED_PLATFORMS_REPOSITORY_PATH="${ACCELERATED_PLATFORMS_REPOSITORY_PATH:-${SCRIPT_DIRECTORY}/accelerated-platforms}"
 
 # Don't use ERR_LIBRARY_NOT_AVAILABLE because we didn't source common.sh yet
 # shellcheck disable=SC1091 # do not follow
 source "${REPOSITORY_ROOT_DIRECTORY_PATH}/containers/aws-gcp-migration/common.sh" || exit 3
 
-if [ ! -e "${ACCELERATED_PLATFORMS_REPOSITORY_PATH}/.git" ]; then
-  echo "Cloning the Accelerated Platforms repository to ${ACCELERATED_PLATFORMS_REPOSITORY_PATH}"
-  git -C "${SCRIPT_DIRECTORY}" clone "https://github.com/GoogleCloudPlatform/accelerated-platforms.git"
-else
-  echo "Skip cloning the accelerated platforms repository because we already cloned it"
-  git -C "${ACCELERATED_PLATFORMS_REPOSITORY_PATH}" fetch
-fi
+# if [ ! -e "${ACCELERATED_PLATFORMS_REPOSITORY_PATH}/.git" ]; then
+#   echo "Cloning the Accelerated Platforms repository to ${ACCELERATED_PLATFORMS_REPOSITORY_PATH}"
+#   git -C "${SCRIPT_DIRECTORY}" clone "https://github.com/GoogleCloudPlatform/accelerated-platforms.git"
+# else
+#   echo "Skip cloning the accelerated platforms repository because we already cloned it"
+#   git -C "${ACCELERATED_PLATFORMS_REPOSITORY_PATH}" fetch
+# fi
 
 # TODO: refactor this command to switch to a commit on main after we merge
 # https://github.com/GoogleCloudPlatform/accelerated-platforms/pull/70
-git -C "${ACCELERATED_PLATFORMS_REPOSITORY_PATH}" checkout 6f38e62
+git -C "${ACCELERATED_PLATFORMS_REPOSITORY_PATH}" checkout int-federated-learning
 
 start_timestamp_aws_gcp_migration=$(date +%s)
 
@@ -50,6 +51,7 @@ CORE_TERRASERVICES_APPLY="${core_platform_terraservices[*]}" \
 
 # Load core platform configuration variables
 # shellcheck disable=SC1091
+echo "Source ACP..."
 source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config"
 
 for service in "${aws_to_gcp_migration_demo_terraservices[@]}"; do
