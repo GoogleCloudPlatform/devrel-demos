@@ -71,7 +71,7 @@
             cd $GITHUB_WORKSPACE
             pwd 
             ls 
-            cd gcp/kubernetes/app-manifests
+            cd containers/aws-gcp-migration/gcp/kubernetes
             kustomize edit set image contacts=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}
             cat contacts.yaml
   
