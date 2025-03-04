@@ -33,7 +33,7 @@ spec:
       restartPolicy: Always
       containers:
       - name: loadgenerator
-        image: loadgenerator
+        image: us-central1-docker.pkg.dev/bank-of-anthos-ci/bank-of-anthos/loadgenerator:v0.6.6@sha256:1bf8aea11595ba54ac87b96d6a72af41caf60bebbafbb8cd633f9a8a0c9eace7
         imagePullPolicy: Always
         env:
         - name: FRONTEND_ADDR

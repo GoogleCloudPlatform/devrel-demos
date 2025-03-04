@@ -1,86 +1,226 @@
-  name: 'CymbalBank - Build and deploy to GKE'
+name: 'CymbalBank - Build and deploy to GKE'
 
-  on:
-    push:
-      branches:
-        - "next25-aws-gcp-migration"
+on:
+  push:
+    branches:
+      - "next25-aws-gcp-migration"
   
-  defaults: 
-    run:
-      working-directory: './containers/aws-gcp-migration'
+defaults: 
+  run:
+    working-directory: './containers/aws-gcp-migration'
   
-  env:
-    PROJECT_ID: 'next25migration'  
-    REGION: 'us-central1'
-    GKE_CLUSTER: 'megan-test-cluster' 
-    REPOSITORY: 'megan-test-ar'  
+env:
+  PROJECT_ID: 'next25migration'  
+  REGION: 'us-central1'
+  GKE_CLUSTER: 'megan-test-cluster' 
+  REPOSITORY: 'megan-test-ar'  
   
-  jobs:
-    build-and-deploy-gke:
-      runs-on: ubuntu-latest
-  
-      permissions:
-        id-token: write # Required for workload identity federation
-  
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
-  
-        - name: Authenticate to Google Cloud
-          uses: google-github-actions/auth@v2
-          with:
-            credentials_json: ${{ secrets.GCP_SA_KEY }}
-  
-        - name: Set up Cloud SDK
-          uses: google-github-actions/setup-gcloud@v2
-  
-        - name: 'Docker Auth'
-          run: |-
-            gcloud --quiet auth configure-docker ${REGION}-docker.pkg.dev
-        
-        - name: 'Install GKE auth plugin and kustomize' 
-          run: |-
-            gcloud components install gke-gcloud-auth-plugin
-            gcloud components install --quiet kustomize
+jobs:
+  build-and-deploy-gke:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write # Required for workload identity federation
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Debug step to inspect repository structure
+      - name: Inspect repository structure
+        run: |
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+          echo "Current working directory:"
+          pwd
+          echo "Directory contents:"
+          find . -maxdepth 3 -type d | sort
+        working-directory: "."
 
-        - name: 'Auth to GKE cluster' 
-          run: |-
-            gcloud container clusters get-credentials $GKE_CLUSTER --region $REGION --project $PROJECT_ID
-     
-        - name: 'CONTACTS - build and push'
-          run: |- 
-            IMAGE="contacts" 
-            echo "\npwd" 
-            pwd 
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-            echo "\nls"
-            ls
-            cd gcp/src/accounts/contacts 
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
 
-            DOCKER_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}"
-  
-            echo "🐳 Build and push container image: ${DOCKER_TAG}"
+      - name: 'Docker Auth'
+        run: |-
+          gcloud --quiet auth configure-docker ${REGION}-docker.pkg.dev
+      
+      - name: 'Install GKE auth plugin and kustomize' 
+        run: |-
+          gcloud components install gke-gcloud-auth-plugin
+          gcloud components install --quiet kustomize
 
-            docker build \
-              --tag "${DOCKER_TAG}" \
-              --build-arg GITHUB_SHA="${GITHUB_SHA}" \
-              --build-arg GITHUB_REF="${GITHUB_REF}" \
-              .
-  
-            docker push "${DOCKER_TAG}"
-            cd $GITHUB_WORKSPACE
-            pwd 
-            ls 
-            cd containers/aws-gcp-migration/gcp/kubernetes
-            kustomize edit set image contacts=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}
-            cat contacts.yaml
-  
-        - name: 'Deploy CymbalBank to GKE'
-          run: |-
-            echo "\npwd" 
-            pwd 
+      - name: 'Auth to GKE cluster' 
+        run: |-
+          gcloud container clusters get-credentials $GKE_CLUSTER --region $REGION --project $PROJECT_ID
+   
+      # Build and push contacts service
+      - name: 'CONTACTS - build and push'
+        run: |- 
+          IMAGE="contacts" 
+          echo "Current directory:"
+          pwd 
+          echo "Directory contents:"
+          ls
+          cd gcp/src/accounts/contacts 
 
-            echo "\nls"
-            ls
-            cd gcp/kubernetes
-            kubectl apply -k .
+          DOCKER_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}"
+
+          echo "🐳 Build and push container image: ${DOCKER_TAG}"
+
+          docker build \
+            --tag "${DOCKER_TAG}" \
+            --build-arg GITHUB_SHA="${GITHUB_SHA}" \
+            --build-arg GITHUB_REF="${GITHUB_REF}" \
+            .
+
+          docker push "${DOCKER_TAG}"
+          
+          # Go back to working directory for kustomize updates
+          cd $GITHUB_WORKSPACE/containers/aws-gcp-migration/gcp/kubernetes
+          kustomize edit set image contacts=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}
+
+      # Build and push userservice
+      - name: 'USERSERVICE - build and push'
+        run: |- 
+          IMAGE="userservice" 
+          echo "Current directory:"
+          pwd 
+          echo "Directory contents:"
+          ls
+          cd gcp/src/accounts/userservice 
+
+          DOCKER_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}"
+
+          echo "🐳 Build and push container image: ${DOCKER_TAG}"
+
+          docker build \
+            --tag "${DOCKER_TAG}" \
+            --build-arg GITHUB_SHA="${GITHUB_SHA}" \
+            --build-arg GITHUB_REF="${GITHUB_REF}" \
+            .
+
+          docker push "${DOCKER_TAG}"
+          
+          # Go back to working directory for kustomize updates
+          cd $GITHUB_WORKSPACE/containers/aws-gcp-migration/gcp/kubernetes
+          kustomize edit set image userservice=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}
+
+      # Build and push frontend
+      - name: 'FRONTEND - build and push'
+        run: |- 
+          IMAGE="frontend" 
+          echo "Current directory:"
+          pwd 
+          echo "Directory contents:"
+          ls
+          cd gcp/src/frontend 
+
+          DOCKER_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}"
+
+          echo "🐳 Build and push container image: ${DOCKER_TAG}"
+
+          docker build \
+            --tag "${DOCKER_TAG}" \
+            --build-arg GITHUB_SHA="${GITHUB_SHA}" \
+            --build-arg GITHUB_REF="${GITHUB_REF}" \
+            .
+
+          docker push "${DOCKER_TAG}"
+          
+          # Go back to working directory for kustomize updates
+          cd $GITHUB_WORKSPACE/containers/aws-gcp-migration/gcp/kubernetes
+          kustomize edit set image frontend=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}
+
+      # Build and push transactionhistory
+      - name: 'TRANSACTIONHISTORY - build and push'
+        run: |- 
+          IMAGE="transactionhistory" 
+          echo "Current directory:"
+          pwd 
+          echo "Directory contents:"
+          ls
+          cd gcp/src/ledger/transactionhistory 
+
+          DOCKER_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}"
+
+          echo "🐳 Build and push container image: ${DOCKER_TAG}"
+
+          docker build \
+            --tag "${DOCKER_TAG}" \
+            --build-arg GITHUB_SHA="${GITHUB_SHA}" \
+            --build-arg GITHUB_REF="${GITHUB_REF}" \
+            .
+
+          docker push "${DOCKER_TAG}"
+          
+          # Go back to working directory for kustomize updates
+          cd $GITHUB_WORKSPACE/containers/aws-gcp-migration/gcp/kubernetes
+          kustomize edit set image transactionhistory=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}
+
+      # Build and push ledgerwriter
+      - name: 'LEDGERWRITER - build and push'
+        run: |- 
+          IMAGE="ledgerwriter" 
+          echo "Current directory:"
+          pwd 
+          echo "Directory contents:"
+          ls
+          cd gcp/src/ledger/ledgerwriter 
+
+          DOCKER_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}"
+
+          echo "🐳 Build and push container image: ${DOCKER_TAG}"
+
+          docker build \
+            --tag "${DOCKER_TAG}" \
+            --build-arg GITHUB_SHA="${GITHUB_SHA}" \
+            --build-arg GITHUB_REF="${GITHUB_REF}" \
+            .
+
+          docker push "${DOCKER_TAG}"
+          
+          # Go back to working directory for kustomize updates
+          cd $GITHUB_WORKSPACE/containers/aws-gcp-migration/gcp/kubernetes
+          kustomize edit set image ledgerwriter=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}
+
+      # Build and push balancereader
+      - name: 'BALANCEREADER - build and push'
+        run: |- 
+          IMAGE="balancereader" 
+          echo "Current directory:"
+          pwd 
+          echo "Directory contents:"
+          ls
+          cd gcp/src/ledger/balancereader 
+
+          DOCKER_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}"
+
+          echo "🐳 Build and push container image: ${DOCKER_TAG}"
+
+          docker build \
+            --tag "${DOCKER_TAG}" \
+            --build-arg GITHUB_SHA="${GITHUB_SHA}" \
+            --build-arg GITHUB_REF="${GITHUB_REF}" \
+            .
+
+          docker push "${DOCKER_TAG}"
+          
+          # Go back to working directory for kustomize updates
+          cd $GITHUB_WORKSPACE/containers/aws-gcp-migration/gcp/kubernetes
+          kustomize edit set image balancereader=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}
+
+      # Deploy all services to GKE
+      - name: 'Deploy CymbalBank to GKE'
+        run: |-
+          echo "Current directory:"
+          pwd 
+          echo "Directory contents:"
+          ls
+          
+          # Apply Kubernetes manifests using kustomize
+          cd gcp/kubernetes
+          kubectl apply -k .
