@@ -56,6 +56,11 @@ jobs:
       - name: 'Auth to GKE cluster' 
         run: |-
           gcloud container clusters get-credentials $GKE_CLUSTER --region $REGION --project $PROJECT_ID
+      
+      - name: 'Test kubectl access to GKE cluster'
+        run: |-
+          kubectl get nodes
+          kubectl get pods --all-namespaces
    
       # Build and push contacts service
       - name: 'CONTACTS - build and push'
