@@ -14,7 +14,6 @@
     REGION: 'us-central1'
     GKE_CLUSTER: 'megan-test-cluster' 
     REPOSITORY: 'megan-test-ar'  
-    WORKING_DIRECTORY: './containers/aws-gcp-migration'
   
   jobs:
     build-and-deploy-gke:
@@ -69,11 +68,11 @@
               .
   
             docker push "${DOCKER_TAG}"
-            cd $WORKING_DIRECTORY
+            cd $GITHUB_WORKSPACE
             pwd 
             ls 
             cd gcp/kubernetes/app-manifests
-            kustomize edit set image contacts=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}=${GITHUB_SHA}  
+            kustomize edit set image contacts=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}
             cat contacts.yaml
   
         - name: 'Deploy CymbalBank to GKE'
