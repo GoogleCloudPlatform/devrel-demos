@@ -12,8 +12,8 @@ defaults:
 env:
   PROJECT_ID: 'next25migration'  
   REGION: 'us-central1'
-  GKE_CLUSTER: 'megan-test-cluster' 
-  REPOSITORY: 'megan-test-ar'  
+  GKE_CLUSTER: 'acp-a-g-demo' 
+  REPOSITORY: 'acp-a-g-demo-repository'  
   
 jobs:
   build-and-deploy-gke:
