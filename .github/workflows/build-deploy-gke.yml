@@ -77,5 +77,10 @@
   
         - name: 'Deploy CymbalBank to GKE'
           run: |-
-            cd gcp/kubernetes/app-manifests
+            echo "\npwd" 
+            pwd 
+
+            echo "\nls"
+            ls
+            cd gcp/kubernetes
             kubectl apply -k .
