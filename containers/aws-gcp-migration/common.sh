@@ -31,6 +31,7 @@ export ACP_REPO_DIR="${ACCELERATED_PLATFORMS_REPOSITORY_PATH}"
 export ACP_PLATFORM_BASE_DIR="${ACCELERATED_PLATFORMS_REPOSITORY_PATH}/platforms/gke/base"
 export ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
 ACP_PLATFORM_SHARED_CONFIG_DIR="${ACP_PLATFORM_BASE_DIR}/_shared_config"
+ACP_PLATFORM_CONTAINER_NODE_POOL_DIR="${ACP_PLATFORM_CORE_DIR}/container_node_pool"
 
 TERRAFORM_GCS_BACKEND_FILE_NAME="backend.gcs.tfbackend"
 
@@ -121,6 +122,7 @@ core_platform_terraservices=(
   "initialize"
   "networking"
   "container_cluster"
+  "container_node_pool"
 )
 
 aws_to_gcp_migration_demo_terraservices=(
@@ -133,4 +135,12 @@ core_platform_configuration_files=(
   cluster.auto.tfvars
   platform_variables.tf
   platform.auto.tfvars
+)
+
+core_platform_files_to_delete=(
+  "${ACP_PLATFORM_CONTAINER_NODE_POOL_DIR}/container_node_pool_gpu_a100.tf"
+  "${ACP_PLATFORM_CONTAINER_NODE_POOL_DIR}/container_node_pool_gpu_h100.tf"
+  "${ACP_PLATFORM_CONTAINER_NODE_POOL_DIR}/container_node_pool_gpu_h100.tf"
+  "${ACP_PLATFORM_CONTAINER_NODE_POOL_DIR}/container_node_pool_gpu_l4.tf"
+  "${ACP_PLATFORM_CONTAINER_NODE_POOL_DIR}/container_node_pool_tpu.tf"
 )
