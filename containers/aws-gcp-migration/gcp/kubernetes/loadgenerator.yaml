@@ -1,10 +1,10 @@
-# Copyright 2024 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     https://www.apache.org/licenses/LICENSE-2.0
+#      http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,58 +15,36 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    environment: development
-    team: loadgenerator
-    tier: test
   name: loadgenerator
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: loadgenerator
-      environment: development
-      team: loadgenerator
-      tier: test
+  replicas: 1
   template:
     metadata:
-      annotations:
-        sidecar.istio.io/rewriteAppHTTPProbers: "true"
       labels:
         app: loadgenerator
-        environment: development
-        team: loadgenerator
-        tier: test
+      annotations:
+        sidecar.istio.io/rewriteAppHTTPProbers: "true"
     spec:
-      containers:
-        - env:
-            - name: FRONTEND_ADDR
-              value: frontend:80
-            - name: USERS
-              value: "5"
-            - name: LOG_LEVEL
-              value: error
-          image: us-central1-docker.pkg.dev/bank-of-anthos-ci/bank-of-anthos/loadgenerator:v0.6.6@sha256:1bf8aea11595ba54ac87b96d6a72af41caf60bebbafbb8cd633f9a8a0c9eace7
-          name: loadgenerator
-          resources:
-            limits:
-              cpu: 250m
-              memory: 1Gi
-            requests:
-              cpu: 100m
-              memory: 512Mi
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - all
-            privileged: false
-            readOnlyRootFilesystem: true
-      restartPolicy: Always
-      securityContext:
-        fsGroup: 1000
-        runAsGroup: 1000
-        runAsNonRoot: true
-        runAsUser: 1000
-      serviceAccountName: default
+      serviceAccountName: boa-ksa
       terminationGracePeriodSeconds: 5
+      restartPolicy: Always
+      containers:
+      - name: loadgenerator
+        image: gcr.io/bank-of-anthos-ci/loadgenerator:v0.5.11@sha256:7fa44f9bfefd29eacfd62fed4308b8b057cf454ec1f423106303294e6b2d90e4
+        env:
+        - name: FRONTEND_ADDR
+          value: "frontend:80"
+        - name: USERS
+          value: "5"
+        - name: LOG_LEVEL
+          value: "error"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
