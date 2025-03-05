@@ -40,12 +40,6 @@ fi
 # https://github.com/GoogleCloudPlatform/accelerated-platforms/pull/70
 git -C "${ACCELERATED_PLATFORMS_REPOSITORY_PATH}" checkout int-federated-learning
 
-for configuration_file in "${core_platform_files_to_delete[@]}"; do
-  if [ -e "${configuration_file}" ]; then
-    rm -fv "${configuration_file}"
-  fi
-done
-
 start_timestamp_aws_gcp_migration=$(date +%s)
 
 echo "Provisioning the core platform"

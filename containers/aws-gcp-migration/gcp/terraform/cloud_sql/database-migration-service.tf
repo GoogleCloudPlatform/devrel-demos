@@ -55,7 +55,7 @@ resource "google_database_migration_service_migration_job" "demo_migration_job" 
   destination      = google_database_migration_service_connection_profile.cloud_sql_profile_destination.name
   display_name     = "Demo migration job"
   location         = var.cluster_region
-  migration_job_id = "demo-migration-job"
+  migration_job_id = "${local.unique_identifier_prefix}-demo-migration-job"
   source           = google_database_migration_service_connection_profile.amazon_rds_profile_source.name
   type             = "CONTINUOUS"
 

@@ -136,11 +136,3 @@ core_platform_configuration_files=(
   platform_variables.tf
   platform.auto.tfvars
 )
-
-core_platform_files_to_delete=(
-  "${ACP_PLATFORM_CONTAINER_NODE_POOL_DIR}/container_node_pool_gpu_a100.tf"
-  "${ACP_PLATFORM_CONTAINER_NODE_POOL_DIR}/container_node_pool_gpu_h100.tf"
-  "${ACP_PLATFORM_CONTAINER_NODE_POOL_DIR}/container_node_pool_gpu_h100.tf"
-  "${ACP_PLATFORM_CONTAINER_NODE_POOL_DIR}/container_node_pool_gpu_l4.tf"
-  "${ACP_PLATFORM_CONTAINER_NODE_POOL_DIR}/container_node_pool_tpu.tf"
-)
