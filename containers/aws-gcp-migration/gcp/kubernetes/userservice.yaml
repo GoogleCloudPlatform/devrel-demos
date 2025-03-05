@@ -1,10 +1,10 @@
-# Copyright 2024 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     https://www.apache.org/licenses/LICENSE-2.0
+#      http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,116 +12,65 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    application: bank-of-anthos
-    environment: development
-    team: accounts
-    tier: backend
-  name: userservice
-spec:
-  ports:
-    - name: http
-      port: 8080
-      targetPort: 8080
-  selector:
-    app: userservice
-    application: bank-of-anthos
-    environment: development
-    team: accounts
-    tier: backend
-  type: ClusterIP
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    application: bank-of-anthos
-    environment: development
-    team: accounts
-    tier: backend
   name: userservice
 spec:
   selector:
     matchLabels:
       app: userservice
-      application: bank-of-anthos
-      environment: development
-      team: accounts
-      tier: backend
   template:
     metadata:
-      annotations:
-        proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
       labels:
         app: userservice
-        application: bank-of-anthos
-        environment: development
-        team: accounts
-        tier: backend
     spec:
-      containers:
-        - env:
-            - name: VERSION
-              value: v0.6.6
-            - name: PORT
-              value: "8080"
-            - name: ENABLE_TRACING
-              value: "true"
-            - name: TOKEN_EXPIRY_SECONDS
-              value: "3600"
-            - name: PRIV_KEY_PATH
-              value: /tmp/.ssh/privatekey
-            - name: LOG_LEVEL
-              value: info
-          envFrom:
-            - configMapRef:
-                name: environment-config
-            - configMapRef:
-                name: accounts-db-config
-          image: userservice
-          name: userservice
-          ports:
-            - containerPort: 8080
-              name: http-server
-          readinessProbe:
-            httpGet:
-              path: /ready
-              port: 8080
-            initialDelaySeconds: 10
-            periodSeconds: 5
-            timeoutSeconds: 10
-          resources:
-            limits:
-              cpu: 500m
-              ephemeral-storage: 0.25Gi
-              memory: 256Mi
-            requests:
-              cpu: 260m
-              ephemeral-storage: 0.25Gi
-              memory: 128Mi
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - all
-            privileged: false
-            readOnlyRootFilesystem: true
-          volumeMounts:
-            - mountPath: /tmp
-              name: tmp
-            - mountPath: /tmp/.ssh
-              name: keys
-              readOnly: true
-      securityContext:
-        fsGroup: 1000
-        runAsGroup: 1000
-        runAsNonRoot: true
-        runAsUser: 1000
-      serviceAccountName: bank-of-anthos
+      serviceAccountName: cymbalbank-sa
       terminationGracePeriodSeconds: 5
+      containers:
+      - name: userservice
+        image: userservice
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: keys
+          mountPath: "/root/.ssh"
+          readOnly: true
+        ports:
+        - name: http-server
+          containerPort: 8080
+        env:
+        - name: VERSION
+          value: "v0.5.11"
+        - name: PORT
+          value: "8080"
+        - name: ENABLE_TRACING
+          value: "false"
+        - name: TOKEN_EXPIRY_SECONDS
+          value: "3600"
+        - name: PRIV_KEY_PATH
+          value: "/root/.ssh/privatekey"
+        # Valid levels are debug, info, warning, error, critical. If no valid level is set, gunicorn will default to info.
+        - name: LOG_LEVEL
+          value: "info"
+        envFrom:
+        - configMapRef:
+            name: environment-config
+        - configMapRef:
+            name: accounts-db-config
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
       volumes:
         - emptyDir: {}
           name: tmp
@@ -133,3 +82,16 @@ spec:
               - key: jwtRS256.key.pub
                 path: publickey
             secretName: jwt-key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: userservice
+spec:
+  type: ClusterIP
+  selector:
+    app: userservice
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
