@@ -36,7 +36,7 @@ metadata:
     app: accounts-db
 data:
   # Updated to use CloudSQL Proxy
-  ACCOUNTS_DB_URI: postgresql://admin:admin@127.0.0.1:5432/accounts-db
+  ACCOUNTS_DB_URI: postgresql://postgres:Chiapet22!@127.0.0.1:5432/accounts-db
 ---
 apiVersion: v1
 kind: ConfigMap
