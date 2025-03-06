@@ -1,0 +1,294 @@
+Topological quantum computer - Wikipedia
+https://en.wikipedia.org/wiki/Topological_quantum_computer
+
+Jump to content
+Main menu
+Search
+Donate
+Create account
+Log in
+Personal tools
+Contents hide
+(Top)
+Introduction
+Topological vs. standard quantum computer
+Toggle Topological vs. standard quantum computer subsection
+Computations
+Error correction and control
+Example: Computing with Fibonacci anyons
+Toggle Example: Computing with Fibonacci anyons subsection
+State preparation
+Gates
+Experimental efforts
+See also
+References
+Further reading
+Topological quantum computer
+6 languages
+Article
+Talk
+Read
+Edit
+View history
+Tools
+Appearance hide
+Text
+Small
+Standard
+Large
+Width
+Standard
+Wide
+Color (beta)
+Automatic
+Light
+Dark
+From Wikipedia, the free encyclopedia
+The unitary operation corresponding to exchanging anyons depends only on the topology of the braid. Figure adopted from Hormozi et al.[1]
+
+A topological quantum computer is a type of quantum computer. It utilizes anyons, a type of quasiparticle that occurs in two-dimensional systems. The anyons' world lines intertwine to form braids in a three-dimensional spacetime (one temporal and two spatial dimensions). The braids act as the logic gates of the computer. The primary advantage of using quantum braids over trapped quantum particles is in their stability. While small but cumulative perturbations can cause quantum states to decohere and introduce errors in traditional quantum computations, such perturbations do not alter the topological properties of the braids. This stability is akin to the difference between cutting and reattaching a string to form a different braid versus a ball (representing an ordinary quantum particle in four-dimensional spacetime) colliding with a wall. It was proposed by Russian-American physicist Alexei Kitaev in 1997.[2]
+
+While the elements of a topological quantum computer originate in a purely mathematical realm, experiments in fractional quantum Hall systems indicate that these elements may be created in the real world by using semiconductors made of gallium arsenide at a temperature of nearly absolute zero and subject to strong magnetic fields.
+
+Introduction[edit]
+
+Anyons are quasiparticles in a two-dimensional space. Anyons are neither fermions nor bosons, but like fermions, they cannot occupy the same state. Thus, the world lines of two anyons cannot intersect or merge, which allows their paths to form stable braids in space-time. Anyons can form from excitations in a cold two-dimensional electron gas in a very strong magnetic field, and carry fractional units of magnetic flux. This phenomenon is called the fractional quantum Hall effect. In typical laboratory systems, the electron gas occupies a thin semiconducting layer sandwiched between layers of aluminum gallium arsenide.[3][4]
+
+When anyons are braided, the transformation of the quantum state of the system depends only on the topological class of the anyons' trajectories (which are classified according to the braid group). Therefore, the quantum information which is stored in the state of the system is impervious to small errors in the trajectories.[5] In 2005, Sankar Das Sarma, Michael Freedman, and Chetan Nayak proposed a quantum Hall device that would realize a topological qubit. In 2005 Vladimir J. Goldman, Fernando E. Camino, and Wei Zhou[6] claimed to have created and observed the first experimental evidence for using a fractional quantum Hall effect to create actual anyons, although others have suggested their results could be the product of phenomena not involving anyons. Non-abelian anyons, a species required for topological quantum computers, have yet to be experimentally confirmed. Possible experimental evidence has been found,[7] but the conclusions remain contested.[8] In 2018, scientists again claimed to have isolated the required Majorana particles, but the finding was retracted in 2021. Quanta Magazine stated in 2021 that "no one has convincingly shown the existence of even a single (Majorana zero-mode) quasiparticle",[9] although in 2023 a new article[10] by the magazine has covered some preprints by Google[11] and Quantinuum[12] claiming the realization of non-abelian anyons on quantum processors, the first used a toric code with twist defects as a topological degeneracy (or topological defect) while the second used a different but related protocol both of which can be understood as Majorana bound states in quantum error correction.
+
+Topological vs. standard quantum computer[edit]
+
+Topological quantum computers are equivalent in computational power to other standard models of quantum computation, in particular to the quantum circuit model and to the quantum Turing machine model.[13] That is, any of these models can efficiently simulate any of the others. Nonetheless, certain algorithms may be a more natural fit to the topological quantum computer model. For example, algorithms for evaluating the Jones polynomial were first developed in the topological model, and only later converted and extended in the standard quantum circuit model.
+
+Computations[edit]
+
+To live up to its name, a topological quantum computer must provide the unique computation properties promised by a conventional quantum computer design, which uses trapped quantum particles. In 2000, Michael H. Freedman, Alexei Kitaev, Michael J. Larsen, and Zhenghan Wang proved that a topological quantum computer can, in principle, perform any computation that a conventional quantum computer can do, and vice versa.[13][14][15]
+
+They found that a conventional quantum computer device, given an error-free operation of its logic circuits, will give a solution with an absolute level of accuracy, whereas a topological quantum computing device with flawless operation will give the solution with only a finite level of accuracy. However, any level of precision for the answer can be obtained by adding more braid twists (logic circuits) to the topological quantum computer, in a simple linear relationship. In other words, a reasonable increase in elements (braid twists) can achieve a high degree of accuracy in the answer. Actual computation [gates] are done by the edge states of a fractional quantum Hall effect. This makes models of one-dimensional anyons important. In one space dimension, anyons are defined algebraically.
+
+Error correction and control[edit]
+
+Even though quantum braids are inherently more stable than trapped quantum particles, there is still a need to control for error inducing thermal fluctuations, which produce random stray pairs of anyons which interfere with adjoining braids. Controlling these errors is simply a matter of separating the anyons to a distance where the rate of interfering strays drops to near zero. Simulating the dynamics of a topological quantum computer may be a promising method of implementing fault-tolerant quantum computation even with a standard quantum information processing scheme. Raussendorf, Harrington, and Goyal have studied one model, with promising simulation results.[16]
+
+Example: Computing with Fibonacci anyons[edit]
+
+One of the prominent examples in topological quantum computing is with a system of Fibonacci anyons. A Fibonacci anyon has been described as "an emergent particle with the property that as you add more particles to the system, the number of quantum states grows like the Fibonacci sequence, 1, 2, 3, 5, 8, etc."[17] In the context of conformal field theory, fibonacci anyons are described by the Yang–Lee model, the SU(2) special case of the Chern–Simons theory and Wess–Zumino–Witten models.[18] These anyons can be used to create generic gates for topological quantum computing. There are three main steps for creating a model:
+
+Choose our basis and restrict our Hilbert space
+Braid the anyons together
+Fuse the anyons at the end, and detect how they fuse in order to read the output of the system.
+State preparation[edit]
+
+Fibonacci anyons are defined by three qualities:
+
+They have a topological charge of
+𝜏
+. In this discussion, we consider another charge called
+1
+which is the ‘vacuum’ charge if anyons are annihilated with each-other.
+Each of these anyons are their own antiparticle.
+𝜏
+=
+𝜏
+∗
+and
+1
+=
+1
+∗
+.
+If brought close to each other, they will 'fuse' together in a nontrivial fashion. Specifically, the 'fusion' rules are:
+1
+⊗
+1
+=
+1
+1
+⊗
+𝜏
+=
+𝜏
+⊗
+1
+=
+𝜏
+𝜏
+⊗
+𝜏
+=
+1
+⊕
+𝜏
+Many of the properties of this system can be explained similarly to that of two spin 1/2 particles. Particularly, we use the same tensor product
+⊗
+and direct sum
+⊕
+operators.
+
+The last ‘fusion’ rule can be extended this to a system of three anyons:
+
+𝜏
+⊗
+𝜏
+⊗
+𝜏
+=
+𝜏
+⊗
+(
+1
+⊕
+𝜏
+)
+=
+𝜏
+⊗
+1
+⊕
+𝜏
+⊗
+𝜏
+=
+𝜏
+⊕
+1
+⊕
+𝜏
+=
+1
+⊕
+2
+⋅
+𝜏
+
+Thus, fusing three anyons will yield a final state of total charge
+𝜏
+in 2 ways, or a charge of
+1
+in exactly one way. We use three states to define our basis.[19] However, because we wish to encode these three anyon states as superpositions of 0 and 1, we need to limit the basis to a two-dimensional Hilbert space. Thus, we consider only two states with a total charge of
+𝜏
+. This choice is purely phenomenological. In these states, we group the two leftmost anyons into a 'control group', and leave the rightmost as a 'non-computational anyon'. We classify a
+|
+0
+⟩
+state as one where the control group has total 'fused' charge of
+1
+, and a state of
+|
+1
+⟩
+has a control group with a total 'fused' charge of
+𝜏
+. For a more complete description, see Nayak.[19]
+
+Gates[edit]
+
+Following the ideas above, adiabatically braiding these anyons around each-other will result in a unitary transformation. These braid operators are a result of two subclasses of operators:
+
+The F matrix
+The R matrix
+
+The R matrix can be conceptually thought of as the topological phase that is imparted onto the anyons during the braid. As the anyons wind around each-other, they pick up some phase due to the Aharonov–Bohm effect.
+
+The F matrix is a result of the physical rotations of the anyons. As they braid between each-other, it is important to realize that the bottom two anyons—the control group—will still distinguish the state of the qubit. Thus, braiding the anyons will change which anyons are in the control group, and therefore change the basis. We evaluate the anyons by always fusing the control group (the bottom anyons) together first, so exchanging which anyons these are will rotate the system. Because these anyons are non-abelian, the order of the anyons (which ones are within the control group) will matter, and as such they will transform the system.
+
+The complete braid operator can be derived as:
+
+𝐵
+=
+𝐹
+−
+1
+𝑅
+𝐹
+
+In order to mathematically construct the F and R operators, we can consider permutations of these F and R operators. We know that if we sequentially change the basis that we are operating on, this will eventually lead us back to the same basis. Similarly, we know that if we braid anyons around each-other a certain number of times, this will lead back to the same state. These axioms are called the pentagonal and hexagonal axioms respectively as performing the operation can be visualized with a pentagon/hexagon of state transformations. Although mathematically difficult,[20] these can be approached much more successfully visually.
+
+With these braid operators, we can finally formalize the notion of braids in terms of how they act on our Hilbert space and construct arbitrary universal quantum gates.[21]
+
+Experimental efforts[edit]
+
+In 2018, Leo Kouwenhoven working for Microsoft published a paper in Nature indicating to have found firm evidence of "zero-bias peaks" indicating Majorana quasiparticles. In 2020, the paper got an editorial note of concern. In 2021, in a follow-up paper it was indicated that the data in the 2018 paper was incomplete and misrepresented the results.[22]
+
+In 2023, Microsoft Quantum researchers published a paper in Physical Review that described a new device that can represent a logical qubit with hardware stability, measuring a phase of matter consistent with the observation of topological superconductivity and Majorana zero modes.[23] The scientists reported that "such devices have demonstrated low enough disorder to pass the topological gap protocol, proving the technology is viable".[24] This publication has been criticized by other scientists for not providing sufficient evidence for Majorana modes as in previous papers.[25] In a 2025 paper, Microsoft determined fermion parity in Majorana zero modes in a single shot, claiming to develop the first topological chip using a new state of matter called topoconductors.[26][27][28]
+
+See also[edit]
+Topological order
+Symmetry-protected topological order
+Ginzburg–Landau theory
+Husimi Q representation
+Random matrix
+Majorana 1
+References[edit]
+^ Hormozi, L.; Zikos, G.; Bonesteel, N.E.; Simon, S.H. (April 2007). "Topological Quantum Compiling". Phys. Rev. B. 75 (16): 165310. arXiv:quant-ph/0610111. Bibcode:2007PhRvB..75p5310H. doi:10.1103/PhysRevB.75.165310.
+^ Kitaev, Alexei (9 July 1997). "Fault-tolerant quantum computation by anyons". Annals of Physics. 303 (1): 2–30. arXiv:quant-ph/9707021v1. Bibcode:2003AnPhy.303....2K. doi:10.1016/S0003-4916(02)00018-0. S2CID 11199664.
+^ Service, Purdue News. "New evidence that the quantum world is even stranger than we thought". www.purdue.edu. Retrieved 2025-02-20.
+^ "A quantum leap to smaller chips: Semiconducting materials such as gallium arsenide are allowing physicists to create tiny devices tailored to work at the quantum level", New Scientist, retrieved 2025-02-20
+^ Castelvecchi, Davide (July 3, 2020). "Welcome anyons! Physicists find best evidence yet for long-sought 2D structures". Nature. 583 (7815): 176–177. Bibcode:2020Natur.583..176C. doi:10.1038/d41586-020-01988-0. PMID 32620884. S2CID 220336025. Simon and others have developed elaborate theories that use anyons as the platform for quantum computers. Pairs of the quasiparticle could encode information in their memory of how they have circled around one another. And because the fractional statistics is 'topological' — it depends on the number of times one anyon went around another, and not on slight changes to its path — it is unaffected by tiny perturbations. This robustness could make topological quantum computers easier to scale up than are current quantum-computing technologies, which are error-prone.
+^ Camino, Fernando E.; Zhou, Wei; Goldman, Vladimir J. (December 6, 2005). "Aharonov–Bohm superperiod in a Laughlin quasiparticle interferometer". Phys. Rev. Lett. 95 (24): 246802. arXiv:cond-mat/0504341. Bibcode:2005PhRvL..95x6802C. doi:10.1103/PhysRevLett.95.246802. PMID 16384405.
+^ Willet, R. L. (January 15, 2013). "Magnetic field-tuned Aharonov–Bohm oscillations and evidence for non-Abelian anyons at ν = 5/2". Physical Review Letters. 111 (18): 186401. arXiv:1301.2639. Bibcode:2013PhRvL.111r6401W. doi:10.1103/PhysRevLett.111.186401. PMID 24237543. S2CID 22780228.
+^ von Keyserling, Curt; Simon, S. H.; Bernd, Rosenow (2015). "Enhanced Bulk-Edge Coulomb Coupling in Fractional Fabry-Perot Interferometers". Physical Review Letters. 115 (12): 126807. arXiv:1411.4654. Bibcode:2015PhRvL.115l6807V. doi:10.1103/PhysRevLett.115.126807. PMID 26431008. S2CID 20103218.
+^ Ball, Philip (29 September 2021). "Major Quantum Computing Strategy Suffers Serious Setbacks". Quanta Magazine. Retrieved 30 September 2021.
+^ Wood, Charlie (9 May 2023). "Physicists Create Elusive Particles That Remember Their Pasts". Quanta Magazine.
+^ Andersen, Trond; et al. (9 October 2023). "Observation of non-Abelian exchange statistics on a superconducting processor". Bulletin of the American Physical Society. arXiv:2210.10255.
+^ Iqbal, Mohsin and more (2024). "Non-Abelian topological order and anyons on a trapped-ion processor". Nature. 626 (7999): 505–511. arXiv:2305.03766. Bibcode:2024Natur.626..505I. doi:10.1038/s41586-023-06934-4. PMID 38356069.
+^
+Jump up to:
+a b Freedman, Michael H.; Larsen, Michael; Wang, Zhenghan (2002-06-01). "A Modular Functor Which is Universal for Quantum Computation". Communications in Mathematical Physics. 227 (3): 605–622. arXiv:quant-ph/0001108. Bibcode:2002CMaPh.227..605F. doi:10.1007/s002200200645. ISSN 0010-3616. S2CID 8990600.
+^ Freedman, Michael H.; Kitaev, Alexei; Wang, Zhenghan (2002-06-01). "Simulation of Topological Field Theories by Quantum Computers". Communications in Mathematical Physics. 227 (3): 587–603. arXiv:quant-ph/0001071. Bibcode:2002CMaPh.227..587F. doi:10.1007/s002200200635. ISSN 0010-3616. S2CID 449219.
+^ Freedman, Michael; Kitaev, Alexei; Larsen, Michael; Wang, Zhenghan (2003-01-01). "Topological quantum computation". Bulletin of the American Mathematical Society. 40 (1): 31–38. arXiv:quant-ph/0101025. doi:10.1090/S0273-0979-02-00964-3. ISSN 0273-0979.
+^ Raussendorf, R.; Harrington, J.; Goyal, K. (2007-01-01). "Topological fault-tolerance in cluster state quantum computation". New Journal of Physics. 9 (6): 199. arXiv:quant-ph/0703143. Bibcode:2007NJPh....9..199R. doi:10.1088/1367-2630/9/6/199. ISSN 1367-2630. S2CID 13811487.
+^ Pierce, Cheryl; University, Purdue. "Proposed quantum device may succinctly realize emergent particles such as the Fibonacci anyon". phys.org. Retrieved 2024-02-25.
+^ Trebst, Simon; Troyer, Matthias; Wang, Zhenghan; Ludwig, Andreas W. W. (2008). "A Short Introduction to Fibonacci Anyon Models". Progress of Theoretical Physics Supplement. 176: 384–407. arXiv:0902.3275. Bibcode:2008PThPS.176..384T. doi:10.1143/PTPS.176.384. S2CID 16880657.
+^
+Jump up to:
+a b Nayak, Chetan (2008). "Non-Abelian Anyons and Topological Quantum Computation". Reviews of Modern Physics. 80 (3): 1083–1159. arXiv:0707.1889. Bibcode:2008RvMP...80.1083N. doi:10.1103/RevModPhys.80.1083. S2CID 119628297.
+^ Eric Paquette. Topological quantum computing with anyons, 2009. Categories, Logic and Foundations of Physics IV.
+^ Explicit braids that perform particular quantum computations with Fibonacci anyons have been given by Bonesteel, N. E.; Hormozi, L.; Zikos, G.; Simon, S. H.; West, K. W. (2005). "Braid Topologies for Quantum Computation". Physical Review Letters. 95 (14): 140503. arXiv:quant-ph/0505065. Bibcode:2005PhRvL..95n0503B. doi:10.1103/PhysRevLett.95.140503. PMID 16241636. S2CID 1246885.
+^ Simonite, Tom. "Microsoft's Big Win in Quantum Computing Was an 'Error' After All". Wired. ISSN 1059-1028. Retrieved 2024-10-23.
+^ Aghaee, Morteza (21 June 2023). "InAs-Al hybrid devices passing the topological gap protocol". Phys. Rev. B. 107 (24): 245423. arXiv:2207.02472. Bibcode:2023PhRvB.107x5423A. doi:10.1103/PhysRevB.107.245423.
+^ Yirka, Bob (24 June 2023). "Microsoft claims to have achieved first milestone in creating a reliable and practical quantum computer". Phys.org. Retrieved 1 July 2024.
+^ "'Poor man's Majoranas' offer testbed for studying possible qubits". Physics World. 2024. Retrieved 2024-10-23.
+^ Aghaee, Morteza (19 Feb 2025). [hhttps://www.nature.com/articles/s41586-024-08445-2 "Interferometric single-shot parity measurement in InAs–Al hybrid devices"]. Nature. 638 (8051): 651–655. arXiv:2401.09549. doi:10.1038/s41586-024-08445-2. Retrieved 21 Feb 2025.
+^ "Experts weigh in on Microsoft's topological qubit claim". Physics World. 25 Feb 2025. Retrieved 2025-02-25.
+^ Vallance, Chris (19 Feb 2025). "Powerful quantum computers in years not decades, says Microsoft". BBC. Retrieved 2025-02-26.
+Further reading[edit]
+Collins, Graham P. (April 2006). "Computing with Quantum Knots" (PDF). Scientific American.
+Sarma, Sankar Das; Freedman, Michael; Nayak, Chetan (2005). "Topologically Protected Qubits from a Possible Non-Abelian Fractional Quantum Hall State". Physical Review Letters. 94 (16): 166802. arXiv:cond-mat/0412343. Bibcode:2005PhRvL..94p6802D. doi:10.1103/PhysRevLett.94.166802. PMID 15904258. S2CID 8773427.
+Nayak, Chetan; Simon, Steven H.; Stern, Ady; Freedman, Michael; Sarma, Sankar Das (2008). "Non-Abelian Anyons and Topological Quantum Computation". Reviews of Modern Physics. 80 (3): 1083–1159. arXiv:0707.1889. Bibcode:2008RvMP...80.1083N. doi:10.1103/RevModPhys.80.1083. S2CID 119628297.
+Simon, Steven H. "Quantum Computing with a Twist".
+
+
+
+
+show
+vte
+Quantum information science
+show
+vte
+Quantum electrodynamics
+show
+vte
+Quantum field theories
+show
+vte
+Quantum gravity
+show
+vte
+Quantum mechanics
+Categories: Quantum information scienceClasses of computersModels of computationTopologyQuantum computing
+This page was last edited on 26 February 2025, at 18:47 (UTC).
+Text is available under the Creative Commons Attribution-ShareAlike 4.0 License; additional terms may apply. By using this site, you agree to the Terms of Use and Privacy Policy. Wikipedia® is a registered trademark of the Wikimedia Foundation, Inc., a non-profit organization.
+Privacy policy
+About Wikipedia
+Disclaimers
+Contact Wikipedia
+Code of Conduct
+Developers
+Statistics
+Cookie statement
+Mobile view
+Search
+Topological quantum computer
+6 languages
+Add topic

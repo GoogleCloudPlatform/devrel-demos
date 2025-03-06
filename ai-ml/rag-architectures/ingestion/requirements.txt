@@ -1,0 +1,6 @@
+google.genai
+langchain
+google-cloud-storage
+google-cloud-aiplatform
+functions-framework>=3.0.0,<4.0
+
