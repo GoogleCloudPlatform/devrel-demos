@@ -2,3 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+    font-family: "Jersey15";
+    src: url("/fonts/Jersey15-Regular.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+  }
+
+.clip-path-zigzag {
+  clip-path: polygon(
+    100% 0%, 90% 20%, 100% 40%, 90% 60%, 
+    100% 80%, 90% 100%, 100% 100%, 100% 0%
+  );
+}
