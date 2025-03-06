@@ -8,7 +8,6 @@ RUN pip3 install --no-cache-dir --upgrade \
     pip \
     virtualenv
 
-USER appuser
 WORKDIR /home/appuser
 
 COPY . .
@@ -18,9 +17,13 @@ RUN virtualenv ${VIRTUAL_ENV}
 RUN . ${VIRTUAL_ENV}/bin/activate && pip install --no-cache-dir -r ./requirements.txt
 
 RUN mkdir -p /home/appuser/.streamlit
-COPY config.toml /home/appuser/.streamlit/config.toml
+COPY .streamlit/config.toml /home/appuser/.streamlit/config.toml
+
+COPY run.sh /home/appuser
+RUN chmod +x /home/appuser/run.sh
+
+USER appuser
 
 EXPOSE 8501
 
-COPY run.sh /home/appuser
 ENTRYPOINT ["./run.sh"]

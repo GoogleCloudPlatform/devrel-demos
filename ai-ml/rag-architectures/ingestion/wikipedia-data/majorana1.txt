@@ -1,0 +1,199 @@
+Majorana 1 - Wikipedia
+https://en.wikipedia.org/wiki/Majorana_1
+
+Jump to content
+Main menu
+Search
+Donate
+Create account
+Log in
+Personal tools
+Contents hide
+(Top)
+Background
+Controversy
+Toggle Controversy subsection
+Claims of creating a quantum processing unit
+Claims of creating a Majorana zero mode
+Claims of creating a "new state of matter"
+Topoconductors
+See also
+References
+Majorana 1
+8 languages
+Article
+Talk
+Read
+Edit
+View history
+Tools
+Appearance hide
+Text
+Small
+Standard
+Large
+Width
+Standard
+Wide
+Color (beta)
+Automatic
+Light
+Dark
+From Wikipedia, the free encyclopedia
+For other uses, see Majorana.
+
+Majorana 1 is a hardware device developed by Microsoft, with potential applications to quantum computing.[1] It is the first quantum device produced by Microsoft, and uses topological superconductors. It is an indium arsenide-aluminium hybrid device, which shows some signals of hosting Majorana zero modes.[2][non-primary source needed] Microsoft plans to use these potential Majorana zero modes to make topological qubits, and eventually a large-scale topological quantum computer.[3][unreliable source?] It has eight qubits.
+
+Announced in February 2025, Majorana 1 is claimed to represent progress in Microsoft's long-running project of creating a quantum computer based on topological qubits.[4][5][unreliable source] The announcement has generated both excitement and skepticism within the scientific community.[6][7][8] There is no definitive evidence that Majorana 1 exhibits Majorana zero modes.
+
+Background[edit]
+
+Quantum computing research has historically faced challenges in achieving qubit stability and scalability. Traditional qubits, such as those based on superconducting circuits or trapped ions, are highly susceptible to noise and decoherence, which can introduce errors in computations. To overcome these limitations, researchers have been exploring various approaches to building more robust and fault-tolerant quantum computers. Topological qubits, first theorized in 1997 by Alexei Kitaev and Michael Freedman,[9][10] offer a promising solution by encoding quantum information in a way that is inherently protected from environmental disturbances. This protection stems from the topological properties of the system, which are resistant to local perturbations. Microsoft's approach, based on Majorana fermions in semiconductor-superconductor heterostructures, is one of several efforts to realize topological quantum computing.
+
+Controversy[edit]
+
+Microsoft's quantum hardware has been the subject of controversy since its high-profile retracted article from Nature in 2018,[11] and the announcement of Majorana 1 has generated both excitement and skepticism within the scientific community.[6][7]
+
+Claims of creating a quantum processing unit[edit]
+
+In the announcement of Majorana 1, the hardware device was described as "the world’s first Quantum Processing Unit (QPU) powered by a Topological Core".[12] The hardware demonstrations currently available only demonstrate a method for readout,[2] and do not demonstrate any quantum processing on the zero-mode. Moreover, the publicly available demonstration does not test coherence of their two-level quantum system. This is in contrast to other QPUs, which typically demonstrate both coherent quantum information and coherent logical operations on that quantum information.[13][14][15]
+
+Claims of creating a Majorana zero mode[edit]
+
+In their February 2025 press release,[5] Microsoft claimed that "The Nature paper marks peer-reviewed confirmation that Microsoft has... been able to create Majorana particles". This is in contrast to the content of the Nature paper,[2] in which the authors state that the measurements "do not, by themselves, determine whether the low-energy states detected by interferometry are topological".[16][8]
+
+The reason for the uncertainty is the difficulty in distinguishing Majorana modes and Andreev modes.[17] Both types of modes can exist in the sorts of devices that Microsoft is constructing. The Majorana modes are topological and could potentially be used for making a topological quantum computer, but the Andreev modes are topologically trivial and are not directly useful for making a quantum computer. The current results of Majorana 1 are completely consistent with the possibility that the device consists of Andreev modes, and does not contain any Majorana modes.[2]
+
+The difficulty in distinguishing between Majorana modes and other topologically trivial possibilities like Andreev modes was also the source of the high-profile Nature retraction in 2018.[11] In this article the authors, which were affiliated with Microsoft, claimed to have conclusive evidence of Majorana zero modes, but the data was shown to be entirely consistent with Andreev modes.[18][19]
+
+Claims of creating a "new state of matter"[edit]
+
+In their February 2025 press releases, Microsoft claimed that the Majorana 1 hardware device created "a new state of matter that previously existed only in theory".[12] This is in contrast to the long history of experiments based on semiconducting nanowires in similar regimes to the one exhibited by the Majorana 1 chip,[20] which should putatively be in the same state of matter. This is highlighted in the peer review file for Microsoft's Majorana 1 paper,[2] where one reviewer describes the paper by saying that "the novelty of this manuscript does not lie in providing stronger evidence for [Majorana Zero modes], but in its methodological approach: it demonstrates that rf-parity readout 'can be done' within [a] complicated loop geometry". Despite a split among the four reviewers, with two expressing reservations and two offering conditional support, Nature published the paper, basing its decision on the innovative device architecture rather than on definitive evidence for Majorana modes.[21]
+
+Topoconductors[edit]
+
+Microsoft introduced the term topoconductor to describe the material on which Majorana 1 is based. In their February 2025 press release, Microsoft defined topoconductors as a "class of materials [which] enables... topological superconductivity"[2]. These materials are widely theorized to allow for the creation and manipulation of Majorana zero modes, which could then serve as the basis for topological qubits.[22][23] Topological superconductors are characterized by their unique electronic band structure, which gives rise to topologically protected surface states.[24] These surface states are robust against disorder and imperfections, making them ideal for hosting Majorana zero modes. Microsoft's topoconductor is made of indium arsenide and aluminum.[25]
+
+Internal whitepapers from Microsoft outline a topoconductor-based architecture which facilitates braiding processes—key operations for error-resistant qubit logic.[26] Braiding involves exchanging the positions of Majorana zero modes in a controlled manner, which can be used to perform quantum computations. This process is inherently fault-tolerant because the topological protection of the Majorana modes makes them resistant to local disturbances.
+
+See also[edit]
+Quantum error correction
+Topological quantum field theory
+References[edit]
+^ Nellis, Stephen (2025-02-25). "Microsoft creates chip it says shows quantum computers are 'years, not decades' away". Reuters. Retrieved 23 February 2025.
+^
+Jump up to:
+a b c d e f Microsoft Azure Quantum; Aghaee, Morteza; Alcaraz Ramirez, Alejandro; Alam, Zulfi; Ali, Rizwan; Andrzejczuk, Mariusz; Antipov, Andrey; Astafev, Mikhail; Barzegar, Amin; Bauer, Bela; Becker, Jonathan; Bhaskar, Umesh Kumar; Bocharov, Alex; Boddapati, Srini; Bohn, David; Bommer, Jouri (February 2025). "Interferometric single-shot parity measurement in InAs–Al hybrid devices". Nature. 638 (8051): 651–655. Bibcode:2025Natur.638..651M. doi:10.1038/s41586-024-08445-2. ISSN 1476-4687. PMC 11839464. PMID 39972225.
+^ Aasen, David; Aghaee, Morteza; Alam, Zulfi; Andrzejczuk, Mariusz; Antipov, Andrey; Astafev, Mikhail; Avilovas, Lukas; Barzegar, Amin; Bauer, Bela (2025-02-17), Roadmap to fault tolerant quantum computation using topological qubit arrays, arXiv:2502.12252
+^ "Station Q". news.microsoft.com. Archived from the original on 2024-07-19. Retrieved 2025-02-20.
+^
+Jump up to:
+a b "Microsoft's Majorana 1 chip carves new path for quantum computing". news.microsoft.com. Retrieved 2025-02-20.
+^
+Jump up to:
+a b Metz, Cade (2025-02-19). "Microsoft Says It Has Created a New State of Matter to Power Quantum Computers". The New York Times. ISSN 0362-4331. Retrieved 2025-02-20.
+^
+Jump up to:
+a b "Microsoft Claims Quantum Breakthrough with Majorana 1 but Experts Aren't Convinced". CTOL digital. Retrieved 2025-02-20.
+^
+Jump up to:
+a b Castelvecchi, Davide (2025-02-19). "Microsoft claims quantum-computing breakthrough — but some physicists are sceptical". Nature. 638 (8052): 872. doi:10.1038/d41586-025-00527-z. PMID 39972094.
+^ Kitaev, A.Yu. (January 2003). "Fault-tolerant quantum computation by anyons". Annals of Physics. 303 (1): 2–30. arXiv:quant-ph/9707021. Bibcode:2003AnPhy.303....2K. doi:10.1016/s0003-4916(02)00018-0. ISSN 0003-4916.
+^ Freedman, Michael H. (1998-01-06). "P/NP, and the quantum field computer". Proceedings of the National Academy of Sciences. 95 (1): 98–101. Bibcode:1998PNAS...95...98F. doi:10.1073/pnas.95.1.98. PMC 18139. PMID 9419335.
+^
+Jump up to:
+a b Zhang, Hao; Liu, Chun-Xiao; Gazibegovic, Sasa; Xu, Di; Logan, John A.; Wang, Guanzhong; van Loo, Nick; Bommer, Jouri D. S.; de Moor, Michiel W. A.; Car, Diana; Op het Veld, Roy L. M.; van Veldhoven, Petrus J.; Koelling, Sebastian; Verheijen, Marcel A.; Pendharkar, Mihir (April 2018). "RETRACTED ARTICLE: Quantized Majorana conductance". Nature. 556 (7699): 74–79. arXiv:1710.10701. doi:10.1038/nature26142. ISSN 1476-4687. PMID 29590094. (Retracted, see doi:10.1038/s41586-021-03373-x, PMID 33686283,  Retraction Watch)
+^
+Jump up to:
+a b Nayak, Chetan (2025-02-19). "Microsoft unveils Majorana 1, the world's first quantum processor powered by topological qubits". Microsoft Azure Quantum Blog. Retrieved 2025-02-20.
+^ "Meet Willow, our state-of-the-art quantum chip". Google. 2024-12-09. Retrieved 2025-02-20.
+^ "System Model H2 | Quantinuum's Quantum Computers". Quantinuum. Retrieved 2025-02-20.
+^ "Aquila | 256-qubit Quantum Computer". QuEra. Retrieved 2025-02-20.
+^ Aghaee, Morteza; et al. (Microsoft Azure Quantum) (2025). "Interferometric single-shot parity measurement in InAs–Al hybrid devices". Nature. 638 (8051). Discussion and outlook: 1st paragraph. Bibcode:2025Natur.638..651M. doi:10.1038/s41586-024-08445-2. PMC 11839464. PMID 39972225.
+^ Kells, G.; Meidan, D.; Brouwer, P. W. (2012-09-12). "Near-zero-energy end states in topologically trivial spin-orbit coupled superconducting nanowires with a smooth confinement". Physical Review B. 86 (10): 100503. arXiv:1207.3067. Bibcode:2012PhRvB..86j0503K. doi:10.1103/physrevb.86.100503. ISSN 1098-0121.
+^ Simonite, Tom. "Microsoft-Led Team Retracts Disputed Quantum-Computing Paper". Wired. ISSN 1059-1028. Retrieved 2025-02-20.
+^ Castelvecchi, Davide (2021-03-10). "Evidence of elusive Majorana particle dies — but computing hope lives on". Nature. 591 (7850): 354–355. Bibcode:2021Natur.591..354C. doi:10.1038/d41586-021-00612-z. PMID 33692528.
+^ Wei, Peng; Manna, Sujit; Xie, Yingming; Law, Kam Tuen; Lee, Patrick; Moodera, Jagadeesh (20 August 2020). Drouhin, Henri-Jean M.; Wegrowe, Jean-Eric; Razeghi, Manijeh (eds.). The demonstration of Majorana zero modes in scalable gold nanowires. Spintronics XIII. Vol. 11470. SPIE. pp. 114700L. doi:10.1117/12.2565976. ISBN 978-1-5106-3746-7.
+^ Microsoft Azure, Quantum; et al. (2025). "'Interferometric Single-Shot Parity Measurement in InAs-Al Hybrid Devices' Peer Review File" (PDF). Nature. 638 (8051): 651–655. Bibcode:2025Natur.638..651M. doi:10.1038/s41586-024-08445-2. PMC 11839464. PMID 39972225. Archived from the original (PDF) on 2025-02-19.
+^ Fu, Liang; Kane, C. L. (6 March 2008). "Superconducting Proximity Effect and Majorana Fermions at the Surface of a Topological Insulator". Physical Review Letters. 100 (9): 096407. arXiv:0707.1692. Bibcode:2008PhRvL.100i6407F. doi:10.1103/PhysRevLett.100.096407. ISSN 0031-9007. PMID 18352737.
+^ Stoudenmire, E. M.; Alicea, Jason; Starykh, Oleg A.; Fisher, Matthew P.A. (14 July 2011). "Interaction effects in topological superconducting wires supporting Majorana fermions". Physical Review B. 84 (1): 014503. arXiv:1104.5493. Bibcode:2011PhRvB..84a4503S. doi:10.1103/PhysRevB.84.014503. ISSN 1098-0121.
+^ Sato, Masatoshi; Ando, Yoichi (July 2017). "Topological superconductors: a review". Reports on Progress in Physics. 80 (7): 076501. arXiv:1608.03395. Bibcode:2017RPPh...80g6501S. doi:10.1088/1361-6633/aa6ac7. ISSN 0034-4885. PMID 28367833.
+^ "Microsoft's Big Bet on Majorana Pays Off with New Topological Quantum Chip". HPCwire. Retrieved 2025-02-19.
+^ Alam, Salman; Najma, Bibi; Singh, Abhinav; Laprade, Jeremy; Gajeshwar, Gauri; Yevick, Hannah G.; Baskaran, Aparna; Foster, Peter J.; Duclos, Guillaume (3 October 2024). "Active Fréedericksz Transition in Active Nematic Droplets". Physical Review X. 14 (4): 041002. Bibcode:2024PhRvX..14d1002A. doi:10.1103/PhysRevX.14.041002. ISSN 2160-3308.
+hide
+vte
+Microsoft Corporation
+
+
+HistoryOutline
+
+People
+Founders
+Bill GatesPaul Allen
+
+Board of directors
+Satya Nadella (Chairman and CEO)Reid HoffmanCatherine MacGregorSandi PetersonPenny PritzkerCarlos A. RodriguezCharles ScharfJohn W. StantonJohn W. ThompsonEmma WalmsleyPadmasree Warrior
+
+Senior leadership team
+Satya Nadella (CEO)Takeshi Numoto (CMO)Scott GuthrieCarolina Dybeck Happe (COO)Amy Hood (CFO)Kevin Scott (CTO)Brad Smith (CLO)Harry ShumPhil SpencerKathleen Hogan (CPO)
+
+Corporate VPs
+Joe BelfioreRichard Rashid (SVP)César Cernuda
+
+Employee groups
+Global LGBTQIA+ Employee & Allies at MicrosoftMicrosoft and unions
+
+Products
+Hardware
+Azure KinectHoloLensLifeCamSurface DuoGoHubLaptopLaptop GoNeoProStudioXbox
+
+Software
+ClipchampDynamics 365HavokMicrosoft 365 OfficeTeamsOpen source softwarePower PlatformServersStartTayVisual StudioVisual Studio CodeWindowsXbox OS
+
+Programming
+languages
+BASIC VB.NETVBAVBScriptVisual BasicC#C/AL a.k.a. Navision AttainF#MVPLPower FxPowerShellQ#Transact-SQLTypeScriptVisual J++Visual J#
+
+Web properties
+AzureBingCopilotGitHubLearn Channel 9Developer NetworkTechNetLinkedIn LinkedIn LearningMSNOutlook.comStoreTranslator
+
+Company
+Conferences
+BuildIgniteInspireMIXPDCWinHEC
+
+Divisions
+.NET FoundationDigital Crimes UnitEngineering groups MobileSkype unitGaming Activision BlizzardXbox Game StudiosZeniMax MediaGarageOutercurve FoundationPressResearchRetail stores
+
+Estates
+Microsoft campusMicrosoft EgyptMicrosoft IndiaMicrosoft Japan
+
+Campaigns
+"Where do you want to go today?" (1994)"Champagne" (2002)"Mojave Experiment" (2006)"I'm a PC" (2008)"Scroogled" (2012)
+
+Criticism
+Bundling of Microsoft WindowsClippyiLooInternet ExplorerMicrosoft Bob_NSAKEYWindows XPVista10
+
+Litigation
+Apple v. Microsoft (1994)United States v. Microsoft (2001)Microsoft v. Lindows (2004)Microsoft v. MikeRoweSoft (2004)Microsoft v. Commission (2007)Alcatel-Lucent v. Microsoft (2009)Microsoft v. Shah (2011)Microsoft v. United States (2018)FTC v. Microsoft (2022)
+
+Acquisitions
+6WunderkinderAccess SoftwareAcompliActivision Blizzard acquisitionAltamira SoftwareAltspaceVRaQuantiveAzyxxiBeamThe Blue Ribbon SoundWorksBungieClipchampColloquisCompulsion GamesConnectixConsumers SoftwareDangerDouble FineFarecastFASA StudioFast Search & TransferFireflyForethoughtGIANT Company SoftwareGitHubGreat Plains SoftwareGreenButtonGroove NetworksHavok GroupHigh Heat Major League BaseballHotmailinXile EntertainmentJellyfish.comLinkedInLinkExchangeLionhead StudiosMaluubaMassive IncorporatedMetaswitchMobile Data LabsMojang StudiosNinja TheoryNokia Devices and ServicesnpmNuance CommunicationsObsidian EntertainmentOnfolioPando NetworksPerceptive PixelPlaceWarePlayground GamesPowersetPress PlayProClarityRareRevolution AnalyticsRiskIQScreenTonicSecure IslandsSimplygonSkypeSunrise AtelierSwiftKeyTakeLessonsTeleoTellme NetworksTwisted Pixel GamesUndead LabsVermeer TechnologiesVisio CorporationVivatyVoloMetrixVXtremeWebTV NetworksWinternals SoftwareXamarinXandr AppNexusYammerYupiZeniMax Media
+
+
+Category
+Categories: MicrosoftQuantum computing
+This page was last edited on 26 February 2025, at 23:07 (UTC).
+Text is available under the Creative Commons Attribution-ShareAlike 4.0 License; additional terms may apply. By using this site, you agree to the Terms of Use and Privacy Policy. Wikipedia® is a registered trademark of the Wikimedia Foundation, Inc., a non-profit organization.
+Privacy policy
+About Wikipedia
+Disclaimers
+Contact Wikipedia
+Code of Conduct
+Developers
+Statistics
+Cookie statement
+Mobile view
+Search
+Majorana 1
+8 languages
+Add topic

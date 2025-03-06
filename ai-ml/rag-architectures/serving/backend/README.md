@@ -1,24 +1,27 @@
-# FastAPI Backend 
+# Serving Backend 
 
+This directory contains the source code and Dockerfile for the Cloud Run serving Backend. The backend is a FastAPI server that takes the user's Quantum Computing question from the frontend, and performs a RAG-based search using Vertex AI Vector Search and Gemini 2.0 Flash (Vertex AI). 
 
-### Env vars needed
+### Env Variables (Required)
 
 ```
-export PROJECT_ID=next25rag
-export GCP_LOCATION=us-central1
-export VECTOR_SEARCH_INDEX_ID=4890482584812781568
-export VECTOR_SEARCH_DEPLOYED_INDEX_ID=megan_text_index_endpoint2_1740675419602
-export VECTOR_SEARCH_INDEX_ENDPOINT_NAME="projects/427092883710/locations/us-central1/indexEndpoints/5070556201163423744"
-export GEMINI_MODEL_NAME=gemini-2.0-flash-001
+export PROJECT_ID=<PROJECT_ID>
+export GCP_LOCATION=<GCP_LOCATION>
+export VECTOR_SEARCH_INDEX_ID=<VECTOR_SEARCH_INDEX_ID>
+export VECTOR_SEARCH_DEPLOYED_INDEX_ID=<VECTOR_SEARCH_DEPLOYED_INDEX_ID>
+export VECTOR_SEARCH_INDEX_ENDPOINT_NAME=<VECTOR_SEARCH_INDEX_ENDPOINT_NAME>
+export GEMINI_MODEL_NAME=gemini-2.0-flash-001 #substitute model of your choice
 ```
 
-
-### Local testing 
+### Testing Locally 
 
 ```
 python3 app.py
 ```
 
+#### Example `curl` requests 
+
+Note that the `use_context` flag is defaulted to `true` - when set to `false`, the prompt will be passed directly to the Gemini API without augmenting via Vertex AI Search. 
 
 ```
  curl -X POST "http://localhost:8000/prompt" \
@@ -37,3 +40,7 @@ python3 app.py
          "use_context": false
      }'
 ```
+
+### Cloud Run service account - Required IAM Roles
+
+- Vertex AI User 

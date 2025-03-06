@@ -1,0 +1,1173 @@
+Quantum error correction - Wikipedia
+https://en.wikipedia.org/wiki/Quantum_error_correction
+
+Jump to content
+Main menu
+Search
+Donate
+Create account
+Log in
+Personal tools
+Contents hide
+(Top)
+Bit-flip code
+Sign-flip code
+Shor code
+Bosonic codes
+Toggle Bosonic codes subsection
+Binomial code
+Cat code
+General codes
+Models
+Experimental realization
+Quantum error correction without encoding and parity checks
+See also
+References
+Further reading
+External links
+Quantum error correction
+10 languages
+Article
+Talk
+Read
+Edit
+View history
+Tools
+Appearance hide
+Text
+Small
+Standard
+Large
+Width
+Standard
+Wide
+Color (beta)
+Automatic
+Light
+Dark
+From Wikipedia, the free encyclopedia
+
+Quantum error correction (QEC) is a set of techniques used in quantum computing to protect quantum information from errors due to decoherence and other quantum noise. Quantum error correction is theorised as essential to achieve fault tolerant quantum computing that can reduce the effects of noise on stored quantum information, faulty quantum gates, faulty quantum state preparation, and faulty measurements. Effective quantum error correction would allow quantum computers with low qubit fidelity to execute algorithms of higher complexity or greater circuit depth.[1]
+
+Classical error correction often employs redundancy. The simplest albeit inefficient approach is the repetition code. A repetition code stores the desired (logical) information as multiple copies, and—if these copies are later found to disagree due to errors introduced to the system—determines the most likely value for the original data by majority vote. For instance, suppose we copy a bit in the one (on) state three times. Suppose further that noise in the system introduces an error that corrupts the three-bit state so that one of the copied bits becomes zero (off) but the other two remain equal to one. Assuming that errors are independent and occur with some sufficiently low probability p, it is most likely that the error is a single-bit error and the intended message is three bits in the one state. It is possible that a double-bit error occurs and the transmitted message is equal to three zeros, but this outcome is less likely than the above outcome. In this example, the logical information is a single bit in the one state and the physical information are the three duplicate bits. Creating a physical state that represents the logical state is called encoding and determining which logical state is encoded in the physical state is called decoding. Similar to classical error correction, QEC codes do not always correctly decode logical qubits, but instead reduce the effect of noise on the logical state.
+
+Copying quantum information is not possible due to the no-cloning theorem. This theorem seems to present an obstacle to formulating a theory of quantum error correction. But it is possible to spread the (logical) information of one logical qubit onto a highly entangled state of several (physical) qubits. Peter Shor first discovered this method of formulating a quantum error correcting code by storing the information of one qubit onto a highly entangled state of nine qubits.[2]
+
+In classical error correction, syndrome decoding is used to diagnose which error was the likely source of corruption on an encoded state. An error can then be reversed by applying a corrective operation based on the syndrome. Quantum error correction also employs syndrome measurements. It performs a multi-qubit measurement that does not disturb the quantum information in the encoded state but retrieves information about the error. Depending on the QEC code used, syndrome measurement can determine the occurrence, location and type of errors. In most QEC codes, the type of error is either a bit flip, or a sign (of the phase) flip, or both (corresponding to the Pauli matrices X, Z, and Y). The measurement of the syndrome has the projective effect of a quantum measurement, so even if the error due to the noise was arbitrary, it can be expressed as a combination of basis operations called the error basis (which is given by the Pauli matrices and the identity). To correct the error, the Pauli operator corresponding to the type of error is used on the corrupted qubit to revert the effect of the error.
+
+The syndrome measurement provides information about the error that has happened, but not about the information that is stored in the logical qubit—as otherwise the measurement would destroy any quantum superposition of this logical qubit with other qubits in the quantum computer, which would prevent it from being used to convey quantum information.
+
+Bit-flip code[edit]
+
+The repetition code works in a classical channel, because classical bits are easy to measure and to repeat. This approach does not work for a quantum channel in which, due to the no-cloning theorem, it is not possible to repeat a single qubit three times. To overcome this, a different method has to be used, such as the three-qubit bit-flip code first proposed by Asher Peres in 1985.[3] This technique uses entanglement and syndrome measurements and is comparable in performance with the repetition code.
+
+Quantum circuit of the bit flip code
+
+Consider the situation in which we want to transmit the state of a single qubit
+|
+𝜓
+⟩
+through a noisy channel
+𝐸
+. Let us moreover assume that this channel either flips the state of the qubit, with probability
+𝑝
+, or leaves it unchanged. The action of
+𝐸
+on a general input
+𝜌
+can therefore be written as
+𝐸
+(
+𝜌
+)
+=
+(
+1
+−
+𝑝
+)
+𝜌
++
+𝑝
+ 
+𝑋
+𝜌
+𝑋
+.
+
+Let
+|
+𝜓
+⟩
+=
+𝛼
+0
+|
+0
+⟩
++
+𝛼
+1
+|
+1
+⟩
+be the quantum state to be transmitted. With no error-correcting protocol in place, the transmitted state will be correctly transmitted with probability
+1
+−
+𝑝
+. We can however improve on this number by encoding the state into a greater number of qubits, in such a way that errors in the corresponding logical qubits can be detected and corrected. In the case of the simple three-qubit repetition code, the encoding consists in the mappings
+|
+0
+⟩
+→
+|
+0
+L
+⟩
+≡
+|
+000
+⟩
+and
+|
+1
+⟩
+→
+|
+1
+L
+⟩
+≡
+|
+111
+⟩
+. The input state
+|
+𝜓
+⟩
+is encoded into the state
+|
+𝜓
+′
+⟩
+=
+𝛼
+0
+|
+000
+⟩
++
+𝛼
+1
+|
+111
+⟩
+. This mapping can be realized for example using two CNOT gates, entangling the system with two ancillary qubits initialized in the state
+|
+0
+⟩
+.[4] The encoded state
+|
+𝜓
+′
+⟩
+is what is now passed through the noisy channel.
+
+The channel acts on
+|
+𝜓
+′
+⟩
+by flipping some subset (possibly empty) of its qubits. No qubit is flipped with probability
+(
+1
+−
+𝑝
+)
+3
+, a single qubit is flipped with probability
+3
+𝑝
+(
+1
+−
+𝑝
+)
+2
+, two qubits are flipped with probability
+3
+𝑝
+2
+(
+1
+−
+𝑝
+)
+, and all three qubits are flipped with probability
+𝑝
+3
+. Note that a further assumption about the channel is made here: we assume that
+𝐸
+acts equally and independently on each of the three qubits in which the state is now encoded. The problem is now how to detect and correct such errors, while not corrupting the transmitted state.
+
+Comparison of output minimum fidelities, with (red) and without (blue) error correcting via the three qubit bit flip code. Notice how, for
+𝑝
+≤
+1
+/
+2
+, the error correction scheme improves the fidelity.
+
+Let us assume for simplicity that
+𝑝
+is small enough that the probability of more than a single qubit being flipped is negligible. One can then detect whether a qubit was flipped, without also querying for the values being transmitted, by asking whether one of the qubits differs from the others. This amounts to performing a measurement with four different outcomes, corresponding to the following four projective measurements:
+𝑃
+0
+
+=
+|
+000
+⟩
+⟨
+000
+|
++
+|
+111
+⟩
+⟨
+111
+|
+,
+
+
+𝑃
+1
+
+=
+|
+100
+⟩
+⟨
+100
+|
++
+|
+011
+⟩
+⟨
+011
+|
+,
+
+
+𝑃
+2
+
+=
+|
+010
+⟩
+⟨
+010
+|
++
+|
+101
+⟩
+⟨
+101
+|
+,
+
+
+𝑃
+3
+
+=
+|
+001
+⟩
+⟨
+001
+|
++
+|
+110
+⟩
+⟨
+110
+|
+.
+This reveals which qubits are different from the others, without at the same time giving information about the state of the qubits themselves. If the outcome corresponding to
+𝑃
+0
+is obtained, no correction is applied, while if the outcome corresponding to
+𝑃
+𝑖
+is observed, then the Pauli X gate is applied to the
+𝑖
+-th qubit. Formally, this correcting procedure corresponds to the application of the following map to the output of the channel:
+𝐸
+corr
+(
+𝜌
+)
+=
+𝑃
+0
+𝜌
+𝑃
+0
++
+∑
+𝑖
+=
+1
+3
+𝑋
+𝑖
+𝑃
+𝑖
+𝜌
+𝑃
+𝑖
+𝑋
+𝑖
+.
+
+Note that, while this procedure perfectly corrects the output when zero or one flips are introduced by the channel, if more than one qubit is flipped then the output is not properly corrected. For example, if the first and second qubits are flipped, then the syndrome measurement gives the outcome
+𝑃
+3
+, and the third qubit is flipped, instead of the first two. To assess the performance of this error-correcting scheme for a general input we can study the fidelity
+𝐹
+(
+𝜓
+′
+)
+between the input
+|
+𝜓
+′
+⟩
+and the output
+𝜌
+out
+≡
+𝐸
+corr
+(
+𝐸
+(
+|
+𝜓
+′
+⟩
+⟨
+𝜓
+′
+|
+)
+)
+. Being the output state
+𝜌
+out
+correct when no more than one qubit is flipped, which happens with probability
+(
+1
+−
+𝑝
+)
+3
++
+3
+𝑝
+(
+1
+−
+𝑝
+)
+2
+, we can write it as
+[
+(
+1
+−
+𝑝
+)
+3
++
+3
+𝑝
+(
+1
+−
+𝑝
+)
+2
+]
+|
+𝜓
+′
+⟩
+⟨
+𝜓
+′
+|
++
+(
+.
+.
+.
+)
+, where the dots denote components of
+𝜌
+out
+resulting from errors not properly corrected by the protocol. It follows that
+𝐹
+(
+𝜓
+′
+)
+=
+⟨
+𝜓
+′
+|
+𝜌
+out
+|
+𝜓
+′
+⟩
+≥
+(
+1
+−
+𝑝
+)
+3
++
+3
+𝑝
+(
+1
+−
+𝑝
+)
+2
+=
+1
+−
+3
+𝑝
+2
++
+2
+𝑝
+3
+.
+This fidelity is to be compared with the corresponding fidelity obtained when no error-correcting protocol is used, which was shown before to equal
+1
+−
+𝑝
+. A little algebra then shows that the fidelity after error correction is greater than the one without for
+𝑝
+<
+1
+/
+2
+. Note that this is consistent with the working assumption that was made while deriving the protocol (of
+𝑝
+being small enough).
+
+Sign-flip code[edit]
+Quantum circuit of the phase-flip code
+
+The bit flip is the only kind of error in classical computers. In quantum computers, however, another kind of error is possible: the sign flip. Through transmission in a channel, the relative sign between
+|
+0
+⟩
+and
+|
+1
+⟩
+can become inverted. For instance, a qubit in the state
+|
+−
+⟩
+=
+(
+|
+0
+⟩
+−
+|
+1
+⟩
+)
+/
+2
+may have its sign flip to
+|
++
+⟩
+=
+(
+|
+0
+⟩
++
+|
+1
+⟩
+)
+/
+2
+.
+
+The original state of the qubit
+|
+𝜓
+⟩
+=
+𝛼
+0
+|
+0
+⟩
++
+𝛼
+1
+|
+1
+⟩
+will be changed into the state
+|
+𝜓
+′
+⟩
+=
+𝛼
+0
+|
++
++
++
+⟩
++
+𝛼
+1
+|
+−
+−
+−
+⟩
+.
+
+In the Hadamard basis, bit flips become sign flips and sign flips become bit flips. Let
+𝐸
+phase
+be a quantum channel that can cause at most one phase flip. Then the bit-flip code from above can recover
+|
+𝜓
+⟩
+by transforming into the Hadamard basis before and after transmission through
+𝐸
+phase
+.
+
+Shor code[edit]
+
+The error channel may induce either a bit flip, a sign flip (i.e., a phase flip), or both. It is possible to correct for both types of errors on a logical qubit using a well-designed QEC code. One example of a code that does this is the Shor code, published in 1995.[2][5]: 10  Since these two types of errors are the only types of errors that can result after a projective measurement, a Shor code corrects arbitrary single-qubit errors.
+
+Quantum circuit to encode a single logical qubit with the Shor code and then perform bit flip error correction on each of the three blocks.
+
+Let
+𝐸
+be a quantum channel that can arbitrarily corrupt a single qubit. The 1st, 4th and 7th qubits are for the sign flip code, while the three groups of qubits (1,2,3), (4,5,6), and (7,8,9) are designed for the bit flip code. With the Shor code, a qubit state
+|
+𝜓
+⟩
+=
+𝛼
+0
+|
+0
+⟩
++
+𝛼
+1
+|
+1
+⟩
+will be transformed into the product of 9 qubits
+|
+𝜓
+′
+⟩
+=
+𝛼
+0
+|
+0
+𝑆
+⟩
++
+𝛼
+1
+|
+1
+𝑆
+⟩
+, where
+|
+0
+S
+⟩
+=
+1
+2
+2
+(
+|
+000
+⟩
++
+|
+111
+⟩
+)
+⊗
+(
+|
+000
+⟩
++
+|
+111
+⟩
+)
+⊗
+(
+|
+000
+⟩
++
+|
+111
+⟩
+)
+|
+1
+S
+⟩
+=
+1
+2
+2
+(
+|
+000
+⟩
+−
+|
+111
+⟩
+)
+⊗
+(
+|
+000
+⟩
+−
+|
+111
+⟩
+)
+⊗
+(
+|
+000
+⟩
+−
+|
+111
+⟩
+)
+
+If a bit flip error happens to a qubit, the syndrome analysis will be performed on each block of qubits (1,2,3), (4,5,6), and (7,8,9) to detect and correct at most one bit flip error in each block.
+
+If the three bit flip group (1,2,3), (4,5,6), and (7,8,9) are considered as three inputs, then the Shor code circuit can be reduced as a sign flip code. This means that the Shor code can also repair a sign flip error for a single qubit.
+
+The Shor code also can correct for any arbitrary errors (both bit flip and sign flip) to a single qubit. If an error is modeled by a unitary transform U, which will act on a qubit
+|
+𝜓
+⟩
+, then
+𝑈
+can be described in the form
+𝑈
+=
+𝑐
+0
+𝐼
++
+𝑐
+1
+𝑋
++
+𝑐
+2
+𝑌
++
+𝑐
+3
+𝑍
+where
+𝑐
+0
+,
+𝑐
+1
+,
+𝑐
+2
+, and
+𝑐
+3
+are complex constants, I is the identity, and the Pauli matrices are given by
+𝑋
+
+=
+(
+0
+
+1
+
+
+1
+
+0
+)
+;
+
+
+𝑌
+
+=
+(
+0
+
+−
+𝑖
+
+
+𝑖
+
+0
+)
+;
+
+
+𝑍
+
+=
+(
+1
+
+0
+
+
+0
+
+−
+1
+)
+.
+
+If U is equal to I, then no error occurs. If
+𝑈
+=
+𝑋
+, a bit flip error occurs. If
+𝑈
+=
+𝑍
+, a sign flip error occurs. If
+𝑈
+=
+𝑖
+𝑌
+then both a bit flip error and a sign flip error occur. In other words, the Shor code can correct any combination of bit or phase errors on a single qubit.
+
+More generally, the error operator U does not need to be unitary, but can be an Kraus operator from a quantum operation representing a system interacting with its environment.
+
+Bosonic codes[edit]
+
+Several proposals have been made for storing error-correctable quantum information in bosonic modes.[clarification needed] Unlike a two-level system, a quantum harmonic oscillator has infinitely many energy levels in a single physical system. Codes for these systems include cat,[6][7][8] Gottesman-Kitaev-Preskill (GKP),[9] and binomial codes.[10][11] One insight offered by these codes is to take advantage of the redundancy within a single system, rather than to duplicate many two-level qubits.
+
+Binomial code[edit]
+
+Written in the Fock basis, the simplest binomial encoding is
+|
+0
+L
+⟩
+=
+|
+0
+⟩
++
+|
+4
+⟩
+2
+,
+|
+1
+L
+⟩
+=
+|
+2
+⟩
+,
+where the subscript L indicates a "logically encoded" state. Then if the dominant error mechanism of the system is the stochastic application of the bosonic lowering operator
+𝑎
+^
+,
+the corresponding error states are
+|
+3
+⟩
+and
+|
+1
+⟩
+,
+respectively. Since the codewords involve only even photon number, and the error states involve only odd photon number, errors can be detected by measuring the photon number parity of the system.[10][12] Measuring the odd parity will allow correction by application of an appropriate unitary operation without knowledge of the specific logical state of the qubit. However, the particular binomial code above is not robust to two-photon loss.
+
+Cat code[edit]
+
+Schrödinger cat states, superpositions of coherent states, can also be used as logical states for error correction codes. Cat code, realized by Ofek et al.[13] in 2016, defined two sets of logical states:
+{
+|
+0
+𝐿
++
+⟩
+,
+|
+1
+𝐿
++
+⟩
+}
+and
+{
+|
+0
+𝐿
+−
+⟩
+,
+|
+1
+𝐿
+−
+⟩
+}
+, where each of the states is a superposition of coherent state as follows
+
+|
+0
+𝐿
++
+⟩
+
+≡
+|
+𝛼
+⟩
++
+|
+−
+𝛼
+⟩
+,
+
+
+|
+1
+𝐿
++
+⟩
+
+≡
+|
+𝑖
+𝛼
+⟩
++
+|
+−
+𝑖
+𝛼
+⟩
+,
+
+
+|
+0
+𝐿
+−
+⟩
+
+≡
+|
+𝛼
+⟩
+−
+|
+−
+𝛼
+⟩
+,
+
+
+|
+1
+𝐿
+−
+⟩
+
+≡
+|
+𝑖
+𝛼
+⟩
+−
+|
+−
+𝑖
+𝛼
+⟩
+.
+
+Those two sets of states differ from the photon number parity, as states denoted with
++
+only occupy even photon number states and states with
+−
+indicate they have odd parity. Similar to the binomial code, if the dominant error mechanism of the system is the stochastic application of the bosonic lowering operator
+𝑎
+^
+, the error takes the logical states from the even parity subspace to the odd one, and vice versa. Single-photon-loss errors can therefore be detected by measuring the photon number parity operator
+exp
+⁡
+(
+𝑖
+𝜋
+𝑎
+^
+†
+𝑎
+^
+)
+using a dispersively coupled ancillary qubit.[12]
+
+Still, cat qubits are not protected against two-photon loss
+𝑎
+^
+2
+, dephasing noise
+𝑎
+^
+†
+𝑎
+^
+, photon-gain error
+𝑎
+^
+†
+, etc.[6][7][8]
+
+General codes[edit]
+
+In general, a quantum code for a quantum channel
+𝐸
+is a subspace
+𝐶
+⊆
+𝐻
+, where
+𝐻
+is the state Hilbert space, such that there exists another quantum channel
+𝑅
+with
+(
+𝑅
+∘
+𝐸
+)
+(
+𝜌
+)
+=
+𝜌
+∀
+𝜌
+=
+𝑃
+𝐶
+𝜌
+𝑃
+𝐶
+,
+where
+𝑃
+𝐶
+is the orthogonal projection onto
+𝐶
+. Here
+𝑅
+is known as the correction operation.
+
+A non-degenerate code is one for which different elements of the set of correctable errors produce linearly independent results when applied to elements of the code. If distinct of the set of correctable errors produce orthogonal results, the code is considered pure.[14]
+
+Models[edit]
+
+Over time, researchers have come up with several codes:
+
+Peter Shor's 9-qubit-code, a.k.a. the Shor code, encodes 1 logical qubit in 9 physical qubits and can correct for arbitrary errors in a single qubit.
+Andrew Steane found a code that does the same with 7 instead of 9 qubits, see Steane code.
+Raymond Laflamme and collaborators found a class of 5-qubit codes that do the same, which also have the property of being fault-tolerant. A 5-qubit code is the smallest possible code that protects a single logical qubit against single-qubit errors.
+A generalisation of the technique used by Steane, to develop the 7-qubit code from the classical [7, 4] Hamming code, led to the construction of an important class of codes called the CSS codes, named for their inventors: Robert Calderbank, Peter Shor and Andrew Steane. According to the quantum Hamming bound, encoding a single logical qubit and providing for arbitrary error correction in a single qubit requires a minimum of 5 physical qubits.
+A more general class of codes (encompassing the former) are the stabilizer codes discovered by Daniel Gottesman, and by Robert Calderbank, Eric Rains, Peter Shor, and N. J. A. Sloane; these are also called additive codes.
+Two dimensional Bacon–Shor codes are a family of codes parameterized by integers m and n. There are nm qubits arranged in a square lattice.[15]
+Alexei Kitaev's topological quantum codes, introduced in 1997 as the toric code, and the more general idea of a topological quantum computer are the basis for various code types.[16]
+Todd Brun, Igor Devetak, and Min-Hsiu Hsieh also constructed the entanglement-assisted stabilizer formalism as an extension of the standard stabilizer formalism that incorporates quantum entanglement shared between a sender and a receiver.
+The ideas of stabilizer codes, CSS codes, and topological codes can be expanded into the 2D planar surface code, of which various types exist.[17] As of June 2024, the 2D planar surface code is generally considered the most well-studied type of quantum error correction, and one of the leading contenders for practical use in quantum computing.[18][19]
+
+That these codes allow indeed for quantum computations of arbitrary length is the content of the quantum threshold theorem, found by Michael Ben-Or and Dorit Aharonov, which asserts that you can correct for all errors if you concatenate quantum codes such as the CSS codes—i.e. re-encode each logical qubit by the same code again, and so on, on logarithmically many levels—provided that the error rate of individual quantum gates is below a certain threshold; as otherwise, the attempts to measure the syndrome and correct the errors would introduce more new errors than they correct for.
+
+As of late 2004, estimates for this threshold indicate that it could be as high as 1–3%,[20] provided that there are sufficiently many qubits available.
+
+Experimental realization[edit]
+
+There have been several experimental realizations of CSS-based codes. The first demonstration was with nuclear magnetic resonance qubits.[21] Subsequently, demonstrations have been made with linear optics,[22] trapped ions,[23][24] and superconducting (transmon) qubits.[25]
+
+In 2016 for the first time the lifetime of a quantum bit was prolonged by employing a QEC code.[13] The error-correction demonstration was performed on Schrödinger-cat states encoded in a superconducting resonator, and employed a quantum controller capable of performing real-time feedback operations including read-out of the quantum information, its analysis, and the correction of its detected errors. The work demonstrated how the quantum-error-corrected system reaches the break-even point at which the lifetime of a logical qubit exceeds the lifetime of the underlying constituents of the system (the physical qubits).
+
+Other error correcting codes have also been implemented, such as one aimed at correcting for photon loss, the dominant error source in photonic qubit schemes.[26][27]
+
+In 2021, an entangling gate between two logical qubits encoded in topological quantum error-correction codes has first been realized using 10 ions in a trapped-ion quantum computer.[28][29] 2021 also saw the first experimental demonstration of fault-tolerant Bacon-Shor code in a single logical qubit of a trapped-ion system, i.e. a demonstration for which the addition of error correction is able to suppress more errors than is introduced by the overhead required to implement the error correction as well as fault tolerant Steane code.[30][31][32]
+
+In 2022, researchers at the University of Innsbruck have demonstrated a fault-tolerant universal set of gates on two logical qubits in a trapped-ion quantum computer. They have performed a logical two-qubit controlled-NOT gate between two instances of the seven-qubit colour code, and fault-tolerantly prepared a logical magic state.[33]
+
+In February 2023, researchers at Google claimed to have decreased quantum errors by increasing the qubit number in experiments, they used a fault tolerant surface code measuring an error rate of 3.028% and 2.914% for a distance-3 qubit array and a distance-5 qubit array respectively.[34][35][36]
+
+In April 2024, researchers at Microsoft claimed to have successfully tested a quantum error correction code that allowed them to achieve an error rate with logical qubits that is 800 times better than the underlying physical error rate.[37]
+
+This qubit virtualization system was used to create 4 logical qubits with 30 of the 32 qubits on Quantinuum's trapped-ion hardware. The system uses an active syndrome extraction technique to diagnose errors and correct them while calculations are underway without destroying the logical qubits.[38]
+
+In January 2025, researchers at UNSW Sydney managed to develop an error correction method using antimony-based materials, including antimonides, leveraging high-dimensional quantum states (qudits) with up to eight states. By encoding quantum information in the nuclear spin of a phosphorus atom embedded in silicon and employing advanced pulse control techniques, they demonstrated enhanced error resilience.[39]
+
+Quantum error correction without encoding and parity checks[edit]
+
+In 2022, research at University of Engineering and Technology Lahore demonstrated error cancellation by inserting single-qubit Z-axis rotation gates into strategically chosen locations of the superconductor quantum circuits.[40] The scheme has been shown to effectively correct errors that would otherwise rapidly add up under constructive interference of coherent noise. This is a circuit-level calibration scheme that traces deviations (e.g. sharp dips or notches) in the decoherence curve to detect and localize the coherent error, but does not require encoding or parity measurements.[41] However, further investigation is needed to establish the effectiveness of this method for the incoherent noise.[40]
+
+See also[edit]
+Error detection and correction
+Soft error
+References[edit]
+^ Cai, Weizhou; Ma, Yuwei (2021). "Bosonic quantum error correction codes in superconducting quantum circuits". Fundamental Research. 1 (1): 50–67. arXiv:2010.08699. Bibcode:2021FunRe...1...50C. doi:10.1016/j.fmre.2020.12.006. A practical quantum computer that is capable of large circuit depth, therefore, ultimately calls for operations on logical qubits protected by quantum error correction
+^
+Jump up to:
+a b Shor, Peter W. (1995). "Scheme for reducing decoherence in quantum computer memory". Physical Review A. 52 (4): R2493 – R2496. Bibcode:1995PhRvA..52.2493S. doi:10.1103/PhysRevA.52.R2493. PMID 9912632.
+^ Peres, Asher (1985). "Reversible Logic and Quantum Computers". Physical Review A. 32 (6): 3266–3276. Bibcode:1985PhRvA..32.3266P. doi:10.1103/PhysRevA.32.3266. PMID 9896493.
+^ Nielsen, Michael A.; Chuang, Isaac L. (2000). Quantum Computation and Quantum Information. Cambridge University Press.
+^ Devitt, Simon J; Munro, William J; Nemoto, Kae (2013-06-20). "Quantum error correction for beginners". Reports on Progress in Physics. 76 (7): 076001. arXiv:0905.2794. Bibcode:2013RPPh...76g6001D. doi:10.1088/0034-4885/76/7/076001. ISSN 0034-4885. PMID 23787909. S2CID 206021660.
+^
+Jump up to:
+a b Cochrane, P. T.; Milburn, G. J.; Munro, W. J. (1999-04-01). "Macroscopically distinct quantum-superposition states as a bosonic code for amplitude damping". Physical Review A. 59 (4): 2631–2634. arXiv:quant-ph/9809037. Bibcode:1999PhRvA..59.2631C. doi:10.1103/PhysRevA.59.2631. S2CID 119532538.
+^
+Jump up to:
+a b Leghtas, Zaki; Kirchmair, Gerhard; Vlastakis, Brian; Schoelkopf, Robert J.; Devoret, Michel H.; Mirrahimi, Mazyar (2013-09-20). "Hardware-Efficient Autonomous Quantum Memory Protection". Physical Review Letters. 111 (12): 120501. arXiv:1207.0679. Bibcode:2013PhRvL.111l0501L. doi:10.1103/physrevlett.111.120501. ISSN 0031-9007. PMID 24093235. S2CID 19929020.
+^
+Jump up to:
+a b Mirrahimi, Mazyar; Leghtas, Zaki; Albert, Victor V; Touzard, Steven; Schoelkopf, Robert J; Jiang, Liang; Devoret, Michel H (2014-04-22). "Dynamically protected cat-qubits: a new paradigm for universal quantum computation". New Journal of Physics. 16 (4): 045014. arXiv:1312.2017. Bibcode:2014NJPh...16d5014M. doi:10.1088/1367-2630/16/4/045014. ISSN 1367-2630. S2CID 7179816.
+^ Daniel Gottesman; Alexei Kitaev; John Preskill (2001). "Encoding a qubit in an oscillator". Physical Review A. 64 (1): 012310. arXiv:quant-ph/0008040. Bibcode:2001PhRvA..64a2310G. doi:10.1103/PhysRevA.64.012310. S2CID 18995200.
+^
+Jump up to:
+a b Michael, Marios H.; Silveri, Matti; Brierley, R. T.; Albert, Victor V.; Salmilehto, Juha; Jiang, Liang; Girvin, S. M. (2016-07-14). "New Class of Quantum Error-Correcting Codes for a Bosonic Mode". Physical Review X. 6 (3): 031006. arXiv:1602.00008. Bibcode:2016PhRvX...6c1006M. doi:10.1103/PhysRevX.6.031006. S2CID 29518512.
+^ Albert, Victor V.; Noh, Kyungjoo; Duivenvoorden, Kasper; Young, Dylan J.; Brierley, R. T.; Reinhold, Philip; Vuillot, Christophe; Li, Linshu; Shen, Chao; Girvin, S. M.; Terhal, Barbara M.; Jiang, Liang (2018). "Performance and structure of single-mode bosonic codes". Physical Review A. 97 (3): 032346. arXiv:1708.05010. Bibcode:2018PhRvA..97c2346A. doi:10.1103/PhysRevA.97.032346. S2CID 51691343.
+^
+Jump up to:
+a b Sun, L.; Petrenko, A.; Leghtas, Z.; Vlastakis, B.; Kirchmair, G.; Sliwa, K. M.; Narla, A.; Hatridge, M.; Shankar, S.; Blumoff, J.; Frunzio, L.; Mirrahimi, M.; Devoret, M. H.; Schoelkopf, R. J. (July 2014). "Tracking photon jumps with repeated quantum non-demolition parity measurements". Nature. 511 (7510): 444–448. arXiv:1311.2534. Bibcode:2014Natur.511..444S. doi:10.1038/nature13436. ISSN 1476-4687. PMID 25043007. S2CID 987945.
+^
+Jump up to:
+a b Ofek, Nissim; Petrenko, Andrei; Heeres, Reinier; Reinhold, Philip; Leghtas, Zaki; Vlastakis, Brian; Liu, Yehan; Frunzio, Luigi; Girvin, S. M.; Jiang, L.; Mirrahimi, Mazyar (August 2016). "Extending the lifetime of a quantum bit with error correction in superconducting circuits". Nature. 536 (7617): 441–445. Bibcode:2016Natur.536..441O. doi:10.1038/nature18949. ISSN 0028-0836. PMID 27437573. S2CID 594116.
+^ Calderbank, A. R.; Rains, E. M.; Shor, P. W.; Sloane, N. J. A. (1998). "Quantum Error Correction via Codes over GF(4)". IEEE Transactions on Information Theory. 44 (4): 1369–1387. arXiv:quant-ph/9608006. doi:10.1109/18.681315. S2CID 1215697.
+^ Bacon, Dave (2006-01-30). "Operator quantum error-correcting subsystems for self-correcting quantum memories". Physical Review A. 73 (1): 012340. arXiv:quant-ph/0506023. Bibcode:2006PhRvA..73a2340B. doi:10.1103/PhysRevA.73.012340. S2CID 118968017.
+^ Kitaev, Alexei (1997-07-31). "Quantum Error Correction with Imperfect Gates". Quantum Communication, Computing, and Measurement. Springer. pp. 181–188. doi:10.1007/978-1-4615-5923-8.
+^ Fowler, Austin G.; Mariantoni, Matteo; Martinis, John M.; Cleland, Andrew N. (2012-09-18). "Surface codes: Towards practical large-scale quantum computation". Physical Review A. 86 (3): 032324. arXiv:1208.0928. Bibcode:2012PhRvA..86c2324F. doi:10.1103/PhysRevA.86.032324. ISSN 1050-2947.
+^ Gidney, Craig; Newman, Michael; Brooks, Peter; Jones, Cody (2023). "Yoked surface codes". arXiv:2312.04522 [quant-ph].
+^ Horsman, Dominic; Fowler, Austin G; Devitt, Simon; Meter, Rodney Van (2012-12-01). "Surface code quantum computing by lattice surgery". New Journal of Physics. 14 (12): 123011. arXiv:1111.4022. Bibcode:2012NJPh...14l3011H. doi:10.1088/1367-2630/14/12/123011. ISSN 1367-2630.
+^ Knill, Emanuel (2004-11-02). "Quantum Computing with Very Noisy Devices". Nature. 434 (7029): 39–44. arXiv:quant-ph/0410199. Bibcode:2005Natur.434...39K. doi:10.1038/nature03350. PMID 15744292. S2CID 4420858.
+^ Cory, D. G.; Price, M. D.; Maas, W.; Knill, E.; Laflamme, R.; Zurek, W. H.; Havel, T. F.; Somaroo, S. S. (1998). "Experimental Quantum Error Correction". Phys. Rev. Lett. 81 (10): 2152–2155. arXiv:quant-ph/9802018. Bibcode:1998PhRvL..81.2152C. doi:10.1103/PhysRevLett.81.2152. S2CID 11662810.
+^ Pittman, T. B.; Jacobs, B. C.; Franson, J. D. (2005). "Demonstration of quantum error correction using linear optics". Phys. Rev. A. 71 (5): 052332. arXiv:quant-ph/0502042. Bibcode:2005PhRvA..71e2332P. doi:10.1103/PhysRevA.71.052332. S2CID 11679660.
+^ Chiaverini, J.; Leibfried, D.; Schaetz, T.; Barrett, M. D.; Blakestad, R. B.; Britton, J.; Itano, W. M.; Jost, J. D.; Knill, E.; Langer, C.; Ozeri, R.; Wineland, D. J. (2004). "Realization of quantum error correction". Nature. 432 (7017): 602–605. Bibcode:2004Natur.432..602C. doi:10.1038/nature03074. PMID 15577904. S2CID 167898.
+^ Schindler, P.; Barreiro, J. T.; Monz, T.; Nebendahl, V.; Nigg, D.; Chwalla, M.; Hennrich, M.; Blatt, R. (2011). "Experimental Repetitive Quantum Error Correction". Science. 332 (6033): 1059–1061. Bibcode:2011Sci...332.1059S. doi:10.1126/science.1203329. PMID 21617070. S2CID 32268350.
+^ Reed, M. D.; DiCarlo, L.; Nigg, S. E.; Sun, L.; Frunzio, L.; Girvin, S. M.; Schoelkopf, R. J. (2012). "Realization of Three-Qubit Quantum Error Correction with Superconducting Circuits". Nature. 482 (7385): 382–385. arXiv:1109.4948. Bibcode:2012Natur.482..382R. doi:10.1038/nature10786. PMID 22297844. S2CID 2610639.
+^ Lassen, M.; Sabuncu, M.; Huck, A.; Niset, J.; Leuchs, G.; Cerf, N. J.; Andersen, U. L. (2010). "Quantum optical coherence can survive photon losses using a continuous-variable quantum erasure-correcting code". Nature Photonics. 4 (10): 700. arXiv:1006.3941. Bibcode:2010NaPho...4..700L. doi:10.1038/nphoton.2010.168. S2CID 55090423.
+^ Guo, Qihao; Zhao, Yuan-Yuan; Grassl, Markus; Nie, Xinfang; Xiang, Guo-Yong; Xin, Tao; Yin, Zhang-Qi; Zeng, Bei (2021). "Testing a quantum error-correcting code on various platforms". Science Bulletin. 66 (1): 29–35. arXiv:2001.07998. Bibcode:2021SciBu..66...29G. doi:10.1016/j.scib.2020.07.033. PMID 36654309. S2CID 210861230.
+^ "Error-protected quantum bits entangled for the first time". phys.org. 2021-01-13. Retrieved 2021-08-30.
+^ Erhard, Alexander; Poulsen Nautrup, Hendrik; Meth, Michael; Postler, Lukas; Stricker, Roman; Stadler, Martin; Negnevitsky, Vlad; Ringbauer, Martin; Schindler, Philipp; Briegel, Hans J.; Blatt, Rainer; Friis, Nicolai; Monz, Thomas (2021-01-13). "Entangling logical qubits with lattice surgery". Nature. 589 (7841): 220–224. arXiv:2006.03071. Bibcode:2021Natur.589..220E. doi:10.1038/s41586-020-03079-6. ISSN 1476-4687. PMID 33442044. S2CID 219401398.
+^ Bedford, Bailey (2021-10-04). "Foundational step shows quantum computers can be better than the sum of their parts". phys.org. Retrieved 2021-10-05.
+^ Egan, Laird; Debroy, Dripto M.; Noel, Crystal; Risinger, Andrew; Zhu, Daiwei; Biswas, Debopriyo; Newman, Michael; Li, Muyuan; Brown, Kenneth R.; Cetina, Marko; Monroe, Christopher (2021-10-04). "Fault-tolerant control of an error-corrected qubit". Nature. 598 (7880): 281–286. Bibcode:2021Natur.598..281E. doi:10.1038/s41586-021-03928-y. ISSN 0028-0836. PMID 34608286. S2CID 238357892.
+^ Ball, Philip (2021-12-23). "Real-Time Error Correction for Quantum Computing". Physics. 14. 184. Bibcode:2021PhyOJ..14..184B. doi:10.1103/Physics.14.184. S2CID 245442996.
+^ Postler, Lukas; Heußen, Sascha; Pogorelov, Ivan; Rispler, Manuel; Feldker, Thomas; Meth, Michael; Marciniak, Christian D.; Stricker, Roman; Ringbauer, Martin; Blatt, Rainer; Schindler, Philipp; Müller, Markus; Monz, Thomas (2022-05-25). "Demonstration of fault-tolerant universal quantum gate operations". Nature. 605 (7911): 675–680. arXiv:2111.12654. Bibcode:2022Natur.605..675P. doi:10.1038/s41586-022-04721-1. PMID 35614250. S2CID 244527180.
+^ Google Quantum AI (2023-02-22). "Suppressing quantum errors by scaling a surface code logical qubit". Nature. 614 (7949): 676–681. Bibcode:2023Natur.614..676G. doi:10.1038/s41586-022-05434-1. ISSN 1476-4687. PMC 9946823. PMID 36813892.
+^ Boerkamp, Martijn (2023-03-20). "Breakthrough in quantum error correction could lead to large-scale quantum computers". Physics World. Retrieved 2023-04-01.
+^ Conover, Emily (2023-02-22). "Google's quantum computer reached an error-correcting milestone". ScienceNews. Retrieved 2023-04-01.
+^ Smith-Goodson, Paul (2024-04-18). "Microsoft And Quantinuum Improve Quantum Error Rates By 800x". Forbes. Retrieved 2024-07-01.
+^ Yirka, Bob (2024-04-05). "Quantinuum quantum computer using Microsoft's 'logical quantum bits' runs 14,000 experiments with no errors". Phys.org. Retrieved 2024-07-01.
+^ Yu, Xi; et al. (2025). "Schrödinger cat states of a nuclear spin qudit in silicon". Nature Physics. arXiv:2405.15494. doi:10.1038/s41567-024-02745-0.
+^
+Jump up to:
+a b Ahsan, Muhammad; Naqvi, Syed Abbas Zilqurnain; Anwer, Haider (2022-02-18). "Quantum circuit engineering for correcting coherent noise". Physical Review A. 105 (2): 022428. arXiv:2109.03533. Bibcode:2022PhRvA.105b2428A. doi:10.1103/physreva.105.022428. ISSN 2469-9926. S2CID 237442177.
+^ Steffen, Matthias (2022-10-20). "What's the difference between error suppression, error mitigation, and error correction?". IBM Research Blog. Retrieved 2022-11-26.
+Further reading[edit]
+Daniel Lidar and Todd Brun, ed. (2013). Quantum Error Correction. Cambridge University Press.
+La Guardia, Giuliano Gadioli, ed. (2020). Quantum Error Correction: Symmetric, Asymmetric, Synchronizable, and Convolutional Codes. Springer Nature.
+Frank Gaitan (2008). Quantum Error Correction and Fault Tolerant Quantum Computing. Taylor & Francis.
+Freedman, Michael H.; Meyer, David A.; Luo, Feng (2002). "Z2-Systolic freedom and quantum codes". Mathematics of quantum computation. Comput. Math. Ser. Boca Raton, FL: Chapman & Hall/CRC. pp. 287–320.
+Freedman, Michael H.; Meyer, David A. (1998). "Projective plane and planar quantum codes". Found. Comput. Math. 2001 (3): 325–332. arXiv:quant-ph/9810055. Bibcode:1998quant.ph.10055F.
+External links[edit]
+"Topological Quantum Error Correction". Quantum Light. University of Sheffield. 2018-09-28. Archived from the original on 2021-12-22 – via YouTube.
+show
+vte
+Quantum information science
+show
+vte
+Quantum mechanics
+show
+vte
+Emerging technologies
+Categories: Quantum computingFault-tolerant computer systems
+This page was last edited on 12 February 2025, at 04:57 (UTC).
+Text is available under the Creative Commons Attribution-ShareAlike 4.0 License; additional terms may apply. By using this site, you agree to the Terms of Use and Privacy Policy. Wikipedia® is a registered trademark of the Wikimedia Foundation, Inc., a non-profit organization.
+Privacy policy
+About Wikipedia
+Disclaimers
+Contact Wikipedia
+Code of Conduct
+Developers
+Statistics
+Cookie statement
+Mobile view
+Search
+Quantum error correction
+10 languages
+Add topic
