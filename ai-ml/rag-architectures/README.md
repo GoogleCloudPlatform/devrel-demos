@@ -1,6 +1,6 @@
 # RAG Architectures - App Source Code
 
-This directory contains the application source code for the [Google Cloud Next 2025 breakout session: "Architectural approaches for RAG infrastructure."](https://cloud.withgoogle.com/next/25/session-library?session=BRK2-074#all), by Kumar Dhanagopal and [Megan O'Keefe](https://github.com/). The sample application is a chatbot that uses a RAG (Retrieval-Augmented Generation) setup to answer questions about Quantum Computing.
+This directory contains the application source code for the [Google Cloud Next 2025 breakout session: "Architectural approaches for RAG infrastructure."](https://cloud.withgoogle.com/next/25/session-library?session=BRK2-074#all), by Kumar Dhanagopal and [Megan O'Keefe](https://github.com/askmeegs). The sample application is a chatbot that uses a RAG (Retrieval-Augmented Generation) setup to answer questions about Quantum Computing.
 
 The infrastructure code for this demo can be found in the [Architecture Center Samples repository](https://github.com/GoogleCloudPlatform/architecture-center-samples/tree/main/gen-ai-rag-vertex-ai-vector-search). 
 
