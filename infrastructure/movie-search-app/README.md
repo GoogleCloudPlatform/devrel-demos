@@ -27,16 +27,16 @@ gcloud services enable compute.googleapis.com
 ```
 - Create a GCE VM in a Google Cloud project
 - Connect to the VM ussing SSH
-- Clone the software 
-```
-git clone https://github.com/GoogleCloudPlatform/devrel-demos.git
-```
-- Prepare Python 3.11 
+- Prepare Git and Python 3.11 
 ```
 sudo apt install -y python3.11-venv git
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
+```
+- Clone the software 
+```
+git clone https://github.com/GoogleCloudPlatform/devrel-demos.git
 ```
 ### Run the application
 - Change directory
@@ -47,7 +47,7 @@ cd devrel-demos/infrastructure/movie-search-app
 ```
 pip install -r requirements.txt
 ```
-- Set environment variables (Pinecone index name)
+- Set environment variables such as Pinecone index name and port for the web interface (8080 in our case)
 ```
 export PINECONE_INDEX_NAME=netflix-index-01
 export PORT=8080
@@ -67,7 +67,72 @@ gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 movie_search:me
 Ask sample questions about the movies
 
 ### You can deploy your application to Cloud Run
-Optionally you can deploy the application to Cloud Run. 
+Optionally you can deploy the application to Cloud Run.
+
+- Enable the required APIs in Google Cloud
+```
+gcloud services enable compute.googleapis.com \
+                       cloudresourcemanager.googleapis.com \
+                       cloudbuild.googleapis.com \
+                       artifactregistry.googleapis.com \
+                       run.googleapis.com \
+                       iam.googleapis.com
+```
+- Provide required roles to the account (service account for VM) used to build and deploy the application to Cloud Run. Here is example for a new "build-app" service account:
+```
+PROJECT_ID=$(gcloud config get-value project)
+gcloud iam service-accounts create build-app --project $PROJECT_ID
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:build-app@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/cloudbuild.builds.editor"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:build-app@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/artifactregistry.admin"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:build-app@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/storage.admin"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:build-app@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/run.admin"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:build-app@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountUser"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:build-app@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/serviceusage.serviceUsageConsumer"
+```
+- Create a GCE VM in a Google Cloud project
+```
+gcloud compute instances create instance-1 \
+   --zone=us-central1-c \
+   --scopes=https://www.googleapis.com/auth/cloud-platform \
+   --service-account=build-app@$PROJECT_ID.iam.gserviceaccount.com
+```
+- Connect to the VM ussing SSH
+- Prepare Git and Python 3.11 
+```
+sudo apt install -y python3.11-venv git
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+```
+- Clone the software 
+```
+git clone https://github.com/GoogleCloudPlatform/devrel-demos.git
+```
+- Change directory
+```
+cd devrel-demos/infrastructure/movie-search-app
+```
+- Deploy to Cloud Run. The command creates a service with public access without authentication. It is strongly recommended to implement one of authentication options such as iap proxy to prevent unathorized access to the application.
+```
+gcloud alpha run deploy movie-search-app \
+   --source=./ \
+   --allow-unauthenticated \
+   --region us-central1 \
+   --network=default \
+   --set-env-vars=PINECONE_INDEX_NAME=netflix-index-01
+```
 
 ## Deployment with AlloyDB Backend
 You will need AlloyDB database as a backend for the application.
@@ -191,15 +256,70 @@ gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 movie_search:me
 - Connect to the chat using the VM host:port to get the application interface
 
 ### Deploy the applicaion to Cloud Run
-Create a service account movie-search-identity and grant role VertexAI User to the account - optional now since we are not using Vertex AI as of now.
-Build and deploy application to the Cloud Run service.
-The environment variables values should be replaced by the database owner, password, database name and the AlloyDB IP
+
+- Enable the required APIs in Google Cloud
+```
+gcloud services enable compute.googleapis.com \
+                       cloudresourcemanager.googleapis.com \
+                       cloudbuild.googleapis.com \
+                       artifactregistry.googleapis.com \
+                       run.googleapis.com \
+                       iam.googleapis.com
+```
+- Provide required roles to the account (service account for VM) used to build and deploy the application to Cloud Run. Here is example for a new "build-app" service account:
+```
+PROJECT_ID=$(gcloud config get-value project)
+gcloud iam service-accounts create build-app --project $PROJECT_ID
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:build-app@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/cloudbuild.builds.editor"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:build-app@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/artifactregistry.admin"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:build-app@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/storage.admin"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:build-app@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/run.admin"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:build-app@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountUser"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:build-app@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/serviceusage.serviceUsageConsumer"
+```
+- Create a GCE VM in a Google Cloud project
+```
+gcloud compute instances create instance-1 \
+   --zone=us-central1-c \
+   --scopes=https://www.googleapis.com/auth/cloud-platform \
+   --service-account=build-app@$PROJECT_ID.iam.gserviceaccount.com
+```
+- Connect to the VM ussing SSH
+- Prepare Git and Python 3.11 
+```
+sudo apt install -y python3.11-venv git
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+```
+- Clone the software 
+```
+git clone https://github.com/GoogleCloudPlatform/devrel-demos.git
+```
+- Change directory
+```
+cd devrel-demos/infrastructure/movie-search-app
+```
+
+- Build and deploy application to the Cloud Run service.
+The environment variables values should be replaced by the database owner, password, database name and the AlloyDB IP. The command creates a service with public access without authentication. It is strongly recommended to implement one of authentication options such as iap proxy to prevent unathorized access to the application.
 
 ```
 gcloud alpha run deploy movie-search-app \
    --source=./ \
-   --no-allow-unauthenticated \
-   --service-account movie-search-identity \
+   --allow-unauthenticated \
    --region us-central1 \
    --network=default \
    --set-env-vars=DB_USER=movies_owner,DB_PASS=StrongPassword,DB_NAME=movies,INSTANCE_HOST=127.0.0.1,DB_PORT=5432 \
