@@ -42,10 +42,13 @@ from typing import Optional
 from typing import Sequence
 
 
+### TODO
+google_project = ""
+
 def generate():
     client = genai.Client(
         vertexai=True,
-        project="data-connect-demo6",
+        project=google_project,
         location="us-central1",
     )
 
@@ -56,7 +59,7 @@ class GeminiModelHandler(ModelHandler):
         """Loads and initializes a model for processing."""
         client = genai.Client(
             vertexai=True,
-            project="data-connect-demo6",
+            project=google_project,
             location="us-central1",
         )
         return client
@@ -100,7 +103,7 @@ class GeminiModelHandler(ModelHandler):
         return predictions
 
 
-project_id = "data-connect-demo6"
+project_id = google_project
 artifact_location = tempfile.mkdtemp(prefix='vertex_ai')
 
 embedding_model_name = 'multimodalembedding@001'
