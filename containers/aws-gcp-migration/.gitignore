@@ -1,0 +1,4 @@
+# Ignore the accelerated-platforms repository that we clone at runtime
+accelerated-platforms
+
+dms-user-password-source-database.txt
