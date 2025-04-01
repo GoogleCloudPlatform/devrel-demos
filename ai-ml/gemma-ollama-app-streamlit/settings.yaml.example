@@ -1,0 +1,2 @@
+ollama_cloudrun_service_url: "your_ollama_cloudrun_url.run.app"
+ollama_cloudrun_service_account: "ollama-cloudrun-sa.json"
