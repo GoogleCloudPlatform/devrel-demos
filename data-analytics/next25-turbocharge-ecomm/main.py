@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import apache_beam as beam 
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
@@ -21,7 +22,7 @@ from apache_beam.ml.inference.base import RunInference
 from apache_beam.ml.inference.vertex_ai_inference import VertexAIModelHandlerJSON
 from apache_beam.io.jdbc import WriteToJdbc
 from apache_beam.io import ReadFromPubSub
-from apache_beam import coders 
+from apache_beam import coders
 import typing
 import tempfile
 # Imports the Google Cloud client library
@@ -104,15 +105,17 @@ artifact_location = tempfile.mkdtemp(prefix='vertex_ai')
 
 embedding_model_name = 'multimodalembedding@001'
 mm_embedding_transform = VertexAIImageEmbeddings(
-        model_name=embedding_model_name, 
+        model_name=embedding_model_name,
         # columns=['image','contextual_text'],
         columns=['image'],
-        dimension=1408, 
+        dimension=1408,
         project=project_id)
 
 class EmbeddingRowSchema(typing.NamedTuple):
+    id: str
     image_path: str
     image_embedding: str
+    contextual_text: str # Add the user_prompt field
 
 coders.registry.register_coder(EmbeddingRowSchema, coders.RowCoder)
 
@@ -120,11 +123,13 @@ class PrepImageFn(beam.DoFn):
 
     # def setup(self):
 
-    def start_bundle(self):    
+    def start_bundle(self):
         # Instantiates a client
         self.storage_client = storage.Client()
+        #logging.info("GCS client initialized in start_bundle.")
 
     def process(self, element):
+        #logging.info(f"Processing element: {element}")
         bucket = self.storage_client.get_bucket(element['image_bucket'])
         blob = bucket.get_blob(element['image_path_split'])
         blob_bytes = blob.download_as_bytes()
@@ -133,6 +138,19 @@ class PrepImageFn(beam.DoFn):
         element['image_bytes'] = blob_bytes
         yield element
 
+class DecodePubsubMessageFn(beam.DoFn):
+    """Decodes Pub/Sub messages from JSON to Python dictionaries."""
+    def process(self, element):
+        """Decodes a single Pub/Sub message."""
+        import json
+        try:
+            decoded_message = json.loads(element.decode('utf-8'))
+            #logging.debug(f"Decoded Pub/Sub message: {decoded_message}")
+            yield decoded_message
+        except Exception as e:
+            error_message = f"Error decoding message: {e}, message: {element.decode('utf-8')}"
+            #logging.error(error_message)
+            yield beam.pvalue.TaggedOutput('errors', element)
 
 def run(argv=None, save_main_session=True):
     """Runs the pipeline"""
@@ -162,6 +180,7 @@ def run(argv=None, save_main_session=True):
                         dest='alloydb_table',
                         required=True,
                         help='AlloyDB table name')
+    parser.add_argument('--pubsub_subscription', dest='pubsub_subscription', required=True)
     known_args, pipeline_args = parser.parse_known_args(argv)
     pipeline_options = PipelineOptions(pipeline_args)
     pipeline_options.view_as(SetupOptions).save_main_session = save_main_session
@@ -169,43 +188,34 @@ def run(argv=None, save_main_session=True):
     with beam.Pipeline(options=pipeline_options) as p:
 
 
-        pubsub_pcoll = (p | "ReadFromPubSub" >> ReadFromPubSub(subscription="projects/data-connect-demo6/subscriptions/demo6-sub"))
-
+        pubsub_pcoll = (
+            p
+            | "ReadFromPubSub" >> ReadFromPubSub(subscription=known_args.pubsub_subscription).with_output_types(bytes)
+            | "DecodeMessage" >> beam.ParDo(DecodePubsubMessageFn())
+        )
         pubsub_pcoll | "printPubsubstuff" >> beam.ParDo(lambda x: print(x))
 
-        # TODO: CHANGE data_pcoll to pubsub_pcoll
-
-        data_pcoll = (
-            p 
-            | "CreateData" >> beam.Create([
-                {
-                    'image_path': 'gs://data-connect-demo6-gcs/raw/shiny-coat-dog-brush.png',
-                    'image_bucket' : 'data-connect-demo6-gcs',
-                    'image_path_split' : 'raw/shiny-coat-dog-brush.png',
-                    'contextual_text' : 'What is an orange and blue animal?',
-                    'dimensions': 1408
-                },
-            ])
-        )
 
 
         # Explain what a turnkey (MLTransform) is and why it is beneficial 
         embedding_pcoll = (
-            data_pcoll 
+            pubsub_pcoll 
             | beam.ParDo(PrepImageFn()) 
             | "Embedding" >> MLTransform(write_artifact_location=artifact_location)
                 .with_transform(mm_embedding_transform)
             | "ConvertToRows" >> beam.Map(
                 lambda element: EmbeddingRowSchema(
+                        id= element['id'],
                         image_path= element['image_path'], 
-                        image_embedding= str(element['image'])
+                        image_embedding= str(element['image']),
+                        contextual_text = element['contextual_text']
                 ))
                 .with_output_types(EmbeddingRowSchema)
         )
 
         # embedding_pcoll | "printMLTransformResults" >> beam.Map(lambda x: print(x))
 
-        inference_pcoll = (data_pcoll
+        inference_pcoll = (pubsub_pcoll
             | "getText" >> beam.Map(lambda data: data['contextual_text'])
             | "performGeminiInf" >> RunInference(GeminiModelHandler())
             | "printText" >> beam.Map(lambda x: print(x))
@@ -213,10 +223,10 @@ def run(argv=None, save_main_session=True):
 
         embedding_pcoll | 'Write to jdbc' >> WriteToJdbc(
             driver_class_name='org.postgresql.Driver',
-            table_name="image_embeddings",
+            table_name=known_args.alloydb_table,
             jdbc_url=(f'jdbc:postgresql://{known_args.alloydb_ip}:'
                         f'{known_args.alloydb_port}'
-                        f'/postgres'),
+                        f'/{known_args.alloydb_database}'),
             username=known_args.alloydb_username,
             password=known_args.alloydb_password,
             connection_properties='stringtype=unspecified'
