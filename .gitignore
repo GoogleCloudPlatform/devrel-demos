@@ -32,7 +32,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-package_lock.json
+package-lock.json
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
