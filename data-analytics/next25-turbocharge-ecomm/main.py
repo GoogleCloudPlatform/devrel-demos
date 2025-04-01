@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#import logging
+import logging
 import apache_beam as beam 
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
@@ -115,8 +115,10 @@ mm_embedding_transform = VertexAIImageEmbeddings(
         project=project_id)
 
 class EmbeddingRowSchema(typing.NamedTuple):
+    id: str
     image_path: str
     image_embedding: str
+    contextual_text: str # Add the user_prompt field
 
 coders.registry.register_coder(EmbeddingRowSchema, coders.RowCoder)
 
@@ -206,8 +208,10 @@ def run(argv=None, save_main_session=True):
                 .with_transform(mm_embedding_transform)
             | "ConvertToRows" >> beam.Map(
                 lambda element: EmbeddingRowSchema(
+                        id= element['id'],
                         image_path= element['image_path'], 
-                        image_embedding= str(element['image'])
+                        image_embedding= str(element['image']),
+                        contextual_text = element['contextual_text']
                 ))
                 .with_output_types(EmbeddingRowSchema)
         )
@@ -222,10 +226,10 @@ def run(argv=None, save_main_session=True):
 
         embedding_pcoll | 'Write to jdbc' >> WriteToJdbc(
             driver_class_name='org.postgresql.Driver',
-            table_name="image_embeddings",
+            table_name=known_args.alloydb_table,
             jdbc_url=(f'jdbc:postgresql://{known_args.alloydb_ip}:'
                         f'{known_args.alloydb_port}'
-                        f'/postgres'),
+                        f'/{known_args.alloydb_database}'),
             username=known_args.alloydb_username,
             password=known_args.alloydb_password,
             connection_properties='stringtype=unspecified'
