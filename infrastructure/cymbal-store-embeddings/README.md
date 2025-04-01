@@ -138,7 +138,7 @@ spec:
       containers:
       - name: cymbal-store
         # Replace <PROJECT_ID> and <REGION> with your project ID and region.
-        image: us-central1-docker.pkg.dev/$PROJECT_ID/cymbal-store-embeddings/cymbal_store:latest
+        image: us-central1-docker.pkg.dev/dbs-next-demo-01/cymbal-store-embeddings/cymbal_store:latest
         imagePullPolicy: Always
         # This app listens on port 8080 for web traffic by default.
         ports:
@@ -147,7 +147,7 @@ spec:
         - name: PORT
           value: "8080"
         - name: INSTANCE_HOST
-          value: "34.118.228.131"
+          value: "34.118.226.5"
         - name: DB_PORT
           value: "5432"
         - name: DB_USER
@@ -174,7 +174,8 @@ spec:
 - Click "Model" on the bottom of the application and new dialog window will be opened
   ![Choose the model](./cymbal-store-embeddings-01.png)
 - Provide your Google AI API token 
-- Switch focus to models and click checkbox for Gemini 1.5 flash model
+- Switch focus to models and click checkbox for Gemini 2.0 flash model
+- If you use local Gemma model and local embedding model deployed in your environment please provide endpoints for both using format like http://localhost:8000/v1 (the local GenAI model should support OpenAI VLLM API - tested with Gemma3 and embedding model BGE)
 - Click "Confirm"
 
 #### Ask questions

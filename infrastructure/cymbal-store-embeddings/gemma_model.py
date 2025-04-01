@@ -12,58 +12,71 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import google.generativeai as genai
+#import anthropic
+from openai import OpenAI
 from typing import Iterable
 import logging
-import json
-from cymbal_store import ChatMessage, State
+import requests
+
+from data_model import ChatMessage, State
 import mesop as me
 
-generation_config = {
-    "temperature": 1,
-    "top_p": 0.95,
-    "top_k": 64,
-    "max_output_tokens": 8192,
-}
-
-def configure_gemini():
-    state = me.state(State)
-    genai.configure(api_key=state.gemini_api_key)
-
 def classify_intent(input: str) -> str:
-    configure_gemini()
-    model = genai.GenerativeModel(
-        model_name="gemini-2.0-flash",
-        generation_config=generation_config,
-        system_instruction=[intent_prompt],
+    state = me.state(State)
+    print(state.gemma_endpoint_id)
+    client= OpenAI(api_key="EMPTY",base_url=state.gemma_endpoint_id)
+    completion = client.chat.completions.create(
+        model="google/gemma-3-4b-it",
+        messages=[
+            {"role": "system", "content": intent_prompt},
+            {"role": "user", "content": input}
+        ]
     )
-    json_resp = model.generate_content(input)
+    json_resp = completion.choices[0].message.content
     logging.info(f"INTENT: {json_resp}")
-    return json_resp.text.replace("```", "").replace("json", "").strip()
+    return json_resp.replace("```", "").replace("json", "").strip()
 
 def generate_embedding(input: str) -> list[float]:
-    result = genai.embed_content(
-        model="models/text-embedding-004",
-        content=input,
-        task_type="retrieval_document",
-        title="Embedding of single string")
+    state = me.state(State)
+    tei_url=state.tei_embedding_url
+    HEADERS = {
+    "Content-Type": "application/json"
+    }
+    payload = {
+            "inputs": input,
+            "truncate": True
+        }
+    print(payload)
+    resp = requests.post(tei_url, json=payload, headers=HEADERS)
+    if resp.status_code != 200:
+        raise RuntimeError(resp.text)
+    result = resp.json()[0]
+    #print(result)
     return result
 
 
-def send_prompt_flash(input: str, history: list[ChatMessage],sys_instruction: list[str]) -> Iterable[str]:
-    configure_gemini()
-    model = genai.GenerativeModel(
-        model_name="gemini-2.0-flash",
-        generation_config=generation_config,
-        system_instruction=sys_instruction,
-    )
-    chat_session = model.start_chat(
-        history=[
-            {"role": message.role, "parts": [message.content]} for message in history
-        ]
-    )
-    for chunk in chat_session.send_message(input, stream=True):
-        yield chunk.text
+def call_gemma(input: str, history: list[ChatMessage],sys_instruction: str) -> Iterable[str]:
+    state = me.state(State)
+    client = OpenAI(api_key="EMPTY",base_url=state.gemma_endpoint_id)
+    models = client.models.list()
+    model = models.data[0].id
+    print(model)
+    chat_messages = [
+        {
+            "role": "assistant" if message.role == "model" else message.role,
+            "content": message.content,
+        }
+        for message in history
+    ] + [{"role": "user", "content": input}, {"role": "system", "content": sys_instruction}]
+
+    with client.chat.completions.create(
+    model=model,
+    messages=chat_messages,
+    temperature=0,
+    stream=True  # again, we set stream=True
+    ) as stream:
+        for part in stream:
+            yield part.choices[0].delta.content
 
 intent_prompt = """
 Answer the following questions as a Json string based solely on provided chat history. Do not assume anything that the user did not explicitly say.
