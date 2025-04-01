@@ -1,0 +1,15 @@
+python3 main.py \
+  --alloydb_username ${ALLOYDB_USERNAME} \
+  --alloydb_password ${ALLOYDB_PASSWORD} \
+  --alloydb_ip ${ALLOYDB_IP} \
+  --alloydb_database ${ALLOYDB_DATABASE} \
+  --alloydb_table ${ALLOYDB_TABLE} \
+  --pubsub_subscription=${SUBSCRIPTION} \
+  --subnetwork=${SUBNETWORK} \
+  --streaming \
+  --runner DataflowRunner \
+  --region ${REGION} \
+  --project ${PROJECT} \
+  --temp_location gs://${TMP_BUCKET}/tmp/ \
+  --requirements_file requirements.txt \
+  --save_main_session
