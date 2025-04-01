@@ -1,0 +1,96 @@
+<!--
+Copyright 2020 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<html lang="en">
+  <head>
+{% include 'shared/html_head.html' %}
+  </head>
+  <body>
+{% include 'shared/platform_banner.html' %}
+{% include 'shared/navigation.html' %}
+    <!-- Main Content -->
+    <main class="container">
+      <!-- Sign-in card -->
+      <div class="row mt-5 mb-5">
+        <!-- Alert on load -->
+        {% if message != None and message != 'Login Failed' %}
+        <div class="col-md-8 offset-md-2">
+          <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <span class="error-icon mr-2 material-icons">error</span>{{ message }}
+            <button type="button" class="close btn-primary" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
+        </div>
+        {% endif %}
+        <div class="col-lg-6 offset-lg-3">
+          <div class="card">
+            <div class="card-title header-body">
+              <div class="text-center col-10 offset-1">
+                <p class="text-uppercase text-muted secondary-text">Welcome</p>
+                <h2 class="mb-4 header-title">SIGN IN</h2>
+              </div>
+            </div>
+            <div class="card-body sign-in">
+              <div class="row align-items-center mt-2">
+                <div class="col-10 offset-1 mb-4">
+                  <div id="alertBanner" class="alert alert-danger mb-4 hidden" role="alert">
+                    <span class="error-icon mr-2 material-icons">error</span>Login failed.
+                  </div>
+                  {% if response_type == "code" %}
+                  <form id="login-form" class="needs-validation" novalidate="" method="POST" action="/login?response_type={{ response_type }}&state={{ state }}&redirect_uri={{ redirect_uri }}&app_name={{ app_name }}">
+                  {% else %}
+                  <form id="login-form" class="needs-validation" novalidate="" method="POST" action="/login">
+                  {% endif %}
+                    <label class="text-uppercase text-muted secondary-text" for="username">Username</label>
+                    <div class="input-group mt-2d mb-5">
+                      <div class="input-group-prepend mr-2">
+                        <span class="input-group-text"><span class="material-icons">account_circle</span></span>
+                      </div>
+                      <input class="form-control" type="text" id="login-username" name="username" autocomplete="off" pattern="([a-zA-Z0-9_]){2,15}" value="{{ default_user }}" required>
+                      <div class="invalid-feedback">
+                        Please enter your username.
+                      </div>
+                    </div>
+                    <label class="text-uppercase text-muted secondary-text" for="password">Password</label>
+                    <div class="input-group mt-2 mb-5">
+                      <div class="input-group-prepend mr-2">
+                        <span class="input-group-text"><span class="material-icons">lock</span></span>
+                      </div>
+                      <input class="form-control" type="password" id="login-password" name="password" value="{{ default_password }}" required>
+                      <div class="invalid-feedback">
+                        Please enter your password.
+                      </div>
+                    </div>
+                    <button class="btn btn-sign-in btn-block mb-4" type="submit">Sign in</button>
+                    <small class="text-uppercase secondary-text text-muted">
+                      Not registered?
+                    </small>
+                    <a href="/signup" class="btn btn-secondary btn-block mt-2 mb-4" id="create-account-btn" type="button">Create an Account</a>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+{% include 'shared/footer.html' %}
+{% include 'shared/scripts.html' %}
+    <!-- Page specific-->
+    <script src="static/scripts/login.js"></script>
+  </body>
+</html>
