@@ -27,8 +27,9 @@ class ChatMessage:
     in_progress: bool = False
 
 class Models(Enum):
-    GEMINI_1_5_FLASH = "Gemini 1.5 Flash"
+    GEMINI_2_0_FLASH = "Gemini 2.0 Flash"
     OPENAI = "gpt-4o-mini"
+    GEMMA_3 = "gemma3"
 
 @dataclass
 class Conversation:
@@ -44,6 +45,7 @@ class State:
     gemini_api_key: str = ""
     openai_api_key: str = ""
     gemma_endpoint_id: str = ""
+    tei_embedding_url: str = ""
     location: str = ""
     in_progress: bool = False
 

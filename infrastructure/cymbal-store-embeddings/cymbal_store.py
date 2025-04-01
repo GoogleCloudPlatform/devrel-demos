@@ -16,6 +16,7 @@ import mesop as me
 from data_model import State, Models, ModelDialogState, Conversation, ChatMessage
 import gemini_model
 import openai_model
+import gemma_model
 import os
 import logging
 import json
@@ -23,6 +24,7 @@ import sqlalchemy
 from connect_tcp import connect_tcp_socket
 from dataclasses import dataclass, field
 from typing import Literal
+import base64
 
 Role = Literal["user", "model"]
 
@@ -242,6 +244,12 @@ def set_gemini_api_key(e: me.InputBlurEvent):
 def set_openai_api_key(e: me.InputBlurEvent):
     me.state(State).openai_api_key = e.value
 
+def set_gemma_endpoint(e: me.InputBlurEvent):
+    me.state(State).gemma_endpoint_id = e.value
+
+def set_tei_endpoint(e: me.InputBlurEvent):
+    me.state(State).tei_embedding_url = e.value
+
 def model_picker_dialog():
     state = me.state(State)
     with dialog(state.is_model_picker_dialog_open):
@@ -257,12 +265,24 @@ def model_picker_dialog():
                 value=state.openai_api_key,
                 on_blur=set_openai_api_key,
             )
+            me.input(
+                label="Gemma Endpoint",
+                value=state.gemma_endpoint_id,
+                on_blur=set_gemma_endpoint,
+            )
+            me.input(
+                label="TEI Endpoint",
+                value=state.tei_embedding_url,
+                on_blur=set_tei_endpoint,
+            )
         me.text("Pick a model")
         for model in Models:
             if model.name.startswith("GEMINI"):
                 disabled = not state.gemini_api_key
             elif model.name.startswith("OPENAI"):
                 disabled = not state.openai_api_key
+            elif model.name.startswith("GEMMA"):
+                disabled = not state.gemma_endpoint_id
             else:
                 disabled = False
             me.checkbox(
@@ -292,10 +312,21 @@ def confirm_model_picker_dialog(e: me.ClickEvent):
     state.is_model_picker_dialog_open = False
     state.models = dialog_state.selected_models
 
+# Background image with light and dark theme
+
+bimage_light = open("pub/app_background_light.png", "rb")
+bimage64_light = base64.b64encode(bimage_light.read()).decode("ascii")
+_BACKGROUND_IMAGE_LIGHT = f"url(data:image/png;base64,{bimage64_light}) center/cover no-repeat"
+
+bimage_dark = open("pub/app_background_dark.png", "rb")
+bimage64_dark = base64.b64encode(bimage_dark.read()).decode("ascii")
+_BACKGROUND_IMAGE_DARK = f"url(data:image/png;base64,{bimage64_dark}) center/cover no-repeat"
+
+_BACKGROUND_IMAGE = _BACKGROUND_IMAGE_LIGHT
 
 
 ROOT_BOX_STYLE = me.Style(
-    background="#e7f2ff",
+    background = _BACKGROUND_IMAGE,
     height="100%",
     font_family="Inter",
     display="flex",
@@ -314,91 +345,97 @@ ROOT_BOX_STYLE = me.Style(
 
 
 def page():
-    bot_user = "model"
-    global db
-    # initialize db within request context
-    if not db:
-        # initiate a connection pool to a Postgres database
-        db = init_connection_pool()
-    model_picker_dialog()
-    def toggle_theme(e: me.ClickEvent):
-        if me.theme_brightness() == "light":
-            me.set_theme_mode("dark")
-        else:
-            me.set_theme_mode("light")
-    
-
-    def on_input_enter(e: me.InputEnterEvent):
-        state = me.state(State)
-        state.input = e.value
-        print(state.input)
-        yield from send_prompt(e)
+    global _BACKGROUND_IMAGE
+    with me.box(style=ROOT_BOX_STYLE):
+        bot_user = "model"
+        global db
+        # initialize db within request context
+        if not db:
+            # initiate a connection pool to a Postgres database
+            db = init_connection_pool()
+        model_picker_dialog()
+        def toggle_theme(e: me.ClickEvent):
+            if me.theme_brightness() == "light":
+                me.set_theme_mode("dark")
+                _BACKGROUND_IMAGE = _BACKGROUND_IMAGE_DARK
+            else:
+                me.set_theme_mode("light")
+                _BACKGROUND_IMAGE = _BACKGROUND_IMAGE_LIGHT
 
 
+        
 
-    with me.box(style=_STYLE_APP_CONTAINER):
-        with me.content_button(
-            type="icon",
-            style=me.Style(position="absolute", right=4, top=8),
-            on_click=toggle_theme,
-        ):
-            me.icon("light_mode" if me.theme_brightness() == "dark" else "dark_mode")
-
-        title = "Store Virtual Assistant"
-
-        if title:
-            me.text(title, type="headline-5", style=_STYLE_TITLE)
-
-        with me.box(style=_STYLE_CHAT_BOX):
+        def on_input_enter(e: me.InputEnterEvent):
             state = me.state(State)
-            for conversation in state.conversations:
-                for message in conversation.messages:
-                    with me.box(style=_make_style_chat_bubble_wrapper(message.role)):
-                        if message.role == _ROLE_ASSISTANT:
-                            me.text(bot_user, style=_STYLE_CHAT_BUBBLE_NAME)
-                    with me.box(style=_make_chat_bubble_style(message.role)):
-                        if message.role == _ROLE_USER:
-                            me.text(message.content, style=_STYLE_CHAT_BUBBLE_PLAINTEXT)
-                        else:
-                            me.markdown(message.content)
-    
+            state.input = e.value
+            print(state.input)
+            yield from send_prompt(e)
 
-        with me.box(style=_STYLE_CHAT_INPUT_BOX):
-            with me.box(style=me.Style(flex_grow=1)):
-                me.input(
-                label=_LABEL_INPUT,
-                # Workaround: update key to clear input.
-                key=f"input-{len(state.conversations)}",
-                on_blur=on_blur,
-                on_enter=on_input_enter,
-                style=_STYLE_CHAT_INPUT,
-                )
-                with me.box(
-                style=me.Style(
-                    display="flex",
-                    padding=me.Padding(left=12, bottom=12),
-                    cursor="pointer",
-                ),
-                on_click=switch_model,
-                ):
-                    me.text(
-                        "Model:",
-                        style=me.Style(font_weight=500, padding=me.Padding(right=6)),
-                    )
-                    if state.models:
-                        me.text(", ".join(state.models))
-                    else:
-                        me.text("(no model selected)")
+
+
+        with me.box(style=_STYLE_APP_CONTAINER):
             with me.content_button(
-                color="primary",
-                type="flat",
-                disabled=state.in_progress,
-                on_click=send_prompt,
-                style=_STYLE_CHAT_BUTTON,
+                type="icon",
+                style=me.Style(position="absolute", right=4, top=8),
+                on_click=toggle_theme,
             ):
-                me.icon(
-                _LABEL_BUTTON_IN_PROGRESS if state.in_progress else _LABEL_BUTTON
-                )
+                me.icon("light_mode" if me.theme_brightness() == "dark" else "dark_mode")
+
+            title = "Store Virtual Assistant"
+
+            if title:
+                me.text(title, type="headline-5", style=_STYLE_TITLE)
+
+            with me.box(style=_STYLE_CHAT_BOX):
+                state = me.state(State)
+                for conversation in state.conversations:
+                    for message in conversation.messages:
+                        with me.box(style=_make_style_chat_bubble_wrapper(message.role)):
+                            if message.role == _ROLE_ASSISTANT:
+                                me.text(bot_user, style=_STYLE_CHAT_BUBBLE_NAME)
+                        with me.box(style=_make_chat_bubble_style(message.role)):
+                            if message.role == _ROLE_USER:
+                                me.text(message.content, style=_STYLE_CHAT_BUBBLE_PLAINTEXT)
+                            else:
+                                me.markdown(message.content)
+        
+
+            with me.box(style=_STYLE_CHAT_INPUT_BOX):
+                with me.box(style=me.Style(flex_grow=1)):
+                    me.input(
+                    label=_LABEL_INPUT,
+                    # Workaround: update key to clear input.
+                    key=f"input-{len(state.conversations)}",
+                    on_blur=on_blur,
+                    on_enter=on_input_enter,
+                    style=_STYLE_CHAT_INPUT,
+                    )
+                    with me.box(
+                    style=me.Style(
+                        display="flex",
+                        padding=me.Padding(left=12, bottom=12),
+                        cursor="pointer",
+                    ),
+                    on_click=switch_model,
+                    ):
+                        me.text(
+                            "Model:",
+                            style=me.Style(font_weight=500, padding=me.Padding(right=6)),
+                        )
+                        if state.models:
+                            me.text(", ".join(state.models))
+                        else:
+                            me.text("(no model selected)")
+                with me.content_button(
+                    color="primary",
+                    type="flat",
+                    disabled=state.in_progress,
+                    on_click=send_prompt,
+                    style=_STYLE_CHAT_BUTTON,
+                ):
+                    me.icon(
+                    _LABEL_BUTTON_IN_PROGRESS if state.in_progress else _LABEL_BUTTON
+                    )
 
 
 def switch_model(e: me.ClickEvent):
@@ -430,7 +467,7 @@ def send_prompt(e: me.ClickEvent):
         messages.append(ChatMessage(role="model", in_progress=True))
         yield
 
-        if model == Models.GEMINI_1_5_FLASH.value:
+        if model == Models.GEMINI_2_0_FLASH.value:
             while True:
                 intent_str = gemini_model.classify_intent(input)
                 print(intent_str)
@@ -463,6 +500,36 @@ def send_prompt(e: me.ClickEvent):
             
         elif model == Models.OPENAI.value:
             llm_response = openai_model.call_openai_gpt4o_mini(input, history)
+        elif model == Models.GEMMA_3.value:
+            while True:
+                intent_str = gemma_model.classify_intent(input)
+                print(intent_str)
+                logging.info(f"PRODUCTS LIST: {intent_str}")
+                try:
+                    json_intent = json.loads(intent_str)
+                except json.JSONDecodeError as e:
+                    print(f"Error decoding JSON: {e}")
+                    continue
+                break
+            if json_intent["shouldRecommendProduct"] is True:
+                search_embedding = gemma_model.generate_embedding(json_intent["summary"])
+                products_list = get_products(db, str(search_embedding))
+                logging.info(f"PRODUCTS LIST: {products_list}")
+                print(f"PRODUCTS LIST: {products_list}")
+                persona="You are friendly assistance in a store helping to find a products based on the client's request"
+                safeguards="You should give information about the product, price and any supplemental information. Do not invent any new products and use for the answer the product defined in the context"
+                context="""
+                    Based on the client request we have loaded a list of products closely related to search.
+                    The list in JSON format with list of values like {"product_name":"name","description":"some description","sale_price":10,"zip_code": 10234}
+                    Here is the list of products:\n
+                """+str(products_list)
+                system_instruction=f'{persona}{safeguards}{context}'
+            else:    
+                search_embedding = None
+                persona="You are friendly assistance in a store helping to find a products based on the client's request"
+                safeguards="You should give information about the product, price and any supplemental information. Do not invent any new products and use for the answer the product defined in the context"
+                system_instruction=f'{persona}{safeguards}'
+            llm_response = gemma_model.call_gemma(input, history,system_instruction)
         else:
             raise Exception("Unhandled model", model)
 
