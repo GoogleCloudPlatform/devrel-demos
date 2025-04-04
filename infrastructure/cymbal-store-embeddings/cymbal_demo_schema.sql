@@ -107,10 +107,10 @@ CREATE TABLE public.cymbal_stores (
 
 
 --
--- Name: walmart_stores_store_id_seq; Type: SEQUENCE; Schema: public; 
+-- Name: cymbal_stores_store_id_seq; Type: SEQUENCE; Schema: public; 
 --
 
-CREATE SEQUENCE public.walmart_stores_store_id_seq
+CREATE SEQUENCE public.cymbal_stores_store_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -120,33 +120,33 @@ CREATE SEQUENCE public.walmart_stores_store_id_seq
 
 
 --
--- Name: walmart_stores_store_id_seq; Type: SEQUENCE OWNED BY; Schema: public; 
+-- Name: cymbal_stores_store_id_seq; Type: SEQUENCE OWNED BY; Schema: public; 
 --
 
-ALTER SEQUENCE public.walmart_stores_store_id_seq OWNED BY public.cymbal_stores.store_id;
+ALTER SEQUENCE public.cymbal_stores_store_id_seq OWNED BY public.cymbal_stores.store_id;
 
 
 --
 -- Name: cymbal_stores store_id; Type: DEFAULT; Schema: public; 
 --
 
-ALTER TABLE ONLY public.cymbal_stores ALTER COLUMN store_id SET DEFAULT nextval('public.walmart_stores_store_id_seq'::regclass);
+ALTER TABLE ONLY public.cymbal_stores ALTER COLUMN store_id SET DEFAULT nextval('public.cymbal_stores_store_id_seq'::regclass);
 
 
 --
--- Name: cymbal_inventory walmart_inventory_pkey; Type: CONSTRAINT; Schema: public; 
+-- Name: cymbal_inventory cymbal_inventory_pkey; Type: CONSTRAINT; Schema: public; 
 --
 
 ALTER TABLE ONLY public.cymbal_inventory
-    ADD CONSTRAINT walmart_inventory_pkey PRIMARY KEY (store_id, uniq_id);
+    ADD CONSTRAINT cymbal_inventory_pkey PRIMARY KEY (store_id, uniq_id);
 
 
 --
--- Name: cymbal_stores walmart_stores_pkey; Type: CONSTRAINT; Schema: public; 
+-- Name: cymbal_stores cymbal_stores_pkey; Type: CONSTRAINT; Schema: public; 
 --
 
 ALTER TABLE ONLY public.cymbal_stores
-    ADD CONSTRAINT walmart_stores_pkey PRIMARY KEY (store_id);
+    ADD CONSTRAINT cymbal_stores_pkey PRIMARY KEY (store_id);
 
 
 --
