@@ -13,7 +13,7 @@
     "@react-three/fiber": "^8.16.8",
     "@types/three": "^0.160.0",
     "fast-shuffle": "^6.1.0",
-    "next": "^14.2.5",
+    "next": "^15.2.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "three": "^0.160.1"
