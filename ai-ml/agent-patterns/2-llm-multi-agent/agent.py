@@ -1,50 +1,23 @@
 """
-2 - Multi-Agent Refund System
-
-This module implements a multi-agent system where specialized sub-agents handle
-different aspects of the refund process:
-- PurchaseVerifierAgent: Retrieves and verifies purchase history
-- RefundPolicyApplierAgent: Checks refund eligibility based on policies
-- RefundProcessorAgent: Processes approved refunds
-- CoordinatorAgent: Orchestrates the sub-agents to complete the workflow
+2 - LLM Multi-Agent Workflow Refund System for Crabby's Taffy
 """
 
 import logging
-from google.adk.agents import Agent
+from google.adk.agents import Agent, LlmAgent
 from tools.tools import get_purchase_history, check_refund_eligible
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
 
 # Constants
-GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"
+GEMINI_MODEL = "gemini-2.5-pro-preview-06-05"
 
 
-def process_refund(amount: float, order_id: str) -> str:
-    """
-    Process a refund for the given amount and order.
-
-    Args:
-        amount: Refund amount in dollars
-        order_id: Order ID to refund
-
-    Returns:
-        Success message with refund details
-    """
-    logger.info(f"Processing refund - Order: {order_id}, Amount: ${amount:.2f}")
-
-    # In a real system, this would interact with payment processors
-    refund_id = f"REF-{order_id}-{int(amount*100)}"
-    logger.info(f"Refund processed successfully - Refund ID: {refund_id}")
-
-    return (
-        f"Refund processed successfully! "
-        f"Refund ID: {refund_id}. "
-        f"Amount: ${amount:.2f} will be credited within 3-5 business days."
-    )
+def process_refund() -> str:
+    return "✅ Refund processed successfully"
 
 
-# --- Sub-Agents ---
+# --- Sub-Agents for LLM Orchestration ---
 
 # 1. Purchase Verifier Agent
 purchase_verifier_agent = Agent(
@@ -53,107 +26,147 @@ purchase_verifier_agent = Agent(
     description="Verifies customer purchase history using the internal database",
     instruction="""
     You are the Purchase Verifier Agent for Crabby's Taffy.
-    Your sole task is to verify a customer's purchase history given their name.
+    Your task is to verify a customer's purchase history.
     
     Instructions:
     - Use `get_purchase_history` to retrieve the customer's orders
-    - Return the purchase history data clearly formatted
-    - If no purchases found, clearly state this
-    - Include all relevant details: order ID, date, items, shipping method, total
+    - Return the complete purchase history data
+    - Include all order details, especially the shipping method
+    - If no purchases found, return an empty list with a clear message
     
-    Remember: The shipping method is crucial for refund eligibility checks.
+    Important: The shipping method is crucial for determining refund eligibility.
+    Format the response clearly including order ID, amount, and shipping method.
     """,
     tools=[get_purchase_history],
+    output_key="purchase_history",
 )
 
-# 2. Refund Policy Applier Agent
-refund_policy_applier_agent = Agent(
+# 2. Refund Eligibility Agent
+refund_eligibility_agent = Agent(
     model=GEMINI_MODEL,
-    name="RefundPolicyApplierAgent",
-    description="Applies Crabby's Taffy refund policies to determine eligibility",
+    name="RefundEligibilityAgent",
+    description="Determines refund eligibility based on policies",
     instruction="""
-    You are the Refund Policy Applier Agent for Crabby's Taffy.
-    Your task is to determine if a refund request is eligible based on reason and shipping method.
+    You are the Refund Eligibility Agent for Crabby's Taffy.
+    You determine if a refund request is eligible based on reason and shipping method.
     
     Instructions:
-    - Use `check_refund_eligible` with the provided reason and shipping method
-    - Valid refund reasons: DAMAGED, NEVER_ARRIVED
-    - Eligible shipping methods: INSURED
-    - Return "Eligible" or "Not Eligible" with a clear explanation
+    1. You will receive purchase history and refund reason from the orchestrator.
+    2. Extract the shipping method from the purchase history
+    3. Convert the customer's refund reason to one of these codes:
+       - DAMAGED: Package arrived damaged, melted, or opened
+       - LOST: Package never arrived, stolen, or missing in transit
+       - LATE: Package arrived late
+       - OTHER: Any other reason
     
-    Policy: Only INSURED shipments with DAMAGED or NEVER_ARRIVED reasons qualify for automatic refunds.
+    4. Use `check_refund_eligible` with the reason code and shipping method
+    5. Return the eligibility status (TRUE/FALSE) along with a brief explanation
+    
+    Policy reminder: Only INSURED shipments with valid reasons qualify for refunds.
+    Always provide the raw tool response and your interpretation.
+    
+    IMPORTANT: After determining eligibility, clearly state in your response:
+    "ELIGIBILITY_STATUS: TRUE" or "ELIGIBILITY_STATUS: FALSE"
+    This will help the orchestrator parse your response.
     """,
     tools=[check_refund_eligible],
+    output_key="is_refund_eligible",
 )
 
 # 3. Refund Processor Agent
 refund_processor_agent = Agent(
     model=GEMINI_MODEL,
     name="RefundProcessorAgent",
-    description="Processes customer refunds through the payment system",
+    description="Processes refunds or provides rejection explanations",
     instruction="""
     You are the Refund Processor Agent for Crabby's Taffy.
-    Your task is to initiate and confirm refunds for approved requests.
+    You handle the final step of the refund process.
     
     Instructions:
-    - Use `process_refund` with the exact amount and order ID
-    - Return the complete confirmation message including refund ID
-    - Ensure all details are accurate before processing
     
-    Note: Only process refunds that have been approved by the RefundPolicyApplierAgent.
+    You will receive purchase history and eligibility status from the orchestrator.
+    
+    If eligible (eligibility = TRUE):
+    1. Use `process_refund` to complete the refund
+    2. Provide a friendly confirmation message
+    
+    If NOT eligible (eligibility = FALSE):
+    1. Politely explain why the refund cannot be processed
+    2. Mention that only INSURED shipments with valid reasons qualify
+    3. Suggest contacting customer support for special cases
+    4. Thank them for their understanding
+    
+    Always be empathetic and professional. Never hand off to a human - 
+    make a definitive decision based on the eligibility status.
     """,
     tools=[process_refund],
 )
 
-# --- Coordinator (Parent) Agent ---
-root_agent = Agent(
-    name="RefundCoordinator",
+# --- LLM Orchestrator Agent ---
+root_agent = LlmAgent(
     model=GEMINI_MODEL,
-    description="Coordinates the refund process using specialized sub-agents",
+    name="RefundOrchestrator",
+    description="Orchestrates the refund process by coordinating sub agents",
     instruction="""
-    You are the Refund Coordinator for Crabby's Taffy company.
-    You orchestrate the refund process by delegating tasks to specialized sub-agents.
+    You are the main orchestrator for Crabby's Taffy's refund system.
+    You coordinate sub agents to handle customer refund requests.
     
-    ## Available Sub-Agents:
-    1. **PurchaseVerifierAgent**: Retrieves customer purchase history
-    2. **RefundPolicyApplierAgent**: Checks if refund request is eligible
-    3. **RefundProcessorAgent**: Processes approved refunds
+    Available agents:
+    1. PurchaseVerifierAgent - Retrieves customer purchase history
+    2. RefundEligibilityAgent - Checks if refund qualifies based on policies
+    3. RefundProcessorAgent - Processes approved refunds or explains rejection
     
-    ## Workflow:
-    1. **Verify Purchase**: Use PurchaseVerifierAgent to get customer's orders
-       - If multiple orders exist, ask customer to specify which one
-       - Note the shipping method - it's crucial for eligibility
+    CRITICAL WORKFLOW - YOU MUST COMPLETE ALL STEPS IN SEQUENCE:
     
-    2. **Check Eligibility**: Use RefundPolicyApplierAgent with:
-       - The customer's refund reason
-       - The shipping method from the selected order
+    Step 1: When a customer mentions refund, IMMEDIATELY use PurchaseVerifierAgent
     
-    3. **Process Decision**:
-       - If eligible: Use RefundProcessorAgent to complete the refund
-       - If not eligible: Politely explain why and suggest alternatives
+    Step 2: After receiving purchase history:
+       - If no purchases found: Inform customer and end conversation
+       - If purchases found: IMMEDIATELY ask for the refund reason if not already provided
+       - Common reasons: damaged, melted, never arrived, late delivery
+       - Example: "I see your order. Could you tell me why you're requesting a refund?"
     
-    ## Important Guidelines:
-    - NEVER ask customers for shipping method - get it from purchase history
-    - Only prompt users when you need clarification or for final responses
-    - Execute sub-agent calls as intermediate steps without user interaction
-    - Be empathetic and professional in all communications
-    - Thank customers regardless of the outcome
+    Step 3: Once you have BOTH purchase history AND refund reason:
+       - IMMEDIATELY invoke RefundEligibilityAgent
+       - Pass both the purchase history data and the customer's refund reason
+       - Do not wait or ask for more information
     
-    ## Customer Inputs:
-    - Name
-    - Refund reason (convert to: DAMAGED, NEVER_ARRIVED, or OTHER)
-    - Order selection (if multiple orders exist)
+    Step 4: After RefundEligibilityAgent responds:
+       - Parse the eligibility status (TRUE/FALSE)
+       - DO NOT STOP HERE
+       - IMMEDIATELY proceed to Step 5
     
-    Remember: Coordinate efficiently between agents to provide quick, accurate service.
+    Step 5: IMMEDIATELY invoke RefundProcessorAgent:
+       - Pass the eligibility status (TRUE/FALSE)
+       - Pass the purchase history
+       - Let RefundProcessorAgent handle the final response
+    
+    EXECUTION RULES:
+    - After each agent response, IMMEDIATELY take the next action
+    - Do not summarize or explain between steps
+    - Do not ask for confirmation between steps
+    - If you have purchase history but no reason, ask for reason then continue
+    - If you have both purchase history and reason, proceed through eligibility and processing
+    
+    COMMON MISTAKE TO AVOID:
+    - Do NOT stop after getting purchase history without asking for refund reason
+    - Do NOT stop after checking eligibility without processing the refund
+    - Do NOT explain the process to the customer, just execute it
+    
+    Example execution:
+    Customer: "My name is David and my order arrived damaged, please send refund."
+    You: [Invoke PurchaseVerifierAgent]
+    Agent: [Returns purchase history]
+    You: [Note: Customer already provided reason "damaged", so invoke RefundEligibilityAgent with purchase data and reason]
+    Agent: [Returns eligibility TRUE/FALSE]
+    You: [Immediately invoke RefundProcessorAgent with eligibility status]
+    Agent: [Processes refund or explains rejection]
+    
+    The customer expects action, not explanation. Execute the full workflow.
     """,
     sub_agents=[
         purchase_verifier_agent,
-        refund_policy_applier_agent,
+        refund_eligibility_agent,
         refund_processor_agent,
     ],
 )
-
-# Log initialization
-logger.info("Initialized multi-agent refund system")
-logger.info(f"Coordinator: {root_agent.name}")
-logger.info(f"Sub-agents: {[agent.name for agent in root_agent.sub_agents]}")
