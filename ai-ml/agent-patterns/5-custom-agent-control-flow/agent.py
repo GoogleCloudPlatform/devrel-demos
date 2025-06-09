@@ -9,23 +9,23 @@ from google.adk.sessions import InMemorySessionService
 from google.adk.runners import Runner
 from google.adk.events import Event
 from pydantic import BaseModel, Field
+from tools.tools import get_purchase_history, check_refund_eligibility, process_refund
+from tools.prompts import (
+    purchase_history_subagent_prompt,
+    check_eligibility_subagent_prompt_parallel,
+    process_refund_subagent_prompt,
+)
 
 logger = logging.getLogger(__name__)
 
-GEMINI_2_FLASH = "gemini-2.5-flash-preview-05-20"
+GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"
 
 
 class CustomerRefundAgent(BaseAgent):
-    """
-    Custom agent for a customer refund workflow.
-
-    This agent orchestrates a refund process by checking eligibility and purchase history
-    in parallel, then determines the appropriate action based on the results.
-    """
-
     # --- Field Declarations for Pydantic ---
-    is_refund_eligible: LlmAgent
+    refund_eligibility_checker: LlmAgent
     get_purchase_history: LlmAgent
+    process_full_refund: LlmAgent
     offer_store_credit: LlmAgent
     process_store_credit_response: LlmAgent
     parallel_agent: ParallelAgent
@@ -36,8 +36,9 @@ class CustomerRefundAgent(BaseAgent):
     def __init__(
         self,
         name: str,
-        is_refund_eligible: LlmAgent,
+        refund_eligibility_checker: LlmAgent,
         get_purchase_history: LlmAgent,
+        process_full_refund: LlmAgent,
         offer_store_credit: LlmAgent,
         process_store_credit_response: LlmAgent,
     ):
@@ -46,28 +47,26 @@ class CustomerRefundAgent(BaseAgent):
 
         Args:
             name: The name of the agent.
-            is_refund_eligible: An LlmAgent to check refund eligibility.
+            refund_eligibility_checker: An LlmAgent to check refund eligibility.
             get_purchase_history: An LlmAgent to retrieve purchase history.
-            offer_store_credit: An LlmAgent to offer store credit alternative.
+            process_full_refund: An LlmAgent to process a full refund, if eligible.
+            offer_store_credit: An LlmAgent to offer store credit alternative, if not eligible for a full refund.
             process_store_credit_response: An LlmAgent to handle user's response to store credit offer.
         """
-        # Create parallel agent for checking eligibility and history simultaneously
         parallel_agent = ParallelAgent(
-            name="RefundChecks", sub_agents=[is_refund_eligible, get_purchase_history]
+            name="RefundChecks",
+            sub_agents=[refund_eligibility_checker, get_purchase_history],
         )
-
-        # Define the sub_agents list for the framework
         sub_agents_list = [
             parallel_agent,
             offer_store_credit,
             process_store_credit_response,
         ]
-
-        # Pydantic will validate and assign them based on the class annotations
         super().__init__(
             name=name,
-            is_refund_eligible=is_refund_eligible,
+            refund_eligibility_checker=refund_eligibility_checker,
             get_purchase_history=get_purchase_history,
+            process_full_refund=process_full_refund,
             offer_store_credit=offer_store_credit,
             process_store_credit_response=process_store_credit_response,
             parallel_agent=parallel_agent,
@@ -92,7 +91,7 @@ class CustomerRefundAgent(BaseAgent):
             yield event
 
         # Get results from session state
-        is_eligible_str = ctx.session.state.get("refund_eligible", "false")
+        is_eligible_str = ctx.session.state.get("is_refund_eligible", "false")
         # Convert string to boolean
         is_eligible = (
             is_eligible_str.lower() == "true"
@@ -108,18 +107,19 @@ class CustomerRefundAgent(BaseAgent):
         final_message = ""
 
         if is_eligible and purchase_history:
-            # Full refund case
             logger.info(f"[{self.name}] Customer eligible for full refund.")
-            final_message = "Great news! You are eligible for a full refund. The refund has been processed and will appear in your account within 3-5 business days."
-            ctx.session.state["final_response"] = final_message
+            async for event in self.process_full_refund.run_async(ctx):
+                logger.info(
+                    f"[{self.name}] Event from ProcessFullRefund: {event.model_dump_json(indent=2, exclude_none=True)}"
+                )
+                yield event
+
+            final_message = ctx.session.state.get("final_response", "")
 
         elif purchase_history and not is_eligible:
-            # Offer store credit alternative
             logger.info(
                 f"[{self.name}] Customer not eligible for refund. Offering store credit."
             )
-
-            # Offer store credit
             async for event in self.offer_store_credit.run_async(ctx):
                 logger.info(
                     f"[{self.name}] Event from OfferStoreCredit: {event.model_dump_json(indent=2, exclude_none=True)}"
@@ -133,7 +133,6 @@ class CustomerRefundAgent(BaseAgent):
                 )
                 yield event
 
-            # Get the final response from the store credit processing
             final_message = ctx.session.state.get("final_response", "")
 
         else:
@@ -145,7 +144,7 @@ class CustomerRefundAgent(BaseAgent):
         # 3. Create a final summary agent to output the result
         final_response_agent = LlmAgent(
             name="FinalResponseAgent",
-            model=GEMINI_2_FLASH,
+            model=GEMINI_MODEL,
             instruction=f"""Output the following message exactly as provided: {final_message}""",
             input_schema=None,
             output_key="refund_decision",
@@ -161,122 +160,63 @@ class CustomerRefundAgent(BaseAgent):
         logger.info(f"[{self.name}] Refund workflow completed. Exiting.")
 
 
-def get_purchase_history(purchaser: str) -> list:
-    history_data = {
-        "Alexis": [
-            {
-                "purchase_id": "JD001-20250415",
-                "purchased_date": "2025-04-15",
-                "items": [
-                    {
-                        "product_name": "Assorted Taffy 1lb Box",
-                        "quantity": 1,
-                        "price": 15.00,
-                    },
-                    {
-                        "product_name": "Watermelon Taffy 0.5lb Bag",
-                        "quantity": 1,
-                        "price": 8.00,
-                    },
-                ],
-                "shipping_method": "STANDARD",
-                "total_amount": 23.00,
-            }
-        ],
-        "David": [
-            {
-                "purchase_id": "SG001-20250501",
-                "purchased_date": "2025-05-01",
-                "items": [
-                    {
-                        "product_name": "Assorted Taffy 1lb Box",
-                        "quantity": 2,
-                        "price": 15.00,
-                    }
-                ],
-                "shipping_method": "INSURED",
-                "total_amount": 30.00,
-            },
-        ],
-    }
-    purchaser = purchaser.strip().capitalize()
-    if purchaser not in history_data:
-        return []
-    return history_data[purchaser]
-
-
 get_purchase_history = LlmAgent(
     name="GetPurchaseHistory",
-    model=GEMINI_2_FLASH,
-    instruction="""  You are the Purchase Verifier Agent for Crabby's Taffy.
-      Your sole task is to verify a customer's purchase history given their name.
-      Use the `get_purchase_history` to retrieve the relevant information.
-      Return the purchase history data clearly and concisely.""",
+    model=GEMINI_MODEL,
+    instruction=purchase_history_subagent_prompt,
     input_schema=None,
     output_key="purchase_history",
     tools=[get_purchase_history],
 )
 
 
-def check_refund_eligible(reason: str) -> str:
-    eligible_reasons = ["DAMAGED", "LOST", "LATE"]
-    reason = reason.strip().upper()
-    print("⭐ Reason: ", reason)
-    if reason in eligible_reasons:
-        print("✅ Eligible for Refund, returning TRUE")
-        return "TRUE"
-    print("❌ Not Eligible for Refund, returning FALSE")
-    return "FALSE"
-
-
-is_refund_eligible = LlmAgent(
+refund_eligibility_checker = LlmAgent(
     name="IsRefundEligible",
-    model=GEMINI_2_FLASH,
-    instruction="""     
-    You are the Refund Policy Applier Agent for Crabby's Taffy.
-      Your task is to determine if a refund request is eligible based on the provided reason and shipping method.
-      Use the `check_refund_eligibile` to make this determination.
-      Based on the user's natural-language reason for refund, transform that into a reason that the check_refund_eligible tool understands, must be one of: 
-      - DAMAGED - packaged arrived, but melted or with the box open etc 
-      - LATE 
-      - LOST - package never arrived, or was stolen, or missing in transit  
-      - OTHER - any other reason
-      
-      Call the check_refund_eligible tool to determine if the refund is eligible. You will get a True or False result back from the tool. Do not modify the tool's response. Simply response TRUE or FALSE.""",
+    model=GEMINI_MODEL,
+    instruction=check_eligibility_subagent_prompt_parallel,
     input_schema=None,
-    output_key="refund_eligible",
-    tools=[check_refund_eligible],
+    output_key="is_refund_eligible",
+    tools=[check_refund_eligibility],
 )
 
+process_full_refund = LlmAgent(
+    name="RefundProcessorAgent",
+    model=GEMINI_MODEL,
+    instruction=process_refund_subagent_prompt,
+    tools=[process_refund],
+    output_key="refund_confirmation_message",
+)
 
 offer_store_credit = LlmAgent(
     name="OfferStoreCredit",
-    model=GEMINI_2_FLASH,
-    instruction="""You are a customer service representative. The customer is not eligible 
-for a refund but has a valid purchase history. Politely explain this and offer them a 
-50% store credit for their next purchase as an alternative. Be empathetic and professional.
-Ask if they would like to accept this offer.""",
+    model=GEMINI_MODEL,
+    instruction="""
+    The customer is not eligible for a refund but has a valid purchase history. Politely explain this and offer them a 50% store credit for their next purchase as an alternative. Be empathetic and professional.
+    Ask if they would like to accept this offer.
+""",
     input_schema=None,
     output_key="store_credit_offer",
 )
 
 process_store_credit_response = LlmAgent(
     name="ProcessStoreCreditResponse",
-    model=GEMINI_2_FLASH,
-    instruction="""You are processing the customer's response to the store credit offer.
-Based on the customer's response in session state with key 'customer_response':
-- If they accept: Output "I'll send this to your account. Thanks!"
-- If they decline: Output "I apologize that we couldn't accommodate your request. Thank you for your understanding."
-Store the appropriate message based on their response.""",
+    model=GEMINI_MODEL,
+    instruction="""
+        You are processing the customer's response to the store credit offer.
+        Based on the customer's response in session state with key 'customer_response':
+        - If they accept: Output "I'll send this to your account. Thanks!"
+        - If they decline: Output "I apologize that we couldn't accommodate your request. Thank you for your understanding."
+        Store the appropriate message based on their response.
+""",
     input_schema=None,
     output_key="final_response",
 )
 
-# --- Create the custom agent instance ---
 customer_refund_agent = CustomerRefundAgent(
     name="CustomerRefundAgent",
-    is_refund_eligible=is_refund_eligible,
+    refund_eligibility_checker=refund_eligibility_checker,
     get_purchase_history=get_purchase_history,
+    process_full_refund=process_full_refund,
     offer_store_credit=offer_store_credit,
     process_store_credit_response=process_store_credit_response,
 )

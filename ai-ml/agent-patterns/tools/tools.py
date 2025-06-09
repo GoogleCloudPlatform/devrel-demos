@@ -27,8 +27,8 @@ def get_purchase_history(purchaser: str) -> List[Dict[str, Any]]:
     history_data = {
         "Alexis": [
             {
-                "purchase_id": "JD001-20250415",
-                "purchased_date": "2025-04-15",
+                "order_id": "JD001-20250415",
+                "date": "2025-04-15",
                 "items": [
                     {
                         "product_name": "Assorted Taffy 1lb Box",
@@ -47,8 +47,8 @@ def get_purchase_history(purchaser: str) -> List[Dict[str, Any]]:
         ],
         "David": [
             {
-                "purchase_id": "SG002-20250610",
-                "purchased_date": "2025-06-03",
+                "order_id": "SG002-20250610",
+                "date": "2025-06-03",
                 "items": [
                     {
                         "product_name": "Peanut Butter Taffy 0.5lb Bag",
@@ -81,7 +81,7 @@ def get_purchase_history(purchaser: str) -> List[Dict[str, Any]]:
     return history
 
 
-def check_refund_eligible(reason: str, shipping_method: str) -> bool:
+def check_refund_eligibility(reason: str, shipping_method: str) -> bool:
     """
     Check if a refund request is eligible based on reason and shipping method.
 
@@ -106,3 +106,24 @@ def check_refund_eligible(reason: str, shipping_method: str) -> bool:
 
     logger.info(f"Refund eligibility result: {is_eligible}")
     return is_eligible
+
+
+def process_refund(amount: float, order_id: str) -> str:
+    """
+    Process a refund for the given amount and order.
+
+    Args:
+        amount: Refund amount in dollars
+        order_id: Order ID to refund
+
+    Returns:
+        Success message with refund details
+    """
+    logger.info(f"Processing refund - Order: {order_id}, Amount: ${amount:.2f}")
+
+    # In a real system, this would interact with payment processors
+    # For now, we'll simulate a successful refund
+    refund_id = f"REF-{order_id}-{int(amount*100)}"
+    logger.info(f"Refund processed successfully - Refund ID: {refund_id}")
+
+    return f"✅ Refund {refund_id} successful! We will credit ${amount:.2f} to your account within 2 business days."
