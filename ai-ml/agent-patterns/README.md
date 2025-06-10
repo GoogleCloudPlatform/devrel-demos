@@ -50,7 +50,7 @@ adk web
 **Example prompts** (for all five agent implementations):
 - *My name is Alexis, and my order arrived damaged.* 
 - *My name is David, and my order never arrived!* 
-- *My name is Moira, and I want to refund my order was eaten by a raccoon.* 
+- *My name is Moira, and my order was eaten by a raccoon.* 
 
 **Example output**: 
 
