@@ -1,4 +1,3 @@
-# Full runnable code for the CustomerRefundAgent example
 import logging
 from typing import AsyncGenerator, Dict, Any
 from typing_extensions import override
@@ -22,7 +21,6 @@ GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"
 
 
 class CustomerRefundAgent(BaseAgent):
-    # --- Field Declarations for Pydantic ---
     refund_eligibility_checker: LlmAgent
     get_purchase_history: LlmAgent
     process_full_refund: LlmAgent
