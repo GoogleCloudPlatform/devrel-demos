@@ -6,7 +6,7 @@ https://google.github.io/adk-docs/agents/multi-agents/#coordinatordispatcher-pat
 
 import logging
 from google.adk.agents import Agent
-from tools.tools import get_purchase_history, check_refund_eligibility,, process_refund
+from tools.tools import get_purchase_history, check_refund_eligibility, process_refund
 from tools.prompts import (
     top_level_prompt,
     purchase_history_subagent_prompt,
@@ -34,7 +34,9 @@ eligibility_agent = Agent(
     name="EligibilityAgent",
     description="Checks refund eligibility based on policies",
     instruction=check_eligibility_subagent_prompt,
-    tools=[check_refund_eligibility,],
+    tools=[
+        check_refund_eligibility,
+    ],
     output_key="is_refund_eligible",
 )
 
