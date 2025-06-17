@@ -1,7 +1,7 @@
 functions-framework==3.3.0
 google-events==0.7.0
 google-api-core==2.11.1
-protobuf==4.23.3
+protobuf==4.25.8
 google-cloud-firestore==2.11.1
 cloudevents==1.9.0
 pydantic>=2.6.0
