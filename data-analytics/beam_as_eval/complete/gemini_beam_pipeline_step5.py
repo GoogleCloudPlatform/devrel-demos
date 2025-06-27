@@ -135,8 +135,7 @@ class GeminiModelHandler(ModelHandler[str, PredictionResult, genai.Client]):
 
                 Text: "{text_to_classify}"
                 """
-                logging.info("sending this:"+prompt)
-
+                
                 contents = [
                     types.Content( # This is the actual content for the LLM
                     role="user",
