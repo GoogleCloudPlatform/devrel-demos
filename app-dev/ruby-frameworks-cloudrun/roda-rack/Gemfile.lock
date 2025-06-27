@@ -4,7 +4,7 @@ GEM
     rack (2.2.11)
     roda (3.58.0)
       rack
-    webrick (1.7.0)
+    webrick (1.8.2)
 
 PLATFORMS
   ruby
