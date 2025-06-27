@@ -37,14 +37,11 @@ python Gemini_Beam_Eval.py \
   --project YOUR_GCP_PROJECT_ID \
   --input_topic "projects/YOUR_GCP_PROJECT_ID/topics/YOUR_INPUT_TOPIC" \
   --location us-central1 \
-  --model_name gemini-1.5-flash-001 \
+  --model_name gemini-2.5-flash \
   --runner DataflowRunner \
   --region YOUR_GCP_REGION \
   --temp_location "gs://YOUR_GCS_BUCKET/temp" \
-  --streaming \
-  --disk_size_gb 50 \
-  --num_workers 1 \
-  --max_num_workers 5
+  --streaming 
 ```
 
 ## Tutorial Structure
