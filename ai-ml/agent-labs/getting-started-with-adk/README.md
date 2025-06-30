@@ -1,4 +1,4 @@
-# Build multi-agent systems with ADK
+# Getting Started with Agent Development Kit (ADK)
 
 This code sample shows the end-state of the code created in this [Getting Started with Agent Development Kit (ADK)](https://www.cloudskillsboost.google/catalog_lab/32017) lab. 
 
