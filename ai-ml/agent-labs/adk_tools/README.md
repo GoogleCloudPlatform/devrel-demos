@@ -1,4 +1,4 @@
-# Build multi-agent systems with ADK
+# Empower ADK agents with tools
 
 This code sample shows the end-state of the code created in this [Empower ADK agents with tools](https://www.cloudskillsboost.google/catalog_lab/32018) lab. 
 
