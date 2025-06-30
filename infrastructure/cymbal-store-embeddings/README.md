@@ -63,9 +63,13 @@ git clone https://github.com/GoogleCloudPlatform/devrel-demos.git
 cd devrel-demos/infrastructure/cymbal-store-embeddings
 ```
 Create a database with the name cymbal_store and the user cymbal
+Load data using cymbal_demo_schema.sql to load the tables definitions and the csv files to load the data.
 
 
-Calculate the embeddings
+### Calculate the embeddings
+
+Use text-embedding-004 model to calculate the embeddings based on description and name for the products
+The same model is used for the similarity search. Put embeddings into the cymbal_embedding table. The table connected using uniq_id with the cymbal_products 
 
 ### Run the application 
 #### Install Python 3.11 and dependencies

@@ -467,7 +467,7 @@ def send_prompt(e: me.ClickEvent):
         messages.append(ChatMessage(role="model", in_progress=True))
         yield
 
-        if model == Models.GEMINI_2_0_FLASH.value:
+        if model == Models.GEMINI_2_5_FLASH.value:
             while True:
                 intent_str = gemini_model.classify_intent(input)
                 print(intent_str)
@@ -481,7 +481,7 @@ def send_prompt(e: me.ClickEvent):
 
             if json_intent["shouldRecommendProduct"] is True:
                 search_embedding = gemini_model.generate_embedding(json_intent["summary"])
-                products_list = get_products(db, str(search_embedding["embedding"]))
+                products_list = get_products(db, str(search_embedding))
                 logging.info(f"PRODUCTS LIST: {products_list}")
                 print(f"PRODUCTS LIST: {products_list}")
                 persona="You are friendly assistance in a store helping to find a products based on the client's request"

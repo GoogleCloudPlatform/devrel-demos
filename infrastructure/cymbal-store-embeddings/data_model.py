@@ -27,7 +27,7 @@ class ChatMessage:
     in_progress: bool = False
 
 class Models(Enum):
-    GEMINI_2_0_FLASH = "Gemini 2.0 Flash"
+    GEMINI_2_5_FLASH = "Gemini 2.5 Flash"
     OPENAI = "gpt-4o-mini"
     GEMMA_3 = "gemma3"
 
