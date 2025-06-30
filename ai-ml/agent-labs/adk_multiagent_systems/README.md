@@ -25,4 +25,4 @@ pip3 install -r requirements.txt
 
 ### Defining `GOOGLE_CLOUD_PROJECT` value
 
-In each agent folder, there is a line that reads `GOOGLE_CLOUD_PROJECT=YOUR_GOOGLE_CLOUD_PROJECT`. Replace "YOUR_GOOGLE_CLOUD_PROJECT" with the cloud project you'd like to use, in quotes.
+In each agent folder, there is an `.env` file with a line that reads `GOOGLE_CLOUD_PROJECT=YOUR_GOOGLE_CLOUD_PROJECT`. Replace "YOUR_GOOGLE_CLOUD_PROJECT" with the cloud project you'd like to use, in quotes.
