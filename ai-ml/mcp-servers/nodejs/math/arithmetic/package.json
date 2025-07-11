@@ -1,0 +1,27 @@
+{
+  "name": "mcp-server-nodejs-math-arithmetic",
+  "version": "0.0.1",
+  "description": "MCP server for arithmetic built with Node.js",
+  "main": "index.js",
+  "type": "module",
+  "license": "Apache-2.0",
+  "private": false,
+  "engines": {
+    "node": ">= 14.0.0",
+    "npm": ">= 6.0.0"
+  },
+  "homepage": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GoogleCloudPlatform/devrel-demos.git"
+  },
+  "bugs": "",
+  "keywords": [],
+  "scripts": {
+    "start": "node index.js",
+    "test": "npx @modelcontextprotocol/inspector node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.15.1"
+  }
+}
