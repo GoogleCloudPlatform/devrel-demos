@@ -48,7 +48,7 @@ cd devrel-demos/ai-ml/python-tutor
 
 ### Short-term memory agent (Persist Sessions)
 
-<img src="images/lt_arch_diagram.png" style="width: 50%; height: 50%"/>​
+<img src="images/st_arch_diagram.png" style="width: 50%; height: 50%"/>​
 
 
 This agent simply stores session data (eg. state fields) to a local database, for inspection. This means you can close the ADK Web browser tab, open a new tab, and be able to restore your session. You can even shut down `adk web` and restart it - because you're persisting the session data locally. What this agent does *not* support are user preferences across multiple sessions - that's what the long-term agent will cover below. This agent can only remember what happens **within** the same session.
