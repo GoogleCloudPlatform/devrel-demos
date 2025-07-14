@@ -33,9 +33,25 @@ There are two variations of the Python tutor agent in this directory.
 
 ## Run Locally 
 
+For both flavors of this agent, you will need: 
+- A terminal
+- Git
+- Python 3.10+ 
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) 
+
+Clone this repository and navigate to this subdirectory, before getting started: 
+
+```bash 
+git clone https://github.com/GoogleCloudPlatform/devrel-demos 
+cd devrel-demos/ai-ml/python-tutor
+```
+
 ### Short-term memory agent (Persist Sessions)
 
-This agent simply stores session data (eg. state fields) to a local database, for inspection. This means you can close the ADK Web browser tab, open a new tab, and be able to restore your session. You can even shut down `adk web` and restart it - because you're persisting the session data locally. What this agent does *not* support are user preferences across multiple sessions - that's what the long-term agent will cover below. 
+<img src="images/lt_arch_diagram.png" style="width: 50%; height: 50%"/>​
+
+
+This agent simply stores session data (eg. state fields) to a local database, for inspection. This means you can close the ADK Web browser tab, open a new tab, and be able to restore your session. You can even shut down `adk web` and restart it - because you're persisting the session data locally. What this agent does *not* support are user preferences across multiple sessions - that's what the long-term agent will cover below. This agent can only remember what happens **within** the same session.
 
 With both flavors, navigate to `127.0.0.1:8000` and make sure you select `python-tutor-short-term` from the drop-down, before talking with the agent. Have the agent walk you through a quiz, then inspect the session and state data. 
 
@@ -47,6 +63,10 @@ Stores session data to a local file: `pythontutor_sessions.db`
 ```bash
 uv run adk web --session_service_uri="sqlite:///./pythontutor_sessions.db" 
 ```
+
+You can inspect the sqlite session data file by adding an IDE extension for SQLite, and then opening the `pythontutor_sessions.db` file: 
+
+![](images/sqlite_state_inspection.png)
 
 #### With PostgreSQL
 
@@ -100,6 +120,9 @@ Note the session ID (`09220dfe` - yours will be different!), and the various sta
 
 ### Long-term memory agent (with Vertex AI Memory Bank)
 
+<img src="images/lt_arch_diagram.png" style="width: 50%; height: 50%"/>​
+
+
 **Prerequisites**: 
 - A Google Cloud project with Billing enabled.
 - Python 3.10+ 
@@ -148,3 +171,7 @@ export AGENT_ENGINE_ID="123456789"
 ```bash
 uv run adk web --session_service_uri="sqlite:///./pythontutor_sessions.db" --memory_service_uri="agentengine://$AGENT_ENGINE_ID"
 ```
+
+Run through the quiz once, stating your first name beforehand. Then start a new session, and use the same first name. The agent should remember your score from the previous session, by fetching memories from Memory Bank: 
+
+![](images/lt_memory_remembers.png)
