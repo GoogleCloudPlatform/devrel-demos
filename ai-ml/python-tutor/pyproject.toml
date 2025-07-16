@@ -1,0 +1,13 @@
+[project]
+name = "python-tutor2"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "google-adk>=1.6.1",
+    "google-cloud-aiplatform==1.103.0",
+    "pandas>=2.3.1",
+    "psycopg2-binary>=2.9.10",
+    "vertexai>=1.43.0",
+]
