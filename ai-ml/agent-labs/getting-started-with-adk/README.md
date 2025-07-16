@@ -23,6 +23,9 @@ You'll want to install the requirements to get started.
 pip3 install -r requirements.txt
 ```
 
-### Defining `GOOGLE_CLOUD_PROJECT` value
+### Set values in local `.env` file
 
-In each agent folder, there is an `.env` file with a line that reads `GOOGLE_CLOUD_PROJECT=YOUR_GOOGLE_CLOUD_PROJECT`. Replace "YOUR_GOOGLE_CLOUD_PROJECT" with the cloud project you'd like to use, in quotes.
+Each agent folder has a `.env.example` file. You will need to update the file accordingly: 
+
+1. rename the files to `.env`
+2. Update the values appropriately to reflect your project values
