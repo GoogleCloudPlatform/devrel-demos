@@ -36,7 +36,7 @@ Here’s a breakdown of the `enable_pgvector.py` workflow:
 
 This script automates a crucial database setup step, ensuring your environment is ready before you start ingesting vectorized data.
 
-### Understanding `load_and_embed_data.py`
+## Understanding `load_and_embed_data.py`
 
 Here’s a breakdown of the `load_and_embed_data.py` workflow:
 
