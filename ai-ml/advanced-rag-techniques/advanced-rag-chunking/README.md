@@ -1,6 +1,8 @@
 # Advanced RAG Techniques - Chunking
 
-This code sample shows the end-state of the code created in this Advanced RAG Techniques - Chunking lab. (TKTK: add link to lab when published)
+This code sample shows the end-state of the code created in this Advanced RAG Techniques - Chunking lab. 
+
+<!-- TKTK: add link to lab when published -->
 
 Author: [Amit Maraj](https://github.com/amitkmaraj)
 
