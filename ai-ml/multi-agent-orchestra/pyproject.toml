@@ -1,0 +1,11 @@
+[project]
+name = "multi-agent-orchestra"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "google-adk>=1.7.0",
+    "google-genai>=1.26.0",
+    "pyaudio",
+]
