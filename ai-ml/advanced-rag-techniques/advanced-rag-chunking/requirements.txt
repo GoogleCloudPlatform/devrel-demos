@@ -1,0 +1,10 @@
+langchain-community
+langchain-google-vertexai
+google-cloud-aiplatform[langchain]
+cloud-sql-python-connector[pg8000]
+fsspec
+gcsfs
+pgvector
+pandas
+sqlalchemy
+tiktoken
