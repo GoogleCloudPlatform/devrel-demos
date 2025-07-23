@@ -8,4 +8,5 @@ dependencies = [
     "google-adk>=1.7.0",
     "google-genai>=1.26.0",
     "pyaudio",
+    "sounddevice>=0.5.2",
 ]
