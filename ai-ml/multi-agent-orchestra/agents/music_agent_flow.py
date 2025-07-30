@@ -47,42 +47,55 @@ class ComposerAgent(BaseAgent):
         self._reset_buffer = False
         self._buffer_size = 0
 
+    def __del__(self):
+        self._stopped = True
+        if self._audio_thread:
+            self._audio_thread.join()
+
     async def _audio_thread_func(self):
-        async with self._get_client().aio.live.music.connect(
-            model="models/lyria-realtime-exp"
-        ) as session:
-            self._session = session
-            stream = None
-            try:
-                audio = pyaudio.PyAudio()
-                stream = audio.open(
-                    format=pyaudio.paInt16,
-                    channels=CHANNELS,
-                    rate=SAMPLE_RATE,
-                    output=True,
-                    frames_per_buffer=CHUNK_SIZE,
-                )
-                async for message in session.receive():
-                    if self._stopped:
-                        break
-                    if self._reset_buffer:
-                        self._buffer_size = 0
-                        self._reset_buffer = False
-                        self.buffer.clear()
-                    if message.server_content.audio_chunks:
-                        for audio_chunk in message.server_content.audio_chunks:
-                            audio_data = audio_chunk.data
-                            if isinstance(audio_data, bytes):
-                                audio_bytes = audio_data
-                            else:
-                                audio_bytes = audio_data.tobytes()
-                            stream.write(audio_bytes)
-                            self.buffer.append(audio_bytes)
-                            self._buffer_size += len(audio_bytes)
+        audio = None
+        stream = None
+        try:
+            while not self._stopped:
                 self._session = None
-            finally:
-                if stream:
-                    stream.close()
+                async with self._get_client().aio.live.music.connect(
+                    model="models/lyria-realtime-exp"
+                ) as session:
+                    if self._stopped:
+                        return
+                    self._session = session
+                    if not audio:
+                        audio = pyaudio.PyAudio()
+                    if not stream:
+                        stream = audio.open(
+                            format=pyaudio.paInt16,
+                            channels=CHANNELS,
+                            rate=SAMPLE_RATE,
+                            output=True,
+                            frames_per_buffer=CHUNK_SIZE,
+                        )
+                    async for message in session.receive():
+                        if self._stopped:
+                            break
+                        if self._reset_buffer:
+                            self._buffer_size = 0
+                            self._reset_buffer = False
+                            self.buffer.clear()
+                        if message.server_content.audio_chunks:
+                            for audio_chunk in message.server_content.audio_chunks:
+                                audio_data = audio_chunk.data
+                                if isinstance(audio_data, bytes):
+                                    audio_bytes = audio_data
+                                else:
+                                    audio_bytes = audio_data.tobytes()
+                                stream.write(audio_bytes)
+                                self.buffer.append(audio_bytes)
+                                self._buffer_size += len(audio_bytes)
+        finally:
+            self._session = None
+            self._audio_thread = None
+            if stream:
+                stream.close()
 
     def _get_client(self):
         """Get or create the genai client."""
@@ -96,6 +109,7 @@ class ComposerAgent(BaseAgent):
         self, ctx: InvocationContext
     ) -> AsyncGenerator[Event, None]:
 
+        self._stopped = False
         if not self._audio_thread:
             self._audio_thread = threading.Thread(
                 target=asyncio.run,
@@ -224,7 +238,7 @@ original_music_producer_agent = LlmAgent(
         Your user makes a request for music theme or a song.
         Your task is to understand user's request, parse it into a semi-structured form.
         Include suggested values for required parameters when the user doesn't specify them.
-        Use many weighted prompts, each with its own components, such as instrument, mood, performance instructions, etc.
+        You must split the idea between multiple weighted prompts, each with its own components, such as instrument, mood, performance instructions, etc.
 """,
     output_schema=LyriaPrompt,
     output_key="lyria_prompt",
