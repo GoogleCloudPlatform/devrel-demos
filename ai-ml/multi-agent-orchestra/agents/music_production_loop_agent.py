@@ -2,8 +2,10 @@ import asyncio
 from collections import deque
 from io import BytesIO
 import json
+import os
 from typing import Any, AsyncGenerator, Dict, List, Optional, Dict
 import threading
+import time
 
 from pydantic import BaseModel, Field
 import pyaudio
@@ -135,27 +137,38 @@ class ComposerAgent(BaseAgent):
         while len(self.buffer) < CRITIQUE_CHUNK_COUNT:
             await asyncio.sleep(0.5)
 
-        with BytesIO() as wav_data:
-            with wave.open(wav_data, "wb") as wav:
-                wav.setnchannels(CHANNELS)
-                wav.setframerate(SAMPLE_RATE)
-                wav.setsampwidth(2)  # 16 bit
-                audio_data = list(self.buffer)
-                for d in audio_data:
-                    wav.writeframesraw(d)
-                yield Event(
-                    author=self.name,
-                    content=types.Content(
-                        role="model",
-                        parts=[
-                            types.Part(
-                                inline_data=types.Blob(
-                                    mime_type="audio/wav", data=wav_data.getvalue()
-                                )
+        # Let the music play for a bit
+        await asyncio.sleep(25)
+
+        # Stop the music stream
+        await self._session.stop()
+        self._stopped = True
+        print("\n================ 🎹 Music Stream Stopped 🎸 ================")
+
+        output_filename = f"output_{int(time.time())}.wav"
+        with wave.open(output_filename, "wb") as wav:
+            wav.setnchannels(CHANNELS)
+            wav.setframerate(SAMPLE_RATE)
+            wav.setsampwidth(2)  # 16 bit
+            audio_data = list(self.buffer)
+            for d in audio_data:
+                wav.writeframesraw(d)
+        print(f"\n✅ Saved audio to {output_filename}")
+
+        with open(output_filename, "rb") as wav_file:
+            yield Event(
+                author=self.name,
+                content=types.Content(
+                    role="model",
+                    parts=[
+                        types.Part(
+                            inline_data=types.Blob(
+                                mime_type="audio/wav", data=wav_file.read()
                             )
-                        ],
-                    ),
-                )
+                        )
+                    ],
+                ),
+            )
 
 
 class Critique(BaseModel):
