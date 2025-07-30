@@ -33,7 +33,7 @@ class FinalSongInfo(BaseModel):
 
 # Title generation agent
 title_agent = LlmAgent(
-    model="gemini-2.0-flash-exp",
+    model="gemini-2.5-flash",
     name="TitleAgent",
     description="Generates a creative title for the composed song",
     global_instruction="""
