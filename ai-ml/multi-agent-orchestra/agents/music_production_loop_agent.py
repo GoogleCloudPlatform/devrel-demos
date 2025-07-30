@@ -28,76 +28,19 @@ SAMPLE_RATE = 48000
 CHANNELS = 2  # Stereo
 CHUNK_SIZE = 1024
 CRITIQUE_CHUNK_COUNT = 100  # number of chunks to critique
+RECORDING_DURATION = 15  # seconds
 
 
 class ComposerAgent(BaseAgent):
     """Composes and plays music using Lyria model"""
-
-    buffer: deque = Field(default=deque([], CRITIQUE_CHUNK_COUNT))
 
     def __init__(self):
         super().__init__(
             name="ComposerAgent",
             description="An AI agent that generates music using the Lyria RealTime API.",
         )
-        # Store client and parser as private attributes to avoid Pydantic validation
         self._genai_client = None
-        self._last_portion = []
-        self._audio_thread = None
-        self._session = None
-        self._stopped = False
-        self._reset_buffer = False
-        self._buffer_size = 0
-
-    def __del__(self):
-        self._stopped = True
-        if self._audio_thread:
-            self._audio_thread.join()
-
-    async def _audio_thread_func(self):
-        audio = None
-        stream = None
-        try:
-            while not self._stopped:
-                self._session = None
-                async with self._get_client().aio.live.music.connect(
-                    model="models/lyria-realtime-exp"
-                ) as session:
-                    if self._stopped:
-                        return
-                    self._session = session
-                    if not audio:
-                        audio = pyaudio.PyAudio()
-                    if not stream:
-                        stream = audio.open(
-                            format=pyaudio.paInt16,
-                            channels=CHANNELS,
-                            rate=SAMPLE_RATE,
-                            output=True,
-                            frames_per_buffer=CHUNK_SIZE,
-                        )
-                    async for message in session.receive():
-                        if self._stopped:
-                            break
-                        if self._reset_buffer:
-                            self._buffer_size = 0
-                            self._reset_buffer = False
-                            self.buffer.clear()
-                        if message.server_content.audio_chunks:
-                            for audio_chunk in message.server_content.audio_chunks:
-                                audio_data = audio_chunk.data
-                                if isinstance(audio_data, bytes):
-                                    audio_bytes = audio_data
-                                else:
-                                    audio_bytes = audio_data.tobytes()
-                                stream.write(audio_bytes)
-                                self.buffer.append(audio_bytes)
-                                self._buffer_size += len(audio_bytes)
-        finally:
-            self._session = None
-            self._audio_thread = None
-            if stream:
-                stream.close()
+        self._audio_buffer = []
 
     def _get_client(self):
         """Get or create the genai client."""
@@ -109,52 +52,85 @@ class ComposerAgent(BaseAgent):
         self, ctx: InvocationContext
     ) -> AsyncGenerator[Event, None]:
 
-        self._stopped = False
-        if not self._audio_thread:
-            self._audio_thread = threading.Thread(
-                target=asyncio.run, args=(self._audio_thread_func(),)
-            )
-            self._audio_thread.start()
-        while not self._session:
-            await asyncio.sleep(1.0)
-
         lyria_prompt = ctx.session.state["lyria_prompt"]
         if isinstance(lyria_prompt, dict):
             lyria_prompt = LyriaPrompt.model_validate(lyria_prompt)
-        await self._session.set_weighted_prompts(prompts=lyria_prompt.weighted_prompts)
-        await self._session.set_music_generation_config(
-            config=lyria_prompt.generation_config
+
+        # Clear the audio buffer
+        self._audio_buffer = []
+
+        # Setup PyAudio
+        audio = pyaudio.PyAudio()
+        stream = audio.open(
+            format=pyaudio.paInt16,
+            channels=CHANNELS,
+            rate=SAMPLE_RATE,
+            output=True,
+            frames_per_buffer=CHUNK_SIZE,
         )
-        print("\n================ 🎹 Begin Music Stream 🎸 ================")
-        # print(lyria_prompt.model_dump_json(indent=2))
-        await self._session.play()
-        # Reset the music buffer
-        self._reset_buffer = True
-        # Make sure it's been reset
-        while len(self.buffer) >= CRITIQUE_CHUNK_COUNT:
-            await asyncio.sleep(0.1)
-        # Wait for the buffer to be filled with music
-        while len(self.buffer) < CRITIQUE_CHUNK_COUNT:
-            await asyncio.sleep(0.5)
 
-        # Let the music play for a bit
-        await asyncio.sleep(25)
+        try:
+            # Connect to Lyria and generate music for exactly 30 seconds
+            async with self._get_client().aio.live.music.connect(
+                model="models/lyria-realtime-exp"
+            ) as session:
+                # Configure the session
+                await session.set_weighted_prompts(
+                    prompts=lyria_prompt.weighted_prompts
+                )
+                await session.set_music_generation_config(
+                    config=lyria_prompt.generation_config
+                )
 
-        # Stop the music stream
-        await self._session.stop()
-        self._stopped = True
+                print("\n================ 🎹 Begin Music Stream 🎸 ================")
+
+                # Start playing
+                await session.play()
+
+                # Record for exactly 30 seconds
+                start_time = time.time()
+
+                async for message in session.receive():
+                    # Check if 30 seconds have passed
+                    if time.time() - start_time >= RECORDING_DURATION:
+                        break
+
+                    if message.server_content.audio_chunks:
+                        for audio_chunk in message.server_content.audio_chunks:
+                            audio_data = audio_chunk.data
+                            if isinstance(audio_data, bytes):
+                                audio_bytes = audio_data
+                            else:
+                                audio_bytes = audio_data.tobytes()
+
+                            # Play the audio
+                            stream.write(audio_bytes)
+                            # Store for saving later
+                            self._audio_buffer.append(audio_bytes)
+
+                # Stop the session
+                await session.stop()
+
+        finally:
+            # Clean up audio resources
+            stream.stop_stream()
+            stream.close()
+            audio.terminate()
+
         print("\n================ 🎹 Music Stream Stopped 🎸 ================")
 
+        # Save the recorded audio
         output_filename = f"output_{int(time.time())}.wav"
         with wave.open(output_filename, "wb") as wav:
             wav.setnchannels(CHANNELS)
             wav.setframerate(SAMPLE_RATE)
             wav.setsampwidth(2)  # 16 bit
-            audio_data = list(self.buffer)
-            for d in audio_data:
-                wav.writeframesraw(d)
+            for audio_chunk in self._audio_buffer:
+                wav.writeframesraw(audio_chunk)
+
         print(f"\n✅ Saved audio to {output_filename}")
 
+        # Yield the audio file for the critique agent
         with open(output_filename, "rb") as wav_file:
             yield Event(
                 author=self.name,
@@ -240,13 +216,6 @@ class StopConditionVerifier(BaseAgent):
                     author=self.name,
                     content=types.Content(parts=[types.Part(text=text)]),
                 )
-            # print(text)
-
-
-def before_critique_callback(request: LlmRequest, ctx: CallbackContext) -> LlmRequest:
-    """Prints a message before running the critique agent."""
-    print("\n🤔 Starting critique agent...")
-    return request
 
 
 critique_agent = LlmAgent(
@@ -271,7 +240,6 @@ critique_agent = LlmAgent(
 """,
     output_schema=Critique,
     output_key="critique",
-    before_model_callback=before_critique_callback,
     disallow_transfer_to_parent=True,
     disallow_transfer_to_peers=True,
 )
