@@ -9,6 +9,8 @@ from google.genai import types
 from google.adk.agents import BaseAgent, LlmAgent, LoopAgent
 from google.adk.agents.invocation_context import InvocationContext
 from google.adk.events import Event, EventActions
+from google.adk.a2a.utils.agent_to_a2a import to_a2a
+
 
 from user_prompt_parser_agent import LyriaPrompt, _clean_base_models
 
@@ -245,3 +247,8 @@ music_production_loop_agent = LoopAgent(
     ],
     max_iterations=3,
 )
+
+# Expose agent via A2A by autogenerating agent card 
+# https://google.github.io/adk-docs/a2a/quickstart-exposing/#exposing-the-remote-agent-with-the-to_a2aroot_agent-function 
+a2a_app = to_a2a(music_production_loop_agent, port=8001)
+ 

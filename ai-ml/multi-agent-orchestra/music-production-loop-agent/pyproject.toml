@@ -1,0 +1,14 @@
+[project]
+name = "music-production-loop-agent"
+version = "0.1.0"
+description = "Music Production Loop Agent"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "a2a-sdk[telemetry]>=0.2.16",
+    "google-adk>=1.7.0",
+    "google-genai>=1.26.0",
+    "pyaudio",
+    "sounddevice>=0.5.2",
+    "uvicorn==0.35.0",
+]
