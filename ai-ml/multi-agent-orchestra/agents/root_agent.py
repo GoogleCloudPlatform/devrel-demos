@@ -31,7 +31,7 @@ class FinalSongInfo(BaseModel):
     filepath: str = Field(description="The path to the final audio file")
 
 
-# Title generation agent
+# Title generation agent - saves title to state (output_key)
 title_agent = LlmAgent(
     model="gemini-2.5-flash",
     name="TitleAgent",
@@ -57,7 +57,7 @@ title_agent = LlmAgent(
 
 
 class FileRenamerAgent(BaseAgent):
-    """Renames the final audio file based on the generated title and cleans up intermediate files"""
+    """Renames the final WAV audio file based on the generated title and cleans up intermediate WAV files"""
 
     async def _run_async_impl(
         self, ctx: InvocationContext
@@ -148,7 +148,7 @@ file_renamer_agent = FileRenamerAgent(
 
 
 # Update the music sequence agent to include title generation and file renaming
-music_sequence_agent = SequentialAgent(
+root_agent = SequentialAgent(
     name="AIMusicAgent",
     description="AI Music Agent",
     sub_agents=[
@@ -158,8 +158,6 @@ music_sequence_agent = SequentialAgent(
         file_renamer_agent,
     ],
 )
-
-root_agent = music_sequence_agent
 
 
 async def main():
@@ -203,8 +201,7 @@ async def main():
     print("=" * 50)
 
     # Create agent and runner using InMemoryRunner
-    agent = root_agent
-    runner = InMemoryRunner(agent, app_name="MusicGenerationApp")
+    runner = InMemoryRunner(root_agent, app_name="MusicGenerationApp")
 
     # InMemoryRunner provides its own session service
     user_id = "music_user"

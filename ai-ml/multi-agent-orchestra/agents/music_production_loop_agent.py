@@ -1,12 +1,5 @@
-import asyncio
-from collections import deque
-from io import BytesIO
-import json
-import os
-from typing import Any, AsyncGenerator, Dict, List, Optional, Dict
-import threading
+from typing import AsyncGenerator 
 import time
-
 from pydantic import BaseModel, Field
 import pyaudio
 import wave
@@ -15,19 +8,16 @@ from google import genai
 from google.genai import types
 from google.adk.agents import BaseAgent, LlmAgent, LoopAgent
 from google.adk.agents.invocation_context import InvocationContext
-from google.adk.models.llm_request import LlmRequest
-from google.adk.models.llm_response import LlmResponse
-from google.adk.agents.callback_context import CallbackContext
 from google.adk.events import Event, EventActions
 
 from user_prompt_parser_agent import LyriaPrompt, _clean_base_models
 
 
-# Audio playback parameters (from Lyria docs)
+# Audio playback parameters  
 SAMPLE_RATE = 48000
 CHANNELS = 2  # Stereo
 CHUNK_SIZE = 1024
-CRITIQUE_CHUNK_COUNT = 100  # number of chunks to critique
+CRITIQUE_CHUNK_COUNT = 100  
 RECORDING_DURATION = 15  # seconds
 
 
