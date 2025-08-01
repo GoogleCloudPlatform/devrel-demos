@@ -5,7 +5,8 @@ import shutil
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
 from dotenv import load_dotenv
-from google.adk.agents import BaseAgent, LlmAgent, SequentialAgent, RemoteA2aAgent
+from google.adk.agents import BaseAgent, LlmAgent, SequentialAgent
+google.adk.agents.remote_a2a_agent import RemoteA2aAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.agents.invocation_context import InvocationContext
 from google.adk.events import Event
@@ -14,10 +15,6 @@ from google.adk.models.llm_response import LlmResponse
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 from pydantic import BaseModel, Field
-
-# Remove the local import since we're using the remote agent
-# from music_production_loop_agent import music_production_loop_agent
-
 
 class LyriaPrompt(BaseModel):
     """Represents a music generation request in a semi-structured form.
@@ -221,6 +218,7 @@ file_renamer_agent = FileRenamerAgent(
 music_production_loop_agent = RemoteA2aAgent(
     name="MusicProductionLoopAgent",
     description="Remote agent that handles the music production loop with composition and critique",
+    # The agent card URL follows the well-known pattern
     agent_card="http://localhost:8001/.well-known/agent.json",
 )
 
@@ -231,7 +229,7 @@ root_agent = SequentialAgent(
     description="AI Music Agent",
     sub_agents=[
         user_prompt_parser_agent,
-        music_production_loop_agent,  # Remote agent consumed via A2A 
+        music_production_loop_agent,
         title_agent,
         file_renamer_agent,
     ],
@@ -270,6 +268,12 @@ async def main():
     )
     print("🎵 Music Production Agent with ADK, Lyria RealTime, and Gemini ✨")
     print("=" * 50)
+    
+    if not USE_REMOTE_AGENT:
+        print("⚠️  Note: Running with local agent (RemoteA2aAgent not available)")
+        print("To use remote agent, fix the A2A dependencies and set USE_REMOTE_AGENT = True")
+        print("=" * 50)
+    
     print("Examples of prompts you can try:")
     print("- 'jazzy piano in C major at 120 bpm'")
     print("- 'ambient electronic music with spacey synths, dreamy and ethereal'")

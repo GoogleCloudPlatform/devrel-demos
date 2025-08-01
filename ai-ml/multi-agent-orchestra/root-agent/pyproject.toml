@@ -5,7 +5,7 @@ description = "Root Sequential Agent for AI Music Generation"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "a2a-sdk[telemetry]>=0.2.16",
+    "a2a-sdk==0.2.16",      # latest version 0.3.0 is not working. 
     "google-adk>=1.7.0",
     "google-genai>=1.26.0",
     "pyaudio",

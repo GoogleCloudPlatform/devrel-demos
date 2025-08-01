@@ -1,4 +1,4 @@
-from typing import AsyncGenerator 
+from typing import AsyncGenerator
 import time
 from pydantic import BaseModel, Field
 import pyaudio
@@ -15,11 +15,11 @@ from google.adk.a2a.utils.agent_to_a2a import to_a2a
 from user_prompt_parser_agent import LyriaPrompt, _clean_base_models
 
 
-# Audio playback parameters  
+# Audio playback parameters
 SAMPLE_RATE = 48000
 CHANNELS = 2  # Stereo
 CHUNK_SIZE = 1024
-CRITIQUE_CHUNK_COUNT = 100  
+CRITIQUE_CHUNK_COUNT = 100
 RECORDING_DURATION = 15  # seconds
 
 
@@ -43,6 +43,24 @@ class ComposerAgent(BaseAgent):
     async def _run_async_impl(
         self, ctx: InvocationContext
     ) -> AsyncGenerator[Event, None]:
+
+        # Debug: Print the entire state to see what's available
+        print(f"DEBUG: Current state keys: {list(ctx.session.state.keys())}")
+        print(f"DEBUG: Full state: {ctx.session.state}")
+
+        # Check if lyria_prompt exists in state
+        if "lyria_prompt" not in ctx.session.state:
+            yield Event(
+                author=self.name,
+                content=types.Content(
+                    parts=[
+                        types.Part(
+                            text="❌ Error: No lyria_prompt found in state. Please ensure the UserPromptParser agent has run first."
+                        )
+                    ]
+                ),
+            )
+            return
 
         lyria_prompt = ctx.session.state["lyria_prompt"]
         if isinstance(lyria_prompt, dict):
@@ -237,6 +255,7 @@ critique_agent = LlmAgent(
 )
 
 
+# Create the music production loop agent directly
 music_production_loop_agent = LoopAgent(
     name="MusicProductionLoopAgent",
     sub_agents=[
@@ -248,7 +267,6 @@ music_production_loop_agent = LoopAgent(
     max_iterations=3,
 )
 
-# Expose agent via A2A by autogenerating agent card 
-# https://google.github.io/adk-docs/a2a/quickstart-exposing/#exposing-the-remote-agent-with-the-to_a2aroot_agent-function 
+# Expose agent via A2A + autogenerate its agent card
+# https://google.github.io/adk-docs/a2a/quickstart-exposing/#exposing-the-remote-agent-with-the-to_a2aroot_agent-function
 a2a_app = to_a2a(music_production_loop_agent, port=8001)
- 

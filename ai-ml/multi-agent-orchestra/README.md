@@ -1,4 +1,4 @@
-# Multi-Agent Orchestra: Music Production with Lyria RealTime, ADK and A2A 
+# Multi-Agent Orchestra: Music Production Demo with A2A, ADK, and Lyria RealTime
 
 This directory contains a multi-agent music production example, using: 
 - [Agent Development Kit - Python (ADK)](https://google.github.io/adk-docs/agents/workflow-agents/)
@@ -39,16 +39,31 @@ cd devrel-demos/ai-ml/multi-agent-orchestra
 
 3. Run a uvicorn server for the remote agent (music production loop). 
 
-```
+```bash
+source .venv/bin/activate
 uvicorn music_production_loop_agent:a2a_app --host localhost --port 8001
 ```
 
 4. Run the A2A inspector to verify that the remote agent's Card is accessible over localhost. 
 
-5. Run the root agent Runner to interact with the music multi-agent via CLI. (Note that this demo does not yet support the ADK Web UI). 
+https://github.com/a2aproject/a2a-inspector 
 
-```bash
-uv run root_agent.py
 ```
 
-### Deploy to Google Cloud Run 
+```
+
+Can also access at: http://localhost:8001/.well-known/agent.json
+
+![](images/agent_card_music_production_loop.png)
+
+5. Open another terminal tab, keeping the `uvicorn` server running for the production loop agent. Run the root agent Runner to interact with the music multi-agent via CLI. (Note that this demo does not yet support the ADK Web UI). 
+
+```bash
+cd root_agent
+uv sync 
+uv run root_agent.py 
+```
+
+### Deploy Agents to Google Cloud Run 
+
+TODO!
