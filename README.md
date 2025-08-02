@@ -1,19 +1,23 @@
-# Purpose 
+# Google Cloud DevRel Demos
 
 This repo is for code that supports talks, blogs, and other activities the Google Developer Relations team engages in. **This code is unmaintained.** 
 
-# Organization 
+## Organization
 
 This repo is organized around the primary Google Cloud Product(s) used. The categories are:
 
-* AI and Machine Learning 
-* Application Development (Serverless and Developer Tools) 
-* Containers & Kubernetes
-* Data Analytics
-* DevOps
-* Infrastructure (Compute, Databases, Storage, and Networking) 
-* Security
-* Other / Multi-product 
-* Languages 
+* [AI & Machine Learning](/ai-ml)
+* [Application Development](/app-dev) (Serverless and Developer Tools)
+* [Containers & Kubernetes](/containers)
+* [Data Analytics](/data-analytics)
+* [DevOps](/devops)
+* [Infrastructure](/infrastructure) (Compute, Databases, Storage, and Networking)
+* [Languages](/languages)
+* [Security](/security)
+* [Other & Multi-product](/security)
 
+## Contributions
 
+Due to its nature, this repo does not accept community contributions.
+
+Googlers within the Google Cloud DevRel organization can follow [the contributing guide](/.github/CONTRIBUTING.md) to provide new or updated samples.
