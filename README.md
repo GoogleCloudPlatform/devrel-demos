@@ -14,7 +14,7 @@ This repo is organized around the primary Google Cloud Product(s) used. The cate
 * [Infrastructure](/infrastructure) (Compute, Databases, Storage, and Networking)
 * [Languages](/languages)
 * [Security](/security)
-* [Other & Multi-product](/security)
+* [Other & Multi-product](/other)
 
 ## Contributions
 
