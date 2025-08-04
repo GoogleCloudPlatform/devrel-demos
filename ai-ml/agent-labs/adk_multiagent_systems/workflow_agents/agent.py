@@ -2,19 +2,19 @@ import os
 import logging
 import google.cloud.logging
 
+from callback_logging import log_query_to_model, log_model_response
 from dotenv import load_dotenv
 
 from google.adk import Agent
 from google.adk.agents import SequentialAgent, LoopAgent, ParallelAgent
 from google.adk.tools.tool_context import ToolContext
 from google.adk.tools.langchain_tool import LangchainTool  # import
-from google.adk.tools.crewai_tool import CrewaiTool
 from google.genai import types
 from google.adk.tools import exit_loop
 
 from langchain_community.tools import WikipediaQueryRun
 from langchain_community.utilities import WikipediaAPIWrapper
-from crewai_tools import FileWriterTool
+
 
 cloud_logging_client = google.cloud.logging.Client()
 cloud_logging_client.setup_logging()
@@ -42,6 +42,19 @@ def append_to_state(
     existing_state = tool_context.state.get(field, [])
     tool_context.state[field] = existing_state + [response]
     logging.info(f"[Added to {field}] {response}")
+    return {"status": "success"}
+
+
+def write_file(
+    tool_context: ToolContext,
+    directory: str,
+    filename: str,
+    content: str
+) -> dict[str, str]:
+    target_path = os.path.join(directory, filename)
+    os.makedirs(os.path.dirname(target_path), exist_ok=True)
+    with open(target_path, "w") as f:
+        f.write(content)
     return {"status": "success"}
 
 
@@ -83,7 +96,6 @@ preproduction_team = ParallelAgent(
         casting_agent
     ]
 )
-
 critic = Agent(
     name="critic",
     model=model_name,
@@ -96,8 +108,6 @@ critic = Agent(
     - Does it feel grounded in a real time period in history?
     - Does it sufficiently incorporate historical details from the RESEARCH?
 
-    If the PLOT_OUTLINE does a good job with these questions, exit the writing loop with your 'exit_loop' tool.
-
     If significant improvements can be made, use the 'append_to_state' tool to add your feedback to the field 'CRITICAL_FEEDBACK'.
     Explain your decision and briefly summarize the feedback you have provided.
 
@@ -106,7 +116,11 @@ critic = Agent(
 
     RESEARCH:
     {{ research? }}
+
+    If the PLOT_OUTLINE does a good job with these questions, exit the writing loop with your 'exit_loop' tool.
     """,
+    before_model_callback=log_query_to_model,
+    after_model_callback=log_model_response,
     tools=[append_to_state, exit_loop],
 )
 
@@ -117,10 +131,9 @@ file_writer = Agent(
     instruction="""
     INSTRUCTIONS:
     - Create a marketable, contemporary movie title suggestion for the movie described in the PLOT_OUTLINE. If a title has been suggested in PLOT_OUTLINE, you can use it, or replace it with a better one.
-    - Use your 'file_writer_tool' to create a new txt file with the following arguments:
-        - for a file name, use the movie title
+    - Use your 'write_file' tool to create a new txt file with the following arguments:
+        - for a filename, use the movie title
         - Write to the 'movie_pitches' directory.
-        - If the function takes an 'overwrite' parameter, set it to 'true'. 
         - For the 'content' to write, include:
             - The PLOT_OUTLINE
             - The BOX_OFFICE_REPORT
@@ -138,13 +151,7 @@ file_writer = Agent(
     generate_content_config=types.GenerateContentConfig(
         temperature=0,
     ),
-    tools=[
-        CrewaiTool(
-            name="file_writer_tool",
-            description=("Writes a file to disk"),
-            tool=FileWriterTool(),
-        )
-    ],
+    tools=[write_file],
 )
 
 screenwriter = Agent(
