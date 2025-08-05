@@ -186,3 +186,6 @@ testem.log
 .DS_Store
 Thumbs.db
 *.vscode*
+
+# Audio files 
+*.mp3
