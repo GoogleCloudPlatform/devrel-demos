@@ -26,6 +26,15 @@ wheels = [
 ]
 
 [[package]]
+name = "absolufy-imports"
+version = "0.3.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/74/0f/9da9dc9a12ebf4622ec96d9338d221e0172699e7574929f65ec8fdb30f9c/absolufy_imports-0.3.1.tar.gz", hash = "sha256:c90638a6c0b66826d1fb4880ddc20ef7701af34192c94faf40b95d32b59f9793", size = 4724 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a3/a4/b65c9fbc2c0c09c0ea3008f62d2010fd261e62a4881502f03a6301079182/absolufy_imports-0.3.1-py2.py3-none-any.whl", hash = "sha256:49bf7c753a9282006d553ba99217f48f947e3eef09e18a700f8a82f75dc7fc5c", size = 5937 },
+]
+
+[[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
 source = { registry = "https://pypi.org/simple" }
@@ -404,9 +413,10 @@ wheels = [
 
 [[package]]
 name = "google-adk"
-version = "1.7.0"
+version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "absolufy-imports" },
     { name = "anyio" },
     { name = "authlib" },
     { name = "click" },
@@ -436,9 +446,9 @@ dependencies = [
     { name = "watchdog" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0e/66/9f8e03226c6205e4ae9472e19f8470db6ecdadc1cfd2ad683e60bb7a8f95/google_adk-1.7.0.tar.gz", hash = "sha256:1bb86371e794e9ec73e0cc45bca529512862ecb5cd57132e77262b0de3f88dec", size = 1560499 }
+sdist = { url = "https://files.pythonhosted.org/packages/f5/27/edb76b8ebff0b27ec517de4238ae4e3a1c0649cd23807cd6afc08a34a644/google_adk-1.9.0.tar.gz", hash = "sha256:b76df1a816c2e177e1aee525d980b9a3c1143a2a5343e39905cf161390f06856", size = 1606399 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/db/3f/fd6c0780ff34531d3f4cd1551db206a2f9906fadee6d6f0cd3c83fb63521/google_adk-1.7.0-py3-none-any.whl", hash = "sha256:924bb7d65771ae6c03e0ab64d4e3a3a4d0fb02682faeb7735c2be302adade94c", size = 1750509 },
+    { url = "https://files.pythonhosted.org/packages/3c/c0/7ea1c2406281790004b01572e6728302d51958efc38a31ea0fa5506b9ed0/google_adk-1.9.0-py3-none-any.whl", hash = "sha256:b476271a2aedcbcdf2f1ce5d41a6dabde9f1c596a70258832d4afdb527fc589a", size = 1828708 },
 ]
 
 [[package]]
@@ -1188,22 +1198,18 @@ dependencies = [
     { name = "google-adk" },
     { name = "langchain" },
     { name = "langchain-community" },
-    { name = "pydub" },
     { name = "wikipedia" },
     { name = "youtube-search" },
-    { name = "yt-dlp" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "a2a-sdk", specifier = "==0.2.16" },
-    { name = "google-adk", specifier = "==1.7.0" },
+    { name = "google-adk", specifier = "==1.9.0" },
     { name = "langchain", specifier = ">=0.3.27" },
     { name = "langchain-community", specifier = ">=0.3.27" },
-    { name = "pydub", specifier = ">=0.25.1" },
     { name = "wikipedia", specifier = ">=1.4.0" },
     { name = "youtube-search", specifier = ">=2.1.2" },
-    { name = "yt-dlp", specifier = ">=2025.7.21" },
 ]
 
 [[package]]
@@ -1588,15 +1594,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/68/85/1ea668bbab3c50071ca613c6ab30047fb36ab0da1b92fa8f17bbc38fd36c/pydantic_settings-2.10.1.tar.gz", hash = "sha256:06f0062169818d0f5524420a360d632d5857b83cffd4d42fe29597807a1614ee", size = 172583 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/58/f0/427018098906416f580e3cf1366d3b1abfb408a0652e9f31600c24a1903c/pydantic_settings-2.10.1-py3-none-any.whl", hash = "sha256:a60952460b99cf661dc25c29c0ef171721f98bfcb52ef8d9ea4c943d7c8cc796", size = 45235 },
-]
-
-[[package]]
-name = "pydub"
-version = "0.25.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fe/9a/e6bca0eed82db26562c73b5076539a4a08d3cffd19c3cc5913a3e61145fd/pydub-0.25.1.tar.gz", hash = "sha256:980a33ce9949cab2a569606b65674d748ecbca4f0796887fd6f46173a7b0d30f", size = 38326 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a6/53/d78dc063216e62fc55f6b2eebb447f6a4b0a59f55c8406376f76bf959b08/pydub-0.25.1-py2.py3-none-any.whl", hash = "sha256:65617e33033874b59d87db603aa1ed450633288aefead953b30bded59cb599a6", size = 32327 },
 ]
 
 [[package]]
@@ -2160,15 +2157,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d1/66/87d6d426e6e7cbd9b675d712f2538d55023cb9394411e54cdb60cdc9e002/youtube-search-2.1.2.tar.gz", hash = "sha256:5749a6d8076fda65557c91367f0fab0936290ecdea457c831c9f3f05918a3aa2", size = 3167 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/00/4e/548b906dd72bb51f700feb4f2200de3e0c64b34509d3173afb196ad7f1b9/youtube_search-2.1.2-py3-none-any.whl", hash = "sha256:f9cfaaf7c59806777eb29d3b8acee96b50e80f73a0621c2bb220d4e5beb09e4f", size = 3395 },
-]
-
-[[package]]
-name = "yt-dlp"
-version = "2025.7.21"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/7e/3a/343f7a0024ddd4c30f150e8d8f57fd7b924846f97d99fc0dcd75ea8d2773/yt_dlp-2025.7.21.tar.gz", hash = "sha256:46fbb53eab1afbe184c45b4c17e9a6eba614be680e4c09de58b782629d0d7f43", size = 3050219 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e8/2f/abe59a3204c749fed494849ea29176bcefa186ec8898def9e43f649ddbcf/yt_dlp-2025.7.21-py3-none-any.whl", hash = "sha256:d7aa2b53f9b2f35453346360f41811a0dad1e956e70b35a4ae95039d4d815d15", size = 3288681 },
 ]
 
 [[package]]

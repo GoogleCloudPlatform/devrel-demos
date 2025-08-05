@@ -6,11 +6,9 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "a2a-sdk==0.2.16",
-    "google-adk==1.7.0",
+    "google-adk==1.9.0",
     "langchain>=0.3.27",
     "langchain-community>=0.3.27",
-    "pydub>=0.25.1",
     "wikipedia>=1.4.0",
     "youtube-search>=2.1.2",
-    "yt-dlp>=2025.7.21",
 ]
