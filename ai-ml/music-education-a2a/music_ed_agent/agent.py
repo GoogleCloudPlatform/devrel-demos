@@ -2,7 +2,7 @@ from google.adk.agents import Agent
 from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
 import os
 
-from .tools import (
+from music_ed_agent.tools import (
     adk_youtube_search_tool,
     adk_wikipedia_tool,
 )
