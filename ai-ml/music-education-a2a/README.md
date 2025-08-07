@@ -95,11 +95,14 @@ uv run adk web
 - A Google Cloud project 
 - gcloud CLI
 - Docker or other container runtime with Docker CLI 
+- AI Studio API Key (Gemini API)
 
 
 **Cloud Run Setup** (Enable APIs, create Artifact Registry repository)
 
 ```bash
+export GEMINI_API_KEY="your-ai-studio-api-key"
+
 export PROJECT_ID="your-project-id"
 gcloud config set project $PROJECT_ID 
 
@@ -135,26 +138,30 @@ docker push $MUSIC_TAG
 **Deploy history agent to Cloud Run** -- 
 
 ```bash
+export GCP_REGION="us-central1" 
 gcloud run deploy history-agent \
   --image $HISTORY_TAG \
   --region us-central1 \
   --port 8080 \
+  --set-env-vars PROJECT_ID=$PROJECT_ID,GCP_REGION=$GCP_REGION
   --allow-unauthenticated \
   --memory 512Mi \
   --cpu 1 \
-  --timeout 60s
+  --timeout 60s \ 
+  --min 1
 ```
 
 Copy the Cloud Run URL to the clipboard, and save as an environment variable -- 
 
 ```bash
-export HISTORY_AGENT_CARD_URL="your-cloud-run-url"
+export HISTORY_AGENT_URL="your-cloud-run-url"
+export HISTORY_AGENT_CARD_URL="${HISTORY_AGENT_URL}/.well-known/agent.json"
 ```
 
 Then, verify you can reach the Agent Card -- 
 
 ```bash
-curl "${HISTORY_AGENT_CARD_URL}/.well-known/agent.json" 
+curl $HISTORY_AGENT_CARD_URL
 ```
 
 
@@ -163,10 +170,11 @@ curl "${HISTORY_AGENT_CARD_URL}/.well-known/agent.json"
 ```bash
 gcloud run deploy music-ed-agent \
   --image $MUSIC_TAG \
-  --set-env-vars REMOTE_AGENT_CARD=$HISTORY_AGENT_CARD_URL \
+  --set-env-vars REMOTE_AGENT_CARD=$HISTORY_AGENT_CARD_URL,GEMINI_API_KEY=$GEMINI_API_KEY \
   --region us-central1 \
   --port 8080 \
   --allow-unauthenticated \
   --memory 1024Mi \
-  --cpu 2
+  --cpu 2 \ 
+  --min 1
 ```

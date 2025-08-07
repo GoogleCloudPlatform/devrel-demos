@@ -12,8 +12,9 @@ COPY music_ed_agent/ music_ed_agent/
 ENV UV_LINK_MODE=copy
 ENV PYTHONUNBUFFERED=1
 
-# Install dependencies AND the project itself
-RUN uv sync --locked --no-dev
+# Install dependencies AND install the current directory as a package
+RUN uv sync --locked --no-dev && \
+    uv pip install -e .
 
 ENV PATH="/app/.venv/bin:$PATH"
 
