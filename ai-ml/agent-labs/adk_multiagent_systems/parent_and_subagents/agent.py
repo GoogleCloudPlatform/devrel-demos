@@ -13,7 +13,7 @@ from google.adk.tools.tool_context import ToolContext
 load_dotenv()
 model_name = os.getenv("MODEL")
 
-# Tools (add the tool here when instructed)
+# Tools 
 def save_attractions_to_state(
     tool_context: ToolContext,
     attractions: List[str]
@@ -45,14 +45,9 @@ attractions_planner = Agent(
     description="Build a list of attractions to visit in a country.",
     instruction="""
         - Provide the user options for attractions to visit within their selected country.
-        - When they reply, use your tool to save their selected attraction
-        and then provide more possible attractions.
-        - If they ask to view the list, provide a bulleted list of
-        {{ attractions? }} and then suggest some more.
         """,
     before_model_callback=log_query_to_model,
     after_model_callback=log_model_response,
-    # When instructed to do so, paste the tools parameter below this line
     tools=[save_attractions_to_state]
     )
 
@@ -68,6 +63,11 @@ travel_brainstormer = Agent(
 
         Identify countries that would make great destinations
         based on their priorities.
+
+        - When they reply, use your tool to save their selected attraction
+        and then provide more possible attractions.
+        - If they ask to view the list, provide a bulleted list of
+        {{ attractions? }} and then suggest some more.
         """,
     before_model_callback=log_query_to_model,
     after_model_callback=log_model_response,
@@ -80,6 +80,7 @@ root_agent = Agent(
     instruction="""
         Ask the user if they know where they'd like to travel
         or if they need some help deciding.
+
         If they need help deciding, send them to
         'travel_brainstormer'.
         If they know what country they'd like to visit,
@@ -88,6 +89,6 @@ root_agent = Agent(
     generate_content_config=types.GenerateContentConfig(
         temperature=0,
     ),
-    # Add the sub_agents parameter when instructed below this line
     sub_agents=[travel_brainstormer, attractions_planner]
+
 )

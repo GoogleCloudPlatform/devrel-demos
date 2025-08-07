@@ -2,7 +2,7 @@ import os
 import logging
 import google.cloud.logging
 
-from callback_logging import log_query_to_model, log_model_response
+# from callback_logging import log_query_to_model, log_model_response
 from dotenv import load_dotenv
 
 from google.adk import Agent
@@ -119,8 +119,8 @@ critic = Agent(
 
     If the PLOT_OUTLINE does a good job with these questions, exit the writing loop with your 'exit_loop' tool.
     """,
-    before_model_callback=log_query_to_model,
-    after_model_callback=log_model_response,
+    # before_model_callback=log_query_to_model,
+    # after_model_callback=log_model_response,
     tools=[append_to_state, exit_loop],
 )
 
