@@ -7,6 +7,7 @@ This repo is for code that supports talks, blogs, and other activities the Googl
 This repo is organized around the primary Google Cloud Product(s) used. The categories are:
 
 * [AI & Machine Learning](/ai-ml)
+* [Agents](/agents) 
 * [Application Development](/app-dev) (Serverless and Developer Tools)
 * [Containers & Kubernetes](/containers)
 * [Data Analytics](/data-analytics)
