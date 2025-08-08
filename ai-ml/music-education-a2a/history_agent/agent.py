@@ -7,6 +7,8 @@ from google.adk.auth.credential_service.in_memory_credential_service import (
     InMemoryCredentialService,
 )
 
+from google.genai import types
+
 # These are the A2A imports from the a2a package
 from a2a.server.apps import A2AStarletteApplication
 from a2a.server.request_handlers import DefaultRequestHandler
@@ -17,10 +19,15 @@ from a2a.types import (
     AgentCard,
     AgentCapabilities,
     AgentSkill,
+    Message,
+    Part,
+    Role,
+    TextPart
 )
 from a2a.utils import new_agent_text_message  # Use utility for proper message creation
 
 import os
+import uuid
 import requests
 from typing_extensions import override
 from history_agent.tools import adk_wikipedia_tool, google_search_tool
@@ -54,15 +61,15 @@ You are a history education agent that helps students learn about historical top
 
 You will be given a topic as a text query. Your task is to search relevant knowledge bases for key, authoritative information about that topic.
 
-For instance, if the topic is a person, look up biographical details about that person's life. If the topic is a historical event, research when and what happened. 
+For instance, if the topic is a person, look up biographical details about that person's life. If the topic is a historical event, research when and what happened.
 
 Always try to contextualize your response - for instance, what were the broader historical events, movements, or figures that may have influenced this topic? How did this topic or event impact history?
 
-AVAILABLE TOOLS (KNOWLEDGE BASES): 
-- Google Search (google_search_tool) 
+AVAILABLE TOOLS (KNOWLEDGE BASES):
+- Google Search (google_search_tool)
 - Wikipedia (adk_wikipedia_tool)
 
-Don't provide too much information back to the user, just key info broken into bullet points. Use emojis to make your response more readable.  
+Don't provide too much information back to the user, just key info broken into bullet points. Use emojis to make your response more readable.
 """
 
 print("🔁 Initializing historical context agent...")
@@ -99,46 +106,72 @@ class ADKAgentExecutor(AgentExecutor):
         """Execute the ADK agent and return results via A2A."""
         try:
             # Get the user message from the context
+            user_parts = []
             user_message = ""
             if context.message and context.message.parts:
-                for part in context.message.parts:
-                    # Parts in A2A are objects with attributes, not dicts
-                    if hasattr(part, "type") and part.type == "text":
-                        user_message = part.text if hasattr(part, "text") else ""
-                        break
-                    # Also handle if it's a dict (just in case)
-                    elif isinstance(part, dict) and part.get("type") == "text":
-                        user_message = part.get("text", "")
-                        break
+                parts = context.message.parts
+            elif context.current_task and context.current_task.status.message:
+                parts = context.current_task.status.message.parts
+            else:
+                parts = []
+            for part in parts:
+                root = part.root
+                if isinstance(root, TextPart):
+                    user_parts.append(types.Part(text=root.text))
+                    user_message += root.text
 
-            if not user_message:
+            if not user_parts:
                 print("⚠️ No user message found in request")
-                user_message = "Hello"  # Fallback
 
             print(f"📝 Processing user message: {user_message}")
 
             # Run the ADK agent
-            result = await self.runner.run(user_message)
+            session = await self.runner.session_service.create_session(
+                app_name=self.runner.app_name,
+                user_id="default_user"
+            )
+            events = self.runner.run(
+                new_message=types.Content(
+                    parts=user_parts,
+                    role="user"
+                ),
+                user_id=session.user_id,
+                session_id=session.id
+            )
 
-            # Extract the response text
-            response_text = ""
-            if hasattr(result, "content"):
-                response_text = result.content
-            elif hasattr(result, "messages") and result.messages:
-                # Handle if it returns messages
-                last_message = result.messages[-1]
-                if hasattr(last_message, "content"):
-                    response_text = last_message.content
+            for event in events:
+                # Extract the response text
+                response_text = ""
+                a2a_parts = []
+                if event.content and event.content.parts:
+                    for part in event.content.parts:
+                        if part.text:
+                            a2a_parts.append(
+                                Part(
+                                    root=TextPart(text=part.text)
+                                )
+                            )
+                            response_text += part.text
+                elif event.error_message:
+                    response_text = f"ERROR: {event.error_message}"
+                    a2a_parts.append(
+                        Part(
+                            root=TextPart(text=response_text)
+                        )
+                    )
+                    break
                 else:
-                    response_text = str(last_message)
-            else:
-                response_text = str(result)
-
-            print(f"✅ Agent response: {response_text[:100]}...")
-
-            # Use the utility function to create proper message with correct Part types
-            message_event = new_agent_text_message(response_text)
-            event_queue.enqueue_event(message_event)
+                    continue
+                print(f"✅ Agent response: {response_text[:100]}...")
+                # Use the utility function to create proper message with correct Part types
+                message_event = Message(
+                    role=Role.agent,
+                    parts=a2a_parts,
+                    message_id=str(uuid.uuid4()),
+                    task_id=context.task_id,
+                    context_id=context.context_id,
+                )
+                await event_queue.enqueue_event(message_event)
 
         except Exception as e:
             print(f"❌ Error in execute: {e}")
@@ -149,7 +182,7 @@ class ADKAgentExecutor(AgentExecutor):
             # Send error response using utility function
             error_text = f"I encountered an error: {str(e)}"
             error_event = new_agent_text_message(error_text)
-            event_queue.enqueue_event(error_event)
+            await event_queue.enqueue_event(error_event)
 
     @override
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
@@ -196,9 +229,9 @@ agent_card = AgentCard(
     description="An agent that researches historical context",
     url=agent_host_url,
     version="0.0.1",
-    protocolVersion="0.2.6",
-    defaultInputModes=["text"],
-    defaultOutputModes=["text"],
+    protocol_version="0.2.6",
+    default_input_modes=["text"],
+    default_output_modes=["text"],
     capabilities=AgentCapabilities(),
     skills=skills,
 )
