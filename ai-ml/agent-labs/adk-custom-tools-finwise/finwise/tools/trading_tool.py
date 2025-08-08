@@ -1,12 +1,11 @@
 import json
+import sys
 from pydantic import BaseModel, Field
 from google.adk.tools.function_tool import FunctionTool, ToolContext
+from google.adk.auth import AuthConfig, AuthCredential, AuthCredentialTypes, OAuth2Auth
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
-from google.adk.auth import AuthConfig, AuthCredential, AuthCredentialTypes, OAuth2Auth
 from fastapi.openapi.models import OAuth2, OAuthFlowAuthorizationCode, OAuthFlows
-import sys
-
 
 class TradeInput(BaseModel):
     ticker: str = Field(description="The stock ticker symbol.")
@@ -14,6 +13,7 @@ class TradeInput(BaseModel):
     action: str = Field(description="The trade action, either 'buy' or 'sell'.")
 
 # --- Authentication Configuration ---
+# This configuration is kept as a reference for implementing a full OAuth 2.0 flow.
 TOKEN_CACHE_KEY = "trading_tool_tokens"
 SCOPES = ["read:portfolio", "write:orders"]
 
@@ -38,6 +38,20 @@ auth_credential = AuthCredential(
 
 def execute_trade_logic(input: TradeInput, tool_context: ToolContext) -> dict:
     """Executes a trade after handling the full authentication flow."""
+
+    # --- Demo Bypass ---
+    # For this demo, we simulate the trade execution without the full auth flow.
+    # The auth code below is for reference.
+    print(
+        "SIMULATING TRADE:"
+        f" Bypassing auth and pretending to execute {input.action} for {input.shares} shares of"
+        f" {input.ticker}."
+    )
+    return {
+        "status": "success",
+        "message": "The trade will be executed now.",
+    }
+    # --- End Demo Bypass ---
     creds = None
     
     # Step 1: Check for Cached & Valid Credentials
@@ -88,6 +102,5 @@ def execute_trade_logic(input: TradeInput, tool_context: ToolContext) -> dict:
     
     # Step 7: Return Tool Result
     return {"status": "success", "message": f"Trade for {input.shares} shares of {input.ticker} executed successfully."}
-
 
 execute_trade = FunctionTool(func=execute_trade_logic)
