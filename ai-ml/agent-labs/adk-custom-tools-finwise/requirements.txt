@@ -1,0 +1,17 @@
+google-generativeai
+yfinance
+pandas
+numpy
+scipy
+matplotlib
+google-auth-oauthlib
+pydantic
+itsdangerous
+pyjwt
+werkzeug
+python-dotenv
+mcp
+google-cloud-aiplatform
+google-adk
+fastapi
+uvicorn

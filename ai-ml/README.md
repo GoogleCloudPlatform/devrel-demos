@@ -3,6 +3,7 @@
 Demos in this folder primarily focus on Google Cloud's AI/ML  products. Below is a non-exhaustive list of what products may be considered AI/ML products for the purposes of this repo.
 
 * AutoML
+* Agents
 * Cloud Inference API 
 * Cloud Natural Language
 * Deep Learning Containers 

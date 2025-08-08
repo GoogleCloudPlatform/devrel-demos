@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinWise</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 17L12 22L22 17" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h1>Finwise</h1>
+            </div>
+            <div class="settings">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19.14 12.94C19.74 12.56 19.74 11.44 19.14 11.06L18.46 10.68C18.17 10.5 18 10.17 18 9.83V9.07C18 8.23 17.61 7.45 16.96 6.96L16.48 6.48C16.19 6.19 15.86 6 15.52 6H14.76C13.92 6 13.14 5.61 12.65 4.96L12.17 4.48C11.88 4.19 11.55 4 11.21 4H10.45C9.61 4 8.83 4.39 8.34 5.04L7.86 5.52C7.57 5.81 7.24 6 6.9 6H6.14C5.3 6 4.52 6.39 4.03 7.04L3.55 7.52C3.26 7.81 3 8.14 3 8.48V9.24C3 10.08 2.61 10.86 1.96 11.35L1.48 11.83C1.19 12.12 1 12.45 1 12.79V13.55C1 14.39 1.39 15.17 2.04 15.66L2.52 16.14C2.81 16.43 3 16.76 3 17.1V17.86C3 18.7 3.39 19.48 4.04 19.97L4.52 20.45C4.81 20.74 5.14 21 5.48 21H6.24C7.08 21 7.86 20.61 8.35 19.96L8.83 19.48C9.12 19.19 9.45 19 9.79 19H10.55C11.39 19 12.17 19.39 12.66 20.04L13.14 20.52C13.43 20.81 13.76 21 14.1 21H14.86C15.7 21 16.48 20.61 16.97 19.96L17.45 19.48C17.74 19.19 18 18.86 18 18.52V17.76C18 16.92 18.39 16.14 19.04 15.65L19.52 15.17C19.81 14.88 20 14.55 20 14.21V13.45C20 12.61 19.61 11.83 18.96 11.34L18.48 10.86" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+        </header>
+        <main id="main-content">
+            <div class="welcome-screen" id="welcome-screen">
+                <img src="/static/img/robot.png" alt="Finwise Assistant" class="robot-image">
+                <h2>Welcome to Finwise</h2>
+                <p>I'm your personal finance and investment analysis assistant. How can I help you today?</p>
+                <button id="start-chat-btn">Start Chat</button>
+            </div>
+            <div class="chat-screen" id="chat-screen" style="display: none;">
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Chat messages will be appended here -->
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
