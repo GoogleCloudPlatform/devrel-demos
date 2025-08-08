@@ -26,3 +26,7 @@ You will need to update the `.env` file accordingly:
 
 1. rename the files to `.env`
 2. Update the values appropriately to reflect your project values
+
+### Refer to the lab for instructions
+
+Refer to the **Deploy ADK Agents to Cloud Run** lab for step-by-step instructions.

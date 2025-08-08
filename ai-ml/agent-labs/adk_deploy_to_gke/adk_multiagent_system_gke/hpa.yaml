@@ -1,0 +1,13 @@
+# hpa.yaml
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: adk-agent-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: adk-agent
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 50

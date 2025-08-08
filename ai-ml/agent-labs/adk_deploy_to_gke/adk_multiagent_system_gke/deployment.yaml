@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adk-agent
+spec:
+  # Run 1 replica (pod) of our application
+  replicas: 1
+  selector:
+    matchLabels:
+      app: adk-agent
+  template:
+    metadata:
+      labels:
+        app: adk-agent
+    spec:
+      # Assign the Kubernetes Service Account for Workload Identity
+      serviceAccount: adk-agent-sa
+      containers:
+      - name: adk-agent
+        # Always pull the latest version of the image upon pod creation
+        imagePullPolicy: Always
+        # The path to the container image in Artifact Registry
+        image: us-central1-docker.pkg.dev/qwiklabs-gcp-01-bf43b983de8c/adk-repo/adk-agent:latest
+        # Define the resources for GKE Autopilot to provision
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+            ephemeral-storage: "512Mi"
+          requests:
+            memory: "1Gi"
+            cpu: "1000m"
+            ephemeral-storage: "512Mi"
+        ports:
+        # The port the container will listen on
+        - containerPort: 8080
+        # Environment variables passed to the application
+        env:
+          - name: PORT
+            value: "8080"
+          - name: GOOGLE_CLOUD_PROJECT
+            value: qwiklabs-gcp-01-bf43b983de8c
+          - name: GOOGLE_CLOUD_LOCATION
+            value: us-central1
+          - name: GOOGLE_GENAI_USE_VERTEXAI
+            value: "true"
+          # If using AI Studio, set GOOGLE_GENAI_USE_VERTEXAI to false and set the following:
+          # - name: GOOGLE_API_KEY
+          #   value: GOOGLE_API_KEY
+          # Add any other necessary environment variables your agent might need
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: adk-agent
+spec:
+  # Create a public-facing Network Load Balancer with an external IP
+  type: LoadBalancer
+  ports:
+    # Map external traffic on port 80 to the container's port 8080
+    - port: 80
+      targetPort: 8080
+  # Select the pods to send traffic to based on their labels
+  selector:
+    app: adk-agent
