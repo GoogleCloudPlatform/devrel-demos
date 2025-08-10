@@ -22,38 +22,70 @@ from a2a.types import (
     Message,
     Part,
     Role,
+    TaskState,
+    TaskStatus,
+    TaskStatusUpdateEvent,
     TextPart
 )
 from a2a.utils import new_agent_text_message  # Use utility for proper message creation
 
+from starlette.datastructures import URL
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+
 import os
 import uuid
-import requests
 from typing_extensions import override
-from history_agent.tools import adk_wikipedia_tool, google_search_tool
+from tools import langchain_wikipedia_tool, google_search_tool
 
+from google.adk.tools.langchain_tool import LangchainTool
 
-def get_cloud_run_url():
-    """Construct Cloud Run URL from environment variables."""
-    service_name = os.getenv("K_SERVICE")
+class A2AStarletteApplicationWithHost(A2AStarletteApplication):
+    """This class makes sure the agent's url in the AgentCard has the same
+    host, port and schema as in the request.
+    """
+    @override
+    async def _handle_get_agent_card(self, request: Request) -> JSONResponse:
+        """Handles GET requests for the agent card endpoint.
 
-    if not service_name:
-        return "http://localhost:8080"  # Local development
+        Args:
+            request: The incoming Starlette Request object.
 
-    # Try to get project number from metadata service (Cloud Run)
-    try:
-        headers = {"Metadata-Flavor": "Google"}
-        response = requests.get(
-            "http://metadata.google.internal/computeMetadata/v1/project/numeric-project-id",
-            headers=headers,
-            timeout=1,
+        Returns:
+            A JSONResponse containing the agent card data.
+        """
+        source_parsed = URL(self.agent_card.url)
+        port = request.url.port
+        scheme = request.url.scheme
+        if not scheme or scheme == "http":
+            if (
+                "K_SERVICE" in os.environ
+                and request.url.hostname.split(".", 1)[0] not in (
+                    "localhost", "127", "0"
+                )
+            ):
+                scheme = "https"
+
+        card = self.agent_card.model_copy()
+        if port:
+            card.url = str(
+                source_parsed.replace(
+                    hostname=request.url.hostname,
+                    port=request.url.port,
+                    scheme=scheme
+                )
+            )
+        else:
+            card.url = str(
+                source_parsed.replace(
+                    hostname=request.url.hostname,
+                    scheme=scheme
+                )
+            )
+
+        return JSONResponse(
+            card.model_dump(mode='json', exclude_none=True)
         )
-        project_number = response.text
-        region = os.getenv("GCP_REGION", "us-central1")
-        return f"https://{service_name}-{project_number}.{region}.run.app"
-    except:
-        print("⚠️ Couldn't get Cloud Run service URL, using fallback")
-        return os.getenv("HOST_OVERRIDE", "http://localhost:8080")
 
 
 agent_instruction = """
@@ -77,7 +109,7 @@ root_agent = Agent(
     model="gemini-2.5-pro",  # Keep gemini-2.5-pro as requested
     name="historical_context_agent",
     instruction=agent_instruction,
-    tools=[adk_wikipedia_tool, google_search_tool],
+    tools=[LangchainTool(langchain_wikipedia_tool), google_search_tool],
 )
 
 
@@ -162,16 +194,42 @@ class ADKAgentExecutor(AgentExecutor):
                     break
                 else:
                     continue
+
                 print(f"✅ Agent response: {response_text[:100]}...")
                 # Use the utility function to create proper message with correct Part types
-                message_event = Message(
-                    role=Role.agent,
-                    parts=a2a_parts,
-                    message_id=str(uuid.uuid4()),
-                    task_id=context.task_id,
-                    context_id=context.context_id,
+
+                if a2a_parts:
+                    message = Message(
+                        role=Role.agent,
+                        parts=a2a_parts,
+                        message_id=str(uuid.uuid4()),
+                        task_id=context.task_id,
+                        context_id=context.context_id,
+                    )
+                else:
+                    message = None
+                await event_queue.enqueue_event(
+                    TaskStatusUpdateEvent(
+                        context_id=context.context_id, # type: ignore
+                        task_id=context.task_id, # type: ignore
+                        final=False,
+                        status=TaskStatus(
+                            message=message,
+                            state=TaskState.working
+                        )
+                    )
                 )
-                await event_queue.enqueue_event(message_event)
+
+            await event_queue.enqueue_event(
+                    TaskStatusUpdateEvent(
+                        context_id=context.context_id, # type: ignore
+                        task_id=context.task_id, # type: ignore
+                        final=True,
+                        status=TaskStatus(
+                            state=TaskState.completed
+                        )
+                    )
+                )
 
         except Exception as e:
             print(f"❌ Error in execute: {e}")
@@ -192,15 +250,6 @@ class ADKAgentExecutor(AgentExecutor):
 
 # Create our custom executor
 agent_executor = ADKAgentExecutor(root_agent)
-
-# Get the public URL
-host = "0.0.0.0"
-port = 8080
-agent_host_url = (
-    os.getenv("HOST_OVERRIDE") if os.getenv("HOST_OVERRIDE") else get_cloud_run_url()
-)
-
-print(f"👟 Agent Server URL: {agent_host_url}")
 
 # Create Agent Card with proper skills
 skills = [
@@ -227,7 +276,7 @@ skills = [
 agent_card = AgentCard(
     name="historical_context_agent",
     description="An agent that researches historical context",
-    url=agent_host_url,
+    url="http://127.0.0.1", # A2AStarletteApplicationWithHost will take care of the URL
     version="0.0.1",
     protocol_version="0.2.6",
     default_input_modes=["text"],
@@ -243,7 +292,10 @@ request_handler = DefaultRequestHandler(
 )
 
 # Create A2A server
-server = A2AStarletteApplication(agent_card=agent_card, http_handler=request_handler)
+server = A2AStarletteApplicationWithHost(
+    agent_card=agent_card,
+    http_handler=request_handler
+)
 
 # Build the app but don't run uvicorn
 a2a_app = server.build()

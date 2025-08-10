@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 #  🌐 Wikipedia Search Tool - LangChain 3p tool
-wikipedia = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper())
-adk_wikipedia_tool = LangchainTool(tool=wikipedia)
+langchain_wikipedia_tool = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper())
+adk_wikipedia_tool = LangchainTool(tool=langchain_wikipedia_tool)
 
 
 # 🔍 Google Search - wrap in agent tool
