@@ -32,6 +32,7 @@ from a2a.utils.constants import (
 from google.adk.a2a.executor.a2a_agent_executor import A2aAgentExecutor
 from google.adk.agents import BaseAgent
 from google.adk.artifacts import BaseArtifactService
+from google.adk.memory import BaseMemoryService
 from google.adk.runners import Runner
 from google.adk.sessions import BaseSessionService
 
@@ -57,6 +58,7 @@ class ADKExecutor(A2aAgentExecutor):
         task_store: TaskStore,
         session_service_builder: Optional[Callable[..., "BaseSessionService"]] = None,
         artifact_service_builder: Optional[Callable[..., "BaseArtifactService"]] = None,
+        memory_service_builder: Optional[Callable[..., "BaseMemoryService"]] = None,
         enable_tracing: Optional[bool] = False,
         env_vars: Optional[Dict[str, str]] = None,
     ):
@@ -70,6 +72,7 @@ class ADKExecutor(A2aAgentExecutor):
             enable_tracing=enable_tracing or False,
             session_service_builder=session_service_builder,
             artifact_service_builder=artifact_service_builder,
+            memory_service_builder=memory_service_builder,
             env_vars=env_vars
         )
         self.adk_runner = None
@@ -182,6 +185,7 @@ def adk_as_a2a(
         enable_tracing: Optional[bool] = False,
         session_service_builder: Optional[Callable[..., "BaseSessionService"]] = None,
         artifact_service_builder: Optional[Callable[..., "BaseArtifactService"]] = None,
+        memory_service_builder: Optional[Callable[..., "BaseMemoryService"]] = None,
         env_vars: Optional[Dict[str, str]] = None,
         a2a_agent_version: Optional[str] = None,
         agent_card_url_path: str = AGENT_CARD_WELL_KNOWN_PATH,
@@ -198,6 +202,8 @@ def adk_as_a2a(
             Function to call to create a session service for the agent. Defaults to None.
         artifact_service_builder (Callable[..., BaseArtifactService;], optional):
             Function to call to create a artifact service for the agent. Defaults to None.
+        memory_service_builder: (Callable[..., "BaseMemoryService"], optional):
+            Function to call to create a memory service for the agent. Defaults to None.
         env_vars (Dict[str, str], optional): Additional environment variables for the agent. Defaults to None.
         a2a_agent_version (str, optional): Agent Version. Defaults to None.
         agent_card_url_path (str, optional): Agent Card path. Defaults to AGENT_CARD_WELL_KNOWN_PATH.
@@ -257,6 +263,7 @@ def adk_as_a2a(
             task_store=task_store,
             session_service_builder=session_service_builder,
             artifact_service_builder=artifact_service_builder,
+            memory_service_builder=memory_service_builder,
             enable_tracing=enable_tracing,
             env_vars=env_vars,
         )
