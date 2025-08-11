@@ -57,13 +57,13 @@ class A2AStarletteApplicationWithHost(A2AStarletteApplication):
         source_parsed = URL(self.agent_card.url)
         port = request.url.port
         scheme = request.url.scheme
-        if not scheme or scheme == "http":
-            if (
-                "K_SERVICE" in os.environ
-                and request.url.hostname.split(".", 1)[0] not in (
-                    "localhost", "127", "0"
-                )
-            ):
+        if not scheme:
+            scheme = "http"
+        if scheme == "http":
+            if scheme == "http" and request.headers.get(
+                "X-Forwarded-Proto",
+                ""
+            ) == "https":
                 scheme = "https"
 
         card = self.agent_card.model_copy()
