@@ -1,6 +1,6 @@
 # Programmatic Data Quality with Dataplex and Generative AI - Sample Code
 
-This repository contains the sample code and supporting files for the [Programmatic Data Quality with Dataplex and Generative AI](https://codelabs.developers.google.com/codelabs/programmatic-dq) codelab.
+This repository contains the sample code and supporting files for the [Programmatic Data Quality with Dataplex and Generative AI](https://codelabs.developers.google.com/programmatic-dq) codelab.
 
 Please follow the codelab for detailed instructions on how to set up your environment and use these files.
 
