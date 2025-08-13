@@ -1,0 +1,54 @@
+rules:
+- uniquenessExpectation: {}
+  column: transaction_id
+  dimension: UNIQUENESS
+- nonNullExpectation: {}
+  column: amount
+  dimension: COMPLETENESS
+  threshold: 1
+- regexExpectation:
+    regex: '^[0-9]{8}[a-zA-Z]{16}$'
+  column : customer_id
+  ignoreNull : true
+  dimension : VALIDITY
+  threshold : 1
+- setExpectation :
+    values :
+    - 'USD'
+    - 'JPY'
+    - 'INR'
+    - 'GBP'
+    - 'CAN'
+  column : currency_id
+  ignoreNull : true
+  dimension : VALIDITY
+  threshold : 1
+- rangeExpectation:
+    minValue : '0'
+    maxValue : '100'
+  column : discount_pct
+  ignoreNull : true
+  dimension : VALIDITY
+  threshold : 1
+- rowConditionExpectation:
+    sqlExpression : 0 < `discount_pct` AND `discount_pct` < 100
+  column: discount_pct
+  dimension: VALIDITY
+  threshold: 1
+- rowConditionExpectation:
+    sqlExpression : currency_id in (select id from `my_project_id.dim_dataset.dim_currency`)
+  column: currency_id
+  dimension: VALIDITY
+  threshold: 1
+- tableConditionExpectation:
+    sqlExpression : 30 < avg(discount_pct) AND avg(discount_pct) < 50
+  dimension: VALIDITY
+- rowConditionExpectation:
+    sqlExpression : TIMESTAMP(transaction_timestamp) < CURRENT_TIMESTAMP()
+  column: transaction_timestamp
+  dimension: VALIDITY
+  threshold: 1
+- sqlAssertion:
+    sqlStatement : SELECT * FROM `my_project_id.dim_dataset.dim_currency` WHERE discount_pct > 100
+  dimension: VALIDITY
+
