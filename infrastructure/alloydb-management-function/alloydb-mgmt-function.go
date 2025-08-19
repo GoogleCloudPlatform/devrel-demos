@@ -191,11 +191,11 @@ func listInstances(ctx context.Context, project, location, cluster string) ([]In
 		// Get list of all instances for all clusters in a particular location
 		if cluster == "ALL" {
 			//
-			instancesURL := apiURL + "/projects/" + project + "/locations/" + location + "/clusters/-/instances"
+			instancesURL = apiURL + "/projects/" + project + "/locations/" + location + "/clusters/-/instances"
 			fmt.Println(instancesURL)
 		} else {
 			// Get list of all instances for a clusters with defined name in a particular location
-			instancesURL := apiURL + "/projects/" + project + "/locations/" + location + "/clusters/" + cluster + "/instances"
+			instancesURL = apiURL + "/projects/" + project + "/locations/" + location + "/clusters/" + cluster + "/instances"
 			fmt.Println(instancesURL)
 		}
 	}
