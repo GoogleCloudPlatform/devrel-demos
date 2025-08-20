@@ -101,22 +101,6 @@ class A2AStarletteApplicationWithHost(A2AStarletteApplication):
     """
 
     @override
-    def build(
-            self,
-            agent_card_url: str = AGENT_CARD_WELL_KNOWN_PATH,
-            rpc_url: str = DEFAULT_RPC_URL,
-            **kwargs: Any,
-        ) -> Starlette:
-        self.rpc_url = rpc_url
-        self.card_url = agent_card_url
-        return super().build(
-            agent_card_url=agent_card_url,
-            rpc_url=rpc_url,
-            **kwargs
-        )
-
-
-    @override
     async def _handle_get_agent_card(self, request: Request) -> JSONResponse:
         """Handles GET requests for the agent card endpoint.
 
@@ -126,12 +110,17 @@ class A2AStarletteApplicationWithHost(A2AStarletteApplication):
         Returns:
             A JSONResponse containing the agent card data.
         """
+
+        agent_card = self.agent_card.model_copy()
+        rpc_url = URL(agent_card.url)
+        path = rpc_url.path
         port = None
         if "X-Forwarded-Host" in request.headers:
             host = request.headers["X-Forwarded-Host"]
         else:
             host = request.url.hostname
             port = request.url.port
+
         if "X-Forwarded-Proto" in request.headers:
             scheme = request.headers["X-Forwarded-Proto"]
         else:
@@ -143,22 +132,23 @@ class A2AStarletteApplicationWithHost(A2AStarletteApplication):
             host = comps[0]
             port = comps[1]
 
-        path = ""
+        # Handle URL maps
         if "X-Forwarded-Path" in request.headers:
-            path = request.headers["X-Forwarded-Path"].strip()
-            if (path
-                and path.lower().endswith(self.card_url.lower())
-                and len(path) - len(self.card_url) > 1
+            forwarded_path = request.headers["X-Forwarded-Path"].strip()
+            if (
+                forwarded_path and
+                request.url.path != forwarded_path
+                and forwarded_path.endswith(request.url.path)
             ):
-                path = path[:-len(self.card_url)].rstrip("/") + self.rpc_url
-        else:
-            path = self.rpc_url
+                extra_path = forwarded_path[:-len(request.url.path)]
+                new_path = extra_path + path
+                if len(new_path) > 1 and path == "/":
+                    new_path = new_path.rstrip("/")
+                path = new_path
 
-        card = self.agent_card.model_copy()
-        source_parsed = URL(card.url)
         if port:
-            card.url = str(
-                source_parsed.replace(
+            agent_card.url = str(
+                rpc_url.replace(
                     hostname=host,
                     port=port,
                     scheme=scheme,
@@ -166,8 +156,8 @@ class A2AStarletteApplicationWithHost(A2AStarletteApplication):
                 )
             )
         else:
-            card.url = str(
-                source_parsed.replace(
+            agent_card.url = str(
+                rpc_url.replace(
                     hostname=host,
                     scheme=scheme,
                     path=path
@@ -175,7 +165,7 @@ class A2AStarletteApplicationWithHost(A2AStarletteApplication):
             )
 
         return JSONResponse(
-            card.model_dump(mode='json', exclude_none=True)
+            agent_card.model_dump(mode='json', exclude_none=True)
         )
 
 
