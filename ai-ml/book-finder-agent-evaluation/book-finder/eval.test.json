@@ -1,0 +1,88 @@
+{
+    "eval_set_id": "book_finder_eval",
+    "name": "Book Finder Evaluation Set",
+    "description": "Tests the agent's logic for books that are in stock, out of stock, or not carried by the library.",
+    "eval_cases": [
+        {
+            "eval_id": "novel_not_carried",
+            "session_input": {
+                "app_name": "book_finder",
+                "user_id": "eval_user_07",
+                "state": {}
+            },
+            "conversation": [
+                {
+                    "invocation_id": "turn_1_not_carried",
+                    "role": "user",
+                    "user_content": {
+                        "parts": [
+                            {
+                                "text": "I want to read an epic fantasy novel with a really unique, scientific magic system."
+                            }
+                        ]
+                    },
+                    "final_response": {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "That sounds fascinating! Are you looking for a standalone novel or are you open to starting a series?"
+                            }
+                        ]
+                    },
+                    "intermediate_data": {
+                        "tool_uses": [],
+                        "intermediate_responses": []
+                    }
+                },
+                {
+                    "invocation_id": "turn_2_not_carried",
+                    "role": "user",
+                    "user_content": {
+                        "parts": [
+                            {
+                                "text": "I'm open to a series."
+                            }
+                        ]
+                    },
+                    "final_response": {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Excellent book! ✨ 'The Fifth Season' (2015) is an epic fantasy set on a continent with a single super-season of catastrophic climate change. Your local library doesn't seem to carry this title, but I'd recommend checking the 'Orangeville Galactic Shop' for it! 🏪"
+                            }
+                        ]
+                    },
+                    "intermediate_data": {
+                        "tool_uses": [
+                            {
+                                "name": "google_search_tool",
+                                "args": {
+                                    "query": "epic fantasy novel unique science magic system"
+                                }
+                            },
+                            {
+                                "name": "wikipedia_tool",
+                                "args": {
+                                    "query": "The Fifth Season (novel)"
+                                }
+                            },
+                            {
+                                "name": "search_library_inventory",
+                                "args": {
+                                    "title": "THE FIFTH SEASON"
+                                }
+                            },
+                            {
+                                "name": "get_local_bookstore",
+                                "args": {
+                                    "genre": "SCIENCE FICTION"
+                                }
+                            }
+                        ],
+                        "intermediate_responses": []
+                    }
+                }
+            ]
+        }
+    ]
+}

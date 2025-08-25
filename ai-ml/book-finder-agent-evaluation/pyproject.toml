@@ -1,7 +1,7 @@
 [project]
 name = "book-recommendations-agent-eval"
 version = "0.1.0"
-description = "Add your description here"
+description = "Recommends books and searches the local library for inventory."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
