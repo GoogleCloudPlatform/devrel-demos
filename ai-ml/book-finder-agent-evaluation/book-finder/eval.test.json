@@ -1,23 +1,23 @@
 {
-    "eval_set_id": "book_finder_eval",
-    "name": "Book Finder Evaluation Set",
-    "description": "Tests the agent's logic for books that are in stock, out of stock, or not carried by the library.",
+    "eval_set_id": "book_finder_eval_single_turn",
+    "name": "Book Finder Evaluation Set (Single Turn)",
+    "description": "Tests the agent's ability to handle a specific book request and follow the full tool workflow in a single turn.",
     "eval_cases": [
         {
-            "eval_id": "novel_not_carried",
+            "eval_id": "novel_not_carried_single_turn",
             "session_input": {
                 "app_name": "book_finder",
-                "user_id": "eval_user_07",
+                "user_id": "eval_user_09",
                 "state": {}
             },
             "conversation": [
                 {
-                    "invocation_id": "turn_1_not_carried",
+                    "invocation_id": "turn_1_single_turn_success",
                     "role": "user",
                     "user_content": {
                         "parts": [
                             {
-                                "text": "I want to read an epic fantasy novel with a really unique, scientific magic system."
+                                "text": "I want to read an epic fantasy novel with a unique, scientific magic system, in a world impacted by climate change. I'm open to a series."
                             }
                         ]
                     },
@@ -25,30 +25,7 @@
                         "role": "model",
                         "parts": [
                             {
-                                "text": "That sounds fascinating! Are you looking for a standalone novel or are you open to starting a series?"
-                            }
-                        ]
-                    },
-                    "intermediate_data": {
-                        "tool_uses": [],
-                        "intermediate_responses": []
-                    }
-                },
-                {
-                    "invocation_id": "turn_2_not_carried",
-                    "role": "user",
-                    "user_content": {
-                        "parts": [
-                            {
-                                "text": "I'm open to a series."
-                            }
-                        ]
-                    },
-                    "final_response": {
-                        "role": "model",
-                        "parts": [
-                            {
-                                "text": "Excellent book! ✨ 'The Fifth Season' (2015) is an epic fantasy set on a continent with a single super-season of catastrophic climate change. Your local library doesn't seem to carry this title, but I'd recommend checking the 'Orangeville Galactic Shop' for it! 🏪"
+                                "text": "I have the perfect recommendation for you! 👉 It sounds like you're describing the award-winning novel: The Fifth Season by N.K. Jemisin.\n\nTitle: The Fifth Season\nAuthor: N.K. Jemisin\nPublication Date: 2015\n\nSynopsis: The book is set on a continent called the Stillness, which is constantly tormented by catastrophic climate events known as \"Fifth Seasons.\" The story follows three women, all of whom are \"orogenes\" -- people with the power to control seismic activity. This power is based on the science of geology, making for a unique and fascinating magic system! The world is incredibly detailed, and the story is a powerful allegory for climate change and social inequality.\n\nIt's the first book in the Broken Earth trilogy, and all three books in the series won the Hugo Award for Best Novel, which is an amazing achievement! 🏆\n\nI checked the local library, but they don't have it in stock right now. However, a great local bookstore that carries fantasy novels is the Orangeville Galactic Shop. You should be able to find it there! 🏪\n\nDoes this sound like a good fit for you? 🤔"
                             }
                         ]
                     },
@@ -57,13 +34,19 @@
                             {
                                 "name": "google_search_tool",
                                 "args": {
-                                    "query": "epic fantasy novel unique science magic system"
+                                    "query": "epic fantasy novel scientific magic climate change series"
                                 }
                             },
                             {
                                 "name": "wikipedia_tool",
                                 "args": {
                                     "query": "The Fifth Season (novel)"
+                                }
+                            },
+                            {
+                                "name": "google_search_tool",
+                                "args": {
+                                    "query": "The Fifth Season N.K. Jemisin Hugo Award"
                                 }
                             },
                             {

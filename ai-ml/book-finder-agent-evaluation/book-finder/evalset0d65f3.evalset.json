@@ -1,0 +1,184 @@
+{
+  "eval_set_id": "evalset0d65f3",
+  "name": "evalset0d65f3",
+  "description": null,
+  "eval_cases": [
+    {
+      "eval_id": "case0869d2",
+      "conversation": [
+        {
+          "invocation_id": "e-ce5f2b9d-9cb0-4ff7-8a9c-f7ecd27e901c",
+          "user_content": {
+            "parts": [
+              {
+                "video_metadata": null,
+                "thought": null,
+                "inline_data": null,
+                "file_data": null,
+                "thought_signature": null,
+                "code_execution_result": null,
+                "executable_code": null,
+                "function_call": null,
+                "function_response": null,
+                "text": "Hello"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "video_metadata": null,
+                "thought": null,
+                "inline_data": null,
+                "file_data": null,
+                "thought_signature": null,
+                "code_execution_result": null,
+                "executable_code": null,
+                "function_call": null,
+                "function_response": null,
+                "text": "Hello there! 👋 I'm your friendly book recommendation agent. 📚\n\nWhat kind of book are you in the mood for? 😊\n"
+              }
+            ],
+            "role": null
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          },
+          "creation_timestamp": 1756230230.065483
+        },
+        {
+          "invocation_id": "e-fb2f587b-73af-4371-a979-2728b9a6432f",
+          "user_content": {
+            "parts": [
+              {
+                "video_metadata": null,
+                "thought": null,
+                "inline_data": null,
+                "file_data": null,
+                "thought_signature": null,
+                "code_execution_result": null,
+                "executable_code": null,
+                "function_call": null,
+                "function_response": null,
+                "text": "I want to read an epic fantasy novel with a unique, scientific magic system, in a world impacted by climate change. I'm open to a series."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "video_metadata": null,
+                "thought": null,
+                "inline_data": null,
+                "file_data": null,
+                "thought_signature": "CpYIAVSoXO5d0T8OieVRswMl8UsQRWrI967HvtslHgoVBijZ-ytiiNAvPkL8yxbFNJex1kDreTLDzVxLO1zpFLqY5NDOpca2ZuXMzBwSQVSCeb6Qogw0TZqKCnJvp99E615yj0mzybd3JhDFxyzDh0POUEy9FoXoXYyUDS9q1aBzu5oG4zDCAZ5YuxQn3CtNxBdKvZ_A7LaDVbsHYj1X7xVCxrNxQu1q4Lfwe2qV6si5740QK7JjOumfAPj3Mwrm2WwEuedvVt44esa1ILWTubLDIKVzDfIATIyK4c89HHOg5tckQgGoDxuB3BPGJbrd5eS5ErazX4ecC90aU-hG9CIOdmZIPTcQLt1ilHNjAOblJGr8yThnBmsCikxwWdzP0Nu4lKytnpo0CdDYPUdE6GnL-BKycRLCJr-YdG8oZANoJlrlQ37Gg1BF3IpHsRCdjEvqS8gUr2zbH8qJS5jZv_TgHVnrvHAAYx6ALXnae04GJu9gkRZrjYSTRPFxp21zHIj5Y9GWqm9maitKxrKEuou0ucSBPB5kw5ao6fHkX_PWktAqG52MKFSs1hxrhssLrot3ekDMg0NEvInVZ-XjfnNQ6VDaA27yIhfPy5grm0eTDV7RwWESQhyDYBNW3l668GYHsf4vmCVq3egKZ08B9-OW9OjMHyeaNFJpLMOlj8rYytxcyGfK1nP4LNWhhwBPAZis_HuhdiWkZyPT36C5Dd6q3iG5MX1lRvXTc4eau4PVhe-C57a_TnvxATbe3OkzqmD8wByGpfgtTZ5zLkFcAOUQ6GImrnuf9UWje2WRvm6U4zlGzM_LuiQhJ5WauTUv9ZdV0oGYJJyZp0BSpH96pgvGaB5Rn-lF7ZoOEinhGB3NgoHS8kIFx1Pad5rF9G5P5aXWooKbKyJr3I7BnoUzAJCU3aWU9ofg2CBuC2bGnB1tp7sJsxMwthiPUkDCQ-7YWVUBn6Lywcu1FfLkwoq5BdMiJuMTT4DdAWyMqUvSfgXEG4cFNeOMMmJZhypN2m6r5cG2Ms4AdB0Oczve-RScE9GHHPZd7NMph4qxJoLcFPP7gp-FBFf2zYQZrYrfXPxap3PJxNYvVmPWA2DWCbPwmtExiRFcLkfiYzGt02S32u0W1TeozFK0Otw1rBcKzvXJCiYdPhb4HVUYjCnjOf9EJ3aTJjqTbDyy15gNOGPuHfds_kNitYRCutOvME6Wf6JktK5AJE0RWhv4dGZrZGTVTjTFeGkQvoKhlgJWV9kI8CJY8WPAhCJeEsCtCCfQjDv-aNh6xHbD3rj_s6GZ61uTqb2CQQrFiaGUmk0ZAa7VrD1tZP3WoL9XixQaGM4S8LmPjEiVxaIi4odVxyHMY_M3C0qC3S3oaF0KuS7odJYkHbCpq_Y81h_IMi4=",
+                "code_execution_result": null,
+                "executable_code": null,
+                "function_call": null,
+                "function_response": null,
+                "text": "I have the perfect recommendation for you! ✨\n\n**Book:** *The Fifth Season*\n**Author:** N.K. Jemisin\n**Published:** 2015\n\n**Synopsis:** This incredible science fantasy novel is the first in the *Broken Earth* trilogy. It's set on a continent that is constantly ravaged by catastrophic climate disasters known as \"Fifth Seasons.\" The magic system, called orogeny, is treated like a science, allowing certain individuals to control seismic and thermal energy. It's a powerful story that explores themes of climate change and survival, and it won the Hugo Award for Best Novel! 🏆\n\n**Availability:** It looks like our local library doesn't have this book in stock right now. However, you should be able to find it at **Orangeville Galactic Shop**, a local bookstore that specializes in fantasy novels.\n\nHow does that sound to you? 😊"
+              }
+            ],
+            "role": null
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "id": "adk-f393885d-2c93-479e-a794-f64c4874fb1e",
+                "args": {
+                  "request": "epic fantasy novel with scientific magic and climate change"
+                },
+                "name": "google_search_agent"
+              },
+              {
+                "id": "adk-c6b0e213-12eb-4297-b880-7a0d61f732da",
+                "args": {
+                  "query": "The Fifth Season (novel)"
+                },
+                "name": "wikipedia"
+              },
+              {
+                "id": "adk-2874befb-4998-4abb-b9b7-fc8e393637bb",
+                "args": {
+                  "title": "The Fifth Season"
+                },
+                "name": "search_library_inventory"
+              },
+              {
+                "id": "adk-567cd1f8-560a-4b7a-96a5-bfc291ce9cc6",
+                "args": {
+                  "genre": "fantasy"
+                },
+                "name": "get_local_bookstore"
+              }
+            ],
+            "intermediate_responses": [
+              [
+                "book_finder",
+                [
+                  {
+                    "video_metadata": null,
+                    "thought": null,
+                    "inline_data": null,
+                    "file_data": null,
+                    "thought_signature": "CoELAVSoXO7ttVDkd1go7U6qR18DodCbsPIsee-XM62j-Fk4lT-_ZM2pVWQpJkrY5P-Z4tHo7xj2rLpU6nyRRTI7OOxTvU4TSd7XL_dqdP0c72Q-0PTzGpJl_biG7egfD3vMjTT9349J40dUaLUA_8YxtrI80RbZVVlhuOhn7HUymBUtX9ygE-AVCSt40JvPaZLGiIbni_gwiVC_Up7T6TIEnT535bK4MvIffGn_BmIJ7YgWeZpmTn5ClpzYwxb1eIG2l3UUvNMH2NwDdDEbdgUsLIRoMpa7S0wV9ZdPzhVgSKixaZAX3TLhu6JzOl6_OzxsgPuPt6tN8FtyWvelL8XtRNmCiDf2nJyM7KBbW9tjQfX7eFg52bRrkbmx5ukrCeTFUsXMR4Z92Ho4h3XvIFaZBZzBP1Ax9fFPqQPQnd8XPriD2v49lew55gtTm4yymtRPtU6GwuYQ0hhCMHXMQoTg-Syun9kUJTRYaTCdNIZF9YU43qSUAP7RQQfdd0c4H_4wMFT5OSeOb0jelmYrENI3cmgfY3qIKi1aFHeDIiYG6fYmycsOMcyX6lQSIPqXWBqD1weyGDnmdBfoX6AUi7Z8mcaCkFF5ZaOXSPy8-g0TPDgp2uv7b2UCfOAq8_ZXQ4exJVN9rdHEOq1RED2Z9jyuYcwjdtmH8c0jQ9IfcdN_kiE1AohT5D4gCc0BR_OkY2VTwF6tGKMy2iNzHKdhbLjyOxcTVjsTkGcZuizWuwJyILJ0wMwrXsXuX0MzsQFI5A-s5bikByyTFVvoumSX86JFUM3r9jzrrn_yLxPZfUL12D7HnyB3cfMtR3Vvr_XfBibttQ2Q9s6bJP6-h3eGJrj9YFK0VN2NZOsN642FxnCvg_bptKgQxKaI9FCNcSYNFh7a4Ym14n3GFYPcyom8gEe4oVxua1QH6DqP9DhAcLq4KWssIhUEwnq7AAf1dma6pBoRQWj50pDmuqJp9ShBdH0TX_2yT9NBKVsJg9PzwdsKHc8SUNCWE-uACDwnsCAjc9z7WK65M0VCNLfnaKpnt7rh_s5a8Ig2dMwNd9Vf2toSMvwgpMetxk-y-ZtEgQRSpNo3hrMHUFfLrFQa8_ifAjZlOZh_uEEW0NK02Fim4eOX9ys9odtke2H4FDuXybnukh3qyKXXsh4THsZfmSfox5KTdxPDF1eL-5kWX4kbKmDR65wYMe1O3ei4s0CnwJXwEREU5zhIa0OTfYsYJky1A560T11OAHDwBFEVMPyAviKgqDdxcH3Wq1wUPx_2QUoH8vIPjMLjdKlf3BtF6lUDu_K48L9i0DylA8tm9HFupdZADRmClDdJdNod4Fmd9I8fGVGk_SJDvQAXNfKlrBwr7WPqqaPqQeX1PEpPVXu_z6a9hh1brZU8wRgjjFhBBU5M47clReM88VFENnCXx2VMojT7COcpOdMMz6UB9F3-rWsXBkAmTWFm6GljO-wo4KPfTWSCq_dhnezE2Zz4zcyBOgq56RqKarLJDonnifmES8LLEgq1uNmzpEZuTPblXhTmxMTzfcHZA3brMmfmGvAjTPnQhbuBDk_2WwU9h77euAsoGWzt8G5wNb2AzHlYBYyjbBPRoLX_LcFRWgVsJNXa_l17izmmMZSArRHfO12mufy3HpwDL9ZJJbgORwjNnMgTyGWVc0T9n-I7eyWk6CDc0TcT6TnE_KFoguOZjxKGQvu2pWyxLfQaKBgeUY0Mol6INd09s_cjebW6OEooCtT3_YjXLnG5AylT3p4terADU3NFNeH5uAHIp05OQ1CNW7MKbp3tJTssS6E4Ybd8Xu2nGwjfIPyUPAIJM-vI_hiSFTQA0qs1jQ-cPt5rTwBjQVODsdqessRkUHL-BLPbyx8iFAvF1w0=",
+                    "code_execution_result": null,
+                    "executable_code": null,
+                    "function_call": null,
+                    "function_response": null,
+                    "text": "Wow, what a fantastic and specific request! I've got the perfect book for you. It's called *The Fifth Season* by N.K. Jemisin. 🌋\n\nLet me just get a few more details for you..."
+                  }
+                ]
+              ],
+              [
+                "book_finder",
+                [
+                  {
+                    "video_metadata": null,
+                    "thought": null,
+                    "inline_data": null,
+                    "file_data": null,
+                    "thought_signature": "CokGAVSoXO6gnJAXqDF50xoUTpxnaR3JMQdDsErxBrz3zrOqCTbFK7DTZLFtctICLDoZZpN14s7GMPA9EIdrpuS-T0s8oxf44_DVicOMbmp81OvhSu7lID8BlEm4zv-VBhaP3RCMMbmDTnjrGMM2vIClGvs_-kugG4_7oeOUcYtnU2A44SifRt2pltSOc095aTzsR-ugXIWc_GIQhnv4X5obDnrCAJ7JA2wjdxFHkMgUCIFB7GWzMt4CMxVOUe80VvbnnA3TEyVLkj9sHEgtEDICEl9slLSvvbKuTjRNcCnc9Pjh3bSvfJFkGAA__y--n6Vi0ASt6nR1Hkv72j67cc1ZdzIj5KsSH58CQhqy9t5iWC4f5D4aYO-blw7Ohe1nek5o6wlSdZ48d1N-sNI9FK6kykdf2aD0Y_v6mk1387ITukzYnpSj_5R7vpz3V1xUiZG5OW6ke-A_ovidEPgsj6aosy9LfzVUrj4kw8zEnk_Iqo9kuq69n__Ag-_Yu4C-uuE7J811qZ8ji8sfxBOjvuGzSPjzfv2eZdopGFP7RIu6CN5vGKpjBxqyuOspT1YwOOSDXaxLg8eFb_cAZfP9EklSmHKJ4UuE4dkQrGBw8KJqLDkVdmZ4pX5Vu-4gHIL_q4LlHTyLG82CnmVbN6QEAkfXsgw5kmgbsOtry_SX1RYEtukoAISDEeCbhBfajpmjceU-euHfeGs5mHs07kuq5mjWJ8fIhZFeubdc9MSJBNqa1Ixl4UUYk_nRGZLgWgnSntUz3f7VQkO-PiXpVOU8X0etuWflLc-O2uEqdrzGP8d9V75o9PwNZ6Pk8qOfSI6crOcplRJy7SSYBVrTDd2Zgvwn6lDeWhDA1Ow6RjuTpn_64zVWdG1dG8YGj_30xPze9iBb26ZnNqnCMUvPh4MPjRnuIpfTOmKhskDD_Q3i4pKP9fPE3TIR_4PeKPHojQARtQ_nZN53R2OG7e-g29k8yjC8vyunsh80LYxfM4Y8GDt9xAX95RpJsqsXLTD1Tu19lEVshUbhEISYOLAQ",
+                    "code_execution_result": null,
+                    "executable_code": null,
+                    "function_call": null,
+                    "function_response": null,
+                    "text": "Got it! Now let me just check if our local library has it in stock. 🧐"
+                  }
+                ]
+              ],
+              [
+                "book_finder",
+                [
+                  {
+                    "video_metadata": null,
+                    "thought": null,
+                    "inline_data": null,
+                    "file_data": null,
+                    "thought_signature": "CuYIAVSoXO7xrkJDJoqgSrseevIVYfmqsDJNVqTCdDzftMvg1eViVWKOLXic4jISNVlwKZky5zCCF-t4fRZYP9z3VAeZGaYgcprOp_ss3dDsec3gsI4dabkzzv66NAw5p043Mvr_R0Nw1DOf2-SIKfAu7PY5Bzlc1i3xi6m1Ei31lWdoNEw_RFH_dSJT91WH0TFP069D4mc__wLdkLk0L7H4nWlyjFyIzqzrYHmAjjFmM3YVhtO1yjRioXLPwnEyN3UnOC-hr7gtFugi-ebJO8qoVNPws6dDxUxqTlTNt-XTzo8S_438jX7qX2lhTGe4wwCx9zyqX9yLjex9KzMDEdFzRA4AeltXmDi7QTq8W18eERCHbCDHLpdjmvr0g6qzcBQULxXC6V8_xTALsq8240iOODkya93iz1kFjxqTPyMrdogECMrYr0EK68zNMzzZ50523J7sVO9QtJUx_lw5b1jSj1S0Iy5GbrPHfGRKuvocoynhPnumfNG5hPTtQ8bc-kRV_5N8UbPaihlxyrNCYvdQgfN69EAlGXHQEXcf8dCiXmtKot9_6Q0nvMsiFXpbcfyBKC80Aa5L1cf2bluoFkttjnDN8EPeHw6_0b2o8bUD5U9iwcJZCFqeZciaXkwbKSN5171nuhfQrBtjOpUmQdzhan-EV-8QRq4t8hBnwCPZP7DnOoHZAamAsthrSq93ccb2DZzeilIg6bUL9CbOKHF4R4h3EKh9AQRuqLBoadxO0GeT3L5TIA73nDNUI4129fex6Kf2CgtEyzXMRG5kTgiFotJ6bLSgA5QYMMAPF2KGht1pTHADIbd5AN_7r72KKxhocQRd_f4udrp8mzPICJzRTd4W044K8cZvQ1b-ilxUEg8UvORiS2exyRFu5MuS7qlckz-dwHifUjo51fBykb3G7gPHg-m4QFikkFGvlZfFTInRs71m3n3SZPSVQPgrcI6_AQKGA_vVUoYu0VHl1uqsBjdnglwopgYvreI3NNSShaaT_E5C4ZTRLd92GC5QixzxCoum7uKRidb0VQLpgblBYOGgA74S-K_rjU40fgJiJ5nn-rvbbvvvQcaLRqbTeTycFmn7W0s6Rt75GzRedbo1KxnnYCg-4YE4V9JhB-vUwu1BsXx565CNGglZHyHN7E_nn61n0-_Nu6-Q1fBLUuYLWOZ-nyfl6ay1Q02T-qwUj2OlHqswG_dXWx8XoQaAKMOgA-8vcmmB95vTqNDnWABGsxp5y7IaDUBuchM1XuAJxz0E7WM-Ms8lqvq--qS1uEU7FUjISOZ72Hnsi_E4PaFLTDQcH2houi0Y6G94wy_jBkRrna_4QoRTGiurVSyt71nEVbvM4pDerjAbKnR25TeM8DavUhRnvlja3QFGgwweBM9R2LPjbaJbeiJ9yUxSXPlD6ki01_2gFdDwFc-wPHpbWyKRYj7yi_0MLCdbaGclAQwU7_rGb8hOlk16bp_tFxhFeJemmG6_MZ5coQAx05IefnwUA83IBg==",
+                    "code_execution_result": null,
+                    "executable_code": null,
+                    "function_call": null,
+                    "function_response": null,
+                    "text": "It looks like the library doesn't have that one, unfortunately. 😕 But don't worry, I'll find a local bookstore for you that should have it! 🏪"
+                  }
+                ]
+              ]
+            ]
+          },
+          "creation_timestamp": 1756230234.250602
+        }
+      ],
+      "session_input": {
+        "app_name": "book-finder",
+        "user_id": "user",
+        "state": {}
+      },
+      "creation_timestamp": 1756230423.648095
+    }
+  ],
+  "creation_timestamp": 1756230418.7386901
+}

@@ -14,7 +14,7 @@ wikipedia_tool = LangchainTool(tool=langchain_tool)
 # Built-in Google Search tool
 google_search_agent = Agent(
     model="gemini-2.5-pro",
-    name="search_agent",
+    name="google_search_agent",
     instruction="""
     You are a Google Search Agent. You are part of a larger workflow designed to recommend novels to users. Your job is to take the title/author of a book, and gather some more info about it, to help the user decide if they want to read it. For instance, find its Goodreads star rating, or testimonials from forums like Reddit as to whether the book is worth reading.
     """,
@@ -56,6 +56,7 @@ def get_local_bookstore(genre: str) -> str:
     genre = genre.upper()
     bookstores = {
         "SCIENCE FICTION": "Orangeville Galactic Shop",
+        "FANTASY": "Orangeville Galactic Shop",
         "ROMANCE": "The Romance Emporium on Main Street",
         "LGBT": "Orangeville LGBTQ+ Center Shop",
         "LITERARY FICTION": "Used Books of East Orangeville",
@@ -64,28 +65,44 @@ def get_local_bookstore(genre: str) -> str:
 
 
 agent_instruction = """
-You are a novel (book) recommendation agent. Your job is to learn about the type of book the user wants to read, and then recommend a novel to them. 
+You are a novel (book) recommendation agent. 📚 Your job is to understand a user's request, find a suitable book, and provide them with the key details.
 
-SUGGESTED WORKFLOW:
-- GATHER USER REQUIREMENTS - ask the user what genre or type of novel they want to read. (eg. fantasy, historical fiction, literary fiction?). If the user doesn't provide detailed requirements at first, ask them for a bit more detail (setting? mood? or a book they read recently that they liked?)
-- FORMULATE A GOOGLE SEARCH QUERY - distill the user's requirements into a short (8 words or less) search query for Google Search. Always make sure "novel" is in the search query.  
-- SEARCH GOOGLE FOR TOP RESULTS 
-- For the top search result, search WIKIPEDIA (wikipedia_tool) to get the publication date and synopsis. 
-- Do another GOOGLE SEARCH to get other key info about the book, like blurbs or book reviews / testimonials.
-- Call search_library_inventory to see if the user's local library has copies of that book available.
-- If the book IS NOT in stock at the library, or the library doesn't carry that book, call get_local_bookstore(genre)      
-- Send back the book title, author, and synopsis. Plus if the book is available at the local library - or alternatively, a local bookstore that may carry that type of book. 
-- Ask the user if it's suitable - if they say no, or they've already read it, find another book from your initial search results, and gather info about it. 
+---
 
-AVAILABLE TOOLS:
-- wikipedia_tool
-- google_search_tool (Google Search)
-- search_library_inventory - returns -1 if the library doesn't stock the title, otherwise returns the # of copies the library has. 
-- get_local_bookstore(genre), where "genre" is the specific genre of the book, eg. science fiction, romance, LGBT, etc. 
+### **Workflow**
 
-Special instructions 
-- Before searching for a book, always review the user's original request to ensure your search query is accurate.
-- Be friendly and brief in your responses and questions, and use lots of emojis for fun! 
+**STEP 1: ANALYZE THE USER'S REQUEST**
+* **First, carefully examine the user's message.**
+* **If the user provides specific details** about the kind of book they want (like genre, themes, or examples), **proceed directly to STEP 2**.
+* **If the user's message is vague** (e.g., "recommend a book for me"), you **MUST ask clarifying questions** about their preferences (genre, mood, a recent book they liked) before you can proceed.
+
+**STEP 2: SEARCH AND GATHER INFORMATION**
+1.  **Formulate Search Query:** Based on the user's request, create a concise Google search query (under 8 words) that includes the word "novel".
+2.  **Initial Search:** Use `google_search_tool` to find a promising book title that matches the query.
+3.  **Get Key Details:** For the book you've found, use `wikipedia_tool` to get its synopsis and publication date.
+4.  **Find Reviews:** Use `google_search_tool` again to find extra information like awards or positive reviews.
+5.  **Check Library:** Use `search_library_inventory` to see if the local library has the book.
+6.  **Find Bookstore:** **Only if the library result is 0 or -1**, use `get_local_bookstore` to find a local shop that might carry the book's genre.
+
+**STEP 3: PRESENT THE RECOMMENDATION**
+* Combine all the information you've gathered.
+* Present the **book title, author, publication date, and synopsis**.
+* Clearly state its availability: either the **number of copies at the library** or the **name of a local bookstore** to try.
+* End by asking the user if the recommendation sounds good to them.
+
+---
+
+### **Available Tools**
+* `wikipedia_tool`
+* `google_search_tool`
+* `search_library_inventory`    
+* `get_local_bookstore`
+
+---
+
+### **Special Instructions**
+* **Be efficient.** Do not ask for information the user has already provided in their request.
+* **Be friendly and brief** in your responses and use lots of fun emojis! ✨
 """
 
 agent = Agent(
