@@ -1,77 +1,101 @@
-# Finwise ADK Agent
+Finwise (ADK Skeleton)
+======================
 
-## Resources
+A tiny starter that shows how to build an **ADK** agent with:
 
-Here are some useful links for the Google Agent Development Kit (ADK):
+*   simple function tools,
+    
+*   a community **MCP** server for market data (Yahoo Finance) mounted over **STDIO**,
+    
+*   and the **ADK Web UI** (no custom frontend).
+    
 
-*   [Google ADK Documentation](https://google.github.io/adk-docs/)
-*   [ADK Tools](https://google.github.io/adk-docs/tools/)
-*   [Function Tools](https://google.github.io/adk-docs/tools/function-tools/)
-*   [Built-in Tools](https://google.github.io/adk-docs/tools/built-in-tools/)
-*   [MCP Tools](https://google.github.io/adk-docs/tools/mcp-tools/)
-*   [Authentication](https://google.github.io/adk-docs/tools/authentication/)
+1) Download the Financial Data MCP Server
+-----------------------------------------
 
-This project contains a financial analysis agent built using the Google Agent Development Kit (ADK).
+This app expects the **community MCP server** from:
 
-## Agent Workflow
+**Repo:** [https://github.com/Samarth2001/Financial-Data-MCP-Server](https://github.com/Samarth2001/Financial-Data-MCP-Server?utm_source=chatgpt.com)
 
-The Finwise agent is designed to follow a strict, sequential workflow to ensure a structured and predictable user experience. The agent's instructions enforce the following order of operations:
+### Download just the file
 
-1.  **Analyze**: The agent's first step is always to analyze the user's request using the `AnalystAgent`. This specialized agent performs data analysis, generates insights, and can create plots.
-2.  **Optimize**: After the analysis is complete, the agent uses the `run_portfolio_optimization` tool to determine the optimal asset allocation based on the user's risk profile.
-3.  **Price**: Once the optimal allocation is determined, the agent uses the `get_stock_price` tool to fetch the latest price of the top-recommended stock.
-4.  **Confirm and Execute**: Finally, the agent presents the stock price to the user and asks for confirmation before executing a trade using the `execute_trade` tool.
+1.  Open the repo above → click server.py → click **Raw**.
+    
+2.  Copy the raw URL and download it:
+    
 
-## Tool Descriptions
+**macOS/Linux**
 
-The Finwise agent utilizes four key tools to perform its financial analysis and trading tasks:
+Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   mkdir -p external/financial-data-mcp  curl -L "" -o external/financial-data-mcp/server.py   `
 
-1.  **`AnalystAgent`**: A specialized sub-agent that uses a built-in code executor to perform data analysis, generate insights, and create plots using Python and Matplotlib.
-2.  **`PortfolioOptimizer` (MCP Tool)**: A tool that runs in a separate process and is accessed via the Media Control Protocol (MCP). It takes a list of stocks and a risk profile to calculate the optimal investment allocation.
-3.  **`get_stock_price`**: A function tool that fetches the most recent stock price for a given ticker symbol using the `yfinance` library.
-4.  **`execute_trade`**: A function tool that simulates the execution of a stock trade. It includes a full OAuth 2.0 authentication flow to demonstrate how to handle secure transactions.
+**Windows PowerShell**
 
-## Setup
+Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   New-Item -ItemType Directory -Force external\financial-data-mcp | Out-Null  Invoke-WebRequest -Uri "" -OutFile "external\financial-data-mcp\server.py"   `
 
-1.  **Create a virtual environment:**
+Then set the absolute path in .env:
 
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    ```
+Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   FIN_MCP_SERVER=/absolute/path/to/your/project/external/financial-data-mcp/server.py   `
 
-2.  **Install dependencies:**
+> **Tip:** use an **absolute** path. Relative paths can break when ADK spawns the process.
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+2) Install dependencies
+-----------------------
 
-3.  **Set up your API key:**
+Create a virtualenv and install the app deps:
 
-    The agent uses a Google API key for its functionality. You need to set this as an environment variable.
+Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate  pip install -r finwise/requirements.txt   `
 
-    Create a `.env` file in the root of the project:
+Install the **MCP server** deps in the **same venv** (ADK will spawn this Python):
 
-    ```
-    GOOGLE_API_KEY="YOUR_API_KEY"
-    ```
+Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   pip install "mcp[cli]" yfinance pandas numpy   `
 
-    Replace `"YOUR_API_KEY"` with your actual Google API key. The application will load this key from the `.env` file.
+3) Configure environment
+------------------------
 
-## Running the Application
+Create .env from the example and edit paths/keys:
 
-This project uses a FastAPI server to provide an interface to the Finwise agent.
+Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   cp finwise/.env.example finwise/.env   `
 
-1.  **Start the server:**
+**finwise/.env**
 
-    ```bash
-    uvicorn finwise.server:app --reload
-    ```
+Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   MODEL=gemini-2.0-flash  # If using AI Studio:  # GOOGLE_API_KEY=YOUR_API_KEY  # Absolute path to the community MCP server script you downloaded/cloned  FIN_MCP_SERVER=/absolute/path/to/your/project/external/financial-data-mcp/server.py   `
 
-2.  **Access the application:**
+4) Run the ADK Web UI
+---------------------
 
-    Open your web browser and go to:
+Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   export PYTHONPATH=$PWD   # Windows PowerShell: $env:PYTHONPATH = $PWD  adk web   `
 
-    [http://127.0.0.1:8000](http://127.0.0.1:8000)
+Open the URL the CLI prints, select **Finwise**, and try prompts like:
 
-    You can interact with the agent through the web interface provided.
+*   “What’s the current price of AAPL?”
+    
+*   “Show TSLA’s 50-day moving average.”
+    
+*   “Compare AAPL, MSFT, and GOOGL performance.”
+    
+*   “Confirm: buy 1 share of AAPL.”
+    
+
+5) (Optional) Sanity-check the MCP server
+-----------------------------------------
+
+Verify the server lists tools correctly with the MCP CLI (using **this** Python):
+
+Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   mcp list-tools --stdio \    --command "$(python -c 'import sys; print(sys.executable)')" \    --args "/absolute/path/to/.../server.py"   `
+
+You should see tools like: get\_stock\_price, get\_historical\_data, get\_options\_chain, calculate\_moving\_average, calculate\_rsi, calculate\_sharpe\_ratio, compare\_stocks, clear\_cache.
+
+Troubleshooting
+---------------
+
+*   **“Timed out while waiting for client response”**The MCP server likely takes too long to start or the path is wrong. Ensure FIN\_MCP\_SERVER is correct and the server’s deps are installed in the same venv.
+    
+*   **“Connection closed”**Make sure you’re using **STDIO** (StdioConnectionParams), not HTTP. Also avoid any prints to **stdout** before the MCP handshake (logs should go to stderr in the server).
+    
+*   **Missing data or modules**Install the server deps:pip install "mcp\[cli\]" yfinance pandas numpy
+    
+
+Project structure
+-----------------
+
+Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML``   finwise/  ├─ __init__.py                 # exposes `root_agent` for ADK Web  ├─ agent.py                    # single agent + simple tools + MCP toolset  ├─ .env.example                # sample env  ├─ requirements.txt            # google-adk, mcp, python-dotenv  └─ README.md                   # this file   ``
