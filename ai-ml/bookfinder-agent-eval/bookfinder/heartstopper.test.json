@@ -1,0 +1,59 @@
+{
+    "eval_set_id": "book_finder_eval_workflow",
+    "name": "Book Finder Workflow Evaluation",
+    "description": "Tests the agent's ability to find a book that is unavailable at the local library and specialty bookstores, requiring it to proceed to online ordering options.",
+    "eval_cases": [
+        {
+            "eval_id": "find_book_unavailable_locally",
+            "session_input": {
+                "app_name": "book_finder",
+                "user_id": "eval_user_01",
+                "state": {}
+            },
+            "conversation": [
+                {
+                    "invocation_id": "turn_1_unavailable_book_workflow",
+                    "user_content": {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": "Help me find Heartstopper by Alice Oseman"
+                            }
+                        ]
+                    },
+                    "final_response": {
+                        "role": "model",
+                        "parts": [
+                            {
+                                "text": "Of course! Here are the fastest ways to get 'Heartstopper' by Alice Oseman:\n\n**The Fastest Option (Online)** 🚀\n* **MapleLeaf Books Online** can get it to you in 2-3 business days with free shipping on orders over $35.\n\n**Support Local (Special Order)** 🏪\n* You can also support a local store by placing a special order with **BookHaven Orangeville**. It would take about 5-10 business days to arrive. You can call them at (555) 555-2665 to place an order.\n\nEnjoy the read! 📖"
+                            }
+                        ]
+                    },
+                    "intermediate_data": {
+                        "tool_uses": [
+                            {
+                                "name": "search_local_library",
+                                "args": {
+                                    "title": "Heartstopper"
+                                }
+                            },
+                            {
+                                "name": "find_local_bookstore",
+                                "args": {
+                                    "genre": "Young Adult"
+                                }
+                            },
+                            {
+                                "name": "order_online",
+                                "args": {
+                                    "title": "Heartstopper"
+                                }
+                            }
+                        ],
+                        "intermediate_responses": []
+                    }
+                }
+            ]
+        }
+    ]
+}

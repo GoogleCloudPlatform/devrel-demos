@@ -1,0 +1,180 @@
+*********************************************************************
+Eval Run Summary
+book_finder_eval_workflow:
+  Tests passed: 1
+  Tests failed: 0
+*********************************************************************
+{
+    "eval_set_file": "book_finder_eval_workflow",
+    "eval_set_id": "book_finder_eval_workflow",
+    "eval_id": "find_book_unavailable_locally",
+    "final_eval_status": 1,
+    "eval_metric_results": null,
+    "overall_eval_metric_results": [
+        {
+            "metric_name": "tool_trajectory_avg_score",
+            "threshold": 0.8,
+            "judge_model_options": null,
+            "score": 1.0,
+            "eval_status": 1
+        },
+        {
+            "metric_name": "response_match_score",
+            "threshold": 0.5,
+            "judge_model_options": null,
+            "score": 0.6777777777777777,
+            "eval_status": 1
+        }
+    ],
+    "eval_metric_result_per_invocation": [
+        {
+            "actual_invocation": {
+                "invocation_id": "e-f173bd37-56ed-45f4-9b5d-0d36d7af0868",
+                "user_content": {
+                    "parts": [
+                        {
+                            "video_metadata": null,
+                            "thought": null,
+                            "inline_data": null,
+                            "file_data": null,
+                            "thought_signature": null,
+                            "code_execution_result": null,
+                            "executable_code": null,
+                            "function_call": null,
+                            "function_response": null,
+                            "text": "Help me find Heartstopper by Alice Oseman"
+                        }
+                    ],
+                    "role": "user"
+                },
+                "final_response": {
+                    "parts": [
+                        {
+                            "video_metadata": null,
+                            "thought": null,
+                            "inline_data": null,
+                            "file_data": null,
+                            "thought_signature": "CuISAVSoXO7NLMKY_Pw6gVCibxzdO3ajZHTLRNJjh9k7vPvppwwowN6GoBnJf4zPW22R16p5JZnvMNsJtYLAOEQwyDQ-xJ41T3rVfFp2yOgOkdbWIsozBiuI0YfZb4L7Gle3nWh9aoXA6Bv6Gs7I-ZfJuST_T55GayRwrztOZcytwTFZ1TDz5z7-HuLuZq-rTmYkOWxYMbAFEjdfXbQsqbVaCAbSsjSGPOlSl5X6ubOw-zZ-41iLCtcW4XwL7a0Zq3R2XdU7BsUyfOdwWpTUreojT2dr1k05oKXmRQhd1Zg-WrgOgjS7BNdJCL35QM65H2IjTY_REcXDS7Tape1Yg_uXtUe-RYtoo8brBNwUl1LpxSLosj-RYfti20_4mTU6-GH_1tv6jZKEF4bFwpOsRiK3ti3xl5--tFWoby6GAl0RQWlnZknRN59xdw01qEHXRyroHEiF-kxuYd9tfkwSCMwbadeYNWy4VfafUKvm6z1VRK5O_Ykcj395i4gtc73jsis2UYa4eMVstUpigCnn00tCRJr4bbp7tYCZo5Z5HxWVukXKVTx_V_p-y_XkqtlQDHu1YpphejdzmMoQomY40TRq8PWep0i2LbNUWJhihZx6pL0bHEFOU8x3P1YMiAvlvQ6yBgShHzFXR-5i24L_HKkqbHoQV7OOz2XZHJ2Fevp-O8JNhZrgp3TGtioEwRMIN1bcyWvSqX6mlyYrP4Xd4xQ_BDSalUcxlaT0CD8fGxftRtNCj8roqeKXPzLdOaNtf1icttdNKM07ErtiEwZ-jMfM7yBK2LcgmvxGgHIqk8MBebxXaB2krBa7kI96zcsFmu93dsVb5YYo39CH6dwpcaDji3IfGC0ogfUVrCJtZ4-UMp1kK7wnbgfyyeCFeJY8e1bA88EreAkR6LEn0TfMV8vbcmgbcYK2vbapnKinjkZ6h_XziVd_ltU5RqGrqBaGWOViJwspzFIyAARCaB36Mv-Uzg6RexmVKC0A-RuIjXXXXQPAOltUOrzNfqf0bH-g8KA43XjWmegXuBfRTBT0Vho6v18m-2-sxtW33FHoZ30NXAcRtT96yEBRg2XUAxjuz0319hFaptgp8U2RdLzKn7wfcgeGxGHQKMwIWoeRmFmsiwE34UDfn8j8OGw0oxFmaeMI9ZfGL_p_76ee6Zucz3_AnQ5vZmRB9cM-aNNZ_pCbsvpeIN4Ln7eI69ixQ9clbxrDQ6tFJfAMOHLaVPubow28DYDk671LZzUjAuzFYZgc1FXoM5QL4gAlghMgzghYdhnI7bdNZUBN2cBhvoze7Utj3kKK3u3I196XhHLZzqLgwn38NYBOU2lG2kKE_eg0TXtFvN-HE9-40wSWHKvcb33hhCV2DCW0mh-xrUN0mqL7fXvqMbVr16c2Wg8E302QoB6ou6uPu96KkBbOagPcQvKcVksiPXrXjZ98GsTM59RftfnaieO13vCDlkczSzMemlNSgdiUjM1i4Y6TtKS0bO_eNv-rhsPDUHViyW9OIoahpEnT2Yhb9CNd-tz0CfVUSwgkBxkzzj1PNXZhZ6gCZof9twFXSL5hsRttCrZXXnaNp_o1nL0SPO3rGCrI2WB0I52BH4dKUnhqA16fq70i41QQqYsejKDdknCCNxOQy_M2qWqS8kImn89mX5d30YIjETL7sidzUyDPu_NUJfp5lQ3lZI4qlUFNKuyGaThmXvVEyhNDrBHmXwcAuuYtVsxORIhrcaoPapYsEUMtWYccD0sEFvpB987FQ7ZCF1l1eELw3v5d75R1hrfAYrMA_cC2RhmHwItGy6iEGK1CPvdoq79gW3APAJISyRl_QjsFofGjuatDYeFDxtzJqGTkQfXlFPwGFs3Uco3xnM_5g3l3b4z7xMGDdOyF__m1fwK1iy6qOynaGj-5QlUQbQ3UnQMfFu1Snzt__4Pmul52_Afn6fBWS9zmZTpMYbLWwgkwBaDi_8ozUJcSNBV9xPSPwcq5SCXec5HlXu4KVp89Uop5oABPZB25bdXkrX94yJRtBNrsjDMzGFajt_qk5k9GsLnGf-FxMMwPr-7hfbQt9A1Lo1VF9YF8OBmCykpMPGErbCNIaNReSWZsW6qTuzJtBKsKENa_WotjQCkFqAMUbW8meRbabWhw2Oypv28hNHpPWfgtQolWqAsCNoJUKUdxlNKst21mk92fZswkZFasuRWMG3m9mNUXeepX3wqkO6HZcz0j_lg2ipck3JvJgp6QsYdmXZVGiMbGZNWLhWnByy-VHNrajom4zWIb1aWyZflvdjVlHTH4N1dMayiROJ8ZtewtdWGbWYjIToafNQekUOfJDKTvyogDqsL2Fcpepv_kfzoSKRpYbgLKugykCn5kG2T8iOL1-3edoxd1mNvfwH5i8o9d-9ueXS0lUZ5nnJ7Xp9K26QekFUyOgk-MmB4gItM9yYWfpNfSeLuIgT5hZDFU5YJ4ig0zsE7-YG8HacCeGzCz_qN3Tv4fxmieBTMuVJNbyGJDvZdOUqlC1XATruhOqKyYv1LiyV_xc8AATu69Y3Z3nYbO6tDK0x8ovBUw8u5KtTwRuaxLlJIEialBw6wG00NMKCS7-U9JCeDWZvNDMqRuP31Khbjn_y5IKZ5zUiCl0FHql7ywRrQ5JY0A3yYNnH87-gbgRroPfYeB6L9eSkEVBlV9MVmRIfNgPiNFrJiAheB2GbLbMkh-qhJfG7c_CeWnz5573-ysXYLL_RfyGmlppaHNc_SqnbVTCnD_nZGb42BJtG4nEO98W_2daocQvLSfXU_iaBE7T4AqOv7YbswcZPDtfH20uLmaW9T96YxcMMlaW1EAlTbMyULFPA3qvUYhZ9o4kPSAdrfiTMPByyg9Ftn6M31xu-hsV2JnrY8aNCUiguCQEizmJu17aFuBjb_-hCV_VLg0n9sqPalsjbfy5vUldFWEhL8LI2e4u9kEZz27HD9d1tuK9x7trZvRjRjp3cXk5TWTUmaarr107ZB4NnFCvNlUTCOmnA1ZibC4b09QcpT07emhc5Hps4Eccwo_duX4R3zrSqxgj0dg9QHVDm41nnaKYrc3yQK3PShcs9taqrjuz9dtYA_X3mR2Mfxu4T0RGGIOgZr2cgg4zFqAC3iT-gl8bQNLnS_8uvSFEJXygWZLlngCtmKIwnovSj2JmIjBsqEYHBsHS7Pa3HDVOmS7eoktmd16pu6_CnxiefioRkg=",
+                            "code_execution_result": null,
+                            "executable_code": null,
+                            "function_call": null,
+                            "function_response": null,
+                            "text": "Of course! I can help you find \"Heartstopper.\" 🕵️‍♀️\n\nIt looks like the book is not available at the Orangeville Public Library right now.\n\nThe **fastest** way to get your hands on it is to order it online:\n*   **MapleLeaf Books Online:** 🍁 Delivers in **2-3 business days** with free shipping on orders over $35.\n\nIf you'd like to support a local shop, you can place a special order:\n*   **BookHaven Orangeville:** 🏪 They can order it for you, which usually takes **5-10 business days**. You can give them a call at (555) 555-2665 to arrange it.\n\nEnjoy the read! 📖✨"
+                        }
+                    ],
+                    "role": "model"
+                },
+                "intermediate_data": {
+                    "tool_uses": [
+                        {
+                            "id": "adk-dfa10752-427e-4bb3-99d9-cb7af121b297",
+                            "args": {
+                                "title": "Heartstopper"
+                            },
+                            "name": "search_local_library"
+                        },
+                        {
+                            "id": "adk-4ae35c15-e18b-4d36-83a1-08ecf5b97851",
+                            "args": {
+                                "genre": "Young Adult"
+                            },
+                            "name": "find_local_bookstore"
+                        },
+                        {
+                            "id": "adk-02e9447c-9e76-4808-962d-ba9c68b3e65f",
+                            "args": {
+                                "title": "Heartstopper"
+                            },
+                            "name": "order_online"
+                        }
+                    ],
+                    "intermediate_responses": []
+                },
+                "creation_timestamp": 0.0
+            },
+            "expected_invocation": {
+                "invocation_id": "turn_1_unavailable_book_workflow",
+                "user_content": {
+                    "parts": [
+                        {
+                            "video_metadata": null,
+                            "thought": null,
+                            "inline_data": null,
+                            "file_data": null,
+                            "thought_signature": null,
+                            "code_execution_result": null,
+                            "executable_code": null,
+                            "function_call": null,
+                            "function_response": null,
+                            "text": "Help me find Heartstopper by Alice Oseman"
+                        }
+                    ],
+                    "role": "user"
+                },
+                "final_response": {
+                    "parts": [
+                        {
+                            "video_metadata": null,
+                            "thought": null,
+                            "inline_data": null,
+                            "file_data": null,
+                            "thought_signature": null,
+                            "code_execution_result": null,
+                            "executable_code": null,
+                            "function_call": null,
+                            "function_response": null,
+                            "text": "Of course! Here are the fastest ways to get 'Heartstopper' by Alice Oseman:\n\n**The Fastest Option (Online)** 🚀\n* **MapleLeaf Books Online** can get it to you in 2-3 business days with free shipping on orders over $35.\n\n**Support Local (Special Order)** 🏪\n* You can also support a local store by placing a special order with **BookHaven Orangeville**. It would take about 5-10 business days to arrive. You can call them at (555) 555-2665 to place an order.\n\nEnjoy the read! 📖"
+                        }
+                    ],
+                    "role": "model"
+                },
+                "intermediate_data": {
+                    "tool_uses": [
+                        {
+                            "id": null,
+                            "args": {
+                                "title": "Heartstopper"
+                            },
+                            "name": "search_local_library"
+                        },
+                        {
+                            "id": null,
+                            "args": {
+                                "genre": "Young Adult"
+                            },
+                            "name": "find_local_bookstore"
+                        },
+                        {
+                            "id": null,
+                            "args": {
+                                "title": "Heartstopper"
+                            },
+                            "name": "order_online"
+                        }
+                    ],
+                    "intermediate_responses": []
+                },
+                "creation_timestamp": 0.0
+            },
+            "eval_metric_results": [
+                {
+                    "metric_name": "tool_trajectory_avg_score",
+                    "threshold": 0.8,
+                    "judge_model_options": null,
+                    "score": 1.0,
+                    "eval_status": 1
+                },
+                {
+                    "metric_name": "response_match_score",
+                    "threshold": 0.5,
+                    "judge_model_options": null,
+                    "score": 0.6777777777777777,
+                    "eval_status": 1
+                }
+            ]
+        }
+    ],
+    "session_id": "___eval___session___1aae8e82-4d64-4202-95cc-27acb1dd6957",
+    "session_details": null,
+    "user_id": "eval_user_01"
+}
