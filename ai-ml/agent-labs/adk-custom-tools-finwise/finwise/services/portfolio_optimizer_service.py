@@ -1,124 +1,211 @@
+# finwise/services/portfolio_optimizer_service.py
+"""
+MCP server exposing a single tool: run_portfolio_optimization(stocks, risk_profile, period="1y")
+
+- Fetches historical prices (yfinance). Falls back to synthetic data if download fails.
+- Computes daily returns; annualizes mean and covariance.
+- Maximizes Sharpe ratio via SciPy SLSQP. Falls back to equal-weights if SciPy unavailable.
+
+Start:  python -m finwise.services.portfolio_optimizer_service
+ADK connects via StdioConnectionParams (see agent wiring).
+"""
+
 import asyncio
 import json
-import sys # Import sys to access stderr
-from dotenv import load_dotenv
-import pandas as pd
-import numpy as np
-import yfinance as yf
-from scipy.optimize import minimize
-from pydantic import BaseModel, Field
+import math
+import random
+import sys
+from typing import List, Dict
 
-# MCP Server Imports
+# ---------------- deps (optional fallbacks) ----------------
+try:
+    import pandas as pd
+    import numpy as np
+except Exception as _e:
+    print(f"[warn] pandas/numpy not available: {_e}", file=sys.stderr)
+    pd = None
+    np = None
+
+try:
+    import yfinance as yf
+except Exception as _e:
+    print(f"[warn] yfinance not available: {_e}", file=sys.stderr)
+    yf = None
+
+try:
+    from scipy.optimize import minimize
+except Exception as _e:
+    print(f"[warn] scipy not available: {_e}", file=sys.stderr)
+    minimize = None
+
+# ---------------- MCP server primitives -------------------
 from mcp import types as mcp_types
 from mcp.server.lowlevel import Server, NotificationOptions
 from mcp.server.models import InitializationOptions
 import mcp.server.stdio
 
-# ADK Tool Imports
+# ---------------- ADK bridge ------------------------------
 from google.adk.tools.function_tool import FunctionTool
 from google.adk.tools.mcp_tool.conversion_utils import adk_to_mcp_tool_type
 
-load_dotenv()
 
-# --- Portfolio Optimization Logic ---
+# ====== Core logic ==========================================================
 
-def get_historical_data(stocks: list[str], period: str = "1y") -> pd.DataFrame:
-    """Downloads historical stock data."""
-    # Use 'Close' instead of 'Adj Close' for robustness and disable progress bar.
-    data = yf.download(stocks, period=period, progress=False)['Close']
-    if data.empty:
-        raise ValueError("Could not download historical data for the given stocks.")
-    return data
+def _synthetic_prices(days: int = 252) -> List[float]:
+    """Geometric-random-walk synthetic price series."""
+    random.seed(7)
+    start = 100.0 + random.random() * 30.0
+    series = [start]
+    for _ in range(days - 1):
+        drift, vol = 0.0004, 0.018
+        shock = random.gauss(drift, vol)
+        series.append(max(1.0, series[-1] * (1.0 + shock)))
+    return series
 
-class PortfolioOptimizerInput(BaseModel):
-    stocks: list[str] = Field(description="A list of stock ticker symbols.")
-    risk_profile: str = Field(description="The user's risk profile (e.g., 'aggressive', 'moderate', 'conservative').")
+def _download_prices(stocks: List[str], period: str):
+    """Returns DataFrame of Close prices [date x ticker]. Falls back to synthetic."""
+    if pd is None:
+        # No pandas: produce a minimal dict of lists
+        return {s: _synthetic_prices() for s in stocks}
 
-def run_portfolio_optimization(stocks: list[str], risk_profile: str) -> dict:
+    if yf is None:
+        return pd.DataFrame({s: _synthetic_prices() for s in stocks})
+
+    try:
+        data = yf.download(stocks, period=period, progress=False)["Close"]
+        # Normalize to a 2D frame regardless of single/multi ticker
+        if isinstance(data, pd.Series):
+            data = data.to_frame(name=stocks[0])
+        if data.empty:
+            raise ValueError("Empty Yahoo response")
+        return data
+    except Exception as e:
+        print(f"[warn] yfinance failed ({e}); using synthetic data.", file=sys.stderr)
+        return pd.DataFrame({s: _synthetic_prices() for s in stocks})
+
+def _to_numpy_frame(frame_or_dict):
+    """Ensures we have numpy arrays for math, plus tickers list."""
+    if pd is None or isinstance(frame_or_dict, dict):
+        # dict[str, list]
+        tickers = list(frame_or_dict.keys())
+        mat = []
+        length = min(len(v) for v in frame_or_dict.values())
+        for t in range(length):
+            mat.append([frame_or_dict[s][t] for s in tickers])
+        return tickers, np.array(mat, dtype=float) if np else None
+    else:
+        tickers = list(frame_or_dict.columns)
+        return tickers, frame_or_dict.to_numpy(dtype=float)
+
+def _daily_returns(price_matrix):
+    return (price_matrix[1:] / price_matrix[:-1]) - 1.0
+
+def _annualized_mean_cov(returns):
+    mean = returns.mean(axis=0) * 252.0
+    cov = np.cov(returns.T) * 252.0
+    return mean, cov
+
+def _optimize_sharpe(mean, cov, rf=0.01):
+    n = mean.shape[0]
+    w0 = np.ones(n) / n
+    bounds = [(0.0, 1.0)] * n
+
+    def neg_sharpe(w):
+        ret = float(w @ mean)
+        vol = float(math.sqrt(max(w @ cov @ w, 1e-12)))
+        return -((ret - rf) / vol)
+
+    cons = ({"type": "eq", "fun": lambda w: np.sum(w) - 1.0},)
+    if minimize is None:
+        # Fallback: equal weights
+        return w0
+    res = minimize(neg_sharpe, w0, method="SLSQP", bounds=bounds, constraints=cons)
+    return res.x if res.success else w0
+
+
+# ====== ADK tool function ===================================================
+
+def run_portfolio_optimization(stocks: List[str], risk_profile: str, period: str = "1y") -> dict:
     """
-    The main function to orchestrate portfolio optimization.
-    It downloads historical data, runs a simulation, and returns the optimal allocation.
+    Inputs:
+      - stocks: list of tickers
+      - risk_profile: 'aggressive' | 'moderate' | 'conservative' (sets RF)
+      - period: yfinance period string (e.g., '6mo', '1y', '2y')
+    Output:
+      {
+        optimized_allocation: {ticker: weight},
+        expected_return: float (annualized),
+        expected_volatility: float (annualized std),
+        sharpe: float
+      }
     """
-    data = get_historical_data(stocks)
-    
-    risk_free_rates = {'aggressive': 0.02, 'moderate': 0.01, 'conservative': 0.005}
-    risk_free_rate = risk_free_rates.get(risk_profile.lower(), 0.01)
+    if not stocks:
+        return {"status": "error", "message": "Provide at least one stock symbol."}
 
-    returns = data.pct_change().dropna()
-    
-    def objective(weights):
-        portfolio_return = np.sum(returns.mean() * weights) * 252
-        portfolio_stddev = np.sqrt(np.dot(weights.T, np.dot(returns.cov() * 252, weights)))
-        sharpe_ratio = (portfolio_return - risk_free_rate) / portfolio_stddev
-        return -sharpe_ratio
+    rf_map = {"aggressive": 0.02, "moderate": 0.01, "conservative": 0.005}
+    rf = rf_map.get(risk_profile.lower(), 0.01)
 
-    constraints = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})
-    bounds = tuple((0, 1) for _ in range(len(stocks)))
-    initial_weights = np.array([1./len(stocks)]*len(stocks))
+    prices = _download_prices(stocks, period)
+    tickers, mat = _to_numpy_frame(prices)
+    if np is None or mat is None:
+        # No numpy: trivial equal-weights return
+        alloc = {s: 1.0 / len(tickers) for s in tickers}
+        return {
+            "status": "ok",
+            "optimized_allocation": alloc,
+            "expected_return": None,
+            "expected_volatility": None,
+            "sharpe": None,
+            "note": "numpy/scipy unavailable; returned equal weights."
+        }
 
-    result = minimize(objective, initial_weights, method='SLSQP', bounds=bounds, constraints=constraints)
-    optimal_weights = result.x
+    rets = _daily_returns(mat)
+    mean, cov = _annualized_mean_cov(rets)
+    w = _optimize_sharpe(mean, cov, rf=rf)
 
-    optimized_return = np.sum(returns.mean() * optimal_weights) * 252
-    optimized_volatility = np.sqrt(np.dot(optimal_weights.T, np.dot(returns.cov() * 252, optimal_weights)))
-    
+    port_ret = float(w @ mean)
+    port_vol = float(math.sqrt(max(w @ cov @ w, 1e-12)))
+    sharpe = (port_ret - rf) / (port_vol or 1e-12)
+
     return {
-        "optimized_allocation": {stock: weight for stock, weight in zip(stocks, optimal_weights)},
-        "expected_return": optimized_return,
-        "expected_volatility": optimized_volatility
+        "status": "ok",
+        "optimized_allocation": {t: float(wi) for t, wi in zip(tickers, w)},
+        "expected_return": port_ret,
+        "expected_volatility": port_vol,
+        "sharpe": sharpe,
+        "risk_free_rate": rf,
+        "period": period,
     }
 
-# --- Prepare the ADK Tool ---
-print("Initializing ADK portfolio_optimizer tool...", file=sys.stderr)
-# Correctly wrap the function in a FunctionTool instance
+
+# ====== Wrap as ADK FunctionTool and expose via MCP =========================
+
 portfolio_optimizer_tool = FunctionTool(run_portfolio_optimization)
-print(f"ADK tool '{portfolio_optimizer_tool.name}' initialized.", file=sys.stderr)
 
-
-# --- MCP Server Setup ---
-print("Creating MCP Server instance...", file=sys.stderr)
-app = Server("portfolio-optimizer-mcp-server")
+app = Server("finwise-portfolio-optimizer-mcp")
 
 @app.list_tools()
-async def list_mcp_tools() -> list[mcp_types.Tool]:
-    """MCP handler to list tools this server exposes."""
-    print("MCP Server: Received list_tools request.", file=sys.stderr)
-    # Pass the FunctionTool instance to the conversion utility
-    mcp_tool_schema = adk_to_mcp_tool_type(portfolio_optimizer_tool)
-    print(f"MCP Server: Advertising tool: {mcp_tool_schema.name}", file=sys.stderr)
-    return [mcp_tool_schema]
+async def list_mcp_tools() -> List[mcp_types.Tool]:
+    # Convert the ADK FunctionTool into an MCP Tool schema
+    tool_schema = adk_to_mcp_tool_type(portfolio_optimizer_tool)
+    return [tool_schema]
 
 @app.call_tool()
-async def call_mcp_tool(name: str, arguments: dict) -> list[mcp_types.Content]:
-    """MCP handler to execute a tool call."""
-    print(f"MCP Server: Received call_tool request for '{name}' with args: {arguments}", file=sys.stderr)
+async def call_mcp_tool(name: str, arguments: Dict) -> List[mcp_types.Content]:
+    if name != portfolio_optimizer_tool.name:
+        return [mcp_types.TextContent(type="text", text=json.dumps({"error": f"unknown tool {name}"}))]
+    try:
+        result = await portfolio_optimizer_tool.run_async(args=arguments, tool_context=None)
+        return [mcp_types.TextContent(type="text", text=json.dumps(result, indent=2))]
+    except Exception as e:
+        err = {"error": f"execution failed: {e}"}
+        print(err, file=sys.stderr)
+        return [mcp_types.TextContent(type="text", text=json.dumps(err))]
 
-    if name == portfolio_optimizer_tool.name:
-        try:
-            # Await the tool's run_async method
-            adk_tool_response = await portfolio_optimizer_tool.run_async(
-                args=arguments, tool_context=None
-            )
-            print(f"MCP Server: ADK tool '{name}' executed.", file=sys.stderr)
-            response_text = json.dumps(adk_tool_response, indent=2)
-            return [mcp_types.TextContent(type="text", text=response_text)]
-        except Exception as e:
-            print(f"MCP Server: Error executing ADK tool '{name}': {e}", file=sys.stderr)
-            error_text = json.dumps({"error": f"Failed to execute tool '{name}': {str(e)}"})
-            return [mcp_types.TextContent(type="text", text=error_text)]
-    else:
-        print(f"MCP Server: Tool '{name}' not found.", file=sys.stderr)
-        error_text = json.dumps({"error": f"Tool '{name}' not implemented by this server."})
-        return [mcp_types.TextContent(type="text", text=error_text)]
-
-# --- MCP Server Runner ---
 async def run_mcp_stdio_server():
-    """Runs the MCP server over standard input/output."""
-    async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
-        print("MCP Stdio Server: Starting handshake...", file=sys.stderr)
+    async with mcp.server.stdio.stdio_server() as (r, w):
         await app.run(
-            read_stream,
-            write_stream,
+            r, w,
             InitializationOptions(
                 server_name=app.name,
                 server_version="0.1.0",
@@ -128,16 +215,9 @@ async def run_mcp_stdio_server():
                 ),
             ),
         )
-        print("MCP Stdio Server: Run loop finished.", file=sys.stderr)
 
 if __name__ == "__main__":
-    print("--- Portfolio Optimizer MCP Server ---", file=sys.stderr)
-    print("Attempting to launch...", file=sys.stderr)
     try:
         asyncio.run(run_mcp_stdio_server())
     except KeyboardInterrupt:
-        print("\nMCP Server stopped by user.", file=sys.stderr)
-    except Exception as e:
-        print(f"MCP Server encountered an error: {e}", file=sys.stderr)
-    finally:
-        print("MCP Server process exiting.", file=sys.stderr)
+        pass
