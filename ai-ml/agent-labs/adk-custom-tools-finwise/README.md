@@ -26,15 +26,15 @@ This app expects the **community MCP server** from:
 
 **macOS/Linux**
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   mkdir -p external/financial-data-mcp  curl -L "" -o external/financial-data-mcp/server.py   `
+`   mkdir -p external/financial-data-mcp  curl -L "" -o external/financial-data-mcp/server.py   `
 
 **Windows PowerShell**
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   New-Item -ItemType Directory -Force external\financial-data-mcp | Out-Null  Invoke-WebRequest -Uri "" -OutFile "external\financial-data-mcp\server.py"   `
+`   New-Item -ItemType Directory -Force external\financial-data-mcp | Out-Null  Invoke-WebRequest -Uri "" -OutFile "external\financial-data-mcp\server.py"   `
 
 Then set the absolute path in .env:
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   FIN_MCP_SERVER=/absolute/path/to/your/project/external/financial-data-mcp/server.py   `
+`   FIN_MCP_SERVER=/absolute/path/to/your/project/external/financial-data-mcp/server.py   `
 
 > **Tip:** use an **absolute** path. Relative paths can break when ADK spawns the process.
 
@@ -42,28 +42,23 @@ Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQL
 -----------------------
 
 Create a virtualenv and install the app deps:
-
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate  pip install -r finwise/requirements.txt   `
+`   python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate  pip install -r finwise/requirements.txt   `
 
 Install the **MCP server** deps in the **same venv** (ADK will spawn this Python):
-
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   pip install "mcp[cli]" yfinance pandas numpy   `
+`   pip install "mcp[cli]" yfinance pandas numpy   `
 
 3) Configure environment
 ------------------------
 
 Create .env from the example and edit paths/keys:
-
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   cp finwise/.env.example finwise/.env   `
+`   cp finwise/.env.example finwise/.env   `
 
 **finwise/.env**
-
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   MODEL=gemini-2.0-flash  # If using AI Studio:  # GOOGLE_API_KEY=YOUR_API_KEY  # Absolute path to the community MCP server script you downloaded/cloned  FIN_MCP_SERVER=/absolute/path/to/your/project/external/financial-data-mcp/server.py   `
+`   MODEL=gemini-2.0-flash  # If using AI Studio:  # GOOGLE_API_KEY=YOUR_API_KEY  # Absolute path to the community MCP server script you downloaded/cloned  FIN_MCP_SERVER=/absolute/path/to/your/project/external/financial-data-mcp/server.py   `
 
 4) Run the ADK Web UI
 ---------------------
-
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   export PYTHONPATH=$PWD   # Windows PowerShell: $env:PYTHONPATH = $PWD  adk web   `
+`   export PYTHONPATH=$PWD   # Windows PowerShell: $env:PYTHONPATH = $PWD  adk web   `
 
 Open the URL the CLI prints, select **Finwise**, and try prompts like:
 
@@ -80,8 +75,7 @@ Open the URL the CLI prints, select **Finwise**, and try prompts like:
 -----------------------------------------
 
 Verify the server lists tools correctly with the MCP CLI (using **this** Python):
-
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   mcp list-tools --stdio \    --command "$(python -c 'import sys; print(sys.executable)')" \    --args "/absolute/path/to/.../server.py"   `
+`   mcp list-tools --stdio \    --command "$(python -c 'import sys; print(sys.executable)')" \    --args "/absolute/path/to/.../server.py"   `
 
 You should see tools like: get\_stock\_price, get\_historical\_data, get\_options\_chain, calculate\_moving\_average, calculate\_rsi, calculate\_sharpe\_ratio, compare\_stocks, clear\_cache.
 
@@ -97,5 +91,4 @@ Troubleshooting
 
 Project structure
 -----------------
-
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML``   finwise/  ├─ __init__.py                 # exposes `root_agent` for ADK Web  ├─ agent.py                    # single agent + simple tools + MCP toolset  ├─ .env.example                # sample env  ├─ requirements.txt            # google-adk, mcp, python-dotenv  └─ README.md                   # this file   ``
+``   finwise/  ├─ __init__.py                 # exposes `root_agent` for ADK Web  ├─ agent.py                    # single agent + simple tools + MCP toolset  ├─ .env.example                # sample env  ├─ requirements.txt            # google-adk, mcp, python-dotenv  └─ README.md                   # this file   ``
