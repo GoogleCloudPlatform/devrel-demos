@@ -15,8 +15,6 @@ from finwise.tools.trading_tool import execute_trade
 
 # --- Environment and Constants ---
 load_dotenv()
-# TODO: For testing only. Remove this line and use a .env file for production.
-os.environ["GOOGLE_API_KEY"] = "GOOGLE_API_KEY"
 
 APP_NAME = "finwise_analyst"
 USER_ID = "user_analyst"
@@ -65,6 +63,7 @@ The required sequence is:
 
 async def run_finwise_and_get_final_response(prompt: str):
     """Initializes and runs the FinWise agent, returning only the final text response."""
+    # --- FIX: The function call now matches its definition ---
     agent, toolset = await get_agent_and_toolset()
     
     session_service = InMemorySessionService()
@@ -81,10 +80,16 @@ async def run_finwise_and_get_final_response(prompt: str):
         async for event in runner.run_async(
             user_id=USER_ID, session_id=SESSION_ID, new_message=content
         ):
-            if event.is_final_response() and event.content:
+            if event.type == EventType.TOOL_CODE and event.content:
+                for p in event.content.parts:
+                    if hasattr(p, 'name'):
+                        print(f"🤖 Using tool: {p.name}")
+            
+            elif event.type == EventType.FINAL_RESPONSE and event.content:
                 final_response_text = " ".join(
                     p.text for p in event.content.parts if hasattr(p, 'text') and p.text
                 ).strip()
+
     except Exception as e:
         print(f"ERROR during agent run: {e}")
         final_response_text = f"An error occurred: {e}"
