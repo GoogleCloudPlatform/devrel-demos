@@ -1,16 +1,25 @@
-
 const express = require('express');
 const cors = require('cors');
 const { BigQuery } = require('@google-cloud/bigquery');
 
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001;
 
+// --- CORS Configuration ---
+// Allow all origins for simplicity in this demo environment
 app.use(cors());
 app.use(express.json());
 
+const projectId = process.env.PROJECT_ID;
+const datasetName = process.env.BIGQUERY_DATASET || 'met_art_dataset';
+const tableName = process.env.BIGQUERY_TABLE || 'artwork_embeddings';
+
+if (!projectId) {
+    throw new Error('PROJECT_ID environment variable is not set.');
+}
+
 const bigquery = new BigQuery({
-    projectId: 'dq-codelab'
+    projectId: projectId,
 });
 
 // Artworks list endpoint with search and pagination
@@ -32,7 +41,7 @@ app.get('/api/artworks', async (req, res) => {
             e.artist_display_name,
             REPLACE(i.gcs_url, 'gs://', 'https://storage.googleapis.com/') AS image_url
         FROM
-            \`dq-codelab.met.artwork_embeddings\` AS e
+            \`${projectId}.${datasetName}.${tableName}\` AS e
         LEFT JOIN
             \`bigquery-public-data.the_met.images\` AS i
             ON e.object_id = i.object_id
@@ -67,7 +76,7 @@ app.get('/api/similar-artworks/:objectId', async (req, res) => {
         WITH
             target_artwork AS (
                 SELECT text_embedding
-                FROM \`dq-codelab.met.artwork_embeddings\`
+                FROM \`${projectId}.${datasetName}.${tableName}\`
                 WHERE object_id = @target_object_id
             ),
             similarity_scores AS (
@@ -81,7 +90,7 @@ app.get('/api/similar-artworks/:objectId', async (req, res) => {
                         'COSINE'
                     ) AS distance
                 FROM
-                    \`dq-codelab.met.artwork_embeddings\` AS other_artworks
+                    \`${projectId}.${datasetName}.${tableName}\` AS other_artworks
                 WHERE
                     other_artworks.object_id != @target_object_id
             )
@@ -105,6 +114,7 @@ app.get('/api/similar-artworks/:objectId', async (req, res) => {
     const options = {
         query: query,
         params: { target_object_id: targetObjectId },
+        location: 'us-central1',
     };
 
     try {
