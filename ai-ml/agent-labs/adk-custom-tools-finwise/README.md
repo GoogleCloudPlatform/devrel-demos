@@ -89,6 +89,3 @@ Troubleshooting
 *   **Missing data or modules**Install the server deps:pip install "mcp\[cli\]" yfinance pandas numpy
     
 
-Project structure
------------------
-``   finwise/  ├─ __init__.py                 # exposes `root_agent` for ADK Web  ├─ agent.py                    # single agent + simple tools + MCP toolset  ├─ .env.example                # sample env  ├─ requirements.txt            # google-adk, mcp, python-dotenv  └─ README.md                   # this file   ``
