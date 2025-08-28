@@ -4,13 +4,13 @@
 This repository deploys the gemma3-12b-it model and a gradio-based ai chat app to a GKE cluster (which is set up via terraform). The chat app can switch between chatting with the GKE-deployed Gemma3-12b-it model, and Gemini-2.5-flash in Vertex AI. The application stores each session's chat history, and the history is shared even if you switch which model you're chatting with (Gemini or Gemma2).
 
 
-![This screenshot shows the chat application.](screenshots/UI_Screenshot.png "AI Chat Application Screenshot")
+![This screenshot shows the chat application.](screenshots/UI_Screenshot.png)
 
 ## Pre-Reqs
 You should have:
 * a [Hugging Face token](https://huggingface.co/docs/hub/en/security-tokens).
 * a [Google Cloud project](https://developers.google.com/workspace/guides/create-project) with billing enabled.
-* [Terraform installed](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli) on the machine you will deploy from.
+* [Terraform installed](https://cloud.google.com/docs/terraform/install-configure-terraform) on the machine you will deploy from.
 * The [gcloud CLI installed](https://cloud.google.com/sdk/docs/install) on the machine you will deploy from.
 
 ## Running this application
@@ -18,7 +18,10 @@ Clone this application code onto the machine you will deploy from. Navigate to t
 
 If it's not already set, set your working project for the gcloud cli. Replace [YOUR_PROJECT_ID] with your project id.
 ```
-gcloud config set project [YOUR_PROJECT_ID]
+export PROJECT_ID=[YOUR_PROJECT_ID]
+gcloud config set project $PROJECT_ID
+
+export PROJECT_NUM=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
 ```
 
 Create environment variables to set the project you will deploy to via Terraform.
@@ -122,17 +125,16 @@ You created the Kubernetes Service Account (gradio-chat-ksa) when you deployed t
 
 1. Give the Kubernetes Service Account the "iam.serviceAccountTokenCreator" role. This allows the workload to create the token it needs to interact with other Google Cloud services.
 ```
-gcloud projects add-iam-policy-binding projects/"$TF_VAR_project_id" \
+gcloud projects add-iam-policy-binding $PROJECT_ID \
     --role=roles/iam.serviceAccountTokenCreator \
-    --member="principal://iam.googleapis.com/projects/$TF_VAR_project_number/locations/global/workloadIdentityPools/$TF_VAR_project_id.svc.id.goog/subject/ns/default/sa/gradio-chat-ksa"
+    --member="principal://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${PROJECT_ID}.svc.id.goog/subject/ns/default/sa/gradio-chat-ksa"
 ```
 
 2. Give the Kubernetes Service Account the "aiplatform.user" role. This allows the workload to interact with VertexAI.
 ```
-gcloud projects add-iam-policy-binding projects/"$TF_VAR_project_id" \
+gcloud projects add-iam-policy-binding $PROJECT_ID \
     --role="roles/aiplatform.user" \
-    --member="principal://iam.googleapis.com/projects/$TF_VAR_project_number/locations/global/workloadIdentityPools/$TF_VAR_project_id.svc.id.goog/subject/ns/default/sa/gradio-chat-ksa"
-```
+    --member="principal://iam.googleapis.com/projects/${PROJECT_NUM}/locations/global/workloadIdentityPools/${PROJECT_ID}.svc.id.goog/subject/ns/default/sa/gradio-chat-ksa"
 3. Give the Kubernetes Service Account the "datastore.user" role. This allows the workload to interact with Firestore.
 ```
 gcloud projects add-iam-policy-binding projects/"$TF_VAR_project_id" \

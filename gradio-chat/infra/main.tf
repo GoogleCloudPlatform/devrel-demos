@@ -8,15 +8,8 @@ terraform {
   }
 }
 
-variable "project_id" {
-  type = string
-  description = "Your Google Cloud Project ID"
-}
-
-variable "project_number" {
-  type = string
-  description = "Your Google Cloud Project Number"
-}
+provider "google" {}
+data "google_project" "project" {}
 
 variable "region" {
   type = string
@@ -69,7 +62,6 @@ resource "google_container_cluster" "primary" {
   # Enable Autopilot mode
   enable_autopilot = true
 
-  deletion_protection = false
 
   # Networking
   network = "default" # Use the default network or specify a custom one
