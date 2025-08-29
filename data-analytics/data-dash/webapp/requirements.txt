@@ -2,4 +2,4 @@ flask==3.0
 Flask-Cors==4.0
 flask_socketio==5.3
 google-cloud-bigtable==2.23
-eventlet==0.36
+eventlet==0.40.3
