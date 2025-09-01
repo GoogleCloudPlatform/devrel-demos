@@ -1,5 +1,17 @@
 # Finwise ADK Agent
 
+Finwise — ADK Starter (4 tools). 
+This project contains a financial analysis agent built using the Agent Development Kit (ADK).
+
+A minimal Google ADK sample that shows how to build an agent with four tool patterns:
+
+* Function Tool – get_stock_price using yfinance
+* Built-in Code Execution – separate CodeAgent for open-ended Python analysis
+* MCP Toolset – a Monte Carlo simulation exposed via a tiny MCP stdio server
+* Auth (OAuth2) Function Tool – execute_trade (with real auth flow scaffold)
+
+This is designed for devs to extend, keep, swap, or replace tools as you grow.
+
 ## Resources
 
 Here are some useful links for the Google Agent Development Kit (ADK):
@@ -11,61 +23,54 @@ Here are some useful links for the Google Agent Development Kit (ADK):
 *   [MCP Tools](https://google.github.io/adk-docs/tools/mcp-tools/)
 *   [Authentication](https://google.github.io/adk-docs/tools/authentication/)
 
-This project contains a financial analysis agent built using the Google Agent Development Kit (ADK).
-
-## Agent Workflow
-
-The Finwise agent is designed to follow a strict, sequential workflow to ensure a structured and predictable user experience. The agent's instructions enforce the following order of operations:
-
-1.  **Analyze**: The agent's first step is always to analyze the user's request using the `AnalystAgent`. This specialized agent performs data analysis, generates insights, and can create plots.
-2.  **Optimize**: After the analysis is complete, the agent uses the `run_portfolio_optimization` tool to determine the optimal asset allocation based on the user's risk profile.
-3.  **Price**: Once the optimal allocation is determined, the agent uses the `get_stock_price` tool to fetch the latest price of the top-recommended stock.
-4.  **Confirm and Execute**: Finally, the agent presents the stock price to the user and asks for confirmation before executing a trade using the `execute_trade` tool.
-
-## Tool Descriptions
-
-The Finwise agent utilizes four key tools to perform its financial analysis and trading tasks:
-
-1.  **`AnalystAgent`**: A specialized sub-agent that uses a built-in code executor to perform data analysis, generate insights, and create plots using Python and Matplotlib.
-2.  **`PortfolioOptimizer` (MCP Tool)**: A tool that runs in a separate process and is accessed via the Media Control Protocol (MCP). It takes a list of stocks and a risk profile to calculate the optimal investment allocation.
-3.  **`get_stock_price`**: A function tool that fetches the most recent stock price for a given ticker symbol using the `yfinance` library.
-4.  **`execute_trade`**: A function tool that simulates the execution of a stock trade. It includes a full OAuth 2.0 authentication flow to demonstrate how to handle secure transactions.
 
 ## Setup
-
-1.  **Create a virtual environment:**
+1. Download the `adk-custom-tools-finwise` folder.
+2.  **Create a virtual environment:**
 
     ```bash
-    python3 -m venv venv
-    source venv/bin/activate
+    # Go to the finwise folder
+    cd adk-custom-tools-finwise/finwise
     ```
-
-2.  **Install dependencies:**
+3.  **Enter you API key and details**
+    Create the .env file within the finwise projecgt folder
 
     ```bash
+    finwise/.env <<'EOF'
+    # Model (configure per your environment)
+    MODEL=gemini-2.0-flash
+    # The agent uses a Google API key for its functionality. You need to set this as an environment variable. You can find in in Google AI Studio: https://aistudio.google.com/app/apikey
+    GOOGLE_API_KEY=GOOGLE_API_KEY
+
+    # The mcp server we will make use of is in adk-custom-tools-finwise/mcp-server/monte_carlo_mcp_server.py. You need to provide the absolute path for the file         monte_carlo_mcp_server.py and paste it below.
+    MCP_MONTE_CARLO = "[ENTER ABSOLTE PATH to monte_carlo_mcp_server.py]"
+    
+    # OAuth2 for your execute_trade tool to work. This requires details for brokerage integration — replace with your own details. You can leave the OAuth2 section as-is if you don't want to test execute_trade. The agent will still run
+    TRADE_OAUTH_AUTH_URL=https://broker.example.com/oauth/authorize
+    TRADE_OAUTH_TOKEN_URL=https://broker.example.com/oauth/token
+    TRADE_OAUTH_CLIENT_ID=YOUR_CLIENT_ID
+    TRADE_OAUTH_CLIENT_SECRET=YOUR_CLIENT_SECRET
+    TRADE_OAUTH_SCOPES=read:portfolio,write:orders
+    EOF
+    ```
+4.  **Create virtual env and install dependencies:**
+    ```bash
+    # 1) create & activate a virtualenv
+    python -m venv .venv
+    source .venv/bin/activate                # Windows: .venv\Scripts\activate
+    
+    # 2) install app deps
     pip install -r requirements.txt
-    ```
-
-3.  **Set up your API key:**
-
-    The agent uses a Google API key for its functionality. You need to set this as an environment variable.
-
-    Create a `.env` file in the root of the project:
 
     ```
-    GOOGLE_API_KEY="YOUR_API_KEY"
-    ```
-
-    Replace `"YOUR_API_KEY"` with your actual Google API key. The application will load this key from the `.env` file.
 
 ## Running the Application
 
-This project uses a FastAPI server to provide an interface to the Finwise agent.
 
-1.  **Start the server:**
+1.  **Run the agent using ADK web ui**
 
     ```bash
-    uvicorn finwise.server:app --reload
+    adk web
     ```
 
 2.  **Access the application:**
