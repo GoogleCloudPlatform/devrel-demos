@@ -4,3 +4,4 @@ python-dotenv
 yfinance 
 pandas 
 numpy
+yfinance
