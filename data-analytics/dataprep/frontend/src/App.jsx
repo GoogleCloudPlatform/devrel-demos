@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './App.css';
 
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = '/api';
 
 function App() {
   const [artworks, setArtworks] = useState([]);
@@ -90,9 +90,9 @@ function App() {
           onChange={(e) => setSearch(e.target.value)}
         />
         <ul className="artworks-list">
-          {artworks.map(art => (
+          {artworks.map((art, index) => (
             <li 
-              key={`${art.object_id}-${page}`} 
+              key={`${art.object_id}-${index}`} 
               className={`artwork-item ${selectedArtwork?.object_id === art.object_id ? 'selected' : ''}`}
               onClick={() => handleArtworkClick(art)}
             >

@@ -5,8 +5,6 @@ const { BigQuery } = require('@google-cloud/bigquery');
 const app = express();
 const port = process.env.PORT || 3001;
 
-// --- CORS Configuration ---
-// Allow all origins for simplicity in this demo environment
 app.use(cors());
 app.use(express.json());
 
@@ -43,7 +41,7 @@ app.get('/api/artworks', async (req, res) => {
         FROM
             \`${projectId}.${datasetName}.${tableName}\` AS e
         LEFT JOIN
-            \`bigquery-public-data.the_met.images\` AS i
+            \`${projectId}.${datasetName}.images\` AS i
             ON e.object_id = i.object_id
         WHERE
             ${whereClauses.join(' AND ')}
@@ -103,7 +101,7 @@ app.get('/api/similar-artworks/:objectId', async (req, res) => {
         FROM
             similarity_scores AS s
         LEFT JOIN
-            \`bigquery-public-data.the_met.images\` AS i
+            \`${projectId}.${datasetName}.images\` AS i
             ON s.object_id = i.object_id
         WHERE i.gcs_url IS NOT NULL
         ORDER BY
@@ -114,7 +112,6 @@ app.get('/api/similar-artworks/:objectId', async (req, res) => {
     const options = {
         query: query,
         params: { target_object_id: targetObjectId },
-        location: 'us-central1',
     };
 
     try {
