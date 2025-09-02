@@ -1,0 +1,95 @@
+# Copied from wizard to deploy to GKE on August 22, 2025.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gemma-deployment
+  namespace: default
+  labels:
+    app: gemma-deployment-app
+    examples.ai.gke.io/deployment-id: gemma-deployment-sbkl1
+    examples.ai.gke.io/applied-by: gke-aiml-yaml
+    examples.ai.gke.io/deployment-path: model-garden
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gemma-deployment-app
+  template:
+    metadata:
+      labels:
+        app: gemma-deployment-app
+        ai.gke.io/model: gemma-3-12b-it
+        ai.gke.io/inference-server: vllm
+        examples.ai.gke.io/source: model-garden
+        examples.ai.gke.io/deployment-id: gemma-deployment-sbkl1
+        examples.ai.gke.io/applied-by: gke-aiml-yaml
+        examples.ai.gke.io/deployment-path: model-garden
+    spec:
+      containers:
+      - name: inference-server
+        image: us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/pytorch-vllm-serve:20250312_0916_RC01
+        resources:
+          requests:
+            cpu: 34
+            memory: 135Gi
+            ephemeral-storage: 150Gi
+            nvidia.com/gpu: 4
+          limits:
+            cpu: 34
+            memory: 135Gi
+            ephemeral-storage: 150Gi
+            nvidia.com/gpu: 4
+        args:
+        - python
+        - -m
+        - vllm.entrypoints.api_server
+        - --host=0.0.0.0
+        - --port=8080
+        - --model=google/gemma-3-12b-it
+        - --tensor-parallel-size=4
+        - --swap-space=16
+        - --gpu-memory-utilization=0.95
+        - --limit_mm_per_prompt='image=5'
+        - --max-model-len=32768
+        - --max-num-seqs=4
+        - --disable-log-stats
+        env:
+        - name: MODEL_ID
+          value: google/gemma-3-12b-it
+        - name: DEPLOY_SOURCE
+          value: UI_NATIVE_MODEL
+        - name: HUGGING_FACE_HUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+                name: hf-secret
+                key: hf_api_token
+        volumeMounts:
+        - mountPath: /dev/shm
+          name: dshm
+      volumes:
+      - name: dshm
+        emptyDir:
+          medium: Memory
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-l4
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gemma-service
+  namespace: default
+  labels:
+    app: gemma-deployment-app
+    examples.ai.gke.io/deployment-id: gemma-deployment-sbkl1
+    examples.ai.gke.io/applied-by: gke-aiml-yaml
+    examples.ai.gke.io/deployment-path: model-garden
+spec:
+  selector:
+    app: gemma-deployment-app
+  type: ClusterIP
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8080

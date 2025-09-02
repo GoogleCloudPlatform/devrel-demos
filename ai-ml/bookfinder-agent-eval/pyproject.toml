@@ -1,0 +1,10 @@
+[project]
+name = "bookfinder-agent-eval"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "google-adk[eval]>=1.13.0",
+    "langchain-community>=0.3.29",
+]

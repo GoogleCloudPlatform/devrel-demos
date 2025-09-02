@@ -1,0 +1,7 @@
+google-adk
+mcp
+python-dotenv
+yfinance 
+pandas 
+numpy
+yfinance
