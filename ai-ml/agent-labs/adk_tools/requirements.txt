@@ -1,4 +1,4 @@
-langchain-community==0.3.20
+langchain-community==0.3.27
 wikipedia==1.4.0
 crewai-tools==0.38.1
 dateparser==1.2.1
