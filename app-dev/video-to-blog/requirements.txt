@@ -1,0 +1,8 @@
+Flask==2.3.3
+requests==2.31.0
+debugpy # Required for debugging.
+google-generativeai
+google-genai
+Markdown
+python-dotenv
+gunicorn
