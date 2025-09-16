@@ -29,7 +29,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <kafka.version>3.7.2</kafka.version>
+        <kafka.version>3.9.1</kafka.version>
     </properties>
 
     <dependencies>
