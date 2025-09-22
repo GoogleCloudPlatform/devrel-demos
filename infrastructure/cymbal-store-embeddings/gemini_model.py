@@ -17,7 +17,7 @@ from google.genai import types
 from typing import Iterable
 import logging
 import json
-from cymbal_store import ChatMessage, State
+from data_model import ChatMessage, State
 import mesop as me
 
 # generation_config = genai.types.GenerateContentConfig()
@@ -28,12 +28,22 @@ import mesop as me
 #     "max_output_tokens": 8192,
 # }
 
-def classify_intent(input: str) -> str:
+def classify_intent(input: str, history: list[ChatMessage]) -> str:
     state = me.state(State)
     client = genai.Client(api_key=state.gemini_api_key)
+
+    # Combine history and current input to provide full context
+    full_history_msgs = history + [ChatMessage(role="user", content=input)]
+
+    # Format for the prompt as seen in the intent_prompt examples
+    history_list_of_dicts = [
+        {"role": msg.role, "content": msg.content} for msg in full_history_msgs
+    ]
+    prompt_for_model = f"History: {history_list_of_dicts}"
+
     json_resp = client.models.generate_content(
         model="gemini-2.5-flash",
-        contents=input,
+        contents=prompt_for_model,
         config=types.GenerateContentConfig(
             temperature=1,
             system_instruction=[intent_prompt],
@@ -56,13 +66,23 @@ def generate_embedding(input: str) -> list:
 def send_prompt_flash(input: str, history: list[ChatMessage],sys_instruction: list[str]) -> Iterable[str]:
     state = me.state(State)
     client = genai.Client(api_key=state.gemini_api_key)
-    chat_session = client.chats.create(
-        model='gemini-2.5-flash',
-        history=[
-            {"role": message.role, "parts": [message.content]} for message in history
-        ]
+
+    # Convert history to the format the API expects and add the new user input
+    chat_history = [
+        {"role": msg.role, "parts": [{"text":msg.content}]} for msg in history
+    ]
+    chat_history.append({"role": "user", "parts": [{"text":input}]})
+
+    # # Use generate_content with streaming to have a consistent API call style
+    response = client.models.generate_content_stream(
+        model="gemini-2.5-flash",
+        contents=chat_history,
+        config=types.GenerateContentConfig(
+          system_instruction=sys_instruction,
+        )
     )
-    for chunk in chat_session.send_message_stream(input):
+
+    for chunk in response:
         yield chunk.text
 
 intent_prompt = """
