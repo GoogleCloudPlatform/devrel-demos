@@ -405,7 +405,7 @@ def page():
                     me.input(
                     label=_LABEL_INPUT,
                     # Workaround: update key to clear input.
-                    key=f"input-{len(state.conversations)}",
+                    key=f"input-{sum(len(c.messages) for c in state.conversations)}",
                     on_blur=on_blur,
                     on_enter=on_input_enter,
                     style=_STYLE_CHAT_INPUT,
@@ -469,7 +469,7 @@ def send_prompt(e: me.ClickEvent):
 
         if model == Models.GEMINI_2_5_FLASH.value:
             while True:
-                intent_str = gemini_model.classify_intent(input)
+                intent_str = gemini_model.classify_intent(input, history)
                 print(intent_str)
                 logging.info(f"PRODUCTS LIST: {intent_str}")
                 try:
@@ -479,8 +479,10 @@ def send_prompt(e: me.ClickEvent):
                     continue
                 break
 
-            if json_intent["shouldRecommendProduct"] is True:
-                search_embedding = gemini_model.generate_embedding(json_intent["summary"])
+            if json_intent.get("shouldRecommendProduct") is True:
+                # Ensure summary is a string to prevent errors if the model returns null.
+                summary = json_intent.get("summary") or ""
+                search_embedding = gemini_model.generate_embedding(summary)
                 products_list = get_products(db, str(search_embedding))
                 logging.info(f"PRODUCTS LIST: {products_list}")
                 print(f"PRODUCTS LIST: {products_list}")
@@ -538,4 +540,3 @@ def send_prompt(e: me.ClickEvent):
             yield
         messages[-1].in_progress = False
         yield
-

@@ -44,7 +44,7 @@ For example after creating the instance you get:
 
 
 ### Enable virtual environment for Python
-You can use either your laptop or a virtual machnie for deployment. I am using a VM deployed in the same Google pCloud project. On a Debian Linux you can enable it in the shell using the following command:
+You can use either your laptop or a virtual machnie for the deployment. I am using a VM deployed in the same Google Cloud project. You need Python 3.11 or higher. And it is recommended to use vitual environment On a Debian Linux 12 you can enable it in the shell using the following command:
 ```
 sudo apt-get update
 sudo apt install python3.11-venv git postgresql-client
@@ -62,16 +62,16 @@ git clone https://github.com/GoogleCloudPlatform/devrel-demos.git
 ```
 cd devrel-demos/infrastructure/cymbal-store-embeddings
 ```
-Create a database with the name cymbal_store and the user cymbal
+Create a database with the name cymbal_store and the user cymbal (you can use the default postgres user but it is not recommended)
 Load data using cymbal_demo_schema.sql to load the tables definitions and the csv files to load the data.
 
 
 ### Calculate the embeddings
 
-Use text-embedding-004 model to calculate the embeddings based on description and name for the products
-The same model is used for the similarity search. Put embeddings into the cymbal_embedding table. The table connected using uniq_id with the cymbal_products 
+Use text-embedding-004 model to calculate the embeddings based on description and name for the products. The latest text-embedding-005 is still not available in Google AI Studio which is used for API calls in the app. (It is available in Vertex AI and you can modify the app to use Vertex AI instead). The same model is used for the similarity search. Put embeddings into the cymbal_embedding table. The table connected using uniq_id with the cymbal_products 
 
-### Run the application 
+
+### Run the application locally
 #### Install Python 3.11 and dependencies
 ```
 sudo apt install -y python3.11-venv git
@@ -82,9 +82,9 @@ pip install -r requirements.txt
 ```
 #### export variables
 ```
-export DB_USER=cymbaldb_owner
+export DB_USER=cymbal
 export DB_PASS=StrongPassword
-export DB_NAME=cymbaldb
+export DB_NAME=cymbal_store
 export INSTANCE_HOST=127.0.0.1
 export DB_PORT=5432
 ```
@@ -104,7 +104,7 @@ gcloud alpha run deploy cymbal-store \
    --service-account cymbal-store-identity \
    --region us-central1 \
    --network=default \
-   --set-env-vars=DB_USER=cymbaldb_owner,DB_PASS=StrongPassword,DB_NAME=cymbaldb,INSTANCE_HOST=127.0.0.1,DB_PORT=5432 \
+   --set-env-vars=DB_USER=cymbal,DB_PASS=StrongPassword,DB_NAME=cymbal_store,INSTANCE_HOST=127.0.0.1,DB_PORT=5432 \
    --quiet
 ```
 ### Deploy the applicaion to GKE
@@ -122,7 +122,7 @@ gcloud builds submit --pack image=us-central1-docker.pkg.dev/$PROJECT_ID/cymbal-
 kubectl create secret generic cymbal-store-embeddings-secret \
   --from-literal=database=cymbal_store \
   --from-literal=username=cymbal \
-  --from-literal=password=ChangeMe123
+  --from-literal=password=StrongPassword
 ```
 - Create manifest file
 ```
@@ -178,7 +178,7 @@ spec:
 - Click "Model" on the bottom of the application and new dialog window will be opened
   ![Choose the model](./cymbal-store-embeddings-01.png)
 - Provide your Google AI API token 
-- Switch focus to models and click checkbox for Gemini 2.0 flash model
+- Switch focus to models and click checkbox for Gemini 2.5 flash model
 - If you use local Gemma model and local embedding model deployed in your environment please provide endpoints for both using format like http://localhost:8000/v1 (the local GenAI model should support OpenAI VLLM API - tested with Gemma3 and embedding model BGE)
 - Click "Confirm"
 
@@ -194,5 +194,3 @@ spec:
 # License
 Apache License Version 2.0; 
 Copyright 2024 Google LLC
-
-
