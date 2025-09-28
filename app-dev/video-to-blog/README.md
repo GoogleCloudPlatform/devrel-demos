@@ -11,12 +11,46 @@ image for the post. It's a practical example of how to integrate and deploy
 generative AI in a web application. The application also includes an optional AI
 agent that allows for collaborative editing of the generated blog post.
 
+## How it Works
+
+1.  **Paste a YouTube link:** Start by providing a link to the YouTube video you want to convert into a blog post.
+
+    ![Adding a YouTube link on the first page of the app.](images/youtube-link-page.png)
+
+2.  **Generate the blog post:** The application will process the video's content and generate a complete blog post with a header image.
+
+    ![Viewing the blog post that was generated from the YouTube video.](images/generated-blog-post.png)
+
+3.  **Refine with the AI agent (optional):** If you're running the ADK app, scroll to the bottom of the generated blog post to find the textbox. Here, you can ask the AI agent to make changes to the blog post or critique it. In this example, the user has entered "Make it more conversational."
+
+    ![Scrolling to the bottom of the generated blog post, you'll see a textbox where you can enter your feedback, or ask for the agent's critique.](images/refine-with-agent.png)
+
+4.  **View the updated post:** The agent will apply your feedback and provide a revised version of the blog post.
+
+    ![Here is what it looks like after the agent has updated the blog post per your feedback.](images/updated-blog-post.png)
+
 ## Two-Part Application
 
-This project consists of two main components:
+This project consists of two main components: the **Web App** and the optional **ADK App**. Both components can be run on a local machine for development, and they are designed to be deployed to Google Cloud Run for production. The diagram below illustrates the application's architecture when both are active:
 
-1.  **The Web App:** A Flask-based web application that generates a blog post from a YouTube video. You can run this part by itself.
-2.  **The ADK App (Optional):** An agent built with the Agent Development Kit (ADK) that allows for collaborative, agentic editing of the generated blog post. If you want to use the editing feature, you'll need to run this app as well.
+![Application Architecture](images/architecture.png)
+
+-   **User input:** The user initiates the process by providing a YouTube URL to the Web App. For blog post refinement, the user's text-based requests are also considered user input.
+-   **Cloud Run Web app:** This is a Flask-based web application that generates a blog post from a YouTube video. It's the primary interface for the user. You can run this part by itself.
+-   **Cloud Run ADK app (Optional):** This is an agent built with the Agent Development Kit (ADK) that allows for collaborative, agentic editing of the generated blog post. If you want to use the editing feature, you'll need to run this app as well. It receives requests from the Web App to critique or modify the blog post based on user feedback.
+
+## Agent Architecture
+
+The optional ADK app employs a multi-agent system to handle blog post refinements. These agents work together to interpret user requests and provide intelligent responses.
+
+![Agent Architecture](images/agents.png)
+
+Here’s how the agents collaborate:
+
+-   **User input:** This is the text prompt that the user submits through the web interface, such as a request to make the blog post more conversational or to ask for suggestions for improvement.
+-   **Root agent:** This agent acts as the central coordinator. It receives the user's input and determines the user's intent. Based on that intent, it routes the request to the appropriate specialist agent.
+-   **Updater agent:** This agent specializes in modifying the blog post. It takes the user's instructions (e.g., "Make this more conversational") and generates a revised version of the text.
+-   **Critic agent:** This agent focuses on providing feedback. When the user asks for improvements (e.g., "How can this be improved?"), the Critic agent analyzes the blog post and offers suggestions.
 
 ## Project Structure
 
