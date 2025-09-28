@@ -14,7 +14,6 @@
 
 import os
 import google.auth
-from dotenv import load_dotenv
 
 def get_project_id():
     """
@@ -29,7 +28,6 @@ def get_project_id():
     Raises:
         ValueError: If the project ID cannot be determined.
     """
-    load_dotenv()
     project_id = os.getenv('PROJECT_ID')
     if project_id:
         return project_id

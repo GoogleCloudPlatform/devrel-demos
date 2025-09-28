@@ -125,3 +125,6 @@
         font-style: italic;
         color: #555;
       }
+      .blog-container form {
+        text-align: center;
+      }
