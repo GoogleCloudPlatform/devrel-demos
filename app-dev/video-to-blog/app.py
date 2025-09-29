@@ -19,9 +19,13 @@ from google.genai import types
 import markdown
 import base64
 import prompts
+from dotenv import load_dotenv
 from util import get_project_id
+from agent_gateway import get_agent_response
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+load_dotenv()
 
 client = genai.Client(
     vertexai=True,
@@ -111,14 +115,46 @@ def generate_blog_post():
         blog_post_text = generate_blog_post_text(youtube_link, model)
         title = extract_title_from_markdown(blog_post_text)
         image_data = generate_image(title)
+        (user_id, session_id, agent_response) = get_agent_response(
+            '',
+            '',
+            blog_post_text,
+            ''
+        )
         return render_template(
             'blog-post.html',
             title=title,
-            blog_post_html=markdown.markdown(blog_post_text),
-            image_data=image_data
+            blog_post_html=markdown.markdown(
+                blog_post_text, extensions=["tables", "fenced_code"]
+            ),
+            image_data=image_data,
+            blog_post_markdown=blog_post_text,
+            session_id=session_id,
+            user_id=user_id
         )
     else:
         return redirect('/')
+
+@app.route('/refine', methods=['POST'])
+def refine():
+    """
+    """
+    (user_id, session_id, agent_response) = get_agent_response(
+        request.form['user_id'],
+        request.form['session_id'],
+        request.form['blog_post_markdown'],
+        request.form['feedback']
+    )
+    return render_template(
+        'blog-post.html',
+        title=extract_title_from_markdown(agent_response),
+        blog_post_html=markdown.markdown(
+            agent_response, extensions=["tables", "fenced_code"]
+        ),
+        blog_post_markdown=agent_response,
+        session_id=session_id,
+        user_id=user_id
+    )
 
 if __name__ == '__main__':
     server_port = os.environ.get('PORT', '8080')

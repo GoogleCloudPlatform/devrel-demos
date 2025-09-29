@@ -21,10 +21,28 @@ limitations under the License.
  </head>
  <body>
     <div class="container blog-container">
+      {% if image_data %}
       <img src="data:image/png;base64,{{ image_data }}"
         alt="{{ title }}"
         style="width:50%; display: block; margin: auto;">
+      {% endif %}
       <div>{{ blog_post_html | safe }}</div>
+      <hr>
+      <form action="/refine" method="post">
+        <input type="hidden" name="blog_post_markdown" value="{{ blog_post_markdown }}">
+        <input type="hidden" name="session_id" value="{{ session_id or '' }}">
+        <input type="hidden" name="user_id" value="{{ user_id or '' }}">
+        <textarea name="feedback" placeholder="Your feedback..."></textarea>
+        <button type="submit">Generate</button>
+      </form>
+      <div id="loader" class="loader"></div>
     </div>
+    <script>
+      document.querySelector('form').addEventListener('submit', function() {
+        document.getElementById('loader').style.display = 'block';
+        document.querySelector('button').disabled = true;
+        document.querySelector('button').textContent = 'Generating...';
+      });
+    </script>
  </body>
 </html>
