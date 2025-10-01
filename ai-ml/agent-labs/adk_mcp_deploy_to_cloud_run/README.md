@@ -6,7 +6,7 @@ This two-part codelab series guides you through building a complete, tool-using 
 
 ---
 
-## Lab 1: Deploying a Secure Tool Server
+## [Lab 1: Deploying a Secure Tool Server](https://codelabs.developers.google.com/codelabs/cloud-run/how-to-deploy-a-secure-mcp-server-on-cloud-run#0?utm_campaign=CDR_0xf9030db1_awareness_b448506025&utm_medium=external&utm_source=blog)
 
 In this lab, you'll build and deploy a Model Context Protocol (MCP) server using FastMCP. This server will provide a secure, production-ready service on Cloud Run that exposes tools for an AI to use. You'll create a `zoo` server with two tools: `get_animals_by_species` and `get_animal_details`.
 
