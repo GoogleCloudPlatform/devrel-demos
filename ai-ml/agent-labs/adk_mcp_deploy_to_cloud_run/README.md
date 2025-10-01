@@ -6,7 +6,7 @@ This two-part codelab series guides you through building a complete, tool-using 
 
 ---
 
-## [Lab 1: Deploying a Secure Tool Server](https://codelabs.developers.google.com/codelabs/cloud-run/how-to-deploy-a-secure-mcp-server-on-cloud-run#0?utm_campaign=CDR_0xf9030db1_awareness_b448506025&utm_medium=external&utm_source=blog)
+## [Lab 1: Deploying a MCP Server](https://codelabs.developers.google.com/codelabs/cloud-run/how-to-deploy-a-secure-mcp-server-on-cloud-run#0?utm_campaign=CDR_0xf9030db1_awareness_b448506025&utm_medium=external&utm_source=blog)
 
 In this lab, you'll build and deploy a Model Context Protocol (MCP) server using FastMCP. This server will provide a secure, production-ready service on Cloud Run that exposes tools for an AI to use. You'll create a `zoo` server with two tools: `get_animals_by_species` and `get_animal_details`.
 
@@ -19,7 +19,7 @@ In this lab, you'll build and deploy a Model Context Protocol (MCP) server using
 
 ---
 
-## Lab 2: Building and Deploying a Tour Guide Agent
+## [Lab 2: Building and Deploying a Tour Guide Agent with ADK](https://codelabs.developers.google.com/codelabs/cloud-run/use-mcp-server-on-cloud-run-with-an-adk-agent#0?utm_campaign=CDR_0xf9030db1_awareness_b448506025&utm_medium=external&utm_source=blog)
 
 This lab focuses on building and deploying the client agent service. Using the Agent Development Kit (ADK), you will build a "zoo tour guide" AI agent. This agent demonstrates the key architectural principle of separating concerns: the agent (reasoning) communicates with the MCP server (tooling) via a secure API. The agent will use the tools from Lab 1, plus Wikipedia, to create the best tour guide experience. Finally, you will deploy the agent to Google Cloud Run so it can be accessed by all zoo visitors.
 
