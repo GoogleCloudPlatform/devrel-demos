@@ -1,4 +1,5 @@
 # Finwise ADK Agent
+Author: [Smitha Kolan](https://www.linkedin.com/in/smithakolan/)
 
 Finwise — ADK Starter (4 tools). 
 This project contains a financial analysis agent built using the Agent Development Kit (ADK).
