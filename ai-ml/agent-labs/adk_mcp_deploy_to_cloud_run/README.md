@@ -1,4 +1,5 @@
 # Zoo Tour Guide Agent & MCP Server Codelabs
+Author: [Smitha Kolan](https://www.linkedin.com/in/smithakolan/)
 
 This two-part codelab series guides you through building a complete, tool-using AI agent system on Google Cloud. You will start by creating and deploying a secure Model Context Protocol (MCP) server, which acts as a "tooling layer." Then, you will build and deploy an AI agent using the Agent Development Kit (ADK) that acts as the "reasoning layer," securely consuming the tools provided by your MCP server.
 
