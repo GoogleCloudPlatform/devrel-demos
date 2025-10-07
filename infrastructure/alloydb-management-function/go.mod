@@ -1,6 +1,8 @@
-module example.com/gcf
+module alloydb.instances.manager
+
+go 1.22
 
 require (
-  github.com/GoogleCloudPlatform/functions-framework-go v1.9.0
-  github.com/cloudevents/sdk-go/v2 v2.5.0
+	cloud.google.com/go/pubsub v1.38.0
+	golang.org/x/oauth2 v0.20.0
 )
