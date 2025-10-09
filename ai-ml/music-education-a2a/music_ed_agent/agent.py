@@ -1,77 +1,28 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
-import subprocess
-from urllib.parse import urlparse
-
-import httpx
-
-from a2a.types import AgentCard
 
 from google.adk.agents import Agent
-from google.adk.agents.remote_a2a_agent import RemoteA2aAgent, DEFAULT_TIMEOUT
-
-from google.auth import compute_engine
-from google.auth.credentials import TokenState
-import google.auth.transport.requests
+from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
 
 from music_ed_agent.tools import (
     adk_youtube_search_tool,
     adk_wikipedia_tool,
 )
 
-def create_authenticated_client(
-        remote_cloud_run_url: str,
-        timeout: float = DEFAULT_TIMEOUT
-    ) -> httpx.AsyncClient:
-    class IdentityTokenAuth(httpx.Auth):
-        requires_request_body = False
-
-        def __init__(self, remote_cloud_run_url: str):
-            parsed_url = urlparse(remote_cloud_run_url)
-            root_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
-            root_url = remote_cloud_run_url
-            self.root_url = root_url
-            self.session = None
-
-
-        def auth_flow(self, request):
-            if "K_SERVICE" in os.environ:
-                # We are in Cloud Run, use a service identity token.
-                # Start from getting a cached session, one per remote URL.
-                if not self.session:
-                    cr_request = google.auth.transport.requests.Request()
-                    credentials = compute_engine.IDTokenCredentials(
-                        request=request,
-                        target_audience=self.root_url,
-                        use_metadata_identity_endpoint=True
-                    )
-                    credentials.refresh(cr_request)
-                    self.session = google.auth.transport.requests.AuthorizedSession(
-                        credentials
-                    )
-                if self.session.credentials.token_state != TokenState.FRESH:
-                    self.session.credentials.refresh(
-                        google.auth.transport.requests.Request()
-                    )
-                id_token = self.session.credentials.token
-            else:
-                # Local run, fetching authenticated user's identity token.
-                id_token = subprocess.check_output(
-                    [
-                        "gcloud",
-                        "auth",
-                        "print-identity-token",
-                        "-q"
-                    ]
-                ).decode().strip()
-            request.headers["Authorization"] = f"Bearer {id_token}"
-            yield request
-
-    client = httpx.AsyncClient(
-        auth=IdentityTokenAuth(remote_cloud_run_url),
-        timeout=timeout,
-    )
-
-    return client
+from auth_utils import create_authenticated_client
 
 
 # Get env var - location of Remote A2A agent

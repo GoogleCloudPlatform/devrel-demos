@@ -15,8 +15,9 @@ logger = logging.getLogger(__name__)
 #  📹 YouTube Search Tool - LangChain 3p tool
 youtube_search_tool_instance = YouTubeSearchTool()
 adk_youtube_search_tool = LangchainTool(tool=youtube_search_tool_instance)
-
+# YouTubeSearchTool may trip on commas in the query.
+adk_youtube_search_tool.description += "\n\nWhen passing a query, replace all commas with spaces."
 
 #  🌐 Wikipedia Search Tool - LangChain 3p tool
-wikipedia = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper())
+wikipedia = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper()) # type: ignore
 adk_wikipedia_tool = LangchainTool(tool=wikipedia)

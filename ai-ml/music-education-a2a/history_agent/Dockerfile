@@ -1,23 +1,15 @@
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+FROM python:3.12-slim
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-WORKDIR /app
-
-# Copy the root pyproject.toml
-COPY pyproject.toml .
-COPY uv.lock .
-
-COPY history_agent/ history_agent/
-
-ENV UV_LINK_MODE=copy
-ENV PYTHONUNBUFFERED=1
-
-# Install dependencies AND install the current directory as a package
-RUN uv sync --locked --no-dev && \
-    uv pip install -e .
-
-ENV PATH="/app/.venv/bin:$PATH"
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git && \
+    apt-get purge -y --auto-remove && \
+    rm -rf /var/lib/apt/lists/*
 
 EXPOSE 8080
-ENV PYTHONPATH=/app:$PYTHONPATH
+WORKDIR /app
+COPY . ./
 
-ENTRYPOINT ["uvicorn", "history_agent.agent:a2a_app", "--host", "0.0.0.0", "--port", "8080"]
+RUN uv sync
+
+ENTRYPOINT ["uv", "run", "uvicorn", "agent:a2a_app", "--host", "0.0.0.0", "--port", "8080"]

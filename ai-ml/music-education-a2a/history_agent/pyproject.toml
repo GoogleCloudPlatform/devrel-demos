@@ -1,0 +1,17 @@
+[project]
+name = "history-agent-a2a"
+version = "0.1.0"
+description = "History Agent"
+requires-python = ">=3.11"
+dependencies = [
+    "a2a-sdk==0.3.8",
+    "google-adk==1.16.*",
+    "google-genai==1.42.*",
+    "langchain>=0.3.27",
+    "langchain-community>=0.3.31",
+    "requests>=2.32.5",
+    "uvicorn>=0.37.0",
+    "wikipedia>=1.4.0",
+    "youtube-search>=2.1.2",
+]
+
