@@ -1,0 +1,48 @@
+# syntax=docker/dockerfile:1.4
+FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV CUDA_HOME=/usr/local/cuda
+ENV PATH=/usr/local/cuda/bin:${PATH}
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+ENV PIP_NO_CACHE_DIR=1
+
+# Install system dependencies (cached layer)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3.10 \
+        python3-pip \
+        python3-dev \
+        build-essential \
+        libjpeg-dev \
+        libpng-dev && \
+    pip3 install --no-cache-dir --upgrade pip setuptools wheel && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy only requirements first (better caching)
+COPY requirements.txt .
+
+# Use cache mount for pip downloads (HUGE speedup on rebuilds)
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip3 install --no-cache-dir \
+    --index-url https://download.pytorch.org/whl/cu121 \
+    --extra-index-url https://pypi.org/simple \
+    --prefer-binary \
+    -r requirements.txt
+
+# Copy code last (most frequently changed)
+COPY finetune_and_evaluate.py .
+
+ENV PYTHONUNBUFFERED=1
+ENV HF_HOME=/tmp/huggingface
+ENV TRANSFORMERS_CACHE=/tmp/transformers_cache
+ENV TORCH_HOME=/tmp/torch_cache
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+RUN mkdir -p /tmp/huggingface /tmp/transformers_cache /tmp/torch_cache /tmp/medgemma-finetuned && \
+    chmod -R 777 /tmp
+
+CMD ["python3", "/app/finetune_and_evaluate.py", "--device", "cuda"]
