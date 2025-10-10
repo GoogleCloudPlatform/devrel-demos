@@ -3,10 +3,14 @@ from typing import Dict, Any
 
 
 async def search_memory(tool_context: ToolContext, query: str = "score") -> list:
-    """
-    Search Vertex AI memory bank for relevant information about the user's learning progress.
-    The agent is instructed to pass the student's user_name as the query,
-    as a temp. workaround to: https://github.com/google/adk-web/issues/49
+    """Search Vertex AI memory bank for relevant information about the user's learning progress.
+
+    Args:
+        tool_context: The tool context for memory access.
+        query: The search query to find relevant information.
+
+    Returns:
+        A list of search results from the memory bank.
     """
     try:
         search_results = await tool_context.search_memory(query)
