@@ -4,7 +4,7 @@ from google.adk.agents.callback_context import CallbackContext
 from google.adk.memory import VertexAiMemoryBankService
 from google.genai import types
 from typing import Optional
-from tools.tools import (
+from .tools.tools import (
     get_quiz_questions,
     start_quiz,
     submit_answer,
@@ -12,12 +12,12 @@ from tools.tools import (
     get_quiz_status,
     reset_quiz,
 )
-from python_tutor_core.prompts import (
+from .python_tutor_core.prompts import (
     BASE_PROMPT,
     MEMORY_INSTRUCTIONS,
     QUIZ_INSTRUCTIONS,
 )
-from python_tutor_core.agent_utils import initialize_quiz_state
+from .python_tutor_core.agent_utils import initialize_quiz_state
 from .memory_tools import search_memory, set_user_name
 
 
@@ -104,11 +104,13 @@ async def auto_save_to_memory_callback(callback_context):
         session = callback_context._invocation_context.session
 
         if not session_id:
+            print("⚠️ No Session ID found in callback context, skipping memory save")
             return
 
         # Initialize memory service
-        agent_engine_id = os.getenv("AGENT_ENGINE_ID")
+        agent_engine_id = os.getenv("GOOGLE_CLOUD_AGENT_ENGINE_ID")
         if not agent_engine_id:
+            print("⚠️ Agent Engine ID not set, cannot save to memory")
             return
 
         memory_service = VertexAiMemoryBankService(
@@ -129,6 +131,7 @@ async def auto_save_to_memory_callback(callback_context):
             has_content = content_count >= 2
 
         if not has_content:
+            print("📭 Session has no meaningful content, skipping memory save")
             return
 
         await memory_service.add_session_to_memory(session)
@@ -136,7 +139,8 @@ async def auto_save_to_memory_callback(callback_context):
 
     except Exception as e:
         print(f"⚠️ Error auto-saving to memory: {e}")
-
+        import traceback
+        traceback.print_exc()
 
 enhanced_quiz_tools = [
     get_quiz_questions,
