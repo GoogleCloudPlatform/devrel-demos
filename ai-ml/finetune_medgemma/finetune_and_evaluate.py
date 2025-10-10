@@ -15,6 +15,7 @@ from peft import LoraConfig, PeftModel
 from transformers import AutoModelForImageTextToText, AutoProcessor
 from trl import SFTTrainer, SFTConfig
 from huggingface_hub import login
+from google.cloud import storage
 
 
 
@@ -37,7 +38,7 @@ def parse_args():
     parser.add_argument('--train-size', type=int, default=500,
                        help='Number of training samples (default: 500)')
     parser.add_argument('--eval-size', type=int, default=1000,
-                       help='Number of evaluation samples (default: 100)')
+                       help='Number of evaluation samples (default: 1000)')
     parser.add_argument('--dataset-name', type=str, default='sarath2003/BreakHis',
                        help='HuggingFace dataset name')
     
@@ -73,6 +74,8 @@ def parse_args():
                        help='Output directory for model checkpoints')
     parser.add_argument('--results-file', type=str, default='/tmp/results.json',
                        help='Path to save results JSON')
+    parser.add_argument('--gcs-output-path', type=str, default=None,
+                       help='GCS path to upload the final model to (e.g., gs://bucket-name/path/to/model)')
     
     # HuggingFace parameters
     parser.add_argument('--hf-token', type=str, default=None,
@@ -504,6 +507,35 @@ def train_model(model, processor, train_data, eval_data, args):
     return trainer
 
 
+def upload_directory_to_gcs(local_path, gcs_path):
+    """Uploads a directory to a GCS bucket."""
+    if not gcs_path.startswith("gs://"):
+        logger.error(f"Invalid GCS path: {gcs_path}. It must start with gs://")
+        return
+
+    bucket_name, gcs_prefix = gcs_path[5:].split("/", 1)
+    
+    try:
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
+        
+        logger.info(f"Uploading directory {local_path} to gs://{bucket_name}/{gcs_prefix}")
+        
+        for local_file in Path(local_path).rglob('*'):
+            if local_file.is_file():
+                blob_name = os.path.join(gcs_prefix, local_file.relative_to(local_path))
+                blob = bucket.blob(blob_name)
+                blob.upload_from_filename(local_file)
+                logger.info(f"  Uploaded {local_file} to {blob_name}")
+                
+        logger.info("✓ Upload complete.")
+    except Exception as e:
+        logger.error(f"Failed to upload to GCS: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        sys.exit(1)
+
+
 def save_results(results, output_path):
     """Save results to JSON file."""
     try:
@@ -602,6 +634,10 @@ Answer with only the number (0-7):"""
     logger.info("FINE-TUNING")
     logger.info("="*80)
     train_model(model, processor, formatted_train, formatted_eval, args)
+    
+    # Upload model to GCS if path is provided
+    if args.gcs_output_path:
+        upload_directory_to_gcs(args.output_dir, args.gcs_output_path)
     
     # Evaluate fine-tuned model
     logger.info("\n" + "="*80)
