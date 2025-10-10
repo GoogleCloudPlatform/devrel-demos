@@ -1,6 +1,4 @@
-import os
 from google.adk.tools import ToolContext
-from google.adk.memory import VertexAiMemoryBankService
 from typing import Dict, Any
 
 
@@ -10,27 +8,8 @@ async def search_memory(tool_context: ToolContext, query: str = "score") -> list
     The agent is instructed to pass the student's user_name as the query,
     as a temp. workaround to: https://github.com/google/adk-web/issues/49
     """
-
-    app_name, user_id = (
-        tool_context._invocation_context.app_name,
-        tool_context._invocation_context.user_id
-    )
-
-    print(
-        f"🔍 SEARCHING MEMORY BANK for app_name='{app_name}', user_id='{user_id}', query='{query}'..."
-    )
-
-    memory_bank_service = VertexAiMemoryBankService(
-        project=os.getenv("GOOGLE_CLOUD_PROJECT"),
-        location=os.getenv("GOOGLE_CLOUD_LOCATION"),
-        agent_engine_id=os.getenv("GOOGLE_CLOUD_AGENT_ENGINE_ID"),
-    )
     try:
-        search_results = await memory_bank_service.search_memory(
-            app_name=app_name,
-            user_id=user_id,
-            query=query,
-        )
+        search_results = await tool_context.search_memory(query)
         print(f"✅ SearchMemoryResponse: ")
         print(search_results)
         return search_results
