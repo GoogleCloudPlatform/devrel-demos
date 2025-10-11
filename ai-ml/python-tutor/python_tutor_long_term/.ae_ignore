@@ -1,0 +1,6 @@
+.venv
+__pycache__
+images
+pyproject.toml
+README.md
+uv.lock
