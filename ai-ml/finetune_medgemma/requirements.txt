@@ -1,0 +1,14 @@
+scikit-learn==1.7.2
+torch==2.8.0
+datasets==4.2.0
+huggingface_hub==0.35.3
+bitsandbytes==0.48.1
+google-cloud-storage==2.14.0
+--extra-index-url https://download.pytorch.org/whl/cu121
+
+# Use a consistent, modern set of libraries for compatibility
+transformers==4.57.0
+accelerate==1.10.1
+peft==0.17.1
+trl==0.23.1
+triton==3.4.0
