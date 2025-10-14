@@ -37,8 +37,8 @@ def parse_args():
     # Data parameters
     parser.add_argument('--train-size', type=int, default=500,
                        help='Number of training samples (default: 500)')
-    parser.add_argument('--eval-size', type=int, default=1000,
-                       help='Number of evaluation samples (default: 1000)')
+    parser.add_argument('--eval-size', type=int, default=100,
+                       help='Number of evaluation samples (default: 100)')
     parser.add_argument('--dataset-name', type=str, default='sarath2003/BreakHis',
                        help='HuggingFace dataset name')
     
