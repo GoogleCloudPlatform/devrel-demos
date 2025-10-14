@@ -635,35 +635,50 @@ Answer with only the number (0-7):"""
     logger.info("="*80)
     train_model(model, processor, formatted_train, formatted_eval, args)
     
-    # Upload model to GCS if path is provided
-    if args.gcs_output_path:
-        upload_directory_to_gcs(args.output_dir, args.gcs_output_path)
-    
     # Evaluate fine-tuned model
     logger.info("\n" + "="*80)
-    logger.info("FINE-TUNED EVALUATION")
+    logger.info("FINE-TUNED EVALUATION & SAVING")
     logger.info("="*80)
-    
+
     # Clear memory and reload
     del model
     torch.cuda.empty_cache()
     gc.collect()
-    
-    # Load fine-tuned model
+
+    # Load base model
+    logger.info(f"Reloading base model: {args.model_id}")
     base_model = AutoModelForImageTextToText.from_pretrained(
         args.model_id,
         torch_dtype=torch.bfloat16 if args.device == 'cuda' else torch.float32,
-        attn_implementation='sdpa', 
+        attn_implementation='sdpa',
         device_map='auto',
     )
-    finetuned_model = PeftModel.from_pretrained(base_model, args.output_dir)
-    processor_finetuned = AutoProcessor.from_pretrained(args.output_dir)
     
-    # Evaluate
+    # Load LoRA adapter and merge
+    logger.info(f"Loading LoRA adapter from: {args.output_dir}")
+    finetuned_model = PeftModel.from_pretrained(base_model, args.output_dir)
+    merged_model = finetuned_model.merge_and_unload()
+    logger.info("✓ Merged base model and LoRA adapter")
+
+    # Save merged model and processor
+    merged_model_dir = f"{args.output_dir}-merged"
+    logger.info(f"Saving merged model to: {merged_model_dir}")
+    merged_model.save_pretrained(merged_model_dir)
+    
+    processor_finetuned = AutoProcessor.from_pretrained(args.output_dir)
+    processor_finetuned.save_pretrained(merged_model_dir)
+    logger.info("✓ Saved merged model and processor")
+
+    # Upload merged model to GCS if path is provided
+    if args.gcs_output_path:
+        upload_directory_to_gcs(merged_model_dir, args.gcs_output_path)
+
+    # Evaluate the merged model
+    logger.info("Evaluating merged model...")
     finetuned_metrics = evaluate_model(
-        finetuned_model, 
-        processor_finetuned, 
-        formatted_eval, 
+        merged_model,
+        processor_finetuned,
+        formatted_eval,
         PROMPT,
         batch_size=args.eval_batch_size
     )
