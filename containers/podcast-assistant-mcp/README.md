@@ -1,6 +1,6 @@
 # Podcast Assistant
 
-This project is a podcast assistant that automates various tasks related to podcast publishing using generative AI. It can transcribe audio files, generate show notes, create blog posts, and draft social media posts. All of the generated materials should be reviewed and edited by a human before being used in publishing.
+This project is a podcast assistant that automates various tasks related to podcast publishing using generative AI. It can transcribe audio files, generate show notes, create blog posts, and draft social media posts. All of the generated materials should be reviewed and edited by a human before being used in publishing. This example is based on the [How to deploy a secure MCP server on Cloud Run Codelab](https://codelabs.developers.google.com/codelabs/cloud-run/how-to-deploy-a-secure-mcp-server-on-cloud-run#0).
 
 ## Features
 
