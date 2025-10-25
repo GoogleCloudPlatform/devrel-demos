@@ -160,11 +160,13 @@ def generate_shownotes(transcript_gcs_uri: str, episode_name: str) -> str:
         raise e
 
     prompt = f"""
-    The Kubernetes Podcast from Google is a technical podcast that often talks about specific technologies.
-    Sometimes episodes mention specific resources like videos or blogs, that users might want to check out.
-    The shownotes are a list of links to topics or resources mentioned in the episode, which listeners might want to find more resources about.
-    Create the shownotes as a markdown-formatted list of topics or specific resources mentioned in the following transcript, with links that will enable listeners to learn more or view the resource.
-    The shownotes should not explain the topics or context, just provide a list of the topics as hyperlinks.
+    You are a podcast producer. Based on the following transcript, please generate a set of show notes that includes:
+
+    1.  A concise and engaging episode title.
+    2.  A one-paragraph summary of the episode's main points.
+    3.  A bulleted list of the key topics and themes discussed.
+
+Here is the transcript:
     Transcript:
     ```
     {transcript}
