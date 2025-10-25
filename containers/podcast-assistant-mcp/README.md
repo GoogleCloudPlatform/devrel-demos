@@ -26,8 +26,8 @@ A Multi-tool Control Plane (MCP) server is a backend service that exposes a set 
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/GoogleCloudPlatform/devrel-demos/podcast-assistant.git
-    cd podcast-assistant
+    git clone https://github.com/GoogleCloudPlatform/devrel-demos/podcast-assistant-mcp.git
+    cd podcast-assistant-mcp
     ```
 
 2.  **Set up environment variables:**
