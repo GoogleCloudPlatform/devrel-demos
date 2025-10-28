@@ -10,4 +10,7 @@ Demos in this folder primarily focus on Google Cloud's security products. Below 
 * Secret Manager 
 * Security Center
 * Security Command Center 
-* VPC Service Controls 
+* VPC Service Controls
+* Model Armor
+* AI Protection
+* Identity and Access Management
