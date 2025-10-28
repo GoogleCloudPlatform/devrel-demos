@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GenAI Chatbot With Model Armor Demo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
+    <style>
+        :root {
+            --google-blue: #4285f4; --google-red: #ea4335;
+            --google-yellow: #fbbc05; --google-green: #34a853;
+            --google-gray: #5f6368; --google-light-gray: #f8f9fa;
+            --resize-handle-width: 8px;
+            --resize-handle-color: #e0e0e0;
+            --resize-handle-hover-color: #4285f4;
+        }
+        body { font-family: 'Google Sans', Arial, sans-serif; color: var(--google-gray); overflow: hidden; }
+        #app-container { display: flex; height: 100vh; position: relative; }
+        #sidebar {
+            width: 380px;
+            min-width: 200px;
+            max-width: 600px;
+            padding: 1.5rem;
+            background-color: var(--google-light-gray);
+            border-right: 1px solid #dee2e6;
+            overflow-y: auto;
+            position: relative;
+            flex-shrink: 0;
+            transition: none; /* Remove transition to avoid conflicts */
+        }
+        #sidebar.collapsed {
+            width: 0 !important;
+            min-width: 0;
+            padding: 1.5rem 0;
+            overflow: hidden;
+        }
+        #main-content { flex-grow: 1; display: flex; flex-direction: column; padding: 1rem 2rem; overflow: hidden; }
+        .main-container { display: flex; gap: 0; height: 100%; overflow-y: auto; position: relative; }
+        .chat-section {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-width: 300px;
+        }
+        .model-armor-section {
+            width: 500px;
+            min-width: 300px;
+            max-width: 800px;
+            background-color: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        
+        /* Resize handles */
+        .resize-handle {
+            width: var(--resize-handle-width);
+            cursor: col-resize;
+            background-color: transparent;
+            position: relative;
+            user-select: none;
+            transition: background-color 0.2s;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .resize-handle:hover {
+            background-color: var(--resize-handle-hover-color);
+            opacity: 0.3;
+        }
+        
+        .resize-handle.dragging {
+            background-color: var(--resize-handle-hover-color);
+            opacity: 0.5;
+        }
+        
+        .resize-handle::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 30px;
+            background-color: var(--resize-handle-color);
+            border-radius: 1px;
+        }
+        
+        #sidebar-resize-handle {
+            position: absolute;
+            right: -4px;
+            top: 0;
+            bottom: 0;
+            z-index: 100;
+        }
+        
+        #chat-resize-handle {
+            margin: 0 1rem;
+        }
+        h1, h2, h3, h4 { color: var(--google-blue); font-weight: 500; }
+        .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--google-blue); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 1rem auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .chat-header { flex: 0 0 auto; margin-bottom: 1rem; }
+        .chat-messages-container { flex: 1; overflow-y: auto; min-height: 0; }
+        .chat-container { border: 1px solid #e8eaed; border-radius: 8px; padding: 1rem; background-color: white; box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15); height: calc(100% - 1rem); overflow-y: auto; margin-bottom: 1rem; }
+        .input-container { height: 80px; background: white; display: flex; align-items: center; flex-shrink: 0; }
+        .input-group { box-sizing: border-box; width: 100%; height: 100%; box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15); border-radius: 8px; overflow: hidden; display: flex; background: white; }
+        .input-group .form-control { box-sizing: border-box; flex: 1 0 auto; height: 100%; border: none; padding: 0.5rem 1rem; font-size: 16px; resize: none; }
+        .input-group .btn { height: 100%; padding: 0 1.5rem; display: flex; align-items: center; justify-content: center; white-space: nowrap; }
+        #fileButton { border-left: 1px solid #dee2e6; border-right: 1px solid #dee2e6; }
+        .message { margin-bottom: 1rem; padding: 0.75rem 1rem; border-radius: 8px; max-width: 80%; word-wrap: break-word; overflow-wrap: break-word; }
+        .user-message { background-color: var(--google-blue); color: white; margin-left: auto; }
+        .bot-message { background-color: var(--google-light-gray); color: var(--google-gray); margin-right: auto; border: 1px solid #e8eaed; }
+        .title-section { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .google-cloud-logo { height: 40px; width: auto; }
+        h1 { margin: 0; font-size: 1.75rem; }
+        .template-info { font-size: 0.75rem; color: var(--google-gray); margin-top: 0.25rem; display: block; }
+        .model-armor-result h3 { font-size: 1rem; margin-bottom: 0.5rem; color: var(--google-gray); }
+        .analysis-card { display: flex; align-items: center; padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem; border: 1px solid #e8eaed; }
+        .analysis-icon { font-size: 1.5rem; margin-right: 1rem; }
+        .analysis-card.pass { background-color: #e6f4ea; color: #1e8e3e; }
+        .analysis-card.fail { background-color: #fce8e6; color: #a50e0e; }
+        .analysis-text { font-weight: 500; }
+        .raw-output-toggle { font-size: 0.875rem; color: var(--google-blue); text-decoration: none; cursor: pointer; display: block; margin-top: 1rem; }
+        .raw-output { font-family: monospace; white-space: pre-wrap; background-color: #3c4043; color: #e8eaed; padding: 1rem; border-radius: 4px; margin-top: 0.5rem; max-height: 300px; overflow-y: auto; word-break: break-all; }
+        #sidebar-toggle { font-size: 1.5rem; background: none; border: none; color: var(--google-gray); cursor: pointer; }
+        #filePreview { padding: 0.5rem; background-color: #f8f9fa; border-radius: 4px; border: 1px solid #dee2e6; }
+        .file-indicator { color: var(--google-blue); font-weight: 500; }
+        .model-warning { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 0.5rem; border-radius: 4px; font-size: 0.875rem; margin-top: 0.5rem; }
+        .performance-indicator { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem; z-index: 1000; }
+        
+        /* Ensure resize handles are not affected by other styles */
+        .resize-handle {
+            box-sizing: border-box;
+        }
+        
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+            /* Disable resize handles on mobile */
+            .resize-handle {
+                display: none;
+            }
+            body { overflow: auto; }
+            #app-container { flex-direction: column; height: auto; min-height: 100vh; }
+            #sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #dee2e6;
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 999;
+                max-height: 70vh;
+                transform: translateY(0);
+                transition: transform 0.3s ease;
+            }
+            #sidebar.collapsed {
+                transform: translateY(-100%);
+                padding: 0;
+            }
+            #main-content {
+                padding: 1rem;
+                margin-top: 60px;
+                height: auto;
+            }
+            .main-container {
+                flex-direction: column;
+                gap: 1rem;
+                height: auto;
+            }
+            .chat-section {
+                height: auto;
+                min-height: 400px;
+            }
+            .model-armor-section {
+                margin-top: 1rem;
+                height: auto;
+                flex: 1;
+                min-width: 0;
+            }
+            .title-section {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                background: white;
+                z-index: 998;
+                padding: 0.5rem 1rem;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            h1 { font-size: 1.25rem; }
+            .google-cloud-logo { height: 30px; }
+            .chat-container {
+                height: 300px;
+                margin-bottom: 0.5rem;
+            }
+            .input-container {
+                height: auto;
+                padding: 0.5rem 0;
+            }
+            .input-group {
+                height: 50px;
+            }
+            .input-group .btn {
+                padding: 0 1rem;
+                font-size: 0.875rem;
+            }
+            .message {
+                max-width: 90%;
+                font-size: 0.875rem;
+            }
+            .chat-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            .chat-controls {
+                display: flex;
+                gap: 0.5rem;
+                width: 100%;
+            }
+            .chat-controls .btn {
+                font-size: 0.75rem;
+                padding: 0.25rem 0.5rem;
+            }
+            .performance-indicator {
+                top: 70px;
+                right: 5px;
+                font-size: 0.625rem;
+                padding: 0.25rem;
+            }
+            #filePreview {
+                font-size: 0.75rem;
+                padding: 0.25rem;
+            }
+            .analysis-card {
+                padding: 0.5rem;
+                font-size: 0.875rem;
+            }
+            .analysis-icon {
+                font-size: 1.25rem;
+                margin-right: 0.5rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 { font-size: 1rem; }
+            .google-cloud-logo { height: 25px; }
+            .input-group .btn {
+                padding: 0 0.75rem;
+            }
+            #sendButton {
+                font-size: 0.75rem;
+            }
+            .message {
+                padding: 0.5rem 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div id="performanceIndicator" class="performance-indicator" style="display: none;">
+        Processing...
+    </div>
+    
+    <div id="app-container">
+        <div id="sidebar">
+            <div class="resize-handle" id="sidebar-resize-handle"></div>
+            <div id="sidebar-content">
+                <h3 class="mb-4">Configuration</h3>
+                <div class="mb-3">
+                    <label for="modelSelect" class="form-label">Foundation Model:</label>
+                    <select class="form-select" id="modelSelect" onchange="checkFileSupport()">
+                        <option value="">Select a model</option>
+                        {% for model in foundation_models %}
+                        <option value="{{ model.display_name }}" data-provider="{{ model.provider }}">{{ model.display_name }} ({{model.provider}})</option>
+                        {% endfor %}
+                    </select>
+                    <div id="fileWarning" class="model-warning" style="display: none;">
+                        ⚠️ This model doesn't support file uploads. Files will be mentioned in the prompt but not processed.
+                    </div>
+                </div>
+                <div class="mb-3"><label for="locationSelect" class="form-label">Model Armor Location:</label><select class="form-select" id="locationSelect" onchange="debouncedUpdateTemplates()"><option value="" disabled selected>Loading...</option>{% for endpoint in model_armor_endpoints %}<option value="{{ endpoint.location }}">{{ endpoint.display_name }}</option>{% endfor %}</select></div>
+                <div class="mb-3"><label for="promptTemplate" class="form-label">Prompt Template:</label><select class="form-select" id="promptTemplate"></select><span id="promptTemplateInfo" class="template-info"></span></div>
+                <div class="mb-4"><label for="responseTemplate" class="form-label">Response Template:</label><select class="form-select" id="responseTemplate"></select><span id="responseTemplateInfo" class="template-info"></span></div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label for="defaultResponse" class="form-label mb-0">Default Response:</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="useDefaultResponse">
+                            <label class="form-check-label" for="useDefaultResponse">Use default</label>
+                        </div>
+                    </div>
+                    <textarea class="form-control" id="defaultResponse" rows="2" placeholder="Enter default response..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div id="main-content">
+            <div class="title-section">
+                <button id="sidebar-toggle">☰</button>
+                <img src="{{ url_for('static', filename='google-cloud-icon.png') }}" alt="Google Cloud" class="google-cloud-logo">
+                <h1>GenAI Chatbot With Model Armor Demo</h1>
+            </div>
+            
+            <div class="main-container">
+                <div class="chat-section">
+                    <div class="chat-header d-flex justify-content-between align-items-center"><h2 class="chat-title m-0">Chat Session</h2><div class="chat-controls"><button class="btn btn-outline-primary me-2" id="systemInstructionButton">System Instruction</button><button class="btn btn-outline-danger" id="clearButton">Clear Chat</button></div></div>
+                     <div class="modal fade" id="systemInstructionModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">System Instruction</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><textarea class="form-control" id="systemInstruction" rows="5" placeholder="Enter system instruction..."></textarea></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-primary" id="saveSystemInstruction">Save</button></div></div></div></div>
+                    <div class="chat-messages-container mt-3"><div class="chat-container" id="chatContainer"></div></div>
+                    <div class="input-container mt-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="userInput" placeholder="Type your message...">
+                            <input type="file" class="form-control" id="fileInput" accept=".pdf,.docx,.docm,.dotx,.dotm,.pptx,.pptm,.potx,.pot,.xlsx,.xlsm,.xltx,.xltm" style="display: none;">
+                            <button class="btn btn-outline-secondary" id="fileButton" type="button">📎</button>
+                            <button class="btn btn-primary" id="sendButton">Send</button>
+                        </div>
+                        <div id="filePreview" class="mt-2" style="display: none;">
+                            <small class="text-muted">Selected file: <span id="fileName" class="file-indicator"></span></small>
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="removeFile">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="resize-handle" id="chat-resize-handle"></div>
+                <div class="model-armor-section">
+                    <h2>Model Armor Analysis</h2>
+                    <div id="promptAnalysis" class="model-armor-result">
+                        <h3>Prompt Analysis</h3>
+                        <div id="promptAnalysisContent"><p>Select a prompt template to see analysis.</p></div>
+                        <a class="raw-output-toggle" onclick="toggleRawOutput('prompt')" style="display: none;">Show Raw Output</a>
+                        <pre class="raw-output" id="promptRawOutput" style="display: none;"></pre>
+                    </div>
+                    <div id="responseAnalysis" class="model-armor-result">
+                        <h3>Response Analysis</h3>
+                        <div id="responseAnalysisContent"><p>Select a response template to see analysis.</p></div>
+                        <a class="raw-output-toggle" onclick="toggleRawOutput('response')" style="display: none;">Show Raw Output</a>
+                        <pre class="raw-output" id="responseRawOutput" style="display: none;"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const systemInstructionModal = new bootstrap.Modal(document.getElementById('systemInstructionModal'));
+        let currentSystemInstruction = '';
+        let selectedFile = null;
+        let requestStartTime = 0;
+
+        const converter = new showdown.Converter();
+
+        // Template cache for performance
+        const templateCache = new Map();
+
+        // Debounce function for performance
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Debounced template update
+        const debouncedUpdateTemplates = debounce(updateTemplatesForLocation, 300);
+
+        // Performance indicator functions
+        function showPerformanceIndicator(message) {
+            const indicator = document.getElementById('performanceIndicator');
+            indicator.textContent = message;
+            indicator.style.display = 'block';
+            requestStartTime = performance.now();
+        }
+
+        function hidePerformanceIndicator() {
+            const indicator = document.getElementById('performanceIndicator');
+            if (requestStartTime > 0) {
+                const duration = Math.round(performance.now() - requestStartTime);
+                indicator.textContent = `Completed in ${duration}ms`;
+                setTimeout(() => {
+                    indicator.style.display = 'none';
+                }, 2000);
+            } else {
+                indicator.style.display = 'none';
+            }
+        }
+
+        // Optimized file reading
+        async function optimizedFileRead(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Preload templates for common locations
+        async function preloadTemplates() {
+            const commonLocations = ['us-central1', 'us-east1'];
+            const promises = commonLocations.map(async location => {
+                try {
+                    const response = await fetch(`/templates/${location}`);
+                    const data = await response.json();
+                    templateCache.set(location, data);
+                    console.log(`Preloaded templates for ${location}`);
+                } catch (error) {
+                    console.warn(`Failed to preload templates for ${location}:`, error);
+                }
+            });
+            await Promise.all(promises);
+        }
+
+        function populateTemplateSelects(data) {
+            const promptSelect = document.getElementById('promptTemplate');
+            const responseSelect = document.getElementById('responseTemplate');
+            
+            promptSelect.innerHTML = '<option value="">No template</option>';
+            data.prompt_templates.forEach(t => { 
+                promptSelect.innerHTML += `<option value="${t.name}" data-updated="${t.last_updated}">${t.display_name}</option>`; 
+            });
+            
+            responseSelect.innerHTML = '<option value="">No template</option>';
+            data.response_templates.forEach(t => { 
+                responseSelect.innerHTML += `<option value="${t.name}" data-updated="${t.last_updated}">${t.display_name}</option>`; 
+            });
+        }
+
+        document.getElementById('sendButton').addEventListener('click', sendMessage);
+        document.getElementById('clearButton').addEventListener('click', clearChat);
+        document.getElementById('systemInstructionButton').addEventListener('click', () => { systemInstructionModal.show(); });
+        document.getElementById('saveSystemInstruction').addEventListener('click', () => { currentSystemInstruction = document.getElementById('systemInstruction').value.trim(); systemInstructionModal.hide(); });
+        document.getElementById('userInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+        document.getElementById('sidebar-toggle').addEventListener('click', () => {
+            const sidebar = document.getElementById('sidebar');
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            sidebar.classList.toggle('collapsed');
+            
+            // Reset width when uncollapsing
+            if (isCollapsed) {
+                const savedWidth = localStorage.getItem('sidebarWidth');
+                if (savedWidth) {
+                    sidebar.style.width = savedWidth;
+                } else {
+                    sidebar.style.width = '380px';
+                }
+            }
+            
+            // On mobile, close sidebar after any interaction with controls
+            if (window.innerWidth <= 768) {
+                const sidebarControls = sidebar.querySelectorAll('select, input, textarea, button');
+                sidebarControls.forEach(control => {
+                    control.addEventListener('change', () => {
+                        if (window.innerWidth <= 768) {
+                            setTimeout(() => sidebar.classList.add('collapsed'), 300);
+                        }
+                    }, { once: true });
+                });
+            }
+        });
+        
+        // Auto-collapse sidebar on mobile when page loads
+        if (window.innerWidth <= 768) {
+            document.getElementById('sidebar').classList.add('collapsed');
+        }
+        
+        // Handle window resize
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const sidebar = document.getElementById('sidebar');
+                if (window.innerWidth <= 768 && !sidebar.classList.contains('collapsed')) {
+                    sidebar.classList.add('collapsed');
+                }
+            }, 250);
+        });
+
+        // File handling event listeners
+        document.getElementById('fileButton').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('filePreview').style.display = 'block';
+            }
+        });
+
+        document.getElementById('removeFile').addEventListener('click', () => {
+            selectedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('filePreview').style.display = 'none';
+        });
+
+        function checkFileSupport() {
+            const modelSelect = document.getElementById('modelSelect');
+            const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+            const provider = selectedOption ? selectedOption.getAttribute('data-provider') : '';
+            const warning = document.getElementById('fileWarning');
+            
+            if (provider === 'Anthropic') {
+                warning.style.display = 'block';
+            } else {
+                warning.style.display = 'none';
+            }
+        }
+        
+        function addMessage(message, isUser, source = null) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            if (isUser) {
+                messageDiv.innerHTML = message.replace(/\n/g, '<br>');
+            } else {
+                messageDiv.innerHTML = '<div class="loading-spinner"></div>';
+                messageDiv.id = 'loading-message';
+            }
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function updateBotMessage(text, source) {
+            const loadingMessage = document.getElementById('loading-message');
+            if (loadingMessage) {
+                const html = converter.makeHtml(text);
+                loadingMessage.innerHTML = html.replace(/\[([A-Z_]+)\]/g, '<span class="model-armor-transform">[$1]</span>');
+
+                if (source) {
+                    const sourceDiv = document.createElement('div');
+                    sourceDiv.className = 'source-tag';
+                    sourceDiv.textContent = `Source: ${source}`;
+                    loadingMessage.appendChild(sourceDiv);
+                }
+                loadingMessage.id = '';
+            }
+        }
+
+        async function updateTemplatesForLocation() {
+            const locationSelect = document.getElementById('locationSelect');
+            const location = locationSelect.value;
+            const promptSelect = document.getElementById('promptTemplate');
+            const responseSelect = document.getElementById('responseTemplate');
+            
+            // Check cache first
+            if (templateCache.has(location)) {
+                const data = templateCache.get(location);
+                populateTemplateSelects(data);
+                console.log(`Used cached templates for ${location}`);
+                return;
+            }
+            
+            locationSelect.disabled = true;
+            promptSelect.innerHTML = '<option>Loading...</option>';
+            responseSelect.innerHTML = '<option>Loading...</option>';
+            
+            try {
+                const response = await fetch(`/templates/${location}`);
+                const data = await response.json();
+                
+                // Cache the result
+                templateCache.set(location, data);
+                
+                populateTemplateSelects(data);
+            } catch (error) {
+                console.error("Error updating templates:", error);
+                promptSelect.innerHTML = '<option value="">Error</option>';
+                responseSelect.innerHTML = '<option value="">Error</option>';
+            } finally {
+                locationSelect.disabled = false;
+            }
+        }
+        
+        // --- START: CORRECTED sendMessage FUNCTION ---
+        async function sendMessage() {
+            const userInput = document.getElementById('userInput');
+            const message = userInput.value.trim();
+            const modelSelect = document.getElementById('modelSelect');
+
+            if ((!message && !selectedFile) || !modelSelect.value) {
+                alert('Please enter a message or select a file, and choose a model');
+                return;
+            }
+            
+            const location = document.getElementById('locationSelect').value;
+            const promptTemplate = document.getElementById('promptTemplate').value;
+
+            // Display user message in chat
+            const displayMessage = selectedFile ? 
+                `${message}<br><span class="file-indicator">📎 ${selectedFile.name}</span>` : message;
+            addMessage(displayMessage, true);
+            addMessage('', false); 
+            
+            userInput.value = '';
+            document.getElementById('userInput').disabled = true;
+            document.getElementById('sendButton').disabled = true;
+            document.getElementById('fileButton').disabled = true;
+
+            // --- Step 1: Perform Prompt Analysis First (for UI only) ---
+            if (promptTemplate) {
+                showPerformanceIndicator('Analyzing prompt...');
+                try {
+                    let analysisBody;
+                    let analysisHeaders = {}; // Let browser set Content-Type for FormData
+
+                    if (selectedFile) {
+                        analysisBody = new FormData();
+                        analysisBody.append('file', selectedFile);
+                        analysisBody.append('promptTemplate', promptTemplate);
+                        analysisBody.append('location', location);
+                    } else {
+                        analysisBody = JSON.stringify({
+                            prompt: message,
+                            promptTemplate: promptTemplate,
+                            location: location
+                        });
+                        analysisHeaders['Content-Type'] = 'application/json';
+                    }
+                    
+                    const analysisResponse = await fetch('/analyze_prompt', {
+                        method: 'POST',
+                        headers: analysisHeaders,
+                        body: analysisBody
+                    });
+
+                    const analysisData = await analysisResponse.json();
+                    if (!analysisResponse.ok) {
+                        throw new Error(analysisData.error || `HTTP error! status: ${analysisResponse.status}`);
+                    }
+
+                    if (analysisData.prompt_analysis) {
+                        updateVisualAnalysis('prompt', analysisData.prompt_analysis);
+                    }
+                } catch (error) {
+                    const promptContent = document.getElementById('promptAnalysisContent');
+                    promptContent.innerHTML = `<div class="analysis-card fail"><span class="analysis-icon">❌</span><span class="analysis-text">Prompt analysis failed: ${error.message}</span></div>`;
+                }
+            }
+
+            // --- Step 2: Make the main call to the /chat endpoint ---
+            showPerformanceIndicator('Waiting for LLM response...');
+            try {
+                let chatBody;
+                let chatHeaders = {}; // Let browser set Content-Type for FormData
+
+                if (selectedFile) {
+                    chatBody = new FormData();
+                    chatBody.append('file', selectedFile);
+                    chatBody.append('prompt', message);
+                    chatBody.append('model', modelSelect.value);
+                    chatBody.append('location', location);
+                    // *** THE FIX: Always send the prompt template so the server can re-validate ***
+                    chatBody.append('promptTemplate', document.getElementById('promptTemplate').value);
+                    chatBody.append('responseTemplate', document.getElementById('responseTemplate').value);
+                    chatBody.append('defaultResponse', document.getElementById('defaultResponse').value.trim());
+                    chatBody.append('useDefaultResponse', document.getElementById('useDefaultResponse').checked);
+                    chatBody.append('systemInstruction', currentSystemInstruction);
+                } else {
+                    chatBody = JSON.stringify({
+                        prompt: message,
+                        model: modelSelect.value,
+                        location: location,
+                        // *** THE FIX: Always send the prompt template so the server can re-validate ***
+                        promptTemplate: document.getElementById('promptTemplate').value,
+                        responseTemplate: document.getElementById('responseTemplate').value,
+                        defaultResponse: document.getElementById('defaultResponse').value.trim(),
+                        useDefaultResponse: document.getElementById('useDefaultResponse').checked,
+                        systemInstruction: currentSystemInstruction
+                    });
+                    chatHeaders['Content-Type'] = 'application/json';
+                }
+
+                const chatResponse = await fetch('/chat', {
+                    method: 'POST',
+                    headers: chatHeaders,
+                    body: chatBody
+                });
+
+                const chatData = await chatResponse.json();
+                 if (!chatResponse.ok) {
+                    throw new Error(chatData.error || `HTTP error! status: ${chatResponse.status}`);
+                }
+                
+                updateBotMessage(chatData.response, chatData.source);
+                // The prompt analysis from the /chat call is now the definitive one.
+                if (chatData.model_armor.prompt_analysis) {
+                    updateVisualAnalysis('prompt', chatData.model_armor.prompt_analysis);
+                }
+                updateVisualAnalysis('response', chatData.model_armor.response_analysis);
+
+            } catch (error) {
+                updateBotMessage(`Error: ${error.message}`, 'system');
+            } finally {
+                // Final cleanup
+                document.getElementById('userInput').disabled = false;
+                document.getElementById('sendButton').disabled = false;
+                document.getElementById('fileButton').disabled = false;
+                userInput.focus();
+                
+                selectedFile = null;
+                document.getElementById('fileInput').value = '';
+                document.getElementById('filePreview').style.display = 'none';
+
+                hidePerformanceIndicator();
+            }
+        }
+        // --- END: CORRECTED sendMessage FUNCTION ---
+
+
+        function updateVisualAnalysis(type, analysis) {
+            const contentContainer = document.getElementById(`${type}AnalysisContent`);
+            const rawOutputContainer = document.getElementById(`${type}RawOutput`);
+            const rawOutputToggle = rawOutputContainer.previousElementSibling;
+
+            if (!analysis) {
+                contentContainer.innerHTML = '<p>No analysis performed.</p>';
+                rawOutputToggle.style.display = 'none';
+                rawOutputContainer.style.display = 'none';
+                return;
+            }
+
+            contentContainer.innerHTML = '';
+            const filterMap = {
+                'rai': 'Responsible AI', 
+                'sdp': 'Sensitive Data',
+                'pi_and_jailbreak': 'Jailbreak / PI', 
+                'malicious_uris': 'Malicious URLs', 
+                'csam': 'CSAM'
+            };
+
+            const allFilters = Object.keys(filterMap);
+            const rawText = analysis.raw_output || '';
+            
+            // Check if this is JSON format (file-based analysis) or string format (text-based analysis)
+            let isJsonFormat = false;
+            try {
+                const jsonData = JSON.parse(rawText);
+                if (jsonData.sanitizationResult && jsonData.sanitizationResult.filterResults) {
+                    isJsonFormat = true;
+                    
+                    // Process JSON format (file-based analysis)
+                    const filterResults = jsonData.sanitizationResult.filterResults;
+                    const foundFilterKeys = Object.keys(filterResults);
+                    
+                    allFilters.forEach(key => {
+                        // Check if the filter key exists in the response
+                        if (foundFilterKeys.includes(key)) {
+                            let status = 'pass';
+                            let matchState = 'NO_MATCH_FOUND';
+                            
+                            // Extract match state based on filter type
+                            if (key === 'rai' && filterResults[key].raiFilterResult) {
+                                matchState = filterResults[key].raiFilterResult.matchState;
+                            } else if (key === 'sdp' && filterResults[key].sdpFilterResult) {
+                                // Check both inspectResult and deidentifyResult for SDP
+                                if (filterResults[key].sdpFilterResult.inspectResult) {
+                                    matchState = filterResults[key].sdpFilterResult.inspectResult.matchState;
+                                } else if (filterResults[key].sdpFilterResult.deidentifyResult) {
+                                    matchState = filterResults[key].sdpFilterResult.deidentifyResult.matchState;
+                                }
+                            } else if (key === 'pi_and_jailbreak' && filterResults[key].piAndJailbreakFilterResult) {
+                                matchState = filterResults[key].piAndJailbreakFilterResult.matchState;
+                            } else if (key === 'malicious_uris' && filterResults[key].maliciousUriFilterResult) {
+                                matchState = filterResults[key].maliciousUriFilterResult.matchState;
+                            } else if (key === 'csam' && filterResults[key].csamFilterFilterResult) {
+                                matchState = filterResults[key].csamFilterFilterResult.matchState;
+                            }
+                            
+                            if (matchState === 'MATCH_FOUND') {
+                                status = 'fail';
+                            }
+                            
+                            contentContainer.innerHTML += `
+                                <div class="analysis-card ${status}">
+                                    <span class="analysis-icon">${status === 'pass' ? '✔️' : '❌'}</span>
+                                    <span class="analysis-text">${filterMap[key]} - ${status.toUpperCase()}</span>
+                                </div>
+                            `;
+                        }
+                    });
+                }
+            } catch (e) {
+                // Not JSON format, use original string parsing
+                isJsonFormat = false;
+            }
+            
+            if (!isJsonFormat) {
+                // Process string format (text-based analysis)
+                allFilters.forEach(key => {
+                    const passPattern = new RegExp(`key: "${key}"[^}]*?match_state: NO_MATCH_FOUND`, 's');
+                    const failPattern = new RegExp(`key: "${key}"[^}]*?match_state: MATCH_FOUND`, 's');
+                    
+                    let status = 'pass';
+                    if (failPattern.test(rawText)) {
+                        status = 'fail';
+                    } else if (!passPattern.test(rawText) && !failPattern.test(rawText)) {
+                        // This filter was not present in the template's response at all
+                        return; 
+                    }
+                    
+                    contentContainer.innerHTML += `
+                        <div class="analysis-card ${status}">
+                            <span class="analysis-icon">${status === 'pass' ? '✔️' : '❌'}</span>
+                            <span class="analysis-text">${filterMap[key]} - ${status.toUpperCase()}</span>
+                        </div>
+                    `;
+                });
+            }
+            
+            rawOutputContainer.textContent = analysis.raw_output;
+            rawOutputToggle.style.display = 'block';
+            rawOutputToggle.textContent = 'Show Raw Output';
+            rawOutputContainer.style.display = 'none';
+        }
+        
+        function toggleRawOutput(type) {
+            const rawOutput = document.getElementById(`${type}RawOutput`);
+            const toggle = rawOutput.previousElementSibling;
+            if (rawOutput.style.display === 'none') {
+                rawOutput.style.display = 'block';
+                toggle.textContent = 'Hide Raw Output';
+            } else {
+                rawOutput.style.display = 'none';
+                toggle.textContent = 'Show Raw Output';
+            }
+        }
+        
+        function clearChat() { 
+            document.getElementById('chatContainer').innerHTML = '';
+            const promptContent = document.getElementById('promptAnalysisContent');
+            const responseContent = document.getElementById('responseAnalysisContent');
+            promptContent.innerHTML = '<p>Select a prompt template to see analysis.</p>';
+            responseContent.innerHTML = '<p>Select a response template to see analysis.</p>';
+            document.querySelector('#promptAnalysis .raw-output-toggle').style.display = 'none';
+            document.querySelector('#responseAnalysis .raw-output-toggle').style.display = 'none';
+        }
+
+        // Resizable panels functionality
+        function initResizablePanels() {
+            const sidebar = document.getElementById('sidebar');
+            const chatSection = document.querySelector('.chat-section');
+            const modelArmorSection = document.querySelector('.model-armor-section');
+            const sidebarHandle = document.getElementById('sidebar-resize-handle');
+            const chatHandle = document.getElementById('chat-resize-handle');
+            const appContainer = document.getElementById('app-container');
+            
+            console.log('Initializing resizable panels...');
+            console.log('Sidebar:', sidebar);
+            console.log('Sidebar handle:', sidebarHandle);
+            console.log('Chat handle:', chatHandle);
+            console.log('Chat section:', chatSection);
+            console.log('Model Armor section:', modelArmorSection);
+            
+            let isResizing = false;
+            let currentHandle = null;
+            let startX = 0;
+            let startWidth = 0;
+            let startSidebarWidth = 0;
+            let startChatWidth = 0;
+            
+            // Check if elements exist
+            if (!sidebarHandle || !chatHandle) {
+                console.error('Resize handles not found in DOM');
+                console.error('sidebarHandle:', sidebarHandle);
+                console.error('chatHandle:', chatHandle);
+                return;
+            }
+            
+            // Sidebar resize
+            sidebarHandle.addEventListener('mousedown', (e) => {
+                console.log('Sidebar handle mousedown event');
+                if (sidebar.classList.contains('collapsed')) {
+                    console.log('Sidebar is collapsed, ignoring resize');
+                    return;
+                }
+                
+                isResizing = true;
+                currentHandle = 'sidebar';
+                startX = e.clientX;
+                startSidebarWidth = sidebar.offsetWidth;
+                console.log('Starting sidebar resize, width:', startSidebarWidth);
+                sidebarHandle.classList.add('dragging');
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+            });
+            
+            // Chat/Model Armor resize
+            chatHandle.addEventListener('mousedown', (e) => {
+                console.log('Chat handle mousedown event');
+                isResizing = true;
+                currentHandle = 'chat';
+                startX = e.clientX;
+                startChatWidth = chatSection.offsetWidth;
+                console.log('Starting chat resize, width:', startChatWidth);
+                chatHandle.classList.add('dragging');
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                
+                const deltaX = e.clientX - startX;
+                console.log('Mouse move, deltaX:', deltaX);
+                
+                if (currentHandle === 'sidebar') {
+                    const newWidth = Math.max(200, Math.min(600, startSidebarWidth + deltaX));
+                    console.log('Setting sidebar width to:', newWidth);
+                    sidebar.style.width = newWidth + 'px';
+                } else if (currentHandle === 'chat') {
+                    const containerWidth = appContainer.offsetWidth - sidebar.offsetWidth;
+                    const newChatWidth = startChatWidth + deltaX;
+                    const newModelArmorWidth = containerWidth - newChatWidth - chatHandle.offsetWidth - 32; // 32px for padding
+                    
+                    console.log('New chat width:', newChatWidth, 'New model armor width:', newModelArmorWidth);
+                    
+                    if (newChatWidth >= 300 && newModelArmorWidth >= 300 && newModelArmorWidth <= 800) {
+                        chatSection.style.flex = 'none';
+                        chatSection.style.width = newChatWidth + 'px';
+                        modelArmorSection.style.width = newModelArmorWidth + 'px';
+                    }
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    isResizing = false;
+                    currentHandle = null;
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                    sidebarHandle.classList.remove('dragging');
+                    chatHandle.classList.remove('dragging');
+                    
+                    // Save panel widths to localStorage
+                    localStorage.setItem('sidebarWidth', sidebar.style.width);
+                    localStorage.setItem('chatWidth', chatSection.style.width);
+                    localStorage.setItem('modelArmorWidth', modelArmorSection.style.width);
+                }
+            });
+            
+            // Restore saved widths
+            const savedSidebarWidth = localStorage.getItem('sidebarWidth');
+            const savedChatWidth = localStorage.getItem('chatWidth');
+            const savedModelArmorWidth = localStorage.getItem('modelArmorWidth');
+            
+            if (savedSidebarWidth && !sidebar.classList.contains('collapsed')) {
+                sidebar.style.width = savedSidebarWidth;
+            }
+            if (savedChatWidth && savedModelArmorWidth) {
+                chatSection.style.flex = 'none';
+                chatSection.style.width = savedChatWidth;
+                modelArmorSection.style.width = savedModelArmorWidth;
+            }
+        }
+
+        window.onload = () => {
+            document.getElementById('locationSelect').value = 'us-central1';
+            updateTemplatesForLocation();
+            checkFileSupport();
+            preloadTemplates();
+            
+            // Initialize resizable panels after DOM is ready
+            setTimeout(() => {
+                try {
+                    initResizablePanels();
+                    console.log('Resizable panels initialization complete');
+                    
+                    // Test resize functionality
+                    const sidebar = document.getElementById('sidebar');
+                    const sidebarHandle = document.getElementById('sidebar-resize-handle');
+                    const chatHandle = document.getElementById('chat-resize-handle');
+                    
+                    if (sidebarHandle && chatHandle) {
+                        console.log('✓ Resize handles found');
+                        console.log('✓ Sidebar initial width:', sidebar.offsetWidth + 'px');
+                        console.log('✓ To test: Look for subtle vertical lines between panels');
+                        console.log('✓ Hover over them (they should highlight) and drag to resize');
+                    } else {
+                        console.error('✗ Resize handles not found');
+                    }
+                } catch (error) {
+                    console.error('Error initializing resizable panels:', error);
+                }
+            }, 500);
+        };
+
+    </script>
+</body>
+</html>
