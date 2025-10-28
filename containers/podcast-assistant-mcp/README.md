@@ -26,8 +26,8 @@ A Multi-tool Control Plane (MCP) server is a backend service that exposes a set 
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/GoogleCloudPlatform/devrel-demos/podcast-assistant-mcp.git
-    cd podcast-assistant-mcp
+    git clone https://github.com/GoogleCloudPlatform/devrel-demos.git
+    cd devrel-demos/containers/podcast-assistant-mcp
     ```
 
 2.  **Set up environment variables:**
@@ -87,17 +87,17 @@ This method uses an identity token associated with your Google Cloud account to 
 
     ```bash
     echo "{
-        "ide": {
-            "hasSeenNudge": true
+        \"ide\": {
+            \"hasSeenNudge\": true
         },
-        "mcpServers": {
-            "podcast-assistant": {
-                "httpUrl": "https://podcast-assistant-$PROJECT_NUMBER.us-central1.run.app/mcp",
-                "headers": {
-                    "Authorization": "Bearer $ID_TOKEN"
+        \"mcpServers\": {
+            \"podcast-assistant\": {
+                \"httpUrl\": \"https://podcast-assistant-$PROJECT_NUMBER.us-central1.run.app/mcp\",
+                \"headers\": {
+                    \"Authorization\": \"Bearer $ID_TOKEN\"
                 }
             }
-        },
+        }
     }" > ~/.gemini/settings.json
     ```
 
