@@ -57,7 +57,3 @@ curl "$(terraform output --raw external-url)"
 ```bash
 terraform destroy
 ```
-
-## What's next?
-
-- [Deploy a Java application with Compute Engine](https://pantheon.corp.google.com/products/solutions/details/java-application)
