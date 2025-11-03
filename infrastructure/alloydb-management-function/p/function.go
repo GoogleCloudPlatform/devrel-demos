@@ -130,6 +130,22 @@ type Status struct {
 
 // --- END LRO STRUCTS ---
 
+type ClusterInstances struct {
+	ClusterID string
+	Primary   *Instance
+	ReadPools []*Instance
+}
+
+// getClusterNameFromResourceName extracts the cluster ID from a full instance resource name.
+// Format: projects/{project}/locations/{location}/clusters/{cluster}/instances/{instance}
+func getClusterNameFromResourceName(resourceName string) string {
+	parts := strings.Split(resourceName, "/")
+	if len(parts) >= 6 {
+		return parts[5]
+	}
+	return "unknown"
+}
+
 // getInstance fetches the current details for a single instance.
 func getInstance(ctx context.Context, instanceName string) (*Instance, error) {
 	client, err := google.DefaultClient(ctx, "https://www.googleapis.com/auth/cloud-platform")
@@ -371,13 +387,19 @@ func ManageAlloyDBInstances(ctx context.Context, m PubSubMessage) error {
 		log.Printf("error listing instances: %v", err)
 		return err
 	}
-	var primaryInstances []Instance
-	var readPoolInstances []Instance
-	for _, instance := range instances {
-		if instance.InstanceType == "PRIMARY" {
-			primaryInstances = append(primaryInstances, instance)
-		} else if instance.InstanceType == "READ_POOL" {
-			readPoolInstances = append(readPoolInstances, instance)
+
+	// Group instances by cluster for coordinated operations
+	clustersMap := make(map[string]*ClusterInstances)
+	for i := range instances {
+		inst := &instances[i]
+		cID := getClusterNameFromResourceName(inst.Name)
+		if _, ok := clustersMap[cID]; !ok {
+			clustersMap[cID] = &ClusterInstances{ClusterID: cID}
+		}
+		if inst.InstanceType == "PRIMARY" {
+			clustersMap[cID].Primary = inst
+		} else if inst.InstanceType == "READ_POOL" {
+			clustersMap[cID].ReadPools = append(clustersMap[cID].ReadPools, inst)
 		}
 	}
 
@@ -402,34 +424,112 @@ func ManageAlloyDBInstances(ctx context.Context, m PubSubMessage) error {
 			}
 		}
 	case "STOP":
-		fmt.Println("Initiating STOP operation for all instances...")
-		for _, rp := range readPoolInstances {
-			if err := stopInstance(ctx, rp.Name); err != nil {
-				log.Printf("error initiating stop for read pool instance %s: %v", rp.Name, err)
-			}
+		fmt.Printf("Initiating STOP operation for %d clusters in parallel...\n", len(clustersMap))
+		var wg sync.WaitGroup
+		for _, cInsts := range clustersMap {
+			wg.Add(1)
+			go func(ci *ClusterInstances) {
+				defer wg.Done()
+				handleClusterStop(ctx, ci)
+			}(cInsts)
 		}
-		for _, p := range primaryInstances {
-			if err := stopInstance(ctx, p.Name); err != nil {
-				log.Printf("error initiating stop for primary instance %s: %v", p.Name, err)
-			}
-		}
+		wg.Wait()
 	case "START":
-		fmt.Println("Initiating START operation for all instances...")
-		for _, p := range primaryInstances {
-			if err := startInstance(ctx, p.Name); err != nil {
-				log.Printf("error initiating start for primary instance %s: %v", p.Name, err)
-			}
+		fmt.Printf("Initiating START operation for %d clusters in parallel...\n", len(clustersMap))
+		var wg sync.WaitGroup
+		for _, cInsts := range clustersMap {
+			wg.Add(1)
+			go func(ci *ClusterInstances) {
+				defer wg.Done()
+				handleClusterStart(ctx, ci)
+			}(cInsts)
 		}
-		for _, rp := range readPoolInstances {
-			if err := startInstance(ctx, rp.Name); err != nil {
-				log.Printf("error initiating start for read pool instance %s: %v", rp.Name, err)
-			}
-		}
+		wg.Wait()
 	default:
 		log.Printf("unknown operation requested: %s", instanceoperation)
 	}
 	fmt.Println("Done ManageAlloyDBInstances")
 	return nil
+}
+
+func handleClusterStart(ctx context.Context, cInsts *ClusterInstances) {
+	log.Printf("[%s] Starting cluster...", cInsts.ClusterID)
+
+	// 1. Start Primary first
+	if cInsts.Primary != nil {
+		log.Printf("[%s] Initiating START for primary: %s", cInsts.ClusterID, cInsts.Primary.Name)
+		if err := startInstance(ctx, cInsts.Primary.Name); err != nil {
+			log.Printf("[%s] ERROR starting primary %s: %v", cInsts.ClusterID, cInsts.Primary.Name, err)
+			return // Cannot proceed with read pools if primary fails to start
+		}
+		// Wait for Primary to be READY before starting read pools
+		if err := waitForInstanceState(ctx, cInsts.Primary.Name, "READY", 15*time.Minute); err != nil {
+			log.Printf("[%s] ERROR waiting for primary %s to be READY: %v", cInsts.ClusterID, cInsts.Primary.Name, err)
+			return
+		}
+		log.Printf("[%s] Primary %s is READY.", cInsts.ClusterID, cInsts.Primary.Name)
+	}
+
+	// 2. Start all Read Pools in parallel once Primary is READY
+	if len(cInsts.ReadPools) > 0 {
+		log.Printf("[%s] Initiating START for %d read pools...", cInsts.ClusterID, len(cInsts.ReadPools))
+		var wg sync.WaitGroup
+		for _, rp := range cInsts.ReadPools {
+			wg.Add(1)
+			go func(rpInst *Instance) {
+				defer wg.Done()
+				if err := startInstance(ctx, rpInst.Name); err != nil {
+					log.Printf("[%s] ERROR starting read pool %s: %v", cInsts.ClusterID, rpInst.Name, err)
+				}
+				// Optionally wait for read pools too, but primary is the critical dependency.
+				// Let's wait to ensure the cluster is fully "up" from this function's perspective.
+				if err := waitForInstanceState(ctx, rpInst.Name, "READY", 15*time.Minute); err != nil {
+					log.Printf("[%s] ERROR waiting for read pool %s to be READY: %v", cInsts.ClusterID, rpInst.Name, err)
+				}
+			}(rp)
+		}
+		wg.Wait()
+	}
+	log.Printf("[%s] Cluster start sequence completed.", cInsts.ClusterID)
+}
+
+func handleClusterStop(ctx context.Context, cInsts *ClusterInstances) {
+	log.Printf("[%s] Stopping cluster...", cInsts.ClusterID)
+
+	// 1. Stop all Read Pools first in parallel
+	if len(cInsts.ReadPools) > 0 {
+		log.Printf("[%s] Initiating STOP for %d read pools...", cInsts.ClusterID, len(cInsts.ReadPools))
+		var wg sync.WaitGroup
+		for _, rp := range cInsts.ReadPools {
+			wg.Add(1)
+			go func(rpInst *Instance) {
+				defer wg.Done()
+				if err := stopInstance(ctx, rpInst.Name); err != nil {
+					log.Printf("[%s] ERROR stopping read pool %s: %v", cInsts.ClusterID, rpInst.Name, err)
+					return
+				}
+				if err := waitForInstanceState(ctx, rpInst.Name, "STOPPED", 15*time.Minute); err != nil {
+					log.Printf("[%s] ERROR waiting for read pool %s to be STOPPED: %v", cInsts.ClusterID, rpInst.Name, err)
+				}
+			}(rp)
+		}
+		wg.Wait()
+		log.Printf("[%s] All read pools stopped.", cInsts.ClusterID)
+	}
+
+	// 2. Stop Primary after read pools are down
+	if cInsts.Primary != nil {
+		log.Printf("[%s] Initiating STOP for primary: %s", cInsts.ClusterID, cInsts.Primary.Name)
+		if err := stopInstance(ctx, cInsts.Primary.Name); err != nil {
+			log.Printf("[%s] ERROR stopping primary %s: %v", cInsts.ClusterID, cInsts.Primary.Name, err)
+			return
+		}
+		if err := waitForInstanceState(ctx, cInsts.Primary.Name, "STOPPED", 15*time.Minute); err != nil {
+			log.Printf("[%s] ERROR waiting for primary %s to be STOPPED: %v", cInsts.ClusterID, cInsts.Primary.Name, err)
+		}
+		log.Printf("[%s] Primary %s is STOPPED.", cInsts.ClusterID, cInsts.Primary.Name)
+	}
+	log.Printf("[%s] Cluster stop sequence completed.", cInsts.ClusterID)
 }
 
 // getOperation fetches the status of a long-running operation.

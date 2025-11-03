@@ -92,7 +92,7 @@ The main.tf script will provision the following resources:
 
 - A dedicated service account (`alloydb-manager-sa`) is created for the functions to run with.
 
-- It is granted the necessary IAM roles (`AlloyDB Admin`, `Project IAM Asserter`, `Pub/Sub Publisher`) to manage instances and publish alerts.
+- It is granted the necessary IAM roles (`AlloyDB Admin`, `Pub/Sub Publisher`) to manage instances and publish alerts.
 
 3. A Cloud Storage Bucket:
 
