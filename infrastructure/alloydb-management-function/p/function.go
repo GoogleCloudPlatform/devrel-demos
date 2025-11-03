@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/pubsub" // Added for alert publishing
@@ -401,50 +402,27 @@ func ManageAlloyDBInstances(ctx context.Context, m PubSubMessage) error {
 			}
 		}
 	case "STOP":
-		fmt.Println("Executing STOP operation starting from read pool...")
+		fmt.Println("Initiating STOP operation for all instances...")
 		for _, rp := range readPoolInstances {
 			if err := stopInstance(ctx, rp.Name); err != nil {
 				log.Printf("error initiating stop for read pool instance %s: %v", rp.Name, err)
-				continue
-			}
-			if err := waitForInstanceState(ctx, rp.Name, "STOPPED", 10*time.Minute); err != nil {
-				log.Printf("error waiting for read pool %s to stop: %v", rp.Name, err)
-				return err
 			}
 		}
 		for _, p := range primaryInstances {
 			if err := stopInstance(ctx, p.Name); err != nil {
-				log.Printf("error stopping primary instance %s: %v", p.Name, err)
-				continue
-			}
-			if err := waitForInstanceState(ctx, p.Name, "STOPPED", 10*time.Minute); err != nil {
-				log.Printf("error waiting for primary %s to stop: %v", p.Name, err)
-				return err
+				log.Printf("error initiating stop for primary instance %s: %v", p.Name, err)
 			}
 		}
 	case "START":
-		fmt.Println("Executing START operation, primary first ...")
-		if len(primaryInstances) > 0 {
-			p := primaryInstances[0]
+		fmt.Println("Initiating START operation for all instances...")
+		for _, p := range primaryInstances {
 			if err := startInstance(ctx, p.Name); err != nil {
 				log.Printf("error initiating start for primary instance %s: %v", p.Name, err)
-				return err
 			}
-			if err := waitForInstanceState(ctx, p.Name, "READY", 10*time.Minute); err != nil {
-				log.Printf("error waiting for primary %s to become ready: %v", p.Name, err)
-				return err
-			}
-		} else {
-			log.Println("No primary instance found to start.")
-			return nil
 		}
 		for _, rp := range readPoolInstances {
 			if err := startInstance(ctx, rp.Name); err != nil {
-				log.Printf("error starting read pool instance %s: %v", rp.Name, err)
-				continue
-			}
-			if err := waitForInstanceState(ctx, rp.Name, "READY", 10*time.Minute); err != nil {
-				log.Printf("error waiting for read pool %s to become ready: %v", rp.Name, err)
+				log.Printf("error initiating start for read pool instance %s: %v", rp.Name, err)
 			}
 		}
 	default:
@@ -561,11 +539,7 @@ func updateInstanceFlags(ctx context.Context, instanceName string, flagsToUpdate
 		return fmt.Errorf("failed to unmarshal update flags operation: %v", err)
 	}
 
-	if err := waitForOperation(ctx, op.Name, 10*time.Minute); err != nil {
-		return fmt.Errorf("error waiting for flag update operation: %v", err)
-	}
-
-	log.Printf("Flags updated successfully for %s", instanceName)
+	log.Printf("Flag update initiated for %s. Operation: %s", instanceName, op.Name)
 	return nil
 }
 
@@ -589,8 +563,7 @@ func publishAlert(ctx context.Context, psClient *pubsub.Client, topicName string
 	return nil
 }
 
-// CheckAlloyDBInstances checks instances against a set of rules.
-// This function has been refactored to correctly implement the checking logic.
+// CheckAlloyDBInstances checks instances against a set of rules in parallel.
 func CheckAlloyDBInstances(ctx context.Context, m PubSubMessage) error {
 	var par CheckInstanceParams
 	if err := json.Unmarshal(m.Data, &par); err != nil {
@@ -603,8 +576,11 @@ func CheckAlloyDBInstances(ctx context.Context, m PubSubMessage) error {
 		return nil
 	}
 
-	log.Printf("Starting AlloyDB instance check for project %s", par.Project)
+	log.Printf("Starting AlloyDB instances check for project %s", par.Project)
 
+	// Create a shared Pub/Sub client for all goroutines if possible,
+	// or let each one create its own if concurrency is high and sharing is bad.
+	// Sharing is usually fine for moderate load.
 	psClient, err := pubsub.NewClient(ctx, par.Project)
 	if err != nil {
 		log.Printf("CheckAlloyDBInstances: ERROR: Failed to create Pub/Sub client: %v", err)
@@ -624,123 +600,124 @@ func CheckAlloyDBInstances(ctx context.Context, m PubSubMessage) error {
 	}
 
 	log.Printf("CheckAlloyDBInstances: Found %d instances to check against %d rules.", len(listedInstances), len(par.Rules))
-	var warningsFound int = 0
 
+	var wg sync.WaitGroup
 	for _, listedInstance := range listedInstances {
-		if listedInstance.State != "READY" {
-			log.Printf("CheckAlloyDBInstances: Skipping instance %s (state: %s)", listedInstance.Name, listedInstance.State)
-			continue
-		}
+		wg.Add(1)
+		go func(inst Instance) {
+			defer wg.Done()
+			checkAndRemediateInstance(ctx, psClient, inst, par.Rules, par.Debug)
+		}(listedInstance)
+	}
 
-		instanceDetails, err := getInstance(ctx, listedInstance.Name)
-		if err != nil {
-			log.Printf("CheckAlloyDBInstances: ERROR: Failed to get details for instance %s: %v", listedInstance.Name, err)
-			continue
-		}
-
-		for _, rule := range par.Rules {
-			var issueAlarm bool = false
-			var alarmMsg, currentValue, desiredValue string
-
-			if rule.TargetFlagName == "max_connections" {
-				// Special handling for max_connections
-				var desiredValueInt, currentValueInt int
-				var err error
-
-				// Determine the desired value
-				if rule.CorrectFlagValue != "" {
-					desiredValueInt, err = strconv.Atoi(rule.CorrectFlagValue)
-					if err != nil {
-						log.Printf("CheckAlloyDBInstances: ERROR: Invalid integer in rule.CorrectFlagValue for %s: %v", rule.TargetFlagName, err)
-						continue // Skip rule
-					}
-				} else {
-					desiredValueInt = instanceDetails.MachineConfig.CpuCount * 400
-				}
-				desiredValue = strconv.Itoa(desiredValueInt)
-
-				// Determine the current value
-				currentValueStr, ok := instanceDetails.DatabaseFlags[rule.TargetFlagName]
-				if !ok {
-					currentValueStr = "1000" // Default value as per requirement
-				}
-				currentValue = currentValueStr
-				currentValueInt, err = strconv.Atoi(currentValueStr)
-				if err != nil {
-					log.Printf("CheckAlloyDBInstances: ERROR: Could not parse current flag value '%s' for %s: %v", currentValueStr, rule.TargetFlagName, err)
-					continue // Skip rule
-				}
-
-				// Check if an alarm needs to be issued
-				if float64(currentValueInt) > 1.2*float64(desiredValueInt) {
-					issueAlarm = true
-					alarmMsg = fmt.Sprintf("Flag '%s' is set to %d, which is more than 120%% of the recommended value %d.", rule.TargetFlagName, currentValueInt, desiredValueInt)
-				}
-
-			} else {
-				// Handling for all other flags
-				desiredValue = rule.CorrectFlagValue
-				currentValueStr, ok := instanceDetails.DatabaseFlags[rule.TargetFlagName]
-				currentValue = currentValueStr
-
-				if !ok {
-					issueAlarm = true
-					alarmMsg = fmt.Sprintf("Required flag '%s' is not set. Desired value is '%s'.", rule.TargetFlagName, desiredValue)
-					currentValue = "[NOT SET]"
-				} else if currentValue != desiredValue {
-					issueAlarm = true
-					alarmMsg = fmt.Sprintf("Flag '%s' has incorrect value. Current: '%s', Desired: '%s'.", rule.TargetFlagName, currentValue, desiredValue)
-				}
-			}
-
-			// --- If an alarm was triggered, take action ---
-			if issueAlarm {
-				warningsFound++
-				fullAlarmMsg := fmt.Sprintf("Instance %s (%s): %s", instanceDetails.Name, instanceDetails.DisplayName, alarmMsg)
-				log.Printf("CheckAlloyDBInstances: ALERT: %s", fullAlarmMsg)
-
-				correctionErrStr := ""
-				correctionAttempted := false
-
-				// Action 1: Fix the flag if a correct value is available
-				if desiredValue != "" {
-					correctionAttempted = true
-					// The payload must include all existing flags, plus the updated one.
-					allFlags := instanceDetails.DatabaseFlags
-					if allFlags == nil {
-						allFlags = make(map[string]string)
-					}
-					// Set the new/corrected value.
-					allFlags[rule.TargetFlagName] = desiredValue
-
-					log.Printf("CheckAlloyDBInstances: ACTION: Attempting to set flag '%s' to '%s' for %s", rule.TargetFlagName, desiredValue, instanceDetails.Name)
-
-					if err := updateInstanceFlags(ctx, instanceDetails.Name, allFlags, par.Debug); err != nil {
-						log.Printf("CheckAlloyDBInstances: ERROR: Failed to update flag for %s: %v", instanceDetails.Name, err)
-						correctionErrStr = err.Error()
-					} else {
-						log.Printf("CheckAlloyDBInstances: ACTION: Successfully updated flag for %s", instanceDetails.Name)
-					}
-				}
-
-				// Action 2: Send Pub/Sub Alert
-				if rule.AlertTopic != "" {
-					alertPayload := AlertMessage{
-						InstanceName:              instanceDetails.Name,
-						DisplayName:               instanceDetails.DisplayName,
-						CheckRule:                 rule,
-						Message:                   fullAlarmMsg,
-						CorrectiveActionAttempted: correctionAttempted,
-						CorrectionError:           correctionErrStr,
-					}
-					if err := publishAlert(ctx, psClient, rule.AlertTopic, alertPayload); err != nil {
-						log.Printf("CheckAlloyDBInstances: ERROR: Failed to publish alert for %s: %v", instanceDetails.Name, err)
-					}
-				}
-			}
-		} // end rules loop
-	} // end instances loop
-
-	log.Printf("CheckAlloyDBInstances: Check complete. Found %d total warnings/actions.", warningsFound)
+	wg.Wait()
+	log.Println("CheckAlloyDBInstances: All instance checks completed.")
 	return nil
+}
+
+// checkAndRemediateInstance processes a single instance: checks all rules, sends alerts, and consolidates flag updates.
+func checkAndRemediateInstance(ctx context.Context, psClient *pubsub.Client, listedInstance Instance, rules []InstanceCheckRule, debug bool) {
+	if listedInstance.State != "READY" {
+		log.Printf("Skipping instance %s (state: %s)", listedInstance.Name, listedInstance.State)
+		return
+	}
+
+	instanceDetails, err := getInstance(ctx, listedInstance.Name)
+	if err != nil {
+		log.Printf("ERROR: Failed to get details for instance %s: %v", listedInstance.Name, err)
+		return
+	}
+
+	// Prepare to consolidate all flag updates for this instance.
+	// Start with a copy of the current flags.
+	flagsToUpdate := make(map[string]string)
+	for k, v := range instanceDetails.DatabaseFlags {
+		flagsToUpdate[k] = v
+	}
+	updatesNeeded := false
+
+	for _, rule := range rules {
+		var issueAlarm bool = false
+		var alarmMsg, desiredValue string
+
+		// --- Rule Checking Logic ---
+		if rule.TargetFlagName == "max_connections" {
+			var desiredValueInt, currentValueInt int
+			var err error
+			if rule.CorrectFlagValue != "" {
+				desiredValueInt, err = strconv.Atoi(rule.CorrectFlagValue)
+				if err != nil {
+					log.Printf("ERROR: Invalid integer in rule.CorrectFlagValue for %s on %s: %v", rule.TargetFlagName, instanceDetails.Name, err)
+					continue
+				}
+			} else {
+				desiredValueInt = instanceDetails.MachineConfig.CpuCount * 400
+			}
+			desiredValue = strconv.Itoa(desiredValueInt)
+
+			currentValueStr, ok := instanceDetails.DatabaseFlags[rule.TargetFlagName]
+			if !ok {
+				currentValueStr = "1000" // Default
+			}
+			currentValueInt, err = strconv.Atoi(currentValueStr)
+			if err != nil {
+				log.Printf("ERROR: Could not parse current flag value '%s' for %s on %s: %v", currentValueStr, rule.TargetFlagName, instanceDetails.Name, err)
+				continue
+			}
+
+			if float64(currentValueInt) < 0.8*float64(desiredValueInt) || float64(currentValueInt) > 1.2*float64(desiredValueInt) {
+				issueAlarm = true
+				alarmMsg = fmt.Sprintf("Flag '%s' is set to %d, which is outside the 20%% tolerance of the recommended value %d.", rule.TargetFlagName, currentValueInt, desiredValueInt)
+			}
+		} else {
+			// Generic flag check
+			desiredValue = rule.CorrectFlagValue
+			currentValue, ok := instanceDetails.DatabaseFlags[rule.TargetFlagName]
+			if !ok {
+				issueAlarm = true
+				alarmMsg = fmt.Sprintf("Required flag '%s' is not set. Desired value is '%s'.", rule.TargetFlagName, desiredValue)
+			} else if currentValue != desiredValue {
+				issueAlarm = true
+				alarmMsg = fmt.Sprintf("Flag '%s' has incorrect value. Current: '%s', Desired: '%s'.", rule.TargetFlagName, currentValue, desiredValue)
+			}
+		}
+
+		// --- Remediation & Alerting ---
+		if issueAlarm {
+			fullAlarmMsg := fmt.Sprintf("Instance %s (%s): %s", instanceDetails.Name, instanceDetails.DisplayName, alarmMsg)
+			log.Printf("ALERT: %s", fullAlarmMsg)
+
+			// Schedule update if we have a desired value
+			if desiredValue != "" {
+				// Check if we are already planning to update this flag from another rule (unlikely but good to be safe)
+				if existingPlan, ok := flagsToUpdate[rule.TargetFlagName]; ok && existingPlan != desiredValue {
+					log.Printf("WARNING: Conflicting rules for flag '%s' on instance %s. Overwriting '%s' with '%s'.", rule.TargetFlagName, instanceDetails.Name, existingPlan, desiredValue)
+				}
+				flagsToUpdate[rule.TargetFlagName] = desiredValue
+				updatesNeeded = true
+			}
+
+			// Send Alert immediately
+			if rule.AlertTopic != "" {
+				alertPayload := AlertMessage{
+					InstanceName:              instanceDetails.Name,
+					DisplayName:               instanceDetails.DisplayName,
+					CheckRule:                 rule,
+					Message:                   fullAlarmMsg,
+					CorrectiveActionAttempted: desiredValue != "",
+				}
+				if err := publishAlert(ctx, psClient, rule.AlertTopic, alertPayload); err != nil {
+					log.Printf("ERROR: Failed to publish alert for %s to %s: %v", instanceDetails.Name, rule.AlertTopic, err)
+				}
+			}
+		}
+	} // end rules loop
+
+	// --- Apply Consolidated Updates ---
+	if updatesNeeded {
+		log.Printf("ACTION: Initiating consolidated flag update for %s", instanceDetails.Name)
+		if err := updateInstanceFlags(ctx, instanceDetails.Name, flagsToUpdate, debug); err != nil {
+			log.Printf("ERROR: Failed to initiate consolidated flag update for %s: %v", instanceDetails.Name, err)
+		}
+	}
 }
