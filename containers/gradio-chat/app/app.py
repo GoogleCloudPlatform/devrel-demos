@@ -81,7 +81,7 @@ def process_message_gemini(message, history):
 #   Its job is to format these elements into a single,
 #   structured prompt that can be understood by the language model (LLM).
 #   This structured format helps the LLM maintain context and generate more relevant responses.
-def process_message(message, history):
+def process_message_gemma(message, history):
     # TODO: Implement processing of multi-turn chatbot conversation for input to LLM and for saving to history in Firestore.
 
 # Function to save chat history to Firestore

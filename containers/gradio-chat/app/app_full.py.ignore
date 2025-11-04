@@ -84,7 +84,7 @@ def inference_interface(
 
     # Pass the message and history to the appropriate model, as indicated by the user via the ui
     if model_name == "Gemma3 12b it":
-        aggregated_message = process_message(message, history)
+        aggregated_message = process_message_gemma(message, history)
         output = call_gemma_model(
             aggregated_message, model_temperature, top_p, max_tokens
         )
@@ -200,7 +200,7 @@ def process_message_gemini(message, history):
 #   Its job is to format these elements into a single,
 #   structured prompt that can be understood by the language model (LLM).
 #   This structured format helps the LLM maintain context and generate more relevant responses.
-def process_message(message, history):
+def process_message_gemma(message, history):
     user_prompt_format = "User's Turn:\n>>> {prompt}\n"
     assistant_prompt_format = "Assistant's Turn:\n>>> {prompt}\n"
 
