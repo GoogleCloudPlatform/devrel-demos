@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import datetime
-import uuid
 
 import google.auth
 import google.cloud
@@ -33,12 +32,8 @@ print(f"Project: {project}")
 
 # Set initial values for model
 llm_engine = "vllm"
-model_id = "gemma3-12b-it"
 host = "http://gemma-service:8000"
 context_path = "/generate"
-
-# Set region
-region = "us-central1"
 
 # initialize vertex for interacting with Gemini
 client = genai.Client(
