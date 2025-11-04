@@ -53,7 +53,7 @@ The Firestore collection will be used to store chat history.
 
 **NOTE:** The `infra/main.tf` file has some `TODO` sections for educational purposes. Before running Terraform, you must either:
 1.  Fill in the `TODO` sections in `infra/main.tf` (refer to `infra/main_full.tf.ignore` for the complete code).
-2.  OR, overwrite `infra/main.tf` with the completed version: `cp main_full.tf.ignore main.tf`
+2.  OR, overwrite `infra/main.tf` with the completed version: `cp infra/main_full.tf.ignore infra/main.tf`
 
 1. Change directories into the "infra" folder within this repository.
 ```
