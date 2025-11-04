@@ -47,26 +47,24 @@ client = genai.Client(
     location="global",
 )
 
-# Set the UUID for this session so that all chat messages will be stored in a single Firestore doc
-session_uuid = str(uuid.uuid4())
-
 # Initialize Firestore client
 db = firestore.Client(database="(default)")
 
-# Generate a date string to use for the doc id
-date_str = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
-doc_id = f"{date_str}-session-{session_uuid}"
-
-# Create a new document to store the chat history for the session
-doc_ref = db.collection("chat_sessions").document(doc_id)
-doc_ref.set({"Session start": datetime.datetime.now()})
+# Dictionary to store document references for each session
+session_docs = {}
 
 
 # This is the primary chat function. Every time a user sends a message, gradio calls this function,
 # which sends the user's input to the appropriate AI (as indicated on the user interface), updates
 # the chat history for future use during this session, and records the chat history in Firestore.
 def inference_interface(
-    message, history, model_name, model_temperature, top_p, max_tokens
+    message,
+    history,
+    model_name,
+    model_temperature,
+    top_p,
+    max_tokens,
+    request: gr.Request,
 ):
     # TODO: Implement inference workflow
 
@@ -88,7 +86,7 @@ def process_message(message, history):
     # TODO: Implement processing of multi-turn chatbot conversation for input to LLM and for saving to history in Firestore.
 
 # Function to save chat history to Firestore
-def save_chat_history(interaction):
+def save_chat_history(interaction, doc_ref):
     timestamp_str = str(datetime.datetime.now())
 
     # Save the chat history, merging with existing data
