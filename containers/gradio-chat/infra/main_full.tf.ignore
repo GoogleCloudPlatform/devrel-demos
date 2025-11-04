@@ -80,6 +80,8 @@ resource "google_container_cluster" "primary" {
     create = "30m" 
     update = "30m"
   }
+
+  depends_on = [google_project_service.container]
 }
 
 resource "google_firestore_database" "database" {
