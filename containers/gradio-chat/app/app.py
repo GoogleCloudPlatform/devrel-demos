@@ -74,9 +74,13 @@ def call_gemma_model(aggregated_message, model_temperature, top_p, max_tokens):
     # TODO: Implement call to gke-hosted gemma endpoint
 
 # Send a request to Gemini via the VertexAI API. Return the model's response
-# aggregated_message = current user message + history
-def call_gemini_model(aggregated_message, model_temperature, top_p, max_tokens):
+# contents = list of types.Content objects
+def call_gemini_model(contents, model_temperature, top_p, max_tokens):
     # TODO: Implement call to VertexAI-hosted Gemini endpoint
+
+def process_message_gemini(message, history):
+    # TODO: Implement structured message processing for Gemini
+    pass
 
 # This function takes a user's message and the conversation history as input.
 #   Its job is to format these elements into a single,

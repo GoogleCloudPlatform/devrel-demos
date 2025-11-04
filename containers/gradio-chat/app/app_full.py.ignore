@@ -87,18 +87,17 @@ def inference_interface(
     print("LLM Engine: " + llm_engine)
     print("* History: " + str(history))
 
-    # Create a string that aggregates the current user request with the chat history
-    aggregated_message = process_message(message, history)
-
-    # Pass the aggregated message and other model options to the appropriate model, as indicated by the user via the ui
+    # Pass the message and history to the appropriate model, as indicated by the user via the ui
     if model_name == "Gemma3 12b it":
+        aggregated_message = process_message(message, history)
         output = call_gemma_model(
             aggregated_message, model_temperature, top_p, max_tokens
         )
 
     elif model_name == "Gemini":
+        gemini_contents = process_message_gemini(message, history)
         output = call_gemini_model(
-            aggregated_message, model_temperature, top_p, max_tokens
+            gemini_contents, model_temperature, top_p, max_tokens
         )
 
     else:
@@ -168,13 +167,13 @@ def call_gemma_model(aggregated_message, model_temperature, top_p, max_tokens):
 
 
 # Send a request to Gemini via the VertexAI API. Return the model's response
-# aggregated_message = current user message + history
-def call_gemini_model(aggregated_message, model_temperature, top_p, max_tokens):
+# contents = list of types.Content objects
+def call_gemini_model(contents, model_temperature, top_p, max_tokens):
     gemini_model = "gemini-2.5-flash"
 
     response = client.models.generate_content(
         model=gemini_model,
-        contents=aggregated_message,
+        contents=contents,
         config={
             "temperature": model_temperature,
             "max_output_tokens": max_tokens,
@@ -184,6 +183,22 @@ def call_gemini_model(aggregated_message, model_temperature, top_p, max_tokens):
     output = response.text  # Extract the generated text
     # Consider handling additional response attributes (safety, usage, etc.)
     return output
+
+
+def process_message_gemini(message, history):
+    contents = []
+    for user_turn, model_turn in history:
+        contents.append(
+            types.Content(role="user", parts=[types.Part.from_text(text=user_turn)])
+        )
+        contents.append(
+            types.Content(role="model", parts=[types.Part.from_text(text=model_turn)])
+        )
+
+    contents.append(
+        types.Content(role="user", parts=[types.Part.from_text(text=message)])
+    )
+    return contents
 
 
 # This function takes a user's message and the conversation history as input.
