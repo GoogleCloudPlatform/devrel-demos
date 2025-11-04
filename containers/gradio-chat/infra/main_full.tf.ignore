@@ -84,7 +84,7 @@ resource "google_container_cluster" "primary" {
 
 resource "google_firestore_database" "database" {
   project     = var.project_id
-  name        = "(default)"
+  name        = "chat-app-db"
   location_id = "nam5"
   type        = "FIRESTORE_NATIVE"
 
@@ -107,4 +107,26 @@ resource "google_artifact_registry_repository" "my-repo" {
   repository_id = "chat-app-repo"
   description   = "Repository for gradio-based AI chat app"
   format        = "DOCKER"
+}
+
+locals {
+  ksa_principal = "principal://iam.googleapis.com/projects/${var.project_number}/locations/global/workloadIdentityPools/${var.project_id}.svc.id.goog/subject/ns/default/sa/gradio-chat-ksa"
+}
+
+resource "google_project_iam_member" "ksa_token_creator" {
+  project = var.project_id
+  role    = "roles/iam.serviceAccountTokenCreator"
+  member  = local.ksa_principal
+}
+
+resource "google_project_iam_member" "ksa_vertex_user" {
+  project = var.project_id
+  role    = "roles/aiplatform.user"
+  member  = local.ksa_principal
+}
+
+resource "google_project_iam_member" "ksa_datastore_user" {
+  project = var.project_id
+  role    = "roles/datastore.user"
+  member  = local.ksa_principal
 }

@@ -38,7 +38,7 @@ gcloud services enable cloudresourcemanager.googleapis.com
 ### Create Cloud Build Staging Bucket
 Ensure the staging bucket for Cloud Build exists:
 ```
-gcloud storage buckets create gs://${TF_VAR_project_id}_cloudbuild
+gsutil mb gs://${TF_VAR_project_id}_cloudbuild
 ```
 
 > **Note:** This command will return an error if the bucket already exists. You can safely ignore this error.
@@ -124,33 +124,6 @@ skaffold run --default-repo=us-central1-docker.pkg.dev/$TF_VAR_project_id/chat-a
 ```
 
 Note: When a container image of the application is built, it uses the "latest" flag. If this app were to be used in production, you should design the CI/CD workflow to flag each container image with major and minor versions as a best practice.
-
-#### Configure Workload Identity
-This application relies on Workload Identity to enable the workloads running within the GKE cluster to access Firestore and VertexAI. Workload Identity allows you to configure a Kubernetes Service Account as a principal, and assign it roles/rolebindings through Google Cloud IAM.
-
-
-You created the Kubernetes Service Account (gradio-chat-ksa) when you deployed the chat application, but the application will not work until you create rolebindings for that Kuberentes Service Account via Workload Identity.
-
-
-1. Give the Kubernetes Service Account the "iam.serviceAccountTokenCreator" role. This allows the workload to create the token it needs to interact with other Google Cloud services.
-```
-gcloud projects add-iam-policy-binding projects/"$TF_VAR_project_id" \
-    --role=roles/iam.serviceAccountTokenCreator \
-    --member="principal://iam.googleapis.com/projects/$TF_VAR_project_number/locations/global/workloadIdentityPools/$TF_VAR_project_id.svc.id.goog/subject/ns/default/sa/gradio-chat-ksa"
-```
-
-2. Give the Kubernetes Service Account the "aiplatform.user" role. This allows the workload to interact with VertexAI.
-```
-gcloud projects add-iam-policy-binding projects/"$TF_VAR_project_id" \
-    --role="roles/aiplatform.user" \
-    --member="principal://iam.googleapis.com/projects/$TF_VAR_project_number/locations/global/workloadIdentityPools/$TF_VAR_project_id.svc.id.goog/subject/ns/default/sa/gradio-chat-ksa"
-```
-3. Give the Kubernetes Service Account the "datastore.user" role. This allows the workload to interact with Firestore.
-```
-gcloud projects add-iam-policy-binding projects/"$TF_VAR_project_id" \
-    --role="roles/datastore.user" \
-    --member="principal://iam.googleapis.com/projects/$TF_VAR_project_number/locations/global/workloadIdentityPools/$TF_VAR_project_id.svc.id.goog/subject/ns/default/sa/gradio-chat-ksa"
-```
 
 #### Access the application
 Once the application has deployed and your rolebindings are set, you can access the application on the external IP (via Loadbalancer). The application is served on port 7860.

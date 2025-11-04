@@ -43,7 +43,7 @@ client = genai.Client(
 )
 
 # Initialize Firestore client
-db = firestore.Client(database="(default)")
+db = firestore.Client(database="chat-app-db")
 
 # Dictionary to store document references for each session
 session_docs = {}

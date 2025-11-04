@@ -73,3 +73,6 @@ resource "google_artifact_registry_repository" "my-repo" {
   description   = "Repository for gradio-based AI chat app"
   format        = "DOCKER"
 }
+
+# TODO: Configure Workload Identity IAM bindings
+
