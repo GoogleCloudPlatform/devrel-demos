@@ -27,18 +27,19 @@ export TF_VAR_project_id=$(gcloud config get-value project)
 export TF_VAR_project_number=$(gcloud projects describe $TF_VAR_project_id --format="value(projectNumber)")
 ```
 
-These environment variables will automatically be used by terraform. They are also needed to replace placeholder text in the chat-deploy.yaml and skaffold.yaml files. Do this now:
+These environment variables will automatically be used by terraform.
+
+### Enable Cloud Resource Manager API
+Terraform requires this API to be enabled to manage your project.
 ```
-sed -i -e 's|\[PROJECT-ID]|'"$TF_VAR_project_id"'|g' deploy/chat-deploy.yaml
-sed -i -e 's|\[PROJECT-ID]|'"$TF_VAR_project_id"'|g' deploy/skaffold.yaml
+gcloud services enable cloudresourcemanager.googleapis.com
 ```
 
-### Enable APIs
-Enable the needed APIs via the gcloud CLI by running the command:
+### Create Cloud Build Staging Bucket
+Ensure the staging bucket for Cloud Build exists:
 ```
-gcloud services enable cloudbuild.googleapis.com artifactregistry.googleapis.com container.googleapis.com firestore.googleapis.com aiplatform.googleapis.com
+gsutil mb gs://${TF_VAR_project_id}_cloudbuild
 ```
-
 
 ### Create the Google Cloud resources using terraform
 
@@ -49,6 +50,10 @@ It will create the following resources in region us-central1:
 
 The GKE cluster will be used to run the Gemma model instance, and the gradio-based chat application.
 The Firestore collection will be used to store chat history.
+
+**NOTE:** The `infra/main.tf` file has some `TODO` sections for educational purposes. Before running Terraform, you must either:
+1.  Fill in the `TODO` sections in `infra/main.tf` (refer to `infra/main_full.tf.ignore` for the complete code).
+2.  OR, overwrite `infra/main.tf` with the completed version: `cp main_full.tf.ignore main.tf`
 
 1. Change directories into the "infra" folder within this repository.
 ```
@@ -101,6 +106,11 @@ kubectl apply -f deploy/gemma3-12b-deploy.yaml
 ```
 
 ### Deploy the chat app
+
+**NOTE:** The `app/app.py` file has `TODO` sections. Before deploying, you must either:
+1.  Fill in the `TODO` sections in `app/app.py` (refer to `app/app_full.py.ignore` for the complete code).
+2.  OR, overwrite `app/app.py` with the completed version: `cp app/app_full.py.ignore app/app.py`
+
 This repo is designed to build the chat application container image using Google Cloud Build. The image is stored in Artifact Registry, and then can be deployed to the GKE cluster using the chat-deploy.yaml file.
 
 NOTE: Rather than doing this, you could open the code in VS Code and use the [Cloud Code plugin](https://cloud.google.com/code/docs/vscode/install) to run and deploy it. This works great, and is convenient if you want to explore and edit this application!
@@ -108,7 +118,7 @@ NOTE: Rather than doing this, you could open the code in VS Code and use the [Cl
 #### Build and Run the application using Skaffold and Google Cloud Build
 This repo is designed to be built using Google Cloud Build via Skaffold. Skaffold simplifies the build and deploy process by automating the pipeline from building on CloudBuild to deploying onto the GKE cluster.
 ```
-skaffold run -f deploy/skaffold.yaml
+skaffold run --default-repo=us-central1-docker.pkg.dev/$TF_VAR_project_id/chat-app-repo
 ```
 
 Note: When a container image of the application is built, it uses the "latest" flag. If this app were to be used in production, you should design the CI/CD workflow to flag each container image with major and minor versions as a best practice.
@@ -158,3 +168,11 @@ Enjoy chatting with Gemini and Gemma2!
 This application logs each session as a document in Firestore. The document name is in the format "year-month-day-session-uuid". Here is an example of a log for a single session.
 
 ![This screenshot shows an example chat session log as stored in a Firestore document.](screenshots/ExampleLog.png "Log Example Screenshot")
+
+## Clean Up
+To avoid incurring charges, destroy the resources you created:
+
+```bash
+cd infra
+terraform destroy
+```

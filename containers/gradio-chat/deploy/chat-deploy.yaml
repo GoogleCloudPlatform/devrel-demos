@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: gradio-chat
-        image: us-central1-docker.pkg.dev/[PROJECT-ID]/chat-app-repo/chat-app
+        image: chat-app-image
         ports:
         - containerPort: 7860
         imagePullPolicy: Always
