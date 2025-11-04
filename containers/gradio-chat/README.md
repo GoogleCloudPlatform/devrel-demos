@@ -41,6 +41,8 @@ Ensure the staging bucket for Cloud Build exists:
 gsutil mb gs://${TF_VAR_project_id}_cloudbuild
 ```
 
+> **Note:** This command will return an error if the bucket already exists. You can safely ignore this error.
+
 ### Create the Google Cloud resources using terraform
 
 The main.tf file in this project contains code to enable APIs for Google Cloud Build, Artifact Registry, Firestore, VertexAI, and GKE.
