@@ -38,7 +38,7 @@ gcloud services enable cloudresourcemanager.googleapis.com
 ### Create Cloud Build Staging Bucket
 Ensure the staging bucket for Cloud Build exists:
 ```
-gsutil mb gs://${TF_VAR_project_id}_cloudbuild
+gcloud storage buckets create gs://${TF_VAR_project_id}_cloudbuild
 ```
 
 > **Note:** This command will return an error if the bucket already exists. You can safely ignore this error.
