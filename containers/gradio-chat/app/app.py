@@ -89,8 +89,6 @@ def process_message(message, history):
 
 # Function to save chat history to Firestore
 def save_chat_history(interaction):
-    global db, doc_ref
-
     timestamp_str = str(datetime.datetime.now())
 
     # Save the chat history, merging with existing data
