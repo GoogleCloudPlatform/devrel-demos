@@ -64,16 +64,7 @@ variable "cluster_name" {
 
 # TODO: Create a Firestore Database
 
-# Uncomment this resource after creating the Firestore Database
-# resource "google_firestore_document" "initial_document" {
-#   project     = var.project_id
-#   collection  = "chat_sessions"
-#   document_id = "initialize"
-#   fields = <<EOF
-#   EOF
-#
-#   depends_on = [google_firestore_database.database]
-# }
+# TODO: Create an initial Firestore Document
 
 resource "google_artifact_registry_repository" "my-repo" {
   project     = var.project_id
