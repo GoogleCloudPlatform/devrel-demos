@@ -45,9 +45,6 @@ client = genai.Client(
 # Initialize Firestore client
 db = firestore.Client(database="chat-app-db")
 
-# Dictionary to store document references for each session
-session_docs = {}
-
 
 # This is the primary chat function. Every time a user sends a message, gradio calls this function,
 # which sends the user's input to the appropriate AI (as indicated on the user interface), updates
@@ -68,14 +65,12 @@ def inference_interface(
 
     # Get or create session document
     session_hash = request.session_hash
-    if session_hash not in session_docs:
-        date_str = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
-        doc_id = f"{date_str}-session-{session_hash}"
-        doc_ref = db.collection("chat_sessions").document(doc_id)
-        doc_ref.set({"Session start": datetime.datetime.now()})
-        session_docs[session_hash] = doc_ref
+    doc_id = f"session-{session_hash}"
+    doc_ref = db.collection("chat_sessions").document(doc_id)
 
-    doc_ref = session_docs[session_hash]
+    # Create the session document if it doesn't exist
+    if not doc_ref.get().exists:
+        doc_ref.set({"Session start": datetime.datetime.now()})
 
     # Log info
     print("Model: " + model_name)

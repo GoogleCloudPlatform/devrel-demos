@@ -45,10 +45,7 @@ client = genai.Client(
 # Initialize Firestore client
 db = firestore.Client(database="chat-app-db")
 
-# Dictionary to store document references for each session
-session_docs = {}
-
-
+# Send a request to Gemini via the VertexAI API. Return the model's response
 # This is the primary chat function. Every time a user sends a message, gradio calls this function,
 # which sends the user's input to the appropriate AI (as indicated on the user interface), updates
 # the chat history for future use during this session, and records the chat history in Firestore.
