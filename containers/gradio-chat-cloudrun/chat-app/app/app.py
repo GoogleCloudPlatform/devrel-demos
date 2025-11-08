@@ -187,7 +187,7 @@ MODEL_CONFIG = {
         "process_fn": process_message_gemma,
         "call_fn": call_gemma_model,
         "config": {
-            "host": os.environ.get("GEMMA_HOST", "http://gemma-service:8000"),
+            "host": os.environ.get("GEMMA_HOST"),
             "endpoint": os.environ.get("GEMMA_ENDPOINT", "/api/generate"),
             "model_name": os.environ.get("GEMMA_MODEL", "gemma3:4b"),
         },
@@ -200,6 +200,11 @@ MODEL_CONFIG = {
         },
     },
 }
+
+# Dynamically remove models if their required environment variables are missing
+if not MODEL_CONFIG["Gemma"]["config"]["host"]:
+    del MODEL_CONFIG["Gemma"]
+    logger.warning("GEMMA_HOST not set. Gemma model will be unavailable.")
 
 
 # This is the primary chat function. Every time a user sends a message, gradio calls this function,
@@ -292,12 +297,16 @@ css = """
 footer {display: none !important;} .gradio-container {min-height: 0px !important;}
 """
 
+# Determine available models and default
+model_choices = list(MODEL_CONFIG.keys())
+default_model = "Gemma" if "Gemma" in model_choices else model_choices[0]
+
 # Add a dropdown to select the model to chat with
 model_dropdown = gr.Dropdown(
-    choices=list(MODEL_CONFIG.keys()),
+    choices=model_choices,
     label="Model",
     info="Select the model you would like to chat with.",
-    value="Gemma",
+    value=default_model,
 )
 
 # Make the model temperature, top_p, and max tokents modifiable via sliders in the GUI
