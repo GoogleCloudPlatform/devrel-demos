@@ -196,7 +196,7 @@ MODEL_CONFIG = {
         "process_fn": process_message_gemini,
         "call_fn": call_gemini_model,
         "config": {
-            "model_name": "gemini-2.5-flash",
+            "model_name": os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
         },
     },
 }

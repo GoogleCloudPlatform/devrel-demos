@@ -61,7 +61,7 @@ gradio-chat-cloudrun/
 │   ├── infra/
 │   │   └── main.tf           # Terraform for Chat App resources
 │   └── Dockerfile            # Container definition for Chat App
-gemma-service/
+├── gemma-service/
 │   └── infra/
 │   │   └── main.tf           # Terraform for Gemma model service
 └── README.md
@@ -167,7 +167,7 @@ gcloud run deploy chat-app \
   --region $TF_VAR_region \
   --allow-unauthenticated \
   --service-account=chat-app-run-sa@$TF_VAR_project_id.iam.gserviceaccount.com \
-  --set-env-vars GEMMA_HOST=$GEMMA_SERVICE_URL,GEMMA_ENDPOINT=/api/generate,GEMMA_MODEL=gemma3:4b
+  --set-env-vars GEMMA_HOST=$GEMMA_SERVICE_URL,GEMMA_ENDPOINT=/api/generate,GEMMA_MODEL=gemma3:4b,GEMINI_MODEL=gemini-2.5-flash
 ```
 
 ## Extending the App
