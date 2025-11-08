@@ -65,7 +65,7 @@ resource "google_cloud_run_v2_service" "gemma_service" {
         initial_delay_seconds = 60
         timeout_seconds = 240
         period_seconds = 10
-        failure_threshold = 60
+        failure_threshold = 30
         tcp_socket {
           port = 8080
         }
