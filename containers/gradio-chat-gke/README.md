@@ -1,7 +1,7 @@
 # Gradio-Based AI Chat App on GKE
 
 
-This repository deploys the gemma3-12b-it model and a gradio-based ai chat app to a GKE cluster (which is set up via terraform). The chat app can switch between chatting with the GKE-deployed Gemma3-12b-it model, and Gemini-2.5-flash in Vertex AI. The application stores each session's chat history, and the history is shared even if you switch which model you're chatting with (Gemini or Gemma2).
+This repository deploys the gemma3-12b-it model and a gradio-based ai chat app to a GKE cluster (which is set up via terraform). The chat app can switch between chatting with the GKE-deployed Gemma3-12b-it model, and Gemini-2.5-flash in Vertex AI. The application stores each session's chat history, and the history is shared even if you switch which model you're chatting with (Gemini or Gemma 3).
 
 
 ![This screenshot shows the chat application.](screenshots/UI_Screenshot.png "AI Chat Application Screenshot")
@@ -14,7 +14,11 @@ You should have:
 * The [gcloud CLI installed](https://cloud.google.com/sdk/docs/install) on the machine you will deploy from.
 
 ## Running this application
-Clone this application code onto the machine you will deploy from. Navigate to the directory you cloned the files into.
+Clone this repository onto the machine you will deploy from. Navigate to the `containers/gradio-chat-gke` directory:
+
+```bash
+cd containers/gradio-chat-gke
+```
 
 If it's not already set, set your working project for the gcloud cli. Replace [YOUR_PROJECT_ID] with your project id.
 ```
@@ -137,7 +141,7 @@ kubectl get svc
 
 The application will take a couple minutes to become available.
 
-Enjoy chatting with Gemini and Gemma2!
+Enjoy chatting with Gemini and Gemma 3!
 
 ## Log Example
 This application logs each session as a document in Firestore. The document name is in the format "year-month-day-session-uuid". Here is an example of a log for a single session.
