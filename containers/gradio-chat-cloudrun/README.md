@@ -157,7 +157,7 @@ gcloud builds submit --tag $TF_VAR_region-docker.pkg.dev/$TF_VAR_project_id/chat
 
 ### 5. Deploy Chat App to Cloud Run
 
-Deploy the service using `gcloud`. This command uses the Service Account created by Terraform in step 2, which has the necessary permissions to invoke the Gemma service.
+Deploy the service using `gcloud`. This command uses the Service Account created by Terraform in step 3, which has the necessary permissions to invoke the Gemma service.
 
 If you skipped deploying Gemma, you can set `GEMMA_HOST` to a placeholder, but Gemma chat won't work.
 
