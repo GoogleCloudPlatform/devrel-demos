@@ -61,7 +61,7 @@ gradio-chat-cloudrun/
 │   ├── infra/
 │   │   └── main.tf           # Terraform for Chat App resources
 │   └── Dockerfile            # Container definition for Chat App
-├── gemma-service/
+gemma-service/
 │   └── infra/
 │   │   └── main.tf           # Terraform for Gemma model service
 └── README.md
@@ -174,13 +174,23 @@ gcloud run deploy chat-app \
 
 ### Adding New Models
 
-The application uses a `MODEL_CONFIG` dictionary in `chat-app/app/app.py` to define supported models. To add a new model:
+To add a new self-hosted model (e.g., Gemma 27B) to the application, follow these steps:
 
-1.  **Define Configuration:** Add a new entry to `MODEL_CONFIG` with a unique name (e.g., "Gemma-27b").
-2.  **Specify Functions:** Assign the appropriate processing and calling functions (reuse existing ones if compatible, or write new ones).
-3.  **Set Parameters:** Define any necessary configuration parameters, ideally using `os.environ.get()` to allow for runtime configuration via Cloud Run environment variables.
+#### 1. Deploy the New Model Service
 
-Example of adding a second Gemma model:
+You need a running Cloud Run service for the new model. You can use the existing `gemma-service` Terraform configuration as a template.
+
+1.  Duplicate the `gemma-service` directory (e.g., to `gemma-27b-service`).
+2.  Update `infra/main.tf` in the new directory:
+    *   Change the `google_cloud_run_v2_service` resource name (e.g., to `gemma-27b-service`).
+    *   Update the `image` to the desired model image (e.g., `us-docker.pkg.dev/cloudrun/container/gemma/gemma3-27b-it`).
+    *   Adjust resources (CPU, Memory, GPU) if necessary for the larger model.
+3.  Deploy the new service using Terraform (`init`, `plan`, `apply`).
+4.  Capture the new service URL.
+
+#### 2. Update Application Configuration
+
+Update `chat-app/app/app.py` to include the new model in the `MODEL_CONFIG` dictionary. Use `os.environ.get()` for configuration values to keep them configurable without code changes.
 
 ```python
     "Gemma-27b": {
@@ -194,7 +204,15 @@ Example of adding a second Gemma model:
     },
 ```
 
-Redeploy the app with the new environment variables (e.g., `--set-env-vars GEMMA_27B_HOST=...`) to make the new model available in the UI dropdown.
+#### 3. Redeploy Chat App
+
+Redeploy the chat app, setting the new environment variable to the URL of your new service.
+
+```bash
+gcloud run deploy chat-app \
+  ... \
+  --set-env-vars GEMMA_27B_HOST=https://your-new-service-url,...
+```
 
 ## Log Example
 
