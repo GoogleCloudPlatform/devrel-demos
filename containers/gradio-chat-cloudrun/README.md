@@ -2,6 +2,8 @@
 
 This is a Cloud Run implementation of the AI Chat App.
 
+![Chat Interface](screenshots/ChatInterface.png)
+
 ## Architecture
 
 ```
@@ -193,6 +195,12 @@ Example of adding a second Gemma model:
 ```
 
 Redeploy the app with the new environment variables (e.g., `--set-env-vars GEMMA_27B_HOST=...`) to make the new model available in the UI dropdown.
+
+## Log Example
+
+This application logs each session as a document in Firestore.
+
+![Log Example](screenshots/LogExample.png)
 
 ## Cleanup
 
