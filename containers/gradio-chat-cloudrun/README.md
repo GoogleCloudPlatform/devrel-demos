@@ -59,7 +59,7 @@ gradio-chat-cloudrun/
 │   ├── infra/
 │   │   └── main.tf           # Terraform for Chat App resources
 │   └── Dockerfile            # Container definition for Chat App
-├── gemma-service/
+gemma-service/
 │   └── infra/
 │   │   └── main.tf           # Terraform for Gemma model service
 └── README.md
@@ -78,12 +78,9 @@ gradio-chat-cloudrun/
 Set these variables once to make the following commands copy-pasteable.
 
 ```bash
-export PROJECT_ID=$(gcloud config get-value project)
-export PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
-export REGION=us-central1
-export TF_VAR_project_id=$PROJECT_ID
-export TF_VAR_project_number=$PROJECT_NUMBER
-export TF_VAR_region=$REGION
+export TF_VAR_project_id=$(gcloud config get-value project)
+export TF_VAR_project_number=$(gcloud projects describe $TF_VAR_project_id --format="value(projectNumber)")
+export TF_VAR_region=us-central1
 ```
 
 ### 1. Deploy Gemma Service (Optional but recommended)
@@ -123,7 +120,7 @@ Build the container image and push it to the created Artifact Registry.
 
 ```bash
 cd ..
-gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT_ID/chat-app-repo/chat-app:latest .
+gcloud builds submit --tag $TF_VAR_region-docker.pkg.dev/$TF_VAR_project_id/chat-app-repo/chat-app:latest .
 ```
 
 ### 4. Deploy Chat App to Cloud Run
@@ -134,10 +131,10 @@ If you skipped deploying Gemma, you can set `GEMMA_HOST` to a placeholder, but G
 
 ```bash
 gcloud run deploy chat-app \
-  --image $REGION-docker.pkg.dev/$PROJECT_ID/chat-app-repo/chat-app:latest \
-  --region $REGION \
+  --image $TF_VAR_region-docker.pkg.dev/$TF_VAR_project_id/chat-app-repo/chat-app:latest \
+  --region $TF_VAR_region \
   --allow-unauthenticated \
-  --service-account=chat-app-run-sa@$PROJECT_ID.iam.gserviceaccount.com \
+  --service-account=chat-app-run-sa@$TF_VAR_project_id.iam.gserviceaccount.com \
   --set-env-vars GEMMA_HOST=$GEMMA_SERVICE_URL,GEMMA_ENDPOINT=/api/generate,GEMMA_MODEL=gemma3:4b
 ```
 
@@ -173,7 +170,7 @@ To avoid incurring charges, clean up the resources when you are done.
 
 1.  **Delete Chat App Service:**
     ```bash
-    gcloud run services delete chat-app --region $REGION --quiet
+    gcloud run services delete chat-app --region $TF_VAR_region --quiet
     ```
 
 2.  **Destroy Chat App Infrastructure:**
@@ -181,7 +178,7 @@ To avoid incurring charges, clean up the resources when you are done.
     ```bash
     terraform destroy -auto-approve
     ```
-    *(If it fails because Artifact Registry is not empty, run `gcloud artifacts repositories delete chat-app-repo --location=$REGION --quiet` and try again)*
+    *(If it fails because Artifact Registry is not empty, run `gcloud artifacts repositories delete chat-app-repo --location=$TF_VAR_region --quiet` and try again)*
 
 3.  **Destroy Gemma Service Infrastructure:**
     Navigate to `gemma-service/infra` and run:
