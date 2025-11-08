@@ -13,8 +13,10 @@
 # limitations under the License.
 
 import datetime
+import logging
 import os
 
+import google.api_core.exceptions
 import google.auth
 import google.auth.transport.requests
 import google.cloud
@@ -27,11 +29,19 @@ from google import genai
 from google.cloud import firestore
 from google.genai import types
 
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler()],
+)
+logger = logging.getLogger(__name__)
+
 ## Do one-time initialization things
 
 ## grab the project id from google auth
 _, project = google.auth.default()
-print(f"Project: {project}")
+logger.info(f"Project: {project}")
 
 # initialize vertex for interacting with Gemini
 client = genai.Client(
@@ -62,7 +72,7 @@ def call_gemma_model(
     }
 
     # Log what will be sent to the LLM
-    print("*** JSON request: " + str(json_message))  # Log the JSON request
+    logger.info(f"*** JSON request: {json_message}")
 
     # Send the constructed json with the user prompt to the model and put the model's response in the json_data variable
     json_data = post_request(json_message, config)
@@ -143,12 +153,12 @@ def save_chat_history(interaction, doc_ref):
     # Save the chat history, merging with existing data
     doc_ref.update({timestamp_str: interaction})
 
-    print("Chat history saved successfully!")  # Optional: Log success
+    logger.info("Chat history saved successfully!")
 
 
 # Send the json message to the model and return the model's response. This is used for Gemma but not Gemini. It could also be used for other models.
 def post_request(json_message, config):
-    print("*** Request" + str(json_message), flush=True)
+    logger.info(f"*** Request: {json_message}")
 
     host = config["host"]
     endpoint = config["endpoint"]
@@ -161,13 +171,13 @@ def post_request(json_message, config):
         headers["Authorization"] = f"Bearer {id_token}"
 
     url = f"{host.rstrip('/')}{endpoint}"
-    print(f"*** Posting to: {url}", flush=True)
+    logger.info(f"*** Posting to: {url}")
 
     # Set a timeout and check for HTTP errors. This will raise an exception on a bad status code (4xx or 5xx).
     response = requests.post(url, json=json_message, headers=headers, timeout=60)
     response.raise_for_status()
     json_data = response.json()
-    print("*** Output: " + str(json_data), flush=True)
+    logger.info(f"*** Output: {json_data}")
     return json_data
 
 
@@ -234,8 +244,8 @@ def inference_interface(
         )
 
     # Log info
-    print("Model: " + model_name)
-    print("* History: " + str(history))
+    logger.info(f"Model: {model_name}")
+    logger.info(f"* History: {history}")
 
     # Use the model configuration to process and call the appropriate model
     if model_name in MODEL_CONFIG:
@@ -251,9 +261,17 @@ def inference_interface(
                 max_tokens,
                 config["config"],
             )
-        except Exception as e:
-            print(f"Error calling {model_name}: {e}")
+        except (
+            requests.exceptions.RequestException,
+            google.api_core.exceptions.GoogleAPICallError,
+        ) as e:
+            logger.error(f"Error calling {model_name}: {e}", exc_info=True)
             output = f"An error occurred while communicating with {model_name}."
+        except Exception as e:
+            # Keep a generic catch-all for other unexpected errors (e.g., bugs in process_fn)
+            # to prevent crashing the Gradio worker entirely, but log it as an error.
+            logger.error(f"Unexpected error in {model_name} inference: {e}", exc_info=True)
+            output = "An unexpected error occurred."
     else:
         # Handle the case where no valid model is selected
         output = "Error: Invalid model selected."
@@ -261,7 +279,7 @@ def inference_interface(
     interaction = {"user": message, model_name: output}
 
     # Log the updated chat history
-    print("* History: " + str(history) + " " + str(interaction))
+    logger.info(f"* History: {history} {interaction}")
 
     # Save the updated history to Firestore
     save_chat_history(interaction, doc_ref)
