@@ -12,7 +12,7 @@ This is a Cloud Run implementation of the AI Chat App.
            v
 +---------------------+
 | Cloud Run: Chat App |----------------+
-| (Gradio Frontend)   |
+| (Gradio Frontend)   |                |
 +---------------------+
      |          |                      |
      |          | (HTTPS/REST)         | (API)
@@ -59,7 +59,7 @@ gradio-chat-cloudrun/
 │   ├── infra/
 │   │   └── main.tf           # Terraform for Chat App resources
 │   └── Dockerfile            # Container definition for Chat App
-gemma-service/
+├── gemma-service/
 │   └── infra/
 │   │   └── main.tf           # Terraform for Gemma model service
 └── README.md
@@ -70,6 +70,14 @@ gemma-service/
 1.  Google Cloud Project with billing enabled.
 2.  gcloud CLI installed and authenticated.
 3.  Terraform installed.
+
+## Getting Started
+
+Clone this repository and navigate to this directory:
+
+```bash
+cd containers/gradio-chat-cloudrun
+```
 
 ## Setup & Deployment
 
@@ -91,12 +99,19 @@ If you want to chat with the self-hosted Gemma model, deploy it first.
     ```bash
     cd gemma-service/infra
     ```
-2.  Initialize and apply Terraform:
+2.  Initialize Terraform:
     ```bash
     terraform init
+    ```
+3.  Review the planned changes. It is good practice to always review the plan before applying changes.
+    ```bash
+    terraform plan
+    ```
+4.  Apply the changes to create the resources:
+    ```bash
     terraform apply
     ```
-3.  Capture the Gemma service URL:
+5.  Capture the Gemma service URL:
     ```bash
     export GEMMA_SERVICE_URL=$(terraform output -raw gemma_service_url)
     echo "Gemma Service URL: $GEMMA_SERVICE_URL"
@@ -108,9 +123,16 @@ If you want to chat with the self-hosted Gemma model, deploy it first.
     ```bash
     cd ../../chat-app/infra
     ```
-2.  Initialize and apply Terraform to set up Artifact Registry, Firestore, and the Service Account:
+2.  Initialize Terraform:
     ```bash
     terraform init
+    ```
+3.  Review the planned changes:
+    ```bash
+    terraform plan
+    ```
+4.  Apply the changes to set up Artifact Registry, Firestore, and the Service Account:
+    ```bash
     terraform apply
     ```
 
