@@ -59,7 +59,7 @@ gradio-chat-cloudrun/
 │   ├── infra/
 │   │   └── main.tf           # Terraform for Chat App resources
 │   └── Dockerfile            # Container definition for Chat App
-├── gemma-service/
+gemma-service/
 │   └── infra/
 │   │   └── main.tf           # Terraform for Gemma model service
 └── README.md
@@ -91,7 +91,15 @@ export TF_VAR_project_number=$(gcloud projects describe $TF_VAR_project_id --for
 export TF_VAR_region=us-central1
 ```
 
-### 1. Deploy Gemma Service (Optional but recommended)
+### 1. Enable Cloud Resource Manager API
+
+Terraform requires this API to be enabled to manage your project.
+
+```bash
+gcloud services enable cloudresourcemanager.googleapis.com
+```
+
+### 2. Deploy Gemma Service (Optional but recommended)
 
 If you want to chat with the self-hosted Gemma model, deploy it first.
 
@@ -117,7 +125,7 @@ If you want to chat with the self-hosted Gemma model, deploy it first.
     echo "Gemma Service URL: $GEMMA_SERVICE_URL"
     ```
 
-### 2. Deploy Chat App Infrastructure
+### 3. Deploy Chat App Infrastructure
 
 1.  Navigate to the chat app infrastructure directory:
     ```bash
@@ -136,7 +144,7 @@ If you want to chat with the self-hosted Gemma model, deploy it first.
     terraform apply
     ```
 
-### 3. Build and Push Chat App Image
+### 4. Build and Push Chat App Image
 
 Build the container image and push it to the created Artifact Registry.
 
@@ -145,7 +153,7 @@ cd ..
 gcloud builds submit --tag $TF_VAR_region-docker.pkg.dev/$TF_VAR_project_id/chat-app-repo/chat-app:latest .
 ```
 
-### 4. Deploy Chat App to Cloud Run
+### 5. Deploy Chat App to Cloud Run
 
 Deploy the service using `gcloud`. This command uses the Service Account created by Terraform in step 2, which has the necessary permissions to invoke the Gemma service.
 
