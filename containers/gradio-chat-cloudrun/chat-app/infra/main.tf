@@ -56,7 +56,7 @@ resource "google_project_service" "vertexai" {
 }
 
 # Artifact Registry Repository for container images
-resource "google_artifact_registry_repository" "my-repo" {
+resource "google_artifact_registry_repository" "chat_app_repo" {
   project       = var.project_id
   location      = var.region
   repository_id = "chat-app-repo"
