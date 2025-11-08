@@ -137,7 +137,8 @@ def process_message_gemma(message, history):
 
 # Function to save chat history to Firestore
 def save_chat_history(interaction, doc_ref):
-    timestamp_str = str(datetime.datetime.now())
+    # Use UTC timestamp in ISO 8601 format
+    timestamp_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
     # Save the chat history, merging with existing data
     doc_ref.update({timestamp_str: interaction})
@@ -217,16 +218,20 @@ def inference_interface(
         doc_id = mapping_doc.get("doc_id")
     else:
         # Create new chronological ID: session-YYYYMMDD-HHMMSS-hash
-        timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        # Use UTC for consistency
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        timestamp = now_utc.strftime("%Y%m%d-%H%M%S")
         doc_id = f"session-{timestamp}-{session_hash}"
         # Save the mapping so future messages in this session use the same ID
-        mapping_ref.set({"doc_id": doc_id, "created_at": datetime.datetime.now()})
+        mapping_ref.set({"doc_id": doc_id, "created_at": now_utc})
 
     doc_ref = db.collection("chat_sessions").document(doc_id)
 
     # Create the session document if it doesn't exist
     if not doc_ref.get().exists:
-        doc_ref.set({"Session start": datetime.datetime.now()})
+        doc_ref.set(
+            {"Session start": datetime.datetime.now(datetime.timezone.utc)}
+        )
 
     # Log info
     print("Model: " + model_name)
