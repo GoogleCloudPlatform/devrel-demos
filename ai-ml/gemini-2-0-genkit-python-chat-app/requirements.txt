@@ -1,8 +1,0 @@
-google-genai
-streamlit
-genkit
-genkit-plugin-google-genai
-requests #might not be needed?
-dotenv
-asyncio
-pydantic
