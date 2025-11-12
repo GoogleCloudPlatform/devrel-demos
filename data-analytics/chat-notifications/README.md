@@ -6,6 +6,9 @@ It's an automation pipeline that monitors an [RSS feed](https://docs.cloud.googl
 
 This demo is the subject of a blog post, which can be found here: TBD
 
+This project is intended for demonstration purposes only. It is not
+intended for use in a production environment.
+
 ## Running the Demo
 
 This demo requires setup across Google Chat and Google Cloud Platform. 
