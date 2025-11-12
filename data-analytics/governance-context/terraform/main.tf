@@ -1,5 +1,3 @@
-# main.tf
-
 provider "google" {
   project = var.project_id
   region  = var.region
@@ -155,4 +153,92 @@ resource "google_bigquery_table" "temp_dump" {
   { "name": "val", "type": "FLOAT" }
 ]
 EOF
+}
+
+# ==================================================================
+# 4. Data Loading (DML Jobs)
+# ==================================================================
+# These jobs automatically insert data after table creation.
+# They replace the need for 'tables.sql' and manual 'bq query' execution.
+
+resource "google_bigquery_job" "load_fin_monthly" {
+  job_id   = "tf_job_load_fin_monthly_${formatdate("YYMMDDhhmmss", timestamp())}"
+  project  = var.project_id
+  location = var.region
+
+  query {
+    query = <<EOF
+      INSERT INTO `${var.project_id}.${google_bigquery_dataset.finance_mart.dataset_id}.${google_bigquery_table.monthly_closing.table_id}`
+      (closing_date, revenue_amt, cost_amt, profit_amt, status)
+      VALUES
+        ('2024-01-31', 1500000.00, 900000.00, 600000.00, 'FINALIZED'),
+        ('2024-02-29', 1450000.00, 850000.00, 600000.00, 'FINALIZED'),
+        ('2024-03-31', 1600000.00, 950000.00, 650000.00, 'FINALIZED');
+    EOF
+    create_disposition = ""
+    write_disposition = ""
+    use_legacy_sql = false
+  }
+  depends_on = [google_bigquery_table.monthly_closing]
+}
+
+resource "google_bigquery_job" "load_fin_quarterly" {
+  job_id   = "tf_job_load_fin_quarterly_${formatdate("YYMMDDhhmmss", timestamp())}"
+  project  = var.project_id
+  location = var.region
+
+  query {
+    query = <<EOF
+      INSERT INTO `${var.project_id}.${google_bigquery_dataset.finance_mart.dataset_id}.${google_bigquery_table.quarterly_public.table_id}`
+      (quarter_name, public_revenue, public_operating_income, disclosure_date)
+      VALUES
+        ('2024-Q1', 4550000.00, 1850000.00, '2024-04-15');
+    EOF
+    create_disposition = ""
+    write_disposition = ""
+    use_legacy_sql = false
+  }
+  depends_on = [google_bigquery_table.quarterly_public]
+}
+
+resource "google_bigquery_job" "load_mkt_realtime" {
+  job_id   = "tf_job_load_mkt_realtime_${formatdate("YYMMDDhhmmss", timestamp())}"
+  project  = var.project_id
+  location = var.region
+
+  query {
+    query = <<EOF
+      INSERT INTO `${var.project_id}.${google_bigquery_dataset.marketing_prod.dataset_id}.${google_bigquery_table.realtime_campaign.table_id}`
+      (event_time, campaign_id, estimated_revenue)
+      VALUES
+        (TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 10 MINUTE), 'CMP_SUMMER_EARLY', 120.50),
+        (TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 5 MINUTE), 'CMP_SUMMER_EARLY', 350.00),
+        (CURRENT_TIMESTAMP(), 'CMP_BRAND_AWARENESS', 50.00);
+    EOF
+    create_disposition = ""
+    write_disposition = ""
+    use_legacy_sql = false
+  }
+  depends_on = [google_bigquery_table.realtime_campaign]
+}
+
+resource "google_bigquery_job" "load_analyst_sandbox" {
+  job_id   = "tf_job_load_sandbox_${formatdate("YYMMDDhhmmss", timestamp())}"
+  project  = var.project_id
+  location = var.region
+
+  query {
+    query = <<EOF
+      INSERT INTO `${var.project_id}.${google_bigquery_dataset.analyst_sandbox.dataset_id}.${google_bigquery_table.temp_dump.table_id}`
+      (col1, val)
+      VALUES
+        ('2024-01 data maybe?', 1500000),
+        ('2024-01 data maybe?', 1500000),
+        ('test_row', 99999999);
+    EOF
+    create_disposition = ""
+    write_disposition = ""
+    use_legacy_sql = false
+  }
+  depends_on = [google_bigquery_table.temp_dump]
 }
