@@ -1,0 +1,14 @@
+apiVersion: skaffold/v4beta11
+kind: Config
+metadata:
+  name: ai-chatbot
+build:
+  artifacts:
+    - image: chat-app-image
+      context: .
+      docker:
+        dockerfile: deploy/Dockerfile
+  googleCloudBuild: {}
+manifests:
+  rawYaml:
+    - deploy/chat-deploy.yaml
