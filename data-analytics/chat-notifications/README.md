@@ -1,6 +1,8 @@
 # Creating a notification pipeline with BigQuery and Google Chat
 
-This repository contains the notebook code for a demonstration of a notification pipeline using BigQuery Studio notebooks. It's an automation pipeline that monitors an RSS feed, uses BigQuery to track what it's already seen, calls the Gemini API in Vertex to generate practical onboarding suggestions, and then posts them to Google Chat, all orchestrated from a scheduled BigQuery Studio notebook.
+This repository contains the notebook code for a demonstration of a notification pipeline using BigQuery Studio notebooks.
+
+It's an automation pipeline that monitors an [RSS feed](https://docs.cloud.google.com/feeds/bigquery-release-notes.xml), uses [BigQuery](https://docs.cloud.google.com/bigquery/docs/introduction) to track what it's already seen, calls the [Gemini API in Vertex](https://cloud.google.com/vertex-ai/generative-ai/docs) to generate practical onboarding suggestions, and then posts them to [Google Chat](https://workspace.google.com/products/chat/), all orchestrated from a scheduled [BigQuery Studio notebook](https://docs.cloud.google.com/bigquery/docs/notebooks-introduction).
 
 This demo is the subject of a blog post, which can be found here: TBD
 
