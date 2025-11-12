@@ -27,7 +27,7 @@ class ChatMessage:
     in_progress: bool = False
 
 class Models(Enum):
-    GEMINI_1_5_FLASH = "PostgreSQL"
+    GEMINI_2_5_FLASH = "PostgreSQL"
     PINECONE = "Pinecone"
 
 @dataclass
@@ -41,8 +41,8 @@ class State:
     input: str = ""
     conversations: list[Conversation] = field(default_factory=list)
     models: list[str] = field(default_factory=list)
-    gemini_api_key: str = ""
-    pinecone_api_key: str = ""
+    gemini_api_key: str = os.environ.get("GEMINI_API_KEY", "")
+    pinecone_api_key: str = os.environ.get("PINECONE_API_KEY", "")
     location: str = ""
     in_progress: bool = False
 

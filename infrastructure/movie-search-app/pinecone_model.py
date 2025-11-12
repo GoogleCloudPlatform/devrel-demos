@@ -34,7 +34,7 @@ def configure_gemini():
 def classify_intent(input: str) -> str:
     configure_gemini()
     model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash-latest",
+        model_name="gemini-2.5-flash",
         generation_config=generation_config,
         system_instruction=[intent_prompt],
     )
@@ -68,7 +68,7 @@ def get_movies(embedding: list[float]) -> dict:
 def send_prompt_flash(input: str, history: list[ChatMessage],sys_instruction: list[str]) -> Iterable[str]:
     configure_gemini()
     model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash-latest",
+        model_name="gemini-2.5-flash",
         generation_config=generation_config,
         system_instruction=sys_instruction,
     )

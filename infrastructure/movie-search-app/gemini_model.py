@@ -33,7 +33,7 @@ def configure_gemini():
 def classify_intent(input: str) -> str:
     configure_gemini()
     model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash-latest",
+        model_name="gemini-2.5-flash",
         generation_config=generation_config,
         system_instruction=[intent_prompt],
     )
@@ -53,7 +53,7 @@ def generate_embedding(input: str) -> list[float]:
 def send_prompt_flash(input: str, history: list[ChatMessage],sys_instruction: list[str]) -> Iterable[str]:
     configure_gemini()
     model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash-latest",
+        model_name="gemini-2.5-flash",
         generation_config=generation_config,
         system_instruction=sys_instruction,
     )
