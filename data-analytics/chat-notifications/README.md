@@ -47,7 +47,7 @@ It's a best practice to never paste sensitive URLs or keys directly into code. W
 
 ### **Part 3: The automation notebook**
 
-This is where the magic happens. We'll use a [BigQuery Studio](https://www.google.com/search?q=https://cloud.google.com/bigquery/docs/notebooks-intro) notebook to run all the steps as Python code. This notebook will perform all the logic: fetching, filtering, enriching, and posting.
+This is where the magic happens. We'll use a [BigQuery Studio](https://cloud.google.com/bigquery/docs/notebooks-introduction) notebook to run all the steps as Python code. This notebook will perform all the logic: fetching, filtering, enriching, and posting.
 
 The first step is to load the notebook into our BigQuery Studio environment:
 
