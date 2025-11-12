@@ -86,16 +86,7 @@ _DEFAULT_BORDER_SIDE = me.BorderSide(
   width="1px", style="solid", color=me.theme_var("secondary-fixed")
 )
 
-_STYLE_APP_CONTAINER = me.Style(
-  background=_COLOR_BACKGROUND,
-  display="flex",
-  flex_direction="column",
-  height="100%",
-  margin=me.Margin.symmetric(vertical=0, horizontal="auto"),
-  width="min(1024px, 100%)",
-  box_shadow=("0 3px 1px -2px #0003, 0 2px 2px #00000024, 0 1px 5px #0000001f"),
-  padding=me.Padding(top=20, left=20, right=20),
-)
+
 _STYLE_TITLE = me.Style(padding=me.Padding(left=10))
 
 _STYLE_CHAT_BOX = me.Style(
@@ -209,7 +200,7 @@ def get_movies(db: sqlalchemy.engine.base.Engine, embeddings: str) -> dict:
     stmt = sqlalchemy.text(
         """
         SELECT
-                mj.langchain_metadata->'title' as title,
+                mj.content as title,
                 mj.langchain_metadata->'summary' as summary,
                 mj.langchain_metadata->'director' as director,
                 mj.langchain_metadata->'actors' as actors,
@@ -295,13 +286,7 @@ def confirm_model_picker_dialog(e: me.ClickEvent):
 
 
 
-ROOT_BOX_STYLE = me.Style(
-    background="#e7f2ff",
-    height="100%",
-    font_family="Inter",
-    display="flex",
-    flex_direction="column",
-)
+
 
 
 
@@ -338,69 +323,102 @@ def page():
 
 
 
-    with me.box(style=_STYLE_APP_CONTAINER):
-        with me.content_button(
-            type="icon",
-            style=me.Style(position="absolute", right=4, top=8),
-            on_click=toggle_theme,
-        ):
-            me.icon("light_mode" if me.theme_brightness() == "dark" else "dark_mode")
+    # Determine background and container styles based on theme
+    if me.theme_brightness() == "dark":
+        background_url = "static/cinema_background_dark.png"
+        app_container_bg = "rgba(0, 0, 0, 0.5)"
+        border_color = "rgba(255, 255, 255, 0.2)"
+    else:
+        background_url = "static/cinema_background_light.png"
+        app_container_bg = "rgba(255, 255, 255, 0.5)"
+        border_color = "rgba(0, 0, 0, 0.2)"
 
-        title = "Movie Search Virtual Assistant"
+    root_box_style = me.Style(
+        background=f"url('{background_url}') center/cover",
+        height="100%",
+        font_family="Inter",
+        display="flex",
+        justify_content="center",
+        align_items="center",
+    )
 
-        if title:
-            me.text(title, type="headline-5", style=_STYLE_TITLE)
+    style_app_container = me.Style(
+        background=app_container_bg,
+        backdrop_filter="blur(10px)",
+        border=me.Border.all(me.BorderSide(width=1, style="solid", color=border_color)),
+        border_radius=12,
+        display="flex",
+        flex_direction="column",
+        height="calc(100% - 40px)",
+        width="min(1024px, calc(100% - 40px))",
+        box_shadow=("0 3px 1px -2px #0003, 0 2px 2px #00000024, 0 1px 5px #0000001f"),
+        padding=me.Padding(top=20, left=20, right=20),
+    )
 
-        with me.box(style=_STYLE_CHAT_BOX):
-            state = me.state(State)
-            for conversation in state.conversations:
-                for message in conversation.messages:
-                    with me.box(style=_make_style_chat_bubble_wrapper(message.role)):
-                        if message.role == _ROLE_ASSISTANT:
-                            me.text(bot_user, style=_STYLE_CHAT_BUBBLE_NAME)
-                    with me.box(style=_make_chat_bubble_style(message.role)):
-                        if message.role == _ROLE_USER:
-                            me.text(message.content, style=_STYLE_CHAT_BUBBLE_PLAINTEXT)
-                        else:
-                            me.markdown(message.content)
-    
-
-        with me.box(style=_STYLE_CHAT_INPUT_BOX):
-            with me.box(style=me.Style(flex_grow=1)):
-                me.input(
-                label=_LABEL_INPUT,
-                # Workaround: update key to clear input.
-                key=f"input-{len(state.conversations)}",
-                on_blur=on_blur,
-                on_enter=on_input_enter,
-                style=_STYLE_CHAT_INPUT,
-                )
-                with me.box(
-                style=me.Style(
-                    display="flex",
-                    padding=me.Padding(left=12, bottom=12),
-                    cursor="pointer",
-                ),
-                on_click=switch_model,
-                ):
-                    me.text(
-                        "Backend:",
-                        style=me.Style(font_weight=500, padding=me.Padding(right=6)),
-                    )
-                    if state.models:
-                        me.text(", ".join(state.models))
-                    else:
-                        me.text("(no backend selected)")
+    with me.box(style=root_box_style):
+        with me.box(style=style_app_container):
             with me.content_button(
-                color="primary",
-                type="flat",
-                disabled=state.in_progress,
-                on_click=send_prompt,
-                style=_STYLE_CHAT_BUTTON,
+                type="icon",
+                style=me.Style(position="absolute", right=4, top=8),
+                on_click=toggle_theme,
             ):
-                me.icon(
-                _LABEL_BUTTON_IN_PROGRESS if state.in_progress else _LABEL_BUTTON
-                )
+                me.icon("light_mode" if me.theme_brightness() == "dark" else "dark_mode")
+
+            title = "Movie Search Virtual Assistant"
+
+            if title:
+                me.text(title, type="headline-5", style=_STYLE_TITLE)
+
+            with me.box(style=_STYLE_CHAT_BOX):
+                state = me.state(State)
+                for conversation in state.conversations:
+                    for message in conversation.messages:
+                        with me.box(style=_make_style_chat_bubble_wrapper(message.role)):
+                            if message.role == _ROLE_ASSISTANT:
+                                me.text(bot_user, style=_STYLE_CHAT_BUBBLE_NAME)
+                        with me.box(style=_make_chat_bubble_style(message.role)):
+                            if message.role == _ROLE_USER:
+                                me.text(message.content, style=_STYLE_CHAT_BUBBLE_PLAINTEXT)
+                            else:
+                                me.markdown(message.content)
+        
+
+            with me.box(style=_STYLE_CHAT_INPUT_BOX):
+                with me.box(style=me.Style(flex_grow=1)):
+                    me.input(
+                    label=_LABEL_INPUT,
+                    # Workaround: update key to clear input.
+                    key=f"input-{sum(len(c.messages) for c in state.conversations)}",
+                    on_blur=on_blur,
+                    on_enter=on_input_enter,
+                    style=_STYLE_CHAT_INPUT,
+                    )
+                    with me.box(
+                    style=me.Style(
+                        display="flex",
+                        padding=me.Padding(left=12, bottom=12),
+                        cursor="pointer",
+                    ),
+                    on_click=switch_model,
+                    ):
+                        me.text(
+                            "Backend:",
+                            style=me.Style(font_weight=500, padding=me.Padding(right=6)),
+                        )
+                        if state.models:
+                            me.text(", ".join(state.models))
+                        else:
+                            me.text("(no backend selected)")
+                with me.content_button(
+                    color="primary",
+                    type="flat",
+                    disabled=state.in_progress,
+                    on_click=send_prompt,
+                    style=_STYLE_CHAT_BUTTON,
+                ):
+                    me.icon(
+                    _LABEL_BUTTON_IN_PROGRESS if state.in_progress else _LABEL_BUTTON
+                    )
 
 
 def switch_model(e: me.ClickEvent):
@@ -432,7 +450,7 @@ def send_prompt(e: me.ClickEvent):
         messages.append(ChatMessage(role="model", in_progress=True))
         yield
 
-        if model == Models.GEMINI_1_5_FLASH.value:
+        if model == Models.GEMINI_2_5_FLASH.value:
             while True:
                 intent_str = gemini_model.classify_intent(input)
                 print(intent_str)
@@ -501,4 +519,3 @@ def send_prompt(e: me.ClickEvent):
             yield
         messages[-1].in_progress = False
         yield
-
