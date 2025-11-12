@@ -15,7 +15,7 @@ This demo requires setup across Google Chat and Google Cloud Platform.
 Before you begin, you'll need:
 
 * A [Google Workspace account](https://support.google.com/a/answer/6043576). The ability to add webhooks to a Google Chat space is a Google Workspace feature and is (unfortunately\!) not available for regular consumer Gmail accounts.  
-* A [Google Cloud project](https://cloud.google.com/apis/docs/getting-started?_gl=1*1ipveva*_ga*MTM4MTk1ODQ5Ni4xNzU4OTE1Mzkz*_ga_NRWSTWS78N*czE3NjE5MzcwMDAkbzEkZzEkdDE3NjE5MzcwMTAkajUwJGwwJGgw#creating_a_google_project) with [billing enabled](https://cloud.google.com/billing/docs/how-to/modify-project).  
+* A [Google Cloud project](https://cloud.google.com/apis/docs/getting-started#creating_a_google_project) with [billing enabled](https://cloud.google.com/billing/docs/how-to/modify-project).  
 * The [BigQuery, Vertex AI, and Secret Manager APIs enabled](https://console.cloud.google.com/flows/enableapi?apiid=bigquery.googleapis.com,aiplatform.googleapis.com,secretmanager.googleapis.com) in your Google Cloud project.  
 * Sufficient [permissions on your account](https://docs.cloud.google.com/iam/docs/granting-changing-revoking-access#multiple-roles-console) or a service account. For this guide, we'll assume you are running with credentials that have the BigQuery Admin, Vertex AI User, and Secret Manager Admin roles.
 
