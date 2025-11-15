@@ -4,6 +4,8 @@ datasets==4.2.0
 huggingface_hub==0.35.3
 bitsandbytes==0.48.1
 google-cloud-storage==2.14.0
+kagglehub==0.3.13
+pandas==2.3.3
 --extra-index-url https://download.pytorch.org/whl/cu121
 
 # Use a consistent, modern set of libraries for compatibility
