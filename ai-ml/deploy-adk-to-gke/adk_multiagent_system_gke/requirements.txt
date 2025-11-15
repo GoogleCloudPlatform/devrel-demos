@@ -1,7 +1,7 @@
 # Lists all Python dependencies required to run the multi-agent system
 
 # For the multi-agent workflow
-langchain-community==0.3.20
+langchain-community==0.3.27
 wikipedia==1.4.0
 
 # Core ADK library and its web server dependencies
