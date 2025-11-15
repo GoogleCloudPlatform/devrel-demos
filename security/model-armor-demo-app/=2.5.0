@@ -1,0 +1,10 @@
+Requirement already satisfied: urllib3 in ./venv/lib/python3.13/site-packages (1.26.20)
+Collecting urllib3
+  Using cached urllib3-2.5.0-py3-none-any.whl.metadata (6.5 kB)
+Using cached urllib3-2.5.0-py3-none-any.whl (129 kB)
+Installing collected packages: urllib3
+  Attempting uninstall: urllib3
+    Found existing installation: urllib3 1.26.20
+    Uninstalling urllib3-1.26.20:
+      Successfully uninstalled urllib3-1.26.20
+Successfully installed urllib3-2.5.0

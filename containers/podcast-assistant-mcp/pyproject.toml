@@ -1,0 +1,11 @@
+[project]
+name = "podcast-assistant"
+version = "0.1.0"
+description = "Podcast Assistant MCP server on Cloud Run"
+requires-python = ">=3.13"
+dependencies = [
+    "fastmcp==2.12.3",
+    "google-cloud-storage==3.4.1",
+    "google-genai==1.36.0",
+    "packaging==25.0",
+]
