@@ -18,7 +18,6 @@ from huggingface_hub import login
 from google.cloud import storage
 import kagglehub
 import pandas as pd
-from PIL import Image
 
 
 
