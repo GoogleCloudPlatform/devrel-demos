@@ -10,12 +10,14 @@ from sklearn.metrics import accuracy_score, f1_score
 
 import torch
 import gc
-from datasets import load_dataset
+from datasets import load_dataset, Dataset, Image as HFImage, Features, ClassLabel
 from peft import LoraConfig, PeftModel
 from transformers import AutoModelForImageTextToText, AutoProcessor
 from trl import SFTTrainer, SFTConfig
 from huggingface_hub import login
 from google.cloud import storage
+import kagglehub
+import pandas as pd
 
 
 
@@ -39,8 +41,6 @@ def parse_args():
                        help='Number of training samples (default: 500)')
     parser.add_argument('--eval-size', type=int, default=100,
                        help='Number of evaluation samples (default: 100)')
-    parser.add_argument('--dataset-name', type=str, default='sarath2003/BreakHis',
-                       help='HuggingFace dataset name')
     
     # Training parameters
     parser.add_argument('--num-epochs', type=int, default=5,
@@ -99,24 +99,103 @@ def authenticate_huggingface(hf_token=None):
         sys.exit(1)
 
 
-def load_data(dataset_name, train_size, eval_size):
-    """Load and prepare the dataset."""
-    logger.info(f"Loading dataset: {dataset_name}")
-    
+def get_label_from_filename(filename):
+    """Extract label from BreakHis filename path."""
+    filename = filename.replace('\\', '/').lower()
+    if '/adenosis/' in filename: return 0
+    if '/fibroadenoma/' in filename: return 1
+    if '/phyllodes_tumor/' in filename: return 2
+    if '/tubular_adenoma/' in filename: return 3
+    if '/ductal_carcinoma/' in filename: return 4
+    if '/lobular_carcinoma/' in filename: return 5
+    if '/mucinous_carcinoma/' in filename: return 6
+    if '/papillary_carcinoma/' in filename: return 7
+    return -1
+
+def load_data(train_size, eval_size):
+    """Load, balance, and prepare the dataset from Kaggle."""
+    logger.info("Loading and preparing data from Kaggle...")
+
     try:
-        dataset = load_dataset(dataset_name, split="train").shuffle(seed=42)
-        train_data = dataset.select(range(train_size))
-        eval_data = dataset.select(range(train_size, train_size + eval_size))
+        # Download dataset from Kaggle
+        path = kagglehub.dataset_download("ambarish/breakhis")
+        logger.info(f"✓ Kaggle dataset downloaded to: {path}")
         
+        folds = pd.read_csv(f'{path}/Folds.csv')
+        
+        # Filter for 100X magnification, fold 1
+        folds_100x = folds[(folds['mag'] == 100) & (folds['fold'] == 1)]
+        
+        # Get train/test splits
+        folds_100x_test = folds_100x[folds_100x['grp'] == 'test']
+        folds_100x_train = folds_100x[folds_100x['grp'] == 'train']
+
+        # --- Create Balanced TRAIN Set ---
+        train_benign_df = folds_100x_train[folds_100x_train['filename'].str.contains('benign')]
+        train_malignant_df = folds_100x_train[folds_100x_train['filename'].str.contains('malignant')]
+        min_train_count = min(len(train_benign_df), len(train_malignant_df))
+        
+        balanced_train_benign = train_benign_df.sample(n=min_train_count, random_state=42)
+        balanced_train_malignant = train_malignant_df.sample(n=min_train_count, random_state=42)
+        balanced_train_df = pd.concat([balanced_train_benign, balanced_train_malignant])
+
+        # --- Create Balanced TEST Set ---
+        test_benign_df = folds_100x_test[folds_100x_test['filename'].str.contains('benign')]
+        test_malignant_df = folds_100x_test[folds_100x_test['filename'].str.contains('malignant')]
+        min_test_count = min(len(test_benign_df), len(test_malignant_df))
+
+        balanced_test_benign = test_benign_df.sample(n=min_test_count, random_state=42)
+        balanced_test_malignant = test_malignant_df.sample(n=min_test_count, random_state=42)
+        balanced_test_df = pd.concat([balanced_test_benign, balanced_test_malignant])
+        
+        train_filenames = balanced_train_df['filename'].values
+        test_filenames = balanced_test_df['filename'].values
+        
+        # Define base path for images
+        base_path = f"{path}/BreaKHis_v1"
+
+        CLASS_NAMES = [
+            'benign_adenosis', 'benign_fibroadenoma', 'benign_phyllodes_tumor',
+            'benign_tubular_adenoma', 'malignant_ductal_carcinoma',
+            'malignant_lobular_carcinoma', 'malignant_mucinous_carcinoma',
+            'malignant_papillary_carcinoma'
+        ]
+
+        features = Features({
+            'image': HFImage(),
+            'label': ClassLabel(names=CLASS_NAMES)
+        })
+
+        # Create HF datasets
+        train_data_dict = {
+            'image': [os.path.join(base_path, f) for f in train_filenames],
+            'label': [get_label_from_filename(f) for f in train_filenames]
+        }
+        eval_data_dict = {
+            'image': [os.path.join(base_path, f) for f in test_filenames],
+            'label': [get_label_from_filename(f) for f in test_filenames]
+        }
+
+        train_data = Dataset.from_dict(train_data_dict, features=features).cast_column("image", HFImage())
+        eval_data = Dataset.from_dict(eval_data_dict, features=features).cast_column("image", HFImage())
+
+        # Sub-sample if requested
+        if len(train_data) > train_size:
+             train_data = train_data.shuffle(seed=42).select(range(train_size))
+        if len(eval_data) > eval_size:
+            eval_data = eval_data.shuffle(seed=42).select(range(eval_size))
+
         cancer_classes = train_data.features["label"].names
         
-        logger.info(f"✓ Loaded {len(train_data)} training samples")
-        logger.info(f"✓ Loaded {len(eval_data)} evaluation samples")
+        logger.info(f"✓ Loaded {len(train_data)} training samples (balanced and sampled)")
+        logger.info(f"✓ Loaded {len(eval_data)} evaluation samples (balanced and sampled)")
         logger.info(f"✓ Classes: {cancer_classes}")
         
         return train_data, eval_data, cancer_classes
     except Exception as e:
-        logger.error(f"Failed to load dataset: {e}")
+        logger.error(f"Failed to load dataset from Kaggle: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         sys.exit(1)
 
 
@@ -174,7 +253,7 @@ def postprocess_prediction(text):
     return int(digit_match.group(1)) if digit_match else -1
 
 
-def batch_predict(model, processor, prompts, images, batch_size=16, max_new_tokens=40):
+def batch_predict(model, processor, prompts, images, batch_size=8, max_new_tokens=40):
     """Run batch inference on the model - MATCHES NOTEBOOK VERSION."""
     import sys
     import time
@@ -388,13 +467,24 @@ def evaluate_model(model, processor, eval_data, prompt, batch_size=16):
     logger.info(f"[CHECKPOINT 9] Computing metrics... (elapsed: {t_cp9-t_start:.2f}s)")
     sys.stdout.flush()
     metrics_start = time.time()
-    accuracy = accuracy_score(eval_labels, predictions)
-    f1 = f1_score(eval_labels, predictions, average='weighted', zero_division=0)
+
+    # 8-class metrics
+    accuracy_8class = accuracy_score(eval_labels, predictions)
+    f1_8class_weighted = f1_score(eval_labels, predictions, average='weighted', zero_division=0)
+
+    # Binary metrics (benign/malignant)
+    binary_preds = [1 if p > 3 else 0 if p >= 0 else -1 for p in predictions]
+    binary_refs = [1 if r > 3 else 0 for r in eval_labels]
+    accuracy_binary = accuracy_score(binary_refs, binary_preds)
+    f1_binary_malignant = f1_score(binary_refs, binary_preds, average='binary', zero_division=0)
+    
     metrics_time = time.time() - metrics_start
     
     metrics = {
-        'accuracy': accuracy,
-        'f1': f1
+        'accuracy_8class': accuracy_8class,
+        'f1_8class_weighted': f1_8class_weighted,
+        'accuracy_binary': accuracy_binary,
+        'f1_binary_malignant': f1_binary_malignant,
     }
     
     # Log results
@@ -402,8 +492,10 @@ def evaluate_model(model, processor, eval_data, prompt, batch_size=16):
     total_time = time.time() - t_start
     logger.info("="*60)
     logger.info("EVALUATION RESULTS:")
-    logger.info(f"  Accuracy: {metrics['accuracy']:.1%}")
-    logger.info(f"  F1 Score: {metrics['f1']:.3f}")
+    logger.info(f"  Accuracy (8-class):   {metrics['accuracy_8class']:.1%}")
+    logger.info(f"  F1 Score (8-class):   {metrics['f1_8class_weighted']:.3f}")
+    logger.info(f"  Accuracy (Binary):    {metrics['accuracy_binary']:.1%}")
+    logger.info(f"  F1 Score (Binary):    {metrics['f1_binary_malignant']:.3f}")
     logger.info(f"  Valid predictions: {sum(1 for p in predictions if p != -1)}/{len(predictions)}")
     logger.info(f"\nTiming breakdown:")
     logger.info(f"  Prompt preparation: {prompt_time:.1f}s ({prompt_time/total_time*100:.1f}%)")
@@ -466,7 +558,6 @@ def train_model(model, processor, train_data, eval_data, args):
         output_dir=args.output_dir,
         num_train_epochs=args.num_epochs,
         per_device_train_batch_size=args.batch_size,
-        per_device_eval_batch_size=args.batch_size,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         gradient_checkpointing=True,
         optim="paged_adamw_8bit",
@@ -476,7 +567,8 @@ def train_model(model, processor, train_data, eval_data, args):
         max_grad_norm=0.3,
         bf16=torch.cuda.is_available(),
         logging_steps=10,
-        save_strategy="epoch",
+        save_strategy="steps",
+        save_steps=100,
         eval_strategy="epoch",
         push_to_hub=False,
         report_to="none",
@@ -498,7 +590,7 @@ def train_model(model, processor, train_data, eval_data, args):
     
     # Train
     logger.info(f"Total training steps: ~{(len(train_data) * args.num_epochs) // args.gradient_accumulation_steps}")
-    trainer.train()
+    trainer.train(resume_from_checkpoint=True)
     
     # Save
     trainer.save_model()
@@ -606,7 +698,7 @@ Answer with only the number (0-7):"""
     
     # Load data
     train_data, eval_data, cancer_classes = load_data(
-        args.dataset_name, args.train_size, args.eval_size
+        args.train_size, args.eval_size
     )
     
     # Format data
@@ -660,12 +752,19 @@ Answer with only the number (0-7):"""
     merged_model = finetuned_model.merge_and_unload()
     logger.info("✓ Merged base model and LoRA adapter")
 
+    processor_finetuned = AutoProcessor.from_pretrained(args.model_id)
+    processor_finetuned.tokenizer.padding_side = "right"
+
+    # Configure for generation
+    merged_model.generation_config.max_new_tokens = 50
+    merged_model.generation_config.pad_token_id = processor_finetuned.tokenizer.pad_token_id
+    merged_model.config.pad_token_id = processor_finetuned.tokenizer.pad_token_id
+
     # Save merged model and processor
     merged_model_dir = f"{args.output_dir}-merged"
     logger.info(f"Saving merged model to: {merged_model_dir}")
     merged_model.save_pretrained(merged_model_dir)
     
-    processor_finetuned = AutoProcessor.from_pretrained(args.output_dir)
     processor_finetuned.save_pretrained(merged_model_dir)
     logger.info("✓ Saved merged model and processor")
 
@@ -687,12 +786,21 @@ Answer with only the number (0-7):"""
     logger.info("\n" + "="*80)
     logger.info("FINAL RESULTS")
     logger.info("="*80)
-    logger.info(f"Baseline Accuracy:    {baseline_metrics['accuracy']:.1%}")
-    logger.info(f"Fine-tuned Accuracy:  {finetuned_metrics['accuracy']:.1%}")
-    logger.info(f"Improvement:          {(finetuned_metrics['accuracy'] - baseline_metrics['accuracy'])*100:+.1f}%")
-    logger.info(f"\nBaseline F1:          {baseline_metrics['f1']:.3f}")
-    logger.info(f"Fine-tuned F1:        {finetuned_metrics['f1']:.3f}")
-    logger.info(f"Improvement:          {finetuned_metrics['f1'] - baseline_metrics['f1']:+.3f}")
+    logger.info(f"\n--- 8-Class Classification (0-7) ---")
+    logger.info(f"Baseline Accuracy:    {baseline_metrics['accuracy_8class']:.1%}")
+    logger.info(f"Fine-tuned Accuracy:  {finetuned_metrics['accuracy_8class']:.1%}")
+    logger.info(f"Improvement:          {(finetuned_metrics['accuracy_8class'] - baseline_metrics['accuracy_8class'])*100:+.1f}%")
+    logger.info(f"\nBaseline F1:          {baseline_metrics['f1_8class_weighted']:.3f}")
+    logger.info(f"Fine-tuned F1:        {finetuned_metrics['f1_8class_weighted']:.3f}")
+    logger.info(f"Improvement:          {finetuned_metrics['f1_8class_weighted'] - baseline_metrics['f1_8class_weighted']:+.3f}")
+
+    logger.info(f"\n--- Binary (Benign/Malignant) Classification ---")
+    logger.info(f"Baseline Accuracy:    {baseline_metrics['accuracy_binary']:.1%}")
+    logger.info(f"Fine-tuned Accuracy:  {finetuned_metrics['accuracy_binary']:.1%}")
+    logger.info(f"Improvement:          {(finetuned_metrics['accuracy_binary'] - baseline_metrics['accuracy_binary'])*100:+.1f}%")
+    logger.info(f"\nBaseline F1:          {baseline_metrics['f1_binary_malignant']:.3f}")
+    logger.info(f"Fine-tuned F1:        {finetuned_metrics['f1_binary_malignant']:.3f}")
+    logger.info(f"Improvement:          {finetuned_metrics['f1_binary_malignant'] - baseline_metrics['f1_binary_malignant']:+.3f}")
     logger.info("="*80)
     
     # Save results
@@ -700,16 +808,22 @@ Answer with only the number (0-7):"""
         "timestamp": datetime.now().isoformat(),
         "config": vars(args),
         "baseline": {
-            "accuracy": float(baseline_metrics['accuracy']),
-            "f1": float(baseline_metrics['f1'])
+            "accuracy_8class": float(baseline_metrics['accuracy_8class']),
+            "f1_8class_weighted": float(baseline_metrics['f1_8class_weighted']),
+            "accuracy_binary": float(baseline_metrics['accuracy_binary']),
+            "f1_binary_malignant": float(baseline_metrics['f1_binary_malignant'])
         },
         "finetuned": {
-            "accuracy": float(finetuned_metrics['accuracy']),
-            "f1": float(finetuned_metrics['f1'])
+            "accuracy_8class": float(finetuned_metrics['accuracy_8class']),
+            "f1_8class_weighted": float(finetuned_metrics['f1_8class_weighted']),
+            "accuracy_binary": float(finetuned_metrics['accuracy_binary']),
+            "f1_binary_malignant": float(finetuned_metrics['f1_binary_malignant'])
         },
         "improvement": {
-            "accuracy": float(finetuned_metrics['accuracy'] - baseline_metrics['accuracy']),
-            "f1": float(finetuned_metrics['f1'] - baseline_metrics['f1'])
+            "accuracy_8class": float(finetuned_metrics['accuracy_8class'] - baseline_metrics['accuracy_8class']),
+            "f1_8class_weighted": float(finetuned_metrics['f1_8class_weighted'] - baseline_metrics['f1_8class_weighted']),
+            "accuracy_binary": float(finetuned_metrics['accuracy_binary'] - baseline_metrics['accuracy_binary']),
+            "f1_binary_malignant": float(finetuned_metrics['f1_binary_malignant'] - baseline_metrics['f1_binary_malignant'])
         }
     }
     save_results(results, args.results_file)
