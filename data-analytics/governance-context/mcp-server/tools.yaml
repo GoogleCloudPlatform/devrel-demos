@@ -1,0 +1,20 @@
+sources:
+  dataplex:
+    kind: dataplex
+    project: ${GOOGLE_CLOUD_PROJECT}
+
+tools:
+  search_entries:
+    kind: dataplex-search-entries
+    source: dataplex
+    description: Search for entries in Dataplex Catalog.
+
+  lookup_entry:
+    kind: dataplex-lookup-entry
+    source: dataplex
+    description: Retrieve a specific entry from Dataplex Catalog.
+
+  search_aspect_types:
+    kind: dataplex-search-aspect-types
+    source: dataplex
+    description: Find aspect types relevant to a query.

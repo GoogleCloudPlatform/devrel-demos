@@ -1,0 +1,3 @@
+langchain-community==0.3.20
+wikipedia==1.4.0
+google-adk==1.17.0
