@@ -62,4 +62,3 @@ ${ASPECT_KEY}:
 EOF
 
 echo "✅ Successfully generated 4 YAML payloads in ./aspect_payloads/"
-
