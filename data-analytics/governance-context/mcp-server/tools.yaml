@@ -18,3 +18,9 @@ tools:
     kind: dataplex-search-aspect-types
     source: dataplex
     description: Find aspect types relevant to a query.
+
+toolsets:
+  dataplex-toolset:
+    - search_entries
+    - lookup_entry
+    - search_aspect_types

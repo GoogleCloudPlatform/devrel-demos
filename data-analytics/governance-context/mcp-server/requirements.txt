@@ -2,3 +2,4 @@ google-adk==1.14.0
 google-auth
 requests
 python-dotenv
+toolbox-core
