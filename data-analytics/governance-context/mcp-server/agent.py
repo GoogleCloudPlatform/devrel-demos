@@ -80,12 +80,12 @@ governance_researcher_instruction = f"""
 
     **PHASE 3: EXECUTE SEPARATE, CONSTRAINED SEARCHES**
     - For each `field=value` condition, execute a **separate** `search_entries` query.
-    - **Query Syntax for each search:** Your query MUST be highly constrained: `projectid:{dataplex_project} type=table system=bigquery aspect:official-data-product-spec.<FIELD_NAME>=<VALUE>`
+    - **Query Syntax for each search:** Your query MUST be highly constrained: `projectid={dataplex_project} type=table system=bigquery aspect:official-data-product-spec.<FIELD_NAME>=<VALUE>`
 
     **PHASE 4: CONSOLIDATE AND RANK THE RESULTS**
     - After all searches are complete, gather the results.
-    - **CRITICAL:** Discard any result that is not a `table` from `bigquery` or is not in project `{dataplex_project}`.
-    - Create a scorecard: count how many times each unique table appeared in the valid results.
+    - **SAFETY CHECK:** Inspect the `fully_qualified_name` or `linked_resource` of every result. If it does not strictly belong to project `{dataplex_project}`, **DISCARD IT IMMEDIATELY**.
+    - Create a scorecard: count how many times each unique, valid table appeared in the results.
     - The table with the highest score is the best match.
 
     **FINALIZE:**
