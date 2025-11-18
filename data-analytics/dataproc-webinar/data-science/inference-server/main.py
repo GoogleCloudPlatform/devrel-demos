@@ -44,13 +44,6 @@ def load_model(model_path):
 GCS_BUCKET = os.environ.get("GCS_BUCKET")
 GCS_MODEL_PATH = os.environ.get("GCS_MODEL_PATH")
 LOCAL_MODEL_DIR = "/tmp/model"  
-    
-# Load Model on Startup
-logging.info("Downloading model from GCS...")
-download_model(GCS_BUCKET, GCS_MODEL_PATH, LOCAL_MODEL_DIR)
-logging.info("Loading PySpark model...")
-MODEL = load_model(LOCAL_MODEL_DIR)
-logging.info("Model loaded.")
 
 try:
     spark = SparkSession.builder \
@@ -61,6 +54,13 @@ try:
 except Exception as e:
     logging.error(f"Failed to initialize Spark Session: {e}")
     raise
+    
+# Load Model on Startup
+logging.info("Downloading model from GCS...")
+download_model(GCS_BUCKET, GCS_MODEL_PATH, LOCAL_MODEL_DIR)
+logging.info("Loading PySpark model...")
+MODEL = load_model(LOCAL_MODEL_DIR)
+logging.info("Model loaded.")
 
 # --- Flask Application Setup ---
 app = Flask(__name__)
