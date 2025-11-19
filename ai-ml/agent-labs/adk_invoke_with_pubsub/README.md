@@ -1,7 +1,7 @@
 # Invoke agent application asynchronously using PubSub
 
-This demo shows how to use [Eventarc][1] to [trigger a Cloud Run service][2] in order to implement asynchronous invocation of an AI agent deployed on Cloud Run.
-The AI agent implements a single AI agent application that helps visitors to a fictional Zoo to learn about animals in the Zoo.
+This demo is a single AI agent application that helps visitors to a fictional Zoo to learn about animals in the Zoo.
+The demo shows how to use [Eventarc][1] to [trigger a Cloud Run service][2] in order to implement asynchronous invocation of an AI agent deployed on Cloud Run using PubSub messaging.
 The demo uses [ADK][3] to develop agentic applications and follows best security practices to deploy the application in a way that it can be accessed only using Eventarc events.
 
 ## How to deploy
