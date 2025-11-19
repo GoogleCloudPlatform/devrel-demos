@@ -1,0 +1,3 @@
+cloudevents>=1.12
+google-adk>=1.18
+google-cloud-pubsub>=2.33
