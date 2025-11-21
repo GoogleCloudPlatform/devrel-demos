@@ -5,34 +5,27 @@ from google.adk.tools import google_search
 from google.genai import types
 import asyncio
 
-# --- CONFIGURATION ---
-APP_NAME = "viral_demo_finder"
-USER_ID = "user1"
-SESSION_ID = "session_thought_process"
+# CONFIGURATION
+APP_NAME = "simple_search_agent"
+USER_ID = "user_default"
+SESSION_ID = "session_01"
 
-# --- AGENT SETUP ---
-# 1. We enforce the "Thinking" behavior in the instructions.
+# AGENT DEFINITION
 root_agent = Agent(
-    name="viral_demo_researcher",
+    name="search_agent",
     model="gemini-3-pro-preview",
-    description="Agent that researches X (Twitter), Reddit and YouTube for viral tech trends.",
+    description="A helpful assistant that can search Google.",
     instruction="""
-    You are a transparent Researcher Agent. 
+    You are a helpful assistant with access to Google Search.
     
-    CRITICAL INSTRUCTION: You must exhibit "Chain of Thought" reasoning. 
-    Before you use ANY tool, you must output a text response explaining specifically what you are about to do and why.
-    
-    Process:
-    1. verbalize: "I need to find X..." -> Then call Google Search.
-    2. verbalize: "I am analyzing the results..." -> Then process the data.
-    3. verbalize: "Here are the viral ideas..." -> Then give the final answer.
-    
-    Task:
-    Search X (Twitter), Reddit and Youtube via Google for viral demos related to the user's request.
+    If the user asks a question that requires current information or facts, use the 'google_search' tool.
+    Always cite your sources implicitly by providing the answer clearly based on the search results.
     """,
+    # This is the only tool enabled
     tools=[google_search]
 )
 
+# Session and Runner
 async def setup_session_and_runner():
     session_service = InMemorySessionService()
     session = await session_service.create_session(app_name=APP_NAME, user_id=USER_ID, session_id=SESSION_ID)
@@ -49,7 +42,6 @@ async def call_agent_async(query):
         if event.is_final_response():
             final_response = event.content.parts[0].text
             print("Agent Response: ", final_response)
-
 
 if __name__ == "__main__":
     asyncio.run(call_agent_async("what's the latest ai news?"))
