@@ -85,8 +85,7 @@ gcloud services enable \
     ```shell
     gcloud pubsub topics add-iam-policy-binding agent_responses \
         --member="serviceAccount:${ZOOKEEPER_SA}" \
-        --role="roles/pubsub.publisher" \
-        --condition=None
+        --role="roles/pubsub.publisher"
     ```
 
 1. Deploy Cloud Run service from the source
@@ -96,6 +95,7 @@ gcloud services enable \
        --region="${LOCATION}" \
        --source="." \
        --no-allow-unauthenticated \
+       --quiet \
        --service-account="${ZOOKEEPER_SA}" \
        --set-env-vars="REPLY_TOPIC_ID=${RESPONSE_TOPIC_ID}"
    ```
@@ -109,7 +109,7 @@ The designated service account is granted permissions to write logs and traces (
 
    ```shell
    gcloud iam service-accounts create zookeeper-trigger-sa
-   export TRIGER_SA="zookeeper-trigger-sa@${PROJECT_ID}.iam.gserviceaccount.com"
+   export TRIGGER_SA="zookeeper-trigger-sa@${PROJECT_ID}.iam.gserviceaccount.com"
    ```
 
 1. Create event
@@ -122,7 +122,7 @@ The designated service account is granted permissions to write logs and traces (
        --destination-run-region="${LOCATION}" \
        --event-filters="type=google.cloud.pubsub.topic.v1.messagePublished" \
        --transport-topic="${INVOKE_TOPIC_ID}" \
-       --service-account="${TRIGER_SA}"
+       --service-account="${TRIGGER_SA}"
    ```
 
 1. Grant permissions to the service account to invoke the agent deployed on Cloud Run
@@ -130,7 +130,7 @@ The designated service account is granted permissions to write logs and traces (
    ```shell
    gcloud run services add-iam-policy-binding zookeeper-agent \
        --region="${LOCATION}" \
-       --member="serviceAccount:${TRIGER_SA}" \
+       --member="serviceAccount:${TRIGGER_SA}" \
        --role="roles/run.invoker"
 
    PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
@@ -185,17 +185,29 @@ Change the "location" value if you deploy to a region other than `us-central1`.
 
 ## Clean up
 
-TBD
+Delete the Cloud Run service to prevent accident charges due unexpected invocations:
+
+```shell
+gcloud run services delete zookeeper-agent \
+    --region="${LOCATION}"
+```
+
+In order to avoid any potential charges for logs generated during build and run of the Cloud Run service, consider shutting down (deleting) the project:
+
+```shell
+gcloud projects delete ${PROJECT_ID} --quiet
+```
 
 ## Additional materials
 
-* Use [] codelab to deploy and run the demo using guided step-by-step tutorial
+* Try out the demo with the [Asynchronous invocation of agentic AI application using events][6] codelab.
 * Learn how to [triggering Cloud Run service with PubSub][2]
 * Learn how to [deploy a customizable ADK Runner][4]
+* Learn how to [use Cloud Run events][5]
 
 [1]: https://docs.cloud.google.com/eventarc/docs
 [2]: https://docs.cloud.google.com/run/docs/triggering/pubsub-triggers
 [3]: https://google.github.io/adk-docs/
 [4]: https://google.github.io/adk-docs/observability/cloud-trace/#from-customized-agent-runner
-
-<https://codelabs.developers.google.com/codelabs/cloud-run-events#0>
+[5]: https://codelabs.developers.google.com/codelabs/cloud-run-events#0
+[6]: https://codelabs.developers.google.com/codelabs/genai/agents/async-invocation-with-adk#0
