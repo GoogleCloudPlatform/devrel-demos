@@ -30,7 +30,7 @@ spec:
       restartPolicy: Always
       containers:
       - name: ippr
-        image: us-docker.pkg.dev/kubecon-demos-project/kubecon/ippr:v0.1.0
+        image: us-docker.pkg.dev/kubecon-demos-project/kubecon/ippr:v0.1.3
         ports:
         - containerPort: 8080
         resizePolicy:
