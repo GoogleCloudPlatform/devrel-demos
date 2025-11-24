@@ -1,0 +1,46 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+kind: Gateway
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: ippr-gateway
+  namespace: ippr
+spec:
+  gatewayClassName: gke-l7-global-external-managed
+  listeners:
+  - name: https
+    protocol: HTTPS
+    port: 443
+    tls:
+      mode: Terminate # Terminate TLS using your SSL certificate.
+      options:
+        networking.gke.io/pre-shared-certs: ippr-learngke-dev-cert # Specify the Google Cloud SSL certificate resource name.
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: ippr-route
+  namespace: ippr
+  labels:
+    gateway: ippr-gateway
+spec:
+  parentRefs:
+  - name: ippr-gateway
+  hostnames:
+  - "ippr.learngke.dev"
+  rules:
+  - backendRefs:
+    - name: ippr-service
+      port: 80
