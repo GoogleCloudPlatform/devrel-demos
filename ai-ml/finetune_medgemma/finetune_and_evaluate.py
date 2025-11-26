@@ -88,16 +88,17 @@ def authenticate_huggingface(hf_token=None):
     """Authenticate with HuggingFace."""
     token = hf_token or os.environ.get('HF_TOKEN')
     if not token:
-        logger.error("No HuggingFace token provided. Set --hf-token or HF_TOKEN environment variable")
-        sys.exit(1)
+        # CHANGE: Do not exit immediately. Just warn.
+        logger.warning("⚠️ No HuggingFace token provided. This is fine IF you are loading a model from a local path/GCS mount.")
+        return
     
     try:
         login(token=token)
         logger.info("✓ Successfully authenticated with HuggingFace")
     except Exception as e:
         logger.error(f"Failed to authenticate with HuggingFace: {e}")
-        sys.exit(1)
-
+        # CHANGE: Allow proceeding even if auth fails, in case model is local
+        logger.warning("Continuing without authentication...")
 
 def get_label_from_filename(filename):
     """Extract label from BreakHis filename path."""
@@ -220,7 +221,13 @@ def format_data(example, prompt):
 def load_model_and_processor(model_id, device):
     """Load the model and processor."""
     logger.info(f"Loading model: {model_id}")
-     
+    
+    # CHANGE: Logic to detect if we are using a local GCS mount
+    if os.path.exists(model_id):
+        logger.info(f"✓ Found local model path: {model_id}")
+    else:
+        logger.info(f"ℹ️ Model path not found locally, attempting download from HF: {model_id}")
+
     if device == 'cuda' and not torch.cuda.is_available():
         logger.warning("CUDA not available, falling back to CPU")
         device = 'cpu'
@@ -232,20 +239,17 @@ def load_model_and_processor(model_id, device):
             'device_map': "auto",
         }
         
+        # This works for both local paths and HF IDs
         model = AutoModelForImageTextToText.from_pretrained(model_id, **model_kwargs)
         
         processor = AutoProcessor.from_pretrained(model_id)
         processor.tokenizer.padding_side = "right"
         
         logger.info(f"✓ Model loaded on {device}")
-        logger.info(f"✓ Model dtype: {next(model.parameters()).dtype}")
-        logger.info(f"✓ Model device: {next(model.parameters()).device}")
-        
         return model, processor
     except Exception as e:
         logger.error(f"Failed to load model: {e}")
         sys.exit(1)
-
 
 def postprocess_prediction(text):
     """Extract predicted class number from model output."""
