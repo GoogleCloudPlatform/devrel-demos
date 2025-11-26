@@ -221,13 +221,12 @@ def format_data(example, prompt):
 def load_model_and_processor(model_id, device):
     """Load the model and processor."""
     logger.info(f"Loading model: {model_id}")
-    
-    # CHANGE: Logic to detect if we are using a local GCS mount
-    if os.path.exists(model_id):
-        logger.info(f"✓ Found local model path: {model_id}")
-    else:
-        logger.info(f"ℹ️ Model path not found locally, attempting download from HF: {model_id}")
 
+    # NEW: Check if this is a path to our mounted bucket
+    if os.path.exists(model_id):
+        logger.info(f"✓ Found model files at path: {model_id} (GCS Mount)")
+    else:
+        logger.info(f"ℹ️ Path not found, assuming Hugging Face Model ID: {model_id}")
     if device == 'cuda' and not torch.cuda.is_available():
         logger.warning("CUDA not available, falling back to CPU")
         device = 'cpu'
