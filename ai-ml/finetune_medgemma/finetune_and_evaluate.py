@@ -545,6 +545,13 @@ def create_collate_fn(processor):
 def train_model(model, processor, train_data, eval_data, args):
     """Train the model with LoRA."""
     logger.info("Starting fine-tuning...")
+
+    # # NEW: Check for a potentially problematic output directory
+    # if '/tmp/mnt/' in args.output_dir:
+    #     new_output_dir = 'medgemma-finetuned-local'
+    #     logger.warning(f"Output directory '{args.output_dir}' seems to be on a read-only mount.")
+    #     logger.warning(f"Switching to a local directory: '{new_output_dir}'")
+    #     args.output_dir = new_output_dir
     
     # LoRA configuration
     peft_config = LoraConfig(
@@ -593,7 +600,7 @@ def train_model(model, processor, train_data, eval_data, args):
     
     # Train
     logger.info(f"Total training steps: ~{(len(train_data) * args.num_epochs) // args.gradient_accumulation_steps}")
-    trainer.train(resume_from_checkpoint=True)
+    trainer.train() #resume_from_checkpoint=True
     
     # Save
     trainer.save_model()
