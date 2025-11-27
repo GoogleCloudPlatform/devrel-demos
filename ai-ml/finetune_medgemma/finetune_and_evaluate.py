@@ -96,7 +96,7 @@ def authenticate_huggingface(hf_token=None):
         login(token=token)
         logger.info("✓ Successfully authenticated with HuggingFace")
     except Exception as e:
-        logger.error(f"Failed to authenticate with HuggingFace: {e}")
+        logger.info(f"Failed to authenticate with HuggingFace: {e}")
         # CHANGE: Allow proceeding even if auth fails, in case model is local
         logger.warning("Continuing without authentication...")
 
