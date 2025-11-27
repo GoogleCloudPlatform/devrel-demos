@@ -546,12 +546,12 @@ def train_model(model, processor, train_data, eval_data, args):
     """Train the model with LoRA."""
     logger.info("Starting fine-tuning...")
 
-    # # NEW: Check for a potentially problematic output directory
-    # if '/tmp/mnt/' in args.output_dir:
-    #     new_output_dir = 'medgemma-finetuned-local'
-    #     logger.warning(f"Output directory '{args.output_dir}' seems to be on a read-only mount.")
-    #     logger.warning(f"Switching to a local directory: '{new_output_dir}'")
-    #     args.output_dir = new_output_dir
+    # NEW: Check for a potentially problematic output directory
+    if '/tmp/mnt/' in args.output_dir:
+        new_output_dir = 'medgemma-finetuned-local'
+        logger.warning(f"Output directory '{args.output_dir}' seems to be on a read-only mount.")
+        logger.warning(f"Switching to a local directory: '{new_output_dir}'")
+        args.output_dir = new_output_dir
     
     # LoRA configuration
     peft_config = LoraConfig(
@@ -780,7 +780,11 @@ Answer with only the number (0-7):"""
 
     # Upload merged model to GCS if path is provided
     if args.gcs_output_path:
-        upload_directory_to_gcs(merged_model_dir, args.gcs_output_path)
+        try:
+            upload_directory_to_gcs(merged_model_dir, args.gcs_output_path)
+            logger.info("✓ Saved merged model and processor to the GCS bucket {args.gcs_output_path}")
+        except Exception as e:
+            logger.error(f"Wasn't able to save the fine tuned model to the GCS bucket: {e}")
 
     # Evaluate the merged model
     logger.info("Evaluating merged model...")
