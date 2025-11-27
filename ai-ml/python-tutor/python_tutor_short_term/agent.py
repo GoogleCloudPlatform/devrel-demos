@@ -2,7 +2,7 @@ from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.genai import types
 from typing import Optional
-from tools.tools import (
+from .tools.tools import (
     get_quiz_questions,
     start_quiz,
     submit_answer,
@@ -10,8 +10,8 @@ from tools.tools import (
     get_quiz_status,
     reset_quiz,
 )
-from python_tutor_core.prompts import BASE_PROMPT, QUIZ_INSTRUCTIONS
-from python_tutor_core.agent_utils import initialize_quiz_state
+from .python_tutor_core.prompts import BASE_PROMPT, QUIZ_INSTRUCTIONS
+from .python_tutor_core.agent_utils import initialize_quiz_state
 
 
 # Callback to initialize quiz state
