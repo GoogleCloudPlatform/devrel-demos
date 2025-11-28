@@ -12,7 +12,7 @@
   "dependencies": {
     "@google-cloud/pubsub": "^4.3.3",
     "dotenv": "^16.4.4",
-    "express": "^4.19.2",
+    "express": "^5.1.0",
     "firebase": "^10.8.0",
     "node-localstorage": "^3.0.5",
     "node-poweredup": "^8.0.5",
