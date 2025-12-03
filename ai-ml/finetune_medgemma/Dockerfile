@@ -45,4 +45,5 @@ ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 RUN mkdir -p /tmp/huggingface /tmp/transformers_cache /tmp/torch_cache /tmp/medgemma-finetuned && \
     chmod -R 777 /tmp
 
-CMD ["python3", "/app/finetune_and_evaluate.py", "--device", "cuda"]
+CMD ["python3", "/app/finetune_and_evaluate.py", "--device", "cuda", "--train-size", "200", "--eval-size", "100"]
+
