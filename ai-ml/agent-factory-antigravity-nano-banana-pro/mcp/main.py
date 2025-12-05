@@ -22,6 +22,7 @@ from dotenv import load_dotenv
 
 from nano_banana_pro import generate_image
 
+
 def _initialize_console_logging(min_level: int = logging.INFO):
     """Initializes Python root logger making sure Debug and Info
     messages go to STDOUT, while WARNING and above go to STDERR

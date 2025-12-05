@@ -26,7 +26,8 @@ load_dotenv()
 _, project_id_from_auth = google.auth.default()
 project_id = os.environ.get("GOOGLE_CLOUD_PROJECT") or project_id_from_auth
 if not project_id:
-    raise ValueError("Could not determine Google Cloud project ID. Please set the GOOGLE_CLOUD_PROJECT environment variable.")
+    raise ValueError("Could not determine Google Cloud project ID. Please set \
+                     the GOOGLE_CLOUD_PROJECT environment variable.")
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", project_id)
 os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "global")
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
@@ -40,15 +41,18 @@ ai_bucket_name = os.environ.get(
 ai_bucket = storage_client.get_bucket(ai_bucket_name)
 
 
-async def upload_data_to_gcs(agent_id: str, data: bytes, mime_type: str) -> str:
+async def upload_data_to_gcs(agent_id: str, data: bytes,
+                             mime_type: str) -> str:
     file_name = hashlib.md5(data).hexdigest()
     ext = mimetypes.guess_extension(mime_type) or ""
     file_name = f"{file_name}{ext}"
     blob_name = f"assets/{agent_id}/{file_name}"
     blob = Blob(bucket=ai_bucket, name=blob_name)
-    blob.upload_from_string(data, content_type=mime_type, client=storage_client)
+    blob.upload_from_string(data, content_type=mime_type,
+                            client=storage_client)
     gcs_url = f"gs://{ai_bucket_name}/{blob_name}"
     return gcs_url
+
 
 def download_data_from_gcs(url: str) -> types.Blob:
     blob = Blob.from_string(url, client=storage_client)

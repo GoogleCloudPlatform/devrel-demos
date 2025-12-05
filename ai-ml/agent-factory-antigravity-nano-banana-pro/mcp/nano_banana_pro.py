@@ -31,11 +31,13 @@ async def generate_image(
     source_image_gsc_uri: Optional[str] = None,
     aspect_ratio: Literal["16:9", "9:16"] = "16:9",
 ) -> MediaAsset:
-    """Generates an image using Gemini 3 Flash Image model (aka Nano Banana Pro).
-    Returns a MediaAsset object with the GCS URI of the generated image or an error text.
+    """Generates an image using Gemini 3 Flash Image model (Nano Banana Pro).
+    Returns a MediaAsset object with the GCS URI of the generated image or an
+    error text.
 
     Args:
-        prompt (str): Image generation prompt (may refer to the source image if it's provided).
+        prompt (str): Image generation prompt (may refer to the source image
+            if it's provided).
         source_image_gsc_uri (Optional[str], optional): Optional GCS URI
             of source image.
             Defaults to None.
@@ -43,7 +45,8 @@ async def generate_image(
             Supported values are "16:9" and "9:16". Defaults to "16:9".
 
     Returns:
-        MediaAsset: object with the GCS URI of the generated image or an error text.
+        MediaAsset: object with the GCS URI of the generated image or an error
+            text.
     """
 
     # gemini_client = Gemini()
@@ -56,11 +59,13 @@ async def generate_image(
     if source_image_gsc_uri:
         guessed_mime_type, _ = mimetypes.guess_type(source_image_gsc_uri)
         if not guessed_mime_type:
-            # Handle the case where mime type is not found, e.g., by raising an error or using a default
-            raise ValueError(f"Could not determine mime type for {source_image_gsc_uri}")
+            # Handle the case where mime type is not found, e.g., by raising
+            # an error or using a default
+            raise ValueError(
+                f"Could not determine mime type for {source_image_gsc_uri}")
         mime_type = guessed_mime_type
 
-        content.parts.insert( # type: ignore
+        content.parts.insert(  # type: ignore
             0,
             types.Part(
                 file_data=types.FileData(
@@ -71,7 +76,7 @@ async def generate_image(
         )
 
     asset = MediaAsset(uri="")
-    for _ in range (0, MAX_RETRIES):
+    for _ in range(0, MAX_RETRIES):
         response = genai_client.models.generate_content(
             model="gemini-3-pro-image-preview",
             contents=[content],
@@ -94,7 +99,7 @@ async def generate_image(
                     gcs_uri = await upload_data_to_gcs(
                         "mcp-tools",
                         part.inline_data.data,
-                        part.inline_data.mime_type # type: ignore
+                        part.inline_data.mime_type  # type: ignore
                     )
                     asset = MediaAsset(uri=gcs_uri)
                     break
@@ -109,5 +114,5 @@ async def generate_image(
         asset.uri = asset.uri.replace('gs://', AUTHORIZED_URI)
         logging.info(
             f"Image URL: {asset.uri}"
-        )   
+        )
     return asset
