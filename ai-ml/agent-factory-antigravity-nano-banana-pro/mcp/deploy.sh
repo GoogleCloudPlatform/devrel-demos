@@ -24,7 +24,7 @@ gcloud run deploy "${MCP_SERVICE_NAME}" \
   --source . \
   --project "${GOOGLE_CLOUD_PROJECT}" \
   --region "${GOOGLE_CLOUD_RUN_LOCATION}" \
-  --no-allow-unauthenticated \
+  --allow-unauthenticated \
   --clear-base-image \
   --set-env-vars GOOGLE_GENAI_USE_VERTEXAI="${GOOGLE_GENAI_USE_VERTEXAI}" \
   --set-env-vars GOOGLE_CLOUD_PROJECT="${GOOGLE_CLOUD_PROJECT}" \

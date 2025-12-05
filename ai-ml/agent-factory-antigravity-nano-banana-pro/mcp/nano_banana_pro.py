@@ -54,12 +54,18 @@ async def generate_image(
         role="user"
     )
     if source_image_gsc_uri:
+        guessed_mime_type, _ = mimetypes.guess_type(source_image_gsc_uri)
+        if not guessed_mime_type:
+            # Handle the case where mime type is not found, e.g., by raising an error or using a default
+            raise ValueError(f"Could not determine mime type for {source_image_gsc_uri}")
+        mime_type = guessed_mime_type
+
         content.parts.insert( # type: ignore
             0,
             types.Part(
                 file_data=types.FileData(
                     file_uri=source_image_gsc_uri,
-                    mime_type=mimetypes.guess_type(source_image_gsc_uri)[0]
+                    mime_type=mime_type
                 )
             )
         )

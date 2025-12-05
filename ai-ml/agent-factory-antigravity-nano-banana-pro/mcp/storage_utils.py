@@ -38,7 +38,6 @@ ai_bucket_name = os.environ.get(
     f"{project_id}-adk-video-agent"
 )
 ai_bucket = storage_client.get_bucket(ai_bucket_name)
-md5_hash = hashlib.md5()
 
 
 async def upload_data_to_gcs(agent_id: str, data: bytes, mime_type: str) -> str:
