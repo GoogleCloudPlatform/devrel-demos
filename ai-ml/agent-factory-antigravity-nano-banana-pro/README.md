@@ -3,7 +3,7 @@ Author: [rsamborski](https://github.com/rsamborski)
 
 This repository contains the source code and examples from the Agent Factory Podcast episode covering Antigravity and the Nano Banana Pro models.
 
-**Watch the full episode and more on YouTube:** [Agent Factory Podcast Playlist](https://www.youtube.com/playlist?list=PLIivdWyY5sqLXR1eSkiM5bE6pFlXC-OSs)
+Watch the full episode and more on YouTube: [Agent Factory Podcast Playlist](https://www.youtube.com/playlist?list=PLIivdWyY5sqLXR1eSkiM5bE6pFlXC-OSs).
 
 ## Project Structure
 
