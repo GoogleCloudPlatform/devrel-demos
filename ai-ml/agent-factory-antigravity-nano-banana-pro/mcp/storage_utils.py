@@ -23,8 +23,11 @@ from google.cloud.storage import Client, Blob
 from dotenv import load_dotenv
 
 load_dotenv()
-_, project_id = google.auth.default()
-os.environ.setdefault("GOOGLE_CLOUD_PROJECT", project_id) # type: ignore
+_, project_id_from_auth = google.auth.default()
+project_id = os.environ.get("GOOGLE_CLOUD_PROJECT") or project_id_from_auth
+if not project_id:
+    raise ValueError("Could not determine Google Cloud project ID. Please set the GOOGLE_CLOUD_PROJECT environment variable.")
+os.environ.setdefault("GOOGLE_CLOUD_PROJECT", project_id)
 os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "global")
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
 
