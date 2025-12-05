@@ -39,8 +39,7 @@ md5_hash = hashlib.md5()
 
 
 async def upload_data_to_gcs(agent_id: str, data: bytes, mime_type: str) -> str:
-    md5_hash.update(data)
-    file_name = md5_hash.hexdigest()
+    file_name = hashlib.md5(data).hexdigest()
     ext = mimetypes.guess_extension(mime_type) or ""
     file_name = f"{file_name}{ext}"
     blob_name = f"assets/{agent_id}/{file_name}"
