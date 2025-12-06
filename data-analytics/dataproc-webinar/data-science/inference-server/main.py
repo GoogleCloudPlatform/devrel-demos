@@ -11,19 +11,10 @@ from pyspark.sql.functions import hash, col
 # Configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Load model
-def load_model(model_path):
-    """
-    Loads a pre-trained Spark MLlib/ML PipelineModel.
-    """
-    try:
-        return PipelineModel.load(model_path)
-    except Exception as e:
-        logging.error(f"Failed to load model: {e}")
-        raise
-
 # --- Initialization: Spark and Model Loading ---
+GCS_BUCKET = os.environ.get("GCS_BUCKET")
 GCS_MODEL_PATH = os.environ.get("GCS_MODEL_PATH")
+LOCAL_MODEL_PATH = "/tmp/model"
 
 try:
     spark = SparkSession.builder \
@@ -34,10 +25,42 @@ try:
 except Exception as e:
     logging.error(f"Failed to initialize Spark Session: {e}")
     raise
+
+def download_directory(bucket_name, prefix, local_path):
+    """Downloads a directory from GCS to local filesystem."""
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket(bucket_name)
+    blobs = bucket.list_blobs(prefix=prefix)
+    
+    for blob in blobs:
+        if blob.name.endswith("/"): continue # Skip directories
+        
+        # Structure local paths
+        relative_path = os.path.relpath(blob.name, prefix)
+        local_file_path = os.path.join(local_path, relative_path)
+        os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
+        
+        blob.download_to_filename(local_file_path)
+    print(f"Model downloaded to {local_path}")
+
+# Load model
+def load_model(LOCAL_MODEL_PATH, GCS_BUCKET, GCS_MODEL_PATH):
+    """Download and load model on startup to avoid latency per request."""
+    global model
+    if not os.path.exists(LOCAL_MODEL_PATH):
+        download_directory(GCS_BUCKET, GCS_MODEL_PATH, LOCAL_MODEL_PATH)
+    
+    # Load the Spark ML model
+    try:
+        model = PipelineModel.load(LOCAL_MODEL_PATH)
+        print("Spark model loaded successfully.")
+    except Exception as e:
+        logging.error(f"Failed to load model: {e}")
+        raise
     
 # Load Model on Startup
-logging.info("Loading PySpark model...")
-MODEL = load_model(GCS_MODEL_PATH)
+logging.info(f"Loading PySpark model from {GCS_MODEL_PATH}")
+MODEL = load_model(LOCAL_MODEL_PATH, GCS_BUCKET, GCS_MODEL_PATH)
 logging.info("Model loaded.")
 
 # --- Flask Application Setup ---
