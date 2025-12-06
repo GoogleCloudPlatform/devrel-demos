@@ -4,29 +4,12 @@ import logging
 
 from flask import Flask, request, jsonify
 from google.cloud import storage
-from pyspark.sql import SparkSession
 from pyspark.ml import PipelineModel
-from pyspark.sql.functions import hash, col, cast
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import hash, col
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# Download model
-def download_model(bucket_name, source_blob_name, destination_dir):
-    """
-    Downloads a pre-trained Spark MLlib/ML PipelineModel.
-    """
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    blobs = bucket.list_blobs(prefix=source_blob_name)
-    
-    for blob in blobs:
-        if blob.name.endswith("/"):
-            continue
-        rel_path = os.path.relpath(blob.name, source_blob_name)
-        dest_path = os.path.join(destination_dir, rel_path)
-        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-        blob.download_to_filename(dest_path)
 
 # Load model
 def load_model(model_path):
@@ -40,10 +23,7 @@ def load_model(model_path):
         raise
 
 # --- Initialization: Spark and Model Loading ---
-
-GCS_BUCKET = os.environ.get("GCS_BUCKET")
 GCS_MODEL_PATH = os.environ.get("GCS_MODEL_PATH")
-LOCAL_MODEL_DIR = "/tmp/model"  
 
 try:
     spark = SparkSession.builder \
@@ -56,10 +36,8 @@ except Exception as e:
     raise
     
 # Load Model on Startup
-logging.info("Downloading model from GCS...")
-download_model(GCS_BUCKET, GCS_MODEL_PATH, LOCAL_MODEL_DIR)
 logging.info("Loading PySpark model...")
-MODEL = load_model(LOCAL_MODEL_DIR)
+MODEL = load_model(GCS_MODEL_PATH)
 logging.info("Model loaded.")
 
 # --- Flask Application Setup ---
