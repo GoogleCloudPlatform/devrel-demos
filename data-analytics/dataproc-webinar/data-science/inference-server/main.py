@@ -54,18 +54,17 @@ def load_model(LOCAL_MODEL_PATH, GCS_BUCKET, GCS_MODEL_PATH):
     if not os.path.exists(LOCAL_MODEL_PATH):
         download_directory(GCS_BUCKET, GCS_MODEL_PATH, LOCAL_MODEL_PATH)
     
+    logging.info(f"Loading PySpark model from {GCS_MODEL_PATH}")
     # Load the Spark ML model
     try:
         model = PipelineModel.load(LOCAL_MODEL_PATH)
-        print("Spark model loaded successfully.")
+        logging.info("Spark model loaded successfully.")
     except Exception as e:
         logging.error(f"Failed to load model: {e}")
         raise
     
 # Load Model on Startup
-logging.info(f"Loading PySpark model from {GCS_MODEL_PATH}")
 MODEL = load_model(LOCAL_MODEL_PATH, GCS_BUCKET, GCS_MODEL_PATH)
-logging.info("Model loaded.")
 
 # --- Flask Application Setup ---
 app = Flask(__name__)
