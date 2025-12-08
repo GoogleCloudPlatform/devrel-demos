@@ -50,21 +50,21 @@ def download_directory(bucket_name, prefix, local_path):
 # Load model
 def load_model(LOCAL_MODEL_PATH, GCS_BUCKET, GCS_MODEL_PATH):
     """Download and load model on startup to avoid latency per request."""
-    global model
+    global MODEL
     if not os.path.exists(LOCAL_MODEL_PATH):
         download_directory(GCS_BUCKET, GCS_MODEL_PATH, LOCAL_MODEL_PATH)
     
     logging.info(f"Loading PySpark model from {GCS_MODEL_PATH}")
     # Load the Spark ML model
     try:
-        model = PipelineModel.load(LOCAL_MODEL_PATH)
+        MODEL = PipelineModel.load(LOCAL_MODEL_PATH)
         logging.info("Spark model loaded successfully.")
     except Exception as e:
         logging.error(f"Failed to load model: {e}")
         raise
     
 # Load Model on Startup
-MODEL = load_model(LOCAL_MODEL_PATH, GCS_BUCKET, GCS_MODEL_PATH)
+load_model(LOCAL_MODEL_PATH, GCS_BUCKET, GCS_MODEL_PATH)
 
 # --- Flask Application Setup ---
 app = Flask(__name__)
