@@ -30,7 +30,6 @@ def download_directory(bucket_name, prefix, local_path):
     """Downloads a directory from GCS to local filesystem."""
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(bucket_name)
-    # Ensure prefix ends with '/' to avoid partial matches with other folders
     blobs = list(bucket.list_blobs(prefix=prefix))
     
     if len(blobs) == 0:
