@@ -37,8 +37,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Fine-tune MedGemma on BreakHis dataset')
     
     # Data parameters
-    parser.add_argument('--train-size', type=int, default=500,
-                       help='Number of training samples (default: 500)')
+    parser.add_argument('--train-size', type=int, default=200,
+                       help='Number of training samples (default: 200)')
     parser.add_argument('--eval-size', type=int, default=100,
                        help='Number of evaluation samples (default: 100)')
     
