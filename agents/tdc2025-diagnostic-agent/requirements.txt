@@ -114,7 +114,7 @@ SQLAlchemy==2.0.43
 sqlalchemy-spanner==1.16.0
 sqlparse==0.5.3
 sse-starlette==3.0.2
-starlette==0.47.3
+starlette==0.49.1
 tenacity==8.5.0
 thrift==0.22.0
 toml==0.10.2
