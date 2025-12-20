@@ -1,0 +1,25 @@
+table_name("browser_plugins")
+description("All C/NPAPI browser plugin details for all users. C/NPAPI has been deprecated on all major browsers. To query for plugins on modern browsers, try: `chrome_extensions` `firefox_addons` `safari_extensions`.")
+schema([
+    Column("uid", BIGINT, "The local user that owns the plugin",
+      index=True),
+    Column("name", TEXT, "Plugin display name"),
+    Column("identifier", TEXT, "Plugin identifier"),
+    Column("version", TEXT, "Plugin short version", collate="version"),
+    Column("sdk", TEXT, "Build SDK used to compile plugin"),
+    Column("description", TEXT, "Plugin description text"),
+    Column("development_region", TEXT, "Plugin language-localization"),
+    Column("native", INTEGER, "Plugin requires native execution"),
+    Column("path", TEXT, "Path to plugin bundle", index=True),
+    Column("disabled", INTEGER, "Is the plugin disabled. 1 = Disabled"),
+    ForeignKey(column="uid", table="users")
+])
+attributes(user_data=True)
+implementation("applications/browser_plugins@genBrowserPlugins")
+examples([
+    "select * from users join browser_plugins using (uid)",
+])
+fuzz_paths([
+    "/Library/Internet Plug-Ins",
+    "/Users",
+])

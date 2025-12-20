@@ -1,0 +1,13 @@
+---
+model: vertexai/gemini-2.5-flash
+config:
+  temperature: 0.9
+input:
+  schema:
+    location?: string
+    style?: string
+  default:
+    location: Bletchley Park
+---
+
+Say something nice about {{location}}{{#if style}} in the style of {{style}}{{/if}}.

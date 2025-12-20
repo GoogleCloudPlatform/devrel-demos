@@ -1,0 +1,18 @@
+# Binaries
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+
+# Env
+.env
+
+# Genkit
+.genkit/
+
+# Gemini CLI
+.gemini/
+
+# OS
+.DS_Store

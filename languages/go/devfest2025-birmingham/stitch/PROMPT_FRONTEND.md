@@ -1,0 +1,1 @@
+Create an UI for this application using @image.png as reference. The UI elements are in black, and in red the annotations explaining the UI elements. Follow the best practices for organizing frontend code with FastAPI. The backend code should be updated to serve this UI on "/"

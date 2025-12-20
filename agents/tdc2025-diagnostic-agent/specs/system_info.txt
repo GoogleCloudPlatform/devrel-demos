@@ -1,0 +1,28 @@
+table_name("system_info")
+description("System information for identification.")
+schema([
+    Column("hostname", TEXT, "Network hostname including domain"),
+    Column("uuid", TEXT, "Unique ID provided by the system"),
+    Column("cpu_type", TEXT, "CPU type"),
+    Column("cpu_subtype", TEXT, "CPU subtype"),
+    Column("cpu_brand", TEXT, "CPU brand string, contains vendor and model"),
+    Column("cpu_physical_cores", INTEGER, "Number of physical CPU cores in to the system"),
+    Column("cpu_logical_cores", INTEGER, "Number of logical CPU cores available to the system"),
+    Column("cpu_sockets", INTEGER, "Number of processor sockets in the system"),
+    Column("cpu_microcode", TEXT, "Microcode version"),
+    Column("physical_memory", BIGINT, "Total physical memory in bytes"),
+    Column("hardware_vendor", TEXT, "Hardware vendor"),
+    Column("hardware_model", TEXT, "Hardware model"),
+    Column("hardware_version", TEXT, "Hardware version"),
+    Column("hardware_serial", TEXT, "Device serial number"),
+    Column("board_vendor", TEXT, "Board vendor"),
+    Column("board_model", TEXT, "Board model"),
+    Column("board_version", TEXT, "Board version"),
+    Column("board_serial", TEXT, "Board serial number"),
+    Column("computer_name", TEXT, "Friendly computer name (optional)"),
+    Column("local_hostname", TEXT, "Local hostname (optional)"),
+])
+extended_schema(WINDOWS, [
+    Column("emulated_cpu_type", TEXT, "Emulated CPU type"),
+])
+implementation("system/system_info@genSystemInfo")

@@ -1,0 +1,20 @@
+table_name("registry")
+description("All of the Windows registry hives.")
+schema([
+    Column("key", TEXT, "Name of the key to search for", additional=True, optimized=True, collate="nocase"),
+    Column("path", TEXT, "Full path to the value", index=True, optimized=True),
+    Column("name", TEXT, "Name of the registry value entry"),
+    Column("type", TEXT, "Type of the registry value, or 'subkey' if item is a subkey"),
+    Column("data", TEXT, "Data content of registry value"),
+    Column("mtime", BIGINT, "timestamp of the most recent registry write"),
+])
+implementation("system/windows/registry@genRegistry")
+examples([
+  "select path, key, name from registry where key = 'HKEY_USERS'; -- get user SIDS. Note: path is key+name",
+  "select path from registry where key like 'HKEY_USERS\\.Default\\%'; -- a SQL wildcard match; will not recurse subkeys",
+  "select path from registry where key like 'HKEY_USERS\\.Default\\Software\\%%'; -- recursing query (compare with 1 %)",
+  "select path from registry where key like 'HKEY_LOCAL_MACHINE\\Software\\Micr%ft\\%' and type = 'subkey' LIMIT 10; -- midfix wildcard match",
+  "select name, type, data from registry where path like 'HKEY_USERS\\%\\Control Panel\\International\\User Profile\\Languages'; -- get users' current UI language. Note: osquery cannot reference HKEY_CURRENT_USER",
+  "select name, type, data from registry where path like 'HKEY_USERS\\%\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Wallpapers\\%';  -- list all of the desktop wallpapers",
+  "select name, type, data from registry where key like 'HKEY_USERS\\%\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Wallpapers'; -- same, but filtering by key instead of path",
+])

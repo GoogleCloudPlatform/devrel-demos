@@ -1,0 +1,18 @@
+table_name("hardware_events")
+description("Hardware (PCI/USB/HID) events from UDEV or IOKit.")
+schema([
+    Column("action", TEXT, "Remove, insert, change properties, etc"),
+    Column("path", TEXT, "Local device path assigned (optional)"),
+    Column("type", TEXT, "Type of hardware and hardware event"),
+    Column("driver", TEXT, "Driver claiming the device"),
+    Column("vendor", TEXT, "Hardware device vendor"),
+    Column("vendor_id", TEXT, "Hex encoded Hardware vendor identifier"),
+    Column("model", TEXT, "Hardware device model"),
+    Column("model_id", TEXT, "Hex encoded Hardware model identifier"),
+    Column("serial", TEXT, "Device serial (optional)"),
+    Column("revision", TEXT, "Device revision (optional)"),
+    Column("time", BIGINT, "Time of hardware event", additional=True),
+    Column("eid", TEXT, "Event ID", hidden=True),
+])
+attributes(event_subscriber=True)
+implementation("events/hardware_events@hardware_events::genTable")

@@ -1,0 +1,23 @@
+table_name("disk_events")
+description("Track DMG disk image events (appearance/disappearance) when opened.")
+schema([
+    Column("action", TEXT, "Appear or disappear"),
+    Column("path", TEXT, "Path of the DMG file accessed"),
+    Column("name", TEXT, "Disk event name"),
+    Column("device", TEXT, "Disk event BSD name",
+        aliases=["bsd_name"]),
+    Column("uuid", TEXT, "UUID of the volume inside DMG if available"),
+    Column("size", BIGINT, "Size of partition in bytes"),
+    Column("ejectable", INTEGER, "1 if ejectable, 0 if not"),
+    Column("mountable", INTEGER, "1 if mountable, 0 if not"),
+    Column("writable", INTEGER, "1 if writable, 0 if not"),
+    Column("content", TEXT, "Disk event content"),
+    Column("media_name", TEXT, "Disk event media name string"),
+    Column("vendor", TEXT, "Disk event vendor string"),
+    Column("filesystem", TEXT, "Filesystem if available"),
+    Column("checksum", TEXT, "UDIF Master checksum if available (CRC32)"),
+    Column("time", BIGINT, "Time of appearance/disappearance in UNIX time", additional=True),
+    Column("eid", TEXT, "Event ID", hidden=True),
+])
+attributes(event_subscriber=True)
+implementation("events/darwin/disk_events@disk_events::genTable")

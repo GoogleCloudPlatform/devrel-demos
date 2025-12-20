@@ -1,0 +1,10 @@
+# Binaries
+*.exe
+*.test
+*.out
+# Project specific (if any known binary name, but general is safe)
+/bin/
+/dist/
+
+.DS_Store
+pacman

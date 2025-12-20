@@ -1,0 +1,37 @@
+{
+  "theme": "Shades Of Purple",
+  "preferredEditor": "vscode",
+  "selectedAuthType": "gemini-api-key",
+  "mcpServers": {
+    // "playwright": {
+    //   "command": "npx",
+    //   "args": [
+    //     "@playwright/mcp@latest"
+    //   ]
+    // },
+    "godoctor": {
+      "command": "godoctor"
+    },
+    "gopls": {
+      "command": "gopls",
+      "args": [
+        "mcp"
+      ]
+    },
+    // "context7": {
+    //   "httpUrl": "https://mcp.context7.com/mcp"
+    // },
+    "speedgrapher": {
+      "command": "speedgrapher"
+    },
+    "testquery": {
+      "command": "tq",
+      "args": [
+        "mcp"
+      ]
+    }
+  },
+  "vimMode": false,
+  "hasSeenIdeIntegrationNudge": true,
+  "ideMode": true
+}

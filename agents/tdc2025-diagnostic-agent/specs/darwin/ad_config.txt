@@ -1,0 +1,12 @@
+table_name("ad_config")
+description("macOS Active Directory configuration.")
+schema([
+    Column("name", TEXT, "The macOS-specific configuration name"),
+    Column("domain", TEXT, "Active Directory trust domain"),
+    Column("option", TEXT, "Canonical name of option"),
+    Column("value", TEXT, "Variable typed option value"),
+])
+implementation("ad_config@genADConfig")
+fuzz_paths([
+    "/Library/Preferences/OpenDirectory/Configurations/Active Directory/",
+])

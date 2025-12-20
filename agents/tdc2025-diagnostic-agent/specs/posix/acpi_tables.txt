@@ -1,0 +1,11 @@
+table_name("acpi_tables")
+description("Firmware ACPI functional table common metadata and content.")
+schema([
+    Column("name", TEXT, "ACPI table name"),
+    Column("size", INTEGER, "Size of compiled table data"),
+    Column("md5", TEXT, "MD5 hash of table content"),
+])
+implementation("system/acpi_tables@genACPITables")
+fuzz_paths([
+    "/sys/firmware/",
+])

@@ -1,0 +1,88 @@
+version: "2"
+
+run:
+  concurrency: 4
+  timeout: 5m
+  issues-exit-code: 1
+  tests: true
+
+linters:
+  disable-all: true
+  enable:
+    ## Core
+    - errcheck      # unchecked errors
+    - govet         # vet
+    - ineffassign   # useless assignments
+    - staticcheck   # comprehensive checks
+    - unused        # unused code
+
+    ## Style & Formatting
+    - revive        # stylistic/idiomatic checks (better golint)
+    - whitespace    # redundant whitespace
+    - misspell      # typos
+    - lll           # line length
+    - funlen        # function length
+
+    ## Complexity & Quality
+    - gocyclo       # cyclomatic complexity
+    - gocognit      # cognitive complexity
+    - goconst       # repeated strings
+    - dogsled       # too many blank identifiers
+    - nakedret      # naked returns in long functions
+    - unconvert     # unnecessary conversions
+
+    ## Bugs & Performance
+    - bodyclose     # http body close
+    - gosec         # security checks
+    - nilerr        # returning nil error
+    - noctx         # sending http request without context
+    - prealloc      # slice pre-allocation
+    - usestdlibvars # use standard library constants
+    - gocritic      # opinionated checks
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  gocognit:
+    min-complexity: 30
+  gofmt:
+    simplify: true
+  ll:
+    line-length: 120
+  misspell:
+    locale: US
+  funlen:
+    lines: 100
+    statements: 50
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+      - name: package-comments
+        severity: warning
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: error-naming
+      - name: error-strings
+      - name: error-return
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: receiver-naming
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      - hugeParam
+      - ifElseChain
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-dirs:
+    - bin
+    - vendor

@@ -1,0 +1,14 @@
+table_name("keychain_acls")
+description("Applications that have ACL entries in the keychain. NOTE: osquery limits frequent access to keychain files. This limit is controlled by keychain_access_interval flag.")
+schema([
+    Column("keychain_path", TEXT, "The path of the keychain"),
+    Column("authorizations", TEXT, "A space delimited set of authorization attributes"),
+    Column("path", TEXT, "The path of the authorized application"),
+    Column("description", TEXT, "The description included with the ACL entry"),
+    Column("label", TEXT, "An optional label tag that may be included with the keychain entry"),
+])
+attributes(cacheable=True)
+implementation("keychain_acl@genKeychainACLApps")
+examples([
+  "select label, description, authorizations, path, count(path) as c from keychain_acls where label != '' and path != '' group by label having c > 1;",
+])

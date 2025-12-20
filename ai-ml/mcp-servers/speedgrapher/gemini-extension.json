@@ -1,0 +1,10 @@
+{
+  "name": "speedgrapher",
+  "version": "0.4.0",
+  "description": "A local MCP server for writers to streamline the writing process.",
+  "mcpServers": {
+    "speedgrapher": {
+      "command": "${extensionPath}/bin/speedgrapher"
+    }
+  }
+}
