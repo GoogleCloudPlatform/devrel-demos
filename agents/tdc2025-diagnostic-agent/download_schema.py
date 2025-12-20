@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
     print("Starting download of osquery .table schema files...")
     try:
-        download_files(API_URL, ".") # Start with the root of the output dir
+        download_files(API_URL, OUTPUT_DIR) # Start with the root of the output dir
         print("\nDownload complete.")
         print(f"All .table files have been saved to the '{os.path.abspath(OUTPUT_DIR)}' directory.")
     except requests.exceptions.RequestException as e:
