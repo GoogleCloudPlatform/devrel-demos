@@ -125,7 +125,7 @@ async def set_model(request: Request):
     elif model_id == "gptoss" or model_id == "gpt-oss":
         root_agent.model = LiteLlm(model="ollama_chat/gpt-oss")
     else:
-        return {"error": "Invalid model ID. Use 'gemini', 'qwen' or 'gpt-oss."}
+        return {"error": "Invalid model ID. Use 'gemini', 'qwen' or 'gpt-oss'."}
 
     print(f"--- MODEL SWITCHED TO: {root_agent.model} ---")
     return {"status": "ok", "current_model": str(root_agent.model)}
