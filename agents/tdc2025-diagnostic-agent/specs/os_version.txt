@@ -1,0 +1,31 @@
+table_name("os_version")
+description("A single row containing the operating system name and version.")
+schema([
+    Column("name", TEXT, "Distribution or product name"),
+    Column("version", TEXT, "Pretty, suitable for presentation, OS version", collate="version"),
+    Column("major", INTEGER, "Major release version"),
+    Column("minor", INTEGER, "Minor release version"),
+    Column("patch", INTEGER, "Optional patch release"),
+    Column("build", TEXT, "Optional build-specific or variant string"),
+    Column("platform", TEXT, "OS Platform or ID"),
+    Column("platform_like", TEXT, "Closely related platforms"),
+    Column("codename", TEXT, "OS version codename"),
+    Column("arch", TEXT, "OS Architecture"),
+])
+
+extended_schema(DARWIN, [
+    Column("extra", TEXT, "Optional extra release specification"),
+])
+
+extended_schema(WINDOWS, [
+    Column("install_date", BIGINT, "The install date of the OS."),
+    Column("revision", INTEGER, "Update Build Revision, refers to the specific revision number of a Windows update"),
+])
+extended_schema(LINUX, [
+    Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True, hidden=True),
+    Column("mount_namespace_id", TEXT, "Mount namespace id", hidden=True),
+])
+implementation("system/os_version@genOSVersion")
+fuzz_paths([
+    "/System/Library/CoreServices/SystemVersion.plist",
+])

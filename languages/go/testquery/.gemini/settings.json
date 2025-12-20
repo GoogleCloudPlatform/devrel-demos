@@ -1,0 +1,15 @@
+{
+    "mcpServers": {
+        "gopls": {
+            "command": "gopls",
+            "args": ["mcp"]
+        },
+        "godoctor": {
+            "command": "godoctor"
+        },
+        "testquery": {
+            "command": "./bin/tq",
+            "args": ["mcp"]
+        }
+    }
+}

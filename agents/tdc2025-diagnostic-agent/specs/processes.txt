@@ -1,0 +1,55 @@
+table_name("processes")
+description("All running processes on the host system.")
+schema([
+    Column("pid", BIGINT, "Process (or thread) ID", index=True, optimized=True),
+    Column("name", TEXT, "The process path or shorthand argv[0]"),
+    Column("path", TEXT, "Path to executed binary"),
+    Column("cmdline", TEXT, "Complete argv"),
+    Column("state", TEXT, "Process state"),
+    Column("cwd", TEXT, "Process current working directory"),
+    Column("root", TEXT, "Process virtual root directory"),
+    Column("uid", BIGINT, "Unsigned user ID"),
+    Column("gid", BIGINT, "Unsigned group ID"),
+    Column("euid", BIGINT, "Unsigned effective user ID"),
+    Column("egid", BIGINT, "Unsigned effective group ID"),
+    Column("suid", BIGINT, "Unsigned saved user ID"),
+    Column("sgid", BIGINT, "Unsigned saved group ID"),
+    Column("on_disk", INTEGER,
+        "The process path exists yes=1, no=0, unknown=-1"),
+    Column("wired_size", BIGINT, "Bytes of unpageable memory used by process"),
+    Column("resident_size", BIGINT, "Bytes of private memory used by process"),
+    Column("total_size", BIGINT, "Total virtual memory size (Linux, Windows) or 'footprint' (macOS)"),
+    Column("user_time", BIGINT, "CPU time in milliseconds spent in user space"),
+    Column("system_time", BIGINT, "CPU time in milliseconds spent in kernel space"),
+    Column("disk_bytes_read", BIGINT, "Bytes read from disk"),
+    Column("disk_bytes_written", BIGINT, "Bytes written to disk"),
+    Column("start_time", BIGINT, "Process start time in seconds since Epoch, in case of error -1"),
+    Column("parent", BIGINT, "Process parent's PID"),
+    Column("pgroup", BIGINT, "Process group"),
+    Column("threads", INTEGER, "Number of threads used by process"),
+    Column("nice", INTEGER, "Process nice level (-20 to 20, default 0)"),
+])
+extended_schema(WINDOWS, [
+    Column("elevated_token", INTEGER, "Process uses elevated token yes=1, no=0"),
+    Column("secure_process", INTEGER, "Process is secure (IUM) yes=1, no=0"),
+    Column("protection_type", TEXT, "The protection type of the process"),
+    Column("virtual_process", INTEGER, "Process is virtual (e.g. System, Registry, vmmem) yes=1, no=0"),
+    Column("elapsed_time", BIGINT, "Elapsed time in seconds this process has been running."),
+    Column("handle_count", BIGINT, "Total number of handles that the process has open. This number is the sum of the handles currently opened by each thread in the process."),
+    Column("percent_processor_time", BIGINT, "Returns elapsed time that all of the threads of this process used the processor to execute instructions in 100 nanoseconds ticks."),
+])
+extended_schema(DARWIN, [
+    Column("upid", BIGINT, "A 64bit pid that is never reused. Returns -1 if we couldn't gather them from the system."),
+    Column("uppid", BIGINT, "The 64bit parent pid that is never reused. Returns -1 if we couldn't gather them from the system."),
+    Column("cpu_type", INTEGER, "Indicates the specific processor designed for installation."),
+    Column("cpu_subtype", INTEGER, "Indicates the specific processor on which an entry may be used."),
+    Column("translated", INTEGER, "Indicates whether the process is running under the Rosetta Translation Environment, yes=1, no=0, error=-1."),
+])
+extended_schema(LINUX, [
+    Column("cgroup_path", TEXT, "The full hierarchical path of the process's control group"),
+])
+attributes(cacheable=True, strongly_typed_rows=True)
+implementation("system/processes@genProcesses")
+examples([
+  "select * from processes where pid = 1",
+])

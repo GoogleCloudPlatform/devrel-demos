@@ -1,0 +1,13 @@
+table_name("dns_resolvers")
+description("Resolvers used by this host. Note: On Windows this data is available in the interface_details table.")
+schema([
+    Column("id", INTEGER, "Address type index or order"),
+    Column("type", TEXT, "Address type: sortlist, nameserver, search"),
+    Column("address", TEXT, "Resolver IP/IPv6 address"),
+    Column("netmask", TEXT, "Address (sortlist) netmask length"),
+    Column("options", BIGINT, "Resolver options"),
+])
+extended_schema(LINUX, [
+    Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True, hidden=True),
+])
+implementation("dns_resolvers@genDNSResolvers")

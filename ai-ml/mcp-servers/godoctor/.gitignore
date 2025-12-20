@@ -1,0 +1,9 @@
+# Log files
+*.log
+
+# Binaries
+bin/
+.gemini/
+gha-creds-*.json
+runs/
+.env

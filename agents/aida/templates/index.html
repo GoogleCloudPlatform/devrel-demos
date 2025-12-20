@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Emergency Diagnostic Agent</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div id="main-container">
+        <div id="top-row">
+            <div id="chat-container">
+                <div id="header">*** EMERGENCY DIAGNOSTIC AGENT ***</div>
+                <div id="messages"></div>
+                <form id="user-input" onsubmit="sendMessage(event)">
+                    <span id="prompt-symbol">AIDA&gt;</span>
+                    <input type="text" id="message-text" autocomplete="off" autofocus />
+                </form>
+            </div>
+            <div id="right-panel">
+                <div id="avatar-window">
+                    <img src="/idle" alt="Agent Avatar" id="avatar-img">
+                </div>
+                <div id="avatar-label">STATUS: ONLINE</div>
+                <div id="memory-panel" class="panel">
+                    <div class="panel-title">MEMORY</div>
+                    <div id="memory-row">
+                        <div id="context-bar-container">
+                            <div id="context-bar"></div>
+                            <div id="context-label">0% (0 / 1000k)</div>
+                        </div>
+                        <button onclick="sendShortcut('/clear')">CLEAR</button>
+                    </div>
+                </div>
+                <div id="model-panel" class="panel">
+                    <div class="panel-title">MODEL</div>
+                    <div id="model-row">
+                        <button id="btn-gemini" class="active" onclick="sendShortcut('/model gemini')" title="Gemini">GEMINI</button>
+                        <button id="btn-qwen" onclick="sendShortcut('/model qwen')" title="Qwen">QWEN</button>
+                        <button id="btn-gpt" onclick="sendShortcut('/model gpt-oss')" title="GPT-OSS">GPT-OSS</button>
+                    </div>
+                    <button id="debug-toggle" onclick="toggleDebug()">DEBUG: OFF</button>
+                </div>
+            </div>
+        </div>
+        <div id="system-log-window">
+            <div id="system-log"></div>
+        </div>
+    </div>
+    <script src="/static/purify.min.js"></script>
+    <script src="/static/marked.min.js"></script>
+    <script src="/static/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+table_name("keychain_items")
+description("Generic details about keychain items. NOTE: osquery limits frequent access to keychain files. This limit is controlled by keychain_access_interval flag.")
+schema([
+    Column("label", TEXT, "Generic item name"),
+    Column("description", TEXT, "Optional item description"),
+    Column("comment", TEXT, "Optional keychain comment"),
+    Column("account", TEXT, "Optional item account"),
+    Column("created", TEXT, "Date item was created"),
+    Column("modified", TEXT, "Date of last modification"),
+    Column("type", TEXT, "Keychain item type (class)"),
+    Column("pk_hash", TEXT, "Hash of associated public key (SHA1 of subjectPublicKey, see RFC 8520 4.2.1.2)"),
+    Column("path", TEXT, "Path to keychain containing item", additional=True, optimized=True),
+])
+implementation("keychain_items@genKeychainItems")

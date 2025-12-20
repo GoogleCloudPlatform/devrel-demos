@@ -1,0 +1,26 @@
+table_name("authorizations")
+description("macOS Authorization rights database.")
+schema([
+    Column("label", TEXT, "Item name, usually in reverse domain format", index=True, optimized=True),
+    Column("modified", TEXT, "Label top-level key"),
+    Column("allow_root", TEXT, "Label top-level key"),
+    Column("timeout", TEXT, "Label top-level key"),
+    Column("version", TEXT, "Label top-level key"),
+    Column("tries", TEXT, "Label top-level key"),
+    Column("authenticate_user", TEXT, "Label top-level key"),
+    Column("shared", TEXT, "Label top-level key"),
+    Column("comment", TEXT, "Label top-level key"),
+    Column("created", TEXT, "Label top-level key"),
+    Column("class", TEXT, "Label top-level key"),
+    Column("session_owner", TEXT, "Label top-level key"),
+])
+implementation("system/darwin/authorizations@genAuthorizations")
+examples([
+    "select * from authorizations;",
+    "select * from authorizations where label = 'system.login.console';",
+    "select * from authorizations where label = 'authenticate';",
+    "select * from authorizations where label = 'system.preferences.softwareupdate';"
+])
+fuzz_paths([
+    "/System/Library/Security/authorization.plist",
+])

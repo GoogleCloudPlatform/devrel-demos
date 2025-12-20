@@ -1,0 +1,11 @@
+table_name("nfs_shares")
+description("NFS shares exported by the host.")
+schema([
+    Column("share", TEXT, "Filesystem path to the share"),
+    Column("options", TEXT, "Options string set on the export share"),
+    Column("readonly", INTEGER, "1 if the share is exported readonly else 0"),
+])
+implementation("nfs_shares@genNFSShares")
+fuzz_paths([
+    "/etc/exports",
+])

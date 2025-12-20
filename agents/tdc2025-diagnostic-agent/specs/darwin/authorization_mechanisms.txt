@@ -1,0 +1,15 @@
+table_name("authorization_mechanisms")
+description("macOS Authorization mechanisms database.")
+schema([
+    Column("label", TEXT, "Label of the authorization right", index=True, optimized=True),
+    Column("plugin", TEXT, "Authorization plugin name"),
+    Column("mechanism", TEXT, "Name of the mechanism that will be called"),
+    Column("privileged", TEXT, "If privileged it will run as root, else as an anonymous user"),
+    Column("entry", TEXT, "The whole string entry"),
+])
+implementation("system/darwin/authorization_mechanisms@genAuthorizationMechanisms")
+examples([
+  "select * from authorization_mechanisms;",
+  "select * from authorization_mechanisms where label = 'system.login.console';",
+  "select * from authorization_mechanisms where label = 'authenticate';"
+])

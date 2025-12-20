@@ -1,0 +1,18 @@
+table_name("hash")
+description("Filesystem hash data.")
+schema([
+    Column("path", TEXT, "Must provide a path or directory", index=True, optimized=True, required=True),
+    Column("directory", TEXT, "Must provide a path or directory", required=True, optimized=True),
+    Column("md5", TEXT, "MD5 hash of provided filesystem data"),
+    Column("sha1", TEXT, "SHA1 hash of provided filesystem data"),
+    Column("sha256", TEXT, "SHA256 hash of provided filesystem data"),
+])
+extended_schema(LINUX, [
+    Column("pid_with_namespace", INTEGER, "Pids that contain a namespace", additional=True, hidden=True),
+    Column("mount_namespace_id", TEXT, "Mount namespace id", hidden=True),
+])
+implementation("hash@genHash")
+examples([
+  "select * from hash where path = '/etc/passwd'",
+  "select * from hash where directory = '/etc/'",
+])

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "godoctor": {
+      "command": "godoctor",
+      "args": []
+    },
+    "speedgrapher": {
+      "command": "speedgrapher",
+      "args": []
+    }
+  }
+}

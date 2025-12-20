@@ -1,0 +1,41 @@
+table_name("curl_certificate")
+description("Inspect TLS certificates by connecting to input hostnames.")
+schema([
+    Column("hostname", TEXT, "Hostname to CURL (domain[:port], e.g. osquery.io)", required=True, optimized=True),
+    Column("common_name", TEXT, "Common name of company issued to"),
+    Column("organization", TEXT, "Organization issued to"),
+    Column("organization_unit", TEXT, "Organization unit issued to"),
+    Column("serial_number", TEXT, "Certificate serial number"),
+    Column("issuer_common_name", TEXT, "Issuer common name"),
+    Column("issuer_organization", TEXT, "Issuer organization"),
+    Column("issuer_organization_unit", TEXT, "Issuer organization unit"),
+    Column("valid_from", TEXT, "Period of validity start date"),
+    Column("valid_to", TEXT, "Period of validity end date"),
+    Column("sha256_fingerprint", TEXT, "SHA-256 fingerprint"),
+    Column("sha1_fingerprint", TEXT, "SHA1 fingerprint"),
+    Column("version", INTEGER, "Version Number"),
+    Column("signature_algorithm", TEXT, "Signature Algorithm"),
+    Column("signature", TEXT, "Signature"),
+    Column("subject_key_identifier", TEXT, "Subject Key Identifier"),
+    Column("authority_key_identifier", TEXT, "Authority Key Identifier"),
+    Column("key_usage", TEXT, "Usage of key in certificate"),
+    Column("extended_key_usage", TEXT, "Extended usage of key in certificate"),
+    Column("policies", TEXT, "Certificate Policies"),
+    Column("subject_alternative_names", TEXT, "Subject Alternative Name"),
+    Column("issuer_alternative_names", TEXT, "Issuer Alternative Name"),
+    Column("info_access", TEXT, "Authority Information Access"),
+    Column("subject_info_access", TEXT, "Subject Information Access"),
+    Column("policy_mappings", TEXT, "Policy Mappings"),
+    Column("has_expired", INTEGER, "1 if the certificate has expired, 0 otherwise"),
+    Column("basic_constraint", TEXT, "Basic Constraints"),
+    Column("name_constraints", TEXT, "Name Constraints"),
+    Column("policy_constraints", TEXT, "Policy Constraints"),
+    Column("dump_certificate", INTEGER, "Set this value to '1' to dump certificate", additional=True, hidden=True),
+    Column("timeout", INTEGER, "Set this value to the timeout in seconds to complete the TLS handshake (default 4s, use 0 for no timeout)", additional=True, hidden=True),
+    Column("pem", TEXT, "Certificate PEM format")
+])
+implementation("curl_certificate@genTLSCertificate")
+examples([
+  "select * from curl_certificate where hostname = 'osquery.io'"
+  "select * from curl_certificate where hostname = 'osquery.io' and dump_certificate = 1"
+])

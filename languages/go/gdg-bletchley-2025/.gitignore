@@ -1,0 +1,16 @@
+# Binaries
+bin/
+
+# Gemini extension settings and temp files
+.gemini/
+
+# Environment variables (secrets)
+.env
+genkit-demo/.env
+
+# OS specific
+.DS_Store
+
+# Go
+vendor/
+go.work

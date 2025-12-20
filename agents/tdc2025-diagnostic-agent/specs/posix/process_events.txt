@@ -1,0 +1,49 @@
+table_name("process_events")
+description("Track time/action process executions.")
+schema([
+    Column("pid", BIGINT, "Process (or thread) ID"),
+    Column("path", TEXT, "Path of executed file"),
+    Column("mode", TEXT, "File mode permissions"),
+    Column("cmdline", TEXT, "Command line arguments (argv)"),
+    Column("cmdline_size", BIGINT, "Actual size (bytes) of command line arguments",
+        hidden=True),
+    Column("env", TEXT, "Environment variables delimited by spaces",
+        aliases=["environment"], hidden=True),
+    Column("env_count", BIGINT, "Number of environment variables",
+        aliases=["environment_count"], hidden=True),
+    Column("env_size", BIGINT, "Actual size (bytes) of environment list",
+        aliases=["environment_size"], hidden=True),
+    Column("cwd", TEXT, "The process current working directory"),
+    Column("auid", BIGINT, "Audit User ID at process start"),
+    Column("uid", BIGINT, "User ID at process start"),
+    Column("euid", BIGINT, "Effective user ID at process start"),
+    Column("gid", BIGINT, "Group ID at process start"),
+    Column("egid", BIGINT, "Effective group ID at process start"),
+    Column("owner_uid", BIGINT, "File owner user ID"),
+    Column("owner_gid", BIGINT, "File owner group ID"),
+    Column("atime", BIGINT, "File last access in UNIX time",
+        aliases=["access_time"]),
+    Column("mtime", BIGINT, "File modification in UNIX time",
+        aliases=["modify_time"]),
+    Column("ctime", BIGINT, "File last metadata change in UNIX time",
+        aliases=["change_time"]),
+    Column("btime", BIGINT, "File creation in UNIX time",
+        aliases=["create_time"]),
+    Column("overflows", TEXT, "List of structures that overflowed", hidden=True),
+    Column("parent", BIGINT, "Process parent's PID, or -1 if cannot be determined."),
+    Column("time", BIGINT, "Time of execution in UNIX time", additional=True),
+    Column("uptime", BIGINT, "Time of execution in system uptime"),
+    Column("eid", TEXT, "Event ID", hidden=True),
+])
+extended_schema(DARWIN, [
+    Column("status", BIGINT, "OpenBSM Attribute: Status of the process"),
+])
+extended_schema(LINUX, [
+    Column("fsuid", BIGINT, "Filesystem user ID at process start"),
+    Column("suid", BIGINT, "Saved user ID at process start"),
+    Column("fsgid", BIGINT, "Filesystem group ID at process start"),
+    Column("sgid", BIGINT, "Saved group ID at process start"),
+    Column("syscall", TEXT, "Syscall name: fork, vfork, clone, execve, execveat"),
+])
+attributes(event_subscriber=True)
+implementation("process_events@process_events::genTable")

@@ -1,0 +1,1 @@
+i would like to refactor this project to prepare it for extending its capabilities beyond hardcoded mutators. First, reorganise the source code so that it is easier to work with, and also add test coverage to ensure nothing breaks during future refactors
