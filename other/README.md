@@ -4,5 +4,4 @@ Demos in this folder use multiple Google Cloud products and don't fit neatly int
 
 ## Recent Additions
 
-*   **[engcon-2025](./engcon-2025)**: Demo for EngCon 2025 - "The Engineer's Craft in The Age of AI".
 *   **[gde-academy-2025](./gde-academy-2025)**: Resources for GDE Academy 2025 - Vibe Writing Session.

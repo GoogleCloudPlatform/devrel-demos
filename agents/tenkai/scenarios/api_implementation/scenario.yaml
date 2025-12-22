@@ -1,0 +1,42 @@
+name: api_implementation
+description: Implement Bookstore API using Chi and Validator
+assets:
+  - type: file
+    source: openapi.yaml
+    target: openapi.yaml
+task: |
+  # Task: Implement Bookstore API (OpenAPI + SDK Discovery)
+  
+  Your task is to implement a Go HTTP server that strictly satisfies the provided `openapi.yaml` specification.
+  To do this efficiently and robustly, you must discover and use specific, popular ecosystem libraries.
+  
+  ## Requirements
+  
+  1.  **SDK/Library Discovery**: 
+      *   Use **Chi** (`github.com/go-chi/chi/v5`) for routing. Do NOT use `net/http` mux or `gorilla/mux`.
+      *   Use **Validator** (`github.com/go-playground/validator/v10`) for request validation.
+  2.  **Implement Endpoints**:
+      *   `GET /books`: List books strictly as JSON array.
+      *   `POST /books`: Create book. ID must be generated (UUID or random string).
+      *   `GET /books/{id}`: Return 404 if not found.
+  3.  **Strict Compliance**: 
+      *   Status codes must match the YAML (e.g., 201 for Created).
+      *   Validation errors must return 400.
+  
+  ## Constraints
+  
+  - Input: `openapi.yaml` is in the current directory.
+  - Output: The server should listen on port 8080 (though tests will use `httptest`).
+  
+  ## Verification & Acceptance Criteria
+  
+  - **NO INTERACTIVE MODE**: You must test the code using unit tests or stdin/stdout redirection. Do NOT rely on interactive prompts.
+  - **NO BLOCKING COMMANDS**: Do NOT run servers using `go run` or similar commands in the foreground, as they will block until timeout and fail the task. The agent environment does not support background processes currently.
+  - All code must be verified by running tests (`go test ./...`) or non-interactive scripts.
+
+validation:
+  - type: test
+    target: ./...
+  - type: lint
+    target: ./...
+    max_issues: 0

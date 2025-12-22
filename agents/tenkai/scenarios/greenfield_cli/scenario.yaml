@@ -1,0 +1,45 @@
+name: greenfield_cli
+description: Build a Todo List CLI with JSON output.
+task: |
+  # Task: Build a Todo List CLI (Greenfield)
+  
+  Create a command-line interface (CLI) tool in Go for managing a simple todo list.
+  
+  ## Requirements
+  
+  1.  **Add a Task**: The user should be able to add a task with a description.
+      *   Command: `todo add "Buy milk"`
+      *   Success Output (JSON): `{"id": 1, "status": "added"}`
+  2.  **List Tasks**: The user should be able to list all pending tasks.
+      *   Command: `todo list`
+      *   Output format (JSON): `[{"id": 1, "description": "Buy milk", "done": false}]`
+  3.  **Complete a Task**: The user should be able to mark a task as done by its ID.
+      *   Command: `todo done <ID>`
+      *   Success Output (JSON): `{"id": 1, "status": "completed"}`
+  4.  **Storage**: Persist the tasks to a local file `tasks.json`.
+  5.  **Error Handling**:
+      *   If arguments are invalid (e.g. missing text), print `{"error": "invalid arguments"}` and **exit with code 42**.
+      *   For other errors, print `{"error": "..."}` and exit with code 1.
+  
+  ## Constraints
+  
+  - **STRICT OUTPUT**: Do NOT print "Task added" or any plain text. ONLY print Valid JSON to stdout.
+  - Use the standard library only, or `flag` package for parsing arguments.
+  - Organize code: logic should be separated from `main` package if possible, or at least clean functions.
+  
+  ## Verification & Acceptance Criteria
+  
+  - **NO INTERACTIVE MODE**: You must test the code using unit tests or stdin/stdout redirection. Do NOT rely on interactive prompts.
+  - **NO BLOCKING COMMANDS**: Do NOT run servers using `go run` or similar commands in the foreground, as they will block until timeout and fail the task. The agent environment does not support background processes currently.
+  - All code must be verified by running tests (`go test ./...`) or non-interactive scripts.
+
+assets: []
+validation:
+  - type: command
+    command: go
+    args: ["run", ".", "add", "Buy Milk"]
+    expect_output: ".*added.*"
+  - type: command
+    command: go
+    args: ["run", ".", "list"]
+    expect_output: ".*Buy Milk.*"

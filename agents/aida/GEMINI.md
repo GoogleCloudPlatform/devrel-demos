@@ -68,8 +68,4 @@ The main agent is defined in `aida/agent.py`. It uses `google.adk` and is config
 
 ## Troubleshooting
 
-*   **Import Errors in Tests**: Ensure `sys.path` is correctly set in test files to include the project root.
-    ```python
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-    ```
 *   **RAG Initialization Issues**: The RAG engines require the database files (`schema.db`, `packs.db`) to exist. Run `./setup.sh` if they are missing.

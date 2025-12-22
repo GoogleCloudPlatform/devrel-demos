@@ -1,0 +1,10 @@
+{
+    "mcpServers": {
+        "godoctor": {
+            "command": "godoctor",
+            "args": [
+                "--experimental"
+            ]
+        }
+    }
+}

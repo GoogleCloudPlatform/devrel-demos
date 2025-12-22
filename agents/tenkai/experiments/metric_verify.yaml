@@ -1,0 +1,10 @@
+name: metric_verification
+description: Verify that tests and lint counts are captured by the validation engine.
+reps: 1
+concurrent: 1
+alternatives:
+  - name: standard
+    command: gemini
+    args: ["prompt"]
+scenarios:
+  - name: api_implementation

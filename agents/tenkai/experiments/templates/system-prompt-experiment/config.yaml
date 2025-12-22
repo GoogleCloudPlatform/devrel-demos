@@ -1,0 +1,86 @@
+name: system_prompt_study
+description: >
+  Optimizing the system prompt for Go and GoDoctor.  This experiment evaluates
+  how specific prompt construction affects an agent's  idiomatic usage of Go and
+  its willingness to discover and use specialized MCP tools.
+repetitions: 10
+max_concurrent: 5
+timeout: 5m
+control: default
+alternatives:
+  - name: default
+    description: >
+      Standard Gemini CLI prompt (Control).  Condition: Baseline behavior using
+      the original system prompt provided by the CLI.
+    command: gemini
+    args:
+      - '--output-format'
+      - stream-json
+      - '--yolo'
+      - '--model'
+      - gemini-2.5-flash
+    system_prompt_file: prompts/SYSTEM_DEFAULT.md
+    settings_path: settings-default.json
+  - name: go_optimized
+    description: >
+      Go-centric prompt refinement.  Condition: Removes references to other
+      languages and reinforces Go-specific idioms  (e.g., error handling,
+      testing patterns) within the core mandate.
+    command: gemini
+    args:
+      - '--output-format'
+      - stream-json
+      - '--yolo'
+      - '--model'
+      - gemini-2.5-flash
+    system_prompt_file: prompts/SYSTEM_GO_OPTIMIZED.md
+    settings_path: settings-default.json
+  - name: default_godoctor
+    description: >
+      Standard prompt + GoDoctor snippet.  Condition: Adds the 'godoctor
+      --agents' instruction block to the baseline prompt  to provide direct
+      awareness of specialized Go analysis tools.
+    command: gemini
+    args:
+      - '--output-format'
+      - stream-json
+      - '--yolo'
+      - '--model'
+      - gemini-2.5-flash
+    system_prompt_file: prompts/SYSTEM_DEFAULT_GODOCTOR.md
+    settings_path: settings-default.json
+  - name: go_godoctor
+    description: >
+      Go-centric prompt + GoDoctor snippet.  Condition: Combines both the
+      architectural optimization for Go and the explicit  tool awareness snippet
+      for the specialized MCP server.
+    command: gemini
+    args:
+      - '--output-format'
+      - stream-json
+      - '--yolo'
+      - '--model'
+      - gemini-2.5-flash
+    system_prompt_file: prompts/SYSTEM_GO_GODOCTOR.md
+    settings_path: settings-default.json
+scenarios:
+  - name: api_implementation
+    description: >-
+      Design and implement a robust REST API endpoint for a resource with full
+      CRUD and validation.
+  - name: concurrency_debug
+    description: >-
+      Identify and resolve a race condition in a complex concurrent data
+      processing pipeline.
+  - name: greenfield_cli
+    description: >-
+      Build a modern CLI tool from scratch with subcommands, flag parsing, and
+      structured logging.
+  - name: legacy_refactor
+    description: >-
+      Modernize a legacy codebase by refactoring a monolithic package into
+      decoupled units with interfaces.
+  - name: test_generation
+    description: >-
+      Generate comprehensive table-driven tests for an existing complex business
+      logic package.
