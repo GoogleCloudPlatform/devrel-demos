@@ -23,8 +23,8 @@ The project includes a FastAPI web application that serves a simple chat interfa
 
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/your-username/biznaga.git
-    cd biznaga
+    git clone https://github.com/GoogleCloudPlatform/devrel-demos.git
+    cd devrel-demos/agents/biznagafest2025
     ```
 2.  Install the dependencies:
     ```bash
