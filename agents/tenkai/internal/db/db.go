@@ -187,7 +187,7 @@ func (db *DB) migrate() error {
 			tests_failed INTEGER,
 			lint_issues INTEGER,
 			raw_json TEXT,
-			Total_tokens INTEGER DEFAULT 0,
+            total_tokens INTEGER DEFAULT 0,
 			input_tokens INTEGER DEFAULT 0,
 			output_tokens INTEGER DEFAULT 0,
 			tool_calls_count INTEGER DEFAULT 0,
