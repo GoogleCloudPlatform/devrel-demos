@@ -94,10 +94,6 @@ async def get_chat_ui():
 async def get_model():
     current_model = root_agent.model
     model_id = "gemini" # Default
-    
-    print(f"DEBUG: get_model current_model type: {type(current_model)}, value: {current_model}")
-    if hasattr(current_model, "model_name"):
-         print(f"DEBUG: current_model.model_name: {current_model.model_name}")
 
     if isinstance(current_model, str):
         if "gemini" in current_model:
@@ -127,7 +123,6 @@ async def set_model(request: Request):
     else:
         return {"error": "Invalid model ID. Use 'gemini', 'qwen' or 'gpt-oss'."}
 
-    print(f"--- MODEL SWITCHED TO: {root_agent.model} ---")
     return {"status": "ok", "current_model": str(root_agent.model)}
 
 

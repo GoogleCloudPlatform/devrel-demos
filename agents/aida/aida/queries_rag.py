@@ -3,10 +3,6 @@ import sys
 
 from unittest.mock import MagicMock
 
-# Hack: Mock markitdown to bypass dependency issues on Python 3.14.
-# We don't use FileReader which is the only consumer of markitdown.
-sys.modules["markitdown"] = MagicMock()
-
 from sqlite_rag import SQLiteRag
 from sqlite_rag.models.document_result import DocumentResult
 
@@ -35,12 +31,13 @@ def search_query_library(search_terms: str, platform: str, top_k: int) -> list[D
     Returns:
         One or more chunks of data containing the related queries.
     """
-
+    
+    query = search_terms
     if platform == "all" or platform is None:
-        search_terms += " windows linux darwin"
+        query += " windows linux darwin"
     else:
-        search_terms += " " + platform
+        query += " " + platform
 
-    results = queries_rag.search(search_terms, top_k=top_k)
+    results = queries_rag.search(query, top_k=top_k)
     return results
 

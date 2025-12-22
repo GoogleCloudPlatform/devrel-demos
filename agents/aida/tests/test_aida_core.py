@@ -3,9 +3,6 @@ import time
 import sys
 import os
 
-# Ensure aida package is in path if running from root
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from aida.schema_rag import schema_rag, discover_schema
 from aida.queries_rag import queries_rag, search_query_library
 
