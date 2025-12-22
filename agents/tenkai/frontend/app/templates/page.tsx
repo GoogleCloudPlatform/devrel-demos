@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 async function getTemplates() {
     try {
-        const res = await fetch('http://localhost:3000/api/templates', { cache: 'no-store' });
+        const res = await fetch('/api/templates', { cache: 'no-store' });
         if (!res.ok) throw new Error('Failed to fetch templates');
         return await res.json();
     } catch (e) {
