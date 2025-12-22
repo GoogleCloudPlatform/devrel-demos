@@ -93,7 +93,7 @@ Data Summary:\n`;
 }
 
 function callGemini(prompt: string): Promise<string> {
-    const GEMINI_PATH = '/Users/petruzalek/homebrew/Cellar/node/25.2.0/bin/gemini';
+    const GEMINI_PATH = process.env.GEMINI_PATH || 'gemini';
     return new Promise((resolve, reject) => {
         const gemini = spawn(GEMINI_PATH, ['-m', 'gemini-2.5-flash', '--output-format', 'text']);
         let output = '';
