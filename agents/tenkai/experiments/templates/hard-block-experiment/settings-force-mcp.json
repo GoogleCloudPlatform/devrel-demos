@@ -1,0 +1,17 @@
+{
+    "tools": {
+        "exclude": [
+            "read_file",
+            "write_file",
+            "replace"
+        ]
+    },
+    "mcpServers": {
+        "godoctor": {
+            "command": "godoctor",
+            "args": [
+                "--experimental"
+            ]
+        }
+    }
+}

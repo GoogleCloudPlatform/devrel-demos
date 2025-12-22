@@ -1,0 +1,45 @@
+name: legacy_refactor
+description: Refactor a monolithic Go file into a modular structure and upgrade dependencies.
+task: |
+  # Task: Legacy Monolith Refactor & Upgrade
+  
+  You have inherited a legacy Go "monolith" file (`main.go`) that mixes HTTP handling, business logic, and database access. 
+  It also uses an old version of `github.com/google/uuid` (v1.1.1) which has a known issue we want to resolve by upgrading.
+  
+  ## Requirements
+  
+  1.  **Refactor**: break `main.go` into a modular structure:
+      *   Move HTTP handlers to `internal/api/handlers.go`.
+      *   Move business logic to `internal/service/logic.go`.
+      *   Keep `main.go` as the entry point that wires everything together.
+  2.  **Upgrade Dependency**: Update `github.com/google/uuid` to the latest version (v1.6.0 or newer).
+      *   Run `go get ...` and `go mod tidy`.
+  3.  **Preserve Behavior**: The application logic must remain exactly the same. 
+      *   **Trap**: Watch out for unexported variables/functions in `main.go`. When you move them to new packages, they will become invisible unless you export them or keep them internal to the new package.
+  
+  ## Constraints
+  
+  - The resulting code must run and pass tests.
+  - Do not change the HTTP API endpoints or response format.
+  
+  ## Verification & Acceptance Criteria
+  
+  - **NO INTERACTIVE MODE**: You must test the code using unit tests or stdin/stdout redirection. Do NOT rely on interactive prompts.
+  - **NO BLOCKING COMMANDS**: Do NOT run servers using `go run` or similar commands in the foreground, as they will block until timeout and fail the task. The agent environment does not support background processes currently.
+  - All code must be verified by running tests (`go test ./...`) or non-interactive scripts.
+
+assets:
+  - type: file
+    source: main.go
+    target: main.go
+  - type: file
+    source: go.mod
+    target: go.mod
+
+validation:
+  - type: test
+    target: ./...
+  - type: command
+    command: go
+    args: ["list", "-m", "github.com/google/uuid"]
+    expect_output: "v1.6.0" # or regex match in code

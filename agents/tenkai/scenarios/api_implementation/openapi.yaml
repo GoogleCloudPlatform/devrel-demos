@@ -1,0 +1,89 @@
+openapi: 3.0.0
+info:
+  title: Tiny Bookstore API
+  version: 1.0.0
+paths:
+  /books:
+    get:
+      summary: List all books
+      responses:
+        '200':
+          description: A list of books
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Book'
+    post:
+      summary: Create a book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookRequest'
+      responses:
+        '201':
+          description: Book created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '400':
+          description: Invalid input
+
+  /books/{id}:
+    get:
+      summary: Get a book by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The book
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '404':
+          description: Book not found
+
+components:
+  schemas:
+    Book:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        author:
+          type: string
+        pages:
+          type: integer
+      required:
+        - id
+        - title
+        - author
+        - pages
+
+    CreateBookRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 3
+        author:
+          type: string
+          minLength: 3
+        pages:
+          type: integer
+          minimum: 1
+      required:
+        - title
+        - author
+        - pages

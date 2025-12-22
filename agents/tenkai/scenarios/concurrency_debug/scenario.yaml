@@ -1,0 +1,40 @@
+name: concurrency_debug
+description: Fix race conditions and deadlocks in a worker pool.
+task: |
+  # Task: Concurrency Debugging - Race & Deadlock
+  
+  This program implements a worker pool to process jobs concurrently.
+  However, it is unstable. It crashes with race conditions and sometimes hangs indefinitely (deadlock).
+  
+  ## Requirements
+  
+  1.  **Analyze & Fix Race Condition**: The `JobCounter` is not thread-safe. Fix it using `sync/atomic` or `sync.Mutex`.
+      *   Verify with `go run -race main.go`.
+  2.  **Analyze & Fix Deadlock**: The worker pool sometimes hangs when the job queue is full or when closing channels.
+      *   Identify the circular dependency or incorrect channel closing logic.
+  3.  **Stability**: The program must process all 1000 jobs and exit cleanly with exit code 0.
+  
+  ## Constraints
+  
+  - You must keep the *concurrent* nature of the program (do not make it sequential).
+  - Use standard `sync` and `channel` primitives.
+  
+  ## Verification & Acceptance Criteria
+  
+  - **NO INTERACTIVE MODE**: You must test the code using unit tests or stdin/stdout redirection. Do NOT rely on interactive prompts.
+  - **NO BLOCKING COMMANDS**: Do NOT run servers using `go run` or similar commands in the foreground, as they will block until timeout and fail the task. The agent environment does not support background processes currently.
+  - All code must be verified by running tests (`go test ./...`) or non-interactive scripts.
+
+assets:
+  - type: file
+    source: main.go
+    target: main.go
+  - type: file
+    source: go.mod
+    target: go.mod
+
+validation:
+  - type: command
+    command: go
+    args: ["run", "-race", "main.go"]
+    expect_exit_code: 0

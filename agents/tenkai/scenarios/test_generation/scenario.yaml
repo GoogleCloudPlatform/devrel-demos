@@ -1,0 +1,38 @@
+name: test_generation
+description: Fix bugs in TaxCalculator using Table-Driven Tests.
+task: |
+  # Task: Test-Driven Bug Fixing
+  
+  You are given a `TaxCalculator` implementation that contains **subtle logic bugs** (e.g., incorrect bracket calculation or leap year handling).
+  Your goal is to catch these bugs using Table-Driven Tests, and then fix the implementation.
+  
+  ## Requirements
+  
+  1.  **Write Failing Tests**: specific test cases that target the suspected bugs. 
+      *   *Constraint*: You must assert that the current code fails these tests initially (mental check).
+  2.  **Fix the Code**: Modify the `CalculateTax` function to handle the edge cases correctly.
+  3.  **Verify**: Run `go test -v` to ensure all tests (including your new edge cases) pass.
+  
+  ## Constraints
+  
+  - Use Table-Driven Test pattern.
+  - Achieve 100% statement coverage for the `CalculateTax` function.
+  
+  ## Verification & Acceptance Criteria
+  
+  - **NO INTERACTIVE MODE**: You must test the code using unit tests or stdin/stdout redirection. Do NOT rely on interactive prompts.
+  - **NO BLOCKING COMMANDS**: Do NOT run servers using `go run` or similar commands in the foreground, as they will block until timeout and fail the task. The agent environment does not support background processes currently.
+  - All code must be verified by running tests (`go test ./...`) or non-interactive scripts.
+
+assets:
+  - type: file
+    source: tax.go
+    target: tax.go
+  - type: file
+    source: go.mod
+    target: go.mod
+
+validation:
+  - type: test
+    target: ./...
+    min_coverage: 100.0
