@@ -1,10 +1,8 @@
-import os
 from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
-from google.adk.memory import VertexAiMemoryBankService
 from google.genai import types
 from typing import Optional
-from tools.tools import (
+from .tools.tools import (
     get_quiz_questions,
     start_quiz,
     submit_answer,
@@ -12,12 +10,12 @@ from tools.tools import (
     get_quiz_status,
     reset_quiz,
 )
-from python_tutor_core.prompts import (
+from .python_tutor_core.prompts import (
     BASE_PROMPT,
     MEMORY_INSTRUCTIONS,
     QUIZ_INSTRUCTIONS,
 )
-from python_tutor_core.agent_utils import initialize_quiz_state
+from .python_tutor_core.agent_utils import initialize_quiz_state
 from .memory_tools import search_memory, set_user_name
 
 
@@ -86,36 +84,22 @@ def before_agent_callback(callback_context: CallbackContext) -> Optional[types.C
     return None
 
 
-# Source: https://github.com/serkanh/adk-with-memorybank/blob/main/agents/memory_assistant/agent.py
-async def auto_save_to_memory_callback(callback_context):
+# Source: https://google.github.io/adk-docs/sessions/memory/#using-memory-in-your-agent
+async def auto_save_to_memory_callback(callback_context: CallbackContext):
     """Automatically save completed sessions to memory bank using default session user_id"""
     try:
-        session_id = None
-
-        # Extract session information from invocation context
-        if hasattr(callback_context, "_invocation_context"):
-            inv_ctx = callback_context._invocation_context
-
-            # Extract session ID
-            if hasattr(inv_ctx, "session") and hasattr(inv_ctx.session, "id"):
-                session_id = inv_ctx.session.id
-
-        # Get the session from the invocation context
-        session = callback_context._invocation_context.session
+        inv_ctx = getattr(callback_context, "_invocation_context", None)
+        session = getattr(inv_ctx, "session", None)
+        session_id = getattr(session, "id", None)
 
         if not session_id:
+            print("⚠️ No Session ID found in callback context, skipping memory save")
             return
 
-        # Initialize memory service
-        agent_engine_id = os.getenv("AGENT_ENGINE_ID")
-        if not agent_engine_id:
+        memory_service = inv_ctx.memory_service
+        if not memory_service:
+            print("⚠️ Memory Service not set, cannot save to memory")
             return
-
-        memory_service = VertexAiMemoryBankService(
-            project=os.getenv("GOOGLE_CLOUD_PROJECT"),
-            location=os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1"),
-            agent_engine_id=agent_engine_id,
-        )
 
         # Check if session has meaningful content
         has_content = False
@@ -129,6 +113,7 @@ async def auto_save_to_memory_callback(callback_context):
             has_content = content_count >= 2
 
         if not has_content:
+            print("📭 Session has no meaningful content, skipping memory save")
             return
 
         await memory_service.add_session_to_memory(session)
@@ -136,6 +121,8 @@ async def auto_save_to_memory_callback(callback_context):
 
     except Exception as e:
         print(f"⚠️ Error auto-saving to memory: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 enhanced_quiz_tools = [
