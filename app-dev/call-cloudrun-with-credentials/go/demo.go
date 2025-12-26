@@ -62,10 +62,11 @@ func getIDToken(ctx context.Context, audience string) (string, error) {
 	var isImpersonated bool
 
 	if len(creds.JSON()) > 0 {
-		if err := json.Unmarshal(creds.JSON(), &rawCreds); err == nil {
-			if typeVal, ok := rawCreds["type"].(string); ok && typeVal == "impersonated_service_account" {
-				isImpersonated = true
-			}
+		if err := json.Unmarshal(creds.JSON(), &rawCreds); err != nil {
+			return "", err
+		}
+		if typeVal, ok := rawCreds["type"].(string); ok && typeVal == "impersonated_service_account" {
+			isImpersonated = true
 		}
 	}
 
@@ -82,15 +83,15 @@ func getIDToken(ctx context.Context, audience string) (string, error) {
 	return token.Value, nil
 }
 
-// getTokenViaImpersonation manually handles the double-hop auth.
+var serviceAccountNameRegex = regexp.MustCompile(`serviceAccounts/([^:]+):`)
+
 func getTokenViaImpersonation(ctx context.Context, audience string, rawCreds map[string]interface{}) (string, error) {
 	// A. extract target service account email
 	impURL, ok := rawCreds["service_account_impersonation_url"].(string)
 	if !ok {
 		return "", fmt.Errorf("malformed ADC: missing service_account_impersonation_url")
 	}
-	re := regexp.MustCompile(`serviceAccounts/([^:]+):`)
-	matches := re.FindStringSubmatch(impURL)
+	matches := serviceAccountNameRegex.FindStringSubmatch(impURL)
 	if len(matches) < 2 {
 		return "", fmt.Errorf("could not extract service account email from URL")
 	}
@@ -137,7 +138,10 @@ func callService(ctx context.Context, url, token string) error {
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
 	}

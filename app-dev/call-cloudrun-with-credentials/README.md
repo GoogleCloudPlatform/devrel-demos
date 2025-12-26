@@ -120,9 +120,9 @@ You don't need to do anything. The auth library will automatically retrieve the 
 gcloud auth application-default login
 ```
 
-When you run the command it either opens a browser window or prints a long URL that you will need to manuallly open in a browse. Following instructions to complete authentication. At the end the gcloud command will store the acquired credentials locally.
+When you run the command it either opens a browser window or prints a long URL that you will need to open manually. Follow instructions to complete authentication. At the end the gcloud command will store the acquired credentials locally.
 
-### **Option C: Authenticate with service account's key**
+#### **Option C: Authenticate with service account's key**
 
 > [!IMPORTANT]
 > Please familiarize yourself with [best practices](https://docs.cloud.google.com/iam/docs/best-practices-for-managing-service-account-keys) for managing service account keys before you continue.
