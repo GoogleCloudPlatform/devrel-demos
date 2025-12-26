@@ -107,25 +107,49 @@ The demo leverages [application default credentials](https://docs.cloud.google.c
 > [!WARNING]
 > Avoid statically store credentials in your product environment.
 
-* **Option A: Authenticate with a user account's credentials**
+#### **Option A: Run in one of Google Cloud Compute environments**
 
-  ```bash
-  gcloud auth application-default login
-  ```
+Run your application on a VM, AppEngine or a serverless platform like GKE, Cloud Run or another environment (eg Dataflow).
+These environments have access to the local metadata server that provides access to credentials of the service account that is associated with your compute resource.
+For example, if you run your application on Cloud Run, the metadata server sets up ADC to the credentials of the service account of your Cloud Run service.
+You don't need to do anything. The auth library will automatically retrieve the credentials.
 
-  When you run the command it either opens a browser window or prints a long URL that you will need to manuallly open in a browse. Following instructions to complete authentication. At the end the gcloud command will store the acquired credentials locally.
+#### **Option B: Authenticate with a user account's credentials**
 
-* **Option B: Authenticate with service account's key**
+```bash
+gcloud auth application-default login
+```
 
-  > [!IMPORTANT]
-  > Please familiarize yourself with [best practices](https://docs.cloud.google.com/iam/docs/best-practices-for-managing-service-account-keys) for managing service account keys before you continue.
+When you run the command it either opens a browser window or prints a long URL that you will need to manuallly open in a browse. Following instructions to complete authentication. At the end the gcloud command will store the acquired credentials locally.
 
-  [Generate](https://docs.cloud.google.com/iam/docs/keys-create-delete#creating) service account key and store it in your environment.
-  Set up reserved environment variable to the path to the key file.
+### **Option C: Authenticate with service account's key**
 
-  ```bash
-  export GOOGLE_APPLICATION_CREDENTIALS='PATH/TO/SA/KEY/FILE'
-  ```
+> [!IMPORTANT]
+> Please familiarize yourself with [best practices](https://docs.cloud.google.com/iam/docs/best-practices-for-managing-service-account-keys) for managing service account keys before you continue.
+[Generate](https://docs.cloud.google.com/iam/docs/keys-create-delete#creating) service account key and store it in your environment.
+Set up reserved environment variable to the path to the key file.
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS='PATH/TO/SA/KEY/FILE'
+```
+
+#### **Option D: Impersonate a service account**
+
+Use your user account to impersonate a service account:
+
+```bash
+gcloud auth application-default login --impersonate-service-account SERVICE_ACCT_EMAIL
+```
+
+The `SERVICE_ACCT_EMAIL` should be a fully qualified service account email. For example: `my-test-sa@my-project-id.iam.gserviceaccount.com` for the service account `my-test-sa` in the project `my-project-id`.
+
+You will need to grant the `roles/iam.serviceAccountTokenCreator` role to your user account in addition to granting the `roles/run.invoker` to the service account itself:
+
+```bash
+gcloud iam service-accounts add-iam-policy-binding SERVICE_ACCT_EMAIL \
+    --member="user:USER_EMAIL" \
+    --role="roles/iam.serviceAccountTokenCreator"
+```
 
 ### 4. Execute the demo
 
@@ -138,6 +162,22 @@ The demo leverages [application default credentials](https://docs.cloud.google.c
 cd python
 pip install -r requirements.txt
 python demo.py --url "${SERVICE_URL}"
+```
+
+Mind that the `SERVICE_URL` environment variable was set in the Step 1.
+The successful execution prints "`🎉 --- Response Content (First 200 chars) ---`" following first 200 symbols of the response.
+
+#### Go
+
+> [!NOTE]
+>
+> * You SHOULD use `cloud.google.com/go/auth/credentials/idtoken` package in the [`cloud.google.com/go/auth`](https://pkg.go.dev/cloud.google.com/go/auth) module. The [`google.golang.org/api/idtoken`](https://pkg.go.dev/google.golang.org/api/idtoken) package contains deprecated methods and is no longer recommended for working with Google credentials tokens.
+> * There is no support for ID token of the user account by design. When developing, use [impersonated account](#option-d-impersonate-a-service-account) method
+
+```bash
+cd go
+go mod download
+go run demo.go --url "${SERVICE_URL}"
 ```
 
 Mind that the `SERVICE_URL` environment variable was set in the Step 1.
