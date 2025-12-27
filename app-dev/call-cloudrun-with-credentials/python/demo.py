@@ -13,13 +13,8 @@ def get_id_token(audience: str) -> str:
 
     # Option D: Handle Impersonated Credentials
     if isinstance(creds, impersonated_credentials.Credentials):
-        impersonated_creds = impersonated_credentials.Credentials(
-            source_credentials=creds,
-            target_principal=creds._target_principal,
-            target_scopes=["https://www.googleapis.com/auth/cloud-platform"],
-        )        
         creds = impersonated_credentials.IDTokenCredentials(
-            impersonated_creds,
+            creds,
             target_audience=audience,
             include_email=True
         )
