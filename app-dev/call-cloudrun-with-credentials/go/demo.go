@@ -138,6 +138,7 @@ func callService(ctx context.Context, url, token string) error {
 		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
 	}
 
-	fmt.Printf("✅ Response: %s\n", string(body))
+	fmt.Printf("🎉 --- Response Content (First 200 chars) ---\n")
+	fmt.Printf("%s\n", string(body[:200]))
 	return nil
 }
