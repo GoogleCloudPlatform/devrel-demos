@@ -47,7 +47,6 @@ func main() {
 	fmt.Println("🎉 Service call completed successfully.")
 }
 
-// getIDToken detects the ADC type and chooses the correct flow.
 func getIDToken(ctx context.Context, audience string) (string, error) {
 	creds, err := idtoken.NewCredentials(&idtoken.Options{
 		Audience: audience,
@@ -56,26 +55,19 @@ func getIDToken(ctx context.Context, audience string) (string, error) {
 		return "", fmt.Errorf("failed to detect default credentials: %w", err)
 	}
 
-	// 2. Check if the detected credentials are "Impersonated Service Account"
-	// We check the raw JSON. If it's a metadata server cred, JSON will be empty (safe).
+	// Option D: Detect Impersonated Credentials
 	var rawCreds map[string]interface{}
-	var isImpersonated bool
 
 	if len(creds.JSON()) > 0 {
 		if err := json.Unmarshal(creds.JSON(), &rawCreds); err != nil {
 			return "", err
 		}
 		if typeVal, ok := rawCreds["type"].(string); ok && typeVal == "impersonated_service_account" {
-			isImpersonated = true
+			return getTokenViaImpersonation(ctx, audience, rawCreds)
 		}
 	}
 
-	// 3. Branching Logic
-	if isImpersonated {
-		fmt.Println("👉 Detected Impersonated ADC. Configuring explicit impersonation...")
-		return getTokenViaImpersonation(ctx, audience, rawCreds)
-	}
-
+	// Options A, B and C: Metadata Server, User or Service Account Credentials
 	token, err := creds.Token(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve token: %w", err)
@@ -86,7 +78,7 @@ func getIDToken(ctx context.Context, audience string) (string, error) {
 var serviceAccountNameRegex = regexp.MustCompile(`serviceAccounts/([^:]+):`)
 
 func getTokenViaImpersonation(ctx context.Context, audience string, rawCreds map[string]interface{}) (string, error) {
-	// A. extract target service account email
+	// 1. extract target service account email
 	impURL, ok := rawCreds["service_account_impersonation_url"].(string)
 	if !ok {
 		return "", fmt.Errorf("malformed ADC: missing service_account_impersonation_url")
@@ -98,7 +90,7 @@ func getTokenViaImpersonation(ctx context.Context, audience string, rawCreds map
 	targetSA := matches[1]
 	fmt.Printf("   Target Principal: %s\n", targetSA)
 
-	// B. Acquire base creds with the default scope
+	// 2. Acquire base creds with the default scope
 	baseCreds, err := credentials.DetectDefault(&credentials.DetectOptions{
 		Scopes:           []string{"https://www.googleapis.com/auth/cloud-platform"},
 	})
@@ -106,7 +98,7 @@ func getTokenViaImpersonation(ctx context.Context, audience string, rawCreds map
 		return "", fmt.Errorf("failed to load base credentials: %w", err)
 	}
 
-	// C. generate ID token using the base creds to impersonate the target
+	// 3. generate ID token using the base creds to impersonate the target
 	impCreds, err := impersonate.NewIDTokenCredentials(&impersonate.IDTokenOptions{
 		Audience:        audience,
 		TargetPrincipal: targetSA,
