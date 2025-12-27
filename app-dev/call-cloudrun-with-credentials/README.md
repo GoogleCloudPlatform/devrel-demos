@@ -170,9 +170,10 @@ The successful execution prints "`🎉 --- Response Content (First 200 chars) --
 #### Go
 
 > [!NOTE]
->
-> * You SHOULD use `cloud.google.com/go/auth/credentials/idtoken` package in the [`cloud.google.com/go/auth`](https://pkg.go.dev/cloud.google.com/go/auth) module. The [`google.golang.org/api/idtoken`](https://pkg.go.dev/google.golang.org/api/idtoken) package contains deprecated methods and is no longer recommended for working with Google credentials tokens.
-> * There is no support for ID token of the user account by design. When developing, use [impersonated account](#option-d-impersonate-a-service-account) method
+> You SHOULD use `cloud.google.com/go/auth/credentials/idtoken` package in the [`cloud.google.com/go/auth`](https://pkg.go.dev/cloud.google.com/go/auth) module. The [`google.golang.org/api/idtoken`](https://pkg.go.dev/google.golang.org/api/idtoken) package contains deprecated methods and is no longer recommended for working with Google credentials tokens.
+
+> [!IMPORTANT]
+> There is **no way to acquire ID token for the user account type** of ADC by design. When developing, use [impersonated account](#option-d-impersonate-a-service-account) method
 
 ```bash
 cd go
