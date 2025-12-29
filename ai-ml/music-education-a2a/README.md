@@ -16,6 +16,47 @@ that any other agent can call. And that's what Music Education Agent does using 
 
 ![ADK Diagram](images/adk_diagram.png)
 
+## Deploying production-ready A2A Agents
+
+This sample demonstrates how to run and interact with A2A agents deployed to [Cloud Run](https://cloud.google.com/run).
+
+### Handling Agent URL in A2A Agent Card
+
+Music History Agent uses ADK's [`to_a2a` helper](https://google.github.io/adk-docs/a2a/quickstart-exposing/#exposing-the-remote-agent-with-the-to_a2aroot_agent-function) for exposing an ADK agent via A2A protocol.
+It also adds an additional [middleware component](history_agent/a2a_utils.py) that handles rewriting of the agent's URL.
+
+According to the [A2A specification](https://a2a-protocol.org/v0.3.0/specification/#55-agentcard-object-structure),
+Agent's URL is the preferred endpoint URL for interacting with the agent.
+Rewriting the agent's URL is necessary when the deployed agent can be accessed via different endpoint locations (protocol, hostname, port),
+or when the URL is not known. For example, an agent deployed to Cloud Run may be accessible via multiple URLs:
+
+- Standard Cloud Run URL (`https://[TAG---]SERVICE_NAME-PROJECT_NUMBER.REGION.run.app`)
+- Custom domain with [Application Load Balancer](https://docs.cloud.google.com/run/docs/mapping-custom-domains#https-load-balancer) (e.g. `https://my-agent.example.com`)
+- Reverse proxies, Cloud DNS, custom load balancers, etc.
+
+With those services involved, the agent's container often doesn't have information about the actual URL the agent is accessed with.
+
+ADK's A2A implementation, similarly to the majority of A2A servers, has the Agent Card co-located with the agent.
+It allows rewriting the agent's URL in the card using the request information of the card's request.
+To construct the agent URL, the rewriting component replaces scheme (protocol), hostname and port with the following information:
+
+- Host - with `X-Forwarded-Host` value, if present, otherwise with the hostname of the AgentCard request.
+- Port - with `X-Forwarded-Port` value, if present, otherwise with the port of the AgentCard request.
+- Scheme - with `X-Forwarded-Proto` value, if present, otherwise with the scheme of the AgentCard request or `http`.
+
+### Authentication for agents deployed to Cloud Run
+
+All Cloud Run services are deployed privately by default,
+which means that they can't be accessed without providing authentication credentials in the request.
+These services are secured by Identity and Access Management.
+
+When an agents makes a request to an A2A agent deployed in Cloud Run, they must perform [service-to-service authentication](https://docs.cloud.google.com/run/docs/authenticating/service-to-service).
+
+Music Education Agent uses a an authentication extension for Httpx Client, implemented in [music_ed_agent/auth_utils.py](music_ed_agent/auth_utils.py).
+It creates a custom `AsyncClient` when is passed to the ADK's `RemoteA2aAgent` constructor.
+
+The extension handles service-to-service authentication, whether the calling agent is running locally or in Cloud.
+
 ## Run Locally
 
 **Prerequisites**:
@@ -41,7 +82,7 @@ These agents use [Vertex AI](https://cloud.google.com/vertex-ai) to access Gemin
 
   ```bash
   source .env
-  gcloud services enable aiplatform.googleapis.com --project ${GOOGLE_CLOUD_PROJECT}
+  gcloud services enable run.googleapis.com aiplatform.googleapis.com --project ${GOOGLE_CLOUD_PROJECT}
   ```
 
 **Run the Historical Context Agent (`RemoteA2AAgent`)**
@@ -102,6 +143,8 @@ export REMOTE_AGENT_CARD="http://localhost:8001/.well-known/agent-card.json"
 uv run adk web
 ```
 
+> `REMOTE_AGENT_CARD` environment variable tells the Music Education Agent where to fetch the History Agent card from.
+
 Open http://127.0.0.1:8000/dev-ui/?app=music_ed_agent in a browser.
 
 **Test prompts:**
@@ -121,6 +164,11 @@ Open http://127.0.0.1:8000/dev-ui/?app=music_ed_agent in a browser.
 
 ... Or any classical music piece you want to learn more about!
 
+**The agent will ask if you'd like to hear about the historical context if the chosen piece**,
+and if you agree, it will call the Music History Agent for that.
+
+Alternatively, you can ask it straight about the history of the piece (e.g. "History of Wagner Tristan und Isolde").
+
 ![ADK Web](images/adk_web_screenshot.png)
 
 ## Run in Google Cloud
@@ -138,6 +186,7 @@ gcloud run deploy history-agent \
   --source history_agent \
   --region "${GOOGLE_CLOUD_LOCATION}" \
   --project "${GOOGLE_CLOUD_PROJECT}" \
+  --no-allow-unauthenticated \
   --set-env-vars GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION},GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT},GOOGLE_GENAI_USE_VERTEXAI=true \
   --memory 4Gi \
   --cpu 1 \
@@ -149,8 +198,8 @@ gcloud run deploy history-agent \
 
 ```bash
 source .env
-project_number=$(gcloud projects describe "${GOOGLE_CLOUD_PROJECT}" --format="value(projectNumber)" -q)
-history_agent_card_url="https://history-agent-${project_number}.${GOOGLE_CLOUD_LOCATION}.run.app/.well-known/agent-card.json"
+history_agent_url=$(gcloud run services describe history-agent --project "${GOOGLE_CLOUD_PROJECT}" --region "${GOOGLE_CLOUD_LOCATION}" --format="value(status.url)" -q)
+history_agent_card_url="${history_agent_url}/.well-known/agent-card.json"
 gcloud run deploy music-ed-agent \
   --source music_ed_agent \
   --region "${GOOGLE_CLOUD_LOCATION}" \

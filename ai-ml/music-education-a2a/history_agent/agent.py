@@ -17,7 +17,7 @@ from google.adk.a2a.utils.agent_to_a2a import to_a2a
 from google.adk.tools.langchain_tool import LangchainTool
 
 from tools import langchain_wikipedia_tool, google_search_tool
-from utils import get_service_endpoint
+from a2a_utils import add_a2a_card_handler
 
 
 agent_instruction = """
@@ -45,12 +45,5 @@ root_agent = Agent(
     tools=[LangchainTool(langchain_wikipedia_tool), google_search_tool],
 )
 
-
-host, scheme, port = get_service_endpoint()
-
-a2a_app = to_a2a(
-    root_agent,
-    host=host,
-    port=port,
-    protocol=scheme,
-)
+a2a_app = to_a2a(root_agent)
+add_a2a_card_handler(a2a_app)

@@ -63,9 +63,9 @@ def create_authenticated_client(
                             credentials
                         )
                     if self.session.credentials.token_state != TokenState.FRESH:
-                            self.session.credentials.refresh(
-                                Request()
-                            )
+                        self.session.credentials.refresh(
+                            Request()
+                        )
                     id_token = self.session.credentials.token
                 except DefaultCredentialsError:
                     self.outside_cloud = True
@@ -85,5 +85,6 @@ def create_authenticated_client(
 
     return httpx.AsyncClient(
         auth=_IdentityTokenAuth(remote_service_url),
+        follow_redirects=True,
         timeout=timeout,
     )
