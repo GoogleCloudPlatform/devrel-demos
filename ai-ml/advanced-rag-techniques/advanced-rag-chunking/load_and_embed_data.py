@@ -74,11 +74,11 @@ def _init_connector_and_engine(env_vars):
 def _download_and_parse_json(gcs_path):
     # Using a unique local path to avoid conflicts if lab is run multiple times quickly
     local_json_path = f"./harry_potter_books_downloaded_{str(uuid.uuid4())[:8]}.json"
-    print(f"Attempting to download '{gcs_path}' to '{local_json_path}' using gsutil...")
-    gsutil_command = f"gsutil cp \"{gcs_path}\" \"{local_json_path}\""
-    return_code = os.system(gsutil_command)
+    print(f"Attempting to download '{gcs_path}' to '{local_json_path}' using gcloud...")
+    gcloud_command = f"gcloud storage cp \"{gcs_path}\" \"{local_json_path}\""
+    return_code = os.system(gcloud_command)
     if return_code != 0:
-        print(f"Error downloading JSON file using gsutil. gsutil exited with code {return_code}.")
+        print(f"Error downloading JSON file using gcloud. gcloud exited with code {return_code}.")
         if os.path.exists(local_json_path): os.remove(local_json_path)
         raise Exception(f"Failed to download JSON file. Return code: {return_code}")
     if not os.path.exists(local_json_path):
