@@ -35,7 +35,7 @@ A Multi-tool Control Plane (MCP) server is a backend service that exposes a set 
     ```bash
     cp .env.example .env
     ```
-    **Then, open the `.env` file and add your specific configuration details for `GCP_PROJECT_ID` and `GCS_BUCKET_NAME`.**
+    **Then, open the `.env` file and add your specific configuration details for `GCS_BUCKET_NAME`.**
 
 ### Deploying to Cloud Run
 
@@ -46,7 +46,7 @@ A Multi-tool Control Plane (MCP) server is a backend service that exposes a set 
 
 2.  **Build and deploy the container image:**
     ```bash
-    gcloud run deploy podcast-assistant --no-allow-unauthenticated --source . --region us-central1 --set-env-vars="GCP_PROJECT_ID=your-gcp-project-id,GCS_BUCKET_NAME=your-gcs-bucket-name"
+    gcloud run deploy podcast-assistant --no-allow-unauthenticated --source . --region us-central1 --env-vars-file .env
     ```
 
     By using the --no-allow-unauthenticated command, we ensure that only authenticated Google Cloud users can use this MCP server.
