@@ -12,7 +12,7 @@ cloud_logging_client.setup_logging()
 
 # --- Defining variables and parameters  ---
 REGION = "global"
-PROJECT_NAME = None  # TO DO: INSERT PROJECT NAME
+PROJECT_ID = "your-project-id-here"  # TO DO: INSERT PROJECT ID
 GEMINI_MODEL_NAME = "gemini-2.5-pro-preview-06-05"
 
 temperature = .2 # Controls the randomness of the model's output. A lower value makes it more deterministic.
