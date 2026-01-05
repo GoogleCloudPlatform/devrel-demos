@@ -27,6 +27,7 @@ import (
 	"go/token"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -39,7 +40,7 @@ func GetDocumentation(ctx context.Context, pkgPath, symbolName string) (string, 
 		return fetchAndRetry(ctx, pkgPath, symbolName, err)
 	}
 
-	result, err := parsePackageDocs(ctx, pkgPath, pkgDir, symbolName)
+	result, err := parsePackageDocs(ctx, pkgPath, pkgDir, symbolName, pkgPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse documentation: %w", err)
 	}
@@ -56,15 +57,16 @@ type Example struct {
 
 // StructuredDoc represents the parsed documentation.
 type StructuredDoc struct {
-	Package     string    `json:"package"`
-	ImportPath  string    `json:"importPath"`
-	SymbolName  string    `json:"symbolName,omitempty"`
-	Type        string    `json:"type,omitempty"` // "function", "type", "var", "const"
-	Definition  string    `json:"definition,omitempty"`
-	Description string    `json:"description"`
-	Examples    []Example `json:"examples,omitempty"`
-	SubPackages []string  `json:"subPackages,omitempty"`
-	PkgGoDevURL string    `json:"pkgGoDevURL"`
+	Package      string    `json:"package"`
+	ImportPath   string    `json:"importPath"`
+	ResolvedPath string    `json:"resolvedPath,omitempty"`
+	SymbolName   string    `json:"symbolName,omitempty"`
+	Type         string    `json:"type,omitempty"` // "function", "type", "var", "const"
+	Definition   string    `json:"definition,omitempty"`
+	Description  string    `json:"description"`
+	Examples     []Example `json:"examples,omitempty"`
+	SubPackages  []string  `json:"subPackages,omitempty"`
+	PkgGoDevURL  string    `json:"pkgGoDevURL"`
 }
 
 func resolvePackageDir(ctx context.Context, pkgPath string) (string, error) {
@@ -77,7 +79,7 @@ func resolvePackageDir(ctx context.Context, pkgPath string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-func parsePackageDocs(ctx context.Context, importPath, pkgDir, symbolName string) (*StructuredDoc, error) {
+func parsePackageDocs(ctx context.Context, importPath, pkgDir, symbolName, requestedPath string) (*StructuredDoc, error) {
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, pkgDir, nil, parser.ParseComments)
 	if err != nil {
@@ -92,20 +94,13 @@ func parsePackageDocs(ctx context.Context, importPath, pkgDir, symbolName string
 		}
 	}
 
-	if len(files) == 0 {
-		return nil, fmt.Errorf("no files found in package %s", importPath)
-	}
-
-	// Compute documentation using all files
-	targetPkg, err := doc.NewFromFiles(fset, files, importPath)
-	if err != nil {
-		return nil, fmt.Errorf("doc.NewFromFiles failed: %w", err)
-	}
-
 	result := &StructuredDoc{
-		Package:     targetPkg.Name,
 		ImportPath:  importPath,
 		PkgGoDevURL: fmt.Sprintf("https://pkg.go.dev/%s", importPath),
+	}
+
+	if requestedPath != "" && requestedPath != importPath {
+		result.ResolvedPath = requestedPath
 	}
 
 	// Always look for sub-packages
@@ -115,6 +110,24 @@ func parsePackageDocs(ctx context.Context, importPath, pkgDir, symbolName string
 			result.SubPackages = append(result.SubPackages, sub)
 		}
 	}
+
+	if len(files) == 0 {
+		// If no files found, but we have subpackages, return a module overview
+		if len(result.SubPackages) > 0 {
+			result.Package = "module_root"
+			result.Description = fmt.Sprintf("Module root for %s. No Go source files found in the root directory, but sub-packages exist.", importPath)
+			return result, nil
+		}
+		return nil, fmt.Errorf("no files found in package %s", importPath)
+	}
+
+	// Compute documentation using all files
+	targetPkg, err := doc.NewFromFiles(fset, files, importPath)
+	if err != nil {
+		return nil, fmt.Errorf("doc.NewFromFiles failed: %w", err)
+	}
+
+	result.Package = targetPkg.Name
 
 	if symbolName == "" {
 		result.Description = targetPkg.Doc
@@ -305,6 +318,10 @@ func renderMarkdown(doc *StructuredDoc) string {
 
 	buf.WriteString(fmt.Sprintf("# %s\n\n", doc.ImportPath))
 
+	if doc.ResolvedPath != "" {
+		buf.WriteString(fmt.Sprintf("> **Note:** Redirected from %s\n\n", doc.ResolvedPath))
+	}
+
 	if doc.SymbolName != "" {
 		buf.WriteString(fmt.Sprintf("## %s %s\n\n", doc.Type, doc.SymbolName))
 	}
@@ -396,7 +413,7 @@ func levenshtein(s1, s2 string) int {
 			if r1[j-1] != r2[i-1] {
 				change++
 			}
-			
+
 			minVal := add
 			if del < minVal {
 				minVal = del
@@ -419,7 +436,7 @@ func fetchAndRetry(ctx context.Context, pkgPath, symbolName string, originalErr 
 		_ = os.RemoveAll(tempDir)
 	}()
 
-	pkgDir, err := downloadPackage(ctx, tempDir, pkgPath)
+	pkgDir, actualPkgPath, err := downloadPackage(ctx, tempDir, pkgPath)
 	if err != nil {
 		// Attempt to provide suggestions from standard library
 		suggestions := suggestPackages(ctx, pkgPath)
@@ -432,7 +449,7 @@ func fetchAndRetry(ctx context.Context, pkgPath, symbolName string, originalErr 
 			pkgPath, err, originalErr, suggestionText)
 	}
 
-	result, err := parsePackageDocs(ctx, pkgPath, pkgDir, symbolName)
+	result, err := parsePackageDocs(ctx, actualPkgPath, pkgDir, symbolName, pkgPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse documentation after download: %w", err)
 	}
@@ -482,18 +499,47 @@ func setupTempModule(ctx context.Context) (string, error) {
 	return tempDir, nil
 }
 
-func downloadPackage(ctx context.Context, tempDir, pkgPath string) (string, error) {
+var vanityImportRe = regexp.MustCompile(`module declares its path as:\s+([^\s]+)`)
+
+func downloadPackage(ctx context.Context, tempDir, pkgPath string) (string, string, error) {
 	getCmd := exec.CommandContext(ctx, "go", "get", pkgPath)
 	getCmd.Dir = tempDir
-	if out, err := getCmd.CombinedOutput(); err != nil {
-		return "", fmt.Errorf("go get failed: %v\nOutput: %s", err, out)
+	out, err := getCmd.CombinedOutput()
+
+	actualPath := pkgPath
+
+	if err != nil {
+		// Check for vanity import error
+		matches := vanityImportRe.FindSubmatch(out)
+		if len(matches) > 1 {
+			actualPath = string(matches[1])
+			// Retry with correct path
+			retryCmd := exec.CommandContext(ctx, "go", "get", actualPath)
+			retryCmd.Dir = tempDir
+			if retryOut, retryErr := retryCmd.CombinedOutput(); retryErr != nil {
+				return "", "", fmt.Errorf("go get failed after vanity retry: %v\nOutput: %s", retryErr, retryOut)
+			}
+			err = nil // Success on retry
+		} else {
+			return "", "", fmt.Errorf("go get failed: %v\nOutput: %s", err, out)
+		}
 	}
 
-	listCmd := exec.CommandContext(ctx, "go", "list", "-f", "{{.Dir}}", pkgPath)
+	// Try to locate as a package first
+	listCmd := exec.CommandContext(ctx, "go", "list", "-f", "{{.Dir}}", actualPath)
 	listCmd.Dir = tempDir
-	out, err := listCmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("failed to locate package: %v\nOutput: %s", err, out)
+	out, err = listCmd.CombinedOutput()
+	if err == nil {
+		return strings.TrimSpace(string(out)), actualPath, nil
 	}
-	return strings.TrimSpace(string(out)), nil
+
+	// If failed, try to locate as a module (e.g. root of repo with no root package files)
+	modCmd := exec.CommandContext(ctx, "go", "list", "-m", "-f", "{{.Dir}}", actualPath)
+	modCmd.Dir = tempDir
+	out, err = modCmd.CombinedOutput()
+	if err != nil {
+		return "", "", fmt.Errorf("failed to locate package or module: %v\nOutput: %s", err, out)
+	}
+
+	return strings.TrimSpace(string(out)), actualPath, nil
 }
