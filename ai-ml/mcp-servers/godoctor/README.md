@@ -73,24 +73,24 @@ Reviews Go code for correctness, style, and best practices.
 *   **model_name**: (Optional) Override the default model.
 *   **hint**: (Optional) Focus the review on a specific aspect (e.g., "security", "performance").
 
-### 2. `read_godoc`
+### 2. `read_docs`
 Retrieves documentation for packages and symbols.
 
 *   **package_path**: The import path (e.g., `fmt`, `encoding/json`).
 *   **symbol_name**: (Optional) Specific symbol to look up (e.g., `Println`, `Decoder`).
 
-### 3. `inspect_file`
-Analyzes a file to understand its structure and dependencies.
+### 3. `read_code` (Experimental)
+Reads a file and returns its content along with a symbol table (functions, types, variables).
 
 *   **file_path**: Absolute path to the file.
 
 ### 4. `edit_code`
-Intelligently edits a file.
+Intelligently edits a file with safety checks and auto-formatting.
 
 *   **file_path**: Path to the file.
 *   **search_context**: Code block to replace (3+ lines recommended for uniqueness).
 *   **new_content**: The new code to insert.
-*   **strategy**: `single_match` (default), `replace_all`, or `overwrite_file`.
+*   **strategy**: `replace_block` (default), `replace_all`, or `overwrite_file`.
 *   **autofix**: (Optional) Attempt to fix minor typos in search context.
 
 ## Development

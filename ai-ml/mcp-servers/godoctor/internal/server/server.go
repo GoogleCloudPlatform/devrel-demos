@@ -10,10 +10,10 @@ import (
 	"github.com/danicat/godoctor/internal/config"
 	"github.com/danicat/godoctor/internal/prompts"
 	"github.com/danicat/godoctor/internal/resources/godoc"
-	"github.com/danicat/godoctor/internal/tools/codereview"
 	"github.com/danicat/godoctor/internal/tools/edit_code"
-	"github.com/danicat/godoctor/internal/tools/getdocs"
-	"github.com/danicat/godoctor/internal/tools/inspect"
+	"github.com/danicat/godoctor/internal/tools/read_code"
+	"github.com/danicat/godoctor/internal/tools/read_docs"
+	"github.com/danicat/godoctor/internal/tools/review_code"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -39,11 +39,12 @@ func New(cfg *config.Config, version string) *Server {
 // RegisterHandlers registers all available tools and prompts with the server.
 func (s *Server) RegisterHandlers() {
 	// Register tools
-	getdocs.Register(s.mcpServer)
-	codereview.Register(s.mcpServer, s.cfg.DefaultModel)
+	read_docs.Register(s.mcpServer)
+	review_code.Register(s.mcpServer, s.cfg.DefaultModel)
+	edit_code.Register(s.mcpServer)
+
 	if s.cfg.Experimental {
-		inspect.Register(s.mcpServer)
-		edit_code.Register(s.mcpServer)
+		read_code.Register(s.mcpServer)
 	}
 
 	// Register resources

@@ -1,19 +1,5 @@
-// Copyright 2025 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// Package getdocs implements the documentation retrieval tool.
-package getdocs
+// Package read_docs implements the documentation retrieval tool.
+package read_docs
 
 import (
 	"context"
@@ -23,10 +9,10 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// Register registers the get_docs tool with the server.
+// Register registers the read_docs tool with the server.
 func Register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
-		Name:  "read_godoc",
+		Name:  "read_docs",
 		Title: "Read Go Documentation",
 		Description: "Read Go documentation for packages and symbols. " +
 			"Returns definitions, comments, and examples in Markdown format. " +
@@ -34,13 +20,13 @@ func Register(server *mcp.Server) {
 	}, ToolHandler)
 }
 
-// Params defines the input parameters for the get_docs tool.
+// Params defines the input parameters for the read_docs tool.
 type Params struct {
 	PackagePath string `json:"package_path"`
 	SymbolName  string `json:"symbol_name,omitempty"`
 }
 
-// ToolHandler handles the get_docs tool execution.
+// ToolHandler handles the read_docs tool execution.
 func ToolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
 	if args.PackagePath == "" {
 		return &mcp.CallToolResult{

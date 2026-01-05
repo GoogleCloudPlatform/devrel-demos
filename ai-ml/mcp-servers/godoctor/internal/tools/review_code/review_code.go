@@ -4,21 +4,21 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-// Package codereview implements the AI-powered code review tool.
-package codereview
+// Package review_code implements the AI-powered code review tool.
+package review_code
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"log"
 	"os"
 	"regexp"
@@ -139,8 +139,8 @@ func NewHandler(ctx context.Context, defaultModel string, opts ...Option) (*Hand
 			}
 
 			if apiKey == "" {
-				return nil, fmt.Errorf("%w: set GOOGLE_API_KEY (or GEMINI_API_KEY) " +
-					"for Gemini API, or set GOOGLE_GENAI_USE_VERTEXAI=true with GOOGLE_CLOUD_PROJECT " +
+				return nil, fmt.Errorf("%w: set GOOGLE_API_KEY (or GEMINI_API_KEY) "+
+					"for Gemini API, or set GOOGLE_GENAI_USE_VERTEXAI=true with GOOGLE_CLOUD_PROJECT "+
 					"and GOOGLE_CLOUD_LOCATION for Vertex AI", ErrAuthFailed)
 			}
 

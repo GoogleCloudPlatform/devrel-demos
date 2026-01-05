@@ -55,7 +55,7 @@ func TestEditCode(t *testing.T) {
 			FilePath:      filePath,
 			SearchContext: "func old() {}",
 			NewContent:    "func new() {}",
-			Strategy:      "single_match",
+			Strategy:      "replace_block",
 		}
 		_, _, err := editCodeHandler(ctx, nil, params)
 		if err != nil {
@@ -74,7 +74,7 @@ func TestEditCode(t *testing.T) {
 			FilePath:      filePath,
 			SearchContext: "func old() {\n  println(\"hi\")\n}",
 			NewContent:    "func new() {}",
-			Strategy:      "single_match",
+			Strategy:      "replace_block",
 			Threshold:     0.8, // Allow some fuzziness
 		}
 		result, _, err := editCodeHandler(ctx, nil, params)
@@ -140,7 +140,7 @@ func TestEditCode(t *testing.T) {
 			FilePath:      filePath,
 			SearchContext: "func correct() {\n  xxxxxx(\"hello\")\n}",
 			NewContent:    "func new() {}",
-			Strategy:      "single_match",
+			Strategy:      "replace_block",
 		}
 		result, _, err := editCodeHandler(ctx, nil, params)
 		if err != nil {
@@ -207,7 +207,7 @@ func TestEditCode(t *testing.T) {
 			FilePath:      filePath,
 			SearchContext: "func correct() {\n  prntln(\"hello\")\n}",
 			NewContent:    "func new() {}",
-			Strategy:      "single_match",
+			Strategy:      "replace_block",
 			AutoFix:       true, // Should enable the fix
 		}
 
