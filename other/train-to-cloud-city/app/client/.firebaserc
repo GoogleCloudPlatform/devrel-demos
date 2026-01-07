@@ -1,15 +1,9 @@
 {
   "projects": {
-    "default": "train-to-cloud-city-1"
+    "default": ""
   },
   "targets": {
-    "train-to-cloud-city-1": {
-      "hosting": {
-        "staging": [
-          "train-to-cloud-city-1"
-        ]
-      }
-    }
+    "demo": {}
   },
   "etags": {}
 }
