@@ -1,37 +1,26 @@
-import os
 from google.adk.tools import ToolContext
-from google.adk.memory import VertexAiMemoryBankService
 from typing import Dict, Any
 
 
-async def search_memory(query: str) -> list:
-    """
-    Search Vertex AI memory bank for relevant information about the user's learning progress.
-    The agent is instructed to pass the student's user_name as the query,
-    as a temp. workaround to: https://github.com/google/adk-web/issues/49
-    """
-    app_name = "python-tutor-long-term"
-    user_id = "user"  # hardcoding this, searching by user's first name
-    print(
-        f"🔍 SEARCHING MEMORY BANK for app_name='{app_name}', user_id='{user_id}', query='{query}'..."
-    )
+async def search_memory(tool_context: ToolContext, query: str = "score") -> list:
+    """Search Vertex AI memory bank for relevant information about the user's learning progress.
 
-    memory_bank_service = VertexAiMemoryBankService(
-        project=os.getenv("GOOGLE_CLOUD_PROJECT"),
-        location=os.getenv("GOOGLE_CLOUD_LOCATION"),
-        agent_engine_id=os.getenv("AGENT_ENGINE_ID"),
-    )
+    Args:
+        tool_context: The tool context for memory access.
+        query: The search query to find relevant information.
+
+    Returns:
+        A list of search results from the memory bank.
+    """
     try:
-        search_results = await memory_bank_service.search_memory(
-            app_name=app_name,
-            user_id=user_id,
-            query="score",
-        )
+        search_results = await tool_context.search_memory(query)
         print(f"✅ SearchMemoryResponse: ")
         print(search_results)
         return search_results
     except Exception as e:
         print(f"❌ Error searching memory: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 
