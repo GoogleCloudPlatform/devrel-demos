@@ -2,8 +2,5 @@
   "projects": {
     "default": ""
   },
-  "targets": {
-    "demo": {}
-  },
   "etags": {}
 }
