@@ -1,85 +1,15 @@
-id: 2
-name: Create MCP server with official Go SDK for MCP
-description: Creates an MCP server to read Go documentation using the go doc shell command.
-task: >-
-  Your task is to create a Model Context Protocol (MCP) server to expose a
-  “hello_world” tool. For the MCP implementation, you should use the official Go
-  SDK for MCP and use the stdio transport. When called, this tool should return
-  the string "Hello from Tenkai!"
-
-
-  Read these references to understand the protocol and the desired module
-  layout:
-
-  - https://modelcontexprotocol.io
-
-  - https://go.dev/doc/modules/layout
-
-
-  To test the server, you can use shell commands like these:
-
-  ```sh
-
-  (
-    echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}';
-    echo '{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}';
-    echo '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}';
-    sleep 1;
-  ) | ./hello
-
-  ```
-
-  TODO:
-
-  - Get package github.com/modelcontextprotocol/go-sdk/mcp to create the mcp
-  server (official SDK)
-
-  - Read the package documentation to discover the API (it is not trivial)
-
-  - Create the server with stdio transport
-
-  - Create one tool "hello_world" that returns the message "Hello from Tenkai!"
-
-
-  Not to do:
-
-  - Do not implement the streaming http protocol. This server should be stdio
-  only.
-
-  - Do not initialize a git repo. This will be done in a future step.
-
-  - Do not use validation commands different than the ones specified below
-
-
-  Acceptance Criteria:
-
-  - Less than 5 lint issues when running golangci-lint run ./... (use default
-  configuration)
-
-  - `go build -o hello .` is successful
-
-  - hello responds to method tools/list request successfully
-
-  - hello responds to method tools/call request for the hello_world tool
-  returning the phrase "Hello from Tenkai!"
-
-
-  The task accepts some level of ambiguity, but it will fail if the acceptance
-  criteria above is not met even if the software works.
+id: 3
+name: Hello World
+description: Create a hello world program in Go
+task: "# Hello world\r\n\r\nCreate a \"hello world\" program in Go, using the best practices of the language.\r\n\r\n# Acceptance Criteria\r\n- Test coverage > 70%\r\n- Lint errors < 5\r\n- go run main.go outputs \"Hello from Tenkai\""
 assets: []
 validation:
-  - type: command
-    command: go build -o hello .
-    expected_exit_code: 0
-  - type: command
-    command: >-
-      (   echo
-      '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}';  
-      echo
-      '{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}';  
-      echo '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}';   sleep
-      1; ) | ./hello
-    expected_exit_code: 0
+  - type: test
+    target: ./...
+    min_coverage: 70
   - type: lint
     target: ./...
     max_issues: 5
+  - type: command
+    command: go run main.go | grep "Hello from Tenkai"
+    expected_exit_code: 0

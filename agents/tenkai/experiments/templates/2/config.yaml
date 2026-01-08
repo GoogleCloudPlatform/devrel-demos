@@ -1,106 +1,27 @@
-name: godoctor-mcp-server
-description: Does the godoctor mcp server improves model responses?
-reps: 2
-concurrent: 4
+name: hello world test
+description: simple test to speed up development
+reps: 1
+concurrent: 2
 timeout: 5m
 experiment_control: default
 scenarios:
-  - scenarios/2
+    - scenarios/2
 alternatives:
   - name: default
-    description: Gemini CLI with default configuration
+    description: default settings
+    context: ''
     command: gemini
     args:
       - '-y'
       - ''
       - '-o'
       - stream-json
-  - name: godoctor-enabled
-    description: Gemini CLI with godoctor enabled
+  - name: gemini 3.0 flash preview
+    context: You are a snarky agent and makes funny and sarcastic comments all the time
     command: gemini
     args:
       - '-y'
-      - ''
+      - '-m'
+      - gemini-3-flash-preview
       - '-o'
       - stream-json
-    settings:
-      mcpServers:
-        godoctor:
-          args:
-            - '--experimental'
-          command: godoctor
-  - name: godoctor-gemini-md
-    description: godoctor enabled and gemini.md instructions
-    context: >-
-      When working with `*.go` files you should use EXCLUSIVELY the following
-      tools:
-
-      - `read_docs` to retrieve documentation about packages, types, symbols,
-      etc.
-
-      - `read_code` to read the *.go file
-
-      - `edit_code` to make modifications to *.go files
-
-
-      Mandates:
-
-      - Always read the documentation of a package before using it
-
-      - Always respect the warnings issued by `read_code` and `edit_code`
-
-
-      For all other files, use the default manipulation tools.
-    command: gemini
-    args:
-      - '-y'
-      - ''
-      - '-o'
-      - stream-json
-    settings:
-      mcpServers:
-        godoctor:
-          args:
-            - '--experimental'
-          command: godoctor
-  - name: godoctor-benefits
-    description: trying to sell the benefits of godoctor to gemini
-    context: >-
-      You have at your disposal an MCP server called godoctor. This server
-      exposes the tools `read_docs`, `read_code`, `edit_code`, `review_code` and
-      others.
-
-
-      The tools in this server are SPECIALIZED for working with code written in
-      the Go programming language (golang). You should ALWAYS use these tools to
-      work in Go files instead of using the default file manipulation tools.
-
-
-      These tools not only provide similar functionality, but they are *code
-      aware* and will proactively report potential errors, warnings and flaws
-      that otherwise will take you a long time to discover. The tools will also
-      proactively warn you and even fix typos, so you don't need to be 100%
-      precise to propose edits, as long as the edit distance indicates it is a
-      simple typo.
-
-
-      Using these tools will help you write better code, faster. Use them as
-      much as possible.
-
-
-      It is also important to always READ the documentation using `read_docs`
-      for every dependency package EVEN if you think you know the package
-      workings and APIs. This will help you be more assertive when writing the
-      implementation and reduce failure rates and frustration.
-    command: gemini
-    args:
-      - '-y'
-      - ''
-      - '-o'
-      - stream-json
-    settings:
-      mcpServers:
-        godoctor:
-          args:
-            - '--experimental'
-          command: godoctor
