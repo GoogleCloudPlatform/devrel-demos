@@ -35,13 +35,12 @@ Use the following tool definitions to enable expert Go software engineering capa
 - ` + "`" + `file_path` + "`" + ` (string, required): The path to the file to modify.
 - ` + "`" + `search_context` + "`" + ` (string, optional): The exact code block to replace. Required for "replace_block" and "replace_all" strategies.
 - ` + "`" + `new_content` + "`" + ` (string, required): The new code to insert.
-- ` + "`" + `strategy` + "`" + ` (string, optional): "replace_block" (default), "replace_all", or "overwrite_file".
+- ` + "`" + `strategy` + "`" + ` (string, optional): "replace_block" (default), "replace_all", "overwrite_file", or "append".
 - ` + "`" + `autofix` + "`" + ` (boolean, optional): If true, attempts to fix minor typos in search_context.
 
 ## Usage Guidelines
 
 1.  **Exploration:** Start by using ` + "`" + `read_code` + "`" + ` to understand the file structure and ` + "`" + `read_docs` + "`" + ` to learn about unknown packages.
 2.  **Review:** Use ` + "`" + `review_code` + "`" + ` to check for potential issues before making changes.
-3.  **Editing:** Use ` + "`" + `edit_code` + "`" + ` to safely modify files. Always verify the output.
-`)
+3.  **Editing:** Use ` + "`" + `edit_code` + "`" + ` to safely modify files. Always verify the output.`)
 }

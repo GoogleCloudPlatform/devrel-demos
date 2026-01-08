@@ -24,6 +24,7 @@ func Register(server *mcp.Server) {
 		Description: `The PREFERRED tool for editing Go code.
 Use 'replace_block' (default) for surgical edits. It uses fuzzy matching to handle minor whitespace discrepancies.
 Use 'overwrite_file' for full rewrites or creating new files.
+Use 'append' to add new code to the end of the file.
 
 IMPORTANT: 'search_context' is REQUIRED for 'replace_block' and 'replace_all' strategies. It must contain the exact code block to be replaced.
 
@@ -39,7 +40,7 @@ type EditCodeParams struct {
 	FilePath      string  `json:"file_path"`
 	SearchContext string  `json:"search_context,omitempty"`
 	NewContent    string  `json:"new_content"`
-	Strategy      string  `json:"strategy,omitempty"` // replace_block (default), replace_all, overwrite_file
+	Strategy      string  `json:"strategy,omitempty"` // replace_block (default), replace_all, overwrite_file, append
 	Threshold     float64 `json:"threshold,omitempty"`
 	AutoFix       bool    `json:"autofix,omitempty"` // Automatically fix imports and small typos
 }
@@ -69,6 +70,12 @@ func editCodeHandler(ctx context.Context, request *mcp.CallToolRequest, args Edi
 	// 2. Resolve New Content
 	if args.Strategy == "overwrite_file" {
 		newContentStr = args.NewContent
+	} else if args.Strategy == "append" {
+		if len(originalContent) > 0 && !strings.HasSuffix(originalContent, "\n") {
+			newContentStr = originalContent + "\n" + args.NewContent
+		} else {
+			newContentStr = originalContent + args.NewContent
+		}
 	} else {
 		if args.SearchContext == "" {
 			return errorResult("search_context is required for replace strategies"), nil, nil

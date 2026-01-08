@@ -1,50 +1,30 @@
 'use client';
 
-import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-export default function Toast() {
-    const searchParams = useSearchParams();
-    const router = useRouter();
-    const [show, setShow] = useState(false);
+export default function Toast({ message, type = 'success', duration = 5000 }: { message: string, type?: 'success' | 'error', duration?: number }) {
+    const [visible, setVisible] = useState(true);
 
-    // Timer Effect
     useEffect(() => {
-        if (show) {
-            const timer = setTimeout(() => {
-                setShow(false);
-            }, 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [show]);
+        const timer = setTimeout(() => {
+            setVisible(false);
+        }, duration);
+        return () => clearTimeout(timer);
+    }, [duration]);
 
-    // URL Check Effect
-    useEffect(() => {
-        if (searchParams.get('started') === 'true') {
-            setShow(true);
-            // Clear URL immediately so refresh doesn't trigger it again
-            router.replace('/');
-        }
-    }, [searchParams, router]);
-
-    if (!show) return null;
+    if (!visible) return null;
 
     return (
-        <div className="fixed bottom-10 right-10 z-50 animate-in slide-in-from-right-10 duration-500 fade-in">
-            <div className="bg-blue-600 text-white px-6 py-4 rounded-xl shadow-[0_20px_50px_rgba(37,99,235,0.3)] border border-blue-400/20 flex items-center gap-4">
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                    <span className="text-lg">🚀</span>
+        <div className="fixed bottom-8 right-8 z-[200] animate-in slide-in-from-right-8 duration-500 text-body">
+            <div className={`flex items-center gap-4 px-6 py-4 rounded-md shadow-2xl border ${
+                type === 'success' ? 'bg-[#161618] border-emerald-500/20 text-[#f4f4f5]' : 'bg-red-950 border-red-500/20 text-red-100'
+            }`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${type === 'success' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                    {type === 'success' ? '✓' : '✕'}
                 </div>
                 <div>
-                    <h4 className="font-bold text-base tracking-tight">Experiment Launched</h4>
-                    <p className="text-xs text-blue-100 font-medium opacity-90 mt-0.5">Your evaluation has started successfully.</p>
+                    <p className="font-bold">{message}</p>
                 </div>
-                <button
-                    onClick={() => setShow(false)}
-                    className="ml-4 text-blue-200 hover:text-white transition-colors"
-                >
-                    ✕
-                </button>
             </div>
         </div>
     );

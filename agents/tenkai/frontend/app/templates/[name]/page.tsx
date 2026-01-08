@@ -1,88 +1,64 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useParams } from 'next/navigation';
-import TemplateForm from '@/components/TemplateForm';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import TemplateForm from "@/components/TemplateForm";
+import { PageHeader } from "@/components/ui/page-header";
 
-export default function TemplateEditor() {
-    const params = useParams();
+export default function TemplateEditorPage({ params }: { params: Promise<{ name: string }> }) {
     const router = useRouter();
-    const name = params.name as string;
-
-    const [content, setContent] = useState('');
+    const [scenarios, setScenarios] = useState<any[]>([]);
+    const [initialData, setInitialData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        fetch(`/api/templates/${name}/config`)
-            .then(res => {
-                if (!res.ok) throw new Error('Failed to load config');
-                return res.json();
-            })
-            .then(data => {
-                setContent(data.content);
+        const loadData = async () => {
+            const { name } = await params;
+            try {
+                const [scens, template] = await Promise.all([
+                    fetch('/api/scenarios').then(res => res.json()),
+                    fetch(`/api/templates/${name}/config`).then(res => res.json())
+                ]);
+
+                setScenarios(scens);
+                setInitialData({
+                    id: name,
+                    name: template.name || name,
+                    yaml_content: template.content,
+                    config: template.config || {} // Note: config might need parsing if content is raw
+                });
+                
+                // If config is not in response, try to parse it from content
+                if (!template.config && template.content) {
+                    try {
+                        const yaml = require('js-yaml');
+                        setInitialData((prev: any) => ({
+                            ...prev,
+                            config: yaml.load(template.content)
+                        }));
+                    } catch (e) {}
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Failed to load template editor");
+            } finally {
                 setLoading(false);
-            })
-            .catch(err => {
-                setError(err.message);
-                setLoading(false);
-            });
-    }, [name]);
+            }
+        };
+        loadData();
+    }, [params]);
 
-    const handleSave = async (newContent: string) => {
-        const res = await fetch(`/api/templates/${name}/config`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: newContent }),
-        });
-
-        if (!res.ok) throw new Error('Failed to save config');
-
-        alert('Configuration saved successfully!');
-        router.refresh();
-    };
-
-    if (loading) return <div className="p-10 text-center text-zinc-500 animate-pulse">Loading template...</div>;
-    if (error) return <div className="p-10 text-center text-red-500">Error: {error}</div>;
+    if (loading) return <div className="p-20 text-center animate-pulse text-body">Loading Environment...</div>;
 
     return (
-        <div className="p-10 space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto min-h-screen flex flex-col">
-            <header className="flex justify-between items-start border-b border-white/5 pb-8">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={async () => {
-                            if (!confirm(`Are you sure you want to delete template "${name}"? This action cannot be undone.`)) return;
+        <div className="p-8 max-w-7xl mx-auto space-y-8 animate-enter text-body">
+            <PageHeader 
+                title="Edit Template" 
+                description={`ID: ${initialData.id}`}
+                backHref="/templates"
+            />
 
-                            try {
-                                const res = await fetch(`/api/templates/${name}`, { method: 'DELETE' });
-                                if (!res.ok) throw new Error('Failed to delete template');
-                                router.push('/templates');
-                            } catch (e: any) {
-                                alert(`Error: ${e.message}`);
-                            }
-                        }}
-                        className="bg-red-500/10 hover:bg-red-500/20 text-red-500 hover:text-red-400 font-bold py-2 px-4 rounded-lg transition-colors border border-red-500/20 uppercase text-xs tracking-widest"
-                    >
-                        Delete Template
-                    </button>
-                    <Link href="/templates" className="text-xs font-bold text-blue-500 uppercase tracking-widest hover:text-blue-400 transition-colors">← Back to Templates</Link>
-                </div>
-            </header>
-
-            <div className="border-b border-white/5 pb-8 -mt-4 mb-8">
-                <h1 className="text-4xl font-bold tracking-tight mt-2 capitalize">{name.replace(/-/g, ' ')}</h1>
-                <p className="text-zinc-400 mt-2 text-base font-mono">experiments/templates/{name}/config.yaml</p>
-            </div>
-
-            <div className="flex-1">
-                <TemplateForm initialContent={content} onSubmit={handleSave} name={name} />
-            </div>
-
-            <p className="text-zinc-500 text-sm text-center font-bold uppercase tracking-widest pt-10">
-                Changes apply only to new experiments.
-            </p>
+            <TemplateForm scenarios={scenarios} initialData={initialData} mode="edit" />
         </div>
     );
 }

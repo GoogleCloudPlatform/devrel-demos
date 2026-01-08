@@ -88,9 +88,9 @@ Reads a file and returns its content along with a symbol table (functions, types
 Intelligently edits a file with safety checks and auto-formatting.
 
 *   **file_path**: Path to the file.
-*   **search_context**: Code block to replace (3+ lines recommended for uniqueness).
+*   **search_context**: Code block to replace (3+ lines recommended for uniqueness). Required for replace strategies.
 *   **new_content**: The new code to insert.
-*   **strategy**: `replace_block` (default), `replace_all`, or `overwrite_file`.
+*   **strategy**: `replace_block` (default), `replace_all`, `overwrite_file`, or `append`.
 *   **autofix**: (Optional) Attempt to fix minor typos in search context.
 
 ## Development

@@ -1,379 +1,316 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import yaml from 'js-yaml';
-import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Input, TextArea } from "./ui/input";
+import { Select } from "./ui/select";
+import { ScenarioSelector } from "./ScenarioSelector";
 
-interface Alternative {
-    name: string;
-    description: string;
-    command: string;
-    args: string[];
-    settings_path?: string;
-    system_prompt_file?: string;
-}
+import yaml from "js-yaml";
 
 interface Scenario {
+    id: string;
     name: string;
     description: string;
-}
-
-interface TemplateConfig {
-    name: string;
-    description: string;
-    repetitions: number;
-    max_concurrent: number;
-    timeout: string;
-    alternatives: Alternative[];
-    scenarios: Scenario[];
 }
 
 interface TemplateFormProps {
-    initialContent?: string;
-    onSubmit: (content: string) => Promise<void>;
-    isCreating?: boolean;
-    name?: string;
+    scenarios: Scenario[];
+    initialData?: any;
+    mode?: 'create' | 'edit';
 }
 
-export default function TemplateForm({ initialContent, onSubmit, isCreating = false, name }: TemplateFormProps) {
-    const [activeTab, setActiveTab] = useState<'visual' | 'yaml'>('visual');
-    const [yamlContent, setYamlContent] = useState(initialContent || '');
-    const [parsedConfig, setParsedConfig] = useState<TemplateConfig | null>(null);
+export default function TemplateForm({ scenarios, initialData, mode = 'create' }: TemplateFormProps) {
+    const router = useRouter();
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [saving, setSaving] = useState(false);
 
-    // Sync YAML to Visual
-    useEffect(() => {
-        try {
-            if (yamlContent.trim()) {
-                const parsed = yaml.load(yamlContent) as TemplateConfig;
-                // Ensure arrays exist
-                if (!parsed.alternatives) parsed.alternatives = [];
-                if (!parsed.scenarios) parsed.scenarios = [];
-                setParsedConfig(parsed);
-                setError(null);
+    // State for Visual Editor
+    const [name, setName] = useState(initialData?.name || initialData?.config?.name || "");
+    const [description, setDescription] = useState(initialData?.description || initialData?.config?.description || "");
+    const [reps, setReps] = useState(initialData?.config?.reps || 1);
+    const [concurrent, setConcurrent] = useState(initialData?.config?.concurrent || 1);
+    const [timeout, setTimeoutVal] = useState(initialData?.config?.timeout || "");
+    const [selectedScenarios, setSelectedScenarios] = useState<string[]>(
+        Array.from(new Set(initialData?.config?.scenarios?.map((s: string | any) => {
+            // Handle both legacy object {id: ...} and new string "scenarios/id"
+            if (typeof s === 'string') return s.split('/').pop() || s;
+            return String(s.id);
+        }) || []))
+    );
+    const [alternatives, setAlternatives] = useState<any[]>(
+        initialData?.config?.alternatives || [
+            { name: "", description: "", system_prompt: "", settings: {} }
+        ]
+    );
+    const [experimentControl, setExperimentControl] = useState(initialData?.config?.experiment_control || "");
+    const [fileUploads, setFileUploads] = useState<Record<string, string>>({});
+
+    const handleScenarioToggle = (id: string | number) => {
+        const strId = String(id);
+        setSelectedScenarios(prev => {
+            const normalizedPrev = prev.map(String);
+            if (normalizedPrev.includes(strId)) {
+                return normalizedPrev.filter(s => s !== strId);
             }
-        } catch (e: any) {
-            console.error("YAML Parse Error", e);
-            // Don't set error purely on typing (too noisy), but maybe store it
-        }
-    }, []);
-
-    // Switch Handlers
-    const handleSwitchToYaml = () => {
-        if (parsedConfig) {
-            try {
-                const newYaml = yaml.dump(parsedConfig);
-                setYamlContent(newYaml);
-            } catch (e) {
-                console.error("Failed to dump YAML", e);
-            }
-        }
-        setActiveTab('yaml');
-    };
-
-    const handleSwitchToVisual = () => {
-        try {
-            const parsed = yaml.load(yamlContent) as TemplateConfig;
-            if (!parsed.alternatives) parsed.alternatives = [];
-            if (!parsed.scenarios) parsed.scenarios = [];
-            setParsedConfig(parsed);
-            setError(null);
-            setActiveTab('visual');
-        } catch (e: any) {
-            setError(`Invalid YAML: ${e.message}`);
-            return; // Stay on YAML tab
-        }
-    };
-
-    const handleSubmit = async () => {
-        setSaving(true);
-        setError(null);
-        try {
-            let contentToSave = yamlContent;
-            if (activeTab === 'visual' && parsedConfig) {
-                contentToSave = yaml.dump(parsedConfig);
-            } else if (activeTab === 'yaml') {
-                // Validate before saving
-                yaml.load(yamlContent); // Throws if invalid
-                contentToSave = yamlContent;
-            }
-
-            await onSubmit(contentToSave);
-        } catch (e: any) {
-            setError(e.message);
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    // -- Field Updaters (Visual Mode) --
-    const updateField = (field: keyof TemplateConfig, value: any) => {
-        if (!parsedConfig) return;
-        setParsedConfig({ ...parsedConfig, [field]: value });
+            return [...normalizedPrev, strId];
+        });
     };
 
     const addAlternative = () => {
-        if (!parsedConfig) return;
-        setParsedConfig({
-            ...parsedConfig,
-            alternatives: [
-                ...parsedConfig.alternatives,
-                { name: 'new_alt', description: '', command: 'gemini', args: [] }
-            ]
+        if (alternatives.length >= 10) return;
+        setAlternatives([...alternatives, { name: "", description: "", system_prompt: "", command: "gemini", args: ["-y"], settings: {} }]);
+    };
+
+    const updateAlternative = (index: number, field: string, value: any) => {
+        const newAlts = [...alternatives];
+        newAlts[index] = { ...newAlts[index], [field]: value };
+        setAlternatives(newAlts);
+    };
+
+    const handleFileRead = (file: File, callback: (content: string) => void) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            if (e.target?.result) callback(e.target.result as string);
+        };
+        reader.readAsText(file);
+    };
+
+    const handleAltFileUpload = (index: number, type: 'system_prompt' | 'context' | 'settings', file: File) => {
+        handleFileRead(file, (content) => {
+            const filename = file.name;
+            setFileUploads(prev => ({ ...prev, [filename]: content }));
+            
+            // Update alternative config to reference the file path
+            if (type === 'system_prompt') {
+                updateAlternative(index, 'system_prompt_file', `./${filename}`);
+                updateAlternative(index, 'system_prompt', ''); // Clear inline
+            } else if (type === 'context') {
+                updateAlternative(index, 'context_file_path', `./${filename}`);
+                updateAlternative(index, 'context', ''); // Clear inline
+            } else if (type === 'settings') {
+                updateAlternative(index, 'settings_path', `./${filename}`);
+                updateAlternative(index, 'settings', {}); // Clear inline
+            }
         });
     };
 
-    const updateAlternative = (idx: number, field: keyof Alternative, value: any) => {
-        if (!parsedConfig) return;
-        const newAlts = [...parsedConfig.alternatives];
-        newAlts[idx] = { ...newAlts[idx], [field]: value };
-        setParsedConfig({ ...parsedConfig, alternatives: newAlts });
+    const removeAlternative = (index: number) => {
+        setAlternatives(alternatives.filter((_, i) => i !== index));
     };
 
-    const removeAlternative = (idx: number) => {
-        if (!parsedConfig) return;
-        const newAlts = parsedConfig.alternatives.filter((_, i) => i !== idx);
-        setParsedConfig({ ...parsedConfig, alternatives: newAlts });
-    };
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
 
-    const addScenario = () => {
-        if (!parsedConfig) return;
-        setParsedConfig({
-            ...parsedConfig,
-            scenarios: [
-                ...parsedConfig.scenarios,
-                { name: 'new_scenario', description: '' }
-            ]
+        if (selectedScenarios.length === 0) {
+            setError("At least one scenario must be selected.");
+            setLoading(false);
+            return;
+        }
+
+        const finalConfig = {
+            reps,
+            concurrent,
+            timeout,
+            experiment_control: experimentControl,
+            scenarios: selectedScenarios.map(id => `scenarios/${id}`),
+            alternatives: alternatives.map(a => ({
+                name: a.name,
+                description: a.description,
+                system_prompt: a.system_prompt,
+                system_prompt_file: a.system_prompt_file,
+                context: a.context,
+                context_file_path: a.context_file_path,
+                settings_path: a.settings_path,
+                command: a.command || "gemini",
+                args: (Array.isArray(a.args) && a.args.length > 0) ? a.args : (typeof a.args === 'string' && a.args.trim().length > 0 ? a.args.split(' ').filter(Boolean) : ["-y"]),
+                settings: typeof a.settings === 'string' ? JSON.parse(a.settings) : a.settings
+            }))
+        };
+
+        const finalYaml = yaml.dump({
+            name,
+            description,
+            ...finalConfig
         });
-    };
 
-    const updateScenario = (idx: number, field: keyof Scenario, value: any) => {
-        if (!parsedConfig) return;
-        const newScens = [...parsedConfig.scenarios];
-        newScens[idx] = { ...newScens[idx], [field]: value };
-        setParsedConfig({ ...parsedConfig, scenarios: newScens });
-    };
+        const payload = {
+            name,
+            description,
+            config: finalConfig,
+            yaml_content: finalYaml,
+            files: fileUploads
+        };
 
-    const removeScenario = (idx: number) => {
-        if (!parsedConfig) return;
-        const newScens = parsedConfig.scenarios.filter((_, i) => i !== idx);
-        setParsedConfig({ ...parsedConfig, scenarios: newScens });
+        const url = mode === 'create' ? '/api/templates' : `/api/templates/${initialData.id}/config`;
+        const method = mode === 'create' ? 'POST' : 'PUT';
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                if (mode === 'create') {
+                    router.push('/templates');
+                } else {
+                    router.refresh();
+                    alert("Template updated successfully");
+                }
+            } else {
+                const data = await res.json();
+                setError(data.error || "Failed to save template");
+            }
+        } catch (e) {
+            setError("Connection error. Is the runner active?");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center bg-zinc-900/50 p-2 rounded-lg border border-white/5">
-                <div className="flex gap-2">
-                    <button
-                        onClick={handleSwitchToVisual}
-                        className={`px-4 py-2 rounded-md text-sm font-bold uppercase tracking-widest transition-all ${activeTab === 'visual' ? 'bg-blue-600 text-white shadow-lg' : 'text-zinc-500 hover:text-white'}`}
-                    >
-                        Visual Editor
-                    </button>
-                    <button
-                        onClick={handleSwitchToYaml}
-                        className={`px-4 py-2 rounded-md text-sm font-bold uppercase tracking-widest transition-all ${activeTab === 'yaml' ? 'bg-blue-600 text-white shadow-lg' : 'text-zinc-500 hover:text-white'}`}
-                    >
-                        YAML Source
-                    </button>
+        <form onSubmit={handleSubmit} className="space-y-8 text-body max-w-6xl mx-auto">
+            {/* Header / Actions */}
+            <div className="flex justify-end items-center bg-[#09090b] border border-[#27272a] p-2 rounded-md">
+                <div className="flex items-center gap-4 px-2">
+                    {error && <span className="text-red-500 font-bold uppercase tracking-tighter">{error}</span>}
+                    <Button type="submit" variant="default" size="lg" isLoading={loading}>
+                        Save Template
+                    </Button>
                 </div>
-                <button
-                    onClick={handleSubmit}
-                    disabled={saving}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg shadow-emerald-500/20 transition-all border border-emerald-400/20 uppercase text-sm tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {saving ? 'Saving...' : 'Save Changes'}
-                </button>
             </div>
 
-            {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl text-sm font-bold">
-                    Error: {error}
-                </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                <div className="md:col-span-4 space-y-8">
+                    <Card title="General">
+                        <div className="space-y-6">
+                            <Input label="Template Name" value={name} onChange={(e) => setName(e.target.value)} required placeholder="experiment-name" />
+                            <TextArea label="Description" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Experiment description..." />
+                        </div>
+                    </Card>
 
-            {activeTab === 'yaml' ? (
-                <div className="h-[70vh] rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-[#1e1e1e]">
-                    <textarea
-                        value={yamlContent}
-                        onChange={(e) => setYamlContent(e.target.value)}
-                        className="w-full h-full bg-transparent text-gray-300 font-mono text-base p-6 focus:outline-none resize-none"
-                        spellCheck="false"
+                    <Card title="Execution">
+                        <div className="space-y-4">
+                            <Input label="Repetitions" type="number" value={reps} onChange={(e) => setReps(Number(e.target.value))} />
+                            <Input label="Max Concurrent" type="number" value={concurrent} onChange={(e) => setConcurrent(Number(e.target.value))} />
+                            <Input label="Exec Timeout" value={timeout} onChange={(e) => setTimeoutVal(e.target.value)} placeholder="10m" />
+                            <Select
+                                label="Control"
+                                value={experimentControl}
+                                onChange={(e) => setExperimentControl(e.target.value)}
+                                options={alternatives.map(a => ({ label: a.name || "Unnamed", value: a.name }))}
+                            />
+                        </div>
+                    </Card>
+                </div>
+
+                <div className="md:col-span-8 space-y-8">
+                    <ScenarioSelector
+                        scenarios={scenarios}
+                        selectedIds={selectedScenarios}
+                        onToggle={handleScenarioToggle}
                     />
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in duration-300">
-                    {/* General Settings */}
-                    <div className="space-y-6">
-                        <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-                            <h3 className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-6">General Settings</h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-zinc-400 mb-1">Name</label>
-                                    <input
-                                        type="text"
-                                        className="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white font-mono text-sm focus:border-blue-500 outline-none"
-                                        value={parsedConfig?.name || ''}
-                                        onChange={(e) => updateField('name', e.target.value)}
-                                        placeholder="Internal experiment name (YAML)"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-zinc-400 mb-1">Description</label>
-                                    <textarea
-                                        className="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white text-sm focus:border-blue-500 outline-none h-24 resize-none"
-                                        value={parsedConfig?.description || ''}
-                                        onChange={(e) => updateField('description', e.target.value)}
-                                    />
-                                </div>
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Reps</label>
-                                        <input
-                                            type="number"
-                                            className="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white font-mono text-sm focus:border-blue-500 outline-none"
-                                            value={parsedConfig?.repetitions || 1}
-                                            onChange={(e) => updateField('repetitions', parseInt(e.target.value) || 1)}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Concurrent</label>
-                                        <input
-                                            type="number"
-                                            className="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white font-mono text-sm focus:border-blue-500 outline-none"
-                                            value={parsedConfig?.max_concurrent || 1}
-                                            onChange={(e) => updateField('max_concurrent', parseInt(e.target.value) || 1)}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Timeout</label>
-                                        <input
-                                            type="text"
-                                            className="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white font-mono text-sm focus:border-blue-500 outline-none"
-                                            value={parsedConfig?.timeout || '5m'}
-                                            onChange={(e) => updateField('timeout', e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
 
-                        <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-sm font-black text-zinc-500 uppercase tracking-widest">Scenarios</h3>
-                                <button onClick={addScenario} className="text-xs text-blue-500 font-bold uppercase hover:text-blue-400">+ Add</button>
-                            </div>
-                            <div className="space-y-4">
-                                {parsedConfig?.scenarios.map((scen, idx) => (
-                                    <div key={idx} className="bg-black/40 border border-zinc-800 p-4 rounded-lg relative group">
-                                        <button
-                                            onClick={() => removeScenario(idx)}
-                                            className="absolute top-2 right-2 text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            ✕
-                                        </button>
-                                        <div className="space-y-3">
-                                            <input
-                                                type="text"
-                                                placeholder="Scenario Name"
-                                                className="w-full bg-transparent border-0 border-b border-zinc-800 focus:border-blue-500 text-white font-bold text-sm px-0 py-1"
-                                                value={scen.name}
-                                                onChange={(e) => updateScenario(idx, 'name', e.target.value)}
-                                            />
-                                            <input
-                                                type="text"
-                                                placeholder="Description"
-                                                className="w-full bg-transparent border-0 text-zinc-400 text-xs px-0 py-1"
-                                                value={scen.description}
-                                                onChange={(e) => updateScenario(idx, 'description', e.target.value)}
-                                            />
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle>Alternatives</CardTitle>
+                            <Button type="button" variant="ghost" size="sm" onClick={addAlternative} className="text-primary font-bold uppercase hover:text-foreground transition-colors">+ Add Alt</Button>
+                        </CardHeader>
+                        <CardContent className="space-y-6 pt-6">
+                            {alternatives.map((alt, idx) => {
+                                const colorClass = [
+                                    "border-indigo-500/30 bg-indigo-500/5",
+                                    "border-emerald-500/30 bg-emerald-500/5",
+                                    "border-amber-500/30 bg-amber-500/5",
+                                    "border-rose-500/30 bg-rose-500/5",
+                                    "border-cyan-500/30 bg-cyan-500/5",
+                                    "border-violet-500/30 bg-violet-500/5",
+                                    "border-orange-500/30 bg-orange-500/5",
+                                    "border-lime-500/30 bg-lime-500/5",
+                                    "border-fuchsia-500/30 bg-fuchsia-500/5",
+                                    "border-sky-500/30 bg-sky-500/5",
+                                ][idx % 10];
+
+                                return (
+                                <div key={idx}>
+                                    {idx > 0 && (
+                                        <div className="py-6 flex items-center gap-4 text-zinc-700">
+                                            <div className="h-px bg-border flex-1 border-t border-dashed" />
+                                            <span className="text-xs font-mono uppercase font-bold tracking-widest">Alternative {idx + 1}</span>
+                                            <div className="h-px bg-border flex-1 border-t border-dashed" />
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-                    </div>
-
-                    {/* Alternatives */}
-                    <div className="space-y-6">
-                        <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 h-full">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-sm font-black text-zinc-500 uppercase tracking-widest">Alternatives</h3>
-                                <button onClick={addAlternative} className="text-xs text-blue-500 font-bold uppercase hover:text-blue-400">+ Add</button>
-                            </div>
-                            <div className="space-y-4">
-                                {parsedConfig?.alternatives.map((alt, idx) => (
-                                    <div key={idx} className="bg-black/40 border border-zinc-800 p-4 rounded-lg relative group">
+                                    )}
+                                    <div className={`panel p-5 relative border rounded-xl hover:border-zinc-700 transition-colors ${colorClass}`}>
+                                        <div className="absolute -left-3 -top-3 w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs text-zinc-400 font-mono shadow-sm">
+                                            {idx + 1}
+                                        </div>
                                         <button
+                                            type="button"
                                             onClick={() => removeAlternative(idx)}
-                                            className="absolute top-2 right-2 text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            className="absolute top-4 right-4 text-zinc-500 hover:text-red-400 transition-colors p-1 hover:bg-white/5 rounded"
+                                            title="Remove Alternative"
                                         >
                                             ✕
                                         </button>
-                                        <div className="grid gap-3">
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Name"
-                                                    className="w-full bg-transparent border-0 border-b border-zinc-800 focus:border-blue-500 text-white font-bold text-sm px-0 py-1"
-                                                    value={alt.name}
-                                                    onChange={(e) => updateAlternative(idx, 'name', e.target.value)}
-                                                />
-                                                <input
-                                                    type="text"
-                                                    placeholder="Command (e.g. gemini)"
-                                                    className="w-full bg-transparent border-0 border-b border-zinc-800 focus:border-blue-500 text-zinc-300 font-mono text-xs px-0 py-1 text-right"
-                                                    value={alt.command}
-                                                    onChange={(e) => updateAlternative(idx, 'command', e.target.value)}
-                                                />
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+                                            <Input label="Identifier" value={alt.name} onChange={(e) => updateAlternative(idx, 'name', e.target.value)} placeholder="e.g. gemini-1.5-flash" />
+                                            <Input label="Short Desc" value={alt.description} onChange={(e) => updateAlternative(idx, 'description', e.target.value)} placeholder="Brief description..." />
+
+                                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <Input label="Command" placeholder="gemini" value={alt.command || ""} onChange={(e) => updateAlternative(idx, 'command', e.target.value)} />
+                                                <Input label="Arguments" placeholder="-y" value={Array.isArray(alt.args) ? alt.args.join(" ") : (alt.args || "")} onChange={(e) => updateAlternative(idx, 'args', e.target.value.split(" "))} />
                                             </div>
-                                            <textarea
-                                                placeholder="Description"
-                                                className="w-full bg-transparent border-0 text-zinc-400 text-xs px-0 py-1 h-16 resize-none"
-                                                value={alt.description}
-                                                onChange={(e) => updateAlternative(idx, 'description', e.target.value)}
-                                            />
-                                            <div>
-                                                <label className="text-[10px] uppercase text-zinc-600 font-bold block mb-1">Args</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder='--model "gemini-1.5-pro" --yolo'
-                                                    className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-zinc-300 font-mono text-xs"
-                                                    value={Array.isArray(alt.args) ? alt.args.join(' ') : alt.args}
-                                                    onChange={(e) => updateAlternative(idx, 'args', e.target.value.split(' '))}
-                                                />
+
+                                            <div className="md:col-span-2">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">System Prompt Override</label>
+                                                    <div className="relative">
+                                                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files && handleAltFileUpload(idx, 'system_prompt', e.target.files[0])} />
+                                                        <span className="text-[10px] uppercase font-bold text-indigo-400 cursor-pointer hover:underline">Upload File</span>
+                                                    </div>
+                                                </div>
+                                                {alt.system_prompt_file && <div className="text-xs font-mono text-emerald-400 mb-1">File: {alt.system_prompt_file}</div>}
+                                                <TextArea value={alt.system_prompt} onChange={(e) => updateAlternative(idx, 'system_prompt', e.target.value)} rows={3} className="font-mono text-sm" placeholder="Inline system prompt..." />
                                             </div>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label className="text-[10px] uppercase text-zinc-600 font-bold block mb-1">System Prompt</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="path/to/prompt.md"
-                                                        className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-zinc-300 font-mono text-xs"
-                                                        value={alt.system_prompt_file || ''}
-                                                        onChange={(e) => updateAlternative(idx, 'system_prompt_file', e.target.value)}
-                                                    />
+
+                                            <div className="md:col-span-2">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">GEMINI.md Content (Context)</label>
+                                                    <div className="relative">
+                                                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files && handleAltFileUpload(idx, 'context', e.target.files[0])} />
+                                                        <span className="text-[10px] uppercase font-bold text-indigo-400 cursor-pointer hover:underline">Upload File</span>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <label className="text-[10px] uppercase text-zinc-600 font-bold block mb-1">Settings Path</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="settings.json"
-                                                        className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-zinc-300 font-mono text-xs"
-                                                        value={alt.settings_path || ''}
-                                                        onChange={(e) => updateAlternative(idx, 'settings_path', e.target.value)}
-                                                    />
+                                                {alt.context_file_path && <div className="text-xs font-mono text-emerald-400 mb-1">File: {alt.context_file_path}</div>}
+                                                <TextArea value={alt.context || ""} onChange={(e) => updateAlternative(idx, 'context', e.target.value)} rows={3} className="font-mono text-sm" placeholder="# Context Information..." />
+                                            </div>
+
+                                            <div className="md:col-span-2">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Settings JSON Override</label>
+                                                    <div className="relative">
+                                                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files && handleAltFileUpload(idx, 'settings', e.target.files[0])} />
+                                                        <span className="text-[10px] uppercase font-bold text-indigo-400 cursor-pointer hover:underline">Upload File</span>
+                                                    </div>
                                                 </div>
+                                                {alt.settings_path && <div className="text-xs font-mono text-emerald-400 mb-1">File: {alt.settings_path}</div>}
+                                                <TextArea value={typeof alt.settings === 'string' ? alt.settings : JSON.stringify(alt.settings, null, 2)} onChange={(e) => updateAlternative(idx, 'settings', e.target.value)} rows={3} className="font-mono text-sm" placeholder="{}" />
                                             </div>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        </section>
-                    </div>
+                                </div>
+                                );
+                            })}
+                        </CardContent>
+                    </Card>
                 </div>
-            )}
-        </div>
+            </div>
+        </form>
     );
 }

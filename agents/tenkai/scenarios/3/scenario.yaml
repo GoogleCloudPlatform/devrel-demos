@@ -1,0 +1,15 @@
+id: 3
+name: Hello World
+description: Create a hello world program in Go
+task: "# Hello world\r\n\r\nCreate a \"hello world\" program in Go, using the best practices of the language.\r\n\r\n# Acceptance Criteria\r\n- Test coverage > 70%\r\n- Lint errors < 5\r\n- go run main.go outputs \"Hello from Tenkai\""
+assets: []
+validation:
+  - type: test
+    target: ./...
+    min_coverage: 70
+  - type: lint
+    target: ./...
+    max_issues: 5
+  - type: command
+    command: go run main.go | grep "Hello from Tenkai"
+    expected_exit_code: 0

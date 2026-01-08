@@ -1,95 +1,121 @@
-# Tenkai: Experimentation Framework for Testing Coding Agents
+# Tenkai: Agent Experimentation Framework
 
-Tenkai is a powerful framework designed to evaluate and optimize AI coding agents. It provides a structured environment for running A/B tests on system prompts, tool availability, and agent configurations across various coding scenarios. It provides a structured environment for running A/B tests on system prompts, tool availability, and agent configurations across various coding scenarios.
+Tenkai is a Go-based experimentation framework designed to evaluate and test different configurations of coding agents with statistical rigor. It provides a structured environment for A/B testing system prompts, tool availability, and agent configurations across a variety of standardized coding scenarios.
 
-## Overview
-
-In the rapidly evolving landscape of agentic coding, selecting the right tools and providing the optimal context is critical. Tenkai helps developers:
-- **Analyze Tool Selection:** See which tools agents prefer for different tasks.
-- **Evaluate Prompt Strategies:** Test how system prompt variations impact performance and efficiency.
-- **Measure Reliability:** Track success rates, timeouts, and tool accuracy with statistical rigor.
-- **Optimize Efficiency:** Monitor token usage and duration across experiments.
-
-While designed with the [Gemini CLI](https://github.com/google/gemini-cli) in mind, Tenkai's architecture is agent-agnostic. With minimal adaptations, it can be used to evaluate any headless coding agent.
-
-## Getting Started
-
-### Prerequisites
-
-- [Go](https://golang.org/doc/install) (1.21+)
-- [Gemini CLI](https://github.com/google/gemini-cli) (properly configured)
-
-### Installation
-
-For quick usage:
-```bash
-go install github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/cmd/tenkai@latest
-```
-
-Or build from source:
-```bash
-git clone https://github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai.git
-cd tenkai
-go build ./cmd/tenkai/main.go
-```
-
-### Running Your First Experiment
-
-Use the included minimal example to verify your setup:
-```bash
-./tenkai -config studies/_example/config.yaml
-```
-
-## Dashboard (Frontend)
-
-Tenkai includes a high-performance dashboard for managing experiments and visualizing results.
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-Available at `http://localhost:3000`.
-
-## Using with Jules
-
-[Jules](https://jules.google) can effectively orchestrate Tenkai to optimize overall agentic performance. You can instruct Jules to:
-- "Initialize a Tenkai experiment using `studies/_example/config.yaml`."
-- "Create a new coding scenario that tests the agent's ability to refactor legacy Java code."
-- "Analyze the latest Tenkai run and suggest a better system prompt to improve success rates."
-
-## Scenarios
-
-### Creating a New Scenario
-1. Create a directory in the global `templates/` (shared) or in a study's local `templates/` (specific).
-2. Add a `PROMPT.md` describing the task.
-3. (Optional) Add starter code/files in the same directory.
-
-Tenkai will look for scenarios in the study's `templates/` directory first, then fallback to the global `templates/`.
-
-## Configuration (YAML)
-
-```yaml
-name: "experiment_name"
-repetitions: 10
-max_concurrent: 5
-timeout: "5m"
-
-alternatives:
-  - name: "control"
-    command: "..."
-    args: ["..."]
-    system_prompt_file: "..." # Optional path to prompt md
-    settings_path: "..."      # Optional path to settings.json
-
-scenarios:
-  - name: "scenario_name"      # Found in study or global templates/
-```
-
-## Statistical Validity
-
-Tenkai uses **Welch's t-test** for duration/tokens and **Fisher's Exact Test** for success rates to provide p-values and significance flags (`*`, `**`).
+## Core Architecture
+Tenkai operates on a **Single Source of Truth** principle using a persistent SQLite database (`experiments/tenkai.db`). All execution events are streamed in real-time from the runner to the database, ensuring that the web dashboard and analysis tools always reflect the exact state of the agent execution.
 
 ---
-> [!IMPORTANT]
-> **Tenkai is not an officially supported Google product.**
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **Go 1.22+**: For the backend runner.
+- **Node.js 20+**: For the frontend dashboard.
+- **Gemini CLI**: The agent executable being tested (usually `gemini`).
+
+### Installation & Execution
+
+1.  **Build the Backend:**
+    ```bash
+    go build . && go install .
+    ```
+
+2.  **Start the Application:**
+    The recommended way to run Tenkai is to launch the API server and the frontend simultaneously.
+    ```bash
+    tenkai --serve & (cd frontend && npm run dev)
+    ```
+
+3.  **Access the Dashboard:**
+    Open your browser to [http://localhost:3000](http://localhost:3000).
+
+---
+
+## 📖 User Guide
+
+### 1. Creating a Scenario
+A **Scenario** represents a standardized coding task. To add a new one:
+
+1.  Create a new directory in `scenarios/` (e.g., `scenarios/api-refactor`).
+2.  Create a `scenario.yaml` file inside that directory:
+
+```yaml
+name: "API Refactor"
+description: "Refactor a monolithic handler into clean architecture."
+task: |
+  Refactor the code in main.go.
+  Create a separate package for the business logic.
+assets:
+  - type: "file"
+    source: "initial_code.go"
+    target: "main.go"
+validation:
+  - type: "lint"
+    max_issues: 0
+  - type: "test"
+    target: "./..."
+```
+
+### 2. Creating an Experiment Template
+A **Template** defines *what* you want to test (Alternatives) against *which* tasks (Scenarios).
+
+1.  Create a new directory in `experiments/templates/` (e.g., `experiments/templates/prompt-test`).
+2.  Create a `config.yaml` file:
+
+```yaml
+name: "System Prompt A/B Test"
+repetitions: 5
+max_concurrent: 4
+timeout: "5m"
+control: "baseline"
+scenarios:
+  - "api-refactor"
+alternatives:
+  - name: "baseline"
+    command: "gemini"
+    args: ["-y", "", "-o", "stream-json"]
+  - name: "strict-mode"
+    command: "gemini"
+    args: ["-y", "", "-o", "stream-json"]
+    system_prompt_file: "strict_prompt.md"
+```
+
+### 3. Running an Experiment
+1.  Navigate to the **New Experiment** page in the Web UI.
+2.  Select your **Template** from the dropdown.
+3.  (Optional) Override the number of repetitions or concurrency.
+4.  Click **Launch**.
+
+The dashboard will update in real-time as agents pick up tasks. You can click on individual runs to inspect the live event stream, tool usage, and error logs.
+
+---
+
+## 📊 Statistical Methodology
+
+Tenkai employs two primary statistical tests to determine if the difference in performance between an alternative and the control is significant.
+
+### 1. Welch's t-test
+Used for **continuous metrics** (Duration, Token Usage, Lint Issues).
+- **Hypothesis**: The mean performance of Alt A is different from the Control.
+- **Why Welch?**: It assumes unequal variances and sample sizes, which is typical for agent runs.
+- **Significance**: Displays `*` (p < 0.05) or `**` (p < 0.01).
+
+### 2. Fisher's Exact Test
+Used for **Success Rates**.
+- **Hypothesis**: The proportion of successful runs for Alt A is different from the Control.
+- **Why Fisher?**: It is ideal for small sample sizes (e.g., 5-20 repetitions) where the normality assumption of a Chi-Squared test fails.
+
+---
+
+## 📂 Project Structure
+
+- `cmd/tenkai`: Main entryway (binary).
+- `internal/runner`: Core execution engine. Handles process groups, timeouts, and log streaming.
+- `internal/workspace`: Manages file system isolation and asset injection.
+- `internal/db`: SQLite access layer. Stores `run_results` and `run_events`.
+- `scenarios/`: Global library of available coding tasks.
+- `experiments/`:
+    - `runs/`: Output directory for generated artifacts and logs.
+    - `templates/`: Configuration templates for experiments.
+- `frontend/`: Next.js web dashboard.

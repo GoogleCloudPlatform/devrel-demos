@@ -41,10 +41,10 @@ type ErrorEvent struct {
 
 // MessageEvent captures agent message events
 type MessageEvent struct {
-	Timestamp time.Time
-	Role      string
-	Content   string
-	Delta     bool
+	Timestamp time.Time `json:"timestamp"`
+	Role      string    `json:"role"`
+	Content   string    `json:"content"`
+	Delta     bool      `json:"delta"`
 }
 
 // GeminiEvent represents the generic structure of a streaming event.
@@ -91,83 +91,8 @@ func ParseEvents(path string) (*AgentMetrics, error) {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.TrimSpace(line) == "" {
+		if err := ParseLine(line, metrics, pendingTools); err != nil {
 			continue
-		}
-
-		var evt GeminiEvent
-		if err := json.Unmarshal([]byte(line), &evt); err != nil {
-			// Skip malformed lines or non-json lines
-			continue
-		}
-
-		ts, _ := time.Parse(time.RFC3339, evt.Timestamp)
-
-		switch evt.Type {
-		case "tool_use":
-			argsBytes, _ := json.Marshal(evt.Params)
-			tc := &ToolCall{
-				Name:      evt.ToolName,
-				Args:      string(argsBytes),
-				Status:    "pending",
-				Timestamp: ts,
-			}
-			pendingTools[evt.ToolID] = tc
-
-		case "tool_result":
-			if tc, ok := pendingTools[evt.ToolID]; ok {
-				tc.Status = evt.Status
-				tc.Output = evt.Output
-				// tc.Error? The docs example shows "output" even for success.
-				// Assuming error might be in output or separate field if status != success
-				if evt.Status != "success" {
-					tc.Error = evt.Output // Or wherever error details are
-				}
-				tc.Duration = ts.Sub(tc.Timestamp)
-				metrics.ToolCalls = append(metrics.ToolCalls, *tc)
-				delete(pendingTools, evt.ToolID)
-			}
-
-		case "result":
-			metrics.Result = evt.Status
-			if evt.Stats != nil {
-				metrics.InputTokens = evt.Stats.InputTokens
-				metrics.OutputTokens = evt.Stats.OutputTokens
-				metrics.TotalTokens = evt.Stats.TotalTokens
-			}
-
-		case "error":
-			metrics.Errors = append(metrics.Errors, ErrorEvent{
-				Timestamp: ts,
-				Severity:  evt.Severity,
-				Message:   evt.Message,
-			})
-			// Check for loop detection
-			if strings.Contains(evt.Message, "Loop detected") {
-				metrics.LoopDetected = true
-			}
-
-		case "message":
-			if evt.Delta {
-				// Aggregate deltas
-				if len(metrics.Messages) > 0 && metrics.Messages[len(metrics.Messages)-1].Role == evt.Role {
-					metrics.Messages[len(metrics.Messages)-1].Content += evt.Content
-				} else {
-					metrics.Messages = append(metrics.Messages, MessageEvent{
-						Timestamp: ts,
-						Role:      evt.Role,
-						Content:   evt.Content,
-						Delta:     true,
-					})
-				}
-			} else {
-				metrics.Messages = append(metrics.Messages, MessageEvent{
-					Timestamp: ts,
-					Role:      evt.Role,
-					Content:   evt.Content,
-					Delta:     false,
-				})
-			}
 		}
 	}
 
@@ -176,4 +101,112 @@ func ParseEvents(path string) (*AgentMetrics, error) {
 	}
 
 	return metrics, nil
+}
+
+// ParseLine processes a single JSONL line and updates metrics.
+func ParseLine(line string, metrics *AgentMetrics, pendingTools map[string]*ToolCall) error {
+	if strings.TrimSpace(line) == "" {
+		return nil
+	}
+
+	var evt GeminiEvent
+	if err := json.Unmarshal([]byte(line), &evt); err != nil {
+		return err
+	}
+
+	ts, _ := time.Parse(time.RFC3339, evt.Timestamp)
+
+	switch evt.Type {
+	case "tool_use":
+		argsBytes, _ := json.Marshal(evt.Params)
+		tc := &ToolCall{
+			Name:      evt.ToolName,
+			Args:      string(argsBytes),
+			Status:    "pending",
+			Timestamp: ts,
+		}
+		pendingTools[evt.ToolID] = tc
+
+		// Inject into conversation thread
+		toolMsg := map[string]string{
+			"type": "tool_use",
+			"name": evt.ToolName,
+			"args": string(argsBytes),
+		}
+		msgBytes, _ := json.Marshal(toolMsg)
+		metrics.Messages = append(metrics.Messages, MessageEvent{
+			Timestamp: ts,
+			Role:      "tool_use",
+			Content:   string(msgBytes),
+			Delta:     false,
+		})
+
+	case "tool_result":
+		if tc, ok := pendingTools[evt.ToolID]; ok {
+			tc.Status = evt.Status
+			tc.Output = evt.Output
+			if evt.Status != "success" {
+				tc.Error = evt.Output
+			}
+			tc.Duration = ts.Sub(tc.Timestamp)
+			metrics.ToolCalls = append(metrics.ToolCalls, *tc)
+			delete(pendingTools, evt.ToolID)
+
+			// Inject into conversation thread
+			resMsg := map[string]string{
+				"type":   "tool_result",
+				"status": evt.Status,
+				"output": evt.Output,
+			}
+			resBytes, _ := json.Marshal(resMsg)
+			metrics.Messages = append(metrics.Messages, MessageEvent{
+				Timestamp: ts,
+				Role:      "tool_result",
+				Content:   string(resBytes),
+				Delta:     false,
+			})
+		}
+
+	case "result":
+		metrics.Result = evt.Status
+		if evt.Stats != nil {
+			metrics.InputTokens = evt.Stats.InputTokens
+			metrics.OutputTokens = evt.Stats.OutputTokens
+			metrics.TotalTokens = evt.Stats.TotalTokens
+		}
+
+	case "error":
+		metrics.Errors = append(metrics.Errors, ErrorEvent{
+			Timestamp: ts,
+			Severity:  evt.Severity,
+			Message:   evt.Message,
+		})
+		// Check for loop detection
+		if strings.Contains(evt.Message, "Loop detected") {
+			metrics.LoopDetected = true
+		}
+
+	case "message":
+		if evt.Delta {
+			// Aggregate deltas
+			if len(metrics.Messages) > 0 && metrics.Messages[len(metrics.Messages)-1].Role == evt.Role {
+				metrics.Messages[len(metrics.Messages)-1].Content += evt.Content
+			} else {
+				metrics.Messages = append(metrics.Messages, MessageEvent{
+					Timestamp: ts,
+					Role:      evt.Role,
+					Content:   evt.Content,
+					Delta:     true,
+				})
+			}
+		} else {
+			metrics.Messages = append(metrics.Messages, MessageEvent{
+				Timestamp: ts,
+				Role:      evt.Role,
+				Content:   evt.Content,
+				Delta:     false,
+			})
+		}
+	}
+	return nil
 }

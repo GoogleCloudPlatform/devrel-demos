@@ -23,7 +23,7 @@ The server exposes the following MCP tools:
 
 3.  **`edit_code`**
     *   **Purpose:** Smartly edits Go code with fuzzy matching and safety checks.
-    *   **Input:** `file_path`, `search_context`, `new_content`, `strategy` ("replace_block" or "overwrite_file").
+    *   **Input:** `file_path`, `search_context`, `new_content`, `strategy` ("replace_block", "replace_all", "overwrite_file", or "append").
     *   **Mechanism:** Uses Levenshtein distance for fuzzy matching, runs `goimports` for auto-formatting, and performs syntax validation before saving.
 
 4.  **`read_code`** (Experimental)

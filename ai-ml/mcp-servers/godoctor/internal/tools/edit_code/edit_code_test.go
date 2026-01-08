@@ -245,4 +245,27 @@ func TestEditCode(t *testing.T) {
 			t.Errorf("AutoFix failed to apply edit, got: %q", got)
 		}
 	})
+
+	t.Run("Append Mode", func(t *testing.T) {
+		writeFile("package main\n\nfunc main() {}\n")
+		params := EditCodeParams{
+			FilePath:   filePath,
+			NewContent: "func helper() {}",
+			Strategy:   "append",
+		}
+		_, _, err := editCodeHandler(ctx, nil, params)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got := readFile()
+		// goimports ensures one newline at end of file.
+		// "package main\n\nfunc main() {}\nfunc helper() {}\n"
+		if !strings.Contains(got, "func helper() {}") {
+			t.Errorf("append failed, got %q", got)
+		}
+		if !strings.HasSuffix(strings.TrimSpace(got), "func helper() {}") {
+			t.Errorf("content not appended at the end, got %q", got)
+		}
+	})
 }

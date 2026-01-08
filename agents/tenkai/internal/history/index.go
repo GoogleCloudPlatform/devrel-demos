@@ -32,7 +32,7 @@ func NewIndexer(rootDir string) *Indexer {
 }
 
 // AddEntry appends a new record to the index.
-func (i *Indexer) AddEntry(record ExperimentRecord) error {
+func (i *Indexer) AddEntry(record *ExperimentRecord) error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
@@ -43,13 +43,13 @@ func (i *Indexer) AddEntry(record ExperimentRecord) error {
 	// Optimistic loading, if fails we assume empty
 	entries, _ := i.loadEntries()
 
-	entries = append(entries, record)
+	entries = append(entries, *record)
 
 	return i.saveEntries(entries)
 }
 
 // UpdateStatus updates the status of an existing entry looking it up by its results path.
-func (i *Indexer) UpdateStatus(resultsPath string, status string) error {
+func (i *Indexer) UpdateStatus(resultsPath, status string) error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 

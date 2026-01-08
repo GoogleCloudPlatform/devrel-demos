@@ -1,50 +1,168 @@
-import Link from 'next/link';
+'use client';
 
-async function getTemplates() {
-    try {
-        const res = await fetch('/api/templates', { cache: 'no-store' });
-        if (!res.ok) throw new Error('Failed to fetch templates');
-        return await res.json();
-    } catch (e) {
-        console.error(e);
-        return [];
-    }
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Trash2, Plus, FileText } from 'lucide-react';
+
+interface Template {
+
+    id: string;
+    name: string;
+    description: string;
+    alt_count?: number;
+    scen_count?: number;
+    alternatives?: string[];
+    reps?: number;
 }
 
-export default async function TemplatesPage() {
-    const templates: { id: string, name: string }[] = await getTemplates();
+export default function TemplatesPage() {
+    const [templates, setTemplates] = useState<Template[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [deletingAll, setDeletingAll] = useState(false);
+
+    useEffect(() => {
+        fetch('/api/templates')
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setTemplates(data);
+                }
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(err);
+                setLoading(false);
+            });
+    }, []);
+
+    const handleDelete = async (e: React.MouseEvent, id: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!confirm(`Are you sure you want to delete template "${id}"?`)) return;
+
+        try {
+            const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                setTemplates(prev => prev.filter(t => t.id !== id));
+            } else {
+                alert('Failed to delete template');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error deleting template');
+        }
+    };
+
+    const handleDeleteAll = async () => {
+        if (!confirm("⚠️ WARNING: This will delete ALL templates. This action cannot be undone.")) return;
+        if (!confirm("Are you really sure?")) return;
+
+        setDeletingAll(true);
+        try {
+            const res = await fetch('/api/templates/delete-all', { method: 'DELETE' });
+            if (res.ok) {
+                setTemplates([]);
+            } else {
+                alert('Failed to delete all templates');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error deleting templates');
+        } finally {
+            setDeletingAll(false);
+        }
+    };
 
     return (
-        <div className="p-10 space-y-10 animate-in fade-in duration-500 max-w-7xl mx-auto">
-            <header className="flex justify-between items-end border-b border-white/5 pb-8">
+        <div className="p-6 space-y-6">
+            <header className="flex justify-between items-center pb-6 border-b border-[#27272a]">
                 <div>
-                    <Link href="/" className="text-xs font-bold text-blue-500 uppercase tracking-widest hover:text-blue-400 transition-colors">← Dashboard</Link>
-                    <h1 className="text-4xl font-bold tracking-tight mt-2">Templates</h1>
-                    <p className="text-zinc-400 mt-2">Manage experiment blueprints and default configurations.</p>
+                    <h1 className="text-title">Templates</h1>
+                    <p className="text-body mt-1 font-medium">Experiment configurations.</p>
                 </div>
-                <Link href="/templates/new">
-                    <button className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg shadow-blue-500/20 transition-all border border-blue-400/20 flex items-center gap-2 uppercase text-sm tracking-widest">
-                        <span>+</span> New Template
-                    </button>
-                </Link>
+                <div className="flex gap-2">
+                    <Button variant="destructive" size="sm" onClick={handleDeleteAll} disabled={deletingAll}>
+                        Delete All
+                    </Button>
+                    <Link href="/templates/new">
+                        <Button variant="default" size="sm">
+                            <Plus className="mr-2 h-4 w-4" /> Create
+                        </Button>
+                    </Link>
+                </div>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {templates.map((template) => (
-                    <Link href={`/templates/${template.id}`} key={template.id}>
-                        <div className="glass p-6 rounded-2xl border border-white/5 hover:bg-white/[0.02] hover:border-blue-500/30 transition-all cursor-pointer group">
-                            <div className="flex justify-between items-start mb-4">
-                                <span className="text-2xl">📝</span>
-                                <span className="text-zinc-500 group-hover:text-blue-400 transition-colors">→</span>
-                            </div>
-                            <h3 className="font-bold text-lg text-gray-200 group-hover:text-white transition-colors capitalize">
-                                {template.name}
-                            </h3>
-                            <p className="text-sm text-zinc-500 font-mono mt-1">{template.id}</p>
+            {loading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="h-48 bg-[#121214] rounded-md border border-[#27272a]"></div>
+                    ))}
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {templates.map((template) => (
+                        <Link href={`/templates/${template.id}`} key={template.id} className="block group">
+                            <Card className="h-full p-6 hover:border-[#3f3f46] transition-colors border border-[#27272a] flex flex-col justify-between">
+                                <div>
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-lg bg-[#27272a] flex items-center justify-center text-title text-[#a1a1aa] group-hover:text-[#f4f4f5] transition-colors">
+                                                📝
+                                            </div>
+                                            <div>
+                                                <h3 className="text-header capitalize group-hover:text-[#6366f1] transition-colors">
+                                                    {template.name}
+                                                </h3>
+                                                <p className="text-body font-mono opacity-50 mt-1">ID: {template.id}</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={(e) => handleDelete(e, template.id)}
+                                            className="p-2 text-body text-[#52525b] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            title="Delete"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        </button>
+                                    </div>
+
+                                    <p className="text-body text-[#a1a1aa] line-clamp-2 mb-4 h-11">
+                                        {template.description || "No description provided."}
+                                    </p>
+
+                                    <div className="mb-6 space-y-2 flex-1">
+                                        <div className="text-body font-mono text-sm">
+                                            <span className="font-bold text-[#52525b] mr-2 block mb-1 uppercase tracking-tighter">Alternatives:</span>
+                                            <span className="text-[#f4f4f5] opacity-70 line-clamp-2 leading-relaxed">
+                                                {template.alternatives?.join(', ') || "No alternatives defined"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 mt-4 pt-0">
+                                    <span className="px-3 py-1 rounded-full text-mono font-bold text-xs uppercase tracking-wider border bg-blue-500/10 text-blue-400 border-blue-500/20">
+                                        {template.alt_count} Alternatives
+                                    </span>
+                                    <span className="px-3 py-1 rounded-full text-mono font-bold text-xs uppercase tracking-wider border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                                        {template.scen_count} Scenarios
+                                    </span>
+                                    <span className="px-3 py-1 rounded-full text-mono font-bold text-xs uppercase tracking-wider border bg-amber-500/10 text-amber-400 border-amber-500/20">
+                                        {template.reps} Repetitions
+                                    </span>
+                                </div>
+                            </Card>
+                        </Link>
+                    ))}
+                    {templates.length === 0 && (
+                        <div className="col-span-2 text-center py-12 text-body opacity-50 italic border border-dashed border-[#27272a] rounded">
+                            No templates found. <Link href="/templates/new" className="text-[#6366f1] hover:underline font-bold not-italic">Create one</Link>.
                         </div>
-                    </Link>
-                ))}
-            </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

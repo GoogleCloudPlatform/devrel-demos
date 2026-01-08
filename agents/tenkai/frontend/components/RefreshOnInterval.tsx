@@ -9,8 +9,7 @@ export default function RefreshOnInterval({ active }: { active: boolean }) {
     useEffect(() => {
         // If there are active experiments, refresh more frequently
         // Otherwise, refresh occasionally to detect new ones
-        const intervalTime = active ? 3000 : 10000;
-
+        	const intervalTime = active ? 1000 : 5000;
         const interval = setInterval(() => {
             router.refresh();
         }, intervalTime);

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/runner"
 )
 
@@ -23,6 +24,16 @@ type EnhancedMarkdownGenerator struct {
 }
 
 func (r *EnhancedMarkdownGenerator) Generate() error {
+	// NEW: Filter only terminal results
+	terminalResults := []runner.Result{}
+	for _, res := range r.Results {
+		st := strings.ToUpper(res.Status)
+		if st != db.RunStatusCompleted {
+			terminalResults = append(terminalResults, res)
+		}
+	}
+	r.Results = terminalResults
+
 	// Sort results
 	sort.Slice(r.Results, func(i, j int) bool {
 		if r.Results[i].Scenario != r.Results[j].Scenario {
@@ -50,10 +61,14 @@ func (r *EnhancedMarkdownGenerator) Generate() error {
 
 func (r *EnhancedMarkdownGenerator) calculateStats() {
 	control := ""
+	var allAlts []string
 	if r.Cfg != nil {
 		control = r.Cfg.Control
+		for _, alt := range r.Cfg.Alternatives {
+			allAlts = append(allAlts, alt.Name)
+		}
 	}
-	r.summary = runner.CalculateSummary(r.Results, control)
+	r.summary = runner.CalculateSummary(r.Results, control, allAlts)
 }
 
 func (r *EnhancedMarkdownGenerator) writeHeader() {
@@ -96,7 +111,7 @@ func (r *EnhancedMarkdownGenerator) writeExperimentParameters() {
 		}
 
 		if alt.SettingsPath != "" {
-			fmt.Fprintf(r.w, "  - MCP Settings: `%s`\n", filepath.Base(alt.SettingsPath))
+			fmt.Fprintf(r.w, "  - Tool Settings: `%s`\n", filepath.Base(alt.SettingsPath))
 		}
 	}
 }
@@ -145,7 +160,7 @@ func (r *EnhancedMarkdownGenerator) writeExecutiveSummary() {
 		totalRuns, successCount, len(r.Cfg.Scenarios), globalSuccessRate, healthEmoji)
 
 	// 2. Identify Winners
-	var bestSuccess, bestSpeed, bestEfficiency *runner.AltSummary
+	var bestSuccess, bestSpeed, bestEfficiency *db.ExperimentSummaryRow
 
 	for _, name := range r.getAltOrder() {
 		s, ok := r.summary.Alternatives[name]
@@ -167,13 +182,13 @@ func (r *EnhancedMarkdownGenerator) writeExecutiveSummary() {
 
 	if bestSuccess != nil {
 		fmt.Fprintln(r.w, "### 🏆 Key Findings")
-		fmt.Fprintf(r.w, "- **Most Reliable**: **%s** passed %.1f%% of runs.\n", bestSuccess.Name, bestSuccess.SuccessRate)
+		fmt.Fprintf(r.w, "- **Most Reliable**: **%s** passed %.1f%% of runs.\n", bestSuccess.Alternative, bestSuccess.SuccessRate)
 
 		if bestSpeed != nil {
-			fmt.Fprintf(r.w, "- **Fastest**: **%s** averaged %s per successful run.\n", bestSpeed.Name, time.Duration(bestSpeed.AvgDuration*float64(time.Second)).Round(time.Millisecond))
+			fmt.Fprintf(r.w, "- **Fastest**: **%s** averaged %s per successful run.\n", bestSpeed.Alternative, time.Duration(bestSpeed.AvgDuration*float64(time.Second)).Round(time.Millisecond))
 		}
 		if bestEfficiency != nil {
-			fmt.Fprintf(r.w, "- **Most Efficient**: **%s** used only %s tokens per run.\n", bestEfficiency.Name, formatNumber(int(bestEfficiency.AvgTokens)))
+			fmt.Fprintf(r.w, "- **Most Efficient**: **%s** used only %s tokens per run.\n", bestEfficiency.Alternative, formatNumber(int(bestEfficiency.AvgTokens)))
 		}
 	}
 }
@@ -207,7 +222,7 @@ func (r *EnhancedMarkdownGenerator) writePerformanceComparison() {
 	order := r.getAltOrder()
 
 	// Identify Control (first in config)
-	var control *runner.AltSummary
+	var control *db.ExperimentSummaryRow
 	if r.Cfg != nil && len(r.Cfg.Alternatives) > 0 {
 		c, ok := r.summary.Alternatives[r.Cfg.Control]
 		if ok {
@@ -234,22 +249,26 @@ func (r *EnhancedMarkdownGenerator) writePerformanceComparison() {
 		tokenStr := "-"
 		successStr := fmt.Sprintf("%.0f%%", a.SuccessRate)
 
-		if a.SuccessCount > 0 {
+		if a.SuccessCount > 0 || (a.TotalRuns > 0 && a.AvgDuration > 0) {
 			durStr = time.Duration(a.AvgDuration * float64(time.Second)).Round(time.Second).String()
 			tokenStr = formatNumber(int(a.AvgTokens))
 
 			// Calculate Deltas vs Control
-			if control != nil && name != control.Name && control.SuccessCount > 0 {
-				durDiff := a.AvgDuration - control.AvgDuration
-				durPct := (durDiff / control.AvgDuration) * 100
-				durStr += fmt.Sprintf(" (%+.0f%%)%s", durPct, sigFlag(a.PDuration))
+			if control != nil && name != control.Alternative && control.TotalRuns > 0 {
+				if control.AvgDuration > 0 {
+					durDiff := a.AvgDuration - control.AvgDuration
+					durPct := (durDiff / control.AvgDuration) * 100
+					durStr += fmt.Sprintf(" (%+.0f%%)%s", durPct, sigFlag(a.PDuration))
+				}
 
-				tokenDiff := a.AvgTokens - control.AvgTokens
-				tokenPct := (tokenDiff / control.AvgTokens) * 100
-				tokenStr += fmt.Sprintf(" (%+.0f%%)%s", tokenPct, sigFlag(a.PTokens))
+				if control.AvgTokens > 0 {
+					tokenDiff := a.AvgTokens - control.AvgTokens
+					tokenPct := (tokenDiff / control.AvgTokens) * 100
+					tokenStr += fmt.Sprintf(" (%+.0f%%)%s", tokenPct, sigFlag(a.PTokens))
+				}
 
 				successStr += sigFlag(a.PSuccess)
-			} else if control != nil && name == control.Name {
+			} else if control != nil && name == control.Alternative {
 				durStr += " (Control)"
 			}
 		}
@@ -345,10 +364,10 @@ func (r *EnhancedMarkdownGenerator) writeDetailedMetrics() {
 			continue
 		}
 
-		avgTools := float64(a.TotalToolCalls) / float64(a.Count)
+		avgTools := float64(a.TotalToolCalls) / float64(a.TotalRuns)
 		toolSuccess := 0.0
 		if a.TotalToolCalls > 0 {
-			toolSuccess = float64(a.TotalToolCalls-a.FailedTools) / float64(a.TotalToolCalls) * 100
+			toolSuccess = float64(a.TotalToolCalls-a.FailedToolCalls) / float64(a.TotalToolCalls) * 100
 		}
 
 		fmt.Fprintf(r.w, "| %s | %.1f | %.1f%% | %.1f | %.1f%% |\n",
