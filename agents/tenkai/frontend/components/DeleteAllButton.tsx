@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { Button } from './ui/button';
 
 export default function DeleteAllButton() {
     const router = useRouter();
@@ -27,12 +28,13 @@ export default function DeleteAllButton() {
     };
 
     return (
-        <button
+        <Button
+            variant="destructive"
+            size="sm"
             onClick={handleDeleteAll}
             disabled={deleting}
-            className="text-red-500 hover:text-red-400 hover:bg-red-500/10 font-bold py-2 px-4 rounded-lg transition-all text-xs tracking-widest uppercase flex items-center gap-2 border border-transparent hover:border-red-500/20"
         >
-            {deleting ? 'Deleting...' : 'Delete All'}
-        </button>
+            Delete All Data
+        </Button>
     );
 }

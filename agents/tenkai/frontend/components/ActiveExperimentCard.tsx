@@ -1,103 +1,67 @@
 'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
-import { ExperimentRecord } from '@/lib/api';
+import { ExperimentRecord } from '@/app/api/api';
+import { useExperimentControl, ExperimentStatus } from '@/hooks/useExperimentControl';
+import { Card } from './ui/card';
 
 export default function ActiveExperimentCard({ exp, index }: { exp: ExperimentRecord; index: number }) {
-    const [loading, setLoading] = useState<string | null>(null);
-    const [localStatus, setLocalStatus] = useState(exp.status);
+    const normalizedStatus = (exp.status?.toLowerCase() || 'idle') as ExperimentStatus;
+    const { status, loadingAction, handleControl: originalHandleControl } = useExperimentControl(exp.id, normalizedStatus);
 
-    const handleControl = async (e: React.MouseEvent, action: 'pause' | 'resume' | 'stop') => {
+    const handleControlClick = async (e: React.MouseEvent, action: 'pause' | 'resume' | 'stop') => {
+
         e.preventDefault(); // Prevent navigating to report
         e.stopPropagation();
-
-        setLoading(action);
-        try {
-            const res = await fetch('/api/experiments/control', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ resultsPath: exp.results_path, action }),
-            });
-            if (res.ok) {
-                if (action === 'stop') setLocalStatus('stopped');
-                if (action === 'pause') setLocalStatus('paused');
-                if (action === 'resume') setLocalStatus('running');
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(null);
-        }
+        await originalHandleControl(action);
     };
 
-    if (localStatus === 'stopped' || localStatus === 'completed') return null;
+    if (status === 'stopped' || status === 'completed') return null;
 
     return (
-        <Link href={`/reports/${exp.id}`} className={`glass p-6 rounded-2xl border transition-all group block ${localStatus === 'running' ? 'border-blue-500/20 hover:border-blue-500/40' : 'border-amber-500/20 hover:border-amber-500/40'}`}>
-            <div className="flex justify-between items-start mb-4">
-                <div>
-                    <h4 className={`font-bold text-base uppercase tracking-tight group-hover:text-blue-400 transition-colors`}>{exp.name || "Active Run"}</h4>
-                    <p className="text-xs text-zinc-500 font-mono mt-0.5">Started {new Date(exp.timestamp).toLocaleTimeString()}</p>
-                </div>
-                <div className="flex gap-2 items-center">
-                    <div className={`text-sm font-black uppercase tracking-widest ${localStatus === 'running' ? 'text-blue-500 animate-pulse' : 'text-amber-500'}`}>
-                        {localStatus}
+        <Link href={`/experiments/${exp.id}`}>
+            <Card className="hover:border-indigo-500/30 bg-slate-900/40 cursor-pointer group transition-all duration-300">
+                <div className="flex justify-between items-start mb-6">
+                    <div>
+                        <h4 className="font-bold text-lg text-slate-100 group-hover:text-indigo-400 transition-colors tracking-tight">
+                        </h4>
+                        <p className="text-xs text-slate-500 font-mono mt-1">Started {new Date(exp.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
+                    <div className="flex gap-3 items-center">
 
-                    <div className="flex gap-1">
-                        {localStatus === 'running' ? (
-                            <button
-                                onClick={(e) => handleControl(e, 'pause')}
-                                disabled={loading !== null}
-                                className="p-1 hover:bg-amber-500/20 rounded transition-colors text-amber-500"
-                                title="Pause"
-                            >
-                                ⏸️
-                            </button>
-                        ) : (
-                            <button
-                                onClick={(e) => handleControl(e, 'resume')}
-                                disabled={loading !== null}
-                                className="p-1 hover:bg-emerald-500/20 rounded transition-colors text-emerald-500"
-                                title="Resume"
-                            >
-                                ▶️
-                            </button>
-                        )}
-                        <button
-                            onClick={(e) => handleControl(e, 'stop')}
-                            disabled={loading !== null}
-                            className="p-1 hover:bg-red-500/20 rounded transition-colors text-red-500"
-                            title="Stop"
-                        >
-                            ⏹️
-                        </button>
+                        <div className={`text-xs font-bold uppercase tracking-widest px-2 py-1 rounded ${status === 'running' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                            {status}
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div className="flex justify-between items-end mb-2">
-                <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest leading-none">
-                    {exp.progress ? (
-                        <span>{exp.progress.completed} / {exp.progress.total} jobs</span>
-                    ) : (
-                        <span>Initializing...</span>
-                    )}
+                
+                <div className="flex justify-between items-end mb-2">
+
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        {exp.progress ? (
+                            <span>{exp.progress.completed} / {exp.progress.total} jobs</span>
+                        ) : (
+                            <span>Initializing...</span>
+                        )}
+                    </div>
+                    <div className="text-sm font-mono font-bold text-indigo-400">
+                        {exp.progress ? Math.round(exp.progress.percentage) : 0}%
+                    </div>
                 </div>
-                <div className="text-xs font-mono text-blue-500">
-                    {exp.progress ? Math.round(exp.progress.percentage) : 0}%
+                
+                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                        className={`h-full relative ${status === 'running' ? 'bg-indigo-500' : 'bg-amber-500'} transition-all duration-500`}
+                        style={{ width: `${exp.progress ? exp.progress.percentage : 0}%` }}
+                    >
+                        {status === 'running' && <div className="absolute inset-0 bg-white/20 animate-[shimmer_1s_infinite]"></div>}
+                    </div>
                 </div>
-            </div>
-            <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                <div
-                    className={`h-full animate-shimmer ${localStatus === 'running' ? 'bg-blue-500' : 'bg-amber-500'} transition-all duration-500`}
-                    style={{ width: `${exp.progress ? exp.progress.percentage : 0}%` }}
-                ></div>
-            </div>
-            <div className="mt-2 flex justify-between items-center text-xs uppercase font-bold tracking-widest">
-                <span className="text-zinc-600">Click to view live results</span>
-                <span className="text-blue-500">Live Report →</span>
-            </div>
+                
+                <div className="mt-4 flex justify-between items-center text-[10px] uppercase font-bold tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <span className="text-slate-600">View Details</span>
+                    <span className="text-indigo-400">Live Report →</span>
+                </div>
+            </Card>
         </Link>
     );
 }

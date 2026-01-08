@@ -1,0 +1,27 @@
+name: hello world test
+description: simple test to speed up development
+reps: 1
+concurrent: 2
+timeout: 5m
+experiment_control: default
+scenarios:
+    - scenarios/2
+alternatives:
+  - name: default
+    description: default settings
+    context: ''
+    command: gemini
+    args:
+      - '-y'
+      - ''
+      - '-o'
+      - stream-json
+  - name: gemini 3.0 flash preview
+    context: You are a snarky agent and makes funny and sarcastic comments all the time
+    command: gemini
+    args:
+      - '-y'
+      - '-m'
+      - gemini-3-flash-preview
+      - '-o'
+      - stream-json

@@ -10,67 +10,65 @@ import (
 
 // Configuration holds the experiment definition.
 type Configuration struct {
-	Name          string        `yaml:"name"`
-	Description   string        `yaml:"description,omitempty"`
-	Repetitions   int           `yaml:"repetitions,omitempty"`
-	MaxConcurrent int           `yaml:"max_concurrent,omitempty"`
-	Timeout       string        `yaml:"timeout,omitempty"` // e.g. "5m", "10m"
-	Control       string        `yaml:"control,omitempty"` // Name of the control alternative
-	Alternatives  []Alternative `yaml:"alternatives"`
-	Scenarios     []Scenario    `yaml:"scenarios"`
+	Name          string        `yaml:"name" json:"name"`
+	Description   string        `yaml:"description,omitempty" json:"description,omitempty"`
+	Repetitions   int           `yaml:"repetitions,omitempty" json:"repetitions,omitempty"`
+	MaxConcurrent int           `yaml:"max_concurrent,omitempty" json:"max_concurrent,omitempty"`
+	Timeout       string        `yaml:"timeout,omitempty" json:"timeout,omitempty"`                       // e.g. "5m", "10m"
+	Control       string        `yaml:"experiment_control,omitempty" json:"experiment_control,omitempty"` // Name of the control alternative
+	Alternatives  []Alternative `yaml:"alternatives" json:"alternatives"`
+	// Alternatives is already defined above
+	Scenarios []string `yaml:"scenarios" json:"scenarios"`
 }
 
 // Alternative represents a specific agent configuration.
 type Alternative struct {
-	Name             string            `yaml:"name"`
-	Description      string            `yaml:"description,omitempty"`
-	Command          string            `yaml:"command"`
-	Args             []string          `yaml:"args"`
-	Env              map[string]string `yaml:"env,omitempty"`
-	SettingsPath     string            `yaml:"settings_path,omitempty"` // Path to mcp settings.json
-	SystemPromptFile string            `yaml:"system_prompt_file,omitempty"`
-	ContextFilePath  string            `yaml:"context_file_path,omitempty"` // Path to file to copy as GEMINI.md
-	PolicyFiles      []string          `yaml:"policy_files,omitempty"`      // Paths to files to copy to .gemini/policies/
-}
-
-// Scenario represents a coding task template in the main config.
-type Scenario struct {
-	Name        string `yaml:"name"`
-	Description string `yaml:"description,omitempty"`
+	Name             string                 `yaml:"name" json:"name"`
+	Description      string                 `yaml:"description,omitempty" json:"description,omitempty"`
+	Command          string                 `yaml:"command" json:"command"`
+	Args             []string               `yaml:"args" json:"args"`
+	Env              map[string]string      `yaml:"env,omitempty" json:"env,omitempty"`
+	SettingsPath     string                 `yaml:"settings_path,omitempty" json:"settings_path,omitempty"` // Path to settings.json
+	Settings         map[string]interface{} `yaml:"settings,omitempty" json:"settings,omitempty"`           // Inline settings object
+	SystemPromptFile string                 `yaml:"system_prompt_file,omitempty" json:"system_prompt_file,omitempty"`
+	SystemPrompt     string                 `yaml:"system_prompt,omitempty" json:"system_prompt,omitempty"`         // Inline system prompt content
+	ContextFilePath  string                 `yaml:"context_file_path,omitempty" json:"context_file_path,omitempty"` // Path to file to copy as GEMINI.md
+	Context          string                 `yaml:"context,omitempty" json:"context,omitempty"`                     // Inline GEMINI.md content
+	PolicyFiles      []string               `yaml:"policy_files,omitempty" json:"policy_files,omitempty"`           // Paths to files to copy to .gemini/policies/
 }
 
 // Asset represents a file or directory to be set up in the workspace.
 type Asset struct {
-	Type    string `yaml:"type"`              // "file", "directory", "git", "zip"
-	Source  string `yaml:"source,omitempty"`  // Source path or URL
-	Target  string `yaml:"target"`            // Destination path relative to workspace
-	Ref     string `yaml:"ref,omitempty"`     // Git ref (tag, branch, commit)
-	Content string `yaml:"content,omitempty"` // Inline content for files
+	Type    string `yaml:"type" json:"type"`
+	Source  string `yaml:"source,omitempty" json:"source,omitempty"`
+	Target  string `yaml:"target" json:"target"`
+	Ref     string `yaml:"ref,omitempty" json:"ref,omitempty"`
+	Content string `yaml:"content,omitempty" json:"content,omitempty"`
 }
 
 // ValidationRule defines a success criterion for the scenario.
 type ValidationRule struct {
-	Type           string   `yaml:"type"` // "test", "lint", "model", "command"
-	Target         string   `yaml:"target,omitempty"`
-	MinCoverage    float64  `yaml:"min_coverage,omitempty"`
-	MaxIssues      int      `yaml:"max_issues,omitempty"`
-	Exclude        []string `yaml:"exclude,omitempty"`
-	PromptFile     string   `yaml:"prompt_file,omitempty"`
-	Context        []string `yaml:"context,omitempty"`
-	Command        string   `yaml:"command,omitempty"`
-	Args           []string `yaml:"args,omitempty"`
-	ExpectExitCode int      `yaml:"expect_exit_code,omitempty"`
-	ExpectOutput   string   `yaml:"expect_output,omitempty"`
+	Type           string   `yaml:"type" json:"type"`
+	Target         string   `yaml:"target,omitempty" json:"target,omitempty"`
+	MinCoverage    float64  `yaml:"min_coverage,omitempty" json:"min_coverage,omitempty"`
+	MaxIssues      int      `yaml:"max_issues,omitempty" json:"max_issues,omitempty"`
+	Exclude        []string `yaml:"exclude,omitempty" json:"exclude,omitempty"`
+	PromptFile     string   `yaml:"prompt_file,omitempty" json:"prompt_file,omitempty"`
+	Context        []string `yaml:"context,omitempty" json:"context,omitempty"`
+	Command        string   `yaml:"command,omitempty" json:"command,omitempty"`
+	Args           []string `yaml:"args,omitempty" json:"args,omitempty"`
+	ExpectExitCode int      `yaml:"expect_exit_code,omitempty" json:"expected_exit_code,omitempty"` // Frontend expects expected_exit_code
+	ExpectOutput   string   `yaml:"expect_output,omitempty" json:"expect_output,omitempty"`
 }
 
 // ScenarioConfig represents the content of a scenario.yaml file.
 type ScenarioConfig struct {
-	Name        string           `yaml:"name"`
-	Description string           `yaml:"description,omitempty"`
-	Task        string           `yaml:"task,omitempty"`
-	GithubIssue string           `yaml:"github_issue,omitempty"`
-	Assets      []Asset          `yaml:"assets"`
-	Validation  []ValidationRule `yaml:"validation"`
+	Name        string           `yaml:"name" json:"name"`
+	Description string           `yaml:"description,omitempty" json:"description,omitempty"`
+	Task        string           `yaml:"task,omitempty" json:"task,omitempty"`
+	GithubIssue string           `yaml:"github_issue,omitempty" json:"github_issue,omitempty"`
+	Assets      []Asset          `yaml:"assets" json:"assets"`
+	Validation  []ValidationRule `yaml:"validation" json:"validation"`
 }
 
 // Load reads the configuration from the specified file path.
@@ -112,6 +110,9 @@ func Load(path string) (*Configuration, error) {
 	if cfg.MaxConcurrent == 0 {
 		cfg.MaxConcurrent = 1
 	}
+
+	fmt.Printf("[Config] Loaded %d scenarios\n", len(cfg.Scenarios))
+	fmt.Printf("[Config] Loaded %d scenarios\n", len(cfg.Scenarios))
 
 	return &cfg, nil
 }

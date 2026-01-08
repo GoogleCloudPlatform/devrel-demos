@@ -1,113 +1,154 @@
 import Link from "next/link";
-import { getExperiments, ExperimentRecord, getGlobalStats } from "@/lib/api";
+import { getExperiments } from "@/app/api/api";
 import RefreshOnInterval from "@/components/RefreshOnInterval";
-import ActiveExperimentCard from "@/components/ActiveExperimentCard";
-import ExperimentRow from "@/components/ExperimentRow";
-import Toast from "@/components/Toast";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/utils/cn";
+import { Plus, Terminal } from "lucide-react";
 
 export default async function Home() {
-  const experiments = await getExperiments();
-  const { totalRuns, avgSuccessRate } = await getGlobalStats();
+    const experiments = await getExperiments();
 
-  // Sort by timestamp descending
-  const sortedExperiments = [...experiments].sort((a, b) =>
-    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  );
+    const sortedExperiments = [...experiments].sort((a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
 
-  const activeExperiments = sortedExperiments.filter(e => e.status === 'running' || e.status === 'paused');
-  const completedExperiments = sortedExperiments.filter(e => e.status !== 'running' && e.status !== 'paused');
+    const activeExperiments = sortedExperiments.filter(e => e.status === 'RUNNING' || e.status === 'running');
+    const completedExperiments = sortedExperiments.filter(e => e.status !== 'RUNNING' && e.status !== 'running');
 
-  return (
-    <div className="p-10 space-y-10 animate-in fade-in duration-500">
-      <RefreshOnInterval active={activeExperiments.length > 0} />
-      {/* Header */}
-      <header className="flex justify-between items-end">
-        <div className="flex items-baseline gap-6">
-          <div>
-            <h2 className="text-base font-semibold text-blue-500 uppercase tracking-widest mb-1">Laboratory</h2>
-            <h1 className="text-4xl font-bold tracking-tight">Experiment Dashboard</h1>
-          </div>
+    return (
+        <div className="p-6 space-y-8">
+            <RefreshOnInterval active={activeExperiments.length > 0} />
 
+            {/* Header / Status Bar */}
+            <header className="flex justify-between items-center pb-6 border-b">
+                <div>
+                    <h1 className="text-3xl font-extrabold tracking-tight">Dashboard</h1>
+                    <div className="flex gap-4 mt-1">
+                        <span className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
+                            Active Processes: <span className={activeExperiments.length > 0 ? "text-primary" : "text-foreground"}>{activeExperiments.length}</span>
+                        </span>
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <Link href="/logs">
+                        <Button variant="outline" size="sm">
+                            <Terminal className="mr-2 h-4 w-4" /> Server Logs
+                        </Button>
+                    </Link>
+                    <Link href="/experiments/new">
+                        <Button size="sm">
+                            <Plus className="mr-2 h-4 w-4" /> New Experiment
+                        </Button>
+                    </Link>
+                </div>
+            </header>
+
+            {/* Active Runs Panel */}
+            {activeExperiments.length > 0 && (
+                <section className="space-y-4">
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Active Processes</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {activeExperiments.map(exp => (
+                            <Link href={`/experiments/${exp.id}`} key={exp.id}>
+                                <Card className="hover:border-primary/50 transition-colors group">
+                                    <CardHeader className="pb-2">
+                                        <div className="flex justify-between items-start">
+                                            <CardTitle className="text-base group-hover:text-primary transition-colors">{exp.name || `Exp #${exp.id}`}</CardTitle>
+                                            <Badge variant="outline" className={cn(
+                                                "uppercase",
+                                                (exp.status?.toUpperCase() === 'RUNNING') && "border-blue-500/50 text-blue-500 animate-pulse"
+                                            )}>{exp.status}</Badge>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="w-full bg-secondary h-1 rounded-full overflow-hidden mb-2">
+                                            <div
+                                                className="bg-primary h-full transition-all duration-500"
+                                                style={{ width: `${exp.progress ? exp.progress.percentage : 0}%` }}
+                                            />
+                                        </div>
+                                        <div className="flex justify-between text-xs font-mono text-muted-foreground">
+                                            <span>{exp.progress?.completed} / {exp.progress?.total}</span>
+                                            <span>{exp.progress ? Math.round(exp.progress.percentage) : 0}%</span>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* Recent Activity Data Grid */}
+            <section className="space-y-4">
+                <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Recent Activity</h3>
+                    <Link href="/experiments">
+                        <Button variant="link" className="font-bold">View All</Button>
+                    </Link>
+                </div>
+
+                <div className="rounded-md border bg-card">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[80px]">ID</TableHead>
+                                <TableHead>Name</TableHead>
+                                <TableHead className="w-[120px]">Status</TableHead>
+                                <TableHead className="w-[100px] text-right">Success</TableHead>
+                                <TableHead className="w-[100px] text-right">Duration</TableHead>
+                                <TableHead className="w-[150px] text-right">Date</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {completedExperiments.slice(0, 15).map(exp => (
+                                <TableRow key={exp.id}>
+                                    <TableCell className="font-mono text-muted-foreground">{exp.id}</TableCell>
+                                    <TableCell>
+                                        <Link href={`/experiments/${exp.id}`} className="hover:text-primary font-medium transition-colors">
+                                            {exp.name || "—"}
+                                        </Link>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant={
+                                            exp.status?.toUpperCase() === 'COMPLETED' ? 'secondary' : 'outline'
+                                        } className={cn(
+                                            "uppercase",
+                                            exp.status?.toUpperCase() === 'COMPLETED' && "border-green-500/50 text-green-500",
+                                            exp.status?.toUpperCase() === 'RUNNING' && "border-blue-500/50 text-blue-500 animate-pulse",
+                                            exp.status?.toUpperCase() === 'ABORTED' && "border-amber-500/50 text-amber-500"
+                                        )}>
+                                            {exp.status}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono">
+                                        <span className={cn(
+                                            (exp.success_rate || 0) >= 90 ? "text-green-500" :
+                                                (exp.success_rate || 0) >= 50 ? "text-yellow-500" : "text-destructive"
+                                        )}>
+                                            {(exp.success_rate || 0).toFixed(0)}%
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono text-muted-foreground">
+                                        {(exp.avg_duration || 0).toFixed(1)}s
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono text-muted-foreground">
+                                        {new Date(exp.timestamp).toLocaleDateString()}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                            {completedExperiments.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center">No activity recorded.</TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            </section>
         </div>
-        <div className="flex gap-4">
-          <Link href="/experiments/new">
-            <button className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg shadow-blue-500/20 transition-all border border-blue-400/20 flex items-center gap-2 uppercase text-sm tracking-widest">
-              <span>+</span> New Experiment
-            </button>
-          </Link>
-        </div>
-      </header>
-
-      {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard label="Total Jobs Executed" value={totalRuns.toString()} icon="📈" />
-        <StatCard label="Avg Success Rate" value={avgSuccessRate} icon="✅" />
-        <StatCard label="Active Runs" value={activeExperiments.length.toString()} status={activeExperiments.length > 0 ? "LIVE" : ""} icon="⚡" />
-      </div>
-
-      <div className="space-y-10">
-        {/* Active Runs */}
-        {activeExperiments.length > 0 && (
-          <section className="space-y-4">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-              Active Progress
-            </h3>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {activeExperiments.map((exp, idx) => (
-                <ActiveExperimentCard key={idx} exp={exp} index={sortedExperiments.indexOf(exp)} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* History Table */}
-        <section className="glass rounded-2xl overflow-hidden border border-white/5">
-          <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-            <h3 className="text-lg font-bold">Recent History</h3>
-            <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
-              Last {completedExperiments.length} experiments
-            </span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="text-zinc-500 text-xs uppercase font-bold tracking-widest border-b border-white/5">
-                  <th className="px-6 py-4 w-[200px]">Experiment</th>
-                  <th className="px-6 py-4">Description</th>
-                  <th className="px-6 py-4 w-[100px]">Execution</th>
-                  <th className="px-6 py-4 w-[100px]">Success</th>
-                  <th className="px-6 py-4 text-right w-[100px]">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {completedExperiments.map((exp, idx) => (
-                  <ExperimentRow key={idx} exp={exp} />
-                ))}
-                {completedExperiments.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-10 text-center text-zinc-600 text-base">No historical data available.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
-      <Toast />
-    </div>
-  );
-}
-
-function StatCard({ label, value, status, icon }: any) {
-  return (
-    <div className="glass p-6 rounded-2xl border border-white/10 flex flex-col gap-1 relative overflow-hidden group">
-      <div className="absolute -right-2 -top-2 text-4xl opacity-5 transition-transform group-hover:scale-125 duration-500">{icon}</div>
-      <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">{label}</p>
-      <div className="flex items-baseline gap-2">
-        <h3 className="text-3xl font-bold tracking-tight">{value}</h3>
-        {status && <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/20 text-blue-400 font-black tracking-widest animate-pulse">{status}</span>}
-      </div>
-    </div>
-  );
+    );
 }

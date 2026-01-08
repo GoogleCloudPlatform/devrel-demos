@@ -1,30 +1,83 @@
 import Link from "next/link";
+import { getExperiments } from "@/app/api/api";
+import ExperimentsHeader from "@/components/experiments/ExperimentsHeader";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/utils/cn";
 
-export default function ExperimentsPage() {
+export default async function ExperimentsPage() {
+    const experiments = await getExperiments();
+
+    // Sort by timestamp descending
+    const sortedExperiments = [...experiments].sort((a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
     return (
-        <div className="p-10 space-y-8 animate-in fade-in duration-500">
-            <header>
-                <h2 className="text-sm font-semibold text-blue-500 uppercase tracking-widest mb-1">Laboratory</h2>
-                <h1 className="text-4xl font-bold tracking-tight">Experiments</h1>
-                <p className="text-zinc-500 mt-2">Manage and launch your Tenkai studies.</p>
-            </header>
+        <div className="p-6 space-y-6">
+            <ExperimentsHeader />
 
-            <div className="glass rounded-2xl p-10 flex flex-col items-center justify-center text-center border border-white/5 shadow-2xl">
-                <div className="text-6xl mb-6">🧪</div>
-                <h2 className="text-2xl font-bold mb-2">Study Management</h2>
-                <p className="text-zinc-400 max-w-md mx-auto mb-8">
-                    This section will allow you to browse all available studies in the <code>studies/</code> directory,
-                    configure parameters, and launch new runs directly from the UI.
-                </p>
-                <div className="flex gap-4">
-                    <Link href="/" className="px-6 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all text-sm font-bold border border-white/10">
-                        Back to Dashboard
-                    </Link>
-                    <button className="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 transition-all text-sm font-bold shadow-lg shadow-blue-500/20">
-                        Coming Soon: Create Study
-                    </button>
-                </div>
+            <div className="rounded-md border bg-card">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[80px]">ID</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead className="w-[120px]">Status</TableHead>
+                            <TableHead className="w-[100px] text-right">Success</TableHead>
+                            <TableHead className="w-[100px] text-right">Duration</TableHead>
+                            <TableHead className="w-[150px] text-right">Date</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {sortedExperiments.map((exp) => (
+                            <TableRow key={exp.id}>
+                                <TableCell className="font-mono text-muted-foreground">{exp.id}</TableCell>
+                                <TableCell>
+                                    <Link href={`/experiments/${exp.id}`} className="hover:text-primary font-medium transition-colors">
+                                        {exp.name || "—"}
+                                    </Link>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant={
+                                        exp.status?.toUpperCase() === 'COMPLETED' ? 'secondary' :
+                                            exp.status?.toUpperCase() === 'FAILED' ? 'destructive' : 'outline'
+                                    } className={cn(
+                                        "uppercase",
+                                        exp.status?.toUpperCase() === 'COMPLETED' && "border-green-500/50 text-green-500",
+                                        exp.status?.toUpperCase() === 'RUNNING' && "border-blue-500/50 text-blue-500 animate-pulse",
+                                        exp.status?.toUpperCase() === 'ABORTED' && "border-amber-500/50 text-amber-500"
+                                    )}>
+                                        {exp.status}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-right font-mono">
+                                    <span className={cn(
+                                        (exp.success_rate || 0) >= 90 ? "text-green-500" :
+                                            (exp.success_rate || 0) >= 50 ? "text-yellow-500" : "text-destructive"
+                                    )}>
+                                        {(exp.success_rate || 0).toFixed(0)}%
+                                    </span>
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-muted-foreground">
+                                    {(exp.avg_duration || 0).toFixed(1)}s
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-muted-foreground">
+                                    {new Date(exp.timestamp).toLocaleDateString()}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                        {sortedExperiments.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={6} className="h-24 text-center">
+                                    No experiments found. <Link href="/experiments/new" className="text-primary hover:underline font-bold">Create one</Link>.
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
             </div>
         </div>
     );
 }
+

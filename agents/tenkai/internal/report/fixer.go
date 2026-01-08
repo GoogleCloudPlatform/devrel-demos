@@ -2,14 +2,14 @@ package report
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 )
 
 // FixMarkdownReport reorders sections and fixes formatting in an existing Markdown report
 func FixMarkdownReport(path string) error {
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read report file: %w", err)
 	}
@@ -74,7 +74,7 @@ func FixMarkdownReport(path string) error {
 		}
 	}
 
-	if err := ioutil.WriteFile(path, []byte(newContent.String()), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(newContent.String()), 0644); err != nil {
 		return fmt.Errorf("failed to write fixed report: %w", err)
 	}
 

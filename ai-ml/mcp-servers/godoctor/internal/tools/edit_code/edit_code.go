@@ -21,13 +21,18 @@ func Register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:  "edit_code",
 		Title: "Edit Go Code (Smart)",
-		Description: `Smart file editing tool. 
-Use 'replace_block' (default) to replace a specific code block. Provide enough 'search_context' to uniquely identify the block. 
-Use 'overwrite_file' to rewrite the entire file.
+		Description: `The PREFERRED tool for editing Go code.
+Use 'replace_block' (default) for surgical edits. It uses fuzzy matching to handle minor whitespace discrepancies.
+Use 'overwrite_file' for full rewrites or creating new files.
+Use 'append' to add new code to the end of the file.
+
+IMPORTANT: 'search_context' is REQUIRED for 'replace_block' and 'replace_all' strategies. It must contain the exact code block to be replaced.
+
 Features:
-- Fuzzy matching handles minor whitespace differences.
-- Soft Validation: Checks syntax before saving. Warns on build errors but allows saving valid code.
-- Auto-Formatting: Runs goimports automatically.`,
+- **Safety**: Validates syntax before saving to prevent broken code.
+- **Auto-Formatting**: Automatically runs 'goimports' to fix imports and formatting.
+- **Reliability**: Fuzzy matching prevents failures due to minor context mismatches.
+- **Creation**: Can be used to create NEW files.`,
 	}, editCodeHandler)
 }
 
@@ -35,7 +40,7 @@ type EditCodeParams struct {
 	FilePath      string  `json:"file_path"`
 	SearchContext string  `json:"search_context,omitempty"`
 	NewContent    string  `json:"new_content"`
-	Strategy      string  `json:"strategy,omitempty"` // single_match (default), replace_all, overwrite_file
+	Strategy      string  `json:"strategy,omitempty"` // replace_block (default), replace_all, overwrite_file, append
 	Threshold     float64 `json:"threshold,omitempty"`
 	AutoFix       bool    `json:"autofix,omitempty"` // Automatically fix imports and small typos
 }
@@ -43,7 +48,7 @@ type EditCodeParams struct {
 func editCodeHandler(ctx context.Context, request *mcp.CallToolRequest, args EditCodeParams) (*mcp.CallToolResult, any, error) {
 	// Defaults
 	if args.Strategy == "" {
-		args.Strategy = "single_match"
+		args.Strategy = "replace_block"
 	}
 	if args.Threshold == 0 {
 		args.Threshold = 0.85 // Lowered slightly default to accommodate fuzzy matches
@@ -65,6 +70,12 @@ func editCodeHandler(ctx context.Context, request *mcp.CallToolRequest, args Edi
 	// 2. Resolve New Content
 	if args.Strategy == "overwrite_file" {
 		newContentStr = args.NewContent
+	} else if args.Strategy == "append" {
+		if len(originalContent) > 0 && !strings.HasSuffix(originalContent, "\n") {
+			newContentStr = originalContent + "\n" + args.NewContent
+		} else {
+			newContentStr = originalContent + args.NewContent
+		}
 	} else {
 		if args.SearchContext == "" {
 			return errorResult("search_context is required for replace strategies"), nil, nil
@@ -121,7 +132,7 @@ Diff:
 			return errorResult(msg), nil, nil
 		}
 
-		if args.Strategy == "single_match" {
+		if args.Strategy == "replace_block" {
 			if len(validCandidates) > 1 {
 				// Check if they are identical (overlapping or repeats).
 				// For now, simple ambiguity check.

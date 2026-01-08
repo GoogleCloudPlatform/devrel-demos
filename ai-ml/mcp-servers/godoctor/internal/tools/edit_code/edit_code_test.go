@@ -55,7 +55,7 @@ func TestEditCode(t *testing.T) {
 			FilePath:      filePath,
 			SearchContext: "func old() {}",
 			NewContent:    "func new() {}",
-			Strategy:      "single_match",
+			Strategy:      "replace_block",
 		}
 		_, _, err := editCodeHandler(ctx, nil, params)
 		if err != nil {
@@ -74,7 +74,7 @@ func TestEditCode(t *testing.T) {
 			FilePath:      filePath,
 			SearchContext: "func old() {\n  println(\"hi\")\n}",
 			NewContent:    "func new() {}",
-			Strategy:      "single_match",
+			Strategy:      "replace_block",
 			Threshold:     0.8, // Allow some fuzziness
 		}
 		result, _, err := editCodeHandler(ctx, nil, params)
@@ -140,7 +140,7 @@ func TestEditCode(t *testing.T) {
 			FilePath:      filePath,
 			SearchContext: "func correct() {\n  xxxxxx(\"hello\")\n}",
 			NewContent:    "func new() {}",
-			Strategy:      "single_match",
+			Strategy:      "replace_block",
 		}
 		result, _, err := editCodeHandler(ctx, nil, params)
 		if err != nil {
@@ -207,7 +207,7 @@ func TestEditCode(t *testing.T) {
 			FilePath:      filePath,
 			SearchContext: "func correct() {\n  prntln(\"hello\")\n}",
 			NewContent:    "func new() {}",
-			Strategy:      "single_match",
+			Strategy:      "replace_block",
 			AutoFix:       true, // Should enable the fix
 		}
 
@@ -243,6 +243,29 @@ func TestEditCode(t *testing.T) {
 		got := readFile()
 		if !strings.Contains(got, "var c = 1") {
 			t.Errorf("AutoFix failed to apply edit, got: %q", got)
+		}
+	})
+
+	t.Run("Append Mode", func(t *testing.T) {
+		writeFile("package main\n\nfunc main() {}\n")
+		params := EditCodeParams{
+			FilePath:   filePath,
+			NewContent: "func helper() {}",
+			Strategy:   "append",
+		}
+		_, _, err := editCodeHandler(ctx, nil, params)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got := readFile()
+		// goimports ensures one newline at end of file.
+		// "package main\n\nfunc main() {}\nfunc helper() {}\n"
+		if !strings.Contains(got, "func helper() {}") {
+			t.Errorf("append failed, got %q", got)
+		}
+		if !strings.HasSuffix(strings.TrimSpace(got), "func helper() {}") {
+			t.Errorf("content not appended at the end, got %q", got)
 		}
 	})
 }

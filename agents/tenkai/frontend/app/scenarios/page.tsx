@@ -2,16 +2,25 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Trash2, Plus, FlaskConical } from 'lucide-react';
 
 interface Scenario {
+
     id: string;
     name: string;
     description: string;
+    task?: string;
+    github_issue?: string;
+    validation?: any[];
 }
 
 export default function ScenariosPage() {
     const [scenarios, setScenarios] = useState<Scenario[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deletingAll, setDeletingAll] = useState(false);
 
     useEffect(() => {
         fetch('/api/scenarios')
@@ -26,41 +35,141 @@ export default function ScenariosPage() {
             });
     }, []);
 
+    const handleDelete = async (e: React.MouseEvent, id: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!confirm('Are you sure you want to delete this scenario? This action cannot be undone.')) return;
+
+        try {
+            const res = await fetch(`/api/scenarios/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                setScenarios(prev => prev.filter(s => s.id !== id));
+            } else {
+                alert('Failed to delete scenario');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error deleting scenario');
+        }
+    };
+
+    const handleDeleteAll = async () => {
+        if (!confirm("⚠️ WARNING: This will delete ALL scenarios. This action cannot be undone.")) return;
+        if (!confirm("Are you really sure?")) return;
+
+        setDeletingAll(true);
+        try {
+            const res = await fetch('/api/scenarios/delete-all', { method: 'DELETE' });
+            if (res.ok) {
+                setScenarios([]);
+            } else {
+                alert('Failed to delete all scenarios');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error deleting scenarios');
+        } finally {
+            setDeletingAll(false);
+        }
+    };
+
     return (
-        <div className="p-10 space-y-10 animate-in fade-in duration-500 max-w-7xl mx-auto">
-            <header className="flex justify-between items-end border-b border-white/5 pb-8">
+        <div className="p-6 space-y-6">
+            <header className="flex justify-between items-center pb-6 border-b border-[#27272a]">
                 <div>
-                    <Link href="/" className="text-xs font-bold text-blue-500 uppercase tracking-widest hover:text-blue-400 transition-colors">← Dashboard</Link>
-                    <h1 className="text-4xl font-bold tracking-tight mt-2">Scenarios</h1>
-                    <p className="text-zinc-400 mt-2">Browse available coding task scenarios.</p>
+                    <h1 className="text-title">Scenarios</h1>
+                    <p className="text-body mt-1 font-medium">Standardized coding tasks.</p>
+                </div>
+                <div className="flex gap-2">
+                    <Button variant="destructive" size="sm" onClick={handleDeleteAll} disabled={deletingAll}>
+                        Delete All
+                    </Button>
+                    <Link href="/scenarios/new">
+                        <Button variant="default" size="sm">
+                            <Plus className="mr-2 h-4 w-4" /> Create
+                        </Button>
+                    </Link>
                 </div>
             </header>
 
             {loading ? (
-                <div className="text-zinc-500">Loading scenarios...</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="h-48 bg-[#121214] rounded-md border border-[#27272a]"></div>
+                    ))}
+                </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {scenarios.map((scenario) => (
-                        <Link href={`/scenarios/${scenario.id}`} key={scenario.id}>
-                            <div className="glass p-6 rounded-2xl border border-white/5 hover:bg-white/[0.02] hover:border-blue-500/30 transition-all cursor-pointer group">
-                                <div className="flex justify-between items-start mb-4">
-                                    <span className="text-2xl">🧪</span>
-                                    <span className="text-zinc-500 group-hover:text-blue-400 transition-colors">→</span>
-                                </div>
-                                <h3 className="font-bold text-lg text-gray-200 capitalize group-hover:text-white transition-colors">
-                                    {scenario.name}
-                                </h3>
-                                {scenario.description && (
-                                    <p className="text-sm text-zinc-500 mt-2 line-clamp-2">
-                                        {scenario.description}
+                        <Link href={`/scenarios/${scenario.id}`} key={scenario.id} className="block group">
+                            <Card className="h-full p-6 hover:border-[#3f3f46] transition-colors border border-[#27272a] flex flex-col justify-between">
+                                <div>
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-lg bg-[#27272a] flex items-center justify-center text-title text-[#a1a1aa] group-hover:text-[#f4f4f5] transition-colors">
+                                                🧪
+                                            </div>
+                                            <div>
+                                                <h3 className="text-header capitalize group-hover:text-[#6366f1] transition-colors">
+                                                    {scenario.name}
+                                                </h3>
+                                                <p className="text-body font-mono opacity-50 mt-1">ID: {scenario.id}</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={(e) => handleDelete(e, scenario.id)}
+                                            className="p-2 text-body text-[#52525b] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            title="Delete"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        </button>
+                                    </div>
+
+                                    <p className="text-body text-[#a1a1aa] line-clamp-2 mb-4 h-11">
+                                        {scenario.description || "No description provided."}
                                     </p>
-                                )}
-                                <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
-                                    <span className="text-xs text-zinc-600 font-mono">{scenario.id}</span>
+
+                                    <div className="mb-6 space-y-2 flex-1">
+                                        {scenario.github_issue ? (
+                                            <div className="text-body font-mono truncate">
+                                                <span className="font-bold text-[#52525b] mr-2">GITHUB:</span>
+                                                <span className="text-[#6366f1]">{scenario.github_issue}</span>
+                                            </div>
+                                        ) : (
+                                            <div className="text-body font-mono">
+                                                <span className="font-bold text-[#52525b] mr-2 block mb-1">PROMPT:</span>
+                                                <span className="text-[#f4f4f5] opacity-70 line-clamp-4 leading-relaxed">
+                                                    {scenario.task || "No prompt defined"}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+
+                                <div className="flex flex-wrap gap-2 mt-4 pt-0">
+                                    {scenario.validation?.map((v, i) => (
+                                        <span key={i} className={`px-3 py-1 rounded-full text-mono font-bold text-xs uppercase tracking-wider border ${v.type === 'test' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                            v.type === 'lint' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                                'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                            }`}>
+                                            {v.type === 'test' ? `Test >= ${v.min_coverage ?? 0}%` :
+                                                v.type === 'lint' ? `Lint <= ${v.max_issues ?? 0}` :
+                                                    v.type === 'command' ? `Cmd (Exit ${v.expected_exit_code ?? 0})` : v.type}
+                                        </span>
+
+                                    ))}
+                                    {(!scenario.validation || scenario.validation.length === 0) && (
+                                        <span className="text-mono opacity-30 italic">No validation</span>
+                                    )}
+                                </div>
+                            </Card>
                         </Link>
                     ))}
+                    {scenarios.length === 0 && (
+                        <div className="col-span-2 text-center py-12 text-body opacity-50 italic border border-dashed border-[#27272a] rounded">
+                            No scenarios found. <Link href="/scenarios/new" className="text-[#6366f1] hover:underline font-bold not-italic">Create one</Link>.
+                        </div>
+                    )}
                 </div>
             )}
         </div>

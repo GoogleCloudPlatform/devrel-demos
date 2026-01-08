@@ -2,8 +2,11 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/parser"
 
 	_ "modernc.org/sqlite"
 )
@@ -12,26 +15,39 @@ type DB struct {
 	conn *sql.DB
 }
 
+type ExperimentProgress struct {
+	Completed  int     `json:"completed"`
+	Total      int     `json:"total"`
+	Percentage float64 `json:"percentage"`
+}
+
 type Experiment struct {
-	ID                int64     `json:"id"`
-	Name              string    `json:"name"`
-	Timestamp         time.Time `json:"timestamp"`
-	ConfigPath        string    `json:"config_path"`
-	ReportPath        string    `json:"report_path"`
-	ResultsPath       string    `json:"results_path"`
-	Status            string    `json:"status"`
-	Reps              int       `json:"reps"`
-	Concurrent        int       `json:"concurrent"`
-	TotalJobs         int       `json:"total_jobs"`
-	CompletedJobs     int       `json:"completed_jobs"`
-	Description       string    `json:"description"`
-	Duration          int64     `json:"duration"` // in nanoseconds
-	ConfigContent     string    `json:"config_content"`
-	ReportContent     string    `json:"report_content"`
-	ExecutionControl  string    `json:"execution_control"`  // Signal: pause, stop, resume
-	ExperimentControl string    `json:"experiment_control"` // Statistical reference alternative
-	ErrorMessage      string    `json:"error_message"`
-	AIAnalysis        string    `json:"ai_analysis"`
+	ID                int64               `json:"id"`
+	Name              string              `json:"name"`
+	Timestamp         time.Time           `json:"timestamp"`
+	ConfigPath        string              `json:"config_path"`
+	ReportPath        string              `json:"report_path"`
+	ResultsPath       string              `json:"results_path"`
+	Status            string              `json:"status"`
+	Reps              int                 `json:"reps"`
+	Concurrent        int                 `json:"concurrent"`
+	TotalJobs         int                 `json:"total_jobs"`
+	CompletedJobs     int                 `json:"completed_jobs"`
+	PID               int                 `json:"pid"`
+	Description       string              `json:"description"`
+	Duration          int64               `json:"duration"` // in nanoseconds
+	ConfigContent     string              `json:"config_content"`
+	ReportContent     string              `json:"report_content"`
+	ExecutionControl  string              `json:"execution_control"`  // Signal: pause, stop, resume
+	ExperimentControl string              `json:"experiment_control"` // Statistical reference alternative
+	ErrorMessage      string              `json:"error_message"`
+	AIAnalysis        string              `json:"ai_analysis"`
+	SuccessRate       float64             `json:"success_rate"`
+	AvgDuration       float64             `json:"avg_duration"`
+	AvgTokens         float64             `json:"avg_tokens"`
+	TotalLint         int                 `json:"total_lint"`
+	SuccessfulRuns    int                 `json:"successful_runs"`
+	Progress          *ExperimentProgress `json:"progress,omitempty"`
 }
 
 type ExperimentSummaryRow struct {
@@ -44,17 +60,18 @@ type ExperimentSummaryRow struct {
 	AvgDuration     float64 `json:"avg_duration"`
 	AvgTokens       float64 `json:"avg_tokens"`
 	AvgLint         float64 `json:"avg_lint"`
+	AvgTestsPassed  float64 `json:"avg_tests_passed"`
+	AvgTestsFailed  float64 `json:"avg_tests_failed"`
 	Timeouts        int     `json:"timeouts"`
 	TotalToolCalls  int     `json:"total_tool_calls"`
 	FailedToolCalls int     `json:"failed_tool_calls"`
-	AvgTestsPassed  float64 `json:"avg_tests_passed"`
-	AvgTestsFailed  float64 `json:"avg_tests_failed"`
 	PSuccess        float64 `json:"p_success"`
 	PDuration       float64 `json:"p_duration"`
 	PTokens         float64 `json:"p_tokens"`
 	PLint           float64 `json:"p_lint"`
 	PTestsPassed    float64 `json:"p_tests_passed"`
 	PTestsFailed    float64 `json:"p_tests_failed"`
+	PTimeout        float64 `json:"p_timeout"`
 }
 
 type RunResult struct {
@@ -74,10 +91,11 @@ type RunResult struct {
 	OutputTokens     int    `json:"output_tokens"`
 	ToolCallsCount   int    `json:"tool_calls_count"`
 	LoopDetected     bool   `json:"loop_detected"`
+	Status           string `json:"status"`
+	Reason           string `json:"reason"` // SUCCESS, FAILED, TIMEOUT, ABORTED
 	Stdout           string `json:"stdout"`
 	Stderr           string `json:"stderr"`
 	IsSuccess        bool   `json:"is_success"`
-	Score            int    `json:"score"`
 	ValidationReport string `json:"validation_report"`
 }
 
@@ -131,6 +149,15 @@ type RunFile struct {
 	IsGenerated bool   `json:"is_generated"`
 }
 
+// EvaluationMetrics holds the results of code verification.
+type EvaluationMetrics struct {
+	TestsPassed int          `json:"tests_passed"`
+	TestsFailed int          `json:"tests_failed"`
+	LintIssues  int          `json:"lint_issues"`
+	Tests       []TestResult `json:"tests,omitempty"`
+	Lints       []LintIssue  `json:"lints,omitempty"`
+}
+
 func Open(path string) (*DB, error) {
 	conn, err := sql.Open("sqlite", path)
 	if err != nil {
@@ -154,7 +181,6 @@ func Open(path string) (*DB, error) {
 
 	return db, nil
 }
-
 func (db *DB) Close() error {
 	return db.conn.Close()
 }
@@ -162,6 +188,8 @@ func (db *DB) Close() error {
 func (db *DB) migrate() error {
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS experiments (
+
+
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT,
 			timestamp DATETIME,
@@ -173,7 +201,8 @@ func (db *DB) migrate() error {
 			concurrent INTEGER,
 			total_jobs INTEGER DEFAULT 0,
 			completed_jobs INTEGER DEFAULT 0,
-			error_message TEXT
+			error_message TEXT,
+			pid INTEGER
 		);`,
 		`CREATE TABLE IF NOT EXISTS run_results (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -193,29 +222,39 @@ func (db *DB) migrate() error {
 			tool_calls_count INTEGER DEFAULT 0,
 			loop_detected BOOLEAN DEFAULT 0,
 			stdout TEXT,
-			stderr TEXT,
 			FOREIGN KEY(experiment_id) REFERENCES experiments(id)
 		);`,
-		`CREATE TABLE IF NOT EXISTS tool_usage (
+		`CREATE TABLE IF NOT EXISTS run_events (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			run_id INTEGER,
-			name TEXT,
-			args TEXT,
-			status TEXT,
-			output TEXT,
-			error TEXT,
-			duration INTEGER,
+			type TEXT, -- "tool", "message"
 			timestamp DATETIME,
+			payload TEXT, -- JSON content
 			FOREIGN KEY(run_id) REFERENCES run_results(id)
 		);`,
-		`CREATE TABLE IF NOT EXISTS messages (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			run_id INTEGER,
-			role TEXT,
-			content TEXT,
-			timestamp DATETIME,
-			FOREIGN KEY(run_id) REFERENCES run_results(id)
-		);`,
+		`CREATE VIEW IF NOT EXISTS tool_usage AS 
+			SELECT 
+				id, 
+				run_id, 
+				json_extract(payload, '$.name') as name,
+				json_extract(payload, '$.args') as args,
+				json_extract(payload, '$.status') as status,
+				json_extract(payload, '$.output') as output,
+				json_extract(payload, '$.error') as error,
+				json_extract(payload, '$.duration') as duration,
+				timestamp
+			FROM run_events 
+			WHERE type = 'tool';`,
+		`CREATE VIEW IF NOT EXISTS messages AS 
+			SELECT 
+				id, 
+				run_id, 
+				json_extract(payload, '$.role') as role,
+				json_extract(payload, '$.content') as content,
+				timestamp
+			FROM run_events 
+			WHERE type = 'message';`,
+
 		`CREATE TABLE IF NOT EXISTS run_files (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			run_id INTEGER,
@@ -245,6 +284,7 @@ func (db *DB) migrate() error {
 			FOREIGN KEY(run_id) REFERENCES run_results(id)
 		);`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_experiments_name_ts ON experiments(name, timestamp);`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_run_results_unique_run ON run_results(experiment_id, alternative, scenario, repetition);`,
 		`CREATE TABLE IF NOT EXISTS experiment_summaries (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			experiment_id INTEGER NOT NULL,
@@ -266,6 +306,7 @@ func (db *DB) migrate() error {
 			p_lint REAL,
 			p_tests_passed REAL,
 			p_tests_failed REAL,
+			p_timeout REAL,
 			FOREIGN KEY (experiment_id) REFERENCES experiments(id) ON DELETE CASCADE
 		);`,
 	}
@@ -294,15 +335,22 @@ func (db *DB) migrate() error {
 		"ALTER TABLE run_results ADD COLUMN stderr TEXT",
 		"ALTER TABLE experiments ADD COLUMN error_message TEXT",
 		"ALTER TABLE run_results ADD COLUMN is_success BOOLEAN DEFAULT 0",
-		"ALTER TABLE run_results ADD COLUMN score INTEGER DEFAULT 0",
 		"ALTER TABLE run_results ADD COLUMN validation_report TEXT",
 		"ALTER TABLE experiments ADD COLUMN execution_control TEXT",
 		"ALTER TABLE experiments ADD COLUMN experiment_control TEXT",
 		"ALTER TABLE experiments ADD COLUMN ai_analysis TEXT",
+		"ALTER TABLE experiments ADD COLUMN success_rate REAL DEFAULT 0",
+		"ALTER TABLE experiments ADD COLUMN avg_duration REAL DEFAULT 0",
+		"ALTER TABLE experiments ADD COLUMN avg_tokens REAL DEFAULT 0",
+		"ALTER TABLE experiments ADD COLUMN total_lint INTEGER DEFAULT 0",
+		"ALTER TABLE experiments ADD COLUMN successful_runs INTEGER DEFAULT 0",
 		"ALTER TABLE experiment_summaries ADD COLUMN avg_tests_passed REAL DEFAULT 0",
 		"ALTER TABLE experiment_summaries ADD COLUMN avg_tests_failed REAL DEFAULT 0",
 		"ALTER TABLE experiment_summaries ADD COLUMN p_tests_passed REAL",
 		"ALTER TABLE experiment_summaries ADD COLUMN p_tests_failed REAL",
+		"ALTER TABLE run_results ADD COLUMN status TEXT",
+		"ALTER TABLE experiments ADD COLUMN pid INTEGER",
+		"ALTER TABLE run_results ADD COLUMN reason TEXT",
 	}
 
 	for _, m := range migrations {
@@ -313,9 +361,9 @@ func (db *DB) migrate() error {
 }
 
 func (db *DB) CreateExperiment(exp *Experiment) (int64, error) {
-	query := `INSERT INTO experiments (name, timestamp, config_path, report_path, results_path, status, reps, concurrent, total_jobs, completed_jobs, description, config_content, execution_control, experiment_control) 
-	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	res, err := db.conn.Exec(query, exp.Name, exp.Timestamp.Format(time.RFC3339), exp.ConfigPath, exp.ReportPath, exp.ResultsPath, exp.Status, exp.Reps, exp.Concurrent, exp.TotalJobs, exp.CompletedJobs, exp.Description, exp.ConfigContent, exp.ExecutionControl, exp.ExperimentControl)
+	query := `INSERT INTO experiments (name, timestamp, config_path, report_path, results_path, status, reps, concurrent, total_jobs, completed_jobs, description, config_content, execution_control, experiment_control, pid) 
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	res, err := db.conn.Exec(query, exp.Name, exp.Timestamp.Format(time.RFC3339), exp.ConfigPath, exp.ReportPath, exp.ResultsPath, exp.Status, exp.Reps, exp.Concurrent, exp.TotalJobs, exp.CompletedJobs, exp.Description, exp.ConfigContent, exp.ExecutionControl, exp.ExperimentControl, exp.PID)
 	if err != nil {
 		return 0, err
 	}
@@ -359,9 +407,18 @@ func (db *DB) UpdateExperimentAIAnalysis(id int64, analysis string) error {
 }
 
 func (db *DB) SaveExperimentSummary(s *ExperimentSummaryRow) error {
-	query := `INSERT INTO experiment_summaries (experiment_id, alternative, total_runs, success_count, success_rate, avg_duration, avg_tokens, avg_lint, avg_tests_passed, avg_tests_failed, timeouts, total_tool_calls, failed_tool_calls, p_success, p_duration, p_tokens, p_lint, p_tests_passed, p_tests_failed) 
-	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	_, err := db.conn.Exec(query, s.ExperimentID, s.Alternative, s.TotalRuns, s.SuccessCount, s.SuccessRate, s.AvgDuration, s.AvgTokens, s.AvgLint, s.AvgTestsPassed, s.AvgTestsFailed, s.Timeouts, s.TotalToolCalls, s.FailedToolCalls, s.PSuccess, s.PDuration, s.PTokens, s.PLint, s.PTestsPassed, s.PTestsFailed)
+	query := `INSERT INTO experiment_summaries (
+		experiment_id, alternative, total_runs, success_count, success_rate,
+		avg_duration, avg_tokens, avg_lint, avg_tests_passed, avg_tests_failed,
+		timeouts, total_tool_calls, failed_tool_calls,
+		p_success, p_duration, p_tokens, p_lint, p_tests_passed, p_tests_failed, p_timeout
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	_, err := db.conn.Exec(query,
+		s.ExperimentID, s.Alternative, s.TotalRuns, s.SuccessCount, s.SuccessRate,
+		s.AvgDuration, s.AvgTokens, s.AvgLint, s.AvgTestsPassed, s.AvgTestsFailed,
+		s.Timeouts, s.TotalToolCalls, s.FailedToolCalls,
+		s.PSuccess, s.PDuration, s.PTokens, s.PLint, s.PTestsPassed, s.PTestsFailed, s.PTimeout,
+	)
 	return err
 }
 
@@ -369,20 +426,36 @@ func (db *DB) DeleteExperimentSummaries(experimentID int64) error {
 	_, err := db.conn.Exec("DELETE FROM experiment_summaries WHERE experiment_id = ?", experimentID)
 	return err
 }
-
 func (db *DB) GetExperimentSummaries(experimentID int64) ([]ExperimentSummaryRow, error) {
-	query := `SELECT id, experiment_id, alternative, total_runs, success_count, success_rate, avg_duration, avg_tokens, avg_lint, avg_tests_passed, avg_tests_failed, timeouts, total_tool_calls, failed_tool_calls, p_success, p_duration, p_tokens, p_lint, p_tests_passed, p_tests_failed 
-	          FROM experiment_summaries WHERE experiment_id = ?`
+	// Fetch only the latest summary per alternative using MAX(id)
+	query := `SELECT 
+		id, experiment_id, alternative, total_runs, success_count, success_rate, 
+		avg_duration, avg_tokens, avg_lint, avg_tests_passed, avg_tests_failed, 
+		timeouts, total_tool_calls, failed_tool_calls,
+		p_success, p_duration, p_tokens, p_lint, p_tests_passed, p_tests_failed, p_timeout
+		FROM experiment_summaries 
+		WHERE id IN (
+			SELECT MAX(id) 
+			FROM experiment_summaries 
+			WHERE experiment_id = ? 
+			GROUP BY alternative
+		)`
 	rows, err := db.conn.Query(query, experimentID)
+
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
-	var summaries []ExperimentSummaryRow
+	var summaries []ExperimentSummaryRow = []ExperimentSummaryRow{}
 	for rows.Next() {
+
 		var s ExperimentSummaryRow
-		err := rows.Scan(&s.ID, &s.ExperimentID, &s.Alternative, &s.TotalRuns, &s.SuccessCount, &s.SuccessRate, &s.AvgDuration, &s.AvgTokens, &s.AvgLint, &s.AvgTestsPassed, &s.AvgTestsFailed, &s.Timeouts, &s.TotalToolCalls, &s.FailedToolCalls, &s.PSuccess, &s.PDuration, &s.PTokens, &s.PLint, &s.PTestsPassed, &s.PTestsFailed)
+		err := rows.Scan(
+			&s.ID, &s.ExperimentID, &s.Alternative, &s.TotalRuns, &s.SuccessCount, &s.SuccessRate,
+			&s.AvgDuration, &s.AvgTokens, &s.AvgLint, &s.AvgTestsPassed, &s.AvgTestsFailed,
+			&s.Timeouts, &s.TotalToolCalls, &s.FailedToolCalls,
+			&s.PSuccess, &s.PDuration, &s.PTokens, &s.PLint, &s.PTestsPassed, &s.PTestsFailed, &s.PTimeout,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -391,23 +464,96 @@ func (db *DB) GetExperimentSummaries(experimentID int64) ([]ExperimentSummaryRow
 	return summaries, nil
 }
 
+type GlobalStats struct {
+	TotalExperiments int     `json:"total_experiments"`
+	TotalRuns        int     `json:"total_runs"`
+	AvgSuccessRate   float64 `json:"avg_success_rate"`
+}
+
+func (db *DB) GetGlobalStats() (*GlobalStats, error) {
+	var stats GlobalStats
+	err := db.conn.QueryRow("SELECT COUNT(*) FROM experiments").Scan(&stats.TotalExperiments)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.conn.QueryRow("SELECT COUNT(*) FROM run_results").Scan(&stats.TotalRuns)
+	if err != nil {
+		return nil, err
+	}
+
+	var avg sql.NullFloat64
+	err = db.conn.QueryRow("SELECT AVG(success_rate) FROM experiments WHERE status = 'COMPLETED'").Scan(&avg)
+	if err == nil && avg.Valid {
+		stats.AvgSuccessRate = avg.Float64
+	}
+
+	return &stats, nil
+}
+
 func (db *DB) UpdateExperimentProgress(id int64, completed, total int) error {
-	query := `UPDATE experiments SET completed_jobs = ?, total_jobs = ? WHERE id = ?`
-	_, err := db.conn.Exec(query, completed, total, id)
+	_, err := db.conn.Exec("UPDATE experiments SET completed_jobs = ?, total_jobs = ? WHERE id = ?", completed, total, id)
+	return err
+}
+
+func (db *DB) UpdateExperimentMetrics(id int64, successRate, avgDuration, avgTokens float64, totalLint, successfulRuns int) error {
+	_, err := db.conn.Exec(`
+		UPDATE experiments 
+		SET success_rate = ?, 
+		    avg_duration = ?, 
+		    avg_tokens = ?, 
+		    total_lint = ?, 
+		    successful_runs = ? 
+		WHERE id = ?`,
+		successRate, avgDuration, avgTokens, totalLint, successfulRuns, id)
 	return err
 }
 
 func (db *DB) SaveRunResult(res *RunResult) (int64, error) {
-	query := `INSERT INTO run_results (experiment_id, alternative, scenario, repetition, duration, error, tests_passed, tests_failed, lint_issues, raw_json, total_tokens, input_tokens, output_tokens, tool_calls_count, loop_detected, stdout, stderr, is_success, score, validation_report) 
-	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	r, err := db.conn.Exec(query, res.ExperimentID, res.Alternative, res.Scenario, res.Repetition, res.Duration, res.Error, res.TestsPassed, res.TestsFailed, res.LintIssues, res.RawJSON, res.TotalTokens, res.InputTokens, res.OutputTokens, res.ToolCallsCount, res.LoopDetected, res.Stdout, res.Stderr, res.IsSuccess, res.Score, res.ValidationReport)
+	query := `INSERT INTO run_results (experiment_id, alternative, scenario, repetition, status, reason) 
+	          VALUES (?, ?, ?, ?, ?, ?)
+	          ON CONFLICT(experiment_id, alternative, scenario, repetition) 
+	          DO UPDATE SET status=excluded.status, reason=excluded.reason
+	          RETURNING id`
+	var id int64
+	err := db.conn.QueryRow(query, res.ExperimentID, res.Alternative, res.Scenario, res.Repetition, res.Status, res.Reason).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
-	return r.LastInsertId()
+	return id, nil
+}
+func (db *DB) UpdateRunLogs(id int64, stdout, stderr string) error {
+	_, err := db.conn.Exec("UPDATE run_results SET stdout = ?, stderr = ? WHERE id = ?", stdout, stderr, id)
+	return err
+}
+func (db *DB) UpdateRunResult(r *RunResult) error {
+	query := `UPDATE run_results SET 
+        duration=?, error=?, tests_passed=?, tests_failed=?, lint_issues=?, 
+        raw_json=?, total_tokens=?, input_tokens=?, output_tokens=?, 
+        tool_calls_count=?, loop_detected=?, stdout=?, stderr=?, 
+        is_success=?, validation_report=?, status=?, reason=?
+        WHERE id=?`
+	_, err := db.conn.Exec(query,
+		r.Duration, r.Error, r.TestsPassed, r.TestsFailed, r.LintIssues,
+		r.RawJSON, r.TotalTokens, r.InputTokens, r.OutputTokens,
+		r.ToolCallsCount, r.LoopDetected, r.Stdout, r.Stderr,
+		r.IsSuccess, r.ValidationReport, r.Status, r.Reason,
+		r.ID)
+	return err
+}
+
+func (db *DB) UpdateRunStatus(id int64, status string) error {
+	_, err := db.conn.Exec("UPDATE run_results SET status = ? WHERE id = ?", status, id)
+	return err
+}
+
+func (db *DB) UpdateRunStatusAndReason(id int64, status, reason string) error {
+	_, err := db.conn.Exec("UPDATE run_results SET status = ?, reason = ? WHERE id = ?", status, reason, id)
+	return err
 }
 
 func (db *DB) SaveToolUsage(tu *ToolUsage) error {
+
 	query := `INSERT INTO tool_usage (run_id, name, args, status, output, error, duration, timestamp) 
 	          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 	_, err := db.conn.Exec(query, tu.RunID, tu.Name, tu.Args, tu.Status, tu.Output, tu.Error, tu.Duration, tu.Timestamp.Format(time.RFC3339))
@@ -421,7 +567,17 @@ func (db *DB) SaveMessage(m *Message) error {
 	return err
 }
 
+func (db *DB) DeleteToolUsage(runID int64) error {
+	_, err := db.conn.Exec("DELETE FROM tool_usage WHERE run_id = ?", runID)
+	return err
+}
+func (db *DB) DeleteMessages(runID int64) error {
+	_, err := db.conn.Exec("DELETE FROM messages WHERE run_id = ?", runID)
+	return err
+}
+
 func (db *DB) SaveRunFile(f *RunFile) error {
+
 	query := `INSERT INTO run_files (run_id, path, content, is_generated) 
 	          VALUES (?, ?, ?, ?)`
 	_, err := db.conn.Exec(query, f.RunID, f.Path, f.Content, f.IsGenerated)
@@ -458,7 +614,7 @@ func (db *DB) GetTestResults(runID int64) ([]TestResult, error) {
 	}
 	defer rows.Close()
 
-	var results []TestResult
+	var results []TestResult = []TestResult{}
 	for rows.Next() {
 		var r TestResult
 		if err := rows.Scan(&r.ID, &r.RunID, &r.Name, &r.Status, &r.DurationNS, &r.Output); err != nil {
@@ -477,7 +633,7 @@ func (db *DB) GetLintResults(runID int64) ([]LintIssue, error) {
 	}
 	defer rows.Close()
 
-	var results []LintIssue
+	var results []LintIssue = []LintIssue{}
 	for rows.Next() {
 		var r LintIssue
 		if err := rows.Scan(&r.ID, &r.RunID, &r.File, &r.Line, &r.Col, &r.Message, &r.Severity, &r.RuleID); err != nil {
@@ -496,7 +652,7 @@ func (db *DB) GetRunFiles(runID int64) ([]*RunFile, error) {
 	}
 	defer rows.Close()
 
-	var files []*RunFile
+	var files []*RunFile = []*RunFile{}
 	for rows.Next() {
 		var f RunFile
 		if err := rows.Scan(&f.ID, &f.RunID, &f.Path, &f.Content, &f.IsGenerated); err != nil {
@@ -506,15 +662,78 @@ func (db *DB) GetRunFiles(runID int64) ([]*RunFile, error) {
 	}
 	return files, nil
 }
+func (db *DB) GetToolUsage(runID int64) ([]ToolUsage, error) {
+	query := `SELECT id, run_id, name, args, status, output, error, duration, timestamp FROM tool_usage WHERE run_id = ? ORDER BY timestamp ASC`
+	rows, err := db.conn.Query(query, runID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
+	var results []ToolUsage = []ToolUsage{}
+	for rows.Next() {
+		var tu ToolUsage
+		var ts string
+		if err := rows.Scan(&tu.ID, &tu.RunID, &tu.Name, &tu.Args, &tu.Status, &tu.Output, &tu.Error, &tu.Duration, &ts); err != nil {
+			return nil, err
+		}
+		tu.Timestamp, _ = time.Parse(time.RFC3339, ts)
+		results = append(results, tu)
+	}
+	return results, nil
+}
+
+func (db *DB) GetMessages(runID int64) ([]Message, error) {
+	query := `SELECT id, run_id, role, content, timestamp FROM messages WHERE run_id = ? ORDER BY timestamp ASC`
+	rows, err := db.conn.Query(query, runID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []Message = []Message{}
+	for rows.Next() {
+		var m Message
+		var ts string
+		if err := rows.Scan(&m.ID, &m.RunID, &m.Role, &m.Content, &ts); err != nil {
+			return nil, err
+		}
+		m.Timestamp, _ = time.Parse(time.RFC3339, ts)
+		results = append(results, m)
+	}
+	return results, nil
+}
 func (db *DB) GetExperimentByID(id int64) (*Experiment, error) {
-	query := `SELECT id, name, timestamp, config_path, report_path, results_path, status, reps, concurrent, total_jobs, completed_jobs, description, duration, config_content, report_content, execution_control, experiment_control, error_message, ai_analysis FROM experiments WHERE id = ?`
+	// Derive progress metrics directly from run_results to ensure consistency (single source of truth)
+	query := `SELECT 
+		e.id, e.name, e.timestamp, e.config_path, e.report_path, e.results_path, e.status, e.reps, e.concurrent, 
+		(e.reps * (SELECT COUNT(DISTINCT alternative) FROM run_results WHERE experiment_id = e.id) * (SELECT COUNT(DISTINCT scenario) FROM run_results WHERE experiment_id = e.id)) as total_jobs_estimated,
+		(SELECT COUNT(*) FROM run_results WHERE experiment_id = e.id AND status='COMPLETED') as completed_jobs_derived,
+		e.description, e.duration, e.config_content, e.report_content, e.execution_control, e.experiment_control, e.error_message, e.ai_analysis, e.pid,
+		e.success_rate, e.avg_duration, e.avg_tokens, e.total_lint, e.successful_runs 
+		FROM experiments e WHERE e.id = ?`
+
+	// Note: Total Jobs calculation is tricky if alternatives/scenarios are dynamic.
+	// Easier: Just read e.total_jobs (which is static config) but derive completed_jobs.
+
+	query = `SELECT 
+		e.id, e.name, e.timestamp, e.config_path, e.report_path, e.results_path, e.status, e.reps, e.concurrent, 
+		e.total_jobs, 
+		(SELECT COUNT(*) FROM run_results WHERE experiment_id = e.id AND status='COMPLETED') as completed_jobs,
+		e.description, e.duration, e.config_content, e.report_content, e.execution_control, e.experiment_control, e.error_message, e.ai_analysis, e.pid,
+		e.success_rate, e.avg_duration, e.avg_tokens, e.total_lint, e.successful_runs 
+		FROM experiments e WHERE e.id = ?`
+
 	row := db.conn.QueryRow(query, id)
+
 	var exp Experiment
 	var ts string
 	var desc, conf, rep, execCtrl, expCtrl, errMsg, aiAn sql.NullString
+	var sRate, aDur, aTok sql.NullFloat64
+	var tLint, sRuns sql.NullInt64
 
-	err := row.Scan(&exp.ID, &exp.Name, &ts, &exp.ConfigPath, &exp.ReportPath, &exp.ResultsPath, &exp.Status, &exp.Reps, &exp.Concurrent, &exp.TotalJobs, &exp.CompletedJobs, &desc, &exp.Duration, &conf, &rep, &execCtrl, &expCtrl, &errMsg, &aiAn)
+	err := row.Scan(&exp.ID, &exp.Name, &ts, &exp.ConfigPath, &exp.ReportPath, &exp.ResultsPath, &exp.Status, &exp.Reps, &exp.Concurrent, &exp.TotalJobs, &exp.CompletedJobs, &desc, &exp.Duration, &conf, &rep, &execCtrl, &expCtrl, &errMsg, &aiAn, &exp.PID,
+		&sRate, &aDur, &aTok, &tLint, &sRuns)
 	if err != nil {
 		return nil, err
 	}
@@ -526,28 +745,115 @@ func (db *DB) GetExperimentByID(id int64) (*Experiment, error) {
 	exp.ExperimentControl = expCtrl.String
 	exp.ErrorMessage = errMsg.String
 	exp.AIAnalysis = aiAn.String
+	exp.SuccessRate = sRate.Float64
+	exp.AvgDuration = aDur.Float64
+	exp.AvgTokens = aTok.Float64
+	exp.TotalLint = int(tLint.Int64)
+	exp.SuccessfulRuns = int(sRuns.Int64)
+
+	// Populate Progress
+
+	exp.Progress = &ExperimentProgress{
+		Completed: exp.CompletedJobs,
+		Total:     exp.TotalJobs,
+	}
+	if exp.TotalJobs > 0 {
+		exp.Progress.Percentage = float64(exp.CompletedJobs) / float64(exp.TotalJobs) * 100
+	}
+
 	return &exp, nil
 }
+func (db *DB) GetExperiments() ([]Experiment, error) {
+	// Derive completed_jobs dynamically from run_results count
+	query := `SELECT 
+		e.id, e.name, e.timestamp, e.status, e.reps, e.concurrent, 
+		e.total_jobs, 
+		(SELECT COUNT(*) FROM run_results WHERE experiment_id = e.id AND status='COMPLETED') as completed_jobs,
+		COALESCE(e.pid, 0), 
+		e.success_rate, e.avg_duration, e.avg_tokens, e.total_lint, e.successful_runs 
+		FROM experiments e ORDER BY e.timestamp DESC`
+	rows, err := db.conn.Query(query)
 
-func (db *DB) GetRunResults(experimentID int64) ([]*RunResult, error) {
-	query := `SELECT id, experiment_id, alternative, scenario, repetition, duration, error, tests_passed, tests_failed, lint_issues, raw_json, total_tokens, input_tokens, output_tokens, tool_calls_count, loop_detected, stdout, stderr, is_success, score, validation_report FROM run_results WHERE experiment_id = ?`
-	rows, err := db.conn.Query(query, experimentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var results []*RunResult
+	experiments := []Experiment{} // Initialize as empty slice
 	for rows.Next() {
-		var r RunResult
-		var valReport sql.NullString
-		if err := rows.Scan(&r.ID, &r.ExperimentID, &r.Alternative, &r.Scenario, &r.Repetition, &r.Duration, &r.Error, &r.TestsPassed, &r.TestsFailed, &r.LintIssues, &r.RawJSON, &r.TotalTokens, &r.InputTokens, &r.OutputTokens, &r.ToolCallsCount, &r.LoopDetected, &r.Stdout, &r.Stderr, &r.IsSuccess, &r.Score, &valReport); err != nil {
+		var exp Experiment
+		var ts string
+		var sRate, aDur, aTok sql.NullFloat64
+		var tLint, sRuns sql.NullInt64
+
+		if err := rows.Scan(&exp.ID, &exp.Name, &ts, &exp.Status, &exp.Reps, &exp.Concurrent, &exp.TotalJobs, &exp.CompletedJobs, &exp.PID,
+			&sRate, &aDur, &aTok, &tLint, &sRuns); err != nil {
 			return nil, err
 		}
+		exp.Timestamp, _ = time.Parse(time.RFC3339, ts)
+		exp.SuccessRate = sRate.Float64
+		exp.AvgDuration = aDur.Float64
+		exp.AvgTokens = aTok.Float64
+		exp.TotalLint = int(tLint.Int64)
+		exp.SuccessfulRuns = int(sRuns.Int64)
+
+		// Populate Progress
+		exp.Progress = &ExperimentProgress{
+			Completed: exp.CompletedJobs,
+			Total:     exp.TotalJobs,
+		}
+		if exp.TotalJobs > 0 {
+			exp.Progress.Percentage = float64(exp.CompletedJobs) / float64(exp.TotalJobs) * 100
+		}
+
+		experiments = append(experiments, exp)
+	}
+	return experiments, nil
+}
+
+func (db *DB) GetRunResults(experimentID int64) ([]*RunResult, error) {
+	query := `SELECT id, experiment_id, alternative, scenario, repetition, duration, error, tests_passed, tests_failed, lint_issues, raw_json, total_tokens, input_tokens, output_tokens, tool_calls_count, loop_detected, stdout, stderr, is_success, validation_report, status FROM run_results WHERE experiment_id = ? ORDER BY id ASC`
+	rows, err := db.conn.Query(query, experimentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var results []*RunResult = []*RunResult{}
+	for rows.Next() {
+		var r RunResult
+		var valReport, status, errMsg, stdout, stderr, rawJSON sql.NullString
+		var duration, tPassed, tFailed, lIssues, totalTokens, inTokens, outTokens, toolCalls, loopDet, isSucc sql.NullInt64
+
+		err := rows.Scan(
+			&r.ID, &r.ExperimentID, &r.Alternative, &r.Scenario, &r.Repetition,
+			&duration, &errMsg, &tPassed, &tFailed, &lIssues, &rawJSON,
+			&totalTokens, &inTokens, &outTokens, &toolCalls, &loopDet,
+			&stdout, &stderr, &isSucc, &valReport, &status,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		r.Duration = duration.Int64
+		r.Error = errMsg.String
+		r.RawJSON = rawJSON.String
+		r.TestsPassed = int(tPassed.Int64)
+		r.TestsFailed = int(tFailed.Int64)
+		r.LintIssues = int(lIssues.Int64)
+		r.TotalTokens = int(totalTokens.Int64)
+		r.InputTokens = int(inTokens.Int64)
+		r.OutputTokens = int(outTokens.Int64)
+		r.ToolCallsCount = int(toolCalls.Int64)
+		r.LoopDetected = loopDet.Int64 == 1
+		r.Stdout = stdout.String
+		r.Stderr = stderr.String
+		r.IsSuccess = isSucc.Int64 == 1
 		r.ValidationReport = valReport.String
+		r.Status = status.String
 		results = append(results, &r)
 	}
 	return results, nil
+
 }
 
 func (db *DB) DeleteExperiment(id int64) error {
@@ -569,4 +875,198 @@ func (db *DB) DeleteAllExperiments() error {
 	// Delete all experiments
 	_, err := db.conn.Exec("DELETE FROM experiments")
 	return err
+}
+
+type ToolStatRow struct {
+	Alternative string  `json:"alternative"`
+	ToolName    string  `json:"tool_name"`
+	TotalCalls  int     `json:"total_calls"`
+	AvgCalls    float64 `json:"avg_calls"` // Average calls per run
+}
+
+func (db *DB) GetToolStats(experimentID int64) ([]ToolStatRow, error) {
+	// We need total runs per alternative to calculate average
+	// CTE to get total runs
+	query := `
+	WITH RunCounts AS (
+		SELECT alternative, COUNT(*) as total_runs 
+		FROM run_results 
+		WHERE experiment_id = ? 
+		GROUP BY alternative
+	)
+	SELECT 
+		r.alternative, 
+		t.name, 
+		COUNT(t.id) as total_calls,
+		CAST(COUNT(t.id) AS FLOAT) / rc.total_runs as avg_calls
+	FROM tool_usage t
+	JOIN run_results r ON t.run_id = r.id
+	JOIN RunCounts rc ON r.alternative = rc.alternative
+	WHERE r.experiment_id = ?
+	GROUP BY r.alternative, t.name
+	ORDER BY r.alternative, total_calls DESC
+	`
+	rows, err := db.conn.Query(query, experimentID, experimentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	stats := []ToolStatRow{}
+	for rows.Next() {
+
+		var s ToolStatRow
+		if err := rows.Scan(&s.Alternative, &s.ToolName, &s.TotalCalls, &s.AvgCalls); err != nil {
+			return nil, err
+		}
+		stats = append(stats, s)
+	}
+	return stats, nil
+}
+
+// Transactional Helper
+func (db *DB) WithTransaction(fn func(tx *sql.Tx) error) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+	if err := fn(tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+// Telemetry Data Structs
+type RunTelemetry struct {
+	Result      *RunResult
+	ToolUsage   []ToolUsage
+	Messages    []Message
+	TestResults []TestResult
+	LintResults []LintIssue
+}
+
+// SaveRunEvent appends a live event (tool/message) to the run_events table.
+func (db *DB) SaveRunEvent(runID int64, eventType string, payload interface{}) error {
+	jsonBytes, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	_, err = db.conn.Exec("INSERT INTO run_events (run_id, type, timestamp, payload) VALUES (?, ?, ?, ?)",
+		runID, eventType, time.Now(), string(jsonBytes))
+	return err
+}
+
+// GetRunMetrics calculates aggregated metrics from run_events for a specific run.
+func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
+	metrics := &parser.AgentMetrics{}
+
+	// 1. Tool Calls Count (Total count)
+	// AgentMetrics.ToolCalls is a slice, we will populate it below.
+	
+	// 2. Token Usage (Sum from result events or cumulative?)
+	// Usually 'result' event has the final stats.
+	// We search for the last 'result' event.
+	var payload string
+	err := db.conn.QueryRow("SELECT payload FROM run_events WHERE run_id = ? AND type = 'result' ORDER BY timestamp DESC LIMIT 1", runID).Scan(&payload)
+	if err == nil {
+		var evt parser.GeminiEvent
+		if json.Unmarshal([]byte(payload), &evt) == nil && evt.Stats != nil {
+			metrics.TotalTokens = evt.Stats.TotalTokens
+			metrics.InputTokens = evt.Stats.InputTokens
+			metrics.OutputTokens = evt.Stats.OutputTokens
+		}
+	} else if err != sql.ErrNoRows {
+		// Log error but continue?
+	}
+
+	// 3. Reconstruct ToolCalls slice (needed for Runner logic if it uses it for validation?)
+	// Runner uses `metrics.ToolCalls` to check `tc.Status != "success"`.
+	// So we need to populate it.
+	toolRows, err := db.conn.Query(`
+		SELECT 
+			json_extract(payload, '$.name'),
+			json_extract(payload, '$.args'),
+			json_extract(payload, '$.status'),
+			json_extract(payload, '$.output'),
+			json_extract(payload, '$.error')
+		FROM run_events WHERE run_id = ? AND type = 'tool'`, runID)
+	if err == nil {
+		defer toolRows.Close()
+		for toolRows.Next() {
+			var tc parser.ToolCall
+			var name, args, status, output, errStr sql.NullString
+			if err := toolRows.Scan(&name, &args, &status, &output, &errStr); err == nil {
+				tc.Name = name.String
+				tc.Args = args.String
+				tc.Status = status.String
+				tc.Output = output.String
+				tc.Error = errStr.String
+				metrics.ToolCalls = append(metrics.ToolCalls, tc)
+			}
+		}
+	}
+
+	// 4. Check Loop Detection (from errors)
+	var loopCount int
+	db.conn.QueryRow("SELECT COUNT(*) FROM run_events WHERE run_id = ? AND type = 'error' AND json_extract(payload, '$.message') LIKE '%Loop detected%'", runID).Scan(&loopCount)
+	if loopCount > 0 {
+		metrics.LoopDetected = true
+	}
+
+	return metrics, nil
+}
+
+// SaveRunTelemetry saves final run status and test/lint results.
+// Note: Tools and Messages are now handled via run_events and views, so we don't save them here.
+func (db *DB) SaveRunTelemetry(t *RunTelemetry) error {
+	return db.WithTransaction(func(tx *sql.Tx) error {
+		// 1. Update Run Result
+		if t.Result != nil {
+			query := `UPDATE run_results SET 
+                                duration=?, error=?, tests_passed=?, tests_failed=?, lint_issues=?, 
+                                raw_json=?, total_tokens=?, input_tokens=?, output_tokens=?, 
+                                tool_calls_count=?, loop_detected=?, stdout=?, stderr=?, 
+                                is_success=?, validation_report=?, status=?, reason=?
+                                WHERE id=?`
+			_, err := tx.Exec(query,
+				t.Result.Duration, t.Result.Error, t.Result.TestsPassed, t.Result.TestsFailed, t.Result.LintIssues,
+				t.Result.RawJSON, t.Result.TotalTokens, t.Result.InputTokens, t.Result.OutputTokens,
+				t.Result.ToolCallsCount, t.Result.LoopDetected, t.Result.Stdout, t.Result.Stderr,
+				t.Result.IsSuccess, t.Result.ValidationReport, t.Result.Status, t.Result.Reason,
+				t.Result.ID)
+			if err != nil {
+				return fmt.Errorf("failed to update run result (ID %d): %w", t.Result.ID, err)
+			}
+		}
+
+		runID := t.Result.ID
+
+		// 2. Test Results (Wipe & Replace still needed for structured results until we move them to events)
+		if len(t.TestResults) > 0 {
+			if _, err := tx.Exec("DELETE FROM test_results WHERE run_id = ?", runID); err != nil {
+				return err
+			}
+			for _, res := range t.TestResults {
+				query := `INSERT INTO test_results (run_id, name, status, duration_ns, output) VALUES (?, ?, ?, ?, ?)`
+				if _, err := tx.Exec(query, runID, res.Name, res.Status, res.DurationNS, res.Output); err != nil {
+					return err
+				}
+			}
+		}
+
+		// 3. Lint Results (Wipe & Replace)
+		if len(t.LintResults) > 0 {
+			if _, err := tx.Exec("DELETE FROM lint_results WHERE run_id = ?", runID); err != nil {
+				return err
+			}
+			for _, res := range t.LintResults {
+				query := `INSERT INTO lint_results (run_id, file, line, col, message, severity, rule_id) VALUES (?, ?, ?, ?, ?, ?, ?)`
+				if _, err := tx.Exec(query, runID, res.File, res.Line, res.Col, res.Message, res.Severity, res.RuleID); err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
 }
