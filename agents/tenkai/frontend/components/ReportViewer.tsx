@@ -152,12 +152,18 @@ export default function ReportViewer({
                                     <MetricsOverview metrics={initialMetrics} />
                                 </div>
                                 <div className="lg:col-span-12">
-                                    <PerformanceTable runResults={runResults} stats={stats} controlBaseline={experiment.experiment_control} />
+                                    <PerformanceTable 
+                                        runResults={runResults} 
+                                        stats={stats} 
+                                        controlBaseline={experiment.experiment_control}
+                                        alternatives={config?.alternatives?.map((a: any) => a.name)}
+                                    />
 
                                     <ToolUsageTable
                                         experimentId={experiment.id}
-                                        alternatives={Object.keys(stats)}
+                                        alternatives={config?.alternatives?.map((a: any) => a.name) || Object.keys(stats).sort()}
                                     />
+
                                 </div>
                                 <div className="lg:col-span-12">
                                     <FailureAnalysis runs={runResults} />

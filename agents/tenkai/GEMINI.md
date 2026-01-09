@@ -64,8 +64,9 @@ Specific coding tasks located in `scenarios/`. Each scenario is defined by:
 - **`run_events` (Table):** The absolute ground truth for all agent actions.
 - **Streaming Ingestion:** The runner streams stdout/stderr from the agent process directly to `run_events` in real-time using `StdoutPipe`.
 - **Derived State:**
-    - `run_results` (Summary): Token counts, tool usage counts, and durations are calculated by querying `run_events` (via `db.GetRunMetrics`), NOT by parsing log files.
-    - `experiment_summaries`: Aggregated stats for the dashboard are derived from `run_results` and updated on every run completion.
+    - **Run Metrics:** Token counts, tool usage (total & failed), and durations are calculated by querying `run_events` (via `db.GetRunMetrics`) and persisted to `run_results`.
+    - **Experiment Status:** The overall status of an experiment (RUNNING/COMPLETED) is dynamically calculated from the state of its constituent runs (`run_results` via `experiment_progress_view`), ensuring no state drift.
+    - **Summaries:** `experiment_summaries` are aggregated from `run_results` on every run completion.
 
 ### Process Execution & Safety
 - **Process Groups:** Agents run in their own process group (`Setpgid`).
@@ -83,7 +84,8 @@ Specific coding tasks located in `scenarios/`. Each scenario is defined by:
 ## Reporting and Analysis
 
 Tenkai uses the following statistical tests to evaluate alternatives:
-- **Welch's t-test:** For continuous variables (Duration, Tokens, Lint Issues).
+- **Welch's t-test:** For continuous variables (Duration, Tokens, Lint Issues, Failed Tool Calls).
 - **Fisher's Exact Test:** For success rates and timeout rates (categorical data).
 
-Reports are generated in Markdown and available in the database and web UI, including clickable links to failure traces and tool usage summaries.
+Reports are generated in Markdown and available in the database and web UI, including clickable links to failure traces and tool usage summaries. The frontend provides a "Failed Tools" metric (average per run) to highlight reliability issues.
+

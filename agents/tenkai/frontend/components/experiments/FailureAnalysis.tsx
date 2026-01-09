@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 export default function FailureAnalysis({ runs }: { runs: RunResultRecord[] }) {
     const failedRuns = runs.filter(r => {
         const status = r.status?.toUpperCase();
-        return !r.is_success && status !== 'RUNNING' && status !== 'QUEUED' && status !== 'PAUSED';
+        return !r.is_success && status !== 'RUNNING' && status !== 'QUEUED';
     });
 
     // Group by common error patterns

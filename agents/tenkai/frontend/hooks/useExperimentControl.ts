@@ -10,7 +10,6 @@ export interface UseExperimentControlOptions {
 export function useExperimentControl(experimentId: number | string, initialStatus: ExperimentStatus, options?: UseExperimentControlOptions) {
     const [status, setStatus] = useState<ExperimentStatus>(initialStatus);
     const [loadingAction, setLoadingAction] = useState<string | null>(null);
-
     const handleControl = useCallback(async (action: 'stop') => {
         setLoadingAction(action);
         try {
@@ -26,6 +25,7 @@ export function useExperimentControl(experimentId: number | string, initialStatu
                 setStatus(newStatus);
                 options?.onStatusChange?.(newStatus);
                 return true;
+
             } else {
                 const data = await res.json().catch(() => ({}));
                 alert(`Failed to ${action} experiment: ${data.error || 'Unknown error'}`);

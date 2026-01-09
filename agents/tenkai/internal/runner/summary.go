@@ -25,10 +25,17 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string) *Ex
 		Alternatives: make(map[string]db.ExperimentSummaryRow),
 	}
 
-	// Pre-populate all expected alternatives with zero values
+	// Pre-populate all expected alternatives
 	for _, name := range allAlts {
 		summary.Alternatives[name] = db.ExperimentSummaryRow{
-			Alternative: name,
+			Alternative:  name,
+			PSuccess:     -1.0,
+			PDuration:    -1.0,
+			PTokens:      -1.0,
+			PLint:        -1.0,
+			PTestsPassed: -1.0,
+			PTestsFailed: -1.0,
+			PTimeout:     -1.0,
 		}
 	}
 
@@ -90,14 +97,9 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string) *Ex
 			m.totalTokens += int64(res.AgentMetrics.TotalTokens)
 			m.tokens = append(m.tokens, float64(res.AgentMetrics.TotalTokens))
 		}
-
 		if res.Error == nil && res.AgentMetrics != nil {
-			for _, tc := range res.AgentMetrics.ToolCalls {
-				m.totalToolCalls++
-				if tc.Status != "success" {
-					m.failedToolCalls++
-				}
-			}
+			m.totalToolCalls += res.AgentMetrics.TotalToolCallsCount
+			m.failedToolCalls += res.AgentMetrics.FailedToolCalls
 		}
 
 		if res.EvaluationMetrics != nil {
@@ -177,10 +179,16 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string) *Ex
 				continue
 			}
 
+			// Initialize with Sentinel
+			as.PSuccess = -1.0
+			as.PDuration = -1.0
+			as.PTokens = -1.0
+			as.PLint = -1.0
+			as.PTestsPassed = -1.0
+			as.PTestsFailed = -1.0
+			as.PTimeout = -1.0
+
 			// Statistical tests require at least 2 samples in BOTH groups for t-tests
-			// Fisher's Exact Test works with N >= 1, but user requested N >= 2 consistency or just correctness
-			// User said "N >= 2 ... adjust requirements".
-			// We'll enforce N >= 2 for both control and variant for T-tests.
 			if controlData.totalRuns >= 2 && m.totalRuns >= 2 {
 				as.PDuration = stats.WelchTTest(controlData.durations, m.durations)
 				as.PTokens = stats.WelchTTest(controlData.tokens, m.tokens)
@@ -189,8 +197,9 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string) *Ex
 				as.PTestsFailed = stats.WelchTTest(controlData.failures, m.failures)
 			}
 
-			// Fisher's Exact Test for proportions (Success/Timeout)
-			// Can work with small N, but enforcing N>=2 aligns with general statistical significance goals
+			// Fisher's Exact Test
+			// We can run this even with N=1, but for consistency with "Statistical Analysis" usually implying N>=2
+			// and to avoid noise, we keep the N>=2 gate.
 			if controlData.totalRuns >= 2 && m.totalRuns >= 2 {
 				as.PSuccess = stats.FisherExactTest(
 					controlData.successes, controlData.totalRuns-controlData.successes,

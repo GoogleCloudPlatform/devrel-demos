@@ -35,7 +35,7 @@ func Execute() {
 	scensFlag := flag.String("scenarios", "", "Comma-separated list of scenarios to run")
 	controlFlag := flag.String("control", "", "Name of the control alternative")
 	timeoutFlag := flag.String("timeout", "", "Override timeout duration (e.g. 5m)")
-	experimentID := flag.Int64("experiment-id", 0, "Experiment ID to regenerate report or resume")
+	experimentID := flag.Int64("experiment-id", 0, "Experiment ID to regenerate report")
 	fixReportPath := flag.String("fix-report", "", "Path to existing report.md to fix structure/formatting")
 	flag.Parse()
 
@@ -221,6 +221,8 @@ func Execute() {
 		Status:            db.ExperimentStatusRunning,
 		Reps:              cfg.Repetitions,
 		Concurrent:        cfg.MaxConcurrent,
+		TotalJobs:         cfg.Repetitions * len(cfg.Alternatives) * len(cfg.Scenarios),
+		CompletedJobs:     0,
 		Description:       cfg.Description,
 		ConfigContent:     string(effectiveConfigData),
 		ExecutionControl:  "", // Signals are empty by default
@@ -270,7 +272,7 @@ func Execute() {
 	results, err := r.Run(context.Background(), cfg, timestamp, experimentDir)
 	if err != nil {
 		database.UpdateExperimentError(expID, err.Error())
-		database.UpdateExperimentStatus(expID, "FAILED")
+		database.UpdateExperimentStatus(expID, db.ExperimentStatusAborted)
 		log.Printf("Experiment run failed: %v", err)
 		os.Exit(1)
 	}
@@ -284,7 +286,6 @@ func Execute() {
 	}
 
 	fmt.Println("All jobs processed. Analytics available in Dashboard.")
-
 	// 7. Generate & Save Report (both console and markdown for DB)
 	rep := report.New(results, os.Stdout, cfg, overrideNotes)
 	println("\n--- Results ---")
@@ -297,14 +298,7 @@ func Execute() {
 		}
 	}
 
-	// 9. Force Final Metrics Sync (Resolve Split Brain)
-	var allAlts []string
-	for _, a := range cfg.Alternatives {
-		allAlts = append(allAlts, a.Name)
-	}
-	finalSummary := runner.CalculateSummary(results, cfg.Control, allAlts)
-	r.UpdateDBFromResults(finalSummary)
-	fmt.Println("Final metrics synchronized to Database.")
+	fmt.Println("Experiment execution finished.")
 }
 
 func runServer(database *db.DB, cwd string, port int, concurrent int) {
@@ -358,7 +352,6 @@ func handleReportOnly(database *db.DB, expID int64) {
 		log.Printf("Failed to fetch run results from DB: %v", err)
 		os.Exit(1)
 	}
-
 	// 3. Convert DB Results to Runner Results
 	var results []runner.Result
 	r := runner.New(workspace.New(cwd, "", ""), 1) // Minimal runner for helper usage
@@ -395,21 +388,14 @@ func handleReportOnly(database *db.DB, expID int64) {
 		altsStr += a + " "
 	}
 	fmt.Printf("Found alternatives in results: %s\n", altsStr)
-
-	// 6. Calculate and Save Summaries
+	// 6. Calculate and Display Summaries
 	var allAlts []string
 	for _, a := range cfg.Alternatives {
 		allAlts = append(allAlts, a.Name)
 	}
-	summary := runner.CalculateSummary(results, cfg.Control, allAlts)
+	runner.CalculateSummary(results, cfg.Control, allAlts)
 
-	// Use Runner to perform the DB updates
-	runr := runner.New(nil, 0)
-	runr.SetDB(database)
-	runr.SetExperimentID(exp.ID)
-	runr.UpdateDBFromResults(summary) // Need to make this public!
-
-	fmt.Printf("Database analytics hydrated for Experiment %d\n", exp.ID)
+	fmt.Printf("Database analytics for Experiment %d are now computed on-demand.\n", exp.ID)
 }
 
 func cleanupOrphanExperiments(database *db.DB) {

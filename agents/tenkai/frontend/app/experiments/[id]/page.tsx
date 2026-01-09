@@ -4,12 +4,24 @@ import ReportViewer from "@/components/ReportViewer";
 import { calculateStats } from "@/utils/statistics";
 import RefreshOnInterval from "@/components/RefreshOnInterval";
 import Link from "next/link";
-
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
     // 1. Fetch Experiment Data
-    const experiment = await getExperiment(parseInt((await params).id));
+    let experiment;
+    try {
+        experiment = await getExperiment(parseInt((await params).id));
+    } catch (e) {
+        return (
+            <div className="p-8 text-center py-32">
+                <h1 className="text-title mb-4 text-red-500">Connection Failed</h1>
+                <p className="text-body mb-8">Could not connect to the Tenkai backend.</p>
+                <p className="text-zinc-500 text-sm mb-8 font-mono">Ensure 'tenkai --serve' is running.</p>
+                <Link href="/experiments" className="text-body hover:underline font-bold text-[#6366f1]">Return to index</Link>
+            </div>
+        );
+    }
 
     if (!experiment) {
+
         return (
             <div className="p-8 text-center py-32">
                 <h1 className="text-title mb-4 text-red-500">404</h1>
@@ -18,13 +30,25 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
             </div>
         );
     }
+    let metrics, checkpoint, runResults, summaries;
+    try {
+        [metrics, checkpoint, runResults, summaries] = await Promise.all([
+            getSimplifiedMetrics(experiment.id),
+            getCheckpoint(String(experiment.id)),
+            getRunResults(String(experiment.id)),
+            getExperimentSummaries(experiment.id)
+        ]);
+    } catch (e) {
+        return (
+            <div className="p-8 text-center py-32">
+                <h1 className="text-title mb-4 text-amber-500">Data Sync Failed</h1>
+                <p className="text-body mb-8">Experiment metadata loaded, but details could not be fetched.</p>
+                <p className="text-zinc-500 text-sm mb-8 font-mono">Backend connection interrupted.</p>
+                <Link href="/experiments" className="text-body hover:underline font-bold text-[#6366f1]">Return to index</Link>
+            </div>
+        );
+    }
 
-    const [metrics, checkpoint, runResults, summaries] = await Promise.all([
-        getSimplifiedMetrics(experiment.id),
-        getCheckpoint(String(experiment.id)),
-        getRunResults(String(experiment.id)),
-        getExperimentSummaries(experiment.id)
-    ]);
 
     const statObj: any = {};
     summaries.forEach(row => {

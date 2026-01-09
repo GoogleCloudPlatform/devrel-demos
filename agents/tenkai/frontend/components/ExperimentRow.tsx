@@ -20,8 +20,8 @@ export default function ExperimentRow({ exp }: { exp: ExperimentRecord }) {
             </td>
             <td className="px-6 py-4">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-[3px] font-mono font-bold uppercase tracking-wider ${
-                    exp.status === 'completed' ? 'bg-green-950/30 text-green-400 border border-green-900/50' :
-                    exp.status === 'failed' ? 'bg-red-950/30 text-red-400 border border-red-900/50' :
+                    exp.status.toUpperCase() === 'COMPLETED' ? 'bg-green-950/30 text-green-400 border border-green-900/50' :
+                    exp.status.toUpperCase() === 'ABORTED' ? 'bg-red-950/30 text-red-400 border border-red-900/50' :
                     'bg-yellow-950/30 text-yellow-400 border border-yellow-900/50'
                 }`}>
                     {exp.status}

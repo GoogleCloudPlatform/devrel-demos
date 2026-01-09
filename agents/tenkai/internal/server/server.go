@@ -27,9 +27,8 @@ type Server struct {
 	wsMgr  *workspace.Manager
 	router *http.ServeMux
 }
-
 type ControlRequest struct {
-	Command string `json:"command"` // "pause", "resume", "stop"
+	Command string `json:"command"` // "stop"
 }
 
 type StartExperimentRequest struct {
@@ -126,6 +125,8 @@ func (s *Server) wrap(h APIHandler) http.HandlerFunc {
 			} else if strings.Contains(msg, "not found") {
 				status = http.StatusNotFound
 			}
+
+			log.Printf("[API Error] %s %s: %v", r.Method, r.URL.Path, err)
 
 			w.WriteHeader(status)
 			json.NewEncoder(w).Encode(map[string]string{"error": msg})
@@ -239,7 +240,45 @@ func (s *Server) getSummaries(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, NewAPIError(http.StatusBadRequest, "Invalid ID")
 	}
-	return s.db.GetExperimentSummaries(id)
+
+	// 1. Get Experiment for Control Alt
+	exp, err := s.db.GetExperimentByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Get Results
+	runResults, err := s.db.GetRunResults(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Convert
+	var results []runner.Result
+	for _, dr := range runResults {
+		results = append(results, s.runner.FromDBRunResult(dr))
+	}
+
+	// 4. Calculate
+	foundAlts := make(map[string]bool)
+	for _, r := range results {
+		foundAlts[r.Alternative] = true
+	}
+	var allAlts []string
+	for k := range foundAlts {
+		allAlts = append(allAlts, k)
+	}
+
+	summary := runner.CalculateSummary(results, exp.ExperimentControl, allAlts)
+
+	// 5. Flatten to list
+	var rows []db.ExperimentSummaryRow
+	for _, row := range summary.Alternatives {
+		row.ExperimentID = id
+		rows = append(rows, row)
+	}
+
+	return rows, nil
 }
 
 func (s *Server) getExperimentRuns(r *http.Request) (any, error) {
@@ -366,7 +405,6 @@ func (s *Server) getRunTests(r *http.Request) (any, error) {
 	}
 	return res, nil
 }
-
 func (s *Server) getRunLint(r *http.Request) (any, error) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
@@ -403,6 +441,7 @@ func (s *Server) getRunMessages(r *http.Request) (any, error) {
 		return nil, NewAPIError(http.StatusBadRequest, "Invalid Run ID")
 	}
 	res, err := s.db.GetMessages(id)
+
 	if err != nil {
 		return nil, err
 	}
@@ -638,7 +677,7 @@ func (s *Server) relaunchExperiment(r *http.Request) (any, error) {
 
 	// Spawning a new tenkai process with the original config
 	cwd, _ := os.Getwd()
-	args := []string{"-config", exp.ConfigPath}
+	args := []string{" -config", exp.ConfigPath}
 	if exp.Name != "" {
 		args = append(args, "-name", exp.Name+" (Relaunch)")
 	}

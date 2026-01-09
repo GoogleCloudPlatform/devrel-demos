@@ -6,6 +6,7 @@ export interface ExperimentRecord {
     status: 'running' | 'ABORTED' | 'completed' | 'RUNNING' | 'COMPLETED';
     reps: number;
     concurrent: number;
+
     error_message?: string;
     experiment_control?: string;
     ai_analysis?: string;
@@ -93,4 +94,6 @@ export interface RunResult {
     stderr?: string;
     is_success: boolean;
     validation_report?: string;
+    reason?: string;
 }
+

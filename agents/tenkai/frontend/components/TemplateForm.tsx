@@ -204,7 +204,7 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
                                 label="Control"
                                 value={experimentControl}
                                 onChange={(e) => setExperimentControl(e.target.value)}
-                                options={alternatives.map(a => ({ label: a.name || "Unnamed", value: a.name }))}
+                                options={Array.from(new Set(alternatives.map(a => a.name).filter(n => n && n.trim() !== ""))).map(name => ({ label: name, value: name }))}
                             />
                         </div>
                     </Card>
