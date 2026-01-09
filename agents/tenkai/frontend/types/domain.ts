@@ -5,6 +5,7 @@ export interface ExperimentRecord {
     timestamp: string;
     status: 'running' | 'ABORTED' | 'completed' | 'RUNNING' | 'COMPLETED';
     reps: number;
+    concurrent: number;
 
     error_message?: string;
     experiment_control?: string;
