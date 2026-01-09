@@ -869,7 +869,7 @@ func (db *DB) GetRunResults(experimentID int64, limit, offset int) ([]RunResult,
 			&r.ID, &r.ExperimentID, &r.Alternative, &r.Scenario, &r.Repetition,
 			&duration, &errMsg, &tPassed, &tFailed, &lIssues, &rawJSON,
 			&totalTokens, &inTokens, &outTokens, &toolCalls, &failedToolCalls, &loopDet,
-			&stdout, &stderr, &isSucc, &valReport, &status, &reason,
+			&status, &reason, &stdout, &stderr, &isSucc, &valReport,
 		)
 		if err != nil {
 			return nil, err
