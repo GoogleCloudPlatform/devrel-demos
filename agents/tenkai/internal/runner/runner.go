@@ -516,12 +516,16 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 		return res
 	}
 	defer promptFile.Close()
-
 	// Create timeout context for the entire job (run + verification)
-	jobCtx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
+	jobCtx, jobCancel := context.WithTimeout(ctx, timeout)
+	defer jobCancel()
 
-	cmd := exec.CommandContext(jobCtx, cmdName, cmdArgs...)
+	// Execution Context (Can be cancelled early without killing validation)
+	execCtx, execCancel := context.WithCancel(jobCtx)
+	defer execCancel()
+
+	cmd := exec.CommandContext(execCtx, cmdName, cmdArgs...)
+
 	cmd.Dir = wsInfo.Project
 
 	// Create a new Process Group to handle orphan cleanup
@@ -577,6 +581,9 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 	// Pass PROMPT.md content via Stdin
 	cmd.Stdin = promptFile
 
+	var resultFound bool
+	var resultFoundMu sync.Mutex
+
 	var streamWg sync.WaitGroup
 	streamWg.Add(2)
 
@@ -608,7 +615,6 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 			}
 		}()
 	}
-
 	// STDOUT STREAMER
 	go func() {
 		defer streamWg.Done()
@@ -640,22 +646,16 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 
 					// Save EVERY raw event to the database immediately.
 					r.db.SaveRunEvent(res.RunID, evt.Type, evt)
-
-					// Check for final result stats
-					if !resultSaved && metrics.Result != "" {
-						// Construct a synthetic event payload that matches what GetRunMetrics expects
-						evt := parser.GeminiEvent{
-							Type:   "result",
-							Status: metrics.Result,
-							Stats: &parser.GeminiStats{
-								TotalTokens:  metrics.TotalTokens,
-								InputTokens:  metrics.InputTokens,
-								OutputTokens: metrics.OutputTokens,
-							},
-						}
-						r.db.SaveRunEvent(res.RunID, "result", evt)
-						resultSaved = true
-					}
+				}
+				// Check for final result stats (Early Exit)
+				if !resultSaved && metrics.Result != "" {
+					resultSaved = true
+					// Early exit: Stop the process as soon as we have a result
+					log.Printf("[Runner] Result detected for %s. Triggering early exit.", jobID)
+					resultFoundMu.Lock()
+					resultFound = true
+					resultFoundMu.Unlock()
+					execCancel()
 				}
 			}
 		}
@@ -684,13 +684,23 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 	streamWg.Wait()
 
 	if err := cmd.Wait(); err != nil {
-		// Check if timeout
-		if jobCtx.Err() == context.DeadlineExceeded {
+		// Check if early exit triggered
+		resultFoundMu.Lock()
+		isEarlyExit := resultFound
+		resultFoundMu.Unlock()
+
+		if isEarlyExit {
+			// Ignore error, treat as success (result already captured)
+			res.Error = nil
+			res.ErrorStr = ""
+		} else if jobCtx.Err() == context.DeadlineExceeded {
+			// Check if timeout
 			res.Error = fmt.Errorf("execution timeout (%v limit)", timeout)
+			res.ErrorStr = res.Error.Error()
 		} else {
 			res.Error = fmt.Errorf("execution failed: %w", err)
+			res.ErrorStr = res.Error.Error()
 		}
-		res.ErrorStr = res.Error.Error()
 	}
 
 	res.Duration = time.Since(start)
@@ -764,14 +774,14 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 
 	// Finalize IsSuccess using centralized logic
 	res.IsSuccess = res.Success()
-
-	// 6. Snapshot Workspace Files (Project dir only)
+	// Snapshot Workspace Files (Project dir only)
 	res.GeneratedFiles = r.captureFiles(wsInfo.Project)
 
 	// Ensure live monitor is stopped before returning to avoid race conditions on DB
-	cancel()
+	jobCancel()
 
 	log.Printf("DONE  %s in %s", jobID, res.Duration.Round(time.Millisecond))
+
 	// Result will be saved to DB in the main Run loop
 	return res
 }

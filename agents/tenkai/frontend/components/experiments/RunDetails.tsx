@@ -366,17 +366,17 @@ export default function RunDetails({
                         if (msg.role === 'tool_use' || msg.role === 'tool_result') {
                             return <ToolMessage key={i} role={msg.role} content={msg.content} timestamp={msg.timestamp} />;
                         }
-
                         // 2. Special System Events
                         if (msg.role === 'init') {
                             return <InitEvent key={i} timestamp={msg.timestamp} />;
                         }
-                        if (msg.role === 'result') {
-                            return <ResultEvent key={i} content={msg.content} timestamp={msg.timestamp} />;
-                        }
+                        // Result event hidden as it duplicates header stats
+                        // if (msg.role === 'result') { return <ResultEvent ... />; }
+                        
                         if (msg.role === 'error') {
                             return <ErrorEvent key={i} content={msg.content} timestamp={msg.timestamp} />;
                         }
+
 
                         // 3. Chat Messages (User/Model/Assistant)
                         if (msg.role === 'user' || msg.role === 'model' || msg.role === 'assistant') {
