@@ -22,26 +22,26 @@ type ExperimentProgress struct {
 }
 
 type Experiment struct {
-	ID                int64               `json:"id"`
-	Name              string              `json:"name"`
-	Timestamp         time.Time           `json:"timestamp"`
-	ConfigPath        string              `json:"config_path"`
-	ReportPath        string              `json:"report_path"`
-	ResultsPath       string              `json:"results_path"`
-	Status            string              `json:"status"`
-	Reps              int                 `json:"reps"`
-	Concurrent        int                 `json:"concurrent"`
-	TotalJobs         int                 `json:"total_jobs"`
-	CompletedJobs     int                 `json:"completed_jobs"`
-	PID               int                 `json:"pid"`
-	Description       string              `json:"description"`
-	Duration          int64               `json:"duration"` // in nanoseconds
-	ConfigContent     string              `json:"config_content"`
-	ReportContent     string              `json:"report_content"`
-	ExecutionControl  string              `json:"execution_control"`  // Signal: stop
-	ExperimentControl string              `json:"experiment_control"` // Statistical reference alternative
-	ErrorMessage      string              `json:"error_message"`
-	AIAnalysis        string              `json:"ai_analysis"`
+	ID                int64     `json:"id"`
+	Name              string    `json:"name"`
+	Timestamp         time.Time `json:"timestamp"`
+	ConfigPath        string    `json:"config_path"`
+	ReportPath        string    `json:"report_path"`
+	ResultsPath       string    `json:"results_path"`
+	Status            string    `json:"status"`
+	Reps              int       `json:"reps"`
+	Concurrent        int       `json:"concurrent"`
+	TotalJobs         int       `json:"total_jobs"`
+	CompletedJobs     int       `json:"completed_jobs"`
+	PID               int       `json:"pid"`
+	Description       string    `json:"description"`
+	Duration          int64     `json:"duration"` // in nanoseconds
+	ConfigContent     string    `json:"config_content"`
+	ReportContent     string    `json:"report_content"`
+	ExecutionControl  string    `json:"execution_control"`  // Signal: stop
+	ExperimentControl string    `json:"experiment_control"` // Statistical reference alternative
+	ErrorMessage      string    `json:"error_message"`
+	AIAnalysis        string    `json:"ai_analysis"`
 
 	// Derived Metrics (Calculated on read)
 	SuccessRate    float64             `json:"success_rate"`
@@ -68,13 +68,13 @@ type ExperimentSummaryRow struct {
 	TotalToolCalls  int     `json:"total_tool_calls"`
 	FailedToolCalls int     `json:"failed_tool_calls"`
 	// P-values computed by application, not DB
-	PSuccess        float64 `json:"p_success"`
-	PDuration       float64 `json:"p_duration"`
-	PTokens         float64 `json:"p_tokens"`
-	PLint           float64 `json:"p_lint"`
-	PTestsPassed    float64 `json:"p_tests_passed"`
-	PTestsFailed    float64 `json:"p_tests_failed"`
-	PTimeout        float64 `json:"p_timeout"`
+	PSuccess     float64 `json:"p_success"`
+	PDuration    float64 `json:"p_duration"`
+	PTokens      float64 `json:"p_tokens"`
+	PLint        float64 `json:"p_lint"`
+	PTestsPassed float64 `json:"p_tests_passed"`
+	PTestsFailed float64 `json:"p_tests_failed"`
+	PTimeout     float64 `json:"p_timeout"`
 }
 
 type RunResult struct {
@@ -274,7 +274,7 @@ func (db *DB) migrate() error {
 		// We delete experiment_progress_view and experiment_summaries as they are no longer needed/cached
 		`DROP VIEW IF EXISTS experiment_progress_view;`,
 		`DROP TABLE IF EXISTS experiment_summaries;`,
-		
+
 		`CREATE TABLE IF NOT EXISTS run_files (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			run_id INTEGER,
@@ -374,7 +374,7 @@ func (db *DB) GetGlobalStats() (*GlobalStats, error) {
 	// Simple counts
 	db.conn.QueryRow("SELECT COUNT(*) FROM experiments").Scan(&stats.TotalExperiments)
 	db.conn.QueryRow("SELECT COUNT(*) FROM run_results").Scan(&stats.TotalRuns)
-	
+
 	// Avg success rate calculated from real-time aggregation of completed runs per experiment
 	// This is complex in SQL. Simplified: Avg of Experiment Success Rates?
 	// Or Avg of All Runs success?
@@ -619,8 +619,8 @@ func (db *DB) GetMessages(runID int64) ([]Message, error) {
 				}
 				continue
 			}
-		} 
-		
+		}
+
 		// Flush current message
 		if currentMsg != nil {
 			results = append(results, *currentMsg)
@@ -649,7 +649,7 @@ func (db *DB) GetMessages(runID int64) ([]Message, error) {
 					}
 				}
 				contentBytes, _ := json.Marshal(contentMap)
-				
+
 				results = append(results, Message{
 					ID:        id,
 					RunID:     runID,
@@ -693,7 +693,7 @@ func (db *DB) GetExperimentByID(id int64) (*Experiment, error) {
 	var desc, conf, rep, execCtrl, expCtrl, errMsg, aiAn sql.NullString
 
 	err := row.Scan(
-		&exp.ID, &exp.Name, &ts, &exp.ConfigPath, &exp.ReportPath, &exp.ResultsPath, 
+		&exp.ID, &exp.Name, &ts, &exp.ConfigPath, &exp.ReportPath, &exp.ResultsPath,
 		&exp.Status, &exp.Reps, &exp.Concurrent, &exp.TotalJobs, &exp.CompletedJobs,
 		&desc, &exp.Duration, &conf, &rep, &execCtrl, &expCtrl, &errMsg, &aiAn, &exp.PID,
 	)
@@ -758,7 +758,7 @@ func (db *DB) GetExperimentByID(id int64) (*Experiment, error) {
 		if exp.TotalJobs > 0 {
 			exp.Progress.Percentage = float64(completed) / float64(exp.TotalJobs) * 100
 		}
-		
+
 		exp.SuccessRate = sRate.Float64
 		exp.AvgDuration = aDur.Float64
 		exp.AvgTokens = aTok.Float64
@@ -776,7 +776,7 @@ func (db *DB) GetExperiments() ([]Experiment, error) {
 	// Aggregate metrics per experiment
 	// This query effectively replaces the need for caching columns in the experiments table.
 	// Note: We join on run_results to get live status.
-	
+
 	query := `
 	SELECT 
 		e.id, e.name, e.timestamp, e.status, e.reps, e.concurrent, e.total_jobs,
@@ -931,6 +931,7 @@ type ToolStatRow struct {
 	Alternative string  `json:"alternative"`
 	ToolName    string  `json:"tool_name"`
 	TotalCalls  int     `json:"total_calls"`
+	FailedCalls int     `json:"failed_calls"`
 	AvgCalls    float64 `json:"avg_calls"` // Average calls per run
 }
 
@@ -948,6 +949,7 @@ func (db *DB) GetToolStats(experimentID int64) ([]ToolStatRow, error) {
 		r.alternative, 
 		t.name, 
 		COUNT(t.id) as total_calls,
+		SUM(CASE WHEN t.status != 'success' THEN 1 ELSE 0 END) as failed_calls,
 		CAST(COUNT(t.id) AS FLOAT) / rc.total_runs as avg_calls
 	FROM tool_usage t
 	JOIN run_results r ON t.run_id = r.id
@@ -965,7 +967,7 @@ func (db *DB) GetToolStats(experimentID int64) ([]ToolStatRow, error) {
 	for rows.Next() {
 
 		var s ToolStatRow
-		if err := rows.Scan(&s.Alternative, &s.ToolName, &s.TotalCalls, &s.AvgCalls); err != nil {
+		if err := rows.Scan(&s.Alternative, &s.ToolName, &s.TotalCalls, &s.FailedCalls, &s.AvgCalls); err != nil {
 			return nil, err
 		}
 		stats = append(stats, s)

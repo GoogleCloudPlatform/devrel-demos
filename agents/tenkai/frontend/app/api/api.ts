@@ -239,6 +239,7 @@ export interface ToolStatRow {
     alternative: string;
     tool_name: string;
     total_calls: number;
+    failed_calls: number; // Added
     avg_calls: number;
 }
 

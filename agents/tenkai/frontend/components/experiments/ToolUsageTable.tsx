@@ -41,11 +41,11 @@ export default function ToolUsageTable({ experimentId, alternatives }: ToolUsage
 
     // Transform to Matrix: Rows = Tools, Cols = Alternatives
     const tools = Array.from(new Set(stats.map(s => s.tool_name))).sort();
-    const matrix: Record<string, Record<string, number>> = {};
+    const matrix: Record<string, Record<string, { avg: number; failed: number }>> = {};
 
     stats.forEach(s => {
         if (!matrix[s.tool_name]) matrix[s.tool_name] = {};
-        matrix[s.tool_name][s.alternative] = s.avg_calls;
+        matrix[s.tool_name][s.alternative] = { avg: s.avg_calls, failed: s.failed_calls };
     });
 
     return (
@@ -68,10 +68,18 @@ export default function ToolUsageTable({ experimentId, alternatives }: ToolUsage
                             <TableRow key={tool}>
                                 <TableCell className="font-mono font-bold text-blue-400">{tool}</TableCell>
                                 {alternatives.map(alt => {
-                                    const val = matrix[tool]?.[alt] || 0;
+                                    const data = matrix[tool]?.[alt];
+                                    if (!data) {
+                                        return <TableCell key={alt} className="text-right font-mono text-zinc-700">-</TableCell>;
+                                    }
                                     return (
                                         <TableCell key={alt} className="text-right font-mono">
-                                            {val > 0 ? val.toFixed(1) : <span className="text-zinc-700">-</span>}
+                                            {data.avg.toFixed(1)}
+                                            {data.failed > 0 && (
+                                                <span className="ml-2 text-red-400 font-bold text-xs">
+                                                    ({data.failed})
+                                                </span>
+                                            )}
                                         </TableCell>
                                     );
                                 })}
@@ -83,3 +91,4 @@ export default function ToolUsageTable({ experimentId, alternatives }: ToolUsage
         </div>
     );
 }
+
