@@ -81,6 +81,7 @@ def predict():
     try:
         # 1. Get data from the request
         data = request.get_json()
+        logging.info("Data received")
         
         # 2. Check length of list
         data_len = len(data)
@@ -90,6 +91,7 @@ def predict():
 
         # 2. Create Spark DataFrame
         df = spark.createDataFrame(data)
+        logging.info("Data loaded into Spark")
         
         # 3. Transform data
         input_df = df.select(
@@ -98,12 +100,15 @@ def predict():
             (hash(col("gender")).cast("BIGINT") * 1.0).alias("gender_hash"),
             (hash(col("traffic_source")).cast("BIGINT") * 1.0).alias("traffic_source_hash")
         )
+        logging.info("Data transformed")
 
         # 3. Perform Inference
         predictions_df = MODEL.transform(input_df)
+        logging.info("Inference performed")
 
         # 4. Prepare results (collect and serialize)
         results = [p.prediction for p in predictions_df.select("prediction").collect()]
+        logging.info("Data collected")
 
         # 5. Return JSON response
         return jsonify({"predictions": results})
