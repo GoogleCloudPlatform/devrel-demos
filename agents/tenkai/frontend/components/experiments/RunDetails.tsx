@@ -70,7 +70,7 @@ function JsonView({ data }: { data: any }) {
             if (parsed && typeof parsed === 'object') {
                 return <pre className="whitespace-pre-wrap">{JSON.stringify(parsed, null, 2)}</pre>;
             }
-        } catch (e) {}
+        } catch (e) { }
         return <div className="whitespace-pre-wrap">{data}</div>;
     }
     return <pre className="whitespace-pre-wrap">{JSON.stringify(data, null, 2)}</pre>;
@@ -90,16 +90,21 @@ function ErrorEvent({ content, timestamp }: { content: string, timestamp: string
     let data: any = { message: content };
     try {
         data = JSON.parse(content);
-    } catch {}
+    } catch { }
 
     const severity = data.severity || "error";
     const color = severity === "warning" ? "text-amber-400" : "text-red-400";
     const borderColor = severity === "warning" ? "border-amber-500/20" : "border-red-500/20";
     const bgColor = severity === "warning" ? "bg-amber-500/5" : "bg-red-500/5";
 
+    // Tweaked visualization: CLI stderr is captured as 'error' type, but often contains warnings/info.
+    // We label it STDERR to be more precise and less alarming.
+    const label = data.type === 'error' ? 'STDERR' : (data.type?.toUpperCase() || "ERROR");
+    const suffix = (data.type === 'error' && severity === 'error') ? '' : `: ${severity}`;
+
     return (
         <CollapsibleEvent
-            title={<span className="flex items-center gap-2">⚠️ {data.type?.toUpperCase() || "ERROR"}: {severity}</span>}
+            title={<span className="flex items-center gap-2">⚠️ {label}{suffix}</span>}
             timestamp={timestamp}
             color={color}
             borderColor={borderColor}
@@ -175,7 +180,7 @@ function ToolMessage({ role, content, timestamp }: { role: string, content: stri
     const isUse = role === 'tool_use';
     const label = isUse ? `Tool Call: ${data.name}` : `Tool Result`;
     const statusLabel = !isUse ? `(${data.status})` : "";
-    
+
     const color = isUse ? 'text-blue-400' : (data.status === 'success' ? 'text-emerald-400' : 'text-red-400');
     const borderColor = isUse ? 'border-blue-500/20' : (data.status === 'success' ? 'border-emerald-500/20' : 'border-red-500/20');
     const bgColor = isUse ? 'bg-blue-500/10' : (data.status === 'success' ? 'bg-emerald-500/5' : 'bg-red-500/5');
@@ -243,7 +248,7 @@ export default function RunDetails({
     return (
         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500 text-body">
             <RunStatusBanner run={run} />
-            
+
             {/* Run Header Stats */}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -473,27 +478,8 @@ export default function RunDetails({
                 </div>
             )}
 
-            {/* Run Errors & Logs */}
-            {(run.error || run.stderr) && (
-                <div className="panel overflow-hidden">
-                    <div className="p-4 border-b border-white/5 bg-white/[0.02]">
-                        <h4 className="font-bold uppercase tracking-widest text-zinc-500">Error Logs</h4>
-                    </div>
-                    <div className="p-6 bg-[#09090b] font-mono space-y-6 max-h-[500px] overflow-y-auto">
-                        {run.error && (
-                            <div className="space-y-2">
-                                <p className="text-red-500 uppercase font-black tracking-widest border-b border-red-500/20 pb-1">Failure Reason</p>
-                                <pre className="text-red-400 bg-red-400/5 p-4 rounded border border-red-500/10 whitespace-pre-wrap">{run.error}</pre>
-                            </div>
-                        )}
-                        {run.stderr && (
-                            <div className="space-y-2">
-                                <pre className="text-red-400/80 whitespace-pre-wrap">{run.stderr}</pre>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
+
+
         </div>
     );
 }

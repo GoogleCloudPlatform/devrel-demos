@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ExperimentRecord, Checkpoint, RunResultRecord } from "@/app/api/api";
+import { ExperimentRecord, Checkpoint, RunResultRecord, getRunResults } from "@/app/api/api";
 import MetricsOverview from "./experiments/MetricsOverview";
 import PerformanceTable from "./experiments/PerformanceTable";
 import RunHistory from "./experiments/RunHistory";
@@ -44,6 +44,39 @@ export default function ReportViewer({
     const [inspectedTool, setInspectedTool] = useState<any>(null);
     const [inspectedValidation, setInspectedValidation] = useState<any>(null);
     const [configModalContent, setConfigModalContent] = useState<{ title: string, content: string } | null>(null);
+
+    // Pagination State
+    const [runs, setRuns] = useState<RunResultRecord[]>(runResults);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true); // Assume true initially if we have results
+    const [loadingRuns, setLoadingRuns] = useState(false);
+
+    const loadMoreRuns = async () => {
+        if (loadingRuns || !hasMore) return;
+        setLoadingRuns(true);
+        try {
+            const nextPage = page + 1;
+            const newRuns = await getRunResults(experiment.id, nextPage, 100); // Limit 100 matches backend default
+            if (newRuns.length < 100) {
+                setHasMore(false);
+            }
+            if (newRuns.length > 0) {
+                setRuns(prev => [...prev, ...newRuns]);
+                setPage(nextPage);
+            }
+        } catch (e) {
+            console.error("Failed to load more runs", e);
+        } finally {
+            setLoadingRuns(false);
+        }
+    };
+
+    // Check initial load size to set hasMore correctly
+    useEffect(() => {
+        if (runResults.length < 100) {
+            setHasMore(false);
+        }
+    }, []);
 
     // Fetch run details when a run is selected
     const [runDetails, setRunDetails] = useState<any>(null);
@@ -86,7 +119,7 @@ export default function ReportViewer({
         // Polling if running
         let interval: NodeJS.Timeout;
         if (selectedRun.status === 'running') {
-            interval = setInterval(fetchRunDetails, 1000);
+            interval = setInterval(fetchRunDetails, 3000);
         }
 
         return () => {
@@ -152,9 +185,9 @@ export default function ReportViewer({
                                     <MetricsOverview metrics={initialMetrics} />
                                 </div>
                                 <div className="lg:col-span-12">
-                                    <PerformanceTable 
-                                        runResults={runResults} 
-                                        stats={stats} 
+                                    <PerformanceTable
+                                        runResults={runResults}
+                                        stats={stats}
                                         controlBaseline={experiment.experiment_control}
                                         alternatives={config?.alternatives?.map((a: any) => a.name)}
                                     />
@@ -176,9 +209,12 @@ export default function ReportViewer({
                         <div className="flex h-[calc(100vh-200px)] gap-6 animate-in fade-in duration-500">
                             <div className="w-[350px] flex-shrink-0 panel bg-[#09090b]">
                                 <RunHistory
-                                    runs={runResults}
+                                    runs={runs}
                                     selectedRunId={selectedRun?.id || null}
                                     onSelectRun={setSelectedRun}
+                                    onLoadMore={loadMoreRuns}
+                                    hasMore={hasMore}
+                                    loading={loadingRuns}
                                 />
                             </div>
                             <div className="flex-1 overflow-y-auto panel bg-[#0c0c0e] p-6">
@@ -222,8 +258,8 @@ export default function ReportViewer({
                                         "border-fuchsia-500/30 bg-fuchsia-500/5",
                                         "border-sky-500/30 bg-sky-500/5",
                                     ];
-                                    const containerClass = isControl 
-                                        ? 'border-indigo-500/50 shadow-[0_0_20px_-10px_#6366f1] bg-indigo-900/10' 
+                                    const containerClass = isControl
+                                        ? 'border-indigo-500/50 shadow-[0_0_20px_-10px_#6366f1] bg-indigo-900/10'
                                         : altColors[i % altColors.length];
 
                                     return (
@@ -255,7 +291,7 @@ export default function ReportViewer({
                                                     <div className="space-y-2">
                                                         <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">System Prompt</p>
                                                         {alt.system_prompt_file ? (
-                                                            <div 
+                                                            <div
                                                                 className="flex items-center gap-2 text-indigo-400 font-mono text-sm cursor-pointer hover:underline"
                                                                 onClick={() => setConfigModalContent({
                                                                     title: `System Prompt Path: ${alt.name}`,
@@ -266,7 +302,7 @@ export default function ReportViewer({
                                                                 {alt.system_prompt_file.split('/').pop()}
                                                             </div>
                                                         ) : (
-                                                            <div 
+                                                            <div
                                                                 className={`text-sm ${alt.system_prompt ? 'text-indigo-400 cursor-pointer hover:underline' : 'text-zinc-600 italic'}`}
                                                                 onClick={() => alt.system_prompt && setConfigModalContent({
                                                                     title: `System Prompt: ${alt.name}`,
@@ -281,7 +317,7 @@ export default function ReportViewer({
                                                     <div className="space-y-2">
                                                         <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">GEMINI.md (Context)</p>
                                                         {alt.context_file_path ? (
-                                                            <div 
+                                                            <div
                                                                 className="flex items-center gap-2 text-emerald-400 font-mono text-sm cursor-pointer hover:underline"
                                                                 onClick={() => setConfigModalContent({
                                                                     title: `Context Path: ${alt.name}`,
@@ -292,7 +328,7 @@ export default function ReportViewer({
                                                                 {alt.context_file_path.split('/').pop()}
                                                             </div>
                                                         ) : alt.context ? (
-                                                            <div 
+                                                            <div
                                                                 className="flex items-center gap-2 text-emerald-400 font-mono text-sm cursor-pointer hover:underline"
                                                                 onClick={() => setConfigModalContent({
                                                                     title: `Context Content: ${alt.name}`,
@@ -310,7 +346,7 @@ export default function ReportViewer({
                                                     <div className="space-y-2">
                                                         <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">Settings</p>
                                                         {alt.settings_path ? (
-                                                            <div 
+                                                            <div
                                                                 className="flex items-center gap-2 text-amber-400 font-mono text-sm cursor-pointer hover:underline"
                                                                 onClick={() => setConfigModalContent({
                                                                     title: `Settings Path: ${alt.name}`,
@@ -321,7 +357,7 @@ export default function ReportViewer({
                                                                 {alt.settings_path.split('/').pop()}
                                                             </div>
                                                         ) : alt.settings && Object.keys(alt.settings).length > 0 ? (
-                                                            <div 
+                                                            <div
                                                                 className="flex items-center gap-2 text-amber-400 font-mono text-sm cursor-pointer hover:underline"
                                                                 onClick={() => setConfigModalContent({
                                                                     title: `Settings: ${alt.name}`,

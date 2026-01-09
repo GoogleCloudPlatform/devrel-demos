@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -150,10 +152,10 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 
 	var terminalResults []Result
 	if r.db != nil && r.experimentID != 0 {
-		dbResults, err := r.db.GetRunResults(r.experimentID)
+		dbResults, err := r.db.GetRunResults(r.experimentID, -1, 0)
 		if err == nil {
 			for _, dr := range dbResults {
-				res := r.FromDBRunResult(dr)
+				res := r.FromDBRunResult(&dr)
 				status := strings.ToUpper(res.Status)
 
 				// Only consider SUCCESS or FAILED as "completed" for the purposes of skipping
@@ -261,7 +263,17 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 					}
 					// Mark as RUNNING just before execution
 					if r.db != nil && dbRunID != 0 {
-						r.db.UpdateRunStatus(dbRunID, db.RunStatusRunning)
+						// Retry logic for Updating Status
+						delay := 50 * time.Millisecond
+						for attempt := 0; attempt < 5; attempt++ {
+							if err := r.db.UpdateRunStatus(dbRunID, db.RunStatusRunning); err == nil {
+								break
+							} else {
+								log.Printf("Warning: failed to update run status to RUNNING (attempt %d/5): %v", attempt+1, err)
+								time.Sleep(delay)
+								delay *= 2
+							}
+						}
 					}
 
 					res := r.runSingle(ctx, timestamp, cfg.Name, alt, sID, path, rep, experimentDir, timeout, dbRunID)
@@ -566,6 +578,39 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 	for k, v := range envMap {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
+
+	// DISK OPTIMIZATION: Share Go caches to prevent 800MB+ per run
+	// We rely on the host's existing go configuration or default paths.
+	// You might want to make this configurable in the future.
+	if goCache := os.Getenv("GOCACHE"); goCache != "" {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("GOCACHE=%s", goCache))
+	} else {
+		// Fallback to commonly known path if not set in agent's env,
+		// though os.Environ() above usually captures it if exported.
+		// Better approach: Ask the host go where it is?
+		// For now, let's assume the user's environment in os.Environ() propagated it,
+		// OR we explicitly set it if we want to force sharing.
+		// Since we append cmd.Env = os.Environ() earlier, we ALREADY inherit these
+		// IF they are set. But often they are not set and go derives them.
+		// We need to derive them from the HOST process and force them into the container/process.
+		// Let's explicitly get them from the same place we got the command output.
+		// For simplicity in this script, we can hardcode the ones we saw or query them dynamically.
+		// Dynamic query is safer.
+	}
+
+	// Dynamic derivation of Go Caches from host
+	// This blocks slightly but ensures we get the right paths.
+	// Optimization: Calculate this once in New() instead of per run?
+	// For now, per run is fine (ms latency).
+	goEnvCmd := exec.Command("go", "env", "GOCACHE", "GOMODCACHE")
+	goEnvOut, err := goEnvCmd.Output()
+	if err == nil {
+		parts := strings.Split(strings.TrimSpace(string(goEnvOut)), "\n")
+		if len(parts) >= 2 {
+			cmd.Env = append(cmd.Env, fmt.Sprintf("GOCACHE=%s", parts[0]))
+			cmd.Env = append(cmd.Env, fmt.Sprintf("GOMODCACHE=%s", parts[1]))
+		}
+	}
 	// 3. Capture Output (Real-time Stream)
 	safeAlt := strings.ReplaceAll(alt.Name, " ", "_")
 	safeScen := strings.ReplaceAll(scenarioID, " ", "_")
@@ -592,11 +637,36 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 	stdoutPipe, _ := cmd.StdoutPipe()
 	stderrPipe, _ := cmd.StderrPipe()
 
-	// Pass PROMPT.md content via Stdin
-	cmd.Stdin = promptFile
+	stdinPipe, err := cmd.StdinPipe()
+	if err != nil {
+		res.Error = fmt.Errorf("failed to create stdin pipe: %w", err)
+		res.ErrorStr = res.Error.Error()
+		return res
+	}
+
+	// Stream PROMPT.md content + termination instruction
+	go func() {
+		defer stdinPipe.Close()  // Ensure EOF is sent
+		defer promptFile.Close() // Close the source file
+
+		if _, err := io.Copy(stdinPipe, promptFile); err != nil {
+			log.Printf("Warning: failed to copy prompt to stdin: %v", err)
+			return
+		}
+
+		// Inject termination instruction
+		// We use a strong, yet sequenced instruction to prevent premature exit.
+		instruction := "\n\nSYSTEM: Perform the requested task above. When you have FULLY completed the user request (including all verification steps), you MUST output the token '<<TENKAI_DONE>>' to signal completion. Do not output this token before the work is done.\n"
+		if _, err := io.WriteString(stdinPipe, instruction); err != nil {
+			log.Printf("Warning: failed to write termination instruction to stdin: %v", err)
+		}
+	}()
 
 	var resultFound bool
 	var resultFoundMu sync.Mutex
+
+	var terminationRequested bool
+	var terminationRequestedMu sync.Mutex
 
 	var streamWg sync.WaitGroup
 	streamWg.Add(2)
@@ -647,7 +717,26 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 			stdoutMu.Unlock()
 
 			// Real-time parsing and event emission
-			if evt, err := parser.ParseLine(line, metrics, pendingTools); err == nil && evt != nil {
+			evt, err := parser.ParseLine(line, metrics, pendingTools)
+			if err != nil && errors.Is(err, parser.ErrTerminationRequested) {
+				// Termination requested by agent
+				log.Printf("[Runner] Termination token detected for %s. Requesting graceful shutdown.", jobID)
+
+				terminationRequestedMu.Lock()
+				terminationRequested = true
+				terminationRequestedMu.Unlock()
+
+				// TRIGGER GRACEFUL SHUTDOWN
+				if cmd.Process != nil {
+					// Send SIGINT to the process group
+					// Note: syscall.Kill with negative PID sends signal to process group
+					if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGINT); err != nil {
+						log.Printf("[Runner] Failed to send SIGINT to %s: %v", jobID, err)
+					}
+				}
+			}
+
+			if evt != nil {
 				if r.db != nil && res.RunID != 0 {
 					// Check for new tool results
 					if len(metrics.ToolCalls) > lastToolCount {
@@ -669,7 +758,7 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 					resultFoundMu.Lock()
 					resultFound = true
 					resultFoundMu.Unlock()
-					execCancel()
+					execCancel() // Cancel context -> Kills process
 				}
 			}
 		}
@@ -682,9 +771,28 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 		for scanner.Scan() {
 			line := scanner.Text()
 			fmt.Fprintln(stderrFile, line)
+
+			// Save to raw stderr buffer
 			stderrMu.Lock()
 			currentStderr.WriteString(line + "\n")
 			stderrMu.Unlock()
+
+			// SYNTHESIZE ERROR EVENT for UI visibility
+			if r.db != nil && res.RunID != 0 && strings.TrimSpace(line) != "" {
+				// Use current timestamp for order
+				now := time.Now()
+
+				// Create a synthetic error event
+				errEvt := &parser.GeminiEvent{
+					Type:      "error",
+					Timestamp: now.Format(time.RFC3339),
+					Severity:  "error",
+					Message:   line, // Captures the stderr line content
+				}
+
+				// Save immediately to DB run_events
+				r.db.SaveRunEvent(res.RunID, "error", errEvt)
+			}
 		}
 	}()
 
@@ -703,8 +811,21 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 		isEarlyExit := resultFound
 		resultFoundMu.Unlock()
 
+		terminationRequestedMu.Lock()
+		startGracefulExit := terminationRequested
+		terminationRequestedMu.Unlock()
+
 		if isEarlyExit {
 			// Ignore error, treat as success (result already captured)
+			res.Error = nil
+			res.ErrorStr = ""
+		} else if startGracefulExit {
+			// Check if error is just "signal: interrupt" or ExitError with code detection
+			// In Go, wait returns exit status. standard SIGINT might look like error.
+			// We trust the process was doing its job until we asked it to stop.
+			// Ideally we want to see if we got a Result event in the meantime.
+			// For now, suppress the execution error.
+			log.Printf("[Runner] Process %s exited with cleanup signal: %v", jobID, err)
 			res.Error = nil
 			res.ErrorStr = ""
 		} else if jobCtx.Err() == context.DeadlineExceeded {

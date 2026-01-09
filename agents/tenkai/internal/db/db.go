@@ -176,7 +176,7 @@ func Open(path string) (*DB, error) {
 	db := &DB{conn: conn}
 
 	// Enable WAL mode for better concurrency and set busy timeout
-	if _, err := db.conn.Exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout = 5000;"); err != nil {
+	if _, err := db.conn.Exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout = 5000; PRAGMA synchronous = NORMAL;"); err != nil {
 		return nil, fmt.Errorf("failed to configure database: %w", err)
 	}
 
@@ -566,7 +566,7 @@ func (db *DB) GetToolUsage(runID int64) ([]ToolUsage, error) {
 	return results, nil
 }
 
-func (db *DB) GetMessages(runID int64) ([]Message, error) {
+func (db *DB) GetMessages(runID int64, limit, offset int) ([]Message, error) {
 	query := `SELECT 
 		id, 
 		type,
@@ -574,9 +574,10 @@ func (db *DB) GetMessages(runID int64) ([]Message, error) {
 		timestamp 
 	FROM run_events 
 	WHERE run_id = ?
-	ORDER BY id ASC`
+	ORDER BY id ASC
+	LIMIT ? OFFSET ?`
 
-	rows, err := db.conn.Query(query, runID)
+	rows, err := db.conn.Query(query, runID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -847,14 +848,18 @@ func (db *DB) GetExperiments() ([]Experiment, error) {
 	return experiments, nil
 }
 
-func (db *DB) GetRunResults(experimentID int64) ([]*RunResult, error) {
-	query := `SELECT id, experiment_id, alternative, scenario, repetition, duration, error, tests_passed, tests_failed, lint_issues, raw_json, total_tokens, input_tokens, output_tokens, tool_calls_count, failed_tool_calls, loop_detected, stdout, stderr, is_success, validation_report, status, reason FROM run_results WHERE experiment_id = ? ORDER BY id ASC`
-	rows, err := db.conn.Query(query, experimentID)
+func (db *DB) GetRunResults(experimentID int64, limit, offset int) ([]RunResult, error) {
+	query := `SELECT id, experiment_id, alternative, scenario, repetition, duration, error, tests_passed, tests_failed, lint_issues, raw_json, total_tokens, input_tokens, output_tokens, tool_calls_count, failed_tool_calls, loop_detected, status, reason, stdout, stderr, is_success, validation_report 
+	          FROM run_results 
+	          WHERE experiment_id = ? 
+	          ORDER BY repetition ASC, alternative ASC, scenario ASC
+	          LIMIT ? OFFSET ?`
+	rows, err := db.conn.Query(query, experimentID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var results []*RunResult = []*RunResult{}
+	var results []RunResult = []RunResult{}
 	for rows.Next() {
 		var r RunResult
 		var valReport, status, reason, errMsg, stdout, stderr, rawJSON sql.NullString
@@ -900,7 +905,7 @@ func (db *DB) GetRunResults(experimentID int64) ([]*RunResult, error) {
 			}
 		}
 
-		results = append(results, &r)
+		results = append(results, r)
 	}
 	return results, nil
 

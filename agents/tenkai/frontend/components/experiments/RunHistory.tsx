@@ -6,9 +6,12 @@ interface RunHistoryProps {
     runs: RunResultRecord[];
     selectedRunId: number | null;
     onSelectRun: (run: RunResultRecord) => void;
+    onLoadMore: () => void;
+    hasMore: boolean;
+    loading: boolean;
 }
 
-export default function RunHistory({ runs, selectedRunId, onSelectRun }: RunHistoryProps) {
+export default function RunHistory({ runs, selectedRunId, onSelectRun, onLoadMore, hasMore, loading }: RunHistoryProps) {
     // Group by alternative
     const alternatives = Array.from(new Set(runs.map(r => r.alternative)));
 
@@ -36,16 +39,14 @@ export default function RunHistory({ runs, selectedRunId, onSelectRun }: RunHist
 
                                             <span className="font-mono font-bold text-zinc-400">Rep {run.repetition}</span>
                                             <div className="flex flex-col items-end">
-                                                <span className={`font-bold uppercase tracking-widest text-xs ${
-                                                    run.status?.toUpperCase() === 'RUNNING' || run.status?.toUpperCase() === 'QUEUED' ? 'text-blue-400' :
+                                                <span className={`font-bold uppercase tracking-widest text-xs ${run.status?.toUpperCase() === 'RUNNING' || run.status?.toUpperCase() === 'QUEUED' ? 'text-blue-400' :
                                                     run.status?.toUpperCase() === 'COMPLETED' ? 'text-emerald-400' : 'text-red-500'
-                                                }`}>
+                                                    }`}>
                                                     {run.status}
                                                 </span>
                                                 {run.reason && (
-                                                    <span className={`font-mono font-bold text-[10px] ${
-                                                        run.reason.toUpperCase() === 'SUCCESS' ? 'text-emerald-500' : 'text-red-400'
-                                                    }`}>
+                                                    <span className={`font-mono font-bold text-[10px] ${run.reason.toUpperCase() === 'SUCCESS' ? 'text-emerald-500' : 'text-red-400'
+                                                        }`}>
                                                         {run.reason}
                                                     </span>
                                                 )}
@@ -63,6 +64,17 @@ export default function RunHistory({ runs, selectedRunId, onSelectRun }: RunHist
                     );
                 })}
             </div>
+            {hasMore && (
+                <div className="p-4 border-t border-[#27272a] bg-[#161618]">
+                    <button
+                        onClick={onLoadMore}
+                        disabled={loading}
+                        className="w-full py-2 px-4 bg-[#27272a] hover:bg-[#3f3f46] text-zinc-300 font-bold uppercase tracking-widest text-xs rounded transition-colors disabled:opacity-50"
+                    >
+                        {loading ? 'Loading...' : 'Load More Results'}
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
