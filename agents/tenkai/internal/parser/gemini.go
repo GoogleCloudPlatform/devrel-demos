@@ -3,10 +3,16 @@ package parser
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
+)
+
+var (
+	// ErrTerminationRequested indicates that the agent has signaled completion.
+	ErrTerminationRequested = errors.New("termination requested by agent")
 )
 
 // AgentMetrics contains aggregated data from an agent run.
@@ -210,6 +216,13 @@ func ParseLine(line string, metrics *AgentMetrics, pendingTools map[string]*Tool
 				Content:   evt.Content,
 				Delta:     false,
 			})
+		}
+
+		// Check for termination token in the content
+		// Check for termination token in the content
+		// Only check if it comes from the model/assistant, to avoid self-triggering on echoed prompts.
+		if (evt.Role == "model" || evt.Role == "assistant") && strings.Contains(evt.Content, "<<TENKAI_DONE>>") {
+			return &evt, ErrTerminationRequested
 		}
 	}
 	return &evt, nil

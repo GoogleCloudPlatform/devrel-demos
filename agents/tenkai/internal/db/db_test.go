@@ -50,7 +50,7 @@ func TestMessagesView(t *testing.T) {
 	}
 
 	// Query via View (GetMessages)
-	msgs, err := database.GetMessages(runID)
+	msgs, err := database.GetMessages(runID, -1, 0)
 	if err != nil {
 		t.Fatalf("Failed to get messages: %v", err)
 	}
@@ -114,7 +114,7 @@ func TestGetMessages_Aggregation(t *testing.T) {
 	}
 
 	// Verify
-	msgs, err := database.GetMessages(runID)
+	msgs, err := database.GetMessages(runID, -1, 0)
 	if err != nil {
 		t.Fatalf("Failed to get messages: %v", err)
 	}

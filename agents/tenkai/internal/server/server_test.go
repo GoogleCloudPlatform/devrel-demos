@@ -332,7 +332,7 @@ func TestGetRunMessages_EdgeCases(t *testing.T) {
 		"role": "user", "content": "Interrupt", "delta": true,
 	})
 
-	msgs, _ := srv.db.GetMessages(runID)
+	msgs, _ := srv.db.GetMessages(runID, -1, 0)
 	if len(msgs) != 2 {
 		t.Fatalf("Expected 2 messages from edge case events, got %d", len(msgs))
 	}

@@ -252,7 +252,7 @@ func Execute() {
 			}
 
 			// Mark incomplete runs as INTERRUPTED
-			results, err := database.GetRunResults(expID)
+			results, err := database.GetRunResults(expID, -1, 0)
 			if err == nil {
 				for _, r := range results {
 					st := strings.ToUpper(r.Status)
@@ -347,7 +347,7 @@ func handleReportOnly(database *db.DB, expID int64) {
 	fmt.Printf("Regenerating report for: %s (ID: %d)\n", exp.Name, exp.ID)
 
 	// 2. Fetch Results from DB
-	dbResults, err := database.GetRunResults(exp.ID)
+	dbResults, err := database.GetRunResults(exp.ID, -1, 0)
 	if err != nil {
 		log.Printf("Failed to fetch run results from DB: %v", err)
 		os.Exit(1)
@@ -356,7 +356,7 @@ func handleReportOnly(database *db.DB, expID int64) {
 	var results []runner.Result
 	r := runner.New(workspace.New(cwd, "", ""), 1) // Minimal runner for helper usage
 	for _, dr := range dbResults {
-		results = append(results, r.FromDBRunResult(dr))
+		results = append(results, r.FromDBRunResult(&dr))
 	}
 
 	// 4. Load Config (from DB)
@@ -435,7 +435,7 @@ func markAbortedSpeculative(database *db.DB, exp db.Experiment) {
 	database.UpdateExperimentError(exp.ID, "Orchestrator process terminated unexpectedly")
 
 	// Also mark non-terminal runs as ABORTED
-	results, err := database.GetRunResults(exp.ID)
+	results, err := database.GetRunResults(exp.ID, -1, 0)
 	if err == nil {
 		for _, r := range results {
 			st := strings.ToUpper(r.Status)

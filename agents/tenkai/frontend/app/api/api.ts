@@ -15,13 +15,13 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
         cache: 'no-store', // Always fetch fresh data
         ...options
     });
-    
+
     if (!res.ok) {
         // Handle 404 gracefully for some resources if needed, or throw
         if (res.status === 404) return null as any;
         throw new Error(`API call failed: ${res.status} ${res.statusText} at ${url}`);
     }
-    
+
     return res.json();
 }
 
@@ -166,8 +166,8 @@ export async function getExperimentSummaries(id: number | string): Promise<Exper
     return fetchAPI<ExperimentSummaryRecord[]>(`/experiments/${id}/summaries`);
 }
 
-export async function getRunResults(experimentId: number | string): Promise<RunResultRecord[]> {
-    return fetchAPI<RunResultRecord[]>(`/experiments/${experimentId}/runs`);
+export async function getRunResults(experimentId: number | string, page = 1, limit = 100): Promise<RunResultRecord[]> {
+    return fetchAPI<RunResultRecord[]>(`/experiments/${experimentId}/runs?page=${page}&limit=${limit}`);
 }
 export async function getToolUsage(runId: number): Promise<ToolUsageRecord[]> {
     const res = await fetchAPI<ToolUsageRecord[]>(`/runs/${runId}/tools`);
@@ -178,8 +178,8 @@ export async function getToolUsage(runId: number): Promise<ToolUsageRecord[]> {
     }));
 }
 
-export async function getMessages(runId: number): Promise<MessageRecord[]> {
-    return (await fetchAPI<MessageRecord[]>(`/runs/${runId}/messages`)) || [];
+export async function getMessages(runId: number, page = 1, limit = 1000): Promise<MessageRecord[]> {
+    return (await fetchAPI<MessageRecord[]>(`/runs/${runId}/messages?page=${page}&limit=${limit}`)) || [];
 }
 
 export async function getRunFiles(runId: number) {

@@ -248,7 +248,7 @@ func (s *Server) getSummaries(r *http.Request) (any, error) {
 	}
 
 	// 2. Get Results
-	runResults, err := s.db.GetRunResults(id)
+	runResults, err := s.db.GetRunResults(id, 1000000, 0) // Fetch all for summary calculation
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +256,7 @@ func (s *Server) getSummaries(r *http.Request) (any, error) {
 	// 3. Convert
 	var results []runner.Result
 	for _, dr := range runResults {
-		results = append(results, s.runner.FromDBRunResult(dr))
+		results = append(results, s.runner.FromDBRunResult(&dr))
 	}
 
 	// 4. Calculate
@@ -286,7 +286,18 @@ func (s *Server) getExperimentRuns(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, NewAPIError(http.StatusBadRequest, "Invalid ID")
 	}
-	return s.db.GetRunResults(id)
+
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit < 1 {
+		limit = 1000 // Default to high limit if not specified for backward compatibility
+	}
+	offset := (page - 1) * limit
+
+	return s.db.GetRunResults(id, limit, offset)
 }
 
 func (s *Server) getToolStats(r *http.Request) (any, error) {
@@ -440,7 +451,18 @@ func (s *Server) getRunMessages(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, NewAPIError(http.StatusBadRequest, "Invalid Run ID")
 	}
-	res, err := s.db.GetMessages(id)
+
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit < 1 {
+		limit = 1000 // Default high limit
+	}
+	offset := (page - 1) * limit
+
+	res, err := s.db.GetMessages(id, limit, offset)
 
 	if err != nil {
 		return nil, err
