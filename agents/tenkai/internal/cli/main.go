@@ -35,7 +35,7 @@ func Execute() {
 	scensFlag := flag.String("scenarios", "", "Comma-separated list of scenarios to run")
 	controlFlag := flag.String("control", "", "Name of the control alternative")
 	timeoutFlag := flag.String("timeout", "", "Override timeout duration (e.g. 5m)")
-	experimentID := flag.Int64("experiment-id", 0, "Experiment ID to regenerate report or resume")
+	experimentID := flag.Int64("experiment-id", 0, "Experiment ID to regenerate report")
 	fixReportPath := flag.String("fix-report", "", "Path to existing report.md to fix structure/formatting")
 	flag.Parse()
 
@@ -270,7 +270,7 @@ func Execute() {
 	results, err := r.Run(context.Background(), cfg, timestamp, experimentDir)
 	if err != nil {
 		database.UpdateExperimentError(expID, err.Error())
-		database.UpdateExperimentStatus(expID, "FAILED")
+		database.UpdateExperimentStatus(expID, db.ExperimentStatusAborted)
 		log.Printf("Experiment run failed: %v", err)
 		os.Exit(1)
 	}

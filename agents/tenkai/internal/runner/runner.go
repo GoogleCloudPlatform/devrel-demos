@@ -229,16 +229,11 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 				wg.Add(1)
 				go func(alt config.Alternative, sID string, path string, rep int, dbRunID int64) {
 					defer wg.Done()
-
-					// Check for stop/pause BEFORE acquiring semaphore
+					// Check for stop BEFORE acquiring semaphore
 					for {
 						action := r.checkAction(experimentDir)
 						if action == "stop" {
 							return
-						}
-						if action == "pause" {
-							time.Sleep(1 * time.Second)
-							continue
 						}
 						break
 					}
@@ -344,28 +339,6 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 				}
 
 				if res.AgentMetrics != nil {
-
-					for _, tc := range res.AgentMetrics.ToolCalls {
-						telemetry.ToolUsage = append(telemetry.ToolUsage, db.ToolUsage{
-							RunID:     res.RunID,
-							Name:      tc.Name,
-							Args:      tc.Args,
-							Status:    tc.Status,
-							Output:    tc.Output,
-							Error:     tc.Error,
-							Duration:  tc.Duration.Nanoseconds(),
-							Timestamp: tc.Timestamp,
-						})
-					}
-					// Messages
-					for _, m := range res.AgentMetrics.Messages {
-						telemetry.Messages = append(telemetry.Messages, db.Message{
-							RunID:     res.RunID,
-							Role:      m.Role,
-							Content:   m.Content,
-							Timestamp: m.Timestamp,
-						})
-					}
 					// Evaluation Details
 					if res.EvaluationMetrics != nil {
 						telemetry.TestResults = res.EvaluationMetrics.Tests
@@ -534,19 +507,15 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 		envMap["GEMINI_SYSTEM_MD"] = systemPath
 	}
 
-	// 2. Pass PROMPT.md content as the last argument
-	// This ensures the CLI runs in non-interactive mode (batch) rather than REPL mode.
+	// 2. Open PROMPT.md for Stdin
 	promptPath := filepath.Join(wsInfo.Project, "PROMPT.md")
-	promptContent, err := os.ReadFile(promptPath)
-	if err == nil {
-		cmdArgs = append(cmdArgs, string(promptContent))
-	} else {
-		// If PROMPT.md is missing, this runs without prompt!
-		// But it should be there from template copy.
+	promptFile, err := os.Open(promptPath)
+	if err != nil {
 		res.Error = fmt.Errorf("PROMPT.md missing: %w", err)
 		res.ErrorStr = res.Error.Error()
 		return res
 	}
+	defer promptFile.Close()
 
 	// Create timeout context for the entire job (run + verification)
 	jobCtx, cancel := context.WithTimeout(ctx, timeout)
@@ -605,8 +574,8 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 	stdoutPipe, _ := cmd.StdoutPipe()
 	stderrPipe, _ := cmd.StderrPipe()
 
-	// CRITICAL: Ensure clean EOF for Stdin to prevent hangs
-	cmd.Stdin = strings.NewReader("")
+	// Pass PROMPT.md content via Stdin
+	cmd.Stdin = promptFile
 
 	var streamWg sync.WaitGroup
 	streamWg.Add(2)
@@ -646,7 +615,8 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 		scanner := bufio.NewScanner(stdoutPipe)
 		metrics := &parser.AgentMetrics{}
 		pendingTools := make(map[string]*parser.ToolCall)
-		var lastToolCount, lastMsgCount int
+		var lastToolCount int
+		var resultSaved bool
 
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -657,9 +627,9 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 			stdoutMu.Unlock()
 
 			// Real-time parsing and event emission
-			if err := parser.ParseLine(line, metrics, pendingTools); err == nil {
+			if evt, err := parser.ParseLine(line, metrics, pendingTools); err == nil && evt != nil {
 				if r.db != nil && res.RunID != 0 {
-					// Check for new tool results or messages
+					// Check for new tool results
 					if len(metrics.ToolCalls) > lastToolCount {
 						newTools := metrics.ToolCalls[lastToolCount:]
 						for _, tc := range newTools {
@@ -667,12 +637,24 @@ func (r *Runner) runSingle(ctx context.Context, timestamp time.Time, experimentN
 						}
 						lastToolCount = len(metrics.ToolCalls)
 					}
-					if len(metrics.Messages) > lastMsgCount {
-						newMsgs := metrics.Messages[lastMsgCount:]
-						for _, msg := range newMsgs {
-							r.db.SaveRunEvent(res.RunID, "message", msg)
+
+					// Save EVERY raw event to the database immediately.
+					r.db.SaveRunEvent(res.RunID, evt.Type, evt)
+
+					// Check for final result stats
+					if !resultSaved && metrics.Result != "" {
+						// Construct a synthetic event payload that matches what GetRunMetrics expects
+						evt := parser.GeminiEvent{
+							Type:   "result",
+							Status: metrics.Result,
+							Stats: &parser.GeminiStats{
+								TotalTokens:  metrics.TotalTokens,
+								InputTokens:  metrics.InputTokens,
+								OutputTokens: metrics.OutputTokens,
+							},
 						}
-						lastMsgCount = len(metrics.Messages)
+						r.db.SaveRunEvent(res.RunID, "result", evt)
+						resultSaved = true
 					}
 				}
 			}
@@ -885,9 +867,11 @@ func (r *Runner) FromDBRunResult(dr *db.RunResult) Result {
 	}
 	// Agent Metrics
 	res.AgentMetrics = &parser.AgentMetrics{
-		TotalTokens:  dr.TotalTokens,
-		InputTokens:  dr.InputTokens,
-		OutputTokens: dr.OutputTokens,
+		TotalTokens:         dr.TotalTokens,
+		InputTokens:         dr.InputTokens,
+		OutputTokens:        dr.OutputTokens,
+		FailedToolCalls:     dr.FailedToolCalls,
+		TotalToolCallsCount: dr.ToolCallsCount,
 	}
 	return res
 }

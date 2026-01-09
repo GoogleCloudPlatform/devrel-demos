@@ -230,3 +230,116 @@ func TestTemplatesCRUD(t *testing.T) {
 func fmt_id(id int64) string {
 	return strconv.Itoa(int(id))
 }
+
+func TestGetRunMessages_Integration(t *testing.T) {
+	// 1. Setup
+	srv, tmpDir := setupTestServer(t)
+	defer os.RemoveAll(tmpDir)
+
+	// 2. Seed Data
+	exp := &db.Experiment{Name: "IntegrationTest", Timestamp: time.Now()}
+	expID, _ := srv.db.CreateExperiment(exp)
+	run := &db.RunResult{ExperimentID: expID, Status: "COMPLETED"}
+	runID, _ := srv.db.SaveRunResult(run)
+
+	// Insert Delta Events
+	type MessageEvent struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+		Delta   bool   `json:"delta"`
+	}
+	events := []MessageEvent{
+		{Role: "user", Content: "Hello", Delta: false},
+		{Role: "model", Content: "Hi", Delta: false},
+		{Role: "model", Content: " there", Delta: true},
+	}
+	for _, e := range events {
+		srv.db.SaveRunEvent(runID, "message", e)
+	}
+
+	// Insert a generic event (e.g. result)
+	srv.db.SaveRunEvent(runID, "result", map[string]interface{}{
+		"status": "success",
+		"stats":  map[string]int{"total_tokens": 100},
+	})
+
+	// 3. Happy Path: Get Messages
+	req := httptest.NewRequest("GET", "/api/runs/"+fmt_id(runID)+"/messages", nil)
+	w := httptest.NewRecorder()
+	srv.router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected 200 OK, got %d", w.Code)
+	}
+
+	var messages []db.Message
+	if err := json.NewDecoder(w.Body).Decode(&messages); err != nil {
+		t.Fatalf("Failed to decode JSON: %v", err)
+	}
+
+	if len(messages) != 3 {
+		t.Fatalf("Expected 3 aggregated messages (2 msg + 1 result), got %d", len(messages))
+	}
+	if messages[0].Content != "Hello" {
+		t.Errorf("Msg 0 mismatch: %s", messages[0].Content)
+	}
+	if messages[1].Content != "Hi there" {
+		t.Errorf("Msg 1 mismatch (aggregation failed): %s", messages[1].Content)
+	}
+	if messages[2].Role != "result" {
+		t.Errorf("Msg 2 role mismatch. Expected 'result', got '%s'", messages[2].Role)
+	}
+
+	// 4. Sad Path: Run Not Found
+	reqNotFound := httptest.NewRequest("GET", "/api/runs/99999/messages", nil)
+	wNotFound := httptest.NewRecorder()
+	srv.router.ServeHTTP(w, reqNotFound)
+
+	// Note: GetMessages currently returns empty list for non-existent run, not 404.
+	// This behavior is acceptable for list endpoints usually.
+	if wNotFound.Code != http.StatusOK {
+		t.Errorf("Expected 200 OK for empty list, got %d", wNotFound.Code)
+	}
+	var emptyMsgs []db.Message
+	json.NewDecoder(wNotFound.Body).Decode(&emptyMsgs)
+	if len(emptyMsgs) != 0 {
+		t.Error("Expected empty list for non-existent run")
+	}
+	// 5. Sad Path: Invalid ID
+	reqInvalid := httptest.NewRequest("GET", "/api/runs/abc/messages", nil)
+	wInvalid := httptest.NewRecorder()
+	srv.router.ServeHTTP(wInvalid, reqInvalid)
+
+	if wInvalid.Code != http.StatusBadRequest {
+		t.Errorf("Expected 400 Bad Request for invalid ID, got %d", wInvalid.Code)
+	}
+}
+
+func TestGetRunMessages_EdgeCases(t *testing.T) {
+	srv, tmpDir := setupTestServer(t)
+	defer os.RemoveAll(tmpDir)
+	expID, _ := srv.db.CreateExperiment(&db.Experiment{Name: "Edge", Timestamp: time.Now()})
+	runID, _ := srv.db.SaveRunResult(&db.RunResult{ExperimentID: expID})
+
+	// Case 1: Orphaned Delta (Delta true without prior message)
+	// Should act as new message
+	srv.db.SaveRunEvent(runID, "message", map[string]interface{}{
+		"role": "model", "content": "I am orphan", "delta": true,
+	})
+
+	// Case 2: Switch Role without delta=false (Should start new message)
+	srv.db.SaveRunEvent(runID, "message", map[string]interface{}{
+		"role": "user", "content": "Interrupt", "delta": true,
+	})
+
+	msgs, _ := srv.db.GetMessages(runID)
+	if len(msgs) != 2 {
+		t.Fatalf("Expected 2 messages from edge case events, got %d", len(msgs))
+	}
+	if msgs[0].Content != "I am orphan" {
+		t.Errorf("Orphan delta failed: %s", msgs[0].Content)
+	}
+	if msgs[1].Content != "Interrupt" {
+		t.Errorf("Role switch failed: %s", msgs[1].Content)
+	}
+}

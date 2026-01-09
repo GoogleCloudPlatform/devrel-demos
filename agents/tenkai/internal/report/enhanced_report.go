@@ -24,11 +24,11 @@ type EnhancedMarkdownGenerator struct {
 }
 
 func (r *EnhancedMarkdownGenerator) Generate() error {
-	// NEW: Filter only terminal results
+	// Filter to include only completed runs for the report
 	terminalResults := []runner.Result{}
 	for _, res := range r.Results {
 		st := strings.ToUpper(res.Status)
-		if st != db.RunStatusCompleted {
+		if st == db.RunStatusCompleted {
 			terminalResults = append(terminalResults, res)
 		}
 	}
@@ -53,6 +53,7 @@ func (r *EnhancedMarkdownGenerator) Generate() error {
 	r.writeDetailedMetrics()
 	r.writeEvaluationDetails()
 	r.writeToolUsage()
+	r.writeStatisticalAnalysis()
 	r.writeFailureAnalysis()
 	r.writeConclusion()
 
@@ -530,5 +531,70 @@ func (r *EnhancedMarkdownGenerator) writeConclusion() {
 		fmt.Fprintln(r.w, "Overall performance is good, but there are clear areas for improvement in specific scenarios.")
 	} else {
 		fmt.Fprintln(r.w, "Performance is below expectations. Further analysis of semantic failures is recommended.")
+	}
+}
+
+func (r *EnhancedMarkdownGenerator) writeStatisticalAnalysis() {
+	// Find Control
+	control := ""
+	if r.Cfg != nil {
+		control = r.Cfg.Control
+	}
+	// Fallback to first alt if not set
+	if control == "" && len(r.summary.Alternatives) > 0 {
+		control = r.getAltOrder()[0]
+	}
+
+	hasStats := false
+	for _, alt := range r.summary.Alternatives {
+		if alt.Alternative == control {
+			continue
+		}
+		// Check for sentinel value -1.0 (Not Calculated)
+		// If any p-value is >= 0, stats were calculated.
+		if alt.PSuccess >= 0 || alt.PDuration >= 0 || alt.PTokens >= 0 || alt.PLint >= 0 {
+			hasStats = true
+			break
+		}
+	}
+
+	if !hasStats {
+		return
+	}
+
+	fmt.Fprintln(r.w, "\n## 📊 Statistical Analysis Notes")
+	fmt.Fprintln(r.w, "This report uses **Welch's t-test** for continuous metrics (Duration, Tokens, Lint Issues) and **Fisher's Exact Test** for categorical metrics (Success Rate, Timeouts).")
+	fmt.Fprintln(r.w, "\n- **( * )**: Significant at p < 0.05")
+	fmt.Fprintln(r.w, "- **( ** )**: Highly significant at p < 0.01")
+	fmt.Fprintln(r.w, "\n### Significant Findings")
+
+	foundSig := false
+	for _, name := range r.getAltOrder() {
+		if name == control {
+			continue
+		}
+		alt := r.summary.Alternatives[name]
+
+		// Helper to format
+		check := func(metric string, p float64) {
+			// p < 0 means not calculated
+			if p >= 0 && p < 0.05 {
+				foundSig = true
+				stars := "*"
+				if p < 0.01 {
+					stars = "**"
+				}
+				fmt.Fprintf(r.w, "- **%s** shows a significant difference in **%s** (p=%.4f) %s\n", name, metric, p, stars)
+			}
+		}
+
+		check("Success Rate", alt.PSuccess)
+		check("Duration", alt.PDuration)
+		check("Token Usage", alt.PTokens)
+		check("Lint Issues", alt.PLint)
+	}
+
+	if !foundSig {
+		fmt.Fprintln(r.w, "No statistically significant differences (p < 0.05) were detected between the alternatives and the control.")
 	}
 }

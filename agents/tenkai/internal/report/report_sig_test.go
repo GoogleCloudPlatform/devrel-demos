@@ -15,13 +15,13 @@ import (
 func TestReportSignificanceMarkers(t *testing.T) {
 	// Mock Results
 	results := []runner.Result{}
-
 	// Control: Mean ~10s
 	for i := 1; i <= 10; i++ {
 		results = append(results, runner.Result{
 			Alternative:       "Control",
 			Scenario:          "Scen1",
 			Repetition:        i,
+			Status:            "COMPLETED",
 			Duration:          time.Duration(10) * time.Second,
 			AgentMetrics:      &parser.AgentMetrics{TotalTokens: 1000},
 			EvaluationMetrics: &db.EvaluationMetrics{LintIssues: 5},
@@ -34,6 +34,7 @@ func TestReportSignificanceMarkers(t *testing.T) {
 			Alternative:       "Significant",
 			Scenario:          "Scen1",
 			Repetition:        i,
+			Status:            "COMPLETED",
 			Duration:          time.Duration(20) * time.Second,
 			AgentMetrics:      &parser.AgentMetrics{TotalTokens: 2000},
 			EvaluationMetrics: &db.EvaluationMetrics{LintIssues: 10},

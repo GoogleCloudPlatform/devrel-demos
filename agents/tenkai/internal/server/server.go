@@ -27,9 +27,8 @@ type Server struct {
 	wsMgr  *workspace.Manager
 	router *http.ServeMux
 }
-
 type ControlRequest struct {
-	Command string `json:"command"` // "pause", "resume", "stop"
+	Command string `json:"command"` // "stop"
 }
 
 type StartExperimentRequest struct {
@@ -366,7 +365,6 @@ func (s *Server) getRunTests(r *http.Request) (any, error) {
 	}
 	return res, nil
 }
-
 func (s *Server) getRunLint(r *http.Request) (any, error) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
@@ -403,6 +401,7 @@ func (s *Server) getRunMessages(r *http.Request) (any, error) {
 		return nil, NewAPIError(http.StatusBadRequest, "Invalid Run ID")
 	}
 	res, err := s.db.GetMessages(id)
+
 	if err != nil {
 		return nil, err
 	}

@@ -11,14 +11,16 @@ import (
 
 // AgentMetrics contains aggregated data from an agent run.
 type AgentMetrics struct {
-	Result       string         `json:"result"`
-	InputTokens  int            `json:"input_tokens"`
-	OutputTokens int            `json:"output_tokens"`
-	TotalTokens  int            `json:"total_tokens"`
-	ToolCalls    []ToolCall     `json:"tool_calls"`
-	Errors       []ErrorEvent   `json:"errors"`
-	Messages     []MessageEvent `json:"messages"`
-	LoopDetected bool           `json:"loop_detected"`
+	Result              string         `json:"result"`
+	InputTokens         int            `json:"input_tokens"`
+	OutputTokens        int            `json:"output_tokens"`
+	TotalTokens         int            `json:"total_tokens"`
+	ToolCalls           []ToolCall     `json:"tool_calls"`
+	TotalToolCallsCount int            `json:"total_tool_calls_count"`
+	FailedToolCalls     int            `json:"failed_tool_calls"`
+	Errors              []ErrorEvent   `json:"errors"`
+	Messages            []MessageEvent `json:"messages"`
+	LoopDetected        bool           `json:"loop_detected"`
 }
 
 // ToolCall represents a single tool execution attempt.
@@ -91,7 +93,7 @@ func ParseEvents(path string) (*AgentMetrics, error) {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if err := ParseLine(line, metrics, pendingTools); err != nil {
+		if _, err := ParseLine(line, metrics, pendingTools); err != nil {
 			continue
 		}
 	}
@@ -104,14 +106,14 @@ func ParseEvents(path string) (*AgentMetrics, error) {
 }
 
 // ParseLine processes a single JSONL line and updates metrics.
-func ParseLine(line string, metrics *AgentMetrics, pendingTools map[string]*ToolCall) error {
+func ParseLine(line string, metrics *AgentMetrics, pendingTools map[string]*ToolCall) (*GeminiEvent, error) {
 	if strings.TrimSpace(line) == "" {
-		return nil
+		return nil, nil
 	}
 
 	var evt GeminiEvent
 	if err := json.Unmarshal([]byte(line), &evt); err != nil {
-		return err
+		return nil, err
 	}
 
 	ts, _ := time.Parse(time.RFC3339, evt.Timestamp)
@@ -147,9 +149,11 @@ func ParseLine(line string, metrics *AgentMetrics, pendingTools map[string]*Tool
 			tc.Output = evt.Output
 			if evt.Status != "success" {
 				tc.Error = evt.Output
+				metrics.FailedToolCalls++
 			}
 			tc.Duration = ts.Sub(tc.Timestamp)
 			metrics.ToolCalls = append(metrics.ToolCalls, *tc)
+			metrics.TotalToolCallsCount++ // Keep count in sync
 			delete(pendingTools, evt.ToolID)
 
 			// Inject into conversation thread
@@ -208,5 +212,5 @@ func ParseLine(line string, metrics *AgentMetrics, pendingTools map[string]*Tool
 			})
 		}
 	}
-	return nil
+	return &evt, nil
 }

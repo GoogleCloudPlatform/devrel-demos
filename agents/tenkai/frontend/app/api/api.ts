@@ -90,7 +90,12 @@ export interface LintResultRecord {
 }
 
 export async function getExperiments(): Promise<ExperimentRecord[]> {
-    return (await fetchAPI<ExperimentRecord[]>('/experiments')) || [];
+    try {
+        return (await fetchAPI<ExperimentRecord[]>('/experiments')) || [];
+    } catch (e) {
+        console.error("Failed to fetch experiments:", e);
+        return [];
+    }
 }
 
 export async function getExperimentById(id: number | string): Promise<ExperimentRecord | null> {
@@ -197,10 +202,14 @@ export async function getNextExperimentNumber(nameBase: string): Promise<number>
 export async function getConfigFile(experimentId: number | string, relativePath: string): Promise<string | null> {
     return null; // File access restricted
 }
-
 // Fetch all scenarios from API
 export async function getScenarios(): Promise<any[]> {
-    return fetchAPI<any[]>('/scenarios');
+    try {
+        return (await fetchAPI<any[]>('/scenarios')) || [];
+    } catch (e) {
+        console.error("Failed to fetch scenarios:", e);
+        return [];
+    }
 }
 
 export async function getScenarioById(id: string): Promise<any | null> {
@@ -210,8 +219,14 @@ export async function getScenarioById(id: string): Promise<any | null> {
 }
 
 export async function getTemplates(): Promise<any[]> {
-    return fetchAPI<any[]>('/templates');
+    try {
+        return (await fetchAPI<any[]>('/templates')) || [];
+    } catch (e) {
+        console.error("Failed to fetch templates:", e);
+        return [];
+    }
 }
+
 
 export async function getTemplateConfig(name: string): Promise<any | null> {
     // Templates endpoint should probably return details?

@@ -8,14 +8,14 @@ export default function ActiveExperimentCard({ exp, index }: { exp: ExperimentRe
     const normalizedStatus = (exp.status?.toLowerCase() || 'idle') as ExperimentStatus;
     const { status, loadingAction, handleControl: originalHandleControl } = useExperimentControl(exp.id, normalizedStatus);
 
-    const handleControlClick = async (e: React.MouseEvent, action: 'pause' | 'resume' | 'stop') => {
+    const handleControlClick = async (e: React.MouseEvent, action: 'stop') => {
 
         e.preventDefault(); // Prevent navigating to report
         e.stopPropagation();
         await originalHandleControl(action);
     };
 
-    if (status === 'stopped' || status === 'completed') return null;
+    if (status === 'ABORTED' || status === 'completed') return null;
 
     return (
         <Link href={`/experiments/${exp.id}`}>

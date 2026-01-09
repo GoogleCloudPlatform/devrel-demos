@@ -78,13 +78,17 @@ func TestCalculateSummary(t *testing.T) {
 	if a2Stats.TotalRuns != 1 {
 		t.Errorf("Expected 1 run for Alt2, got %d", a2Stats.TotalRuns)
 	}
-	if a2Stats.PDuration != 0 {
-		t.Errorf("Expected PDuration 0 for N=1, got %f", a2Stats.PDuration)
+	// With new logic, PDuration should be -1.0 if not calculated
+	if a2Stats.PDuration != -1.0 {
+		t.Errorf("Expected PDuration -1.0 (Not Calculated) for N=1, got %f", a2Stats.PDuration)
 	}
 
 	// Verify Alt3 Stats (N=0)
 	a3Stats := summary.Alternatives[alt3]
 	if a3Stats.TotalRuns != 0 {
 		t.Errorf("Expected 0 runs for Alt3, got %d", a3Stats.TotalRuns)
+	}
+	if a3Stats.PDuration != -1.0 {
+		t.Errorf("Expected PDuration -1.0 for N=0, got %f", a3Stats.PDuration)
 	}
 }

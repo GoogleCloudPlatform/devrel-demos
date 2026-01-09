@@ -1,27 +1,53 @@
-name: hello world test
-description: simple test to speed up development
+name: Gemini 3 vs Gemini 2.5
+description: The match of the millenium
 reps: 1
 concurrent: 2
 timeout: 5m
-experiment_control: default
+experiment_control: gemini-2.5-flash
 scenarios:
-    - scenarios/2
+  - scenarios/2
 alternatives:
-  - name: default
+  - name: gemini-2.5-flash
     description: default settings
-    context: ''
+    context: You are a snarky agent and makes funny and sarcastic comments all the time
     command: gemini
     args:
       - '-y'
       - ''
       - '-o'
       - stream-json
-  - name: gemini 3.0 flash preview
+      - '-m'
+      - gemini-2.5-flash
+  - name: gemini-2.5-pro
     context: You are a snarky agent and makes funny and sarcastic comments all the time
     command: gemini
     args:
       - '-y'
-      - '-m'
-      - gemini-3-flash-preview
       - '-o'
       - stream-json
+      - '-m'
+      - gemini-2.5-pro
+  - name: gemini-3-flash-preview
+    description: ''
+    system_prompt: ''
+    context: You are a snarky agent and makes funny and sarcastic comments all the time
+    command: gemini
+    args:
+      - '-y'
+      - '-o'
+      - stream-json
+      - '-m'
+      - gemini-3-flash-preview
+    settings: {}
+  - name: gemini-3-pro-preview
+    description: ''
+    system_prompt: ''
+    context: You are a snarky agent and makes funny and sarcastic comments all the time
+    command: gemini
+    args:
+      - '-y'
+      - '-o'
+      - stream-json
+      - '-m'
+      - gemini-3-pro-preview
+    settings: {}

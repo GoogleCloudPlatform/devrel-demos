@@ -34,6 +34,7 @@ export default function PerformanceTable({ runResults, stats, controlBaseline }:
                         <TableHead className="px-6 text-right">Avg Duration</TableHead>
                         <TableHead className="px-6 text-right">Avg Tokens</TableHead>
                         <TableHead className="px-6 text-right">Avg Tool Calls</TableHead>
+                        <TableHead className="px-6 text-right">Failed Tools</TableHead>
                         <TableHead className="px-6 text-right">Lint Issues</TableHead>
                         <TableHead className="px-6 text-right">Runs</TableHead>
                     </TableRow>
@@ -59,6 +60,8 @@ export default function PerformanceTable({ runResults, stats, controlBaseline }:
                         const avgToolCalls = s.avgToolCalls !== undefined
                             ? s.avgToolCalls
                             : (s.total_tool_calls && totalRuns ? s.total_tool_calls / totalRuns : 0);
+                        
+                        const avgFailedTools = (s.failed_tool_calls && totalRuns) ? s.failed_tool_calls / totalRuns : 0;
 
                         return (
                             <TableRow key={alt}>
@@ -89,6 +92,11 @@ export default function PerformanceTable({ runResults, stats, controlBaseline }:
                                     <div className="flex items-center justify-end gap-2">
                                         <span className="font-mono">{avgToolCalls?.toFixed(1)}</span>
                                         {toolCallSig.level && <span className="text-primary font-bold">{toolCallSig.level}</span>}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="px-6 text-right">
+                                    <div className={`font-mono ${avgFailedTools > 0 ? 'text-red-400 font-bold' : 'text-zinc-500'}`}>
+                                        {avgFailedTools.toFixed(1)}
                                     </div>
                                 </TableCell>
                                 <TableCell className="px-6 text-right font-mono">

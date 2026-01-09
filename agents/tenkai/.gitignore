@@ -45,3 +45,5 @@ implementation_plan.md
 walkthrough.md
 experiments/runs/*
 /tenkai
+*.db-shm
+*.db-wal
