@@ -9,4 +9,4 @@ google-cloud-core==2.4.1
 protobuf==5.29.5
 gunicorn==23.0.0
 requests==2.32.4
-urllib3==2.5.0
+urllib3==2.6.3
