@@ -3,6 +3,8 @@ package runner
 import (
 	"testing"
 	"time"
+
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/parser"
 )
 
 func TestCalculateSummary(t *testing.T) {
@@ -21,11 +23,25 @@ func TestCalculateSummary(t *testing.T) {
 	results := []Result{}
 
 	// Control: 3 success, 2 fail
+	// Successes have 2 tool calls each
 	for i := 0; i < 3; i++ {
-		results = append(results, Result{Alternative: control, IsSuccess: true, Status: "COMPLETED", Duration: 1 * time.Second})
+		results = append(results, Result{
+			Alternative:  control,
+			IsSuccess:    true,
+			Status:       "COMPLETED",
+			Duration:     1 * time.Second,
+			AgentMetrics: &parser.AgentMetrics{TotalToolCallsCount: 2, FailedToolCalls: 0},
+		})
 	}
+	// Failures have 1 tool call, which failed
 	for i := 0; i < 2; i++ {
-		results = append(results, Result{Alternative: control, IsSuccess: false, Status: "COMPLETED", Duration: 2 * time.Second})
+		results = append(results, Result{
+			Alternative:  control,
+			IsSuccess:    false,
+			Status:       "COMPLETED",
+			Duration:     2 * time.Second,
+			AgentMetrics: &parser.AgentMetrics{TotalToolCallsCount: 1, FailedToolCalls: 1},
+		})
 	}
 
 	// Alt1: 4 success, 1 fail
@@ -59,6 +75,15 @@ func TestCalculateSummary(t *testing.T) {
 
 	if cStats.SuccessCount != 3 {
 		t.Errorf("Expected 3 success for control, got %d", cStats.SuccessCount)
+	}
+
+	// Tool Calls: (3 * 2) + (2 * 1) = 8
+	if cStats.TotalToolCalls != 8 {
+		t.Errorf("Expected 8 total tool calls for control, got %d", cStats.TotalToolCalls)
+	}
+	// Failed Tools: (3 * 0) + (2 * 1) = 2
+	if cStats.FailedToolCalls != 2 {
+		t.Errorf("Expected 2 failed tool calls for control, got %d", cStats.FailedToolCalls)
 	}
 
 	// Verify Alt1 Stats (N=5, should have P-values)

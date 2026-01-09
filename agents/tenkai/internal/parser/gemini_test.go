@@ -1,47 +1,56 @@
 package parser
 
 import (
+	"encoding/json"
 	"testing"
+	"time"
 )
 
-func TestParseLine_ReturnsEvent(t *testing.T) {
-	metrics := &AgentMetrics{}
+func TestMetricCalculation(t *testing.T) {
+	// Simulate a log stream with:
+	// 1. Tool Use A
+	// 2. Tool Result A (Success)
+	// 3. Tool Use B
+	// 4. Tool Result B (Error)
+	// 5. Tool Use C
+	// 6. Tool Result C (Error)
+
+	now := time.Now().Format(time.RFC3339)
+	
+	events := []GeminiEvent{
+		{Type: "tool_use", ToolID: "id-a", ToolName: "tool_a", Timestamp: now},
+		{Type: "tool_result", ToolID: "id-a", Status: "success", Timestamp: now},
+		{Type: "tool_use", ToolID: "id-b", ToolName: "tool_b", Timestamp: now},
+		{Type: "tool_result", ToolID: "id-b", Status: "error", Output: "failed b", Timestamp: now},
+		{Type: "tool_use", ToolID: "id-c", ToolName: "tool_c", Timestamp: now},
+		{Type: "tool_result", ToolID: "id-c", Status: "error", Output: "failed c", Timestamp: now},
+	}
+
+	metrics := &AgentMetrics{
+		ToolCalls: []ToolCall{},
+	}
 	pendingTools := make(map[string]*ToolCall)
 
-	// Test 1: Standard Message (No Delta)
-	line := `{"type": "message", "role": "user", "content": "Hello", "timestamp": "2024-01-01T12:00:00Z"}`
-	evt, err := ParseLine(line, metrics, pendingTools)
-	if err != nil {
-		t.Fatalf("ParseLine failed: %v", err)
-	}
-	if evt == nil {
-		t.Fatal("Expected event, got nil")
-	}
-	if evt.Type != "message" || evt.Content != "Hello" {
-		t.Errorf("Unexpected event content: %+v", evt)
+	for _, evt := range events {
+		line, _ := json.Marshal(evt)
+		if _, err := ParseLine(string(line), metrics, pendingTools); err != nil {
+			t.Fatalf("ParseLine failed: %v", err)
+		}
 	}
 
-	// Test 2: Delta Message
-	lineDelta := `{"type": "message", "role": "model", "content": " World", "delta": true, "timestamp": "2024-01-01T12:00:01Z"}`
-	evtDelta, err := ParseLine(lineDelta, metrics, pendingTools)
-	if err != nil {
-		t.Fatalf("ParseLine delta failed: %v", err)
+	if len(metrics.ToolCalls) != 3 {
+		t.Errorf("Expected 3 tool calls, got %d", len(metrics.ToolCalls))
 	}
-	if !evtDelta.Delta {
-		t.Error("Expected delta=true")
-	}
-
-	// Test 3: Tool Use (Synthetic Message Injection Check)
-	// We want to ensure ParseLine still updates metrics correctly even if we only care about the return event for streaming.
-	// But ParseLine ALSO updates the metrics struct passed in.
-	lineTool := `{"type": "tool_use", "tool_name": "calc", "tool_id": "call_1", "parameters": {"x": 1}, "timestamp": "2024-01-01T12:00:02Z"}`
-	_, err = ParseLine(lineTool, metrics, pendingTools)
-	if err != nil {
-		t.Fatalf("ParseLine tool failed: %v", err)
+	
+	// Check Counts (Assuming TotalToolCallsCount logic I added relies on len(ToolCalls) or explicit increment)
+	// In my implementation, I explicitly incremented TotalToolCallsCount in ParseLine.
+	// But let's check the struct field I added.
+	
+	if metrics.TotalToolCallsCount != 3 {
+		t.Errorf("Expected TotalToolCallsCount=3, got %d", metrics.TotalToolCallsCount)
 	}
 
-	// Check if tool was added to pending
-	if _, ok := pendingTools["call_1"]; !ok {
-		t.Error("Tool call not pending")
+	if metrics.FailedToolCalls != 2 {
+		t.Errorf("Expected FailedToolCalls=2, got %d", metrics.FailedToolCalls)
 	}
 }

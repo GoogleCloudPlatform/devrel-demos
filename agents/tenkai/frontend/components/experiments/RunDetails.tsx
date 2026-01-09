@@ -370,9 +370,9 @@ export default function RunDetails({
                         if (msg.role === 'init') {
                             return <InitEvent key={i} timestamp={msg.timestamp} />;
                         }
-                        // Result event hidden as it duplicates header stats
-                        // if (msg.role === 'result') { return <ResultEvent ... />; }
-                        
+                        if (msg.role === 'result') {
+                            return <ResultEvent key={i} content={msg.content} timestamp={msg.timestamp} />;
+                        }
                         if (msg.role === 'error') {
                             return <ErrorEvent key={i} content={msg.content} timestamp={msg.timestamp} />;
                         }

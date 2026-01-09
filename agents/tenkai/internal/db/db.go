@@ -22,25 +22,28 @@ type ExperimentProgress struct {
 }
 
 type Experiment struct {
-	ID                int64     `json:"id"`
-	Name              string    `json:"name"`
-	Timestamp         time.Time `json:"timestamp"`
-	ConfigPath        string    `json:"config_path"`
-	ReportPath        string    `json:"report_path"`
-	ResultsPath       string    `json:"results_path"`
-	Status            string    `json:"status"`
-	Reps              int       `json:"reps"`
-	Concurrent        int       `json:"concurrent"`
-	PID               int       `json:"pid"`
-	Description       string    `json:"description"`
-	Duration          int64     `json:"duration"` // in nanoseconds
-	ConfigContent     string    `json:"config_content"`
-	ReportContent     string    `json:"report_content"`
-	ExecutionControl  string    `json:"execution_control"`  // Signal: stop
-	ExperimentControl string    `json:"experiment_control"` // Statistical reference alternative
-	ErrorMessage      string    `json:"error_message"`
+	ID                int64               `json:"id"`
+	Name              string              `json:"name"`
+	Timestamp         time.Time           `json:"timestamp"`
+	ConfigPath        string              `json:"config_path"`
+	ReportPath        string              `json:"report_path"`
+	ResultsPath       string              `json:"results_path"`
+	Status            string              `json:"status"`
+	Reps              int                 `json:"reps"`
+	Concurrent        int                 `json:"concurrent"`
+	TotalJobs         int                 `json:"total_jobs"`
+	CompletedJobs     int                 `json:"completed_jobs"`
+	PID               int                 `json:"pid"`
+	Description       string              `json:"description"`
+	Duration          int64               `json:"duration"` // in nanoseconds
+	ConfigContent     string              `json:"config_content"`
+	ReportContent     string              `json:"report_content"`
+	ExecutionControl  string              `json:"execution_control"`  // Signal: stop
+	ExperimentControl string              `json:"experiment_control"` // Statistical reference alternative
+	ErrorMessage      string              `json:"error_message"`
+	AIAnalysis        string              `json:"ai_analysis"`
 
-	AIAnalysis     string              `json:"ai_analysis"`
+	// Derived Metrics (Calculated on read)
 	SuccessRate    float64             `json:"success_rate"`
 	AvgDuration    float64             `json:"avg_duration"`
 	AvgTokens      float64             `json:"avg_tokens"`
@@ -50,7 +53,7 @@ type Experiment struct {
 }
 
 type ExperimentSummaryRow struct {
-	ID              int64   `json:"id"`
+	ID              int64   `json:"id"` // Dummy ID for frontend compatibility
 	ExperimentID    int64   `json:"experiment_id"`
 	Alternative     string  `json:"alternative"`
 	TotalRuns       int     `json:"total_runs"`
@@ -64,6 +67,7 @@ type ExperimentSummaryRow struct {
 	Timeouts        int     `json:"timeouts"`
 	TotalToolCalls  int     `json:"total_tool_calls"`
 	FailedToolCalls int     `json:"failed_tool_calls"`
+	// P-values computed by application, not DB
 	PSuccess        float64 `json:"p_success"`
 	PDuration       float64 `json:"p_duration"`
 	PTokens         float64 `json:"p_tokens"`
@@ -189,8 +193,6 @@ func (db *DB) Close() error {
 func (db *DB) migrate() error {
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS experiments (
-
-
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT,
 			timestamp DATETIME,
@@ -203,7 +205,15 @@ func (db *DB) migrate() error {
 			total_jobs INTEGER DEFAULT 0,
 			completed_jobs INTEGER DEFAULT 0,
 			error_message TEXT,
-			pid INTEGER
+			pid INTEGER,
+			description TEXT,
+			duration INTEGER DEFAULT 0,
+			config_content TEXT,
+			report_content TEXT,
+			execution_control TEXT,
+			experiment_control TEXT,
+			ai_analysis TEXT
+			-- Removed cached metrics columns
 		);`,
 		`CREATE TABLE IF NOT EXISTS run_results (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -221,8 +231,14 @@ func (db *DB) migrate() error {
 			input_tokens INTEGER DEFAULT 0,
 			output_tokens INTEGER DEFAULT 0,
 			tool_calls_count INTEGER DEFAULT 0,
+			failed_tool_calls INTEGER DEFAULT 0,
 			loop_detected BOOLEAN DEFAULT 0,
 			stdout TEXT,
+			stderr TEXT,
+			is_success BOOLEAN DEFAULT 0,
+			validation_report TEXT,
+			status TEXT,
+			reason TEXT,
 			FOREIGN KEY(experiment_id) REFERENCES experiments(id)
 		);`,
 		`CREATE TABLE IF NOT EXISTS run_events (
@@ -255,18 +271,11 @@ func (db *DB) migrate() error {
 				timestamp
 			FROM run_events 
 			WHERE type = 'message';`,
-		`CREATE VIEW IF NOT EXISTS experiment_progress_view AS
-			SELECT 
-				experiment_id,
-				COUNT(*) as total_runs_actual,
-				SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_runs,
-				SUM(CASE WHEN status = 'RUNNING' THEN 1 ELSE 0 END) as running_runs,
-				SUM(CASE WHEN status = 'QUEUED' THEN 1 ELSE 0 END) as queued_runs,
-				SUM(CASE WHEN status = 'ABORTED' THEN 1 ELSE 0 END) as aborted_runs
-			FROM run_results
-			GROUP BY experiment_id;`,
+		// We delete experiment_progress_view and experiment_summaries as they are no longer needed/cached
+		`DROP VIEW IF EXISTS experiment_progress_view;`,
+		`DROP TABLE IF EXISTS experiment_summaries;`,
+		
 		`CREATE TABLE IF NOT EXISTS run_files (
-
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			run_id INTEGER,
 			path TEXT,
@@ -296,30 +305,6 @@ func (db *DB) migrate() error {
 		);`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_experiments_name_ts ON experiments(name, timestamp);`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_run_results_unique_run ON run_results(experiment_id, alternative, scenario, repetition);`,
-		`CREATE TABLE IF NOT EXISTS experiment_summaries (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			experiment_id INTEGER NOT NULL,
-			alternative TEXT NOT NULL,
-			total_runs INTEGER DEFAULT 0,
-			success_count INTEGER DEFAULT 0,
-			success_rate REAL DEFAULT 0,
-			avg_duration REAL DEFAULT 0,
-			avg_tokens REAL DEFAULT 0,
-			avg_lint REAL DEFAULT 0,
-			avg_tests_passed REAL DEFAULT 0,
-			avg_tests_failed REAL DEFAULT 0,
-			timeouts INTEGER DEFAULT 0,
-			total_tool_calls INTEGER DEFAULT 0,
-			failed_tool_calls INTEGER DEFAULT 0,
-			p_success REAL,
-			p_duration REAL,
-			p_tokens REAL,
-			p_lint REAL,
-			p_tests_passed REAL,
-			p_tests_failed REAL,
-			p_timeout REAL,
-			FOREIGN KEY (experiment_id) REFERENCES experiments(id) ON DELETE CASCADE
-		);`,
 	}
 
 	for _, q := range queries {
@@ -327,55 +312,13 @@ func (db *DB) migrate() error {
 			return err
 		}
 	}
-
-	// Schema Migration: Add columns if they don't exist
-	migrations := []string{
-		"ALTER TABLE experiments ADD COLUMN total_jobs INTEGER DEFAULT 0",
-		"ALTER TABLE experiments ADD COLUMN completed_jobs INTEGER DEFAULT 0",
-		"ALTER TABLE experiments ADD COLUMN description TEXT",
-		"ALTER TABLE experiments ADD COLUMN duration INTEGER DEFAULT 0",
-		"ALTER TABLE experiments ADD COLUMN config_content TEXT",
-		"ALTER TABLE experiments ADD COLUMN report_content TEXT",
-		"ALTER TABLE experiments ADD COLUMN control TEXT",
-		"ALTER TABLE run_results ADD COLUMN total_tokens INTEGER DEFAULT 0",
-		"ALTER TABLE run_results ADD COLUMN input_tokens INTEGER DEFAULT 0",
-		"ALTER TABLE run_results ADD COLUMN output_tokens INTEGER DEFAULT 0",
-		"ALTER TABLE run_results ADD COLUMN tool_calls_count INTEGER DEFAULT 0",
-		"ALTER TABLE run_results ADD COLUMN loop_detected BOOLEAN DEFAULT 0",
-		"ALTER TABLE run_results ADD COLUMN stdout TEXT",
-		"ALTER TABLE run_results ADD COLUMN stderr TEXT",
-		"ALTER TABLE experiments ADD COLUMN error_message TEXT",
-		"ALTER TABLE run_results ADD COLUMN is_success BOOLEAN DEFAULT 0",
-		"ALTER TABLE run_results ADD COLUMN validation_report TEXT",
-		"ALTER TABLE experiments ADD COLUMN execution_control TEXT",
-		"ALTER TABLE experiments ADD COLUMN experiment_control TEXT",
-		"ALTER TABLE experiments ADD COLUMN ai_analysis TEXT",
-		"ALTER TABLE experiments ADD COLUMN success_rate REAL DEFAULT 0",
-		"ALTER TABLE experiments ADD COLUMN avg_duration REAL DEFAULT 0",
-		"ALTER TABLE experiments ADD COLUMN avg_tokens REAL DEFAULT 0",
-		"ALTER TABLE experiments ADD COLUMN total_lint INTEGER DEFAULT 0",
-		"ALTER TABLE experiments ADD COLUMN successful_runs INTEGER DEFAULT 0",
-		"ALTER TABLE experiment_summaries ADD COLUMN avg_tests_passed REAL DEFAULT 0",
-		"ALTER TABLE experiment_summaries ADD COLUMN avg_tests_failed REAL DEFAULT 0",
-		"ALTER TABLE experiment_summaries ADD COLUMN p_tests_passed REAL",
-		"ALTER TABLE experiment_summaries ADD COLUMN p_tests_failed REAL",
-		"ALTER TABLE run_results ADD COLUMN status TEXT",
-		"ALTER TABLE experiments ADD COLUMN pid INTEGER",
-		"ALTER TABLE run_results ADD COLUMN reason TEXT",
-		"ALTER TABLE run_results ADD COLUMN failed_tool_calls INTEGER DEFAULT 0",
-	}
-
-	for _, m := range migrations {
-		_, _ = db.conn.Exec(m) // Ignore errors if columns already exist
-	}
-
 	return nil
 }
 
 func (db *DB) CreateExperiment(exp *Experiment) (int64, error) {
-	query := `INSERT INTO experiments (name, timestamp, config_path, report_path, results_path, status, reps, concurrent, description, config_content, execution_control, experiment_control, pid) 
-	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	res, err := db.conn.Exec(query, exp.Name, exp.Timestamp.Format(time.RFC3339), exp.ConfigPath, exp.ReportPath, exp.ResultsPath, exp.Status, exp.Reps, exp.Concurrent, exp.Description, exp.ConfigContent, exp.ExecutionControl, exp.ExperimentControl, exp.PID)
+	query := `INSERT INTO experiments (name, timestamp, config_path, report_path, results_path, status, reps, concurrent, total_jobs, completed_jobs, description, config_content, execution_control, experiment_control, pid) 
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	res, err := db.conn.Exec(query, exp.Name, exp.Timestamp.Format(time.RFC3339), exp.ConfigPath, exp.ReportPath, exp.ResultsPath, exp.Status, exp.Reps, exp.Concurrent, exp.TotalJobs, exp.CompletedJobs, exp.Description, exp.ConfigContent, exp.ExecutionControl, exp.ExperimentControl, exp.PID)
 	if err != nil {
 		return 0, err
 	}
@@ -418,63 +361,7 @@ func (db *DB) UpdateExperimentAIAnalysis(id int64, analysis string) error {
 	return err
 }
 
-func (db *DB) SaveExperimentSummary(s *ExperimentSummaryRow) error {
-	query := `INSERT INTO experiment_summaries (
-		experiment_id, alternative, total_runs, success_count, success_rate,
-		avg_duration, avg_tokens, avg_lint, avg_tests_passed, avg_tests_failed,
-		timeouts, total_tool_calls, failed_tool_calls,
-		p_success, p_duration, p_tokens, p_lint, p_tests_passed, p_tests_failed, p_timeout
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	_, err := db.conn.Exec(query,
-		s.ExperimentID, s.Alternative, s.TotalRuns, s.SuccessCount, s.SuccessRate,
-		s.AvgDuration, s.AvgTokens, s.AvgLint, s.AvgTestsPassed, s.AvgTestsFailed,
-		s.Timeouts, s.TotalToolCalls, s.FailedToolCalls,
-		s.PSuccess, s.PDuration, s.PTokens, s.PLint, s.PTestsPassed, s.PTestsFailed, s.PTimeout,
-	)
-	return err
-}
-
-func (db *DB) DeleteExperimentSummaries(experimentID int64) error {
-	_, err := db.conn.Exec("DELETE FROM experiment_summaries WHERE experiment_id = ?", experimentID)
-	return err
-}
-func (db *DB) GetExperimentSummaries(experimentID int64) ([]ExperimentSummaryRow, error) {
-	// Fetch only the latest summary per alternative using MAX(id)
-	query := `SELECT 
-		id, experiment_id, alternative, total_runs, success_count, success_rate, 
-		avg_duration, avg_tokens, avg_lint, avg_tests_passed, avg_tests_failed, 
-		timeouts, total_tool_calls, failed_tool_calls,
-		p_success, p_duration, p_tokens, p_lint, p_tests_passed, p_tests_failed, p_timeout
-		FROM experiment_summaries 
-		WHERE id IN (
-			SELECT MAX(id) 
-			FROM experiment_summaries 
-			WHERE experiment_id = ? 
-			GROUP BY alternative
-		)`
-	rows, err := db.conn.Query(query, experimentID)
-
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var summaries []ExperimentSummaryRow = []ExperimentSummaryRow{}
-	for rows.Next() {
-
-		var s ExperimentSummaryRow
-		err := rows.Scan(
-			&s.ID, &s.ExperimentID, &s.Alternative, &s.TotalRuns, &s.SuccessCount, &s.SuccessRate,
-			&s.AvgDuration, &s.AvgTokens, &s.AvgLint, &s.AvgTestsPassed, &s.AvgTestsFailed,
-			&s.Timeouts, &s.TotalToolCalls, &s.FailedToolCalls,
-			&s.PSuccess, &s.PDuration, &s.PTokens, &s.PLint, &s.PTestsPassed, &s.PTestsFailed, &s.PTimeout,
-		)
-		if err != nil {
-			return nil, err
-		}
-		summaries = append(summaries, s)
-	}
-	return summaries, nil
-}
+// GetExperimentSummaries removed. Logic moved to application layer (Server/Runner) for real-time calculation with statistical tests.
 
 type GlobalStats struct {
 	TotalExperiments int     `json:"total_experiments"`
@@ -484,42 +371,28 @@ type GlobalStats struct {
 
 func (db *DB) GetGlobalStats() (*GlobalStats, error) {
 	var stats GlobalStats
-	err := db.conn.QueryRow("SELECT COUNT(*) FROM experiments").Scan(&stats.TotalExperiments)
-	if err != nil {
-		return nil, err
-	}
-
-	err = db.conn.QueryRow("SELECT COUNT(*) FROM run_results").Scan(&stats.TotalRuns)
-	if err != nil {
-		return nil, err
-	}
-
+	// Simple counts
+	db.conn.QueryRow("SELECT COUNT(*) FROM experiments").Scan(&stats.TotalExperiments)
+	db.conn.QueryRow("SELECT COUNT(*) FROM run_results").Scan(&stats.TotalRuns)
+	
+	// Avg success rate calculated from real-time aggregation of completed runs per experiment
+	// This is complex in SQL. Simplified: Avg of Experiment Success Rates?
+	// Or Avg of All Runs success?
+	// Let's use Avg of All Runs success for simplicity and speed.
 	var avg sql.NullFloat64
-	err = db.conn.QueryRow("SELECT AVG(success_rate) FROM experiments WHERE status = 'COMPLETED'").Scan(&avg)
-	if err == nil && avg.Valid {
-		stats.AvgSuccessRate = avg.Float64
-	}
+	db.conn.QueryRow("SELECT AVG(CASE WHEN is_success THEN 1.0 ELSE 0.0 END) * 100 FROM run_results WHERE status = 'COMPLETED'").Scan(&avg)
+	stats.AvgSuccessRate = avg.Float64
 
 	return &stats, nil
 }
 
 func (db *DB) UpdateExperimentProgress(id int64, completed, total int) error {
+	// Only updates the persistent target if needed
 	_, err := db.conn.Exec("UPDATE experiments SET completed_jobs = ?, total_jobs = ? WHERE id = ?", completed, total, id)
 	return err
 }
 
-func (db *DB) UpdateExperimentMetrics(id int64, successRate, avgDuration, avgTokens float64, totalLint, successfulRuns int) error {
-	_, err := db.conn.Exec(`
-		UPDATE experiments 
-		SET success_rate = ?, 
-		    avg_duration = ?, 
-		    avg_tokens = ?, 
-		    total_lint = ?, 
-		    successful_runs = ? 
-		WHERE id = ?`,
-		successRate, avgDuration, avgTokens, totalLint, successfulRuns, id)
-	return err
-}
+// UpdateExperimentMetrics removed - No caching allowed
 
 func (db *DB) SaveRunResult(res *RunResult) (int64, error) {
 	query := `INSERT INTO run_results (experiment_id, alternative, scenario, repetition, status, reason) 
@@ -565,7 +438,6 @@ func (db *DB) UpdateRunStatusAndReason(id int64, status, reason string) error {
 }
 
 func (db *DB) SaveToolUsage(tu *ToolUsage) error {
-
 	query := `INSERT INTO tool_usage (run_id, name, args, status, output, error, duration, timestamp) 
 	          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 	_, err := db.conn.Exec(query, tu.RunID, tu.Name, tu.Args, tu.Status, tu.Output, tu.Error, tu.Duration, tu.Timestamp.Format(time.RFC3339))
@@ -589,7 +461,6 @@ func (db *DB) DeleteMessages(runID int64) error {
 }
 
 func (db *DB) SaveRunFile(f *RunFile) error {
-
 	query := `INSERT INTO run_files (run_id, path, content, is_generated) 
 	          VALUES (?, ?, ?, ?)`
 	_, err := db.conn.Exec(query, f.RunID, f.Path, f.Content, f.IsGenerated)
@@ -694,10 +565,8 @@ func (db *DB) GetToolUsage(runID int64) ([]ToolUsage, error) {
 	}
 	return results, nil
 }
+
 func (db *DB) GetMessages(runID int64) ([]Message, error) {
-	// We query ALL run_events to ensure we don't skip anything
-	// and that aggregation of message deltas is correctly bounded
-	// by other events in the stream.
 	query := `SELECT 
 		id, 
 		type,
@@ -750,9 +619,8 @@ func (db *DB) GetMessages(runID int64) ([]Message, error) {
 				}
 				continue
 			}
-		}
-
-		// For all other types OR if message parse failed:
+		} 
+		
 		// Flush current message
 		if currentMsg != nil {
 			results = append(results, *currentMsg)
@@ -781,7 +649,7 @@ func (db *DB) GetMessages(runID int64) ([]Message, error) {
 					}
 				}
 				contentBytes, _ := json.Marshal(contentMap)
-
+				
 				results = append(results, Message{
 					ID:        id,
 					RunID:     runID,
@@ -814,9 +682,8 @@ func (db *DB) GetExperimentByID(id int64) (*Experiment, error) {
 	// Query experiment metadata
 	query := `SELECT 
 		e.id, e.name, e.timestamp, e.config_path, e.report_path, e.results_path, 
-		e.reps, e.concurrent, 
-		e.description, e.duration, e.config_content, e.report_content, e.execution_control, e.experiment_control, e.error_message, e.ai_analysis, e.pid,
-		e.success_rate, e.avg_duration, e.avg_tokens, e.total_lint, e.successful_runs 
+		e.status, e.reps, e.concurrent, e.total_jobs, e.completed_jobs,
+		e.description, e.duration, e.config_content, e.report_content, e.execution_control, e.experiment_control, e.error_message, e.ai_analysis, e.pid
 		FROM experiments e WHERE e.id = ?`
 
 	row := db.conn.QueryRow(query, id)
@@ -824,14 +691,11 @@ func (db *DB) GetExperimentByID(id int64) (*Experiment, error) {
 	var exp Experiment
 	var ts string
 	var desc, conf, rep, execCtrl, expCtrl, errMsg, aiAn sql.NullString
-	var sRate, aDur, aTok sql.NullFloat64
-	var tLint, sRuns sql.NullInt64
 
 	err := row.Scan(
-		&exp.ID, &exp.Name, &ts, &exp.ConfigPath, &exp.ReportPath, &exp.ResultsPath,
-		&exp.Reps, &exp.Concurrent,
+		&exp.ID, &exp.Name, &ts, &exp.ConfigPath, &exp.ReportPath, &exp.ResultsPath, 
+		&exp.Status, &exp.Reps, &exp.Concurrent, &exp.TotalJobs, &exp.CompletedJobs,
 		&desc, &exp.Duration, &conf, &rep, &execCtrl, &expCtrl, &errMsg, &aiAn, &exp.PID,
-		&sRate, &aDur, &aTok, &tLint, &sRuns,
 	)
 	if err != nil {
 		return nil, err
@@ -844,63 +708,99 @@ func (db *DB) GetExperimentByID(id int64) (*Experiment, error) {
 	exp.ExperimentControl = expCtrl.String
 	exp.ErrorMessage = errMsg.String
 	exp.AIAnalysis = aiAn.String
-	exp.SuccessRate = sRate.Float64
-	exp.AvgDuration = aDur.Float64
-	exp.AvgTokens = aTok.Float64
-	exp.TotalLint = int(tLint.Int64)
-	exp.SuccessfulRuns = int(sRuns.Int64)
 
-	// Derive Status & Progress from View (Single Source of Truth)
-	statusQuery := `SELECT total_runs_actual, completed_runs, running_runs, queued_runs, aborted_runs FROM experiment_progress_view WHERE experiment_id = ?`
-	rowStats := db.conn.QueryRow(statusQuery, id)
+	// Aggregation Query (Real-time)
+	aggQuery := `
+	SELECT 
+		COUNT(*), 
+		SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END),
+		SUM(CASE WHEN status = 'RUNNING' THEN 1 ELSE 0 END),
+		SUM(CASE WHEN status = 'QUEUED' THEN 1 ELSE 0 END),
+		SUM(CASE WHEN status = 'ABORTED' THEN 1 ELSE 0 END),
+		AVG(CASE WHEN is_success THEN 1.0 ELSE 0.0 END) * 100,
+		AVG(CASE WHEN is_success THEN duration ELSE NULL END) / 1000000000.0,
+		AVG(CASE WHEN is_success THEN total_tokens ELSE NULL END),
+		SUM(lint_issues),
+		SUM(CASE WHEN is_success THEN 1 ELSE 0 END)
+	FROM run_results WHERE experiment_id = ?`
 
-	var total, completed, running, queued, aborted int
-	if err := rowStats.Scan(&total, &completed, &running, &queued, &aborted); err == nil {
-		// Treat ABORTED as completed for progress calculation
-		completed += aborted
+	var totalActual, completedActual, running, queued, aborted int
+	var sRate, aDur, aTok sql.NullFloat64
+	var tLint, sRuns sql.NullInt64
 
-		if exp.ErrorMessage != "" || aborted > 0 {
+	err = db.conn.QueryRow(aggQuery, id).Scan(
+		&totalActual, &completedActual, &running, &queued, &aborted,
+		&sRate, &aDur, &aTok, &tLint, &sRuns,
+	)
+
+	if err == nil {
+		// Target total is from experiments table (intended), progress is from actual terminal runs
+		// Treat ABORTED as terminal for progress bar
+		completed := completedActual + aborted
+
+		if exp.ErrorMessage != "" || aborted > totalActual/2 { // Heuristic if many aborted
 			exp.Status = ExperimentStatusAborted
-		} else if completed >= total && total > 0 {
+		} else if completed >= exp.TotalJobs && exp.TotalJobs > 0 {
 			exp.Status = ExperimentStatusCompleted
 		} else {
 			exp.Status = ExperimentStatusRunning
 		}
 
-		if total == 0 {
+		if exp.TotalJobs == 0 {
 			exp.Status = "INITIALIZING"
 		}
 
-		// Populate Progress
+		// Populate Progress using Persistent Target
 		exp.Progress = &ExperimentProgress{
 			Completed: completed,
-			Total:     total,
+			Total:     exp.TotalJobs,
 		}
-		if total > 0 {
-			exp.Progress.Percentage = float64(completed) / float64(total) * 100
+		if exp.TotalJobs > 0 {
+			exp.Progress.Percentage = float64(completed) / float64(exp.TotalJobs) * 100
 		}
-	} else if err == sql.ErrNoRows {
-		// No runs yet
-		exp.Status = "INITIALIZING"
-		exp.Progress = &ExperimentProgress{Completed: 0, Total: 0}
+		
+		exp.SuccessRate = sRate.Float64
+		exp.AvgDuration = aDur.Float64
+		exp.AvgTokens = aTok.Float64
+		exp.TotalLint = int(tLint.Int64)
+		exp.SuccessfulRuns = int(sRuns.Int64)
+
 	} else {
-		// Error querying view
+		// Error querying metrics
 		exp.Status = "UNKNOWN"
 	}
 
 	return &exp, nil
 }
 func (db *DB) GetExperiments() ([]Experiment, error) {
-	// Derive completed_jobs dynamically from view
-	query := `SELECT 
-		e.id, e.name, e.timestamp, e.status, e.reps, e.concurrent, 
-		COALESCE(p.total_runs_actual, 0) as total_jobs, 
-		COALESCE(p.completed_runs, 0) + COALESCE(p.aborted_runs, 0) as completed_jobs,
-		COALESCE(e.pid, 0), 
-		e.success_rate, e.avg_duration, e.avg_tokens, e.total_lint, e.successful_runs 
-		FROM experiments e 
-		LEFT JOIN experiment_progress_view p ON e.id = p.experiment_id
-		ORDER BY e.timestamp DESC`
+	// Aggregate metrics per experiment
+	// This query effectively replaces the need for caching columns in the experiments table.
+	// Note: We join on run_results to get live status.
+	
+	query := `
+	SELECT 
+		e.id, e.name, e.timestamp, e.status, e.reps, e.concurrent, e.total_jobs,
+		COALESCE(e.pid, 0),
+		(
+			SELECT COUNT(*) FROM run_results r WHERE r.experiment_id = e.id AND r.status IN ('COMPLETED', 'ABORTED')
+		) as completed_actual,
+		(
+			SELECT AVG(CASE WHEN is_success THEN 1.0 ELSE 0.0 END) * 100 FROM run_results r WHERE r.experiment_id = e.id
+		) as success_rate,
+		(
+			SELECT AVG(CASE WHEN is_success THEN duration ELSE NULL END) / 1000000000.0 FROM run_results r WHERE r.experiment_id = e.id
+		) as avg_duration,
+		(
+			SELECT AVG(CASE WHEN is_success THEN total_tokens ELSE NULL END) FROM run_results r WHERE r.experiment_id = e.id
+		) as avg_tokens,
+		(
+			SELECT SUM(lint_issues) FROM run_results r WHERE r.experiment_id = e.id
+		) as total_lint,
+		(
+			SELECT COUNT(*) FROM run_results r WHERE r.experiment_id = e.id AND is_success
+		) as successful_runs
+	FROM experiments e 
+	ORDER BY e.timestamp DESC`
 
 	rows, err := db.conn.Query(query)
 
@@ -915,10 +815,10 @@ func (db *DB) GetExperiments() ([]Experiment, error) {
 		var ts string
 		var sRate, aDur, aTok sql.NullFloat64
 		var tLint, sRuns sql.NullInt64
-		var total, completed int
+		var completedActual int
 
-		if err := rows.Scan(&exp.ID, &exp.Name, &ts, &exp.Status, &exp.Reps, &exp.Concurrent, &total, &completed, &exp.PID,
-			&sRate, &aDur, &aTok, &tLint, &sRuns); err != nil {
+		if err := rows.Scan(&exp.ID, &exp.Name, &ts, &exp.Status, &exp.Reps, &exp.Concurrent, &exp.TotalJobs, &exp.PID,
+			&completedActual, &sRate, &aDur, &aTok, &tLint, &sRuns); err != nil {
 			return nil, err
 		}
 		exp.Timestamp, _ = time.Parse(time.RFC3339, ts)
@@ -927,20 +827,18 @@ func (db *DB) GetExperiments() ([]Experiment, error) {
 		exp.AvgTokens = aTok.Float64
 		exp.TotalLint = int(tLint.Int64)
 		exp.SuccessfulRuns = int(sRuns.Int64)
+		exp.CompletedJobs = completedActual // Derived, not stored
 
 		// Populate Progress
 		exp.Progress = &ExperimentProgress{
-			Completed: completed,
-			Total:     total,
+			Completed: exp.CompletedJobs,
+			Total:     exp.TotalJobs,
 		}
-		if total > 0 {
-			exp.Progress.Percentage = float64(completed) / float64(total) * 100
+		if exp.TotalJobs > 0 {
+			exp.Progress.Percentage = float64(exp.CompletedJobs) / float64(exp.TotalJobs) * 100
 		}
-
 		// Derive Status
-		// If stored status says COMPLETED but we are not actually done, revert to RUNNING so cleanup can catch it.
-		// Or generally enforce truth.
-		if exp.Status == ExperimentStatusCompleted && completed < total {
+		if exp.Status == ExperimentStatusCompleted && exp.CompletedJobs < exp.TotalJobs {
 			exp.Status = ExperimentStatusRunning
 		}
 
@@ -950,7 +848,7 @@ func (db *DB) GetExperiments() ([]Experiment, error) {
 }
 
 func (db *DB) GetRunResults(experimentID int64) ([]*RunResult, error) {
-	query := `SELECT id, experiment_id, alternative, scenario, repetition, duration, error, tests_passed, tests_failed, lint_issues, raw_json, total_tokens, input_tokens, output_tokens, tool_calls_count, loop_detected, stdout, stderr, is_success, validation_report, status FROM run_results WHERE experiment_id = ? ORDER BY id ASC`
+	query := `SELECT id, experiment_id, alternative, scenario, repetition, duration, error, tests_passed, tests_failed, lint_issues, raw_json, total_tokens, input_tokens, output_tokens, tool_calls_count, failed_tool_calls, loop_detected, stdout, stderr, is_success, validation_report, status, reason FROM run_results WHERE experiment_id = ? ORDER BY id ASC`
 	rows, err := db.conn.Query(query, experimentID)
 	if err != nil {
 		return nil, err
@@ -959,14 +857,14 @@ func (db *DB) GetRunResults(experimentID int64) ([]*RunResult, error) {
 	var results []*RunResult = []*RunResult{}
 	for rows.Next() {
 		var r RunResult
-		var valReport, status, errMsg, stdout, stderr, rawJSON sql.NullString
-		var duration, tPassed, tFailed, lIssues, totalTokens, inTokens, outTokens, toolCalls, loopDet, isSucc sql.NullInt64
+		var valReport, status, reason, errMsg, stdout, stderr, rawJSON sql.NullString
+		var duration, tPassed, tFailed, lIssues, totalTokens, inTokens, outTokens, toolCalls, failedToolCalls, loopDet, isSucc sql.NullInt64
 
 		err := rows.Scan(
 			&r.ID, &r.ExperimentID, &r.Alternative, &r.Scenario, &r.Repetition,
 			&duration, &errMsg, &tPassed, &tFailed, &lIssues, &rawJSON,
-			&totalTokens, &inTokens, &outTokens, &toolCalls, &loopDet,
-			&stdout, &stderr, &isSucc, &valReport, &status,
+			&totalTokens, &inTokens, &outTokens, &toolCalls, &failedToolCalls, &loopDet,
+			&stdout, &stderr, &isSucc, &valReport, &status, &reason,
 		)
 		if err != nil {
 			return nil, err
@@ -982,12 +880,26 @@ func (db *DB) GetRunResults(experimentID int64) ([]*RunResult, error) {
 		r.InputTokens = int(inTokens.Int64)
 		r.OutputTokens = int(outTokens.Int64)
 		r.ToolCallsCount = int(toolCalls.Int64)
+		r.FailedToolCalls = int(failedToolCalls.Int64)
 		r.LoopDetected = loopDet.Int64 == 1
 		r.Stdout = stdout.String
 		r.Stderr = stderr.String
 		r.IsSuccess = isSucc.Int64 == 1
 		r.ValidationReport = valReport.String
 		r.Status = status.String
+		r.Reason = reason.String
+
+		// Impute Reason if missing (Data-Oriented Fix for legacy/broken runs)
+		if r.Reason == "" && r.Status == "COMPLETED" {
+			if r.IsSuccess {
+				r.Reason = "SUCCESS"
+			} else {
+				// If failed but no specific error reason was saved, it implies a validation failure
+				// (e.g. coverage check, logical assertion) that didn't crash the runner.
+				r.Reason = "FAILED (VALIDATION)"
+			}
+		}
+
 		results = append(results, &r)
 	}
 	return results, nil
@@ -1142,6 +1054,7 @@ func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
 					metrics.FailedToolCalls++
 				}
 			}
+			metrics.TotalToolCallsCount = len(metrics.ToolCalls)
 		}
 	}
 
@@ -1164,13 +1077,13 @@ func (db *DB) SaveRunTelemetry(t *RunTelemetry) error {
 			query := `UPDATE run_results SET 
                                 duration=?, error=?, tests_passed=?, tests_failed=?, lint_issues=?, 
                                 raw_json=?, total_tokens=?, input_tokens=?, output_tokens=?, 
-                                tool_calls_count=?, loop_detected=?, stdout=?, stderr=?, 
+                                tool_calls_count=?, failed_tool_calls=?, loop_detected=?, stdout=?, stderr=?, 
                                 is_success=?, validation_report=?, status=?, reason=?
                                 WHERE id=?`
 			_, err := tx.Exec(query,
 				t.Result.Duration, t.Result.Error, t.Result.TestsPassed, t.Result.TestsFailed, t.Result.LintIssues,
 				t.Result.RawJSON, t.Result.TotalTokens, t.Result.InputTokens, t.Result.OutputTokens,
-				t.Result.ToolCallsCount, t.Result.LoopDetected, t.Result.Stdout, t.Result.Stderr,
+				t.Result.ToolCallsCount, t.Result.FailedToolCalls, t.Result.LoopDetected, t.Result.Stdout, t.Result.Stderr,
 				t.Result.IsSuccess, t.Result.ValidationReport, t.Result.Status, t.Result.Reason,
 				t.Result.ID)
 			if err != nil {

@@ -164,16 +164,10 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 			}
 			log.Printf("Synchronized with DB: found %d terminal results (total found: %d) for Experiment %d", completedCount, len(dbResults), r.experimentID)
 
-			// 1. Initial summary update (using ALL results for initial picture, but we'll re-run non-terminals)
-			// Actually, just use terminalResults for the baseline summary
+			// 1. Initial sync (using ALL results for initial picture, but we'll re-run non-terminals)
 			results = append(results, terminalResults...)
 
-			var allAlts []string
-			for _, a := range cfg.Alternatives {
-				allAlts = append(allAlts, a.Name)
-			}
-			summary := CalculateSummary(results, cfg.Control, allAlts)
-			r.UpdateDBFromResults(summary)
+			// No cached summary update anymore
 
 			// 2. Update initial progress
 			r.db.UpdateExperimentProgress(r.experimentID, completedCount, resultsLimit)
@@ -208,9 +202,9 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 				if alreadyDone {
 					continue
 				}
-
 				// Insert "Running" status
 				var runID int64
+				var lastErr error
 				if r.db != nil && r.experimentID != 0 {
 					prerun := &db.RunResult{
 						ExperimentID: r.experimentID,
@@ -219,10 +213,31 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 						Repetition:   i,
 						Status:       db.RunStatusQueued,
 					}
-					if id, err := r.db.SaveRunResult(prerun); err == nil {
-						runID = id
-					} else {
-						log.Printf("Warning: failed to save initial run state: %v", err)
+					// Retry logic for DB contention with exponential backoff
+					delay := 100 * time.Millisecond
+					for attempt := 0; attempt < 10; attempt++ {
+						if id, err := r.db.SaveRunResult(prerun); err == nil {
+							runID = id
+							break
+						} else {
+							lastErr = err
+							log.Printf("Warning: failed to save initial run state (attempt %d/10): %v. Retrying in %v...", attempt+1, err, delay)
+							time.Sleep(delay)
+							delay *= 2
+						}
+					}
+					if runID == 0 {
+						log.Printf("CRITICAL: Failed to persist run state for %s rep %d after retries: %v", alt.Name, i, lastErr)
+						// Mark as failed in stream to ensure experiment finishes with correct count
+						resultsChan <- Result{
+							Alternative: alt.Name,
+							Scenario:    scenID,
+							Repetition:  i,
+							Status:      db.RunStatusCompleted,
+							Reason:      db.ReasonFailedError,
+							ErrorStr:    fmt.Sprintf("Failed to initialize run in database: %v", lastErr),
+						}
+						continue
 					}
 				}
 
@@ -295,7 +310,8 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 					res.Reason = db.ReasonFailedValidation
 				} else if res.ErrorStr != "" {
 					res.Reason = db.ReasonFailedError
-					// Fallback for failures without explicit error/loop/timeout
+				} else {
+					// Fallback for failures without explicit error/loop/timeout (e.g. coverage)
 					res.Reason = db.ReasonFailedValidation
 				}
 			}
@@ -304,52 +320,83 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 			log.Printf("Progress: %d/%d jobs completed (%.1f%%)", completed, resultsLimit, percentage)
 
 			savedToDB := false
-			if r.db != nil && r.experimentID != 0 && res.RunID != 0 {
-				runRes := &db.RunResult{
-					ID:               res.RunID,
-					ExperimentID:     r.experimentID,
-					Alternative:      res.Alternative,
-					Scenario:         res.Scenario,
-					Repetition:       res.Repetition,
-					Duration:         int64(res.Duration),
-					Error:            res.ErrorStr,
-					Stdout:           res.Stdout,
-					Stderr:           res.Stderr,
-					Status:           res.Status,
-					Reason:           res.Reason,
-					IsSuccess:        res.IsSuccess,
-					ValidationReport: res.ValidationReport,
-				}
-				if res.EvaluationMetrics != nil {
-					runRes.TestsPassed = res.EvaluationMetrics.TestsPassed
-					runRes.TestsFailed = res.EvaluationMetrics.TestsFailed
-					runRes.LintIssues = res.EvaluationMetrics.LintIssues
-				}
-				if res.AgentMetrics != nil {
-					runRes.TotalTokens = res.AgentMetrics.TotalTokens
-					runRes.InputTokens = res.AgentMetrics.InputTokens
-					runRes.OutputTokens = res.AgentMetrics.OutputTokens
-					runRes.ToolCallsCount = len(res.AgentMetrics.ToolCalls)
-					runRes.LoopDetected = res.AgentMetrics.LoopDetected
-				}
-
-				// Build Telemetry for Final Save
-				telemetry := &db.RunTelemetry{
-					Result: runRes,
-				}
-
-				if res.AgentMetrics != nil {
-					// Evaluation Details
-					if res.EvaluationMetrics != nil {
-						telemetry.TestResults = res.EvaluationMetrics.Tests
-						telemetry.LintResults = res.EvaluationMetrics.Lints
+			if r.db != nil && r.experimentID != 0 {
+				// If RunID is missing (failed init), try to create it now to persist the error
+				if res.RunID == 0 {
+					prerun := &db.RunResult{
+						ExperimentID: r.experimentID,
+						Alternative:  res.Alternative,
+						Scenario:     res.Scenario,
+						Repetition:   res.Repetition,
+						Status:       db.RunStatusCompleted,
+						Reason:       res.Reason,
+						Error:        res.ErrorStr,
+					}
+					if id, err := r.db.SaveRunResult(prerun); err == nil {
+						res.RunID = id
+						log.Printf("Recovered ghost run %d (persisted at completion)", id)
+					} else {
+						log.Printf("Failed to persist ghost run: %v", err)
 					}
 				}
-				// Transactional Save
-				if err := r.db.SaveRunTelemetry(telemetry); err != nil {
-					log.Printf("Warning: failed to save final run telemetry: %v", err)
-				} else {
-					savedToDB = true
+
+				if res.RunID != 0 {
+					runRes := &db.RunResult{
+						ID:               res.RunID,
+						ExperimentID:     r.experimentID,
+						Alternative:      res.Alternative,
+						Scenario:         res.Scenario,
+						Repetition:       res.Repetition,
+						Duration:         int64(res.Duration),
+						Error:            res.ErrorStr,
+						Stdout:           res.Stdout,
+						Stderr:           res.Stderr,
+						Status:           res.Status,
+						Reason:           res.Reason,
+						IsSuccess:        res.IsSuccess,
+						ValidationReport: res.ValidationReport,
+					}
+					if res.EvaluationMetrics != nil {
+						runRes.TestsPassed = res.EvaluationMetrics.TestsPassed
+						runRes.TestsFailed = res.EvaluationMetrics.TestsFailed
+						runRes.LintIssues = res.EvaluationMetrics.LintIssues
+					}
+					if res.AgentMetrics != nil {
+						runRes.TotalTokens = res.AgentMetrics.TotalTokens
+						runRes.InputTokens = res.AgentMetrics.InputTokens
+						runRes.OutputTokens = res.AgentMetrics.OutputTokens
+						runRes.ToolCallsCount = len(res.AgentMetrics.ToolCalls)
+						runRes.FailedToolCalls = res.AgentMetrics.FailedToolCalls
+						runRes.LoopDetected = res.AgentMetrics.LoopDetected
+					}
+
+					// Build Telemetry for Final Save
+					telemetry := &db.RunTelemetry{
+						Result: runRes,
+					}
+
+					if res.AgentMetrics != nil {
+						// Evaluation Details
+						if res.EvaluationMetrics != nil {
+							telemetry.TestResults = res.EvaluationMetrics.Tests
+							telemetry.LintResults = res.EvaluationMetrics.Lints
+						}
+					}
+					// Transactional Save with Retry
+					delay := 100 * time.Millisecond
+					for attempt := 0; attempt < 5; attempt++ {
+						if err := r.db.SaveRunTelemetry(telemetry); err == nil {
+							savedToDB = true
+							break
+						} else {
+							log.Printf("Warning: failed to save final run telemetry (attempt %d/5): %v. Retrying...", attempt+1, err)
+							time.Sleep(delay)
+							delay *= 2
+						}
+					}
+					if !savedToDB {
+						log.Printf("CRITICAL: Failed to save telemetry for run %d after retries.", res.RunID)
+					}
 				}
 			}
 
@@ -357,11 +404,7 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 			// or if we are not using a DB. This ensures the summary and investigation tab match.
 			if savedToDB || r.db == nil {
 				results = append(results, res)
-
-				// Re-calculate and update summaries intermittently
-				// Update on every run completion to ensure UI is responsive
-				summary := CalculateSummary(results, cfg.Control, allAlts)
-				r.UpdateDBFromResults(summary)
+				// No cache update needed
 			}
 
 		case <-time.After(1 * time.Second):
@@ -387,39 +430,10 @@ Done:
 	if r.db != nil && r.experimentID != 0 {
 
 		r.db.UpdateExperimentStatus(r.experimentID, finalStatus)
-
-		// Calculate final summary
-
-		summary := CalculateSummary(results, cfg.Control, allAlts)
-		r.UpdateDBFromResults(summary)
+		// No final summary update
 	}
 
 	return results, nil
-}
-
-func (r *Runner) UpdateDBFromResults(summary *ExperimentSummary) {
-	if r.db == nil || r.experimentID == 0 {
-		return
-	}
-	// Append-only: Do not delete old summaries. Just insert new snapshot.
-	for _, s := range summary.Alternatives {
-		s.ExperimentID = r.experimentID
-		if err := r.db.SaveExperimentSummary(&s); err != nil {
-			log.Printf("Warning: failed to save summary for %s: %v", s.Alternative, err)
-		}
-	}
-
-	// NEW: Update global experiment metrics in the experiments table
-	if err := r.db.UpdateExperimentMetrics(
-		r.experimentID,
-		summary.SuccessRate,
-		summary.AvgDuration,
-		summary.AvgTokens,
-		summary.TotalLint,
-		summary.SuccessfulRuns,
-	); err != nil {
-		log.Printf("Warning: failed to update global experiment metrics: %v", err)
-	}
 }
 
 func (r *Runner) checkAction(experimentDir string) string {

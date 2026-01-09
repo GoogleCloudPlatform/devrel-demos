@@ -3,16 +3,17 @@ import { calculateStats, calculateSigTests } from "@/utils/statistics";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/utils/cn";
-
 interface PerformanceTableProps {
     runResults: RunResultRecord[];
     stats: any;
     controlBaseline?: string;
+    alternatives?: string[];
 }
 
-export default function PerformanceTable({ runResults, stats, controlBaseline }: PerformanceTableProps) {
-    const alternatives = Object.keys(stats).sort();
+export default function PerformanceTable({ runResults, stats, controlBaseline, alternatives: configAlts }: PerformanceTableProps) {
+    const alternatives = configAlts || Object.keys(stats).sort();
     const referenceAlt = controlBaseline || (alternatives.length > 0 ? alternatives[0] : "");
+
 
     // Calculate significance relative to control
     const sigResults = calculateSigTests(runResults, referenceAlt);
