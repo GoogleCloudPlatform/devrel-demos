@@ -92,7 +92,7 @@ steps:
       - "-c"
       - |
         export _TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-        gsutil -m cp -r tests/load_test/.results gs://${_LOGS_BUCKET_NAME_STAGING}/load-test-results/results-$${_TIMESTAMP}
+        gcloud storage cp --recursive tests/load_test/.results gs://${_LOGS_BUCKET_NAME_STAGING}/load-test-results/results-$${_TIMESTAMP}
         echo "_________________________________________________________________________"
         echo "Load test results copied to gs://${_LOGS_BUCKET_NAME_STAGING}/load-test-results/results-$${_TIMESTAMP}"
         echo "HTTP link: https://console.cloud.google.com/storage/browser/${_LOGS_BUCKET_NAME_STAGING}/load-test-results/results-$${_TIMESTAMP}"
