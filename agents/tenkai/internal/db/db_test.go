@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
 )
 
 func TestMessagesView(t *testing.T) {
@@ -19,13 +21,13 @@ func TestMessagesView(t *testing.T) {
 	defer database.Close()
 
 	// Insert Experiment & Run
-	exp := &Experiment{Name: "Test", Timestamp: time.Now()}
+	exp := &models.Experiment{Name: "Test", Timestamp: time.Now()}
 	expID, err := database.CreateExperiment(exp)
 	if err != nil {
 		t.Fatalf("Failed to create experiment: %v", err)
 	}
 
-	run := &RunResult{ExperimentID: expID, Status: "RUNNING"}
+	run := &models.RunResult{ExperimentID: expID, Status: "RUNNING"}
 	runID, err := database.SaveRunResult(run)
 	if err != nil {
 		t.Fatalf("Failed to save run: %v", err)
@@ -78,9 +80,9 @@ func TestGetMessages_Aggregation(t *testing.T) {
 	defer database.Close()
 
 	// Insert Run
-	exp := &Experiment{Name: "TestAgg", Timestamp: time.Now()}
+	exp := &models.Experiment{Name: "TestAgg", Timestamp: time.Now()}
 	expID, _ := database.CreateExperiment(exp)
-	run := &RunResult{ExperimentID: expID, Status: "RUNNING"}
+	run := &models.RunResult{ExperimentID: expID, Status: "RUNNING"}
 	runID, _ := database.SaveRunResult(run)
 
 	// Define Event Struct
@@ -135,5 +137,67 @@ func TestGetMessages_Aggregation(t *testing.T) {
 	// Check Final User Message
 	if msgs[2].Content != "Stop." {
 		t.Errorf("Last message mismatch. Got '%s'", msgs[2].Content)
+	}
+}
+
+func TestGetToolStats(t *testing.T) {
+	// Setup
+	tmpDir, _ := os.MkdirTemp("", "tenkai-db-test-stats")
+	defer os.RemoveAll(tmpDir)
+	dbPath := filepath.Join(tmpDir, "test.db")
+	database, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("Failed to open DB: %v", err)
+	}
+	defer database.Close()
+
+	// Seed Data
+	exp := &models.Experiment{Name: "StatsTest", Timestamp: time.Now()}
+	expID, _ := database.CreateExperiment(exp)
+	run := &models.RunResult{ExperimentID: expID, Status: "COMPLETED"}
+	runID, _ := database.SaveRunResult(run)
+
+	// Save Tool Events
+	database.SaveRunEvent(runID, "tool", map[string]interface{}{
+		"name": "readFile",
+	})
+	database.SaveRunEvent(runID, "tool", map[string]interface{}{
+		"name": "readFile",
+	})
+	database.SaveRunEvent(runID, "tool", map[string]interface{}{
+		"name": "writeFile",
+	})
+
+	// Add a failed tool call (simulate by saving an error event or checking how tool stats are calculated)
+	// Looking at GetToolStats implementation:
+	// It counts 'tool' events by tool_name.
+	// It assumes 'failed_tool_calls' column in run_results is populated by the runner, not derived from events in this query usually?
+	// Wait, GetToolStats implementation in experiments.go queries `run_events` where type='tool'.
+	// It groups by JSON_EXTRACT(payload, '$.tool_name').
+
+	stats, err := database.GetToolStats(expID)
+	if err != nil {
+		t.Fatalf("Failed to get tool stats: %v", err)
+	}
+
+	if len(stats) != 2 {
+		t.Errorf("Expected 2 tools, got %d", len(stats))
+	}
+
+	// Verify counts
+	var readFile, writeFile models.ToolStatRow
+	for _, s := range stats {
+		if s.ToolName == "readFile" {
+			readFile = s
+		} else if s.ToolName == "writeFile" {
+			writeFile = s
+		}
+	}
+
+	if readFile.TotalCalls != 2 {
+		t.Errorf("Expected 2 readFile calls, got %d", readFile.TotalCalls)
+	}
+	if writeFile.TotalCalls != 1 {
+		t.Errorf("Expected 1 writeFile call, got %d", writeFile.TotalCalls)
 	}
 }

@@ -10,55 +10,9 @@ import (
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/workspace"
 )
-
-func TestResultSuccess(t *testing.T) {
-	tests := []struct {
-		name     string
-		res      Result
-		expected bool
-	}{
-		{
-			name:     "Success with Validation Report",
-			res:      Result{IsSuccess: true, ValidationReport: `{"overall_success": true}`},
-			expected: true,
-		},
-		{
-			name:     "Failure with Validation Report",
-			res:      Result{IsSuccess: false, ValidationReport: `{"overall_success": false}`},
-			expected: false,
-		},
-		{
-			name:     "Failure with Error",
-			res:      Result{Error: fmt.Errorf("timeout")},
-			expected: false,
-		},
-		{
-			name:     "Legacy Success (Tests Passed)",
-			res:      Result{EvaluationMetrics: &db.EvaluationMetrics{TestsPassed: 1}},
-			expected: true,
-		},
-		{
-			name:     "Legacy Failure (No Tests)",
-			res:      Result{EvaluationMetrics: &db.EvaluationMetrics{TestsPassed: 0}},
-			expected: false,
-		},
-		{
-			name:     "Empty Result",
-			res:      Result{},
-			expected: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.res.Success(); got != tt.expected {
-				t.Errorf("Result.Success() = %v, want %v", got, tt.expected)
-			}
-		})
-	}
-}
 
 func TestIsTimeout(t *testing.T) {
 	tests := []struct {
@@ -119,9 +73,31 @@ validation:
 	os.WriteFile(filepath.Join(scenDir, "scenario.yaml"), []byte(yamlContent), 0644)
 	// We rely on PrepareWorkspace generating PROMPT.md from task: test
 
-	// 2. Setup Runner
+	// 2. Setup Runner with DB
 	wsMgr := workspace.New(tmpDir, scenariosDir, scenariosDir)
 	r := New(wsMgr, 1)
+
+	// Setup Test DB
+	dbPath := filepath.Join(tmpDir, "tenkai.db")
+	testDB, err := db.Open(dbPath)
+	if err != nil {
+		t.Fatalf("Failed to open test DB: %v", err)
+	}
+	defer testDB.Close()
+	r.SetDB(testDB)
+
+	// Create Experiment in DB
+	exp := &models.Experiment{
+		Name:      "test-run",
+		Timestamp: time.Now(),
+		Status:    "RUNNING",
+		Reps:      1,
+	}
+	expID, err := testDB.CreateExperiment(exp)
+	if err != nil {
+		t.Fatalf("Failed to create experiment: %v", err)
+	}
+	r.SetExperimentID(expID)
 
 	// 3. Setup Config with "Agent" command
 	// We use a bash command that prints result then sleeps

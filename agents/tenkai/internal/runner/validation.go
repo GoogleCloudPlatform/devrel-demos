@@ -14,15 +14,17 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
-	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
 )
 
 type ValidationReport struct {
-	OverallSuccess bool             `json:"overall_success"`
-	TestsPassed    int              `json:"tests_passed"`
-	TestsFailed    int              `json:"tests_failed"`
-	LintIssues     int              `json:"lint_issues"`
-	Items          []ValidationItem `json:"items"`
+	OverallSuccess bool                `json:"overall_success"`
+	TestsPassed    int                 `json:"tests_passed"`
+	TestsFailed    int                 `json:"tests_failed"`
+	LintIssues     int                 `json:"lint_issues"`
+	Items          []ValidationItem    `json:"items"`
+	DetailedTests  []models.TestResult `json:"-"` // Not serialized to validation_report JSON, saved to test_results table
+	DetailedLints  []models.LintIssue  `json:"-"` // Not serialized to validation_report JSON, saved to lint_results table
 }
 
 type ValidationItem struct {
@@ -37,21 +39,27 @@ func (r *Runner) Validate(ctx context.Context,
 	report := &ValidationReport{
 		OverallSuccess: true,
 		Items:          make([]ValidationItem, 0),
+		DetailedTests:  make([]models.TestResult, 0),
+		DetailedLints:  make([]models.LintIssue, 0),
 	}
 
 	for _, rule := range rules {
 		var item ValidationItem
 		var err error
 		var tPass, tFail, lIssues int
+		var tests []models.TestResult
+		var lints []models.LintIssue
 
 		switch rule.Type {
 		case "test":
-			item, tPass, tFail, err = r.validateTest(ctx, wsPath, rule)
+			tests, item, tPass, tFail, err = r.validateTest(ctx, wsPath, rule)
 			report.TestsPassed += tPass
 			report.TestsFailed += tFail
+			report.DetailedTests = append(report.DetailedTests, tests...)
 		case "lint":
-			item, lIssues, err = r.validateLint(ctx, wsPath, rule)
+			lints, item, lIssues, err = r.validateLint(ctx, wsPath, rule)
 			report.LintIssues += lIssues
+			report.DetailedLints = append(report.DetailedLints, lints...)
 		case "command":
 			item, err = r.validateCommand(ctx, wsPath, rule)
 		case "model":
@@ -80,10 +88,10 @@ func (r *Runner) Validate(ctx context.Context,
 	return report, nil
 }
 
-func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.ValidationRule) (ValidationItem, int, int, error) {
+func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.ValidationRule) ([]models.TestResult, ValidationItem, int, int, error) {
 	target := rule.Target
 	if target == "" {
-		return ValidationItem{
+		return nil, ValidationItem{
 			Type:    "test",
 			Status:  "FAIL",
 			Details: "Error: No test target specified in validation rule (e.g., target: './...')",
@@ -105,17 +113,33 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 	var detailsBuilder strings.Builder
 	packageFailed := false
 
+	var results []models.TestResult
+
 	for scanner.Scan() {
 		var entry struct {
 			Action  string
 			Package string
 			Test    string
 			Output  string
+			Time    string
+			Elapsed float64
 		}
 		if err := json.Unmarshal(scanner.Bytes(), &entry); err == nil {
 			if entry.Action == "run" || entry.Action == "pass" || entry.Action == "fail" {
 				testsFound = true
 			}
+
+			// Capture individual test results
+			if entry.Test != "" && (entry.Action == "pass" || entry.Action == "fail" || entry.Action == "skip") {
+				status := strings.ToUpper(entry.Action) // PASS, FAIL, SKIP
+				results = append(results, models.TestResult{
+					Name:       entry.Test,
+					Status:     status,
+					DurationNS: int64(entry.Elapsed * 1e9),
+					Output:     entry.Output,
+				})
+			}
+
 			if entry.Action == "pass" && entry.Test != "" {
 				passedCount++
 				detailsBuilder.WriteString(fmt.Sprintf("PASS: %s\n", entry.Test))
@@ -156,7 +180,7 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 	if !testsFound {
 		item.Status = "FAIL"
 		item.Details = "No tests found or test execution failed entirely"
-		return item, 0, 0, nil
+		return nil, item, 0, 0, nil
 	}
 
 	if failedCount > 0 {
@@ -183,10 +207,10 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 	msg.WriteString(detailsBuilder.String())
 	item.Details = msg.String()
 
-	return item, passedCount, failedCount, nil
+	return results, item, passedCount, failedCount, nil
 }
 
-func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.ValidationRule) (ValidationItem, int, error) {
+func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.ValidationRule) ([]models.LintIssue, ValidationItem, int, error) {
 	target := rule.Target
 	if target == "" {
 		target = "./..."
@@ -215,12 +239,12 @@ func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.Va
 		Issues []glIssue `json:"Issues"`
 	}
 
-	var issues []db.LintIssue
+	var issues []models.LintIssue
 
 	if err := json.Unmarshal(out.Bytes(), &result); err == nil {
 		// Convert to db.LintIssue
 		for _, i := range result.Issues {
-			issues = append(issues, db.LintIssue{
+			issues = append(issues, models.LintIssue{
 				File:     i.Pos.Filename,
 				Line:     i.Pos.Line,
 				Col:      i.Pos.Column,
@@ -229,13 +253,11 @@ func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.Va
 				RuleID:   i.FromLinter,
 			})
 		}
-	} else {
-		// Fallback if empty or raw
-		// Check invalid JSON handling
 	}
 
 	// Check exclusions
-	finalIssues := 0
+	var finalIssuesList []models.LintIssue
+	finalIssuesCount := 0
 	var detailsBuilder strings.Builder
 	for _, issue := range issues {
 		ignored := false
@@ -246,7 +268,8 @@ func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.Va
 			}
 		}
 		if !ignored {
-			finalIssues++
+			finalIssuesCount++
+			finalIssuesList = append(finalIssuesList, issue)
 			// Format: file:line:col [rule] message
 			detailsBuilder.WriteString(fmt.Sprintf("%s:%d:%d [%s] %s\n",
 				issue.File, issue.Line, issue.Col, issue.RuleID, issue.Message))
@@ -258,19 +281,19 @@ func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.Va
 		Description: fmt.Sprintf("Lint check on %s (Max: %d)", target, rule.MaxIssues),
 	}
 
-	if finalIssues <= rule.MaxIssues {
+	if finalIssuesCount <= rule.MaxIssues {
 		item.Status = "PASS"
-		if finalIssues == 0 {
-			item.Details = fmt.Sprintf("Found %d issues (allowed %d)", finalIssues, rule.MaxIssues)
+		if finalIssuesCount == 0 {
+			item.Details = fmt.Sprintf("Found %d issues (allowed %d)", finalIssuesCount, rule.MaxIssues)
 		} else {
-			item.Details = fmt.Sprintf("Found %d issues (allowed %d):\n\n%s", finalIssues, rule.MaxIssues, detailsBuilder.String())
+			item.Details = fmt.Sprintf("Found %d issues (allowed %d):\n\n%s", finalIssuesCount, rule.MaxIssues, detailsBuilder.String())
 		}
 	} else {
 		item.Status = "FAIL"
-		item.Details = fmt.Sprintf("Found %d issues (allowed %d):\n\n%s", finalIssues, rule.MaxIssues, detailsBuilder.String())
+		item.Details = fmt.Sprintf("Found %d issues (allowed %d):\n\n%s", finalIssuesCount, rule.MaxIssues, detailsBuilder.String())
 	}
 
-	return item, finalIssues, nil
+	return finalIssuesList, item, finalIssuesCount, nil
 }
 
 func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config.ValidationRule) (ValidationItem, error) {

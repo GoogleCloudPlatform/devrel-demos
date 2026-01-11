@@ -11,6 +11,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/runner"
 )
 
@@ -161,7 +162,7 @@ func (r *EnhancedMarkdownGenerator) writeExecutiveSummary() {
 		totalRuns, successCount, len(r.Cfg.Scenarios), globalSuccessRate, healthEmoji)
 
 	// 2. Identify Winners
-	var bestSuccess, bestSpeed, bestEfficiency *db.ExperimentSummaryRow
+	var bestSuccess, bestSpeed, bestEfficiency *models.ExperimentSummaryRow
 
 	for _, name := range r.getAltOrder() {
 		s, ok := r.summary.Alternatives[name]
@@ -223,7 +224,7 @@ func (r *EnhancedMarkdownGenerator) writePerformanceComparison() {
 	order := r.getAltOrder()
 
 	// Identify Control (first in config)
-	var control *db.ExperimentSummaryRow
+	var control *models.ExperimentSummaryRow
 	if r.Cfg != nil && len(r.Cfg.Alternatives) > 0 {
 		c, ok := r.summary.Alternatives[r.Cfg.Control]
 		if ok {

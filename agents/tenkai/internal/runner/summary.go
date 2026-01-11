@@ -5,29 +5,30 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/stats"
 )
 
 // ExperimentSummary holds the aggregated results for the entire experiment.
 type ExperimentSummary struct {
-	TotalRuns      int                                `json:"total_runs"`
-	SuccessfulRuns int                                `json:"successful_runs"`
-	SuccessRate    float64                            `json:"success_rate"`
-	AvgDuration    float64                            `json:"avg_duration"` // seconds
-	AvgTokens      float64                            `json:"avg_tokens"`
-	TotalLint      int                                `json:"total_lint"`
-	Alternatives   map[string]db.ExperimentSummaryRow `json:"alternatives"`
+	TotalRuns      int                                    `json:"total_runs"`
+	SuccessfulRuns int                                    `json:"successful_runs"`
+	SuccessRate    float64                                `json:"success_rate"`
+	AvgDuration    float64                                `json:"avg_duration"` // seconds
+	AvgTokens      float64                                `json:"avg_tokens"`
+	TotalLint      int                                    `json:"total_lint"`
+	Alternatives   map[string]models.ExperimentSummaryRow `json:"alternatives"`
 }
 
 func CalculateSummary(results []Result, controlAlt string, allAlts []string) *ExperimentSummary {
 	summary := &ExperimentSummary{
 		TotalRuns:    0,
-		Alternatives: make(map[string]db.ExperimentSummaryRow),
+		Alternatives: make(map[string]models.ExperimentSummaryRow),
 	}
 
 	// Pre-populate all expected alternatives
 	for _, name := range allAlts {
-		summary.Alternatives[name] = db.ExperimentSummaryRow{
+		summary.Alternatives[name] = models.ExperimentSummaryRow{
 			Alternative:  name,
 			PSuccess:     -1.0,
 			PDuration:    -1.0,
@@ -121,7 +122,7 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string) *Ex
 		if !ok {
 			continue
 		}
-		as := db.ExperimentSummaryRow{
+		as := models.ExperimentSummaryRow{
 			Alternative:     name,
 			TotalRuns:       m.totalRuns,
 			SuccessCount:    m.successes,

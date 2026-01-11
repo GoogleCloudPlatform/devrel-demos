@@ -30,7 +30,7 @@ func FixMarkdownReport(path string) error {
 		"Conclusion",
 	}
 
-	// Pre-fix specific corruption caused by previous run
+	// Fix table formatting if corrupted
 	reportStr = strings.ReplaceAll(reportStr, "Performance Comparison|", "Performance Comparison\n|")
 
 	// Remove the specific note if present, replacing with newline to preserve formatting
@@ -43,7 +43,7 @@ func FixMarkdownReport(path string) error {
 	header := parts[0] // The H1 title and timestamp
 
 	for _, p := range parts[1:] {
-		// Re-add the ## prefix that was removed by split
+		// Restore the ## prefix for the section header
 		fullSection := "\n## " + p
 
 		titleEnd := strings.Index(p, "\n")

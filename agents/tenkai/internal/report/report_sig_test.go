@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
-	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/parser"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/runner"
 )
@@ -24,7 +24,7 @@ func TestReportSignificanceMarkers(t *testing.T) {
 			Status:            "COMPLETED",
 			Duration:          time.Duration(10) * time.Second,
 			AgentMetrics:      &parser.AgentMetrics{TotalTokens: 1000},
-			EvaluationMetrics: &db.EvaluationMetrics{LintIssues: 5},
+			EvaluationMetrics: &models.EvaluationMetrics{LintIssues: 5},
 		})
 	}
 
@@ -37,7 +37,7 @@ func TestReportSignificanceMarkers(t *testing.T) {
 			Status:            "COMPLETED",
 			Duration:          time.Duration(20) * time.Second,
 			AgentMetrics:      &parser.AgentMetrics{TotalTokens: 2000},
-			EvaluationMetrics: &db.EvaluationMetrics{LintIssues: 10},
+			EvaluationMetrics: &models.EvaluationMetrics{LintIssues: 10},
 		})
 	}
 
