@@ -78,7 +78,14 @@ func (api *API) GetToolStats(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, NewAPIError(http.StatusBadRequest, "Invalid ID")
 	}
-	return api.DB.GetToolStats(id)
+	res, err := api.DB.GetToolStats(id)
+	if err != nil {
+		return nil, err
+	}
+	if res == nil {
+		return []models.ToolStatRow{}, nil
+	}
+	return res, nil
 }
 
 func (api *API) GetRunFiles(r *http.Request) (any, error) {

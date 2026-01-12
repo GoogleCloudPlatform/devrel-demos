@@ -1,5 +1,4 @@
 import { RunResultRecord } from "@/app/api/api";
-import { calculateStats, calculateSigTests } from "@/utils/statistics";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/utils/cn";
@@ -14,9 +13,6 @@ export default function PerformanceTable({ runResults, stats, controlBaseline, a
     const alternatives = configAlts || Object.keys(stats).sort();
     const referenceAlt = controlBaseline || (alternatives.length > 0 ? alternatives[0] : "");
 
-
-    // Calculate significance relative to control
-    const sigResults = calculateSigTests(runResults, referenceAlt);
 
     return (
         <div className="rounded-md border bg-card">
@@ -42,26 +38,37 @@ export default function PerformanceTable({ runResults, stats, controlBaseline, a
                 </TableHeader>
                 <TableBody>
                     {alternatives.map((alt) => {
-                        const s = stats[alt];
-                        const sig = sigResults[alt] || {};
-                        const successSig = sig.successRate || { level: '' };
-                        const durationSig = sig.avgDuration || { level: '' };
-                        const tokenSig = sig.avgTokens || { level: '' };
-                        const toolCallSig = sig.avgToolCalls || { level: '' };
+                        const s = stats[alt]; // Backend summary stats
+
+                        // Helper: Prefer backend P-values (Fisher/Welch) over client Z-test
+                        const getSigLevel = (backendP: number | undefined) => {
+                            if (backendP !== undefined) {
+                                if (backendP >= 0) {
+                                    if (backendP < 0.01) return '***';
+                                    if (backendP < 0.05) return '**';
+                                    if (backendP < 0.1) return '*';
+                                }
+                                return ''; // Valid backend result indicating no significance (or not calculated)
+                            }
+                            return '';
+                        };
+
+                        const isControl = alt === referenceAlt;
+                        const successSigLevel = isControl ? '' : getSigLevel(s.p_success);
+                        const durationSigLevel = isControl ? '' : getSigLevel(s.p_duration);
+                        const tokenSigLevel = isControl ? '' : getSigLevel(s.p_tokens);
+                        const toolCallSigLevel = isControl ? '' : getSigLevel(s.p_tool_calls);
 
                         // Handle both snake_case (DB) and camelCase (client calc)
-                        const successRate = s.success_rate !== undefined ? s.success_rate : s.successRate;
-                        const avgDuration = s.avg_duration !== undefined ? s.avg_duration : s.avgDuration;
-                        const avgTokens = s.avg_tokens !== undefined ? s.avg_tokens : s.avgTokens;
-                        const avgLint = s.avg_lint !== undefined ? s.avg_lint : s.avgLint;
-                        const totalRuns = s.total_runs !== undefined ? s.total_runs : s.count;
-                        const successCount = s.success_count !== undefined ? s.success_count : s.successCount;
+                        const successRate = s.success_rate;
+                        const avgDuration = s.avg_duration;
+                        const avgTokens = s.avg_tokens;
+                        const avgLint = s.avg_lint;
+                        const totalRuns = s.total_runs;
+                        const successCount = s.success_count;
 
                         // Calculate avg tool calls if not present directly (DB summary has total, client has avg)
-                        const avgToolCalls = s.avgToolCalls !== undefined
-                            ? s.avgToolCalls
-                            : (s.total_tool_calls && totalRuns ? s.total_tool_calls / totalRuns : 0);
-                        
+                        const avgToolCalls = s.total_tool_calls && totalRuns ? s.total_tool_calls / totalRuns : 0;
                         const avgFailedTools = (s.failed_tool_calls && totalRuns) ? s.failed_tool_calls / totalRuns : 0;
 
                         return (
@@ -73,26 +80,26 @@ export default function PerformanceTable({ runResults, stats, controlBaseline, a
                                 <TableCell className="px-6 text-right">
                                     <div className="flex items-center justify-end gap-2">
                                         <span className="font-bold text-foreground">{(successRate || 0).toFixed(1)}%</span>
-                                        {successSig.level && <span className="text-primary font-bold" title="Statistically Significant">{successSig.level}</span>}
+                                        {successSigLevel && <span className="text-primary font-bold" title="Statistically Significant">{successSigLevel}</span>}
                                     </div>
                                     <div className="text-muted-foreground text-xs mt-1">{successCount}/{totalRuns} runs</div>
                                 </TableCell>
                                 <TableCell className="px-6 text-right">
                                     <div className="flex items-center justify-end gap-2">
                                         <span className="font-mono">{avgDuration?.toFixed(2)}s</span>
-                                        {durationSig.level && <span className="text-primary font-bold">{durationSig.level}</span>}
+                                        {durationSigLevel && <span className="text-primary font-bold">{durationSigLevel}</span>}
                                     </div>
                                 </TableCell>
                                 <TableCell className="px-6 text-right">
                                     <div className="flex items-center justify-end gap-2">
                                         <span className="font-mono">{(avgTokens / 1000).toFixed(1)}k</span>
-                                        {tokenSig.level && <span className="text-primary font-bold">{tokenSig.level}</span>}
+                                        {tokenSigLevel && <span className="text-primary font-bold">{tokenSigLevel}</span>}
                                     </div>
                                 </TableCell>
                                 <TableCell className="px-6 text-right">
                                     <div className="flex items-center justify-end gap-2">
                                         <span className="font-mono">{avgToolCalls?.toFixed(1)}</span>
-                                        {toolCallSig.level && <span className="text-primary font-bold">{toolCallSig.level}</span>}
+                                        {toolCallSigLevel && <span className="text-primary font-bold">{toolCallSigLevel}</span>}
                                     </div>
                                 </TableCell>
                                 <TableCell className="px-6 text-right">

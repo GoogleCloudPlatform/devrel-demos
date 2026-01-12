@@ -71,6 +71,9 @@ type ExperimentSummaryRow struct {
 	PTestsPassed float64 `json:"p_tests_passed"`
 	PTestsFailed float64 `json:"p_tests_failed"`
 	PTimeout     float64 `json:"p_timeout"`
+	PToolCalls   float64 `json:"p_tool_calls"`
+
+	ToolAnalysis []ToolAnalysis `json:"tool_analysis"`
 }
 
 type RunResult struct {
@@ -148,6 +151,14 @@ type RunFile struct {
 	Path        string `json:"path"`
 	Content     string `json:"content"`
 	IsGenerated bool   `json:"is_generated"`
+}
+
+// ToolAnalysis contains statistical analysis of tool usage.
+type ToolAnalysis struct {
+	ToolName       string  `json:"tool_name"`
+	SuccFailPValue float64 `json:"succ_fail_p_value"`
+	DurationCorr   float64 `json:"duration_corr"`
+	TokensCorr     float64 `json:"tokens_corr"`
 }
 
 type ToolStatRow struct {

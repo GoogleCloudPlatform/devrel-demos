@@ -26,6 +26,7 @@ Not to do:
 
 Acceptance Criteria:
 - Less than 5 lint issues when running golangci-lint run ./... (use default configuration)
+- Test coverage >= 70%
 - `go build -o hello .` is successful
 - hello responds to method tools/list request successfully
 - hello responds to method tools/call request for the hello_world tool returning the phrase "Hello from Tenkai!"

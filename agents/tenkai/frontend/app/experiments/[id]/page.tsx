@@ -1,7 +1,6 @@
 import yaml from "js-yaml";
 import { getSimplifiedMetrics, getCheckpoint, getRunResults, getExperimentSummaries, getExperiment } from "@/app/api/api";
 import ReportViewer from "@/components/ReportViewer";
-import { calculateStats } from "@/utils/statistics";
 import RefreshOnInterval from "@/components/RefreshOnInterval";
 import Link from "next/link";
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
@@ -54,7 +53,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
     summaries.forEach(row => {
         statObj[row.alternative] = { ...row, alternative: row.alternative, count: row.total_runs };
     });
-    const stats = summaries.length > 0 ? statObj : calculateStats(runResults);
+    const stats = statObj;
 
     let configYaml: any = null;
     try { if (experiment.config_content) configYaml = yaml.load(experiment.config_content); } catch (e) { }

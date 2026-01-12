@@ -61,6 +61,7 @@ export interface ExperimentSummaryRow {
     p_tests_passed?: number;
     p_tests_failed?: number;
     p_timeout?: number;
+    p_tool_calls?: number;
 }
 
 export interface Alternative {
@@ -95,5 +96,6 @@ export interface RunResult {
     is_success: boolean;
     validation_report?: string;
     reason?: string;
+    status: string;
 }
 

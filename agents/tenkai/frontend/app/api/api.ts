@@ -2,7 +2,8 @@
 import {
     ExperimentRecord,
     Checkpoint,
-    ExperimentSummaryRow as ExperimentSummaryRecord
+    ExperimentSummaryRow as ExperimentSummaryRecord,
+    RunResult
 } from '@/types/domain';
 
 export type { ExperimentRecord, ExperimentSummaryRecord, Checkpoint };
@@ -25,29 +26,7 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
     return res.json();
 }
 
-export interface RunResultRecord {
-    id: number;
-    experiment_id: number;
-    alternative: string;
-    scenario: string;
-    repetition: number;
-    duration: number;
-    error: string;
-    stdout: string;
-    stderr: string;
-    tests_passed: number;
-    tests_failed: number;
-    lint_issues: number;
-    total_tokens: number;
-    input_tokens: number;
-    output_tokens: number;
-    tool_calls_count: number;
-    loop_detected: boolean;
-    is_success: boolean;
-    validation_report: string;
-    status: string;
-    reason: string;
-}
+export type RunResultRecord = RunResult;
 
 export interface ToolUsageRecord {
     id: number;

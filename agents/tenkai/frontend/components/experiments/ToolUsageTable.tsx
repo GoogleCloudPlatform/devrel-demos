@@ -21,10 +21,10 @@ export default function ToolUsageTable({ experimentId, alternatives }: ToolUsage
                 return res.json();
             })
             .then(data => {
-                if (Array.isArray(data)) {
+                if (data && Array.isArray(data)) {
                     setStats(data);
                 } else {
-                    console.error("Tool stats data is not an array:", data);
+                    console.warn("Tool stats data is empty or invalid:", data);
                     setStats([]);
                 }
                 setLoading(false);
