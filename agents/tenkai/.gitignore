@@ -43,7 +43,7 @@ frontend/.env*.local
 task.md
 implementation_plan.md
 walkthrough.md
-experiments/runs/*
+experiments/.runs/*
 /tenkai
 *.db-shm
 *.db-wal
