@@ -42,9 +42,10 @@ func (s *Server) RegisterHandlers() {
 	read_docs.Register(s.mcpServer)
 	review_code.Register(s.mcpServer, s.cfg.DefaultModel)
 	edit_code.Register(s.mcpServer)
+	read_code.Register(s.mcpServer)
 
 	if s.cfg.Experimental {
-		read_code.Register(s.mcpServer)
+		// TODO: Add experimental features here (e.g. Type-Aware Indexing)
 	}
 
 	// Register resources
