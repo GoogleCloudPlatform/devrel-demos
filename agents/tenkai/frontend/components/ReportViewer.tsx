@@ -87,7 +87,7 @@ function RevalidateExperimentButton({ experimentId, isExperimentRunning, onState
         setLoading(true);
         onStateChange?.(true);
         try {
-            const res = await reValidateExperiment(experimentId) as any;
+            const res = await reValidateExperiment(experimentId);
             if (res && res.job_id) {
                 setJobId(res.job_id);
             } else if (res && res.error) {
@@ -107,9 +107,7 @@ function RevalidateExperimentButton({ experimentId, isExperimentRunning, onState
         }
     };
 
-    const canRevalidate = useMemo(() => {
-        return true;
-    }, []);
+
 
     if (jobId) {
         return (

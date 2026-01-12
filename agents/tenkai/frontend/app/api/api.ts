@@ -69,6 +69,10 @@ export interface LintResultRecord {
     severity: string;
     rule_id: string;
 }
+export interface JobResponse {
+    job_id?: string;
+    error?: string;
+}
 
 export async function getExperiments(): Promise<ExperimentRecord[]> {
     try {
@@ -228,14 +232,14 @@ export async function getToolStats(experimentId: number): Promise<ToolStatRow[]>
     return fetchAPI<ToolStatRow[]>(`/experiments/${experimentId}/tool-stats`);
 }
 
-export async function reValidateRun(runId: number) {
-    return fetchAPI<any>(`/runs/${runId}/reval`, {
+export async function reValidateRun(runId: number): Promise<JobResponse> {
+    return fetchAPI<JobResponse>(`/runs/${runId}/reval`, {
         method: 'POST'
     });
 }
 
-export async function reValidateExperiment(experimentId: number) {
-    return fetchAPI(`/experiments/${experimentId}/reval`, {
+export async function reValidateExperiment(experimentId: number): Promise<JobResponse> {
+    return fetchAPI<JobResponse>(`/experiments/${experimentId}/reval`, {
         method: 'POST'
     });
 }
