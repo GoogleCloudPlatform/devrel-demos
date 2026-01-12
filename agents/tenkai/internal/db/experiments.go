@@ -3,16 +3,19 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
+	"gopkg.in/yaml.v3"
 )
 
 // GetExperiments fetches all experiments with summary stats
 func (db *DB) GetExperiments() ([]models.Experiment, error) {
 	query := `
 	SELECT 
-		e.id, e.name, e.timestamp, e.status, e.reps, e.total_jobs, e.completed_jobs,
+		e.id, e.name, e.timestamp, e.status, e.reps, e.total_jobs, e.description, e.concurrent, e.config_content, e.experiment_control,
 		COALESCE(AVG(CASE WHEN r.is_success THEN 1.0 ELSE 0.0 END) * 100, 0) as success_rate,
 		COALESCE(AVG(CASE WHEN r.is_success THEN r.duration ELSE NULL END) / 1000000000.0, 0) as avg_duration,
 		COALESCE(AVG(CASE WHEN r.is_success THEN r.total_tokens ELSE NULL END), 0) as avg_tokens
@@ -32,17 +35,56 @@ func (db *DB) GetExperiments() ([]models.Experiment, error) {
 		var e models.Experiment
 		var ts string
 		var sRate, aDur, aTok float64
+		var desc, confContent, expControl sql.NullString
 
 		if err := rows.Scan(
-			&e.ID, &e.Name, &ts, &e.Status, &e.Reps, &e.TotalJobs, &e.CompletedJobs,
+			&e.ID, &e.Name, &ts, &e.Status, &e.Reps, &e.TotalJobs, &desc, &e.Concurrent, &confContent, &expControl,
 			&sRate, &aDur, &aTok,
 		); err != nil {
 			return nil, err
 		}
 		e.Timestamp, _ = time.Parse(time.RFC3339, ts)
+		e.Description = desc.String
+		e.ConfigContent = confContent.String
+		e.ExperimentControl = expControl.String
 		e.SuccessRate = sRate
 		e.AvgDuration = aDur
 		e.AvgTokens = aTok
+
+		// Aggregation for Progress (Real-time from run_results)
+		var completedActual, aborted int
+		// Use COALESCE to ensure 0 is returned instead of NULL if no runs exist
+		err := db.conn.QueryRow(`
+			SELECT 
+				COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END), 0),
+				COALESCE(SUM(CASE WHEN status = 'ABORTED' THEN 1 ELSE 0 END), 0)
+			FROM run_results WHERE experiment_id = ?`, e.ID).Scan(&completedActual, &aborted)
+
+		if err == nil {
+			e.CompletedJobs = completedActual + aborted
+		} else {
+			// If error (shouldn't happen with COALESCE), assume 0 to avoid stale data
+			e.CompletedJobs = 0
+		}
+
+		// Populate Progress
+		if e.TotalJobs > 0 {
+			e.Progress = &models.ExperimentProgress{
+				Completed:  e.CompletedJobs,
+				Total:      e.TotalJobs,
+				Percentage: float64(e.CompletedJobs) / float64(e.TotalJobs) * 100,
+			}
+		}
+
+		// Parse Config for Metadata
+		if e.ConfigContent != "" {
+			var cfg config.Configuration
+			if err := yaml.Unmarshal([]byte(e.ConfigContent), &cfg); err == nil {
+				e.NumAlternatives = len(cfg.Alternatives)
+				e.Timeout = cfg.Timeout
+			}
+		}
+
 		exps = append(exps, e)
 	}
 	return exps, nil
@@ -53,7 +95,7 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 	// Query experiment metadata
 	query := `SELECT 
 		e.id, e.name, e.timestamp, e.config_path, e.report_path, e.results_path, 
-		e.status, e.reps, e.concurrent, e.total_jobs, e.completed_jobs,
+		e.status, e.reps, e.concurrent, e.total_jobs,
 		e.description, e.duration, e.config_content, e.report_content, e.execution_control, e.experiment_control, e.error_message, e.ai_analysis, e.pid
 		FROM experiments e WHERE e.id = ?`
 
@@ -65,7 +107,7 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 
 	err := row.Scan(
 		&exp.ID, &exp.Name, &ts, &exp.ConfigPath, &exp.ReportPath, &exp.ResultsPath,
-		&exp.Status, &exp.Reps, &exp.Concurrent, &exp.TotalJobs, &exp.CompletedJobs,
+		&exp.Status, &exp.Reps, &exp.Concurrent, &exp.TotalJobs,
 		&desc, &exp.Duration, &conf, &rep, &execCtrl, &expCtrl, &errMsg, &aiAn, &exp.PID,
 	)
 	if err != nil {
@@ -84,15 +126,15 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 	aggQuery := `
 	SELECT 
 		COUNT(*), 
-		SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END),
-		SUM(CASE WHEN status = 'RUNNING' THEN 1 ELSE 0 END),
-		SUM(CASE WHEN status = 'QUEUED' THEN 1 ELSE 0 END),
-		SUM(CASE WHEN status = 'ABORTED' THEN 1 ELSE 0 END),
-		AVG(CASE WHEN is_success THEN 1.0 ELSE 0.0 END) * 100,
-		AVG(CASE WHEN is_success THEN duration ELSE NULL END) / 1000000000.0,
-		AVG(CASE WHEN is_success THEN total_tokens ELSE NULL END),
-		SUM(lint_issues),
-		SUM(CASE WHEN is_success THEN 1 ELSE 0 END)
+		COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END), 0),
+		COALESCE(SUM(CASE WHEN status = 'RUNNING' THEN 1 ELSE 0 END), 0),
+		COALESCE(SUM(CASE WHEN status = 'QUEUED' THEN 1 ELSE 0 END), 0),
+		COALESCE(SUM(CASE WHEN status = 'ABORTED' THEN 1 ELSE 0 END), 0),
+		COALESCE(AVG(CASE WHEN is_success THEN 1.0 ELSE 0.0 END) * 100, 0),
+		COALESCE(AVG(CASE WHEN is_success THEN duration ELSE NULL END) / 1000000000.0, 0),
+		COALESCE(AVG(CASE WHEN is_success THEN total_tokens ELSE NULL END), 0),
+		COALESCE(SUM(lint_issues), 0),
+		COALESCE(SUM(CASE WHEN is_success THEN 1 ELSE 0 END), 0)
 	FROM run_results WHERE experiment_id = ?`
 
 	var totalActual, completedActual, running, queued, aborted int
@@ -141,7 +183,7 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 }
 
 func (db *DB) CreateExperiment(exp *models.Experiment) (int64, error) {
-	query := `INSERT INTO experiments (name, timestamp, config_path, report_path, results_path, status, reps, concurrent, total_jobs, completed_jobs, pid, description, config_content) 
+	query := `INSERT INTO experiments (name, timestamp, config_path, report_path, results_path, status, reps, concurrent, total_jobs, pid, description, config_content, experiment_control) 
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	res, err := db.conn.Exec(query,
@@ -154,10 +196,10 @@ func (db *DB) CreateExperiment(exp *models.Experiment) (int64, error) {
 		exp.Reps,
 		exp.Concurrent,
 		exp.TotalJobs,
-		exp.CompletedJobs,
 		exp.PID,
 		exp.Description,
 		exp.ConfigContent,
+		exp.ExperimentControl,
 	)
 	if err != nil {
 		return 0, err
@@ -176,7 +218,7 @@ func (db *DB) UpdateExperimentAIAnalysis(id int64, analysis string) error {
 }
 
 func (db *DB) UpdateExperimentProgress(id int64, completed, total int) error {
-	_, err := db.conn.Exec("UPDATE experiments SET completed_jobs = ?, total_jobs = ? WHERE id = ?", completed, total, id)
+	_, err := db.conn.Exec("UPDATE experiments SET total_jobs = ? WHERE id = ?", total, id)
 	return err
 }
 
@@ -304,8 +346,22 @@ func (db *DB) GetToolStats(experimentID int64) ([]models.ToolStatRow, error) {
 		}
 	}
 
-	// 2. Aggregate tool usage
-	// Join tool_usage with runs to group by alternative
+	// Stats aggregation map: alternative -> tool -> stats
+	statsMap := make(map[string]map[string]*models.ToolStatRow)
+	getStat := func(alt, tool string) *models.ToolStatRow {
+		if statsMap[alt] == nil {
+			statsMap[alt] = make(map[string]*models.ToolStatRow)
+		}
+		if statsMap[alt][tool] == nil {
+			statsMap[alt][tool] = &models.ToolStatRow{
+				Alternative: alt,
+				ToolName:    tool,
+			}
+		}
+		return statsMap[alt][tool]
+	}
+
+	// 2. Aggregate tool usage from standard 'tool_usage' view
 	query := `
 	SELECT 
 		r.alternative,
@@ -315,8 +371,7 @@ func (db *DB) GetToolStats(experimentID int64) ([]models.ToolStatRow, error) {
 	FROM tool_usage t
 	JOIN run_results r ON t.run_id = r.id
 	WHERE r.experiment_id = ?
-	GROUP BY r.alternative, t.name
-	ORDER BY r.alternative, total DESC`
+	GROUP BY r.alternative, t.name`
 
 	rows2, err := db.conn.Query(query, experimentID)
 	if err != nil {
@@ -324,16 +379,61 @@ func (db *DB) GetToolStats(experimentID int64) ([]models.ToolStatRow, error) {
 	}
 	defer rows2.Close()
 
-	var stats []models.ToolStatRow
 	for rows2.Next() {
-		var s models.ToolStatRow
-		if err := rows2.Scan(&s.Alternative, &s.ToolName, &s.TotalCalls, &s.FailedCalls); err != nil {
-			continue
+		var alt, name string
+		var total, failed int
+		if err := rows2.Scan(&alt, &name, &total, &failed); err == nil {
+			s := getStat(alt, name)
+			s.TotalCalls += total
+			s.FailedCalls += failed
 		}
-		if count, ok := runCounts[s.Alternative]; ok && count > 0 {
-			s.AvgCalls = float64(s.TotalCalls) / float64(count)
+	}
+
+	// 3. Aggregate tool failures from 'error' events (STDERR fallback)
+	// Matches pattern: "Error executing tool {TOOL_NAME}:"
+	queryErr := `
+    SELECT 
+        r.alternative,
+        json_extract(payload, '$.message')
+    FROM run_events e
+    JOIN run_results r ON e.run_id = r.id
+    WHERE r.experiment_id = ? 
+      AND e.type = 'error' 
+      AND json_extract(payload, '$.message') LIKE 'Error executing tool %'`
+
+	rows3, err := db.conn.Query(queryErr, experimentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows3.Close()
+
+	for rows3.Next() {
+		var alt, msg string
+		if err := rows3.Scan(&alt, &msg); err == nil {
+			// Parse: "Error executing tool {NAME}: {DETAILS}"
+			// prefix len = 21
+			if len(msg) > 21 {
+				rest := msg[21:]
+				parts := strings.SplitN(rest, ":", 2)
+				if len(parts) > 0 {
+					toolName := strings.TrimSpace(parts[0])
+					s := getStat(alt, toolName)
+					s.TotalCalls++
+					s.FailedCalls++
+				}
+			}
 		}
-		stats = append(stats, s)
+	}
+
+	// 4. Flatten and calculate averages
+	var stats []models.ToolStatRow
+	for alt, tools := range statsMap {
+		for _, s := range tools {
+			if count, ok := runCounts[alt]; ok && count > 0 {
+				s.AvgCalls = float64(s.TotalCalls) / float64(count)
+			}
+			stats = append(stats, *s)
+		}
 	}
 
 	return stats, nil

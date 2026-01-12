@@ -3,10 +3,11 @@ import { getExperiments } from "@/app/api/api";
 import RefreshOnInterval from "@/components/RefreshOnInterval";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/utils/cn";
 import { Plus, Terminal } from "lucide-react";
+import ProgressBar from "@/components/ui/progress-bar";
+import ExperimentsTable from "@/components/experiments/ExperimentsTable";
 
 export default async function Home() {
     const experiments = await getExperiments();
@@ -64,16 +65,12 @@ export default async function Home() {
                                         </div>
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="w-full bg-secondary h-1 rounded-full overflow-hidden mb-2">
-                                            <div
-                                                className="bg-primary h-full transition-all duration-500"
-                                                style={{ width: `${exp.progress ? exp.progress.percentage : 0}%` }}
-                                            />
-                                        </div>
-                                        <div className="flex justify-between text-xs font-mono text-muted-foreground">
-                                            <span>{exp.progress?.completed} / {exp.progress?.total}</span>
-                                            <span>{exp.progress ? Math.round(exp.progress.percentage) : 0}%</span>
-                                        </div>
+                                        <ProgressBar
+                                            percentage={exp.progress?.percentage || 0}
+                                            completed={exp.progress?.completed || 0}
+                                            total={exp.progress?.total || 0}
+                                            status={exp.status}
+                                        />
                                     </CardContent>
                                 </Card>
                             </Link>
@@ -91,63 +88,7 @@ export default async function Home() {
                     </Link>
                 </div>
 
-                <div className="rounded-md border bg-card">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[80px]">ID</TableHead>
-                                <TableHead>Name</TableHead>
-                                <TableHead className="w-[120px]">Status</TableHead>
-                                <TableHead className="w-[100px] text-right">Success</TableHead>
-                                <TableHead className="w-[100px] text-right">Duration</TableHead>
-                                <TableHead className="w-[150px] text-right">Date</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {completedExperiments.slice(0, 15).map(exp => (
-                                <TableRow key={exp.id}>
-                                    <TableCell className="font-mono text-muted-foreground">{exp.id}</TableCell>
-                                    <TableCell>
-                                        <Link href={`/experiments/${exp.id}`} className="hover:text-primary font-medium transition-colors">
-                                            {exp.name || "—"}
-                                        </Link>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={
-                                            exp.status?.toUpperCase() === 'COMPLETED' ? 'secondary' : 'outline'
-                                        } className={cn(
-                                            "uppercase",
-                                            exp.status?.toUpperCase() === 'COMPLETED' && "border-green-500/50 text-green-500",
-                                            exp.status?.toUpperCase() === 'RUNNING' && "border-blue-500/50 text-blue-500 animate-pulse",
-                                            exp.status?.toUpperCase() === 'ABORTED' && "border-amber-500/50 text-amber-500"
-                                        )}>
-                                            {exp.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right font-mono">
-                                        <span className={cn(
-                                            (exp.success_rate || 0) >= 90 ? "text-green-500" :
-                                                (exp.success_rate || 0) >= 50 ? "text-yellow-500" : "text-destructive"
-                                        )}>
-                                            {(exp.success_rate || 0).toFixed(0)}%
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="text-right font-mono text-muted-foreground">
-                                        {(exp.avg_duration || 0).toFixed(1)}s
-                                    </TableCell>
-                                    <TableCell className="text-right font-mono text-muted-foreground">
-                                        {new Date(exp.timestamp).toLocaleDateString()}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            {completedExperiments.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="h-24 text-center">No activity recorded.</TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+                <ExperimentsTable experiments={completedExperiments.slice(0, 15)} />
             </section>
         </div>
     );

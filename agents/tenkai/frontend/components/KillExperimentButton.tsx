@@ -11,10 +11,10 @@ export default function KillExperimentButton({ experimentId }: { experimentId: s
 
         setLoading(true);
         try {
-            const res = await fetch('/api/experiments/control', {
+            const res = await fetch(`/api/experiments/${experimentId}/control`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: experimentId, action: 'stop' })
+                body: JSON.stringify({ command: 'stop' }) // API expects "command" not action
             });
 
             if (res.ok) {

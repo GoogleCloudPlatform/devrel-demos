@@ -40,12 +40,14 @@ type Experiment struct {
 	AIAnalysis        string    `json:"ai_analysis"`
 
 	// Derived Metrics (Calculated on read)
-	SuccessRate    float64             `json:"success_rate"`
-	AvgDuration    float64             `json:"avg_duration"`
-	AvgTokens      float64             `json:"avg_tokens"`
-	TotalLint      int                 `json:"total_lint"`
-	SuccessfulRuns int                 `json:"successful_runs"`
-	Progress       *ExperimentProgress `json:"progress,omitempty"`
+	SuccessRate     float64             `json:"success_rate"`
+	AvgDuration     float64             `json:"avg_duration"`
+	AvgTokens       float64             `json:"avg_tokens"`
+	TotalLint       int                 `json:"total_lint"`
+	SuccessfulRuns  int                 `json:"successful_runs"`
+	NumAlternatives int                 `json:"num_alternatives"`
+	Timeout         string              `json:"timeout"`
+	Progress        *ExperimentProgress `json:"progress,omitempty"`
 }
 
 type ExperimentSummaryRow struct {

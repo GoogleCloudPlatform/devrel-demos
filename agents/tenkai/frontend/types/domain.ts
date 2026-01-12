@@ -23,6 +23,8 @@ export interface ExperimentRecord {
     execution_control?: string;
     total_jobs?: number;
     completed_jobs?: number;
+    num_alternatives?: number;
+    timeout?: string;
     progress?: {
         completed: number;
         total: number;

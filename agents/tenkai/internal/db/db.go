@@ -51,7 +51,6 @@ func (db *DB) migrate() error {
 			reps INTEGER,
 			concurrent INTEGER,
 			total_jobs INTEGER DEFAULT 0,
-			completed_jobs INTEGER DEFAULT 0,
 			error_message TEXT,
 			pid INTEGER,
 			description TEXT,
