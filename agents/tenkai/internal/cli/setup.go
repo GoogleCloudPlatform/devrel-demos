@@ -13,6 +13,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/workspace"
 )
 
 func setupLogging(cwd string) {
@@ -120,11 +121,7 @@ func applyFilters(cfg *config.Configuration, flags Flags, notes *[]string) {
 }
 
 func prepareExperimentDir(cwd string, cfg *config.Configuration, timestamp time.Time) (string, string, error) {
-	tsStr := timestamp.Format("20060102-150405")
-	folderName := tsStr
-	if cfg.Name != "" {
-		folderName = fmt.Sprintf("%s_%s", tsStr, cfg.Name)
-	}
+	folderName := workspace.GetExperimentFolderName(timestamp, cfg.Name)
 
 	experimentDir := filepath.Join(cwd, "experiments", ".runs", folderName)
 	if err := os.MkdirAll(experimentDir, 0755); err != nil {

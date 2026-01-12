@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input, TextArea } from "./ui/input";
@@ -82,7 +83,7 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
         handleFileRead(file, (content) => {
             const filename = file.name;
             setFileUploads(prev => ({ ...prev, [filename]: content }));
-            
+
             // Update alternative config to reference the file path
             if (type === 'system_prompt') {
                 updateAlternative(index, 'system_prompt_file', `./${filename}`);
@@ -158,10 +159,11 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
 
             if (res.ok) {
                 if (mode === 'create') {
+                    toast.success("Template created successfully");
                     router.push('/templates');
                 } else {
                     router.refresh();
-                    alert("Template updated successfully");
+                    toast.success("Template updated successfully");
                 }
             } else {
                 const data = await res.json();
@@ -238,73 +240,73 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
                                 ][idx % 10];
 
                                 return (
-                                <div key={idx}>
-                                    {idx > 0 && (
-                                        <div className="py-6 flex items-center gap-4 text-zinc-700">
-                                            <div className="h-px bg-border flex-1 border-t border-dashed" />
-                                            <span className="text-xs font-mono uppercase font-bold tracking-widest">Alternative {idx + 1}</span>
-                                            <div className="h-px bg-border flex-1 border-t border-dashed" />
-                                        </div>
-                                    )}
-                                    <div className={`panel p-5 relative border rounded-xl hover:border-zinc-700 transition-colors ${colorClass}`}>
-                                        <div className="absolute -left-3 -top-3 w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs text-zinc-400 font-mono shadow-sm">
-                                            {idx + 1}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => removeAlternative(idx)}
-                                            className="absolute top-4 right-4 text-zinc-500 hover:text-red-400 transition-colors p-1 hover:bg-white/5 rounded"
-                                            title="Remove Alternative"
-                                        >
-                                            ✕
-                                        </button>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
-                                            <Input label="Identifier" value={alt.name} onChange={(e) => updateAlternative(idx, 'name', e.target.value)} placeholder="e.g. gemini-1.5-flash" />
-                                            <Input label="Short Desc" value={alt.description} onChange={(e) => updateAlternative(idx, 'description', e.target.value)} placeholder="Brief description..." />
-
-                                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                <Input label="Command" placeholder="gemini" value={alt.command || ""} onChange={(e) => updateAlternative(idx, 'command', e.target.value)} />
-                                                <Input label="Arguments" placeholder="-y" value={Array.isArray(alt.args) ? alt.args.join(" ") : (alt.args || "")} onChange={(e) => updateAlternative(idx, 'args', e.target.value.split(" "))} />
+                                    <div key={idx}>
+                                        {idx > 0 && (
+                                            <div className="py-6 flex items-center gap-4 text-zinc-700">
+                                                <div className="h-px bg-border flex-1 border-t border-dashed" />
+                                                <span className="text-xs font-mono uppercase font-bold tracking-widest">Alternative {idx + 1}</span>
+                                                <div className="h-px bg-border flex-1 border-t border-dashed" />
                                             </div>
-
-                                            <div className="md:col-span-2">
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">System Prompt Override</label>
-                                                    <div className="relative">
-                                                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files && handleAltFileUpload(idx, 'system_prompt', e.target.files[0])} />
-                                                        <span className="text-[10px] uppercase font-bold text-indigo-400 cursor-pointer hover:underline">Upload File</span>
-                                                    </div>
-                                                </div>
-                                                {alt.system_prompt_file && <div className="text-xs font-mono text-emerald-400 mb-1">File: {alt.system_prompt_file}</div>}
-                                                <TextArea value={alt.system_prompt} onChange={(e) => updateAlternative(idx, 'system_prompt', e.target.value)} rows={3} className="font-mono text-sm" placeholder="Inline system prompt..." />
+                                        )}
+                                        <div className={`panel p-5 relative border rounded-xl hover:border-zinc-700 transition-colors ${colorClass}`}>
+                                            <div className="absolute -left-3 -top-3 w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs text-zinc-400 font-mono shadow-sm">
+                                                {idx + 1}
                                             </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeAlternative(idx)}
+                                                className="absolute top-4 right-4 text-zinc-500 hover:text-red-400 transition-colors p-1 hover:bg-white/5 rounded"
+                                                title="Remove Alternative"
+                                            >
+                                                ✕
+                                            </button>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+                                                <Input label="Identifier" value={alt.name} onChange={(e) => updateAlternative(idx, 'name', e.target.value)} placeholder="e.g. gemini-1.5-flash" />
+                                                <Input label="Short Desc" value={alt.description} onChange={(e) => updateAlternative(idx, 'description', e.target.value)} placeholder="Brief description..." />
 
-                                            <div className="md:col-span-2">
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">GEMINI.md Content (Context)</label>
-                                                    <div className="relative">
-                                                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files && handleAltFileUpload(idx, 'context', e.target.files[0])} />
-                                                        <span className="text-[10px] uppercase font-bold text-indigo-400 cursor-pointer hover:underline">Upload File</span>
-                                                    </div>
+                                                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <Input label="Command" placeholder="gemini" value={alt.command || ""} onChange={(e) => updateAlternative(idx, 'command', e.target.value)} />
+                                                    <Input label="Arguments" placeholder="-y" value={Array.isArray(alt.args) ? alt.args.join(" ") : (alt.args || "")} onChange={(e) => updateAlternative(idx, 'args', e.target.value.split(" "))} />
                                                 </div>
-                                                {alt.context_file_path && <div className="text-xs font-mono text-emerald-400 mb-1">File: {alt.context_file_path}</div>}
-                                                <TextArea value={alt.context || ""} onChange={(e) => updateAlternative(idx, 'context', e.target.value)} rows={3} className="font-mono text-sm" placeholder="# Context Information..." />
-                                            </div>
 
-                                            <div className="md:col-span-2">
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Settings JSON Override</label>
-                                                    <div className="relative">
-                                                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files && handleAltFileUpload(idx, 'settings', e.target.files[0])} />
-                                                        <span className="text-[10px] uppercase font-bold text-indigo-400 cursor-pointer hover:underline">Upload File</span>
+                                                <div className="md:col-span-2">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">System Prompt Override</label>
+                                                        <div className="relative">
+                                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files && handleAltFileUpload(idx, 'system_prompt', e.target.files[0])} />
+                                                            <span className="text-[10px] uppercase font-bold text-indigo-400 cursor-pointer hover:underline">Upload File</span>
+                                                        </div>
                                                     </div>
+                                                    {alt.system_prompt_file && <div className="text-xs font-mono text-emerald-400 mb-1">File: {alt.system_prompt_file}</div>}
+                                                    <TextArea value={alt.system_prompt} onChange={(e) => updateAlternative(idx, 'system_prompt', e.target.value)} rows={3} className="font-mono text-sm" placeholder="Inline system prompt..." />
                                                 </div>
-                                                {alt.settings_path && <div className="text-xs font-mono text-emerald-400 mb-1">File: {alt.settings_path}</div>}
-                                                <TextArea value={typeof alt.settings === 'string' ? alt.settings : JSON.stringify(alt.settings, null, 2)} onChange={(e) => updateAlternative(idx, 'settings', e.target.value)} rows={3} className="font-mono text-sm" placeholder="{}" />
+
+                                                <div className="md:col-span-2">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">GEMINI.md Content (Context)</label>
+                                                        <div className="relative">
+                                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files && handleAltFileUpload(idx, 'context', e.target.files[0])} />
+                                                            <span className="text-[10px] uppercase font-bold text-indigo-400 cursor-pointer hover:underline">Upload File</span>
+                                                        </div>
+                                                    </div>
+                                                    {alt.context_file_path && <div className="text-xs font-mono text-emerald-400 mb-1">File: {alt.context_file_path}</div>}
+                                                    <TextArea value={alt.context || ""} onChange={(e) => updateAlternative(idx, 'context', e.target.value)} rows={3} className="font-mono text-sm" placeholder="# Context Information..." />
+                                                </div>
+
+                                                <div className="md:col-span-2">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Settings JSON Override</label>
+                                                        <div className="relative">
+                                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files && handleAltFileUpload(idx, 'settings', e.target.files[0])} />
+                                                            <span className="text-[10px] uppercase font-bold text-indigo-400 cursor-pointer hover:underline">Upload File</span>
+                                                        </div>
+                                                    </div>
+                                                    {alt.settings_path && <div className="text-xs font-mono text-emerald-400 mb-1">File: {alt.settings_path}</div>}
+                                                    <TextArea value={typeof alt.settings === 'string' ? alt.settings : JSON.stringify(alt.settings, null, 2)} onChange={(e) => updateAlternative(idx, 'settings', e.target.value)} rows={3} className="font-mono text-sm" placeholder="{}" />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
                                 );
                             })}
                         </CardContent>

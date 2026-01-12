@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
+import { toast } from "sonner";
+
 export default function ExperimentsHeader() {
     const router = useRouter();
     const [deletingAll, setDeletingAll] = useState(false);
@@ -18,12 +20,13 @@ export default function ExperimentsHeader() {
         try {
             const res = await fetch('/api/experiments', { method: 'DELETE' });
             if (res.ok) {
+                toast.success("All experiments deleted successfully");
                 router.refresh();
             } else {
-                alert("Failed to delete all experiments");
+                toast.error("Failed to delete all experiments");
             }
         } catch (e) {
-            alert("Error deleting experiments");
+            toast.error("Error deleting experiments");
         } finally {
             setDeletingAll(false);
         }

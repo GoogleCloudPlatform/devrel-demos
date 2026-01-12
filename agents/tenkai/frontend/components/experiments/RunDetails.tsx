@@ -6,6 +6,8 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { ChevronRight, ChevronDown, ArrowDown, Loader2, RefreshCw } from 'lucide-react';
 import { RunResultRecord, ToolUsageRecord, MessageRecord, TestResultRecord, LintResultRecord, reValidateRun } from '@/app/api/api';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import ProgressBar from '@/components/ui/progress-bar';
 
 interface RunDetailsProps {
@@ -30,6 +32,7 @@ function RevalidateButton({ runId }: { runId: number }) {
     const [progress, setProgress] = useState(0);
 
     const isProcessing = useRef(false);
+    const router = useRouter();
 
     // Poll for status if Job ID exists
     useEffect(() => {
@@ -55,9 +58,10 @@ function RevalidateButton({ runId }: { runId: number }) {
                         setLoading(false);
                         setJobId(null);
                         if (job.status === 'FAILED') {
-                            alert("Re-validation failed: " + job.error);
+                            toast.error("Re-validation failed: " + job.error);
                         } else {
-                            window.location.reload(); // Refresh to see changes
+                            toast.success("Re-validation completed!");
+                            router.refresh();
                         }
                     }
                 }
@@ -70,24 +74,31 @@ function RevalidateButton({ runId }: { runId: number }) {
     }, [jobId]);
 
     const handleReval = async () => {
-        if (!confirm("Re-run validation logic (tests, lint)? Does not re-run agent.")) return;
-        setLoading(true);
-        try {
-            const res = await reValidateRun(runId);
-            if (res && res.job_id) {
-                setJobId(res.job_id);
-            } else if (res && res.error) {
-                alert(`Re-evaluation failed: ${res.error}`);
-                setLoading(false);
-            } else {
-                console.error("Unexpected reval response:", res);
-                alert(`Re-evaluation started but no JobID was returned. Response: ${JSON.stringify(res || {})}`);
-                setLoading(false);
+        toast("Re-run validation logic (tests, lint)?", {
+            action: {
+                label: "Confirm",
+                onClick: async () => {
+                    setLoading(true);
+                    try {
+                        const res = await reValidateRun(runId);
+                        if (res && res.job_id) {
+                            setJobId(res.job_id);
+                            toast.info("Re-evaluation started...");
+                        } else if (res && res.error) {
+                            toast.error(`Re-evaluation failed: ${res.error}`);
+                            setLoading(false);
+                        } else {
+                            console.error("Unexpected reval response:", res);
+                            toast.error(`Re-evaluation started but no JobID was returned.`);
+                            setLoading(false);
+                        }
+                    } catch (e: any) {
+                        toast.error("Failed to start re-evaluation: " + e.message);
+                        setLoading(false);
+                    }
+                }
             }
-        } catch (e: any) {
-            alert("Failed to start re-evaluation: " + e.message);
-            setLoading(false);
-        }
+        });
     };
 
     return (

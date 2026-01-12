@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from './ui/button';
 
+import { toast } from 'sonner';
+
 export default function DeleteAllButton() {
     const router = useRouter();
     const [deleting, setDeleting] = useState(false);
@@ -16,12 +18,13 @@ export default function DeleteAllButton() {
         try {
             const res = await fetch('/api/experiments', { method: 'DELETE' });
             if (res.ok) {
+                toast.success("All data deleted successfully");
                 router.refresh();
             } else {
-                alert("Failed to delete all experiments");
+                toast.error("Failed to delete all experiments");
             }
         } catch (e) {
-            alert("Error deleting experiments");
+            toast.error("Error deleting experiments");
         } finally {
             setDeleting(false);
         }

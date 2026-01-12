@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -70,12 +71,12 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
                         // Assuming non-inline files means uploaded assets?
                         // Actually existing assets might be hard to map back to upload state perfectly without metadata.
                         // For now default to folder or keep existing.
-                        setAssetType('folder'); 
+                        setAssetType('folder');
                     }
                 }
             } catch (e) {
                 console.error(e);
-                alert("Failed to load scenario editor");
+                toast.error("Failed to load scenario editor");
                 router.push('/scenarios');
             } finally {
                 setFetching(false);
@@ -137,13 +138,14 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
         try {
             const res = await fetch(`/api/scenarios/${id}`, { method: 'DELETE' });
             if (res.ok) {
+                toast.success("Scenario deleted successfully");
                 router.push('/scenarios');
                 router.refresh();
             } else {
-                alert("Failed to delete scenario");
+                toast.error("Failed to delete scenario");
             }
         } catch (e) {
-            alert("Error deleting scenario");
+            toast.error("Error deleting scenario");
         } finally {
             setLoading(false);
         }
@@ -154,7 +156,7 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
 
         // Ensure at least one validation rule is present
         if (validation.length === 0) {
-            alert("Scenario must have at least one validation rule. Experiments cannot be evaluated without success criteria.");
+            toast.error("Scenario must have at least one validation rule.");
             return;
         }
 
@@ -176,13 +178,13 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
             });
 
             if (res.ok) {
-                alert("Scenario updated successfully");
+                toast.success("Scenario updated successfully");
                 router.refresh();
             } else {
-                alert("Failed to update scenario");
+                toast.error("Failed to update scenario");
             }
         } catch (e) {
-            alert("Error updating scenario");
+            toast.error("Error updating scenario");
         } finally {
             setLoading(false);
         }
@@ -361,8 +363,8 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
                     <div className="space-y-6">
                         <div className="space-y-3">
                             {validation.map((v, i) => (
-                                <div 
-                                    key={i} 
+                                <div
+                                    key={i}
                                     className="flex justify-between items-center p-3 bg-[#161618] rounded border border-[#27272a] cursor-pointer hover:border-indigo-500/50 transition-colors group"
                                     onClick={() => editValidation(i)}
                                     title="Click to edit"

@@ -17,7 +17,7 @@ export default function PerformanceTable({ runResults, stats, controlBaseline, a
     return (
         <div className="rounded-md border bg-card">
             <div className="p-4 border-b bg-muted/40 flex justify-between items-center">
-                <h3 className="font-bold uppercase tracking-widest text-foreground">Performance Comparison</h3>
+                <h3 className="font-bold uppercase tracking-widest text-foreground">Experiment Summary</h3>
                 <div className="flex gap-4 font-bold uppercase tracking-wider text-muted-foreground text-xs">
                     <span>Control: <span className="text-primary">{referenceAlt}</span></span>
                 </div>
@@ -31,8 +31,8 @@ export default function PerformanceTable({ runResults, stats, controlBaseline, a
                         <TableHead className="px-6 text-right">Avg Duration</TableHead>
                         <TableHead className="px-6 text-right">Avg Tokens</TableHead>
                         <TableHead className="px-6 text-right">Avg Tool Calls</TableHead>
-                        <TableHead className="px-6 text-right">Failed Tools</TableHead>
-                        <TableHead className="px-6 text-right">Lint Issues</TableHead>
+                        <TableHead className="px-6 text-right">Avg Failed Tools</TableHead>
+                        <TableHead className="px-6 text-right">Avg Lint Issues</TableHead>
                         <TableHead className="px-6 text-right">Runs</TableHead>
                     </TableRow>
                 </TableHeader>

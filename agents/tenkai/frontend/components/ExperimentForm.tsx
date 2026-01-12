@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from 'next/link';
+import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Input, TextArea, Select } from "./ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
@@ -82,14 +83,14 @@ export default function ExperimentForm({ templates, scenarios }: { templates: an
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
+                toast.success("Experiment launched successfully!");
                 router.refresh();
                 router.push('/experiments');
             } else {
-
-                alert("Failed to launch experiment");
+                toast.error("Failed to launch experiment");
             }
         } catch (e) {
-            alert("Error launching experiment");
+            toast.error("Error launching experiment");
         } finally {
             setLoading(false);
         }

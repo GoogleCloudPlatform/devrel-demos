@@ -19,6 +19,7 @@ import { Button } from "./ui/button";
 import RelaunchButton from "./RelaunchButton";
 import KillExperimentButton from "./KillExperimentButton";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { toast } from "sonner";
 import ProgressBar from "./ui/progress-bar";
 
 interface ReportViewerProps {
@@ -38,6 +39,7 @@ function RevalidateExperimentButton({ experimentId, isExperimentRunning, onState
     const [progress, setProgress] = useState(0);
     const [stats, setStats] = useState<{ completed: number, total: number } | null>(null);
     const isProcessing = useRef(false);
+    const router = useRouter();
 
     // Poll job status
     useEffect(() => {
@@ -68,10 +70,10 @@ function RevalidateExperimentButton({ experimentId, isExperimentRunning, onState
                     onStateChange?.(false);
 
                     if (job.status === "COMPLETED") {
-                        alert("Re-validation completed!");
-                        window.location.reload();
+                        toast.success("Re-validation completed!");
+                        router.refresh();
                     } else {
-                        alert(`Re-validation failed: ${job.error}`);
+                        toast.error(`Re-validation failed: ${job.error}`);
                     }
                 }
             } catch (e) {
@@ -83,28 +85,35 @@ function RevalidateExperimentButton({ experimentId, isExperimentRunning, onState
     }, [jobId]);
 
     const handleReval = async () => {
-        if (!confirm("Re-run validation logic (tests, lint) for ALL completed runs? This may take a while.")) return;
-        setLoading(true);
-        onStateChange?.(true);
-        try {
-            const res = await reValidateExperiment(experimentId);
-            if (res && res.job_id) {
-                setJobId(res.job_id);
-            } else if (res && res.error) {
-                alert(`Re-evaluation failed: ${res.error}`);
-                setLoading(false);
-                onStateChange?.(false);
-            } else {
-                console.error("Unexpected reval response:", res);
-                alert(`Re-evaluation started but no JobID was returned. Response: ${JSON.stringify(res || {})}`);
-                setLoading(false);
-                onStateChange?.(false);
+        toast("Start re-validation for ALL completed runs?", {
+            action: {
+                label: "Run Now",
+                onClick: async () => {
+                    setLoading(true);
+                    onStateChange?.(true);
+                    try {
+                        const res = await reValidateExperiment(experimentId);
+                        if (res && res.job_id) {
+                            setJobId(res.job_id);
+                            toast.info("Re-evaluation started...");
+                        } else if (res && res.error) {
+                            toast.error(`Re-evaluation failed: ${res.error}`);
+                            setLoading(false);
+                            onStateChange?.(false);
+                        } else {
+                            console.error("Unexpected reval response:", res);
+                            toast.error(`Re-evaluation started but no JobID was returned.`);
+                            setLoading(false);
+                            onStateChange?.(false);
+                        }
+                    } catch (e: any) {
+                        toast.error("Failed to start re-evaluation: " + e.message);
+                        setLoading(false);
+                        onStateChange?.(false);
+                    }
+                }
             }
-        } catch (e: any) {
-            alert("Failed to start re-evaluation: " + e.message);
-            setLoading(false);
-            onStateChange?.(false);
-        }
+        });
     };
 
 

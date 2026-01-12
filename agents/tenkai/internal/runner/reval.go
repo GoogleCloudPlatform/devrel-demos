@@ -6,13 +6,12 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
-	"time"
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/jobs"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/workspace"
 )
 
 // ReEvaluateExperiment runs validation again for all completed runs in an experiment
@@ -44,7 +43,7 @@ func (r *Runner) ReEvaluateExperiment(expID int64, jobID string) error {
 
 	// Assuming we can find the experiment dir relative to CWD if we are running in the usual spot
 	cwd, _ := os.Getwd()
-	expDir, err := findExperimentDir(cwd, exp.Timestamp)
+	expDir, err := workspace.FindExperimentDir(cwd, exp.Timestamp, exp.Name)
 	if err != nil {
 		jobMgr.FailJob(jobID, err)
 		return fmt.Errorf("failed to locate experiment directory: %w", err)
@@ -91,7 +90,7 @@ func (r *Runner) ReEvaluateRun(runID int64, jobID string) error {
 		return fmt.Errorf("failed to fetch experiment: %w", err)
 	}
 	cwd, _ := os.Getwd()
-	expDir, err := findExperimentDir(cwd, exp.Timestamp)
+	expDir, err := workspace.FindExperimentDir(cwd, exp.Timestamp, exp.Name)
 	if err != nil {
 		jobMgr.FailJob(jobID, err)
 		return fmt.Errorf("failed to locate experiment directory: %w", err)
@@ -106,22 +105,6 @@ func (r *Runner) ReEvaluateRun(runID int64, jobID string) error {
 	jobMgr.UpdateProgress(jobID, 1, 1)
 	jobMgr.CompleteJob(jobID)
 	return nil
-}
-
-// Helper to find dir (duplicated from cli for now, should be shared utils)
-func findExperimentDir(cwd string, createdAt time.Time) (string, error) {
-	base := filepath.Join(cwd, "experiments", ".runs")
-	entries, err := os.ReadDir(base)
-	if err != nil {
-		return "", err
-	}
-	tsPrefix := createdAt.Format("20060102-150405")
-	for _, e := range entries {
-		if e.IsDir() && strings.HasPrefix(e.Name(), tsPrefix) {
-			return filepath.Join(base, e.Name()), nil
-		}
-	}
-	return "", fmt.Errorf("directory starting with %s not found in %s", tsPrefix, base)
 }
 
 // Internal implementation of ReEval logic

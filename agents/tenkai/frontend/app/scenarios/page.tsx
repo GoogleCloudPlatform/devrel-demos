@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -43,13 +44,14 @@ export default function ScenariosPage() {
         try {
             const res = await fetch(`/api/scenarios/${id}`, { method: 'DELETE' });
             if (res.ok) {
+                toast.success('Scenario deleted successfully');
                 setScenarios(prev => prev.filter(s => s.id !== id));
             } else {
-                alert('Failed to delete scenario');
+                toast.error('Failed to delete scenario');
             }
         } catch (err) {
             console.error(err);
-            alert('Error deleting scenario');
+            toast.error('Error deleting scenario');
         }
     };
 
@@ -61,13 +63,14 @@ export default function ScenariosPage() {
         try {
             const res = await fetch('/api/scenarios/delete-all', { method: 'DELETE' });
             if (res.ok) {
+                toast.success('All scenarios deleted successfully');
                 setScenarios([]);
             } else {
-                alert('Failed to delete all scenarios');
+                toast.error('Failed to delete all scenarios');
             }
         } catch (err) {
             console.error(err);
-            alert('Error deleting scenarios');
+            toast.error('Error deleting scenarios');
         } finally {
             setDeletingAll(false);
         }
