@@ -8,7 +8,9 @@ import {
 
 export type { ExperimentRecord, ExperimentSummaryRecord, Checkpoint };
 
-const API_BASE = 'http://127.0.0.1:8080/api';
+const API_BASE = typeof window === 'undefined'
+    ? 'http://127.0.0.1:8080/api'
+    : '/api';
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${API_BASE}${endpoint}`;
@@ -224,4 +226,16 @@ export interface ToolStatRow {
 
 export async function getToolStats(experimentId: number): Promise<ToolStatRow[]> {
     return fetchAPI<ToolStatRow[]>(`/experiments/${experimentId}/tool-stats`);
+}
+
+export async function reValidateRun(runId: number) {
+    return fetchAPI<any>(`/runs/${runId}/reval`, {
+        method: 'POST'
+    });
+}
+
+export async function reValidateExperiment(experimentId: number) {
+    return fetchAPI(`/experiments/${experimentId}/reval`, {
+        method: 'POST'
+    });
 }

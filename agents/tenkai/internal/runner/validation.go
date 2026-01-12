@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
 )
 
@@ -22,16 +23,18 @@ type ValidationReport struct {
 	TestsPassed    int                 `json:"tests_passed"`
 	TestsFailed    int                 `json:"tests_failed"`
 	LintIssues     int                 `json:"lint_issues"`
+	Coverage       float64             `json:"coverage,omitempty"`
 	Items          []ValidationItem    `json:"items"`
 	DetailedTests  []models.TestResult `json:"-"` // Not serialized to validation_report JSON, saved to test_results table
 	DetailedLints  []models.LintIssue  `json:"-"` // Not serialized to validation_report JSON, saved to lint_results table
 }
 
 type ValidationItem struct {
-	Type        string `json:"type"`
-	Status      string `json:"status"` // "PASS", "FAIL"
-	Description string `json:"description"`
-	Details     string `json:"details,omitempty"`
+	Type        string  `json:"type"`
+	Status      string  `json:"status"` // "PASS", "FAIL"
+	Description string  `json:"description"`
+	Details     string  `json:"details,omitempty"`
+	Coverage    float64 `json:"coverage,omitempty"`
 }
 
 func (r *Runner) Validate(ctx context.Context,
@@ -56,6 +59,9 @@ func (r *Runner) Validate(ctx context.Context,
 			report.TestsPassed += tPass
 			report.TestsFailed += tFail
 			report.DetailedTests = append(report.DetailedTests, tests...)
+			if item.Coverage > 0 {
+				report.Coverage = item.Coverage
+			}
 		case "lint":
 			lints, item, lIssues, err = r.validateLint(ctx, wsPath, rule)
 			report.LintIssues += lIssues
@@ -86,6 +92,23 @@ func (r *Runner) Validate(ctx context.Context,
 	}
 
 	return report, nil
+}
+
+// ApplyValidationReport applies the results of a validation report to a run result model.
+func (r *Runner) ApplyValidationReport(run *models.RunResult, report *ValidationReport) {
+	run.IsSuccess = report.OverallSuccess
+	run.TestsPassed = report.TestsPassed
+	run.TestsFailed = report.TestsFailed
+	run.LintIssues = report.LintIssues
+
+	jsonBytes, _ := json.Marshal(report)
+	run.ValidationReport = string(jsonBytes)
+
+	if run.IsSuccess {
+		run.Reason = db.ReasonSuccess
+	} else {
+		run.Reason = db.ReasonFailedValidation
+	}
 }
 
 func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.ValidationRule) ([]models.TestResult, ValidationItem, int, int, error) {
@@ -152,7 +175,9 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 					packageFailed = true
 				}
 			}
-			if entry.Action == "output" && strings.Contains(entry.Output, "coverage:") {
+			// Only capture coverage from output lines associated with the package result (Test == ""),
+			// avoiding noise from individual test logs if they happen to contain the string.
+			if entry.Action == "output" && entry.Test == "" && strings.Contains(entry.Output, "coverage:") {
 				parts := strings.Split(entry.Output, " ")
 				for i, p := range parts {
 					if p == "coverage:" && i+1 < len(parts) {
@@ -167,7 +192,8 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 	}
 
 	item := ValidationItem{
-		Type: "test",
+		Type:     "test",
+		Coverage: coverage,
 	}
 	covDesc := ""
 	if coverage > 0 {

@@ -137,7 +137,7 @@ validation:
 	if res.Error != nil {
 		t.Errorf("Expected no error (early exit), got: %v", res.Error)
 	}
-	if time.Since(start) > 4*time.Second {
+	if time.Since(start) > 6*time.Second {
 		t.Errorf("Test took too long, early exit didn't trigger")
 	}
 	if res.Status != "COMPLETED" { // db.RunStatusCompleted

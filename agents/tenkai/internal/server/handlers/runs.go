@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/jobs"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/runner"
 )
 
@@ -173,4 +175,42 @@ func (api *API) GetRunMessages(r *http.Request) (any, error) {
 		return []interface{}{}, nil
 	}
 	return res, nil
+}
+
+func (api *API) ReEvaluateExperiment(r *http.Request) (any, error) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		return nil, NewAPIError(http.StatusBadRequest, "Invalid Experiment ID")
+	}
+
+	// Create Job
+	job := jobs.GetManager().CreateJob("REVAL_EXP", map[string]interface{}{"experiment_id": id})
+
+	// Async re-evaluation
+	go func() {
+		if err := api.Runner.ReEvaluateExperiment(id, job.ID); err != nil {
+			log.Printf("Background re-evaluation for experiment %d failed: %v", id, err)
+		}
+	}()
+
+	return map[string]string{"status": "accepted", "message": "Re-evaluation started", "job_id": job.ID}, nil
+}
+
+func (api *API) ReEvaluateRun(r *http.Request) (any, error) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		return nil, NewAPIError(http.StatusBadRequest, "Invalid Run ID")
+	}
+
+	// Create Job
+	job := jobs.GetManager().CreateJob("REVAL_RUN", map[string]interface{}{"run_id": id})
+
+	// Async re-evaluation
+	go func() {
+		if err := api.Runner.ReEvaluateRun(id, job.ID); err != nil {
+			log.Printf("Background re-evaluation for run %d failed: %v", id, err)
+		}
+	}()
+
+	return map[string]string{"status": "accepted", "message": "Re-evaluation started", "job_id": job.ID}, nil
 }

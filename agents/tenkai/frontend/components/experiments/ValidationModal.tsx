@@ -27,6 +27,14 @@ export default function ValidationModal({ item, onClose }: { item: any, onClose:
                                 {item.status}
                             </span>
                         </div>
+                        {item.coverage > 0 && (
+                            <div className="space-y-1">
+                                <h4 className="font-bold text-zinc-500 uppercase tracking-widest">Coverage</h4>
+                                <span className={`text-3xl font-black ${item.coverage >= 80 ? 'text-emerald-400' : item.coverage >= 50 ? 'text-amber-400' : 'text-red-500'}`}>
+                                    {item.coverage.toFixed(1)}%
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="space-y-4">

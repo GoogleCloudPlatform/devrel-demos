@@ -47,6 +47,11 @@ func Execute() {
 		return
 	}
 
+	if *flags.RevalID > 0 {
+		handleReevaluation(database, cwd, *flags.RevalID)
+		return
+	}
+
 	if *flags.ConfigPath == "" {
 		fmt.Println("Usage: tenkai --config <path_to_config_yaml> [options]")
 		fmt.Println("       tenkai --serve [--port 8080]")

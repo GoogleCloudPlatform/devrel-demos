@@ -2,7 +2,6 @@ package runner
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -428,11 +427,13 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 	if res.AgentMetrics == nil {
 		res.AgentMetrics = &parser.AgentMetrics{}
 	}
-	// 5. Verify Code (Test & Lint) - skip for timeouts since code is incomplete
+	// 5. Verify Code (Test & Lint) - skip for timeouts and loops since code is incomplete
 	shouldEvaluate := res.Error == nil
-	if res.Error != nil && !strings.Contains(res.Error.Error(), "timeout") {
-		// Non-timeout errors might still have partial code worth evaluating
-		shouldEvaluate = true
+	if res.AgentMetrics != nil && res.AgentMetrics.LoopDetected {
+		shouldEvaluate = false
+	}
+	if res.Error != nil && (strings.Contains(res.Error.Error(), "timeout") || strings.Contains(res.Error.Error(), "deadline exceeded")) {
+		shouldEvaluate = false
 	}
 
 	if shouldEvaluate {
@@ -440,7 +441,6 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 		scenConfig := wsInfo.Config
 
 		// Read the metrics log to get stdout content for validation
-		// Read logPath content
 		logContentBytes, _ := os.ReadFile(logPath)
 		stdoutContent := string(logContentBytes)
 
@@ -453,11 +453,15 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 		} else {
 			res.EvaluationMetrics = metrics
 			if valReport != nil {
-				res.IsSuccess = valReport.OverallSuccess
-				jsonBytes, _ := json.Marshal(valReport)
-				res.ValidationReport = string(jsonBytes)
+				// We need a dummy RunResult to use ApplyValidationReport
+				dummy := &models.RunResult{}
+				r.ApplyValidationReport(dummy, valReport)
 
-				// Aggregate counts into metrics so they show up in DB columns
+				res.IsSuccess = dummy.IsSuccess
+				res.Reason = dummy.Reason
+				res.ValidationReport = dummy.ValidationReport
+
+				// Update metrics counts
 				if res.EvaluationMetrics == nil {
 					res.EvaluationMetrics = &models.EvaluationMetrics{}
 				}

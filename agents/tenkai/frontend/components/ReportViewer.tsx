@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ExperimentRecord, Checkpoint, RunResultRecord, getRunResults } from "@/app/api/api";
+import { ExperimentRecord, Checkpoint, RunResultRecord, getRunResults, reValidateExperiment } from "@/app/api/api";
+import { Loader2, RefreshCw } from "lucide-react";
 import MetricsOverview from "./experiments/MetricsOverview";
 import PerformanceTable from "./experiments/PerformanceTable";
 import RunHistory from "./experiments/RunHistory";
 import RunDetails from "./experiments/RunDetails";
-import ToolUsageTable from "./experiments/ToolUsageTable"; // Added
+import ToolUsageTable from "./experiments/ToolUsageTable";
 import ToolInspectionModal from "./experiments/ToolInspectionModal";
 import ValidationModal from "./experiments/ValidationModal";
 import FailureAnalysis from "./experiments/FailureAnalysis";
@@ -17,6 +18,8 @@ import StatusBanner from "./experiments/StatusBanner";
 import { Button } from "./ui/button";
 import RelaunchButton from "./RelaunchButton";
 import KillExperimentButton from "./KillExperimentButton";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import ProgressBar from "./ui/progress-bar";
 
 interface ReportViewerProps {
     experiment: ExperimentRecord;
@@ -29,6 +32,108 @@ interface ReportViewerProps {
     configContent: string;
 }
 
+function RevalidateExperimentButton({ experimentId, isExperimentRunning, onStateChange }: { experimentId: number, isExperimentRunning: boolean, onStateChange?: (revalidating: boolean) => void }) {
+    const [loading, setLoading] = useState(false);
+    const [jobId, setJobId] = useState<string | null>(null);
+    const [progress, setProgress] = useState(0);
+    const [stats, setStats] = useState<{ completed: number, total: number } | null>(null);
+    const isProcessing = useRef(false);
+
+    // Poll job status
+    useEffect(() => {
+        if (!jobId) {
+            isProcessing.current = false;
+            return;
+        }
+
+        const interval = setInterval(async () => {
+            if (isProcessing.current) return;
+
+            try {
+                const res = await fetch(`/api/jobs/${jobId}`);
+                if (!res.ok) return;
+                const job = await res.json();
+
+                // If job ID changed or was cleared by another tick in the meantime
+                if (!jobId) return;
+
+                setProgress(job.progress);
+                setStats({ completed: job.completed, total: job.total });
+
+                if (job.status === "COMPLETED" || job.status === "FAILED") {
+                    isProcessing.current = true;
+                    clearInterval(interval);
+                    setJobId(null);
+                    setLoading(false);
+                    onStateChange?.(false);
+
+                    if (job.status === "COMPLETED") {
+                        alert("Re-validation completed!");
+                        window.location.reload();
+                    } else {
+                        alert(`Re-validation failed: ${job.error}`);
+                    }
+                }
+            } catch (e) {
+                console.error("Polling job failed", e);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [jobId]);
+
+    const handleReval = async () => {
+        if (!confirm("Re-run validation logic (tests, lint) for ALL completed runs? This may take a while.")) return;
+        setLoading(true);
+        onStateChange?.(true);
+        try {
+            const res = await reValidateExperiment(experimentId) as any;
+            if (res && res.job_id) {
+                setJobId(res.job_id);
+            } else if (res && res.error) {
+                alert(`Re-evaluation failed: ${res.error}`);
+                setLoading(false);
+                onStateChange?.(false);
+            } else {
+                console.error("Unexpected reval response:", res);
+                alert(`Re-evaluation started but no JobID was returned. Response: ${JSON.stringify(res || {})}`);
+                setLoading(false);
+                onStateChange?.(false);
+            }
+        } catch (e: any) {
+            alert("Failed to start re-evaluation: " + e.message);
+            setLoading(false);
+            onStateChange?.(false);
+        }
+    };
+
+    const canRevalidate = useMemo(() => {
+        return true;
+    }, []);
+
+    if (jobId) {
+        return (
+            <div className="flex flex-col gap-1 w-[200px]">
+                <ProgressBar
+                    percentage={progress}
+                    completed={stats?.completed || 0}
+                    total={stats?.total || 0}
+                    status="RUNNING"
+                    showLabel={true}
+                />
+                <span className="text-[10px] text-zinc-500 uppercase font-bold text-center">Re-validating...</span>
+            </div>
+        )
+    }
+
+    return (
+        <Button variant="outline" size="sm" onClick={handleReval} disabled={loading || isExperimentRunning}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            {loading ? "Starting..." : "Re-validate Failures"}
+        </Button>
+    );
+}
+
 export default function ReportViewer({
     experiment,
     initialContent,
@@ -39,11 +144,20 @@ export default function ReportViewer({
     config,
     configContent
 }: ReportViewerProps) {
-    const [activeTab, setActiveTab] = useState<'overview' | 'investigate' | 'config'>('overview');
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+
+    const activeTab = (searchParams.get('tab') as 'overview' | 'investigate' | 'config') || 'overview';
+    const runIdFromUrl = searchParams.get('runId');
+
     const [selectedRun, setSelectedRun] = useState<RunResultRecord | null>(null);
     const [inspectedTool, setInspectedTool] = useState<any>(null);
     const [inspectedValidation, setInspectedValidation] = useState<any>(null);
     const [configModalContent, setConfigModalContent] = useState<{ title: string, content: string } | null>(null);
+    const [isRevalidating, setIsRevalidating] = useState(false);
+
+    const isRunning = experiment.status?.toUpperCase() === 'RUNNING';
 
     // Pagination State
     const [runs, setRuns] = useState<RunResultRecord[]>(runResults);
@@ -77,6 +191,42 @@ export default function ReportViewer({
             setHasMore(false);
         }
     }, []);
+
+    // Sync selectedRun with runId in URL
+    useEffect(() => {
+        if (runIdFromUrl) {
+            const runId = parseInt(runIdFromUrl);
+            const found = runs.find(r => r.id === runId);
+            if (found && (!selectedRun || selectedRun.id !== runId)) {
+                setSelectedRun(found);
+            }
+        } else if (selectedRun) {
+            setSelectedRun(null);
+        }
+    }, [runIdFromUrl, runs]);
+
+    const updateUrl = (params: { tab?: string, runId?: number | null }) => {
+        const current = new URLSearchParams(searchParams.toString());
+        if (params.tab) {
+            current.set('tab', params.tab);
+        }
+        if (params.runId !== undefined) {
+            if (params.runId === null) {
+                current.delete('runId');
+            } else {
+                current.set('runId', params.runId.toString());
+            }
+        }
+        router.push(`${pathname}?${current.toString()}`, { scroll: false });
+    };
+
+    const handleTabChange = (tabId: 'overview' | 'investigate' | 'config') => {
+        updateUrl({ tab: tabId });
+    };
+
+    const handleSelectRun = (run: RunResultRecord) => {
+        updateUrl({ tab: 'investigate', runId: run.id });
+    };
 
     // Fetch run details when a run is selected
     const [runDetails, setRunDetails] = useState<any>(null);
@@ -139,7 +289,7 @@ export default function ReportViewer({
                     ].map(tab => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
+                            onClick={() => handleTabChange(tab.id as any)}
                             className={`px-6 h-full font-bold uppercase tracking-widest transition-all border-b-2 ${activeTab === tab.id
                                 ? "border-[#6366f1] text-[#f4f4f5]"
                                 : "border-transparent text-[#52525b] hover:text-[#a1a1aa]"
@@ -151,13 +301,20 @@ export default function ReportViewer({
                 </div>
 
                 <div className="flex gap-2">
+                    {runResults.some(r => r.reason === 'FAILED (VALIDATION)') && (
+                        <RevalidateExperimentButton
+                            experimentId={experiment.id}
+                            isExperimentRunning={isRunning}
+                            onStateChange={setIsRevalidating}
+                        />
+                    )}
                     <Link href={`/api/experiments/${experiment.id}/export`} target="_blank">
                         <Button variant="outline" size="sm">
                             <span className="mr-2">📄</span> Export MD
                         </Button>
                     </Link>
-                    <RelaunchButton experimentId={experiment.id} />
-                    <KillExperimentButton experimentId={experiment.id} />
+                    <RelaunchButton experimentId={experiment.id} disabled={isRunning} />
+                    <KillExperimentButton experimentId={experiment.id} disabled={!isRunning} />
                 </div>
             </div>
 
@@ -192,14 +349,13 @@ export default function ReportViewer({
                                         alternatives={config?.alternatives?.map((a: any) => a.name)}
                                     />
 
+                                    <FailureAnalysis runs={runResults} />
+
                                     <ToolUsageTable
                                         experimentId={experiment.id}
                                         alternatives={config?.alternatives?.map((a: any) => a.name) || Object.keys(stats).sort()}
                                     />
 
-                                </div>
-                                <div className="lg:col-span-12">
-                                    <FailureAnalysis runs={runResults} />
                                 </div>
                             </div>
                         </div>
@@ -211,7 +367,7 @@ export default function ReportViewer({
                                 <RunHistory
                                     runs={runs}
                                     selectedRunId={selectedRun?.id || null}
-                                    onSelectRun={setSelectedRun}
+                                    onSelectRun={handleSelectRun}
                                     onLoadMore={loadMoreRuns}
                                     hasMore={hasMore}
                                     loading={loadingRuns}
@@ -225,6 +381,7 @@ export default function ReportViewer({
                                         </div>
                                     ) : runDetails ? (
                                         <RunDetails
+                                            key={selectedRun.id}
                                             run={selectedRun}
                                             details={runDetails}
                                             onInspectTool={setInspectedTool}
@@ -402,4 +559,3 @@ export default function ReportViewer({
         </div >
     );
 }
-

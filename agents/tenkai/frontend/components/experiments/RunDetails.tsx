@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import { ChevronRight, ChevronDown } from 'lucide-react';
-import { RunResultRecord, ToolUsageRecord, MessageRecord, TestResultRecord, LintResultRecord } from '@/app/api/api';
+import { ChevronRight, ChevronDown, ArrowDown, Loader2, RefreshCw } from 'lucide-react';
+import { RunResultRecord, ToolUsageRecord, MessageRecord, TestResultRecord, LintResultRecord, reValidateRun } from '@/app/api/api';
+import ProgressBar from '@/components/ui/progress-bar';
 
 interface RunDetailsProps {
     run: RunResultRecord;
@@ -19,6 +20,103 @@ interface RunDetailsProps {
     onInspectTool: (tool: ToolUsageRecord) => void;
     onInspectValidation: (item: any) => void;
 }
+
+// ... (Rest of CollapsibleEvent and other components remain same)
+
+// New Component: RevalidateButton
+function RevalidateButton({ runId }: { runId: number }) {
+    const [loading, setLoading] = useState(false);
+    const [jobId, setJobId] = useState<string | null>(null);
+    const [progress, setProgress] = useState(0);
+
+    const isProcessing = useRef(false);
+
+    // Poll for status if Job ID exists
+    useEffect(() => {
+        if (!jobId) {
+            isProcessing.current = false;
+            return;
+        }
+
+        const interval = setInterval(async () => {
+            if (isProcessing.current) return;
+
+            try {
+                const res = await fetch(`/api/jobs/${jobId}`);
+                if (res.ok) {
+                    const job = await res.json();
+
+                    if (!jobId) return;
+
+                    if (job.progress !== undefined) setProgress(job.progress);
+                    if (job.status === 'COMPLETED' || job.status === 'FAILED') {
+                        isProcessing.current = true;
+                        clearInterval(interval);
+                        setLoading(false);
+                        setJobId(null);
+                        if (job.status === 'FAILED') {
+                            alert("Re-validation failed: " + job.error);
+                        } else {
+                            window.location.reload(); // Refresh to see changes
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Poll failed", e);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [jobId]);
+
+    const handleReval = async () => {
+        if (!confirm("Re-run validation logic (tests, lint)? Does not re-run agent.")) return;
+        setLoading(true);
+        try {
+            const res = await reValidateRun(runId);
+            if (res && res.job_id) {
+                setJobId(res.job_id);
+            } else if (res && res.error) {
+                alert(`Re-evaluation failed: ${res.error}`);
+                setLoading(false);
+            } else {
+                console.error("Unexpected reval response:", res);
+                alert(`Re-evaluation started but no JobID was returned. Response: ${JSON.stringify(res || {})}`);
+                setLoading(false);
+            }
+        } catch (e: any) {
+            alert("Failed to start re-evaluation: " + e.message);
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="flex flex-col gap-2 min-w-[140px]">
+            <button
+                onClick={handleReval}
+                disabled={loading}
+                className={`text-xs flex items-center justify-center gap-1.5 px-3 py-1.5 rounded transition-all shadow-sm
+                    ${loading
+                        ? 'bg-zinc-800 text-zinc-500 border-zinc-700 cursor-not-allowed'
+                        : 'bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 hover:border-blue-500/50'
+                    } uppercase font-bold tracking-wider`}
+            >
+                {loading ? <Loader2 size={12} className="animate-spin text-blue-400" /> : <RefreshCw size={12} />}
+                {loading ? 'Re-validating...' : 'Re-validate'}
+            </button>
+            {loading && (
+                <ProgressBar
+                    percentage={progress}
+                    completed={progress === 100 ? 1 : 0}
+                    total={1}
+                    status="RUNNING"
+                    showLabel={true}
+                    className="h-1"
+                />
+            )}
+        </div>
+    );
+}
 function CollapsibleEvent({
     title,
     timestamp,
@@ -26,7 +124,8 @@ function CollapsibleEvent({
     bgColor = "bg-zinc-500/10",
     borderColor = "border-zinc-500/20",
     children,
-    defaultOpen = false
+    defaultOpen = false,
+    count = 1
 }: {
     title: React.ReactNode;
     timestamp?: string;
@@ -35,6 +134,7 @@ function CollapsibleEvent({
     borderColor?: string;
     children: React.ReactNode;
     defaultOpen?: boolean;
+    count?: number;
 }) {
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -47,6 +147,7 @@ function CollapsibleEvent({
                 <div className="flex items-center gap-2">
                     {isOpen ? <ChevronDown size={14} className={color} /> : <ChevronRight size={14} className={color} />}
                     <span className={color}>{title}</span>
+                    {count > 1 && <span className="bg-white/10 text-white px-1.5 rounded-full text-[10px]">x{count}</span>}
                 </div>
                 <div className="flex items-center gap-3">
                     {timestamp && <span className="text-[10px] text-zinc-500 font-mono">{new Date(timestamp).toLocaleTimeString()}</span>}
@@ -86,7 +187,7 @@ function InitEvent({ timestamp }: { timestamp: string }) {
     );
 }
 
-function ErrorEvent({ content, timestamp }: { content: string, timestamp: string }) {
+function ErrorEvent({ content, timestamp, count }: { content: string, timestamp: string, count?: number }) {
     let data: any = { message: content };
     try {
         data = JSON.parse(content);
@@ -110,18 +211,19 @@ function ErrorEvent({ content, timestamp }: { content: string, timestamp: string
             borderColor={borderColor}
             bgColor={bgColor}
             defaultOpen={true}
+            count={count}
         >
             <JsonView data={data.message || content} />
         </CollapsibleEvent>
     );
 }
 
-function ResultEvent({ content, timestamp }: { content: string, timestamp: string }) {
+function ResultEvent({ content, timestamp, count }: { content: string, timestamp: string, count?: number }) {
     let data: any = {};
     try {
         data = JSON.parse(content);
     } catch {
-        return <GenericEvent role="result" content={content} timestamp={timestamp} />;
+        return <GenericEvent role="result" content={content} timestamp={timestamp} count={count} />;
     }
 
     return (
@@ -132,6 +234,7 @@ function ResultEvent({ content, timestamp }: { content: string, timestamp: strin
             borderColor="border-indigo-500/20"
             bgColor="bg-indigo-500/10"
             defaultOpen={true}
+            count={count}
         >
             <div className="space-y-4">
                 {data.stats && (
@@ -155,7 +258,7 @@ function ResultEvent({ content, timestamp }: { content: string, timestamp: strin
     );
 }
 
-function GenericEvent({ role, content, timestamp }: { role: string, content: string, timestamp: string }) {
+function GenericEvent({ role, content, timestamp, count }: { role: string, content: string, timestamp: string, count?: number }) {
     return (
         <CollapsibleEvent
             title={`Event: ${role}`}
@@ -163,13 +266,14 @@ function GenericEvent({ role, content, timestamp }: { role: string, content: str
             color="text-zinc-500"
             bgColor="bg-zinc-900/50"
             borderColor="border-zinc-800"
+            count={count}
         >
             <JsonView data={content} />
         </CollapsibleEvent>
     );
 }
 
-function ToolMessage({ role, content, timestamp }: { role: string, content: string, timestamp: string }) {
+function ToolMessage({ role, content, timestamp, count }: { role: string, content: string, timestamp: string, count?: number }) {
     let data: any = {};
     try {
         data = JSON.parse(content);
@@ -191,6 +295,7 @@ function ToolMessage({ role, content, timestamp }: { role: string, content: stri
             color={color}
             borderColor={borderColor}
             bgColor={bgColor}
+            count={count}
         >
             <JsonView data={isUse ? data.args : (data.error || data.output)} />
         </CollapsibleEvent>
@@ -245,6 +350,73 @@ export default function RunDetails({
 }: RunDetailsProps) {
     const [selectedFile, setSelectedFile] = useState<any>(details.files?.[0] || null);
 
+    // Conversation History State
+    const [messages, setMessages] = useState<MessageRecord[]>(details.messages || []);
+    const [page, setPage] = useState(1);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Sync with live updates (only if on first page to avoid overwriting history navigation)
+    useEffect(() => {
+        if (page === 1) {
+            setMessages(details.messages || []);
+        }
+    }, [details.messages, page]);
+
+    const scrollToBottom = () => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+        }
+    };
+
+    const loadMore = async () => {
+        setLoadingMore(true);
+        try {
+            const nextPage = page + 1;
+            // Using limit 1000 to match backend default page size
+            const res = await fetch(`/api/runs/${run.id}/messages?page=${nextPage}&limit=1000`);
+            if (res.ok) {
+                const newMsgs: MessageRecord[] = await res.json();
+                if (newMsgs && newMsgs.length > 0) {
+                    setMessages(prev => [...prev, ...newMsgs]);
+                    setPage(nextPage);
+                }
+            }
+        } catch (e) {
+            console.error("Failed to load more messages", e);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
+    const groupedMessages = useMemo(() => {
+        const grouped: (MessageRecord & { count: number })[] = [];
+
+        if (messages) {
+            let lastMsg: (MessageRecord & { count: number }) | null = null;
+            for (const msg of messages) {
+                if (lastMsg && lastMsg.role === msg.role && lastMsg.content === msg.content) {
+                    lastMsg.count++;
+                } else {
+                    lastMsg = { ...msg, count: 1 };
+                    grouped.push(lastMsg);
+                }
+            }
+        }
+
+        if (run.reason === 'TIMEOUT') {
+            grouped.push({
+                id: -1, // Synthetic ID
+                run_id: run.id,
+                role: 'error',
+                content: JSON.stringify({ type: 'timeout', severity: 'error', message: 'Maximum execution time exceeded.' }),
+                timestamp: grouped.length > 0 ? grouped[grouped.length - 1].timestamp : new Date().toISOString(),
+                count: 1
+            });
+        }
+        return grouped;
+    }, [messages, run]);
+
     return (
         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500 text-body">
             <RunStatusBanner run={run} />
@@ -276,7 +448,8 @@ export default function RunDetails({
             <div className="panel overflow-hidden">
                 <div className="p-4 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
                     <h4 className="font-bold uppercase tracking-widest text-blue-400">Validation Report</h4>
-                    <div className="flex gap-4">
+                    <div className="flex gap-4 items-center">
+                        {run.reason === 'FAILED (VALIDATION)' && <RevalidateButton runId={run.id} />}
                         {run.validation_report ? (() => {
                             try {
                                 const report = JSON.parse(run.validation_report);
@@ -327,9 +500,16 @@ export default function RunDetails({
                                                         {item.type}
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <p className="font-bold text-zinc-300 mb-1 group-hover:text-white transition-colors">{item.description}</p>
+                                                        <div className="flex items-center gap-3">
+                                                            <p className="font-bold text-zinc-300 group-hover:text-white transition-colors">{item.description}</p>
+                                                            {item.coverage > 0 && (
+                                                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 font-bold border border-blue-500/20">
+                                                                    {item.coverage.toFixed(1)}% COV
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         {item.details && (
-                                                            <p className="text-zinc-600 text-sm truncate max-w-2xl font-mono">{item.details.split('\n')[0]}</p>
+                                                            <p className="text-zinc-600 text-sm truncate max-w-2xl font-mono mt-1">{item.details.split('\n')[0]}</p>
                                                         )}
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
@@ -359,27 +539,36 @@ export default function RunDetails({
 
             {/* Thread View */}
             <div className="panel overflow-hidden">
-                <div className="p-4 border-b border-white/5 bg-white/[0.02]">
+                <div className="p-4 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
                     <h4 className="font-bold uppercase tracking-widest">Conversation Thread</h4>
+                    <button
+                        onClick={scrollToBottom}
+                        className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors uppercase font-bold tracking-wider"
+                    >
+                        <ArrowDown size={12} /> Scroll to Bottom
+                    </button>
                 </div>
-                <div className="p-6 space-y-6 max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800">
-                    {(!details.messages || !Array.isArray(details.messages) || details.messages.length === 0) && (
+                <div
+                    ref={scrollRef}
+                    className="p-6 space-y-6 max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800"
+                >
+                    {(!groupedMessages || groupedMessages.length === 0) && (
                         <p className="text-zinc-500 italic text-center py-10">No thread data available for this run.</p>
                     )}
-                    {Array.isArray(details.messages) && details.messages.map((msg, i) => {
+                    {groupedMessages.map((msg, i) => {
                         // 1. Tool Events
                         if (msg.role === 'tool_use' || msg.role === 'tool_result') {
-                            return <ToolMessage key={i} role={msg.role} content={msg.content} timestamp={msg.timestamp} />;
+                            return <ToolMessage key={i} role={msg.role} content={msg.content} timestamp={msg.timestamp} count={msg.count} />;
                         }
                         // 2. Special System Events
                         if (msg.role === 'init') {
                             return <InitEvent key={i} timestamp={msg.timestamp} />;
                         }
                         if (msg.role === 'result') {
-                            return <ResultEvent key={i} content={msg.content} timestamp={msg.timestamp} />;
+                            return <ResultEvent key={i} content={msg.content} timestamp={msg.timestamp} count={msg.count} />;
                         }
                         if (msg.role === 'error') {
-                            return <ErrorEvent key={i} content={msg.content} timestamp={msg.timestamp} />;
+                            return <ErrorEvent key={i} content={msg.content} timestamp={msg.timestamp} count={msg.count} />;
                         }
 
 
@@ -388,7 +577,10 @@ export default function RunDetails({
                             const isUser = msg.role === 'user';
                             return (
                                 <div key={i} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} my-4`}>
-                                    <span className="font-bold text-zinc-600 uppercase tracking-tighter mb-2 ml-1 text-xs">{msg.role}</span>
+                                    <div className="flex items-center gap-2 mb-2 ml-1">
+                                        <span className="font-bold text-zinc-600 uppercase tracking-tighter text-xs">{msg.role}</span>
+                                        {msg.count > 1 && <span className="bg-zinc-800 text-zinc-400 px-1.5 rounded-full text-[10px] font-bold">x{msg.count}</span>}
+                                    </div>
                                     <div className={`p-4 rounded-md max-w-[90%] border shadow-sm ${isUser ? 'bg-indigo-600/10 border-indigo-500/20 text-indigo-100' : 'bg-[#161618] border-[#27272a] text-[#f4f4f5]'}`}>
                                         <div className="prose prose-invert prose-sm max-w-none prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/5">
                                             <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
@@ -402,8 +594,30 @@ export default function RunDetails({
                         }
 
                         // 4. Fallback for Unknown Events
-                        return <GenericEvent key={i} role={msg.role} content={msg.content} timestamp={msg.timestamp} />;
+                        return <GenericEvent key={i} role={msg.role} content={msg.content} timestamp={msg.timestamp} count={msg.count} />;
                     })}
+
+                    {/* Load More Button */}
+                    {messages.length > 0 && (
+                        <div className="py-6 flex justify-center border-t border-white/5 mt-8">
+                            <button
+                                onClick={loadMore}
+                                disabled={loadingMore}
+                                className="flex items-center gap-2 px-6 py-2 rounded-full bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-bold uppercase tracking-widest text-zinc-300"
+                            >
+                                {loadingMore ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        Loading...
+                                    </>
+                                ) : (
+                                    <>
+                                        Load more messages
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    )}
 
                 </div>
             </div>

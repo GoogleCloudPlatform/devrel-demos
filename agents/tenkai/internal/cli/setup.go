@@ -126,7 +126,7 @@ func prepareExperimentDir(cwd string, cfg *config.Configuration, timestamp time.
 		folderName = fmt.Sprintf("%s_%s", tsStr, cfg.Name)
 	}
 
-	experimentDir := filepath.Join(cwd, "experiments", "runs", folderName)
+	experimentDir := filepath.Join(cwd, "experiments", ".runs", folderName)
 	if err := os.MkdirAll(experimentDir, 0755); err != nil {
 		return "", "", err
 	}

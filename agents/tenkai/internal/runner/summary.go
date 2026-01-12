@@ -109,7 +109,6 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string) *Ex
 		}
 		if res.Error == nil && res.AgentMetrics != nil {
 			m.totalToolCalls += res.AgentMetrics.TotalToolCallsCount
-			m.totalToolCalls += res.AgentMetrics.TotalToolCallsCount
 			m.failedToolCalls += res.AgentMetrics.FailedToolCalls
 			m.toolCalls = append(m.toolCalls, float64(res.AgentMetrics.TotalToolCallsCount))
 		}

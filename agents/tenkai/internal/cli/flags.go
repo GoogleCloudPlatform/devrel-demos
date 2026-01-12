@@ -16,6 +16,7 @@ type Flags struct {
 	Control       *string
 	Timeout       *string
 	ExperimentID  *int64
+	RevalID       *int64
 	FixReportPath *string
 }
 
@@ -32,6 +33,7 @@ func parseFlags() Flags {
 		Control:       flag.String("control", "", "Name of the control alternative"),
 		Timeout:       flag.String("timeout", "", "Override timeout duration (e.g. 5m)"),
 		ExperimentID:  flag.Int64("experiment-id", 0, "Experiment ID to regenerate report"),
+		RevalID:       flag.Int64("reval", 0, "Experiment ID to re-validate runs"),
 		FixReportPath: flag.String("fix-report", "", "Path to existing report.md to fix structure/formatting"),
 	}
 	flag.Parse()

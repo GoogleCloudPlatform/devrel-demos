@@ -30,6 +30,11 @@ func (s *Server) registerRoutes() {
 	s.router.HandleFunc("GET /api/runs/{id}/lint", s.api.Wrap(s.api.GetRunLint))
 	s.router.HandleFunc("GET /api/runs/{id}/tools", s.api.Wrap(s.api.GetRunTools))
 	s.router.HandleFunc("GET /api/runs/{id}/messages", s.api.Wrap(s.api.GetRunMessages))
+	s.router.HandleFunc("POST /api/runs/{id}/reval", s.api.Wrap(s.api.ReEvaluateRun))
+	s.router.HandleFunc("POST /api/experiments/{id}/reval", s.api.Wrap(s.api.ReEvaluateExperiment))
+
+	// Jobs
+	s.router.HandleFunc("GET /api/jobs/{id}", s.api.Wrap(s.api.GetJob))
 
 	// Scenarios
 	s.router.HandleFunc("GET /api/scenarios", s.api.Wrap(s.api.ListScenarios))
