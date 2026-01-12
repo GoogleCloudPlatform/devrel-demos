@@ -112,7 +112,6 @@ func Load(path string) (*Configuration, error) {
 	}
 
 	fmt.Printf("[Config] Loaded %d scenarios\n", len(cfg.Scenarios))
-	fmt.Printf("[Config] Loaded %d scenarios\n", len(cfg.Scenarios))
 
 	return &cfg, nil
 }

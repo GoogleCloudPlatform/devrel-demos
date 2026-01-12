@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -85,7 +86,7 @@ export default function NewScenarioPage() {
 
         // Ensure at least one validation rule is present
         if (validation.length === 0) {
-            alert("Scenario must have at least one validation rule. Experiments cannot be evaluated without success criteria.");
+            toast.error("Scenario must have at least one validation rule.");
             return;
         }
 
@@ -106,7 +107,7 @@ export default function NewScenarioPage() {
         // Map 'files' asset type to 'folder' for backend compatibility if backend expects 'folder' for file lists
         // Or if backend supports generic file list. Assuming 'folder' handles multi-part 'files'.
         if (assetType === 'files') {
-            formData.append('asset_type', 'folder'); 
+            formData.append('asset_type', 'folder');
         } else {
             formData.append('asset_type', assetType);
         }
@@ -128,12 +129,13 @@ export default function NewScenarioPage() {
             });
 
             if (res.ok) {
+                toast.success("Scenario initialized successfully");
                 router.push('/scenarios');
             } else {
-                alert("Failed to create scenario");
+                toast.error("Failed to create scenario");
             }
         } catch (e) {
-            alert("Error creating scenario");
+            toast.error("Error creating scenario");
         } finally {
             setLoading(false);
         }
@@ -307,8 +309,8 @@ export default function NewScenarioPage() {
                     <div className="space-y-6">
                         <div className="space-y-3">
                             {validation.map((v, i) => (
-                                <div 
-                                    key={i} 
+                                <div
+                                    key={i}
                                     className="flex justify-between items-center p-3 bg-[#161618] rounded border border-[#27272a] cursor-pointer hover:border-indigo-500/50 transition-colors group"
                                     onClick={() => editValidation(i)}
                                     title="Click to edit"

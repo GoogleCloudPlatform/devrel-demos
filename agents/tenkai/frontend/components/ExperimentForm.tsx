@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from 'next/link';
+import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Input, TextArea, Select } from "./ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
@@ -82,14 +83,14 @@ export default function ExperimentForm({ templates, scenarios }: { templates: an
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
+                toast.success("Experiment launched successfully!");
                 router.refresh();
                 router.push('/experiments');
             } else {
-
-                alert("Failed to launch experiment");
+                toast.error("Failed to launch experiment");
             }
         } catch (e) {
-            alert("Error launching experiment");
+            toast.error("Error launching experiment");
         } finally {
             setLoading(false);
         }
@@ -231,6 +232,16 @@ export default function ExperimentForm({ templates, scenarios }: { templates: an
                             </div>
                         </CardContent>
                     </Card>
+
+                    {Number(reps) < 5 && (
+                        <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-lg flex gap-3 text-amber-500">
+                            <span className="text-xl">⚠️</span>
+                            <div className="text-xs">
+                                <strong className="block font-bold mb-1">Low Statistical Power</strong>
+                                Sample size of {reps} is small. To detect meaningful differences (p &lt; 0.05) reliably, consider using at least 5-10 repetitions.
+                            </div>
+                        </div>
+                    )}
 
                     <div className="space-y-4">
                         <Button type="submit" variant="default" size="lg" className="w-full" isLoading={loading}>

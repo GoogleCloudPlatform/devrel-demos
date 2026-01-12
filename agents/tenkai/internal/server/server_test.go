@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"mime/multipart"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/runner"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/workspace"
 )
@@ -76,7 +78,7 @@ func TestExperimentsCRUD(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("List experiments failed: %d", w.Code)
 	}
-	var exps []db.Experiment
+	var exps []models.Experiment
 	json.Unmarshal(w.Body.Bytes(), &exps)
 	if len(exps) != 0 {
 		t.Errorf("Expected 0 experiments, got %d", len(exps))
@@ -87,12 +89,12 @@ func TestExperimentsCRUD(t *testing.T) {
 	// The start endpoint spawns a process, which is hard to test.
 	// Let's test GET by inserting into DB manually.
 
-	exp := &db.Experiment{
+	exp := &models.Experiment{
 		Name:      "Test Exp",
 		Timestamp: time.Now(),
 		Status:    "running",
 	}
-	id, err := srv.db.CreateExperiment(exp)
+	id, err := srv.api.DB.CreateExperiment(exp)
 	if err != nil {
 		t.Fatalf("Failed to insert experiment: %v", err)
 	}
@@ -108,7 +110,7 @@ func TestExperimentsCRUD(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("Get experiment failed: %d", w.Code)
 	}
-	var fetchedExp db.Experiment
+	var fetchedExp models.Experiment
 	json.Unmarshal(w.Body.Bytes(), &fetchedExp)
 	if fetchedExp.Name != "Test Exp" {
 		t.Errorf("Expected name 'Test Exp', got %s", fetchedExp.Name)
@@ -237,10 +239,10 @@ func TestGetRunMessages_Integration(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// 2. Seed Data
-	exp := &db.Experiment{Name: "IntegrationTest", Timestamp: time.Now()}
-	expID, _ := srv.db.CreateExperiment(exp)
-	run := &db.RunResult{ExperimentID: expID, Status: "COMPLETED"}
-	runID, _ := srv.db.SaveRunResult(run)
+	exp := &models.Experiment{Name: "IntegrationTest", Timestamp: time.Now()}
+	expID, _ := srv.api.DB.CreateExperiment(exp)
+	run := &models.RunResult{ExperimentID: expID, Status: "COMPLETED"}
+	runID, _ := srv.api.DB.SaveRunResult(run)
 
 	// Insert Delta Events
 	type MessageEvent struct {
@@ -254,11 +256,11 @@ func TestGetRunMessages_Integration(t *testing.T) {
 		{Role: "model", Content: " there", Delta: true},
 	}
 	for _, e := range events {
-		srv.db.SaveRunEvent(runID, "message", e)
+		srv.api.DB.SaveRunEvent(runID, "message", e)
 	}
 
 	// Insert a generic event (e.g. result)
-	srv.db.SaveRunEvent(runID, "result", map[string]interface{}{
+	srv.api.DB.SaveRunEvent(runID, "result", map[string]interface{}{
 		"status": "success",
 		"stats":  map[string]int{"total_tokens": 100},
 	})
@@ -272,7 +274,7 @@ func TestGetRunMessages_Integration(t *testing.T) {
 		t.Errorf("Expected 200 OK, got %d", w.Code)
 	}
 
-	var messages []db.Message
+	var messages []models.Message
 	if err := json.NewDecoder(w.Body).Decode(&messages); err != nil {
 		t.Fatalf("Failed to decode JSON: %v", err)
 	}
@@ -300,7 +302,7 @@ func TestGetRunMessages_Integration(t *testing.T) {
 	if wNotFound.Code != http.StatusOK {
 		t.Errorf("Expected 200 OK for empty list, got %d", wNotFound.Code)
 	}
-	var emptyMsgs []db.Message
+	var emptyMsgs []models.Message
 	json.NewDecoder(wNotFound.Body).Decode(&emptyMsgs)
 	if len(emptyMsgs) != 0 {
 		t.Error("Expected empty list for non-existent run")
@@ -318,21 +320,21 @@ func TestGetRunMessages_Integration(t *testing.T) {
 func TestGetRunMessages_EdgeCases(t *testing.T) {
 	srv, tmpDir := setupTestServer(t)
 	defer os.RemoveAll(tmpDir)
-	expID, _ := srv.db.CreateExperiment(&db.Experiment{Name: "Edge", Timestamp: time.Now()})
-	runID, _ := srv.db.SaveRunResult(&db.RunResult{ExperimentID: expID})
+	expID, _ := srv.api.DB.CreateExperiment(&models.Experiment{Name: "Edge", Timestamp: time.Now()})
+	runID, _ := srv.api.DB.SaveRunResult(&models.RunResult{ExperimentID: expID})
 
 	// Case 1: Orphaned Delta (Delta true without prior message)
 	// Should act as new message
-	srv.db.SaveRunEvent(runID, "message", map[string]interface{}{
+	srv.api.DB.SaveRunEvent(runID, "message", map[string]interface{}{
 		"role": "model", "content": "I am orphan", "delta": true,
 	})
 
 	// Case 2: Switch Role without delta=false (Should start new message)
-	srv.db.SaveRunEvent(runID, "message", map[string]interface{}{
+	srv.api.DB.SaveRunEvent(runID, "message", map[string]interface{}{
 		"role": "user", "content": "Interrupt", "delta": true,
 	})
 
-	msgs, _ := srv.db.GetMessages(runID)
+	msgs, _ := srv.api.DB.GetMessages(runID, -1, 0)
 	if len(msgs) != 2 {
 		t.Fatalf("Expected 2 messages from edge case events, got %d", len(msgs))
 	}
@@ -341,5 +343,104 @@ func TestGetRunMessages_EdgeCases(t *testing.T) {
 	}
 	if msgs[1].Content != "Interrupt" {
 		t.Errorf("Role switch failed: %s", msgs[1].Content)
+	}
+}
+
+func TestGetSummaries(t *testing.T) {
+	srv, tmpDir := setupTestServer(t)
+	defer os.RemoveAll(tmpDir)
+
+	// 1. Setup Data
+	exp := &models.Experiment{
+		Name:              "SummaryTest",
+		Timestamp:         time.Now(),
+		ExperimentControl: "vanilla", // Control alternative
+	}
+	expID, _ := srv.api.DB.CreateExperiment(exp)
+
+	// Run 1: Vanilla (Control) - Success
+	srv.api.DB.SaveRunResult(&models.RunResult{
+		ExperimentID: expID,
+		Alternative:  "vanilla",
+		Scenario:     "A",
+		Repetition:   1,
+		Status:       "COMPLETED",
+		IsSuccess:    true,
+		Duration:     1000,
+	})
+	// Helper to update metrics not handled by SaveRunResult
+	srv.api.DB.WithTransaction(func(tx *sql.Tx) error {
+		_, err := tx.Exec("UPDATE run_results SET is_success = ?, duration = ? WHERE experiment_id = ? AND alternative = 'vanilla' AND repetition = 1", true, 1000, expID)
+		return err
+	})
+
+	// Run 2: Vanilla (Control) - Fail
+	srv.api.DB.SaveRunResult(&models.RunResult{
+		ExperimentID: expID,
+		Alternative:  "vanilla",
+		Scenario:     "A",
+		Repetition:   2,
+		Status:       "COMPLETED",
+		IsSuccess:    false,
+		Duration:     2000,
+	})
+	srv.api.DB.WithTransaction(func(tx *sql.Tx) error {
+		_, err := tx.Exec("UPDATE run_results SET is_success = ?, duration = ? WHERE experiment_id = ? AND alternative = 'vanilla' AND repetition = 2", false, 2000, expID)
+		return err
+	})
+
+	// Run 3: Other - Success
+	srv.api.DB.SaveRunResult(&models.RunResult{
+		ExperimentID: expID,
+		Alternative:  "other",
+		Scenario:     "A",
+		Repetition:   1,
+		Status:       "COMPLETED",
+		IsSuccess:    true,
+		Duration:     500,
+	})
+	srv.api.DB.WithTransaction(func(tx *sql.Tx) error {
+		_, err := tx.Exec("UPDATE run_results SET is_success = ?, duration = ? WHERE experiment_id = ? AND alternative = 'other' AND repetition = 1", true, 500, expID)
+		return err
+	})
+
+	// 2. Call API
+	req := httptest.NewRequest("GET", "/api/experiments/"+fmt_id(expID)+"/summaries", nil)
+	w := httptest.NewRecorder()
+	srv.router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected 200 OK, got %d", w.Code)
+	}
+
+	var summaries []models.ExperimentSummaryRow
+	if err := json.Unmarshal(w.Body.Bytes(), &summaries); err != nil {
+		t.Fatalf("Failed to decode JSON: %v", err)
+	}
+
+	if len(summaries) != 2 {
+		t.Errorf("Expected 2 summaries (vanilla, other), got %d", len(summaries))
+	}
+
+	var vanilla, other models.ExperimentSummaryRow
+	for _, s := range summaries {
+		if s.Alternative == "vanilla" {
+			vanilla = s
+		} else if s.Alternative == "other" {
+			other = s
+		}
+	}
+
+	if vanilla.TotalRuns != 2 {
+		t.Errorf("Expected 2 vanilla runs, got %d", vanilla.TotalRuns)
+	}
+	if vanilla.SuccessRate != 50.0 {
+		t.Errorf("Expected 50%% success rate for vanilla, got %f", vanilla.SuccessRate)
+	}
+	if other.TotalRuns != 1 {
+		t.Errorf("Expected 1 other run, got %d", other.TotalRuns)
+	}
+	if other.SuccessRate != 100.0 {
+		t.Errorf("Expected 100%% success rate for other, got %f", other.SuccessRate)
 	}
 }

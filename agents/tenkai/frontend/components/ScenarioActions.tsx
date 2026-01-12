@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from './ui/button';
 
+import { toast } from 'sonner';
+
 export default function ScenarioActions({ id }: { id: string }) {
     const router = useRouter();
     const [deleting, setDeleting] = useState(false);
@@ -16,13 +18,14 @@ export default function ScenarioActions({ id }: { id: string }) {
         try {
             const res = await fetch(`/api/scenarios/${id}`, { method: 'DELETE' });
             if (res.ok) {
+                toast.success("Scenario deleted successfully");
                 router.push('/scenarios');
                 router.refresh();
             } else {
-                alert("Failed to delete scenario");
+                toast.error("Failed to delete scenario");
             }
         } catch (e) {
-            alert("Error deleting scenario");
+            toast.error("Error deleting scenario");
         } finally {
             setDeleting(false);
         }

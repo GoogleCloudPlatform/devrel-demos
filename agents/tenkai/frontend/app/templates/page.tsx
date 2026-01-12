@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,13 +47,14 @@ export default function TemplatesPage() {
         try {
             const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
             if (res.ok) {
+                toast.success('Template deleted successfully');
                 setTemplates(prev => prev.filter(t => t.id !== id));
             } else {
-                alert('Failed to delete template');
+                toast.error('Failed to delete template');
             }
         } catch (err) {
             console.error(err);
-            alert('Error deleting template');
+            toast.error('Error deleting template');
         }
     };
 
@@ -64,13 +66,14 @@ export default function TemplatesPage() {
         try {
             const res = await fetch('/api/templates/delete-all', { method: 'DELETE' });
             if (res.ok) {
+                toast.success('All templates deleted successfully');
                 setTemplates([]);
             } else {
-                alert('Failed to delete all templates');
+                toast.error('Failed to delete all templates');
             }
         } catch (err) {
             console.error(err);
-            alert('Error deleting templates');
+            toast.error('Error deleting templates');
         } finally {
             setDeletingAll(false);
         }

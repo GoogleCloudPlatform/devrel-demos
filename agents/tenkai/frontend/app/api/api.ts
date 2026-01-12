@@ -2,12 +2,15 @@
 import {
     ExperimentRecord,
     Checkpoint,
-    ExperimentSummaryRow as ExperimentSummaryRecord
+    ExperimentSummaryRow as ExperimentSummaryRecord,
+    RunResult
 } from '@/types/domain';
 
 export type { ExperimentRecord, ExperimentSummaryRecord, Checkpoint };
 
-const API_BASE = 'http://127.0.0.1:8080/api';
+const API_BASE = typeof window === 'undefined'
+    ? 'http://127.0.0.1:8080/api'
+    : '/api';
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${API_BASE}${endpoint}`;
@@ -15,39 +18,17 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
         cache: 'no-store', // Always fetch fresh data
         ...options
     });
-    
+
     if (!res.ok) {
         // Handle 404 gracefully for some resources if needed, or throw
         if (res.status === 404) return null as any;
         throw new Error(`API call failed: ${res.status} ${res.statusText} at ${url}`);
     }
-    
+
     return res.json();
 }
 
-export interface RunResultRecord {
-    id: number;
-    experiment_id: number;
-    alternative: string;
-    scenario: string;
-    repetition: number;
-    duration: number;
-    error: string;
-    stdout: string;
-    stderr: string;
-    tests_passed: number;
-    tests_failed: number;
-    lint_issues: number;
-    total_tokens: number;
-    input_tokens: number;
-    output_tokens: number;
-    tool_calls_count: number;
-    loop_detected: boolean;
-    is_success: boolean;
-    validation_report: string;
-    status: string;
-    reason: string;
-}
+export type RunResultRecord = RunResult;
 
 export interface ToolUsageRecord {
     id: number;
@@ -87,6 +68,10 @@ export interface LintResultRecord {
     message: string;
     severity: string;
     rule_id: string;
+}
+export interface JobResponse {
+    job_id?: string;
+    error?: string;
 }
 
 export async function getExperiments(): Promise<ExperimentRecord[]> {
@@ -166,8 +151,8 @@ export async function getExperimentSummaries(id: number | string): Promise<Exper
     return fetchAPI<ExperimentSummaryRecord[]>(`/experiments/${id}/summaries`);
 }
 
-export async function getRunResults(experimentId: number | string): Promise<RunResultRecord[]> {
-    return fetchAPI<RunResultRecord[]>(`/experiments/${experimentId}/runs`);
+export async function getRunResults(experimentId: number | string, page = 1, limit = 100): Promise<RunResultRecord[]> {
+    return fetchAPI<RunResultRecord[]>(`/experiments/${experimentId}/runs?page=${page}&limit=${limit}`);
 }
 export async function getToolUsage(runId: number): Promise<ToolUsageRecord[]> {
     const res = await fetchAPI<ToolUsageRecord[]>(`/runs/${runId}/tools`);
@@ -178,8 +163,8 @@ export async function getToolUsage(runId: number): Promise<ToolUsageRecord[]> {
     }));
 }
 
-export async function getMessages(runId: number): Promise<MessageRecord[]> {
-    return (await fetchAPI<MessageRecord[]>(`/runs/${runId}/messages`)) || [];
+export async function getMessages(runId: number, page = 1, limit = 1000): Promise<MessageRecord[]> {
+    return (await fetchAPI<MessageRecord[]>(`/runs/${runId}/messages?page=${page}&limit=${limit}`)) || [];
 }
 
 export async function getRunFiles(runId: number) {
@@ -245,4 +230,16 @@ export interface ToolStatRow {
 
 export async function getToolStats(experimentId: number): Promise<ToolStatRow[]> {
     return fetchAPI<ToolStatRow[]>(`/experiments/${experimentId}/tool-stats`);
+}
+
+export async function reValidateRun(runId: number): Promise<JobResponse> {
+    return fetchAPI<JobResponse>(`/runs/${runId}/reval`, {
+        method: 'POST'
+    });
+}
+
+export async function reValidateExperiment(experimentId: number): Promise<JobResponse> {
+    return fetchAPI<JobResponse>(`/experiments/${experimentId}/reval`, {
+        method: 'POST'
+    });
 }

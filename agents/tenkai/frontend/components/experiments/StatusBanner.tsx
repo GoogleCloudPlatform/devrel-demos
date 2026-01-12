@@ -4,6 +4,7 @@ import { Checkpoint } from "@/app/api/api";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import KillExperimentButton from "../KillExperimentButton";
+import ProgressBar from "@/components/ui/progress-bar";
 
 export default function StatusBanner({ checkpoint: initialCheckpoint }: { checkpoint: Checkpoint | null }) {
     const [checkpoint, setCheckpoint] = useState<Checkpoint | null>(initialCheckpoint);
@@ -29,11 +30,14 @@ export default function StatusBanner({ checkpoint: initialCheckpoint }: { checkp
                 <div className="h-6 w-px bg-[#27272a]"></div>
 
                 <div className="flex items-center gap-4">
-                    <div className="w-64 h-2 bg-[#161618] rounded-full overflow-hidden border border-[#27272a]">
-                        <div
-                            className="h-full bg-[#6366f1] transition-all duration-1000 ease-out"
-                            style={{ width: `${checkpoint.percentage}%` }}
-                        ></div>
+                    <div className="w-64">
+                        <ProgressBar
+                            percentage={checkpoint.percentage}
+                            completed={checkpoint.completed_jobs}
+                            total={checkpoint.total_jobs}
+                            status={checkpoint.status}
+                            showLabel={false}
+                        />
                     </div>
                     <span className="font-mono font-bold text-white">{checkpoint.percentage.toFixed(1)}%</span>
                 </div>

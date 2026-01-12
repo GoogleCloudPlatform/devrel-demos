@@ -3,30 +3,37 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
 
-export default function KillExperimentButton({ experimentId }: { experimentId: string | number }) {
+import { toast } from "sonner";
+
+export default function KillExperimentButton({ experimentId, disabled }: { experimentId: string | number, disabled?: boolean }) {
     const [loading, setLoading] = useState(false);
 
     const handleKill = async () => {
-        if (!confirm("Are you sure you want to kill this experiment? Running jobs will be stopped.")) return;
+        toast("Are you sure you want to kill this experiment?", {
+            action: {
+                label: "Confirm Kill",
+                onClick: async () => {
+                    setLoading(true);
+                    try {
+                        const res = await fetch(`/api/experiments/${experimentId}/control`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ command: 'stop' }) // API expects "command" not action
+                        });
 
-        setLoading(true);
-        try {
-            const res = await fetch('/api/experiments/control', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: experimentId, action: 'stop' })
-            });
-
-            if (res.ok) {
-                alert("Kill signal sent.");
-            } else {
-                alert("Failed to send kill signal");
+                        if (res.ok) {
+                            toast.success("Kill signal sent.");
+                        } else {
+                            toast.error("Failed to send kill signal");
+                        }
+                    } catch (e) {
+                        toast.error("Error sending kill signal");
+                    } finally {
+                        setLoading(false);
+                    }
+                }
             }
-        } catch (e) {
-            alert("Error sending kill signal");
-        } finally {
-            setLoading(false);
-        }
+        });
     };
 
     return (
@@ -34,7 +41,7 @@ export default function KillExperimentButton({ experimentId }: { experimentId: s
             variant="destructive"
             size="sm"
             onClick={handleKill}
-            disabled={loading}
+            disabled={loading || disabled}
         >
             <span className="mr-2">🛑</span> Kill
         </Button>

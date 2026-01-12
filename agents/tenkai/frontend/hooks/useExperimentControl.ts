@@ -1,4 +1,6 @@
 import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 export type ExperimentStatus = 'running' | 'ABORTED' | 'completed';
 
@@ -8,6 +10,7 @@ export interface UseExperimentControlOptions {
 }
 
 export function useExperimentControl(experimentId: number | string, initialStatus: ExperimentStatus, options?: UseExperimentControlOptions) {
+    const router = useRouter();
     const [status, setStatus] = useState<ExperimentStatus>(initialStatus);
     const [loadingAction, setLoadingAction] = useState<string | null>(null);
     const handleControl = useCallback(async (action: 'stop') => {
@@ -28,12 +31,12 @@ export function useExperimentControl(experimentId: number | string, initialStatu
 
             } else {
                 const data = await res.json().catch(() => ({}));
-                alert(`Failed to ${action} experiment: ${data.error || 'Unknown error'}`);
+                toast.error(`Failed to ${action} experiment: ${data.error || 'Unknown error'}`);
                 return false;
             }
         } catch (e) {
             console.error(e);
-            alert(`Error sending ${action} command`);
+            toast.error(`Error sending ${action} command`);
             return false;
         } finally {
             setLoadingAction(null);
@@ -50,11 +53,11 @@ export function useExperimentControl(experimentId: number | string, initialStatu
                 return data.analysis;
             } else {
                 const data = await res.json().catch(() => ({}));
-                alert(`Failed to generate AI insights: ${data.error || 'Unknown server error'}`);
+                toast.error(`Failed to generate AI insights: ${data.error || 'Unknown server error'}`);
             }
         } catch (e) {
             console.error(e);
-            alert('Error generating AI insights. Check console.');
+            toast.error('Error generating AI insights. Check console.');
         } finally {
             setLoadingAction(null);
         }
@@ -65,13 +68,14 @@ export function useExperimentControl(experimentId: number | string, initialStatu
         try {
             const res = await fetch(`/api/experiments/${experimentId}/regenerate`, { method: 'POST' });
             if (res.ok) {
-                window.location.reload();
+                toast.success('Report regenerated successfully');
+                router.refresh();
             } else {
-                alert('Failed to regenerate report');
+                toast.error('Failed to regenerate report');
             }
         } catch (e) {
             console.error(e);
-            alert('Error regenerating report');
+            toast.error('Error regenerating report');
         } finally {
             setLoadingAction(null);
         }

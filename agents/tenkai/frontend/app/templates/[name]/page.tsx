@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import TemplateForm from "@/components/TemplateForm";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -27,7 +28,7 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ name:
                     yaml_content: template.content,
                     config: template.config || {} // Note: config might need parsing if content is raw
                 });
-                
+
                 // If config is not in response, try to parse it from content
                 if (!template.config && template.content) {
                     try {
@@ -36,11 +37,11 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ name:
                             ...prev,
                             config: yaml.load(template.content)
                         }));
-                    } catch (e) {}
+                    } catch (e) { }
                 }
             } catch (e) {
                 console.error(e);
-                alert("Failed to load template editor");
+                toast.error("Failed to load template editor");
             } finally {
                 setLoading(false);
             }
@@ -52,8 +53,8 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ name:
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8 animate-enter text-body">
-            <PageHeader 
-                title="Edit Template" 
+            <PageHeader
+                title="Edit Template"
                 description={`ID: ${initialData.id}`}
                 backHref="/templates"
             />

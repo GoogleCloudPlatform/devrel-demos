@@ -23,6 +23,8 @@ export interface ExperimentRecord {
     execution_control?: string;
     total_jobs?: number;
     completed_jobs?: number;
+    num_alternatives?: number;
+    timeout?: string;
     progress?: {
         completed: number;
         total: number;
@@ -61,6 +63,7 @@ export interface ExperimentSummaryRow {
     p_tests_passed?: number;
     p_tests_failed?: number;
     p_timeout?: number;
+    p_tool_calls?: number;
 }
 
 export interface Alternative {
@@ -95,5 +98,6 @@ export interface RunResult {
     is_success: boolean;
     validation_report?: string;
     reason?: string;
+    status: string;
 }
 

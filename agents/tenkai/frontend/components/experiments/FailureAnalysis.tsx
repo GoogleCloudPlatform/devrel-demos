@@ -2,6 +2,8 @@
 
 import { RunResultRecord } from "@/app/api/api";
 import { Card } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 export default function FailureAnalysis({ runs }: { runs: RunResultRecord[] }) {
     const failedRuns = runs.filter(r => {
@@ -9,89 +11,148 @@ export default function FailureAnalysis({ runs }: { runs: RunResultRecord[] }) {
         return !r.is_success && status !== 'RUNNING' && status !== 'QUEUED';
     });
 
-    // Group by common error patterns
-    const errorPatterns: Record<string, { count: number, alternatives: string[] }> = {};
+    const alternatives = Array.from(new Set(runs.map(r => r.alternative))).sort();
 
-    failedRuns.forEach(run => {
-        let reason = "Unknown failure";
-        if (run.error) {
-            if (run.error.includes("timeout")) reason = "Execution Timeout";
-            else if (run.error.includes("token")) reason = "Context Overflow";
-            else if (run.error.includes("compile")) reason = "Compilation Error";
-            else reason = run.error.split('\n')[0].substring(0, 60);
-        } else if (run.tests_failed > 0) {
-            reason = "Test Regression";
-        } else if (run.lint_issues > 0) {
-            reason = "Style/Lint Violation";
+    // Matrix: Reason -> Alternative -> Count
+    const matrix: Record<string, Record<string, number>> = {};
+    const reasonTotals: Record<string, number> = {};
+
+    failedRuns.forEach((run) => {
+        const detectedReasons: Set<string> = new Set();
+
+        // 1. Strict Backend Reason Mapping
+        switch (run.reason) {
+            case "FAILED (TIMEOUT)":
+                detectedReasons.add("Execution Timeout");
+                break;
+            case "FAILED (LOOP)":
+                detectedReasons.add("Loop Detected");
+                break;
+            case "FAILED (ERROR)":
+                detectedReasons.add("Runtime Error");
+                break;
+            case "FAILED (VALIDATION)":
+                // 2. Parse Validation Report for specific validation failures
+                if (run.validation_report) {
+                    try {
+                        const report = JSON.parse(run.validation_report);
+
+                        // Check Report Items explicitly
+                        if (report.items) {
+                            report.items.forEach((item: any) => {
+                                if (item.status !== "PASS") {
+                                    if (item.type === "test") {
+                                        // 1. Functional Test Failure
+                                        const testsFailedMatch = item.details?.match(/(\d+) tests failed/);
+                                        const failedCount = testsFailedMatch ? parseInt(testsFailedMatch[1]) : 0;
+                                        if (failedCount > 0) {
+                                            detectedReasons.add("Test Failure");
+                                        }
+
+                                        // 2. Coverage Failure (Independent check)
+                                        if (item.details?.includes("Requirement:")) {
+                                            // Try to parse values
+                                            const covMatch = item.details.match(/Cov: ([\d.]+)%/);
+                                            const reqMatch = item.details.match(/Requirement: >= ([\d.]+)%/);
+
+                                            if (covMatch && reqMatch) {
+                                                const covVal = parseFloat(covMatch[1]);
+                                                const reqVal = parseFloat(reqMatch[1]);
+                                                if (covVal < reqVal) {
+                                                    detectedReasons.add("Test Failure (Coverage)");
+                                                }
+                                            } else {
+                                                // Fallback: If requirements exist but parsing failed, and status is FAIL
+                                                // If functional tests passed, it must be coverage
+                                                if (failedCount === 0) {
+                                                    detectedReasons.add("Test Failure (Coverage)");
+                                                }
+                                            }
+                                        }
+                                    } else if (item.type === "lint") {
+                                        detectedReasons.add("Lint Violation");
+                                    } else if (item.type === "command") {
+                                        detectedReasons.add("Command Failure");
+                                    } else if (item.type === "model") {
+                                        detectedReasons.add("Model Validation Failure");
+                                    } else {
+                                        detectedReasons.add("Generic Validation Failure");
+                                    }
+                                }
+                            });
+                        } else {
+                            // Fallback if no items but validation failed (should not happen with new backend)
+                            detectedReasons.add("Unknown Validation Failure");
+                        }
+                    } catch (e) {
+                        detectedReasons.add("Corrupt Validation Report");
+                    }
+                } else {
+                    detectedReasons.add("Missing Validation Report");
+                }
+                break;
+            default:
+                // Handle cases where Reason might be generic or missing (e.g. legacy/aborted runs)
+                detectedReasons.add(run.reason || "Unknown Failure");
+                break;
         }
 
-        if (!errorPatterns[reason]) errorPatterns[reason] = { count: 0, alternatives: [] };
-        errorPatterns[reason].count++;
-        if (!errorPatterns[reason].alternatives.includes(run.alternative)) {
-            errorPatterns[reason].alternatives.push(run.alternative);
-        }
+        detectedReasons.forEach(reason => {
+            if (!matrix[reason]) matrix[reason] = {};
+            if (!matrix[reason][run.alternative]) matrix[reason][run.alternative] = 0;
+            matrix[reason][run.alternative]++;
+
+            reasonTotals[reason] = (reasonTotals[reason] || 0) + 1;
+        });
     });
 
-    const patterns = Object.entries(errorPatterns).sort((a, b) => b[1].count - a[1].count);
+    const sortedReasons = Object.entries(reasonTotals).sort((a, b) => b[1] - a[1]).map(e => e[0]);
+
+    if (failedRuns.length === 0) return null;
 
     return (
-        <Card title="Failure Patterns Analysis" className="text-body">
-            <div className="space-y-6">
-                {patterns.length === 0 ? (
-                    <p className="text-zinc-500 italic py-4">No critical failure patterns detected.</p>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                            <h4 className="font-bold uppercase tracking-widest text-[#52525b] mb-4 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                                Top Critical Failures
-                            </h4>
-                            <div className="space-y-3">
-                                {patterns.slice(0, 5).map(([reason, data], i) => (
-                                    <div key={i} className="panel p-3 bg-red-500/[0.02] border-red-500/10 flex flex-col gap-2 group hover:bg-red-500/5 transition-colors">
-                                        <div className="flex justify-between items-start">
-                                            <span className="font-bold text-zinc-300">{reason}</span>
-                                            <span className="font-black text-red-500 bg-red-500/10 px-2 py-0.5 rounded uppercase">{data.count} runs</span>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {data.alternatives.map(alt => (
-                                                <span key={alt} className="text-zinc-500 px-1.5 py-0.5 bg-white/5 rounded font-mono">{alt}</span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="space-y-4">
-                            <h4 className="font-bold uppercase tracking-widest text-[#52525b] mb-4 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                                Common Regressions
-                            </h4>
-                            <div className="space-y-3">
-                                {patterns.slice(5, 10).map(([reason, data], i) => (
-                                    <div key={i} className="panel p-3 bg-amber-500/[0.02] border-amber-500/10 flex flex-col gap-2 group hover:bg-amber-500/5 transition-colors">
-                                        <div className="flex justify-between items-start">
-                                            <span className="font-bold text-amber-500/80">{reason}</span>
-                                            <span className="font-black text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded uppercase">{data.count} runs</span>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {data.alternatives.map(alt => (
-                                                <span key={alt} className="text-zinc-500 px-1.5 py-0.5 bg-white/5 rounded font-mono">{alt}</span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-                                {patterns.length <= 5 && (
-                                    <div className="py-8 text-center text-zinc-600 opacity-50 italic">
-                                        No secondary regressions identified.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
+        <div className="panel overflow-hidden mt-6 pb-0">
+            <div className="p-4 border-b border-white/5 bg-white/[0.02]">
+                <h3 className="font-bold uppercase tracking-widest text-sm text-foreground">Failure Analysis (Run Count)</h3>
             </div>
-        </Card>
+            <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[300px] px-6">Failure Reason</TableHead>
+                            {alternatives.map(alt => (
+                                <TableHead key={alt} className="text-right px-6">{alt}</TableHead>
+                            ))}
+                            <TableHead className="text-right w-[100px] px-6">Total</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {sortedReasons.map(reason => (
+                            <TableRow key={reason}>
+                                <TableCell className="font-bold text-zinc-300 flex items-center gap-2 px-6">
+                                    <span className={`w-2 h-2 rounded-full ${reason.includes("Timeout") ? "bg-amber-500" :
+                                        reason.includes("Test") ? "bg-red-500" :
+                                            reason.includes("Lint") ? "bg-blue-400" :
+                                                "bg-zinc-500"
+                                        }`}></span>
+                                    {reason}
+                                </TableCell>
+                                {alternatives.map(alt => {
+                                    const count = matrix[reason]?.[alt] || 0;
+                                    return (
+                                        <TableCell key={alt} className="text-right font-mono text-zinc-400 px-6">
+                                            {count > 0 ? <span className="text-red-400 font-bold">{count}</span> : "-"}
+                                        </TableCell>
+                                    );
+                                })}
+                                <TableCell className="text-right font-bold text-zinc-200 px-6">
+                                    {reasonTotals[reason]}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </div>
     );
 }

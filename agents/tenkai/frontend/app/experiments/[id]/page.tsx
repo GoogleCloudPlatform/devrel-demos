@@ -1,9 +1,10 @@
 import yaml from "js-yaml";
 import { getSimplifiedMetrics, getCheckpoint, getRunResults, getExperimentSummaries, getExperiment } from "@/app/api/api";
 import ReportViewer from "@/components/ReportViewer";
-import { calculateStats } from "@/utils/statistics";
 import RefreshOnInterval from "@/components/RefreshOnInterval";
 import Link from "next/link";
+import { Suspense } from "react";
+
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
     // 1. Fetch Experiment Data
     let experiment;
@@ -54,7 +55,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
     summaries.forEach(row => {
         statObj[row.alternative] = { ...row, alternative: row.alternative, count: row.total_runs };
     });
-    const stats = summaries.length > 0 ? statObj : calculateStats(runResults);
+    const stats = statObj;
 
     let configYaml: any = null;
     try { if (experiment.config_content) configYaml = yaml.load(experiment.config_content); } catch (e) { }
@@ -102,16 +103,18 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
 
             {/* Main Content Area */}
             <main className="flex-1 h-full overflow-hidden flex flex-col bg-[#09090b]">
-                <ReportViewer
-                    experiment={experiment}
-                    initialContent={experiment.report_content || ""}
-                    initialMetrics={metrics}
-                    initialCheckpoint={checkpoint}
-                    runResults={runResults}
-                    stats={stats}
-                    config={configYaml}
-                    configContent={experiment.config_content || ""}
-                />
+                <Suspense fallback={<div className="p-10 text-center opacity-50">Loading Report...</div>}>
+                    <ReportViewer
+                        experiment={experiment}
+                        initialContent={experiment.report_content || ""}
+                        initialMetrics={metrics}
+                        initialCheckpoint={checkpoint}
+                        runResults={runResults}
+                        stats={stats}
+                        config={configYaml}
+                        configContent={experiment.config_content || ""}
+                    />
+                </Suspense>
             </main>
         </div>
     );

@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ExperimentRecord, Checkpoint, RunResultRecord } from "@/app/api/api";
+import { ExperimentRecord, Checkpoint, RunResultRecord, getRunResults, reValidateExperiment } from "@/app/api/api";
+import { Loader2, RefreshCw } from "lucide-react";
 import MetricsOverview from "./experiments/MetricsOverview";
 import PerformanceTable from "./experiments/PerformanceTable";
 import RunHistory from "./experiments/RunHistory";
 import RunDetails from "./experiments/RunDetails";
-import ToolUsageTable from "./experiments/ToolUsageTable"; // Added
+import ToolUsageTable from "./experiments/ToolUsageTable";
 import ToolInspectionModal from "./experiments/ToolInspectionModal";
 import ValidationModal from "./experiments/ValidationModal";
 import FailureAnalysis from "./experiments/FailureAnalysis";
@@ -17,6 +18,9 @@ import StatusBanner from "./experiments/StatusBanner";
 import { Button } from "./ui/button";
 import RelaunchButton from "./RelaunchButton";
 import KillExperimentButton from "./KillExperimentButton";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { toast } from "sonner";
+import ProgressBar from "./ui/progress-bar";
 
 interface ReportViewerProps {
     experiment: ExperimentRecord;
@@ -29,6 +33,114 @@ interface ReportViewerProps {
     configContent: string;
 }
 
+function RevalidateExperimentButton({ experimentId, isExperimentRunning, onStateChange }: { experimentId: number, isExperimentRunning: boolean, onStateChange?: (revalidating: boolean) => void }) {
+    const [loading, setLoading] = useState(false);
+    const [jobId, setJobId] = useState<string | null>(null);
+    const [progress, setProgress] = useState(0);
+    const [stats, setStats] = useState<{ completed: number, total: number } | null>(null);
+    const isProcessing = useRef(false);
+    const router = useRouter();
+
+    // Poll job status
+    useEffect(() => {
+        if (!jobId) {
+            isProcessing.current = false;
+            return;
+        }
+
+        const interval = setInterval(async () => {
+            if (isProcessing.current) return;
+
+            try {
+                const res = await fetch(`/api/jobs/${jobId}`);
+                if (!res.ok) return;
+                const job = await res.json();
+
+                // If job ID changed or was cleared by another tick in the meantime
+                if (!jobId) return;
+
+                setProgress(job.progress);
+                setStats({ completed: job.completed, total: job.total });
+
+                if (job.status === "COMPLETED" || job.status === "FAILED") {
+                    isProcessing.current = true;
+                    clearInterval(interval);
+                    setJobId(null);
+                    setLoading(false);
+                    onStateChange?.(false);
+
+                    if (job.status === "COMPLETED") {
+                        toast.success("Re-validation completed!");
+                        router.refresh();
+                    } else {
+                        toast.error(`Re-validation failed: ${job.error}`);
+                    }
+                }
+            } catch (e) {
+                console.error("Polling job failed", e);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [jobId]);
+
+    const handleReval = async () => {
+        toast("Start re-validation for ALL completed runs?", {
+            action: {
+                label: "Run Now",
+                onClick: async () => {
+                    setLoading(true);
+                    onStateChange?.(true);
+                    try {
+                        const res = await reValidateExperiment(experimentId);
+                        if (res && res.job_id) {
+                            setJobId(res.job_id);
+                            toast.info("Re-evaluation started...");
+                        } else if (res && res.error) {
+                            toast.error(`Re-evaluation failed: ${res.error}`);
+                            setLoading(false);
+                            onStateChange?.(false);
+                        } else {
+                            console.error("Unexpected reval response:", res);
+                            toast.error(`Re-evaluation started but no JobID was returned.`);
+                            setLoading(false);
+                            onStateChange?.(false);
+                        }
+                    } catch (e: any) {
+                        toast.error("Failed to start re-evaluation: " + e.message);
+                        setLoading(false);
+                        onStateChange?.(false);
+                    }
+                }
+            }
+        });
+    };
+
+
+
+    if (jobId) {
+        return (
+            <div className="flex flex-col gap-1 w-[200px]">
+                <ProgressBar
+                    percentage={progress}
+                    completed={stats?.completed || 0}
+                    total={stats?.total || 0}
+                    status="RUNNING"
+                    showLabel={true}
+                />
+                <span className="text-[10px] text-zinc-500 uppercase font-bold text-center">Re-validating...</span>
+            </div>
+        )
+    }
+
+    return (
+        <Button variant="outline" size="sm" onClick={handleReval} disabled={loading || isExperimentRunning}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            {loading ? "Starting..." : "Re-validate Failures"}
+        </Button>
+    );
+}
+
 export default function ReportViewer({
     experiment,
     initialContent,
@@ -39,11 +151,89 @@ export default function ReportViewer({
     config,
     configContent
 }: ReportViewerProps) {
-    const [activeTab, setActiveTab] = useState<'overview' | 'investigate' | 'config'>('overview');
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+
+    const activeTab = (searchParams.get('tab') as 'overview' | 'investigate' | 'config') || 'overview';
+    const runIdFromUrl = searchParams.get('runId');
+
     const [selectedRun, setSelectedRun] = useState<RunResultRecord | null>(null);
     const [inspectedTool, setInspectedTool] = useState<any>(null);
     const [inspectedValidation, setInspectedValidation] = useState<any>(null);
     const [configModalContent, setConfigModalContent] = useState<{ title: string, content: string } | null>(null);
+    const [isRevalidating, setIsRevalidating] = useState(false);
+
+    const isRunning = experiment.status?.toUpperCase() === 'RUNNING';
+
+    // Pagination State
+    const [runs, setRuns] = useState<RunResultRecord[]>(runResults);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true); // Assume true initially if we have results
+    const [loadingRuns, setLoadingRuns] = useState(false);
+
+    const loadMoreRuns = async () => {
+        if (loadingRuns || !hasMore) return;
+        setLoadingRuns(true);
+        try {
+            const nextPage = page + 1;
+            const newRuns = await getRunResults(experiment.id, nextPage, 100); // Limit 100 matches backend default
+            if (newRuns.length < 100) {
+                setHasMore(false);
+            }
+            if (newRuns.length > 0) {
+                setRuns(prev => [...prev, ...newRuns]);
+                setPage(nextPage);
+            }
+        } catch (e) {
+            console.error("Failed to load more runs", e);
+        } finally {
+            setLoadingRuns(false);
+        }
+    };
+
+    // Check initial load size to set hasMore correctly
+    useEffect(() => {
+        if (runResults.length < 100) {
+            setHasMore(false);
+        }
+    }, []);
+
+    // Sync selectedRun with runId in URL
+    useEffect(() => {
+        if (runIdFromUrl) {
+            const runId = parseInt(runIdFromUrl);
+            const found = runs.find(r => r.id === runId);
+            if (found && (!selectedRun || selectedRun.id !== runId)) {
+                setSelectedRun(found);
+            }
+        } else if (selectedRun) {
+            setSelectedRun(null);
+        }
+    }, [runIdFromUrl, runs]);
+
+    const updateUrl = (params: { tab?: string, runId?: number | null }) => {
+        const current = new URLSearchParams(searchParams.toString());
+        if (params.tab) {
+            current.set('tab', params.tab);
+        }
+        if (params.runId !== undefined) {
+            if (params.runId === null) {
+                current.delete('runId');
+            } else {
+                current.set('runId', params.runId.toString());
+            }
+        }
+        router.push(`${pathname}?${current.toString()}`, { scroll: false });
+    };
+
+    const handleTabChange = (tabId: 'overview' | 'investigate' | 'config') => {
+        updateUrl({ tab: tabId });
+    };
+
+    const handleSelectRun = (run: RunResultRecord) => {
+        updateUrl({ tab: 'investigate', runId: run.id });
+    };
 
     // Fetch run details when a run is selected
     const [runDetails, setRunDetails] = useState<any>(null);
@@ -86,7 +276,7 @@ export default function ReportViewer({
         // Polling if running
         let interval: NodeJS.Timeout;
         if (selectedRun.status === 'running') {
-            interval = setInterval(fetchRunDetails, 1000);
+            interval = setInterval(fetchRunDetails, 3000);
         }
 
         return () => {
@@ -106,7 +296,7 @@ export default function ReportViewer({
                     ].map(tab => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
+                            onClick={() => handleTabChange(tab.id as any)}
                             className={`px-6 h-full font-bold uppercase tracking-widest transition-all border-b-2 ${activeTab === tab.id
                                 ? "border-[#6366f1] text-[#f4f4f5]"
                                 : "border-transparent text-[#52525b] hover:text-[#a1a1aa]"
@@ -118,13 +308,20 @@ export default function ReportViewer({
                 </div>
 
                 <div className="flex gap-2">
+                    {runResults.some(r => r.reason === 'FAILED (VALIDATION)') && (
+                        <RevalidateExperimentButton
+                            experimentId={experiment.id}
+                            isExperimentRunning={isRunning}
+                            onStateChange={setIsRevalidating}
+                        />
+                    )}
                     <Link href={`/api/experiments/${experiment.id}/export`} target="_blank">
                         <Button variant="outline" size="sm">
                             <span className="mr-2">📄</span> Export MD
                         </Button>
                     </Link>
-                    <RelaunchButton experimentId={experiment.id} />
-                    <KillExperimentButton experimentId={experiment.id} />
+                    <RelaunchButton experimentId={experiment.id} disabled={isRunning} />
+                    <KillExperimentButton experimentId={experiment.id} disabled={!isRunning} />
                 </div>
             </div>
 
@@ -152,21 +349,20 @@ export default function ReportViewer({
                                     <MetricsOverview metrics={initialMetrics} />
                                 </div>
                                 <div className="lg:col-span-12">
-                                    <PerformanceTable 
-                                        runResults={runResults} 
-                                        stats={stats} 
+                                    <PerformanceTable
+                                        runResults={runResults}
+                                        stats={stats}
                                         controlBaseline={experiment.experiment_control}
                                         alternatives={config?.alternatives?.map((a: any) => a.name)}
                                     />
+
+                                    <FailureAnalysis runs={runResults} />
 
                                     <ToolUsageTable
                                         experimentId={experiment.id}
                                         alternatives={config?.alternatives?.map((a: any) => a.name) || Object.keys(stats).sort()}
                                     />
 
-                                </div>
-                                <div className="lg:col-span-12">
-                                    <FailureAnalysis runs={runResults} />
                                 </div>
                             </div>
                         </div>
@@ -176,9 +372,12 @@ export default function ReportViewer({
                         <div className="flex h-[calc(100vh-200px)] gap-6 animate-in fade-in duration-500">
                             <div className="w-[350px] flex-shrink-0 panel bg-[#09090b]">
                                 <RunHistory
-                                    runs={runResults}
+                                    runs={runs}
                                     selectedRunId={selectedRun?.id || null}
-                                    onSelectRun={setSelectedRun}
+                                    onSelectRun={handleSelectRun}
+                                    onLoadMore={loadMoreRuns}
+                                    hasMore={hasMore}
+                                    loading={loadingRuns}
                                 />
                             </div>
                             <div className="flex-1 overflow-y-auto panel bg-[#0c0c0e] p-6">
@@ -189,6 +388,7 @@ export default function ReportViewer({
                                         </div>
                                     ) : runDetails ? (
                                         <RunDetails
+                                            key={selectedRun.id}
                                             run={selectedRun}
                                             details={runDetails}
                                             onInspectTool={setInspectedTool}
@@ -222,8 +422,8 @@ export default function ReportViewer({
                                         "border-fuchsia-500/30 bg-fuchsia-500/5",
                                         "border-sky-500/30 bg-sky-500/5",
                                     ];
-                                    const containerClass = isControl 
-                                        ? 'border-indigo-500/50 shadow-[0_0_20px_-10px_#6366f1] bg-indigo-900/10' 
+                                    const containerClass = isControl
+                                        ? 'border-indigo-500/50 shadow-[0_0_20px_-10px_#6366f1] bg-indigo-900/10'
                                         : altColors[i % altColors.length];
 
                                     return (
@@ -255,7 +455,7 @@ export default function ReportViewer({
                                                     <div className="space-y-2">
                                                         <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">System Prompt</p>
                                                         {alt.system_prompt_file ? (
-                                                            <div 
+                                                            <div
                                                                 className="flex items-center gap-2 text-indigo-400 font-mono text-sm cursor-pointer hover:underline"
                                                                 onClick={() => setConfigModalContent({
                                                                     title: `System Prompt Path: ${alt.name}`,
@@ -266,7 +466,7 @@ export default function ReportViewer({
                                                                 {alt.system_prompt_file.split('/').pop()}
                                                             </div>
                                                         ) : (
-                                                            <div 
+                                                            <div
                                                                 className={`text-sm ${alt.system_prompt ? 'text-indigo-400 cursor-pointer hover:underline' : 'text-zinc-600 italic'}`}
                                                                 onClick={() => alt.system_prompt && setConfigModalContent({
                                                                     title: `System Prompt: ${alt.name}`,
@@ -281,7 +481,7 @@ export default function ReportViewer({
                                                     <div className="space-y-2">
                                                         <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">GEMINI.md (Context)</p>
                                                         {alt.context_file_path ? (
-                                                            <div 
+                                                            <div
                                                                 className="flex items-center gap-2 text-emerald-400 font-mono text-sm cursor-pointer hover:underline"
                                                                 onClick={() => setConfigModalContent({
                                                                     title: `Context Path: ${alt.name}`,
@@ -292,7 +492,7 @@ export default function ReportViewer({
                                                                 {alt.context_file_path.split('/').pop()}
                                                             </div>
                                                         ) : alt.context ? (
-                                                            <div 
+                                                            <div
                                                                 className="flex items-center gap-2 text-emerald-400 font-mono text-sm cursor-pointer hover:underline"
                                                                 onClick={() => setConfigModalContent({
                                                                     title: `Context Content: ${alt.name}`,
@@ -310,7 +510,7 @@ export default function ReportViewer({
                                                     <div className="space-y-2">
                                                         <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">Settings</p>
                                                         {alt.settings_path ? (
-                                                            <div 
+                                                            <div
                                                                 className="flex items-center gap-2 text-amber-400 font-mono text-sm cursor-pointer hover:underline"
                                                                 onClick={() => setConfigModalContent({
                                                                     title: `Settings Path: ${alt.name}`,
@@ -321,7 +521,7 @@ export default function ReportViewer({
                                                                 {alt.settings_path.split('/').pop()}
                                                             </div>
                                                         ) : alt.settings && Object.keys(alt.settings).length > 0 ? (
-                                                            <div 
+                                                            <div
                                                                 className="flex items-center gap-2 text-amber-400 font-mono text-sm cursor-pointer hover:underline"
                                                                 onClick={() => setConfigModalContent({
                                                                     title: `Settings: ${alt.name}`,
@@ -366,4 +566,3 @@ export default function ReportViewer({
         </div >
     );
 }
-

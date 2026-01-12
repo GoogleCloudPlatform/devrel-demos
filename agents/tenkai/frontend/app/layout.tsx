@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   description: "Benchmarking and optimizing tool-calling behaviors of AI agents.",
 };
 
+import { Toaster } from "sonner";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -28,8 +30,9 @@ export default function RootLayout({
       <body className={`${inter.variable} ${robotoMono.variable} bg-[#09090b] text-[#f4f4f5] antialiased`}>
         <Sidebar />
         <main className="ml-[240px] min-h-screen bg-[#09090b]">
-            {children}
+          {children}
         </main>
+        <Toaster position="bottom-right" theme="dark" closeButton richColors />
       </body>
     </html>
   );

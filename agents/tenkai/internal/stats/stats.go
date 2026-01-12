@@ -2,6 +2,7 @@ package stats
 
 import (
 	"math"
+	"sort"
 )
 
 // Mean calculates the average of a slice of float64.
@@ -36,8 +37,8 @@ func WelchTTest(data1, data2 []float64) float64 {
 	n1 := float64(len(data1))
 	n2 := float64(len(data2))
 
-	if n1 < 2 || n2 < 2 {
-		return 1.0 // Not enough data
+	if n1 < 5 || n2 < 5 {
+		return 1.0 // Not enough data for reliable Normal approximation
 	}
 
 	m1 := Mean(data1)
@@ -159,4 +160,114 @@ func logFactorial(n int) float64 {
 	res := float64(n)*math.Log(float64(n)) - float64(n) + 0.5*math.Log(2*math.Pi*float64(n))
 	factorialCache[n] = res
 	return res
+}
+
+// Rank computes the fractional rank of the data.
+// Ties are assigned the average rank of the tied values.
+func Rank(data []float64) []float64 {
+	type item struct {
+		val   float64
+		index int
+	}
+	items := make([]item, len(data))
+	for i, v := range data {
+		items[i] = item{val: v, index: i}
+	}
+
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].val < items[j].val
+	})
+
+	ranks := make([]float64, len(data))
+	for i := 0; i < len(items); {
+		j := i + 1
+		for j < len(items) && items[j].val == items[i].val {
+			j++
+		}
+		// items[i...j-1] are ties
+		rankSum := 0.0
+		for k := i; k < j; k++ {
+			rankSum += float64(k + 1)
+		}
+		avgRank := rankSum / float64(j-i)
+		for k := i; k < j; k++ {
+			ranks[items[k].index] = avgRank
+		}
+		i = j
+	}
+	return ranks
+}
+
+// MannWhitneyU calculates the p-value for the Mann-Whitney U test (two-sided).
+// It tests the null hypothesis that the distributions of sample1 and sample2 are the same.
+func MannWhitneyU(sample1, sample2 []float64) float64 {
+	n1 := float64(len(sample1))
+	n2 := float64(len(sample2))
+	if n1 == 0 || n2 == 0 {
+		return 1.0
+	}
+
+	all := append([]float64{}, sample1...)
+	all = append(all, sample2...)
+	ranks := Rank(all)
+
+	r1 := 0.0
+	for i := 0; i < int(n1); i++ {
+		r1 += ranks[i]
+	}
+
+	u1 := r1 - n1*(n1+1)/2.0
+	u2 := n1*n2 - u1
+
+	u := math.Min(u1, u2)
+
+	// Normal approximation for large samples (or if we just want a simple implementation)
+	// For small samples, exact tables are ideal, but normal approx is standard for dev tools.
+	mu := n1 * n2 / 2.0
+
+	// Tie correction for standard deviation
+	// sigma = sqrt( (n1*n2/12) * ( (N^3 - N - sum(t^3 - t)) / (N*(N-1)) ) )
+	// Simplified without tie correction for now:
+	sigma := math.Sqrt(n1 * n2 * (n1 + n2 + 1) / 12.0)
+
+	if sigma == 0 {
+		return 1.0
+	}
+
+	z := (u - mu) / sigma
+	// Continuity correction check could go here
+
+	// P-value (two-tailed)
+	return 2.0 * (1.0 - normalCDF(math.Abs(z)))
+}
+
+// SpearmanCorrelation calculates the Spearman's rank correlation coefficient.
+func SpearmanCorrelation(x, y []float64) float64 {
+	if len(x) != len(y) || len(x) < 2 {
+		return 0.0
+	}
+
+	rx := Rank(x)
+	ry := Rank(y)
+
+	mx := Mean(rx)
+	my := Mean(ry)
+
+	num := 0.0
+	denX := 0.0
+	denY := 0.0
+
+	for i := 0; i < len(x); i++ {
+		dx := rx[i] - mx
+		dy := ry[i] - my
+		num += dx * dy
+		denX += dx * dx
+		denY += dy * dy
+	}
+
+	if denX == 0 || denY == 0 {
+		return 0.0
+	}
+
+	return num / math.Sqrt(denX*denY)
 }

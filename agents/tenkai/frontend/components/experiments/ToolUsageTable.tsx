@@ -21,10 +21,10 @@ export default function ToolUsageTable({ experimentId, alternatives }: ToolUsage
                 return res.json();
             })
             .then(data => {
-                if (Array.isArray(data)) {
+                if (data && Array.isArray(data)) {
                     setStats(data);
                 } else {
-                    console.error("Tool stats data is not an array:", data);
+                    console.warn("Tool stats data is empty or invalid:", data);
                     setStats([]);
                 }
                 setLoading(false);
@@ -51,7 +51,7 @@ export default function ToolUsageTable({ experimentId, alternatives }: ToolUsage
     return (
         <div className="panel overflow-hidden mt-6">
             <div className="p-4 border-b border-white/5 bg-white/[0.02]">
-                <h3 className="font-bold uppercase tracking-widest text-sm">Tool Usage Breakdown (Avg Calls/Run)</h3>
+                <h3 className="font-bold uppercase tracking-widest text-sm">Tool Call Analysis (Avg Calls/Run)</h3>
             </div>
             <div className="overflow-x-auto">
                 <Table>

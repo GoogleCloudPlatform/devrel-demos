@@ -11,6 +11,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/runner"
 )
 
@@ -161,7 +162,7 @@ func (r *EnhancedMarkdownGenerator) writeExecutiveSummary() {
 		totalRuns, successCount, len(r.Cfg.Scenarios), globalSuccessRate, healthEmoji)
 
 	// 2. Identify Winners
-	var bestSuccess, bestSpeed, bestEfficiency *db.ExperimentSummaryRow
+	var bestSuccess, bestSpeed, bestEfficiency *models.ExperimentSummaryRow
 
 	for _, name := range r.getAltOrder() {
 		s, ok := r.summary.Alternatives[name]
@@ -223,7 +224,7 @@ func (r *EnhancedMarkdownGenerator) writePerformanceComparison() {
 	order := r.getAltOrder()
 
 	// Identify Control (first in config)
-	var control *db.ExperimentSummaryRow
+	var control *models.ExperimentSummaryRow
 	if r.Cfg != nil && len(r.Cfg.Alternatives) > 0 {
 		c, ok := r.summary.Alternatives[r.Cfg.Control]
 		if ok {
@@ -405,7 +406,9 @@ func (r *EnhancedMarkdownGenerator) writeEvaluationDetails() {
 }
 
 func (r *EnhancedMarkdownGenerator) writeToolUsage() {
-	fmt.Fprintln(r.w, "\n## 🛠️ Tool Usage")
+	fmt.Fprintln(r.w, "\n## 🛠️ Tool Usage Analysis")
+
+	// 1. Raw Counts (Existing)
 	usage := make(map[string]map[string]int)
 	for _, res := range r.Results {
 		if res.AgentMetrics != nil {
@@ -423,9 +426,55 @@ func (r *EnhancedMarkdownGenerator) writeToolUsage() {
 		if !ok {
 			continue
 		}
-		fmt.Fprintf(r.w, "### %s\n", alt)
-		for name, count := range u {
-			fmt.Fprintf(r.w, "- `%s`: %d\n", name, count)
+		summary, okSummary := r.summary.Alternatives[alt]
+		fmt.Fprintf(r.w, "\n### %s\n", alt)
+
+		// Sort tools by frequency
+		var toolNames []string
+		for name := range u {
+			toolNames = append(toolNames, name)
+		}
+		sort.Slice(toolNames, func(i, j int) bool {
+			return u[toolNames[i]] > u[toolNames[j]]
+		})
+
+		for _, name := range toolNames {
+			fmt.Fprintf(r.w, "- `%s`: %d\n", name, u[name])
+		}
+
+		// 2. Statistical Impact
+		if okSummary && len(summary.ToolAnalysis) > 0 {
+			var drivers []string
+			var costs []string
+
+			for _, t := range summary.ToolAnalysis {
+				// Success Driver
+				if t.SuccFailPValue >= 0 && t.SuccFailPValue < 0.05 {
+					// We need to know direction (did winners use it MORE or LESS?).
+					// MannWhitney just says 'differs'. We can infer from raw data if we had it here,
+					// or just state "Significant Difference".
+					// For now: "Significantly different usage in successful runs"
+					drivers = append(drivers, fmt.Sprintf("- **%s** (p=%.4f) - differs between success/fail", t.ToolName, t.SuccFailPValue))
+				}
+
+				// Cost Driver (Correlation > 0.5)
+				if t.DurationCorr > 0.5 {
+					costs = append(costs, fmt.Sprintf("- **%s** (rho=%.2f) - correlates with duration", t.ToolName, t.DurationCorr))
+				}
+				if t.TokensCorr > 0.5 {
+					costs = append(costs, fmt.Sprintf("- **%s** (rho=%.2f) - correlates with token usage", t.ToolName, t.TokensCorr))
+				}
+			}
+
+			if len(drivers) > 0 || len(costs) > 0 {
+				fmt.Fprintln(r.w, "\n  **📈 Statistical Insights:**")
+				for _, d := range drivers {
+					fmt.Fprintln(r.w, "  "+d)
+				}
+				for _, c := range costs {
+					fmt.Fprintln(r.w, "  "+c)
+				}
+			}
 		}
 	}
 }
