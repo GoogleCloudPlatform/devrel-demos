@@ -91,6 +91,8 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
         if (newValType === 'command') {
             val.command = newValTarget;
             val.expected_exit_code = parseInt(newValThreshold) || 0;
+        } else if (newValType === 'model') {
+            val.prompt = newValTarget; // reusing target for prompt text
         } else {
             val.target = newValTarget || "./...";
             if (newValType === 'test') val.min_coverage = parseFloat(newValThreshold) || 0;
@@ -108,6 +110,9 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
         if (val.type === 'command') {
             setNewValTarget(val.command);
             setNewValThreshold(val.expected_exit_code?.toString() || "");
+        } else if (val.type === 'model') {
+            setNewValTarget(val.prompt);
+            setNewValThreshold("");
         } else {
             setNewValTarget(val.target);
             if (val.type === 'test') setNewValThreshold(val.min_coverage?.toString() || "");
@@ -370,18 +375,19 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
                                     title="Click to edit"
                                 >
                                     <div className="flex gap-4 items-center">
-                                        <span className={`px-2 py-0.5 rounded text-mono font-bold uppercase ${v.type === 'test' ? 'bg-emerald-500/10 text-emerald-400' : v.type === 'lint' ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'}`}>{v.type}</span>
-                                        <span className="text-body font-mono">{v.type === 'command' ? v.command : v.target}</span>
+                                        <span className={`px-2 py-0.5 rounded text-mono font-bold uppercase ${v.type === 'test' ? 'bg-emerald-500/10 text-emerald-400' : v.type === 'lint' ? 'bg-amber-500/10 text-amber-400' : v.type === 'model' ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400'}`}>{v.type}</span>
+                                        <span className="text-body font-mono truncate max-w-md">{v.type === 'command' ? v.command : v.type === 'model' ? v.prompt : v.target}</span>
                                         {v.min_coverage !== undefined && <span className="text-mono text-[#52525b]">min_cov: {v.min_coverage}%</span>}
                                         {v.max_issues !== undefined && <span className="text-mono text-[#52525b]">max_issues: {v.max_issues}</span>}
                                         {v.expected_exit_code !== undefined && <span className="text-mono text-[#52525b]">exit: {v.expected_exit_code}</span>}
+                                        {v.context !== undefined && <span className="text-mono text-[#52525b]">ctx: {v.context.join(', ')}</span>}
                                     </div>
                                     <button type="button" onClick={(e) => { e.stopPropagation(); removeValidation(i); }} className="text-[#52525b] hover:text-red-500 px-2">✕</button>
                                 </div>
                             ))}
                         </div>
 
-                        <div className="p-4 bg-[#09090b] border border-[#27272a] rounded flex gap-4 items-end">
+                        <div className="p-4 bg-[#09090b] border border-[#27272a] rounded flex gap-4 items-start">
                             <div className="w-1/4">
                                 <Select
                                     label="Type"
@@ -390,27 +396,42 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
                                     options={[
                                         { value: 'test', label: 'Unit Test' },
                                         { value: 'lint', label: 'Linter' },
-                                        { value: 'command', label: 'Shell Command' }
+                                        { value: 'command', label: 'Shell Command' },
+                                        { value: 'model', label: 'AI Critique' }
                                     ]}
                                 />
                             </div>
                             <div className="flex-1">
-                                <Input
-                                    label={newValType === 'command' ? 'Command' : 'Target Path'}
-                                    placeholder={newValType === 'command' ? 'echo "success"' : './...'}
-                                    value={newValTarget}
-                                    onChange={(e) => setNewValTarget(e.target.value)}
-                                />
+                                {newValType === 'model' ? (
+                                    <TextArea
+                                        label="Validation Prompt"
+                                        placeholder="Check if the code follows best practices..."
+                                        value={newValTarget}
+                                        onChange={(e) => setNewValTarget(e.target.value)}
+                                        rows={3}
+                                    />
+                                ) : (
+                                    <Input
+                                        label={newValType === 'command' ? 'Command' : 'Target Path'}
+                                        placeholder={newValType === 'command' ? 'echo "success"' : './...'}
+                                        value={newValTarget}
+                                        onChange={(e) => setNewValTarget(e.target.value)}
+                                    />
+                                )}
                             </div>
-                            <div className="w-1/4">
-                                <Input
-                                    label={newValType === 'test' ? 'Min Coverage' : newValType === 'lint' ? 'Max Issues' : 'Exit Code'}
-                                    placeholder="0"
-                                    value={newValThreshold}
-                                    onChange={(e) => setNewValThreshold(e.target.value)}
-                                />
+                            {newValType !== 'model' && (
+                                <div className="w-1/4">
+                                    <Input
+                                        label={newValType === 'test' ? 'Min Coverage' : newValType === 'lint' ? 'Max Issues' : 'Exit Code'}
+                                        placeholder="0"
+                                        value={newValThreshold}
+                                        onChange={(e) => setNewValThreshold(e.target.value)}
+                                    />
+                                </div>
+                            )}
+                            <div className="pt-8">
+                                <Button type="button" variant="outline" onClick={addValidation}>Add</Button>
                             </div>
-                            <Button type="button" variant="outline" onClick={addValidation}>Add</Button>
                         </div>
                     </div>
                 </Card>

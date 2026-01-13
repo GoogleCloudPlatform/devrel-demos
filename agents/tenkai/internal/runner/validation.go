@@ -363,16 +363,15 @@ func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config
 
 func (r *Runner) validateModel(ctx context.Context, wsPath string, rule config.ValidationRule, stdout string) (ValidationItem, error) {
 	// Construct prompt
-	promptPath := filepath.Join(wsPath, rule.PromptFile)
-	promptBytes, err := os.ReadFile(promptPath)
-	if err != nil {
+	if rule.Prompt == "" {
 		return ValidationItem{
 			Type:        "model",
 			Status:      "FAIL",
 			Description: "Model validation",
-			Details:     fmt.Sprintf("Prompt file missing: %s", rule.PromptFile),
+			Details:     "No validation prompt provided",
 		}, nil
 	}
+	promptText := rule.Prompt
 
 	contextContent := ""
 	for _, ctxItem := range rule.Context {
@@ -385,14 +384,16 @@ func (r *Runner) validateModel(ctx context.Context, wsPath string, rule config.V
 		}
 	}
 
-	fullPrompt := string(promptBytes) + "\n\nCONTEXT:\n" + contextContent
+	fullPrompt := promptText + "\n\nCONTEXT:\n" + contextContent
+	fullPrompt += "\n\nIMPORTANT: Evaluate the above context based on the criteria in the prompt. If the criteria are met, output only the token <<TENKAI_PASS>>. If the criteria are not met, output only the token <<TENKAI_FAIL>> followed by a brief reason."
 
 	// Call Gemini CLI
 	// For now, assuming a simple "gemini prompt" call
 	// In real implementation we should use the same mechanism as the agent but with a different system prompt?
 	// User said: "invoking gemini cli with a special validation prompt"
 
-	cmd := exec.CommandContext(ctx, "gemini", "prompt", fullPrompt)
+	cmd := exec.CommandContext(ctx, "gemini", "--output-format", "text")
+	cmd.Stdin = strings.NewReader(fullPrompt)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	if err := cmd.Run(); err != nil {
@@ -404,18 +405,16 @@ func (r *Runner) validateModel(ctx context.Context, wsPath string, rule config.V
 		}, nil
 	}
 
-	// Parse output - assuming the model returns a structured decision?
-	// Plan said "LLM output is parsed for a final JSON/Score"
-	// We should strictly instruct the model to return JSON in the prompt file.
-
-	// For this pass: Simple heuristic, look for "PASS" or "FAIL" in output if not JSON?
-	// Let's assume the prompt instructions handle the output format.
-	// If output contains "PASS", we pass.
-
 	modelOut := out.String()
 	status := "FAIL"
-	if strings.Contains(strings.ToUpper(modelOut), "PASS") {
+	if strings.Contains(modelOut, "<<TENKAI_PASS>>") {
 		status = "PASS"
+	} else if strings.Contains(modelOut, "<<TENKAI_FAIL>>") {
+		status = "FAIL"
+	} else {
+		// Ambiguous or missing token
+		status = "FAIL"
+		modelOut = "Evaluation invalid: Model did not output required tokens.\nOutput:\n" + modelOut
 	}
 
 	return ValidationItem{
