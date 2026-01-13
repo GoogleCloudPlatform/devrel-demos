@@ -19,6 +19,7 @@ type Scenario struct {
 	Description string                  `json:"description"`
 	Path        string                  `json:"path"`
 	Task        string                  `json:"task,omitempty"`
+	Assets      []config.Asset          `json:"assets,omitempty"`
 	Validation  []config.ValidationRule `json:"validation,omitempty"`
 }
 
@@ -52,17 +53,17 @@ func (m *Manager) ListScenarios() []Scenario {
 			}
 
 			configPath := filepath.Join(dir, name, "scenario.yaml")
-			if cfg, err := config.LoadScenarioConfig(configPath); err == nil {
-				if cfg.Name != "" {
-					scen.Name = cfg.Name
-				}
-				scen.Description = cfg.Description
-				scen.Task = cfg.Task
-				scen.Validation = cfg.Validation
-			}
-
-			scenarios = append(scenarios, scen)
-			seen[name] = true
+			            if cfg, err := config.LoadScenarioConfig(configPath); err == nil {
+			                if cfg.Name != "" {
+			                    scen.Name = cfg.Name
+			                }
+			                scen.Description = cfg.Description
+			                scen.Task = cfg.Task
+			                scen.Assets = cfg.Assets
+			                scen.Validation = cfg.Validation
+			            }
+			
+			            scenarios = append(scenarios, scen)			seen[name] = true
 		}
 	}
 	return scenarios
@@ -86,6 +87,7 @@ func (m *Manager) GetScenario(id string) (*Scenario, error) {
 				}
 				scen.Description = cfg.Description
 				scen.Task = cfg.Task
+				scen.Assets = cfg.Assets
 				scen.Validation = cfg.Validation
 			}
 			return scen, nil

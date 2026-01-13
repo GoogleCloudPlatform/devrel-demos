@@ -26,6 +26,8 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
     const [gitUrl, setGitUrl] = useState("");
     const [gitRef, setGitRef] = useState("");
 
+    const [assets, setAssets] = useState<any[]>([]);
+
     // Validation state
     const [validation, setValidation] = useState<any[]>([]);
     const [newValType, setNewValType] = useState("test");
@@ -48,6 +50,7 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
                 setDescription(data.description);
                 setTask(data.task || "");
                 setValidation(data.validation || []);
+                setAssets(data.assets || []);
 
                 // Infer modes
                 if (data.github_issue) {
@@ -342,6 +345,28 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
                                     Upload Files
                                 </button>
                             </div>
+
+                            {assets.length > 0 && (
+                                <div className="space-y-3">
+                                    <h4 className="text-xs font-black uppercase tracking-tighter text-muted-foreground">Scenario Assets</h4>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {assets.map((asset, idx) => {
+                                            const isBinary = /\.(jpe?g|png|gif|zip|gz|exe|bin|pdf|docx?|xlsx?)$/i.test(asset.target);
+                                            return (
+                                                <div key={idx} className="flex items-center justify-between p-2 bg-card border rounded-md">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-lg">{isBinary ? '📦' : '📄'}</span>
+                                                        <div>
+                                                            <div className="text-sm font-bold">{asset.target}</div>
+                                                            <div className="text-[10px] text-muted-foreground uppercase">{asset.type} • {isBinary ? 'binary' : 'text'}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
 
                             {(assetType === 'folder' || assetType === 'files') && (
                                 <div className="panel p-6 border-dashed bg-[#09090b] flex flex-col items-center justify-center text-center relative overflow-hidden group">
