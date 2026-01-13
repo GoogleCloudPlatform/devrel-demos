@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/
 import { Badge } from "./ui/badge";
 import { cn } from "@/utils/cn";
 import { ScenarioSelector } from "./ScenarioSelector";
+import { toSnakeCase } from "@/utils/ui";
+import { getExperiments } from "@/app/api/api";
 
 export default function ExperimentForm({ templates, scenarios }: { templates: any[], scenarios: any[] }) {
     const router = useRouter();
@@ -41,8 +43,25 @@ export default function ExperimentForm({ templates, scenarios }: { templates: an
             const data = await res.json();
             setTemplateDetails(data);
 
-            // Auto-populate based on template
-            setName(`${data.name}_run`);
+            // Fetch experiments to determine the next number
+            const experiments = await getExperiments();
+            const baseName = toSnakeCase(data.name);
+            
+            let maxNum = 0;
+            // Pattern matches baseName_XXX where XXX is a number
+            const pattern = new RegExp(`^${baseName}_(\\d+)$`);
+            
+            experiments.forEach(exp => {
+                const match = exp.name.match(pattern);
+                if (match) {
+                    const num = parseInt(match[1], 10);
+                    if (num > maxNum) maxNum = num;
+                }
+            });
+
+            const nextNum = (maxNum + 1).toString().padStart(3, '0');
+            setName(`${baseName}_${nextNum}`);
+
             setDescription(data.description || "");
             setReps(data.config.reps || 1);
             setConcurrent(data.config.concurrent || 1);
