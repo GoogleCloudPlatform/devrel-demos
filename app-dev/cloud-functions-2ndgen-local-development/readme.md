@@ -52,9 +52,9 @@ gcloud services enable \
 
 ```
 export BUCKET=$PROJECT_ID-image-upload-local-dev-demo
-gsutil mb -l $REGION gs://$BUCKET
+gcloud storage buckets create gs://$BUCKET --location=$REGION
 
-export GCS_SERVICE_ACCOUNT=$(gsutil kms serviceaccount -p $PROJECT_NUMBER)
+export GCS_SERVICE_ACCOUNT=$(gcloud storage service-agent --project=$PROJECT_NUMBER)
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member serviceAccount:$GCS_SERVICE_ACCOUNT \
   --role roles/pubsub.publisher
@@ -85,7 +85,7 @@ export SERVICE_ACCOUNT_ADDRESS=$SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.
 gcloud iam service-accounts create $SERVICE_ACCOUNT \
   --display-name="Eventarc Cloud Function service account"
 
-gsutil iam ch serviceAccount:$SERVICE_ACCOUNT_ADDRESS:objectViewer gs://$BUCKET
+gcloud storage buckets add-iam-policy-binding gs://$BUCKET --member=serviceAccount:$SERVICE_ACCOUNT_ADDRESS --role=roles/storage.objectViewer
 
 gcloud projects add-iam-policy-binding $PROJECT_ID \
   --member serviceAccount:$SERVICE_ACCOUNT_ADDRESS \
@@ -179,4 +179,3 @@ curl localhost:8080/$BUCKET -v \
         "updated": "2022-12-31T00:00:00.0Z"
       }'
 ```
-
