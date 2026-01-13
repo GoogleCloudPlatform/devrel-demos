@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/mod/modfile"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -22,10 +23,11 @@ type PackageState struct {
 
 // Manager manages the graph of loaded packages (the Knowledge Graph).
 type Manager struct {
-	mu       sync.RWMutex
-	Packages map[string]*PackageState // Key: Import Path
-	Root     string                   // Project root for indexing
-	watcher  *Watcher                 // File watcher
+	mu         sync.RWMutex
+	Packages   map[string]*PackageState // Key: Import Path
+	Root       string                   // Project root for indexing
+	ModuleName string                   // Module name from go.mod
+	watcher    *Watcher                 // File watcher
 }
 
 // Global is the singleton instance.
@@ -48,6 +50,15 @@ func (m *Manager) Initialize(root string) {
 	m.mu.Lock()
 	m.Root = absRoot
 	m.mu.Unlock()
+
+	// Try to parse go.mod to get ModuleName
+	if gomod, err := os.ReadFile(filepath.Join(absRoot, "go.mod")); err == nil {
+		if f, err := modfile.Parse("go.mod", gomod, nil); err == nil {
+			m.mu.Lock()
+			m.ModuleName = f.Module.Mod.Path
+			m.mu.Unlock()
+		}
+	}
 
 	// Initialize and start watcher
 	w, err := NewWatcher(m)
@@ -107,11 +118,37 @@ func (m *Manager) Load(dirOrFile string) (*packages.Package, error) {
 		pattern = "."
 	} else {
 		// Assume it's an import path or pattern
-		dir = m.Root
-		if dir == "" {
-			dir = "."
+		// Optimization: Check if it matches our ModuleName and resolve to local path
+		m.mu.RLock()
+		modName := m.ModuleName
+		root := m.Root
+		m.mu.RUnlock()
+
+		if modName != "" && strings.HasPrefix(dirOrFile, modName) {
+			rel := strings.TrimPrefix(dirOrFile, modName)
+			// Handle case where import path is exactly module name
+			if rel == "" {
+				rel = "."
+			}
+			localPath := filepath.Join(root, rel)
+			if info, err := os.Stat(localPath); err == nil && info.IsDir() {
+				dir = localPath
+				pattern = "."
+			} else {
+				// Fallback to standard behavior if not found locally
+				dir = root
+				if dir == "" {
+					dir = "."
+				}
+				pattern = dirOrFile
+			}
+		} else {
+			dir = root
+			if dir == "" {
+				dir = "."
+			}
+			pattern = dirOrFile
 		}
-		pattern = dirOrFile
 	}
 
 	// 2. Run packages.Load
@@ -220,6 +257,24 @@ func (m *Manager) FindReferences(target types.Object) []Reference {
 		}
 	}
 	return refs
+}
+
+// FindImporters returns all loaded packages that import the given package path.
+func (m *Manager) FindImporters(pkgPath string) []*packages.Package {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var importers []*packages.Package
+	for _, state := range m.Packages {
+		pkg := state.Pkg
+		for _, imp := range pkg.Imports {
+			if imp.PkgPath == pkgPath {
+				importers = append(importers, pkg)
+				break
+			}
+		}
+	}
+	return importers
 }
 
 // FindRelatedSymbols finds types used in the signature of the given object.
