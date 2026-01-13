@@ -226,7 +226,19 @@ func (m *Manager) UpdateScenario(id, name, description, task string, validation 
 					asset.Source = relPath
 					asset.Content = ""
 				}
-				cfg.Assets = append(cfg.Assets, *asset)
+
+				// Check if asset exists and replace it
+				found := false
+				for j := range cfg.Assets {
+					if cfg.Assets[j].Target == asset.Target {
+						cfg.Assets[j] = *asset
+						found = true
+						break
+					}
+				}
+				if !found {
+					cfg.Assets = append(cfg.Assets, *asset)
+				}
 			}
 
 			data, err := yaml.Marshal(cfg)
