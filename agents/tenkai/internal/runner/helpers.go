@@ -135,7 +135,7 @@ func (r *Runner) streamPromptContents(promptPath string, stdinPipe io.WriteClose
 	}
 
 	// Inject termination instruction
-	instruction := "\n\nSYSTEM: Perform the requested task above. When you have FULLY completed the user request (including all verification steps), you MUST output the token '<<TENKAI_DONE>>' to signal completion. Do not output this token before the work is done.\n"
+	instruction := "\n\nSYSTEM: Perform the requested task above. When you have FULLY completed the user request (including all verification steps), you MUST output the token '<<TENKAI_DONE>>' to signal completion. Do not output this token before the work is done. IMPORTANT: Do not delete any files or directories you created. They are needed for automated validation.\n"
 	if _, err := io.WriteString(stdinPipe, instruction); err != nil {
 		log.Printf("Warning: failed to write termination instruction to stdin: %v", err)
 	}
