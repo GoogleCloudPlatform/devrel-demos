@@ -20,7 +20,7 @@ docstring_parser==0.17.0
 dulwich==0.22.8
 fastapi==0.116.1
 fastjsonschema==2.21.2
-filelock==3.20.1
+filelock==3.20.3
 findpython==0.6.3
 future==1.0.0
 google-adk==1.13.0
