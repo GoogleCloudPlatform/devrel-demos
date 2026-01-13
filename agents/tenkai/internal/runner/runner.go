@@ -161,6 +161,7 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 	}()
 
 	completed := 0
+	stopping := false
 	for {
 		select {
 		case res, ok := <-resultsChan:
@@ -179,6 +180,10 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 			// Refine Reason and Status before appending to results slice
 			// Spec: Status must be COMPLETED for finished runs.
 			// Reasons: SUCCESS, VALIDATION, LOOP, ERROR, TIMEOUT.
+			// If we are stopping, and this result was cancelled/aborted, verify status.
+			
+			// ... (rest of processing logic remains)
+
 			res.Status = db.RunStatusCompleted
 
 			switch {
@@ -191,7 +196,12 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 			case res.ValidationReport != "":
 				res.Reason = db.ReasonFailedValidation
 			default:
-				res.Reason = db.ReasonFailedError
+				// If we are stopping, it might be an abortion error
+				if stopping {
+					res.Reason = db.ReasonFailedError // Or specific aborted reason if we want
+				} else {
+					res.Reason = db.ReasonFailedError
+				}
 			}
 
 			percentage := float64(completed) / float64(resultsLimit) * 100
@@ -280,16 +290,17 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 			results = append(results, res)
 
 		case <-time.After(1 * time.Second):
+			if stopping {
+				continue
+			}
 
 			// Periodically check for STOP signal from DB to cancel context
 			action := r.checkAction()
 			if action == "stop" {
 				log.Printf("[Runner] Received STOP signal for Experiment %d. Canceling context...", r.experimentID)
 				cancel()
-				// Drain channel
-				for range resultsChan {
-				}
-				goto Done
+				stopping = true
+				// Do NOT drain channel. Let the loop continue to process results as they finish/error out.
 			}
 		}
 	}

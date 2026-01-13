@@ -151,18 +151,10 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 		// Treat ABORTED as terminal for progress bar
 		completed := completedActual + aborted
 
-		if exp.Status != ExperimentStatusAborted {
-			if exp.ErrorMessage != "" || aborted > totalActual/2 { // Heuristic if many aborted
-				exp.Status = ExperimentStatusAborted
-			} else if completed >= exp.TotalJobs && exp.TotalJobs > 0 {
+		// If the experiment is not yet marked terminal in DB, check if it finished naturally
+		if exp.Status != ExperimentStatusAborted && exp.Status != ExperimentStatusCompleted {
+			if completed >= exp.TotalJobs && exp.TotalJobs > 0 {
 				exp.Status = ExperimentStatusCompleted
-			} else if running > 0 {
-				exp.Status = ExperimentStatusRunning
-			} else {
-				// e.g. all queued
-				if queued > 0 {
-					exp.Status = ExperimentStatusRunning // Or Queued
-				}
 			}
 		}
 

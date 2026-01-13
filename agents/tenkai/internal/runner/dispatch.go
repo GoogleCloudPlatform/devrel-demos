@@ -88,6 +88,10 @@ func (r *Runner) dispatchScenario(rc *runContext, alt config.Alternative, scenPa
 			case rc.Sem <- struct{}{}:
 				defer func() { <-rc.Sem }()
 			case <-rc.Ctx.Done():
+				// If cancelled while queued, mark as ABORTED
+				if r.db != nil && dbRunID != 0 {
+					r.db.UpdateRunStatusAndReason(dbRunID, db.RunStatusAborted, "Cancelled while queued")
+				}
 				return
 			}
 			// Mark as RUNNING just before execution
