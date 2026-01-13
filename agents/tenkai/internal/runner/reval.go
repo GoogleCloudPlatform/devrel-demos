@@ -127,6 +127,12 @@ func (r *Runner) reEvalInternal(run *models.RunResult, expDir, templatesDir stri
 		return fmt.Errorf("loading scenario config: %w", err)
 	}
 
+	// Sync Assets (Update workspace with latest scenario files)
+	// We need the template path to copy from
+	if err := r.WorkspaceMgr.SyncAssets(scenCfg, filepath.Dir(scenTemplatePath), projectPath); err != nil {
+		return fmt.Errorf("syncing assets: %w", err)
+	}
+
 	// Get Stdout
 	stdout, err := r.db.GetRunStdout(run.ID)
 	if err != nil {

@@ -82,41 +82,8 @@ func (m *Manager) PrepareWorkspace(experimentDir, alternative, scenario string, 
 		info.Config = scenCfg
 
 		// Process Assets into project dir
-		for _, asset := range scenCfg.Assets {
-
-			targetPath := filepath.Join(info.Project, asset.Target)
-			if asset.Target == "." {
-				targetPath = info.Project
-			}
-
-			switch asset.Type {
-			case "directory":
-				src := filepath.Join(tmplPath, asset.Source)
-				if err := copyDir(src, targetPath); err != nil {
-					return info, fmt.Errorf("failed to copy directory asset %s: %w", src, err)
-				}
-			case "file":
-				if asset.Source != "" {
-					src := filepath.Join(tmplPath, asset.Source)
-					if err := copyFile(src, targetPath); err != nil {
-						return info, fmt.Errorf("failed to copy file asset %s: %w", src, err)
-					}
-				} else if asset.Content != "" {
-					if err := os.WriteFile(targetPath, []byte(asset.Content), 0644); err != nil {
-						return info, fmt.Errorf("failed to write inline file asset %s: %w", targetPath, err)
-					}
-				}
-			case "git":
-				if err := setupGit(asset.Source, asset.Ref, targetPath); err != nil {
-					return info, fmt.Errorf("failed to setup git asset %s: %w", asset.Source, err)
-				}
-			case "zip":
-				// Using internal asset helper if needed, but we extracted it
-				// check assets.go used from same package
-				if err := setupZip(asset.Source, targetPath); err != nil {
-					return info, fmt.Errorf("failed to setup zip asset %s: %w", asset.Source, err)
-				}
-			}
+		if err := m.SyncAssets(scenCfg, tmplPath, info.Project); err != nil {
+			return info, fmt.Errorf("failed to sync assets: %w", err)
 		}
 
 		// Generate PROMPT.md in project dir
