@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/danicat/godoctor/internal/graph"
@@ -16,7 +17,7 @@ func Register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "edit",
 		Title:       "Edit Go Code (Context-Aware)",
-		Description: "Modifies a Go file (*.go) with whitespace-agnostic matching and compiler verification.",
+		Description: "The safe code modifier. Edits a Go file (*.go) with whitespace-agnostic matching. It performs post-edit verification and impact analysis to warn about compilation errors or broken references in dependent packages.",
 	}, toolHandler)
 }
 
@@ -75,6 +76,35 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 		warning = "\n\n**WARNING:** Edit successful but introduced compilation errors:\n"
 		for _, e := range pkg.Errors {
 			warning += fmt.Sprintf("- %s\n", e.Msg)
+		}
+	} else if err == nil {
+		// 7. Impact Analysis (Reverse Dependencies)
+		// Only run if local compilation passed
+		importers := graph.Global.FindImporters(pkg.PkgPath)
+		var impactWarnings []string
+
+		for _, imp := range importers {
+			if len(imp.GoFiles) == 0 {
+				continue
+			}
+			impDir := filepath.Dir(imp.GoFiles[0])
+
+			// Force reload to check against new API
+			graph.Global.Invalidate(impDir)
+
+			// Check for errors
+			reloadedImp, err := graph.Global.Load(impDir)
+			if err == nil && len(reloadedImp.Errors) > 0 {
+				// We conservatively report the first error to avoid spam
+				impactWarnings = append(impactWarnings, fmt.Sprintf("Package %s: %s", reloadedImp.PkgPath, reloadedImp.Errors[0].Msg))
+			}
+		}
+
+		if len(impactWarnings) > 0 {
+			warning += "\n\n**IMPACT WARNING:** This edit broke the following dependent packages:\n"
+			for _, w := range impactWarnings {
+				warning += fmt.Sprintf("- %s\n", w)
+			}
 		}
 	}
 

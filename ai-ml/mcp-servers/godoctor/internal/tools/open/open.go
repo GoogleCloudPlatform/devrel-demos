@@ -22,7 +22,7 @@ func Register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "open",
 		Title:       "Open Go File (Skeleton)",
-		Description: "Loads a Go file (*.go) into GoDoctor context and returns its skeleton.",
+		Description: "Entry Point. Loads a Go file (*.go) into GoDoctor context and returns its skeleton (signatures only). Call this first to explore code without wasting tokens on implementation details.",
 	}, toolHandler)
 }
 

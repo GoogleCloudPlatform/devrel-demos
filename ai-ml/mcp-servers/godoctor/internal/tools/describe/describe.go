@@ -16,7 +16,7 @@ func Register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "describe",
 		Title:       "Describe Symbol or Package",
-		Description: "Describes a Go package or symbol with source and usage context.",
+		Description: "The deep-dive explorer. Retrieves Ground Truth (full documentation, implementation source, and usage references) for any symbol. Use this to verify APIs before implementing code.",
 	}, toolHandler)
 }
 
