@@ -47,6 +47,12 @@ func (api *API) CreateScenario(r *http.Request) (any, error) {
 				Content: string(content),
 			})
 		}
+	} else if assetType == "create" {
+		assets = append(assets, config.Asset{
+			Type:    "file",
+			Target:  r.FormValue("file_name"),
+			Content: r.FormValue("file_content"),
+		})
 	} else if assetType == "git" {
 		assets = append(assets, config.Asset{
 			Type:   "git",

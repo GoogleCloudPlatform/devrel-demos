@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
@@ -115,6 +116,40 @@ func (m *Manager) CreateScenario(name, description, task string, assets []config
 		Task:        task,
 		Assets:      assets,
 		Validation:  validation,
+	}
+
+	// Persist file assets to disk instead of embedding in YAML
+	for i := range cfg.Assets {
+		asset := &cfg.Assets[i]
+		if asset.Type == "file" && asset.Content != "" {
+			// Clean the target path to prevent traversal
+			relPath := filepath.Clean(asset.Target)
+			if filepath.IsAbs(relPath) || strings.HasPrefix(relPath, "..") {
+				// Sanitize: strip leading /, .., or invalid chars if needed.
+				// For now, just taking the base name might be too restrictive if folder structure is desired.
+				// Let's assume Target is trusted enough or just strip ".."
+				relPath = strings.TrimPrefix(relPath, "/")
+				relPath = strings.ReplaceAll(relPath, "../", "")
+			}
+
+			if relPath == "." || relPath == "" {
+				// Skip if invalid target
+				continue
+			}
+
+			savePath := filepath.Join(scenDir, relPath)
+
+			if err := os.MkdirAll(filepath.Dir(savePath), 0755); err != nil {
+				return "", fmt.Errorf("failed to create directory for asset %s: %w", relPath, err)
+			}
+
+			if err := os.WriteFile(savePath, []byte(asset.Content), 0644); err != nil {
+				return "", fmt.Errorf("failed to write asset %s: %w", relPath, err)
+			}
+
+			asset.Source = relPath
+			asset.Content = ""
+		}
 	}
 
 	data, err := yaml.Marshal(cfg)

@@ -21,11 +21,13 @@ export default function NewScenarioPage() {
     // Assets & Links
     const [githubIssue, setGithubIssue] = useState("");
     const [githubTaskType, setGithubTaskType] = useState<'issue' | 'prompt'>('issue');
-    const [assetType, setAssetType] = useState<'none' | 'folder' | 'files' | 'git'>('none');
+    const [assetType, setAssetType] = useState<'none' | 'folder' | 'files' | 'git' | 'create'>('none');
     const [gitUrl, setGitUrl] = useState("");
     const [gitRef, setGitRef] = useState("");
 
     const [files, setFiles] = useState<FileList | null>(null);
+    const [fileName, setFileName] = useState("");
+    const [fileContent, setFileContent] = useState("");
 
     // Validation
     const [validation, setValidation] = useState<any[]>([
@@ -117,9 +119,11 @@ export default function NewScenarioPage() {
                 formData.append('files', files[i]);
             }
         } else if (assetType === 'git') {
-
             formData.append('git_url', gitUrl);
             formData.append('git_ref', gitRef);
+        } else if (assetType === 'create') {
+            formData.append('file_name', fileName);
+            formData.append('file_content', fileContent);
         }
 
         try {
@@ -282,6 +286,13 @@ export default function NewScenarioPage() {
                                 >
                                     Upload Files
                                 </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { setAssetType('create'); setFiles(null); }}
+                                    className={`px-4 py-2 rounded font-bold text-body transition-colors ${assetType === 'create' ? 'bg-[#27272a] text-[#f4f4f5]' : 'text-[#71717a] hover:text-[#f4f4f5]'}`}
+                                >
+                                    Create File
+                                </button>
                             </div>
 
                             {(assetType === 'folder' || assetType === 'files') && (
@@ -299,6 +310,27 @@ export default function NewScenarioPage() {
                                     <p className="text-body font-mono opacity-50 mt-2">
                                         {files ? `${files.length} items selected` : (assetType === 'folder' ? "Drag folder here or click" : "Drag files here or click")}
                                     </p>
+                                </div>
+                            )}
+
+                            {assetType === 'create' && (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <Input
+                                        label="Filename"
+                                        value={fileName}
+                                        onChange={(e) => setFileName(e.target.value)}
+                                        required
+                                        placeholder="e.g. main.go"
+                                    />
+                                    <TextArea
+                                        label="File Content"
+                                        value={fileContent}
+                                        onChange={(e) => setFileContent(e.target.value)}
+                                        rows={8}
+                                        required
+                                        className="font-mono"
+                                        placeholder="// File content here..."
+                                    />
                                 </div>
                             )}
                         </div>
