@@ -296,20 +296,44 @@ export default function NewScenarioPage() {
                             </div>
 
                             {(assetType === 'folder' || assetType === 'files') && (
-                                <div className="panel p-6 border-dashed bg-[#09090b] flex flex-col items-center justify-center text-center relative overflow-hidden group">
-                                    <div className="text-2xl mb-2 grayscale opacity-50">{assetType === 'folder' ? '📂' : '📄'}</div>
-                                    <p className="text-body font-bold text-[#6366f1] uppercase tracking-widest hover:text-[#818cf8]">
-                                        {assetType === 'folder' ? 'Click to Select Folder' : 'Click to Select Files'}
-                                    </p>
-                                    <input
-                                        type="file"
-                                        className="absolute opacity-0 w-full h-full cursor-pointer inset-0 z-10"
-                                        {...(assetType === 'folder' ? { webkitdirectory: "", directory: "" } as any : { multiple: true })}
-                                        onChange={(e) => setFiles(e.target.files)}
-                                    />
-                                    <p className="text-body font-mono opacity-50 mt-2">
-                                        {files ? `${files.length} items selected` : (assetType === 'folder' ? "Drag folder here or click" : "Drag files here or click")}
-                                    </p>
+                                <div className="space-y-4">
+                                    <div className="panel p-6 border-dashed bg-[#09090b] flex flex-col items-center justify-center text-center relative overflow-hidden group">
+                                        <div className="text-2xl mb-2 grayscale opacity-50">{assetType === 'folder' ? '📂' : '📄'}</div>
+                                        <p className="text-body font-bold text-[#6366f1] uppercase tracking-widest hover:text-[#818cf8]">
+                                            {assetType === 'folder' ? 'Click to Select Folder' : 'Click to Select Files'}
+                                        </p>
+                                        <input
+                                            type="file"
+                                            className="absolute opacity-0 w-full h-full cursor-pointer inset-0 z-10"
+                                            {...(assetType === 'folder' ? { webkitdirectory: "", directory: "" } as any : { multiple: true })}
+                                            onChange={(e) => setFiles(e.target.files)}
+                                        />
+                                        <p className="text-body font-mono opacity-50 mt-2">
+                                            {files ? `${files.length} items selected` : (assetType === 'folder' ? "Drag folder here or click" : "Drag files here or click")}
+                                        </p>
+                                    </div>
+
+                                    {files && files.length > 0 && (
+                                        <div className="bg-[#161618] rounded border border-[#27272a] p-4 space-y-2">
+                                            <div className="flex justify-between items-center mb-2 border-b border-[#27272a] pb-2">
+                                                <span className="text-xs font-bold uppercase text-[#a1a1aa]">Selected Files ({files.length})</span>
+                                                <button type="button" onClick={() => setFiles(null)} className="text-xs text-red-400 hover:text-red-300">Clear</button>
+                                            </div>
+                                            <div className="max-h-48 overflow-y-auto space-y-1">
+                                                {Array.from(files).slice(0, 10).map((f, i) => (
+                                                    <div key={i} className="flex justify-between text-xs font-mono text-[#e4e4e7]">
+                                                        <span className="truncate pr-4">{f.name}</span>
+                                                        <span className="text-[#71717a] whitespace-nowrap">{(f.size / 1024).toFixed(1)} KB</span>
+                                                    </div>
+                                                ))}
+                                                {files.length > 10 && (
+                                                    <div className="text-xs text-[#71717a] italic pt-1">
+                                                        ...and {files.length - 10} more files
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
