@@ -19,14 +19,9 @@ import (
 // Register registers the read_code tool with the server.
 func Register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
-		Name:  "read_code",
-		Title: "Read Go Code (with Symbols & Analysis)",
-		Description: `The PREFERRED tool for reading Go files. 
-It returns the full file content along with a structured summary of all defined symbols (functions, types, variables).
-Features:
-- **Comprehensive**: Returns full content AND a symbol table for easy navigation.
-- **Diagnostic**: Includes static analysis results (build errors/warnings) to help identify issues immediately.
-Use this to understand the codebase structure and verify correctness before using 'edit_code'.`,
+		Name:        "read_code",
+		Title:       "Read Go Code (with Symbols & Analysis)",
+		Description: "Reads a Go file (*.go) and extracts a symbol table (functions, types, variables).",
 	}, readCodeHandler)
 }
 
@@ -45,8 +40,12 @@ func readCodeHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (
 	if args.FilePath == "" {
 		return errorResult("file_path cannot be empty"), nil, nil
 	}
+	if !strings.HasSuffix(args.FilePath, ".go") {
+		return errorResult("file must be a Go file (*.go)"), nil, nil
+	}
 
 	content, err := os.ReadFile(args.FilePath)
+
 	if err != nil {
 		return errorResult(fmt.Sprintf("failed to read file: %v", err)), nil, nil
 	}
@@ -101,17 +100,19 @@ func readCodeHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (
 
 	// 2. Static Analysis
 	diags, _ := checkAnalysis(ctx, args.FilePath) // Ignore generic error, just show diagnostics if any
-
 	// 3. Output Formatting
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("# File: %s\n\n", args.FilePath))
 
+	sb.WriteString("## Content\n")
+	sb.WriteString("```go\n")
+	sb.WriteString(string(content))
+	sb.WriteString("\n```\n\n")
+
 	if len(symbols) > 0 {
-		sb.WriteString("## Symbol Table\n")
-		sb.WriteString("| Symbol | Type | Line |\n")
-		sb.WriteString("| :--- | :--- | :--- |\n")
+		sb.WriteString("## Symbols\n")
 		for _, sym := range symbols {
-			sb.WriteString(fmt.Sprintf("| `%s` | %s | %d |\n", sym.Name, sym.Type, sym.Line))
+			sb.WriteString(fmt.Sprintf("- `%s` (%s) at line %d\n", sym.Name, sym.Type, sym.Line))
 		}
 		sb.WriteString("\n")
 	}
@@ -124,16 +125,12 @@ func readCodeHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (
 		sb.WriteString("\n")
 	}
 
-	sb.WriteString("## Content\n")
-	sb.WriteString("```go\n")
-	sb.WriteString(string(content))
-	sb.WriteString("\n```")
-
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: sb.String()},
 		},
 	}, nil, nil
+
 }
 
 func checkAnalysis(ctx context.Context, filePath string) ([]string, error) {

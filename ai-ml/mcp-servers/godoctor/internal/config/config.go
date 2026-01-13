@@ -3,15 +3,17 @@ package config
 
 import (
 	"flag"
+	"strings"
 )
 
 // Config holds the application configuration.
 type Config struct {
-	ListenAddr   string
-	Version      bool
-	Agents       bool
-	DefaultModel string
-	Experimental bool
+	ListenAddr    string
+	Version       bool
+	Agents        bool
+	DefaultModel  string
+	Experimental  bool
+	DisabledTools map[string]bool
 }
 
 // Load parses command-line arguments and returns a Config struct.
@@ -22,17 +24,29 @@ func Load(args []string) (*Config, error) {
 	listenAddr := fs.String("listen", "", "listen address for HTTP transport (e.g., :8080)")
 	defaultModel := fs.String("model", "gemini-2.5-pro", "default Gemini model to use")
 	experimentalFlag := fs.Bool("experimental", false, "enable experimental features")
+	disableFlag := fs.String("disable", "", "comma-separated list of tools to disable")
 
 	if err := fs.Parse(args); err != nil {
 		return nil, err
 	}
 
+	disabled := make(map[string]bool)
+	if *disableFlag != "" {
+		for _, name := range strings.Split(*disableFlag, ",") {
+			trimmed := strings.TrimSpace(name)
+			if trimmed != "" {
+				disabled[trimmed] = true
+			}
+		}
+	}
+
 	cfg := &Config{
-		ListenAddr:   *listenAddr,
-		Version:      *versionFlag,
-		Agents:       *agentsFlag,
-		DefaultModel: *defaultModel,
-		Experimental: *experimentalFlag,
+		ListenAddr:    *listenAddr,
+		Version:       *versionFlag,
+		Agents:        *agentsFlag,
+		DefaultModel:  *defaultModel,
+		Experimental:  *experimentalFlag,
+		DisabledTools: disabled,
 	}
 
 	return cfg, nil

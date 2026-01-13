@@ -19,20 +19,9 @@ import (
 // Register registers the edit_code tool with the server.
 func Register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
-		Name:  "edit_code",
-		Title: "Edit Go Code (Smart)",
-		Description: `The PREFERRED tool for editing Go code.
-Use 'replace_block' (default) for surgical edits. It uses fuzzy matching to handle minor whitespace discrepancies.
-Use 'overwrite_file' for full rewrites or creating new files.
-Use 'append' to add new code to the end of the file.
-
-IMPORTANT: 'search_context' is REQUIRED for 'replace_block' and 'replace_all' strategies. It must contain the exact code block to be replaced.
-
-Features:
-- **Safety**: Validates syntax before saving to prevent broken code.
-- **Auto-Formatting**: Automatically runs 'goimports' to fix imports and formatting.
-- **Reliability**: Fuzzy matching prevents failures due to minor context mismatches.
-- **Creation**: Can be used to create NEW files.`,
+		Name:        "edit_code",
+		Title:       "Edit Go Code (Smart)",
+		Description: "Smartly edits a Go file (*.go) with fuzzy matching and safety checks.",
 	}, editCodeHandler)
 }
 
@@ -52,6 +41,9 @@ func editCodeHandler(ctx context.Context, request *mcp.CallToolRequest, args Edi
 	}
 	if args.Threshold == 0 {
 		args.Threshold = 0.85 // Lowered slightly default to accommodate fuzzy matches
+	}
+	if !strings.HasSuffix(args.FilePath, ".go") {
+		return errorResult("file_path must be a Go file (*.go)"), nil, nil
 	}
 
 	// 1. Read File

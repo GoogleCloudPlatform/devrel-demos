@@ -58,12 +58,13 @@ func run(ctx context.Context, args []string) error {
 	}
 
 	if cfg.Agents {
-		printAgentInstructions()
+		printAgentInstructions(cfg.Experimental)
 		return nil
 	}
-
 	srv := server.New(cfg, version)
-	srv.RegisterHandlers()
+	if err := srv.RegisterHandlers(); err != nil {
+		return err
+	}
 
 	return srv.Run(ctx)
 }

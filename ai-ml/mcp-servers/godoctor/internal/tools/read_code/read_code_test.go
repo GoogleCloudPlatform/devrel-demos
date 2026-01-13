@@ -61,15 +61,34 @@ func main() {
 	}
 	text := textContent.Text
 
-	// Check for symbols
-	if !strings.Contains(text, "| `MyStruct` | Type | 5 |") {
-		t.Errorf("expected MyStruct type in table, got: %s", text)
+	// Check order: Content before Symbols
+	contentIdx := strings.Index(text, "## Content")
+	symbolsIdx := strings.Index(text, "## Symbols")
+
+	if contentIdx == -1 {
+		t.Error("Output missing ## Content")
 	}
-	if !strings.Contains(text, "| `(*MyStruct) Greet` | Function | 9 |") {
-		t.Errorf("expected Greet method in table, got: %s", text)
+	if symbolsIdx == -1 {
+		t.Error("Output missing ## Symbols")
 	}
-	if !strings.Contains(text, "| `main` | Function | 13 |") {
-		t.Errorf("expected main function in table, got: %s", text)
+	if contentIdx > symbolsIdx {
+		t.Error("Content should appear before Symbols")
+	}
+
+	// Check for symbols (List format)
+	if !strings.Contains(text, "- `MyStruct` (Type) at line 5") {
+		t.Errorf("expected MyStruct type in list, got: %s", text)
+	}
+	if !strings.Contains(text, "- `(*MyStruct) Greet` (Function) at line 9") {
+		t.Errorf("expected Greet method in list, got: %s", text)
+	}
+	if !strings.Contains(text, "- `main` (Function) at line 13") {
+		t.Errorf("expected main function in list, got: %s", text)
+	}
+
+	// Ensure no table headers
+	if strings.Contains(text, "| Symbol | Type |") {
+		t.Error("Output still contains Markdown table header")
 	}
 
 	// Check for Analysis

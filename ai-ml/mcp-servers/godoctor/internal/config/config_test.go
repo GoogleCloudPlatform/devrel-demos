@@ -9,6 +9,7 @@ func TestLoad(t *testing.T) {
 		name             string
 		args             []string
 		wantExperimental bool
+		wantDisabled     []string
 	}{
 		{
 			name:             "default",
@@ -21,14 +22,19 @@ func TestLoad(t *testing.T) {
 			wantExperimental: true,
 		},
 		{
-			name:             "experimental explicit true",
-			args:             []string{"--experimental=true"},
-			wantExperimental: true,
+			name:         "disable single tool",
+			args:         []string{"--disable", "review_code"},
+			wantDisabled: []string{"review_code"},
 		},
 		{
-			name:             "experimental explicit false",
-			args:             []string{"--experimental=false"},
-			wantExperimental: false,
+			name:         "disable multiple tools",
+			args:         []string{"--disable", "review_code,write, edit_code"},
+			wantDisabled: []string{"review_code", "write", "edit_code"},
+		},
+		{
+			name:         "disable empty",
+			args:         []string{"--disable", ""},
+			wantDisabled: []string{},
 		},
 	}
 
@@ -40,6 +46,15 @@ func TestLoad(t *testing.T) {
 			}
 			if cfg.Experimental != tt.wantExperimental {
 				t.Errorf("Load().Experimental = %v, want %v", cfg.Experimental, tt.wantExperimental)
+			}
+
+			if len(tt.wantDisabled) != len(cfg.DisabledTools) {
+				t.Errorf("Load().DisabledTools len = %v, want %v", len(cfg.DisabledTools), len(tt.wantDisabled))
+			}
+			for _, d := range tt.wantDisabled {
+				if !cfg.DisabledTools[d] {
+					t.Errorf("Load().DisabledTools[%q] not found", d)
+				}
 			}
 		})
 	}
