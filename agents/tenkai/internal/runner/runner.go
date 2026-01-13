@@ -219,14 +219,33 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 				runRes.TestsFailed = res.EvaluationMetrics.TestsFailed
 				runRes.LintIssues = res.EvaluationMetrics.LintIssues
 			}
-			if res.AgentMetrics != nil {
-				runRes.TotalTokens = res.AgentMetrics.TotalTokens
-				runRes.InputTokens = res.AgentMetrics.InputTokens
-				runRes.OutputTokens = res.AgentMetrics.OutputTokens
-				runRes.ToolCallsCount = len(res.AgentMetrics.ToolCalls)
-				runRes.FailedToolCalls = res.AgentMetrics.FailedToolCalls
-				runRes.LoopDetected = res.AgentMetrics.LoopDetected
+			// 4. Fetch authoritative metrics from DB (Single Source of Truth)
+			var dbMetrics *parser.AgentMetrics
+			var fetchErr error
+
+			// Retry fetching metrics to handle transient DB issues or read-after-write delays
+			for attempt := 0; attempt < 5; attempt++ {
+				dbMetrics, fetchErr = r.db.GetRunMetrics(res.RunID)
+				if fetchErr == nil {
+					break
+				}
+				time.Sleep(100 * time.Millisecond * time.Duration(1<<attempt))
 			}
+
+			if fetchErr != nil {
+				return results, fmt.Errorf("failed to fetch authoritative metrics for run %d after retries: %w", res.RunID, fetchErr)
+			}
+
+			// Update the Result object so that CalculateSummary (which uses res.AgentMetrics) is correct
+			res.AgentMetrics = dbMetrics
+
+			// Sync to runRes for DB persistence in run_results table
+			runRes.TotalTokens = dbMetrics.TotalTokens
+			runRes.InputTokens = dbMetrics.InputTokens
+			runRes.OutputTokens = dbMetrics.OutputTokens
+			runRes.ToolCallsCount = dbMetrics.TotalToolCallsCount
+			runRes.FailedToolCalls = dbMetrics.FailedToolCalls
+			runRes.LoopDetected = dbMetrics.LoopDetected
 
 			// Build Telemetry for Final Save
 			telemetry := &db.RunTelemetry{

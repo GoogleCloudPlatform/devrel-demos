@@ -96,14 +96,14 @@ func (m *Manager) PrepareWorkspace(experimentDir, alternative, scenario string, 
 					return info, fmt.Errorf("failed to copy directory asset %s: %w", src, err)
 				}
 			case "file":
-				if asset.Content != "" {
-					if err := os.WriteFile(targetPath, []byte(asset.Content), 0644); err != nil {
-						return info, fmt.Errorf("failed to write inline file asset %s: %w", targetPath, err)
-					}
-				} else {
+				if asset.Source != "" {
 					src := filepath.Join(tmplPath, asset.Source)
 					if err := copyFile(src, targetPath); err != nil {
 						return info, fmt.Errorf("failed to copy file asset %s: %w", src, err)
+					}
+				} else if asset.Content != "" {
+					if err := os.WriteFile(targetPath, []byte(asset.Content), 0644); err != nil {
+						return info, fmt.Errorf("failed to write inline file asset %s: %w", targetPath, err)
 					}
 				}
 			case "git":
