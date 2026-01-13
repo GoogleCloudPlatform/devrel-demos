@@ -62,8 +62,9 @@ func (m *Manager) ListScenarios() []Scenario {
 			                scen.Assets = cfg.Assets
 			                scen.Validation = cfg.Validation
 			            }
-			
-			            scenarios = append(scenarios, scen)			seen[name] = true
+
+			scenarios = append(scenarios, scen)
+			seen[name] = true
 		}
 	}
 	return scenarios
@@ -173,7 +174,7 @@ func (m *Manager) CreateScenario(name, description, task string, assets []config
 }
 
 // UpdateScenario updates an existing scenario configuration.
-func (m *Manager) UpdateScenario(id, name, description, task string, validation []config.ValidationRule) error {
+func (m *Manager) UpdateScenario(id, name, description, task string, validation []config.ValidationRule, assets []config.Asset) error {
 	for _, dir := range m.TemplatesDirs {
 		path := filepath.Join(dir, id)
 		if info, err := os.Stat(path); err == nil && info.IsDir() {
@@ -181,7 +182,7 @@ func (m *Manager) UpdateScenario(id, name, description, task string, validation 
 			configPath := filepath.Join(path, "scenario.yaml")
 			var cfg config.ScenarioConfig
 			if existing, err := config.LoadScenarioConfig(configPath); err == nil {
-				cfg = *existing // Preserve assets and other fields not being updated
+				cfg = *existing 
 			}
 
 			// Update fields
@@ -191,6 +192,42 @@ func (m *Manager) UpdateScenario(id, name, description, task string, validation 
 				cfg.Task = task
 			}
 			cfg.Validation = validation
+
+			// Append new assets if any
+			// Note: This appends. It doesn't replace existing unless logic is added.
+			// Ideally we might want to merge or allow full replacement.
+			// For now, let's append new ones which seems to be the intent of "uploading files".
+			// But we also need to handle the file persistence.
+			
+			// Process new assets
+			for i := range assets {
+				asset := &assets[i]
+				if asset.Type == "file" && asset.Content != "" {
+					relPath := filepath.Clean(asset.Target)
+					if filepath.IsAbs(relPath) || strings.HasPrefix(relPath, "..") {
+						relPath = strings.TrimPrefix(relPath, "/")
+						relPath = strings.ReplaceAll(relPath, "../", "")
+					}
+					
+					if relPath == "." || relPath == "" {
+						continue
+					}
+
+					savePath := filepath.Join(path, relPath)
+
+					if err := os.MkdirAll(filepath.Dir(savePath), 0755); err != nil {
+						return fmt.Errorf("failed to create directory for asset %s: %w", relPath, err)
+					}
+
+					if err := os.WriteFile(savePath, []byte(asset.Content), 0644); err != nil {
+						return fmt.Errorf("failed to write asset %s: %w", relPath, err)
+					}
+
+					asset.Source = relPath
+					asset.Content = ""
+				}
+				cfg.Assets = append(cfg.Assets, *asset)
+			}
 
 			data, err := yaml.Marshal(cfg)
 			if err != nil {

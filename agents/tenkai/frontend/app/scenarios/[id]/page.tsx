@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Input, TextArea, Select } from "@/components/ui/input";
+import { AssetUploader } from "@/components/AssetUploader";
 
 export default function ScenarioEditorPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
@@ -22,7 +23,7 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
     const [githubIssue, setGithubIssue] = useState("");
     const [githubTaskType, setGithubTaskType] = useState<'issue' | 'prompt'>('issue');
     // Assets & Links
-    const [assetType, setAssetType] = useState<'none' | 'folder' | 'files' | 'git'>('none');
+    const [assetType, setAssetType] = useState<'none' | 'folder' | 'files' | 'git' | 'create'>('none');
     const [gitUrl, setGitUrl] = useState("");
     const [gitRef, setGitRef] = useState("");
 
@@ -36,6 +37,8 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
 
     // Files state for upload
     const [files, setFiles] = useState<FileList | null>(null);
+    const [fileName, setFileName] = useState("");
+    const [fileContent, setFileContent] = useState("");
 
     useEffect(() => {
         const fetchScenario = async () => {
@@ -170,19 +173,41 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
 
         setLoading(true);
 
-        const payload = {
-            name,
-            description,
-            task: (taskMode === 'prompt' || githubTaskType === 'prompt') ? task : null,
-            github_issue: (taskMode === 'github' && githubTaskType === 'issue') ? githubIssue : null,
-            validation
-        };
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('description', description);
+        formData.append('validation', JSON.stringify(validation));
+
+        if (taskMode === 'prompt' || githubTaskType === 'prompt') {
+            formData.append('task', task);
+        }
+        if (taskMode === 'github' && githubTaskType === 'issue') {
+            formData.append('github_issue', githubIssue);
+        }
+
+        // Asset logic
+        if (assetType === 'files') {
+            formData.append('asset_type', 'folder'); // Keep consistent with backend expectation or update backend
+        } else {
+            formData.append('asset_type', assetType);
+        }
+
+        if ((assetType === 'folder' || assetType === 'files') && files) {
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+        } else if (assetType === 'git') {
+            formData.append('git_url', gitUrl);
+            formData.append('git_ref', gitRef);
+        } else if (assetType === 'create') {
+            formData.append('file_name', fileName);
+            formData.append('file_content', fileContent);
+        }
 
         try {
             const res = await fetch(`/api/scenarios/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: formData // No Content-Type header; browser sets multipart boundary
             });
 
             if (res.ok) {
@@ -321,71 +346,17 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
 
                 {taskMode === 'prompt' && (
                     <Card title="Workspace Assets">
-                        <div className="space-y-6">
-                            <div className="flex gap-4 border-b border-[#27272a] pb-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setAssetType('none')}
-                                    className={`px-4 py-2 rounded font-bold text-body transition-colors ${assetType === 'none' ? 'bg-[#27272a] text-[#f4f4f5]' : 'text-[#71717a] hover:text-[#f4f4f5]'}`}
-                                >
-                                    Empty Workspace
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setAssetType('folder')}
-                                    className={`px-4 py-2 rounded font-bold text-body transition-colors ${assetType === 'folder' ? 'bg-[#27272a] text-[#f4f4f5]' : 'text-[#71717a] hover:text-[#f4f4f5]'}`}
-                                >
-                                    Upload Folder
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setAssetType('files')}
-                                    className={`px-4 py-2 rounded font-bold text-body transition-colors ${assetType === 'files' ? 'bg-[#27272a] text-[#f4f4f5]' : 'text-[#71717a] hover:text-[#f4f4f5]'}`}
-                                >
-                                    Upload Files
-                                </button>
-                            </div>
-
-                            {assets.length > 0 && (
-                                <div className="space-y-3">
-                                    <h4 className="text-xs font-black uppercase tracking-tighter text-muted-foreground">Scenario Assets</h4>
-                                    <div className="grid grid-cols-1 gap-2">
-                                        {assets.map((asset, idx) => {
-                                            const isBinary = /\.(jpe?g|png|gif|zip|gz|exe|bin|pdf|docx?|xlsx?)$/i.test(asset.target);
-                                            return (
-                                                <div key={idx} className="flex items-center justify-between p-2 bg-card border rounded-md">
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-lg">{isBinary ? '📦' : '📄'}</span>
-                                                        <div>
-                                                            <div className="text-sm font-bold">{asset.target}</div>
-                                                            <div className="text-[10px] text-muted-foreground uppercase">{asset.type} • {isBinary ? 'binary' : 'text'}</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {(assetType === 'folder' || assetType === 'files') && (
-                                <div className="panel p-6 border-dashed bg-[#09090b] flex flex-col items-center justify-center text-center relative overflow-hidden group">
-                                    <div className="text-2xl mb-2 grayscale opacity-50">{assetType === 'folder' ? '📂' : '📄'}</div>
-                                    <p className="text-body font-bold text-[#6366f1] uppercase tracking-widest hover:text-[#818cf8]">
-                                        {assetType === 'folder' ? 'Click to Select Folder' : 'Click to Select Files'}
-                                    </p>
-                                    <input
-                                        type="file"
-                                        className="absolute opacity-0 w-full h-full cursor-pointer inset-0 z-10"
-                                        {...(assetType === 'folder' ? { webkitdirectory: "", directory: "" } as any : { multiple: true })}
-                                        onChange={(e) => setFiles(e.target.files)}
-                                    />
-                                    <p className="text-body font-mono opacity-50 mt-2">
-                                        {files ? `${files.length} items selected` : (assetType === 'folder' ? "Drag folder here or click" : "Drag files here or click")}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
+                        <AssetUploader
+                            assetType={assetType}
+                            setAssetType={setAssetType}
+                            files={files}
+                            setFiles={setFiles}
+                            fileName={fileName}
+                            setFileName={setFileName}
+                            fileContent={fileContent}
+                            setFileContent={setFileContent}
+                            existingAssets={assets}
+                        />
                     </Card>
                 )}
 

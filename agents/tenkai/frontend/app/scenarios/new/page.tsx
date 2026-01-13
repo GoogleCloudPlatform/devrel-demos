@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, TextArea, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { AssetUploader } from "@/components/AssetUploader";
 
 export default function NewScenarioPage() {
     const router = useRouter();
@@ -263,103 +264,16 @@ export default function NewScenarioPage() {
 
                 {taskMode === 'prompt' && (
                     <Card title="Workspace Assets">
-                        <div className="space-y-6">
-                            <div className="flex gap-4 border-b border-[#27272a] pb-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setAssetType('none')}
-                                    className={`px-4 py-2 rounded font-bold text-body transition-colors ${assetType === 'none' ? 'bg-[#27272a] text-[#f4f4f5]' : 'text-[#71717a] hover:text-[#f4f4f5]'}`}
-                                >
-                                    Empty Workspace
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { setAssetType('folder'); setFiles(null); }}
-                                    className={`px-4 py-2 rounded font-bold text-body transition-colors ${assetType === 'folder' ? 'bg-[#27272a] text-[#f4f4f5]' : 'text-[#71717a] hover:text-[#f4f4f5]'}`}
-                                >
-                                    Upload Folder
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { setAssetType('files'); setFiles(null); }}
-                                    className={`px-4 py-2 rounded font-bold text-body transition-colors ${assetType === 'files' ? 'bg-[#27272a] text-[#f4f4f5]' : 'text-[#71717a] hover:text-[#f4f4f5]'}`}
-                                >
-                                    Upload Files
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { setAssetType('create'); setFiles(null); }}
-                                    className={`px-4 py-2 rounded font-bold text-body transition-colors ${assetType === 'create' ? 'bg-[#27272a] text-[#f4f4f5]' : 'text-[#71717a] hover:text-[#f4f4f5]'}`}
-                                >
-                                    Create File
-                                </button>
-                            </div>
-
-                            {(assetType === 'folder' || assetType === 'files') && (
-                                <div className="space-y-4">
-                                    <div className="panel p-6 border-dashed bg-[#09090b] flex flex-col items-center justify-center text-center relative overflow-hidden group">
-                                        <div className="text-2xl mb-2 grayscale opacity-50">{assetType === 'folder' ? '📂' : '📄'}</div>
-                                        <p className="text-body font-bold text-[#6366f1] uppercase tracking-widest hover:text-[#818cf8]">
-                                            {assetType === 'folder' ? 'Click to Select Folder' : 'Click to Select Files'}
-                                        </p>
-                                        <input
-                                            type="file"
-                                            className="absolute opacity-0 w-full h-full cursor-pointer inset-0 z-10"
-                                            {...(assetType === 'folder' ? { webkitdirectory: "", directory: "" } as any : { multiple: true })}
-                                            onChange={(e) => setFiles(e.target.files)}
-                                        />
-                                        <p className="text-body font-mono opacity-50 mt-2">
-                                            {assetType === 'folder' ? "Drag folder here or click" : "Drag files here or click"}
-                                        </p>
-                                    </div>
-
-                                    {files && files.length > 0 && (
-                                        <div className="bg-[#161618] rounded border border-[#27272a] p-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            <div className="flex justify-between items-center mb-2 border-b border-[#27272a] pb-2">
-                                                <span className="text-xs font-bold uppercase text-[#a1a1aa]">Selected Items ({files.length})</span>
-                                                <button type="button" onClick={() => setFiles(null)} className="text-xs text-red-400 hover:text-red-300 transition-colors">Clear Selection</button>
-                                            </div>
-                                            <div className="max-h-64 overflow-y-auto space-y-1 pr-2 custom-scrollbar">
-                                                {Array.from(files).slice(0, 50).map((f: any, i) => (
-                                                    <div key={i} className="flex justify-between text-xs font-mono text-[#e4e4e7] group py-0.5">
-                                                        <span className="truncate pr-4 group-hover:text-indigo-400 transition-colors">
-                                                            {f.webkitRelativePath || f.name}
-                                                        </span>
-                                                        <span className="text-[#71717a] whitespace-nowrap">{(f.size / 1024).toFixed(1)} KB</span>
-                                                    </div>
-                                                ))}
-                                                {files.length > 50 && (
-                                                    <div className="text-xs text-[#71717a] italic pt-2 border-t border-[#27272a] mt-2">
-                                                        ...and {files.length - 50} more items.
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {assetType === 'create' && (
-                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                    <Input
-                                        label="Filename"
-                                        value={fileName}
-                                        onChange={(e) => setFileName(e.target.value)}
-                                        required
-                                        placeholder="e.g. main.go"
-                                    />
-                                    <TextArea
-                                        label="File Content"
-                                        value={fileContent}
-                                        onChange={(e) => setFileContent(e.target.value)}
-                                        rows={8}
-                                        required
-                                        className="font-mono"
-                                        placeholder="// File content here..."
-                                    />
-                                </div>
-                            )}
-                        </div>
+                        <AssetUploader
+                            assetType={assetType}
+                            setAssetType={setAssetType}
+                            files={files}
+                            setFiles={setFiles}
+                            fileName={fileName}
+                            setFileName={setFileName}
+                            fileContent={fileContent}
+                            setFileContent={setFileContent}
+                        />
                     </Card>
                 )}
 
