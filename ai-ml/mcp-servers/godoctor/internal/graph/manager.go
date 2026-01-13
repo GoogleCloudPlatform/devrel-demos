@@ -25,6 +25,7 @@ type Manager struct {
 	mu       sync.RWMutex
 	Packages map[string]*PackageState // Key: Import Path
 	Root     string                   // Project root for indexing
+	watcher  *Watcher                 // File watcher
 }
 
 // Global is the singleton instance.
@@ -47,6 +48,17 @@ func (m *Manager) Initialize(root string) {
 	m.mu.Lock()
 	m.Root = absRoot
 	m.mu.Unlock()
+
+	// Initialize and start watcher
+	w, err := NewWatcher(m)
+	if err == nil {
+		m.watcher = w
+		if err := w.Start(absRoot); err != nil {
+			fmt.Printf("Failed to start watcher: %v\n", err)
+		}
+	} else {
+		fmt.Printf("Failed to create watcher: %v\n", err)
+	}
 
 	go m.crawl(absRoot)
 }
