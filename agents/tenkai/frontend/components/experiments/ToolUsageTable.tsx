@@ -41,17 +41,17 @@ export default function ToolUsageTable({ experimentId, alternatives }: ToolUsage
 
     // Transform to Matrix: Rows = Tools, Cols = Alternatives
     const tools = Array.from(new Set(stats.map(s => s.tool_name))).sort();
-    const matrix: Record<string, Record<string, { avg: number; failed: number }>> = {};
+    const matrix: Record<string, Record<string, { total: number; failed: number }>> = {};
 
     stats.forEach(s => {
         if (!matrix[s.tool_name]) matrix[s.tool_name] = {};
-        matrix[s.tool_name][s.alternative] = { avg: s.avg_calls, failed: s.failed_calls };
+        matrix[s.tool_name][s.alternative] = { total: s.total_calls, failed: s.failed_calls };
     });
 
     return (
         <div className="panel overflow-hidden mt-6">
             <div className="p-4 border-b border-white/5 bg-white/[0.02]">
-                <h3 className="font-bold uppercase tracking-widest text-sm">Tool Call Analysis (Avg Calls/Run)</h3>
+                <h3 className="font-bold uppercase tracking-widest text-sm">Tool Call Analysis (Accumulated)</h3>
             </div>
             <div className="overflow-x-auto">
                 <Table>
@@ -74,10 +74,10 @@ export default function ToolUsageTable({ experimentId, alternatives }: ToolUsage
                                     }
                                     return (
                                         <TableCell key={alt} className="text-right font-mono">
-                                            {data.avg.toFixed(1)}
+                                            {data.total}
                                             {data.failed > 0 && (
                                                 <span className="ml-2 text-red-400 font-bold text-xs">
-                                                    ({data.failed})
+                                                    ({data.failed} failed)
                                                 </span>
                                             )}
                                         </TableCell>
