@@ -21,8 +21,8 @@ import (
 func Register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "open",
-		Title:       "Open Go File (Skeleton)",
-		Description: "Entry Point. Loads a Go file (*.go) into GoDoctor context and returns its skeleton (signatures only). Call this first to explore code without wasting tokens on implementation details.",
+		Title:       "Open Go File (Skeleton View)",
+		Description: "Entry Point. Returns a lightweight skeleton of a Go file (imports and signatures only). Use this for 'Satellite View' exploration to save tokens and avoid context noise compared to reading the full file.",
 	}, toolHandler)
 }
 

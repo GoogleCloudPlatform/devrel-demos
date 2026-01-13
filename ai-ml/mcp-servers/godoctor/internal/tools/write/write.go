@@ -16,8 +16,8 @@ import (
 func Register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "write",
-		Title:       "Write Go File (Context-Aware)",
-		Description: "The Builder. Creates or appends content to a Go file (*.go) with automatic import validation against the project's module graph.",
+		Title:       "Write New Go File",
+		Description: "The context-aware builder. Use this to create NEW Go files. It automatically handles import validation against the current project context. For existing files, use 'edit' instead.",
 	}, toolHandler)
 }
 

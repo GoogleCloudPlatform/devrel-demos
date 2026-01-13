@@ -9,8 +9,13 @@ import (
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/report"
 )
 
-func Execute() {
+func Execute(version string) {
 	flags := parseFlags()
+
+	if *flags.Version {
+		fmt.Printf("tenkai version %s\n", version)
+		os.Exit(0)
+	}
 
 	cwd, err := os.Getwd()
 	if err != nil {

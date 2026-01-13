@@ -48,17 +48,18 @@ type Asset struct {
 
 // ValidationRule defines a success criterion for the scenario.
 type ValidationRule struct {
-	Type           string   `yaml:"type" json:"type"`
-	Target         string   `yaml:"target,omitempty" json:"target,omitempty"`
-	MinCoverage    float64  `yaml:"min_coverage,omitempty" json:"min_coverage,omitempty"`
-	MaxIssues      int      `yaml:"max_issues,omitempty" json:"max_issues,omitempty"`
-	Exclude        []string `yaml:"exclude,omitempty" json:"exclude,omitempty"`
-	Prompt         string   `yaml:"prompt,omitempty" json:"prompt,omitempty"`
-	Context        []string `yaml:"context,omitempty" json:"context,omitempty"`
-	Command        string   `yaml:"command,omitempty" json:"command,omitempty"`
-	Args           []string `yaml:"args,omitempty" json:"args,omitempty"`
-	ExpectExitCode int      `yaml:"expect_exit_code,omitempty" json:"expected_exit_code,omitempty"` // Frontend expects expected_exit_code
-	ExpectOutput   string   `yaml:"expect_output,omitempty" json:"expect_output,omitempty"`
+	Type           string            `yaml:"type" json:"type"`
+	Target         string            `yaml:"target,omitempty" json:"target,omitempty"`
+	MinCoverage    float64           `yaml:"min_coverage,omitempty" json:"min_coverage,omitempty"`
+	MaxIssues      int               `yaml:"max_issues,omitempty" json:"max_issues,omitempty"`
+	Exclude        []string          `yaml:"exclude,omitempty" json:"exclude,omitempty"`
+	Prompt         string            `yaml:"prompt,omitempty" json:"prompt,omitempty"`
+	Context        []string          `yaml:"context,omitempty" json:"context,omitempty"`
+	Command        string            `yaml:"command,omitempty" json:"command,omitempty"`
+	Args           []string          `yaml:"args,omitempty" json:"args,omitempty"`
+	Env            map[string]string `yaml:"env,omitempty" json:"env,omitempty"`                             // Environment variables for the validation command
+	ExpectExitCode int               `yaml:"expect_exit_code,omitempty" json:"expected_exit_code,omitempty"` // Frontend expects expected_exit_code
+	ExpectOutput   string            `yaml:"expect_output,omitempty" json:"expect_output,omitempty"`
 }
 
 // ScenarioConfig represents the content of a scenario.yaml file.

@@ -16,8 +16,8 @@ import (
 func Register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "edit",
-		Title:       "Edit Go Code (Context-Aware)",
-		Description: "The safe code modifier. Edits a Go file (*.go) with whitespace-agnostic matching. It performs post-edit verification and impact analysis to warn about compilation errors or broken references in dependent packages.",
+		Title:       "Edit Go Code (Smart Patch)",
+		Description: "The 'Senior Dev' editor. Uses fuzzy-matching to patch specific code blocks. It auto-formats, updates imports, and PRE-COMPILES your change to catch errors before saving. Use this to safely modify large files.",
 	}, toolHandler)
 }
 

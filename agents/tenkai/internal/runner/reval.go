@@ -78,8 +78,8 @@ func (r *Runner) ReEvaluateRun(runID int64, jobID string) error {
 		return fmt.Errorf("failed to fetch run: %w", err)
 	}
 
-	if run.Reason != db.ReasonFailedValidation {
-		err := fmt.Errorf("cannot re-validate run with reason %s, only %s is supported", run.Reason, db.ReasonFailedValidation)
+	if run.Status != db.RunStatusCompleted {
+		err := fmt.Errorf("cannot re-validate run in status %s, only COMPLETED runs can be re-evaluated", run.Status)
 		jobMgr.FailJob(jobID, err)
 		return err
 	}

@@ -45,7 +45,7 @@ func GetDocumentation(ctx context.Context, pkgPath, symbolName string) (string, 
 		return "", fmt.Errorf("failed to parse documentation: %w", err)
 	}
 
-	return renderMarkdown(result), nil
+	return Render(result), nil
 }
 
 // Example represents a code example extracted from documentation.
@@ -67,6 +67,10 @@ type StructuredDoc struct {
 	Examples     []Example `json:"examples,omitempty"`
 	SubPackages  []string  `json:"subPackages,omitempty"`
 	PkgGoDevURL  string    `json:"pkgGoDevURL"`
+	// Extra fields for Describe superset
+	SourcePath string   `json:"sourcePath,omitempty"`
+	Line       int      `json:"line,omitempty"`
+	References []string `json:"references,omitempty"`
 }
 
 func resolvePackageDir(ctx context.Context, pkgPath string) (string, error) {
@@ -104,7 +108,7 @@ func parsePackageDocs(ctx context.Context, importPath, pkgDir, symbolName, reque
 	}
 
 	// Always look for sub-packages
-	subs := listSubPackages(ctx, pkgDir)
+	subs := ListSubPackages(ctx, pkgDir)
 	for _, sub := range subs {
 		if sub != importPath { // Exclude self
 			result.SubPackages = append(result.SubPackages, sub)
@@ -313,7 +317,8 @@ func bufferCode(fset *token.FileSet, node any) string {
 	return buf.String()
 }
 
-func renderMarkdown(doc *StructuredDoc) string {
+// Render converts a StructuredDoc to Markdown.
+func Render(doc *StructuredDoc) string {
 	var buf strings.Builder
 
 	buf.WriteString(fmt.Sprintf("# %s\n\n", doc.ImportPath))
@@ -324,6 +329,10 @@ func renderMarkdown(doc *StructuredDoc) string {
 
 	if doc.SymbolName != "" {
 		buf.WriteString(fmt.Sprintf("## %s %s\n\n", doc.Type, doc.SymbolName))
+	}
+
+	if doc.SourcePath != "" {
+		buf.WriteString(fmt.Sprintf("Defined in: `%s:%d`\n\n", doc.SourcePath, doc.Line))
 	}
 
 	if doc.Definition != "" {
@@ -353,6 +362,14 @@ func renderMarkdown(doc *StructuredDoc) string {
 			}
 			buf.WriteString("\n")
 		}
+	}
+
+	if len(doc.References) > 0 {
+		buf.WriteString("### Usages\n\n")
+		for _, ref := range doc.References {
+			buf.WriteString(fmt.Sprintf("- %s\n", ref))
+		}
+		buf.WriteString("\n")
 	}
 
 	if len(doc.SubPackages) > 0 {
@@ -454,7 +471,7 @@ func fetchAndRetry(ctx context.Context, pkgPath, symbolName string, originalErr 
 		return "", fmt.Errorf("failed to parse documentation after download: %w", err)
 	}
 
-	return renderMarkdown(result), nil
+	return Render(result), nil
 }
 
 func suggestPackages(ctx context.Context, query string) []string {
@@ -469,7 +486,8 @@ func suggestPackages(ctx context.Context, query string) []string {
 	return findFuzzyMatches(query, candidates)
 }
 
-func listSubPackages(ctx context.Context, pkgDir string) []string {
+// ListSubPackages finds sub-packages within a directory using go list.
+func ListSubPackages(ctx context.Context, pkgDir string) []string {
 	cmd := exec.CommandContext(ctx, "go", "list", "-f", "{{.ImportPath}}", "./...")
 	cmd.Dir = pkgDir
 	out, err := cmd.Output()

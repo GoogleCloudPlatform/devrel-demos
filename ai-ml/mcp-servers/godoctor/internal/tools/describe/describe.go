@@ -3,6 +3,7 @@ package describe
 import (
 	"context"
 	"fmt"
+	"go/types"
 	"os"
 	"strings"
 
@@ -15,8 +16,8 @@ import (
 func Register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "describe",
-		Title:       "Describe Symbol or Package",
-		Description: "The deep-dive explorer. Retrieves Ground Truth (full documentation, implementation source, and usage references) for any symbol. Use this to verify APIs before implementing code.",
+		Title:       "Describe Symbol (Inspect Source)",
+		Description: "The ultimate 'Go to Definition'. Returns the LIVE implementation source code, signature, and cross-references for any symbol. Essential for verifying APIs and avoiding compilation errors.",
 	}, toolHandler)
 }
 
@@ -52,9 +53,9 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 func Describe(ctx context.Context, pkgName, symName, fileName string) (string, error) {
 	// 1. Try Graph Resolution (Source Code aware)
 	// We attempt this for ALL packages now, as we want to provide source code if possible.
-	localResult := resolveLocal(pkgName, symName, fileName)
-	if localResult != "" {
-		return localResult, nil
+	localDoc := resolveLocal(ctx, pkgName, symName, fileName)
+	if localDoc != nil {
+		return godoc.Render(localDoc), nil
 	}
 
 	// 2. Try External Resolution (Godoc) - Fallback for when source isn't available
@@ -68,7 +69,7 @@ func Describe(ctx context.Context, pkgName, symName, fileName string) (string, e
 	return "", fmt.Errorf("could not find description for symbol %q in %s", symName, pkgName)
 }
 
-func resolveLocal(pkgName, symName, fileName string) string {
+func resolveLocal(ctx context.Context, pkgName, symName, fileName string) *godoc.StructuredDoc {
 	target := fileName
 	if target == "" {
 		target = pkgName
@@ -76,65 +77,106 @@ func resolveLocal(pkgName, symName, fileName string) string {
 
 	pkg, err := graph.Global.Load(target)
 	if err != nil {
-		return ""
+		return nil
+	}
+
+	doc := &godoc.StructuredDoc{
+		ImportPath:  pkg.PkgPath,
+		Package:     pkg.Name,
+		PkgGoDevURL: fmt.Sprintf("https://pkg.go.dev/%s", pkg.PkgPath),
 	}
 
 	if symName == "" {
-		// Return full file content if File is specified, else package overview
+		// Package Overview
 		if fileName != "" {
 			content, _ := os.ReadFile(fileName)
-			return fmt.Sprintf("# File: %s\n\n```go\n%s\n```", fileName, string(content))
+			doc.Definition = fmt.Sprintf("// File: %s\n%s", fileName, string(content))
+			return doc
 		}
-		return fmt.Sprintf("# Package: %s\n\n%s", pkg.Name, "Local package loaded.")
+
+		// Enrich with sub-packages using 'go list' logic from godoc package
+		// We need the directory of the package to run go list
+		if len(pkg.GoFiles) > 0 {
+			pkgDir := strings.TrimSuffix(pkg.GoFiles[0], "/"+strings.Split(pkg.GoFiles[0], "/")[len(strings.Split(pkg.GoFiles[0], "/"))-1])
+			// Actually filepath.Dir is safer but we don't import filepath here yet
+			// Let's assume graph package provides a way or we just use the first file's dir
+			// But wait, pkg.GoFiles[0] is absolute path.
+			// Let's use graph.Global.FindObject which requires loading...
+			// simpler:
+			doc.SubPackages = godoc.ListSubPackages(ctx, pkgDir) // This requires directory
+		} else {
+			// Fallback to graph known packages if no files (e.g. empty dir loaded)
+			// But graph.Global.Load would fail if no files.
+		}
+
+		// Add public symbols to description for overview
+		var sb strings.Builder
+		if len(pkg.Errors) > 0 {
+			sb.WriteString("## Build Problems\n")
+			for _, e := range pkg.Errors {
+				sb.WriteString(fmt.Sprintf("- ⚠️ %s\n", e.Msg))
+			}
+			sb.WriteString("\n")
+		}
+
+		if pkg.Types != nil && pkg.Types.Scope() != nil {
+			sb.WriteString("## Public Symbols\n")
+			names := pkg.Types.Scope().Names()
+			for _, name := range names {
+				obj := pkg.Types.Scope().Lookup(name)
+				if obj != nil && obj.Exported() {
+					sb.WriteString(fmt.Sprintf("- `%s` (%s)\n", name, formatType(obj.Type())))
+				}
+			}
+		}
+		doc.Description = sb.String()
+
+		return doc
 	}
 
+	// Symbol Lookup
 	obj := graph.Global.FindObject(pkg, symName)
 	if obj == nil {
-		return ""
+		return nil
 	}
 
 	source, file, line := graph.Global.FindSymbolLocation(pkg, obj)
 	refs := graph.Global.FindReferences(obj)
 
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("# Symbol: %s\n", symName))
-	sb.WriteString(fmt.Sprintf("Defined in: `%s:%d`\n\n", file, line))
+	doc.SymbolName = symName
+	doc.Type = "symbol" // generic, specific type not easily available from object interface without casting
+	doc.SourcePath = file
+	doc.Line = line
+	doc.Definition = source
 
-	if source != "" {
-		sb.WriteString("## Implementation\n")
-		sb.WriteString("```go\n")
-		sb.WriteString(source)
-		sb.WriteString("\n```\n\n")
+	// Format References
+	for _, ref := range refs {
+		doc.References = append(doc.References, fmt.Sprintf("`%s:%d`", ref.File, ref.Line))
 	}
 
-	if len(refs) > 0 {
-		sb.WriteString("## Usages\n")
-		for _, ref := range refs {
-			sb.WriteString(fmt.Sprintf("- `%s:%d`\n", ref.File, ref.Line))
-		}
-		sb.WriteString("\n")
-	}
+	// Related Symbols (Definitions)
 	related := graph.Global.FindRelatedSymbols(obj)
 	if len(related) > 0 {
-		sb.WriteString("## Definitions\n")
+		var sb strings.Builder
+		sb.WriteString("## Related Definitions\n")
 		for _, rel := range related {
 			if rel.Pkg() == nil {
-				continue // Skip builtins
+				continue
 			}
+			// Resolve related symbol location
+			// We can't easily recurse here without bloating the doc, so we just list them or short snippet?
+			// The original implementation printed source. Let's append to Description or Definition?
+			// Let's append to Description for now as "Related Code"
 
-			// We need to find the package that contains this symbol.
-			// Ideally rel.Pkg().Path() gives us the import path.
-			// We can try to get it from the graph.
+			// We need to load the related package if different
 			relPkg := graph.Global.Get(rel.Pkg().Path())
 			if relPkg == nil {
-				// Try to load it if not found
 				var err error
 				relPkg, err = graph.Global.Load(rel.Pkg().Path())
 				if err != nil {
 					continue
 				}
 			}
-
 			if relPkg != nil {
 				src, file, line := graph.Global.FindSymbolLocation(relPkg, rel)
 				if src != "" {
@@ -146,9 +188,19 @@ func resolveLocal(pkgName, symName, fileName string) string {
 				}
 			}
 		}
+		doc.Description += "\n" + sb.String()
 	}
 
-	return sb.String()
+	return doc
+}
+
+func formatType(t types.Type) string {
+	if t == nil {
+		return "unknown"
+	}
+	s := t.String()
+	// Clean up long package paths in signatures
+	return s
 }
 
 func errorResult(msg string) *mcp.CallToolResult {

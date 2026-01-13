@@ -58,7 +58,7 @@ func run(ctx context.Context, args []string) error {
 	}
 
 	if cfg.Agents {
-		printAgentInstructions(cfg.Experimental)
+		printAgentInstructions(cfg.Experimental, cfg.DisabledTools)
 		return nil
 	}
 	srv := server.New(cfg, version)

@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
-	"time"
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
 	"gopkg.in/yaml.v3"
@@ -105,7 +105,19 @@ func (m *Manager) CreateScenario(name, description, task string, assets []config
 	}
 	baseDir := m.TemplatesDirs[0]
 
-	id := fmt.Sprintf("%d", time.Now().UnixNano())
+	// Find next sequential ID
+	entries, _ := os.ReadDir(baseDir)
+	maxID := 0
+	for _, entry := range entries {
+		if entry.IsDir() {
+			if id, err := strconv.Atoi(entry.Name()); err == nil {
+				if id > maxID {
+					maxID = id
+				}
+			}
+		}
+	}
+	id := fmt.Sprintf("%d", maxID+1)
 
 	scenDir := filepath.Join(baseDir, id)
 	if err := os.MkdirAll(scenDir, 0755); err != nil {

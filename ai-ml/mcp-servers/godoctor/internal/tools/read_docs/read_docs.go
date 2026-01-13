@@ -13,8 +13,8 @@ import (
 func Register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "read_docs",
-		Title:       "Read Go Documentation",
-		Description: "Retrieves documentation for Go packages or symbols in Markdown format.",
+		Title:       "Read Go Documentation (Map Module)",
+		Description: "The high-level map builder. Lists all sub-packages and exported symbols in a module. Use this FIRST to visualize the codebase structure without flooding your context window.",
 	}, ToolHandler)
 }
 

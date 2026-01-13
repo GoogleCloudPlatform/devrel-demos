@@ -18,6 +18,7 @@ type Flags struct {
 	ExperimentID  *int64
 	RevalID       *int64
 	FixReportPath *string
+	Version       *bool
 }
 
 func parseFlags() Flags {
@@ -35,6 +36,7 @@ func parseFlags() Flags {
 		ExperimentID:  flag.Int64("experiment-id", 0, "Experiment ID to regenerate report"),
 		RevalID:       flag.Int64("reval", 0, "Experiment ID to re-validate runs"),
 		FixReportPath: flag.String("fix-report", "", "Path to existing report.md to fix structure/formatting"),
+		Version:       flag.Bool("version", false, "Print version and exit"),
 	}
 	flag.Parse()
 	return f

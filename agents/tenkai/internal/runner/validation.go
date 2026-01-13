@@ -16,6 +16,7 @@ import (
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/parser"
 )
 
 type ValidationReport struct {
@@ -111,6 +112,22 @@ func (r *Runner) ApplyValidationReport(run *models.RunResult, report *Validation
 	}
 }
 
+// Helper to prepare environment variables
+func (r *Runner) prepareEnv(ruleEnv map[string]string) []string {
+	if len(ruleEnv) == 0 {
+		return nil // Inherit parent env
+	}
+	env := os.Environ()
+	for k, v := range ruleEnv {
+		val := v
+		if strings.HasPrefix(v, "$") {
+			val = os.Getenv(strings.TrimPrefix(v, "$"))
+		}
+		env = append(env, fmt.Sprintf("%s=%s", k, val))
+	}
+	return env
+}
+
 func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.ValidationRule) ([]models.TestResult, ValidationItem, int, int, error) {
 	target := rule.Target
 	if target == "" {
@@ -123,6 +140,7 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 
 	cmd := exec.CommandContext(ctx, "go", "test", "-json", "-cover", target)
 	cmd.Dir = wsPath // Run in workspace
+	cmd.Env = r.prepareEnv(rule.Env)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	// Ignore exit code error, we parse JSON
@@ -195,9 +213,11 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 		Type:     "test",
 		Coverage: coverage,
 	}
-	covDesc := ""
+
+covDesc := ""
 	if coverage > 0 {
-		covDesc = fmt.Sprintf(" (Cov: %.1f%%)", coverage)
+	
+covDesc = fmt.Sprintf(" (Cov: %.1f%%)", coverage)
 	}
 	item.Description = fmt.Sprintf("Run tests on %s%s", target, covDesc)
 
@@ -245,6 +265,7 @@ func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.Va
 	// golangci-lint run --out-format json ./...
 	cmd := exec.CommandContext(ctx, "golangci-lint", "run", "--out-format", "json", target)
 	cmd.Dir = wsPath
+	cmd.Env = r.prepareEnv(rule.Env)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	_ = cmd.Run() // It exits non-zero on issues
@@ -270,14 +291,15 @@ func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.Va
 	if err := json.Unmarshal(out.Bytes(), &result); err == nil {
 		// Convert to db.LintIssue
 		for _, i := range result.Issues {
-			issues = append(issues, models.LintIssue{
+			issue := models.LintIssue{
 				File:     i.Pos.Filename,
 				Line:     i.Pos.Line,
 				Col:      i.Pos.Column,
 				Message:  i.Text,
 				Severity: i.Severity,
 				RuleID:   i.FromLinter,
-			})
+			}
+			issues = append(issues, issue)
 		}
 	}
 
@@ -330,6 +352,7 @@ func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config
 	}
 	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", fullCmd)
 	cmd.Dir = wsPath
+	cmd.Env = r.prepareEnv(rule.Env)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -369,7 +392,8 @@ func (r *Runner) validateModel(ctx context.Context, wsPath string, rule config.V
 			Status:      "FAIL",
 			Description: "Model validation",
 			Details:     "No validation prompt provided",
-		}, nil
+		},
+		nil
 	}
 	promptText := rule.Prompt
 
@@ -387,30 +411,88 @@ func (r *Runner) validateModel(ctx context.Context, wsPath string, rule config.V
 	fullPrompt := promptText + "\n\nCONTEXT:\n" + contextContent
 	fullPrompt += "\n\nIMPORTANT: Evaluate the above context based on the criteria in the prompt. If the criteria are met, output only the token <<TENKAI_PASS>>. If the criteria are not met, output only the token <<TENKAI_FAIL>> followed by a brief reason."
 
-	// Call Gemini CLI
-	// For now, assuming a simple "gemini prompt" call
-	// In real implementation we should use the same mechanism as the agent but with a different system prompt?
-	// User said: "invoking gemini cli with a special validation prompt"
+		// Call Gemini CLI with stream-json
 
-	cmd := exec.CommandContext(ctx, "gemini", "--output-format", "text")
+		cmd := exec.CommandContext(ctx, "gemini", "-y", "--output-format", "stream-json")
+
+		cmd.Dir = wsPath                 // ISOLATION FIX
+
+		cmd.Env = r.prepareEnv(rule.Env) // Restore Env forwarding
 	cmd.Stdin = strings.NewReader(fullPrompt)
 	var out bytes.Buffer
+	var stderr bytes.Buffer
 	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	
 	if err := cmd.Run(); err != nil {
 		return ValidationItem{
 			Type:        "model",
 			Status:      "FAIL",
 			Description: "Model validation",
-			Details:     fmt.Sprintf("Gemini invocation failed: %v", err),
-		}, nil
+			Details:     fmt.Sprintf("Gemini invocation failed: %v\nStderr: %s", err, stderr.String()),
+		},
+		nil
 	}
 
-	modelOut := out.String()
+	// Parse Streaming Output
+	var textBuilder strings.Builder
+	scanner := bufio.NewScanner(&out)
+	
+	// Dummy containers for parser
+	metrics := &parser.AgentMetrics{}
+
+pendingTools := make(map[string]*parser.ToolCall)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		evt, err := parser.ParseLine(line, metrics, pendingTools)
+		if err != nil {
+			// Fallback: If line is not JSON, treat as raw text (e.g. system warnings)
+			textBuilder.WriteString(line + "\n")
+			continue 
+		}
+		if evt == nil {
+			continue
+		}
+
+		// Reconstruct output
+		if evt.Type == "message" {
+			// Extract plain text from JSON content structure if possible, otherwise use raw
+			// ParseLine stores JSON string in evt.Content for messages
+			// But for simplicity in validation logs, we want readable text.
+			// Let's decode the content JSON
+			var contentObj map[string]string
+			if json.Unmarshal([]byte(evt.Content), &contentObj) == nil {
+				textBuilder.WriteString(contentObj["text"])
+			} else {
+				textBuilder.WriteString(evt.Content)
+			}
+		} else if evt.Type == "tool_use" {
+			// Log tool attempts clearly
+			textBuilder.WriteString(fmt.Sprintf("\n[TOOL CALL: %s]\n", evt.ToolName))
+		} else if evt.Type == "tool_result" {
+			// Log tool results
+			status := "SUCCESS"
+			if evt.Status != "success" {
+				status = "ERROR"
+			}
+			textBuilder.WriteString(fmt.Sprintf("[TOOL RESULT (%s)]: %s\n", status, evt.Output))
+		}
+	}
+	
+	// Append stderr if present, as it often contains critical failure info (like auth errors)
+	if stderr.Len() > 0 {
+		textBuilder.WriteString("\n--- STDERR ---\n")
+		textBuilder.WriteString(stderr.String())
+	}
+
+	modelOut := textBuilder.String()
 	status := "FAIL"
-	if strings.Contains(modelOut, "<<TENKAI_PASS>>") {
-		status = "PASS"
-	} else if strings.Contains(modelOut, "<<TENKAI_FAIL>>") {
+	// Check for tokens, prioritizing FAIL
+	if strings.Contains(modelOut, "<<TENKAI_FAIL>>") {
 		status = "FAIL"
+	} else if strings.Contains(modelOut, "<<TENKAI_PASS>>") {
+		status = "PASS"
 	} else {
 		// Ambiguous or missing token
 		status = "FAIL"
@@ -422,5 +504,6 @@ func (r *Runner) validateModel(ctx context.Context, wsPath string, rule config.V
 		Status:      status,
 		Description: "Model validation (LLM Grader)",
 		Details:     modelOut,
-	}, nil
+	},
+	nil
 }

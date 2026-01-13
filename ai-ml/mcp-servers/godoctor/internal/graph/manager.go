@@ -161,10 +161,21 @@ func (m *Manager) Load(dirOrFile string) (*packages.Package, error) {
 	}
 
 	pkgs, err := packages.Load(cfg, pattern)
+
+	// Retry with wildcard if direct load fails (Discovery Mode)
+	if (err != nil || len(pkgs) == 0) && !strings.HasSuffix(pattern, "...") && !strings.HasSuffix(pattern, ".go") && !strings.HasPrefix(pattern, ".") {
+		fmt.Printf("Direct load failed for %s, trying wildcard discovery...\n", pattern)
+		wildcardPattern := strings.TrimSuffix(pattern, "/") + "/..."
+		pkgsWild, errWild := packages.Load(cfg, wildcardPattern)
+		if errWild == nil && len(pkgsWild) > 0 {
+			pkgs = pkgsWild
+			err = nil
+		}
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("packages.Load failed: %w", err)
 	}
-
 	if len(pkgs) == 0 {
 		return nil, fmt.Errorf("no packages found in %s", dir)
 	}
