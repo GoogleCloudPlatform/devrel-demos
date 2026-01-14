@@ -1,4 +1,4 @@
-# 🔐 Demo: Authenticated Cloud Run Requests from Any Source
+# 🔐 Demo: Authenticated Cloud Run Requests from Anywhere using Application Default Credentials
 
 ## Overview
 
