@@ -11,7 +11,7 @@ SERVER_BINARY_NAME=godoctor
 SERVER_BINARY=$(BINARY_DIR)/$(SERVER_BINARY_NAME)
 
 # Version
-VERSION := 0.8.0
+VERSION := 0.8.1
 LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 
 all: build

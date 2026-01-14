@@ -1,4 +1,4 @@
-package describe
+package inspect_symbol
 
 import (
 	"context"
@@ -62,7 +62,7 @@ func RootSecret() int { return 1 }
 
 	// 3a. Call Describe with Package path (Subpackage)
 	ctx := context.Background()
-	res, _, err := toolHandler(ctx, nil, Params{
+	res, _, err := Handler(ctx, nil, Params{
 		Package: "example.com/testmod/mypkg",
 		Symbol:  "secretFunc",
 	})
@@ -70,7 +70,7 @@ func RootSecret() int { return 1 }
 		t.Fatalf("toolHandler subpkg failed: %v", err)
 	}
 	if res.IsError {
-		t.Fatalf("toolHandler subpkg returned error: %v", res.Content[0].(*mcp.TextContent).Text)
+		t.Fatalf("Handler subpkg returned error: %v", res.Content[0].(*mcp.TextContent).Text)
 	}
 	output := res.Content[0].(*mcp.TextContent).Text
 	if !strings.Contains(output, "func secretFunc()") {
@@ -78,7 +78,7 @@ func RootSecret() int { return 1 }
 	}
 
 	// 3b. Test Root Package
-	resRoot, _, err := toolHandler(ctx, nil, Params{
+	resRoot, _, err := Handler(ctx, nil, Params{
 		Package: "example.com/testmod",
 		Symbol:  "RootSecret",
 	})
@@ -86,7 +86,7 @@ func RootSecret() int { return 1 }
 		t.Fatalf("toolHandler root failed: %v", err)
 	}
 	if resRoot.IsError {
-		t.Fatalf("toolHandler root returned error: %v", resRoot.Content[0].(*mcp.TextContent).Text)
+		t.Fatalf("Handler root returned error: %v", resRoot.Content[0].(*mcp.TextContent).Text)
 	}
 	outputRoot := resRoot.Content[0].(*mcp.TextContent).Text
 	if !strings.Contains(outputRoot, "func RootSecret()") {

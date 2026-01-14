@@ -31,21 +31,33 @@ import (
 	"strings"
 )
 
-// GetDocumentation retrieves the documentation for a package or symbol.
-func GetDocumentation(ctx context.Context, pkgPath, symbolName string) (string, error) {
+// GetStructuredDoc parses the package documentation and returns a structured representation.
+func GetStructuredDoc(ctx context.Context, pkgPath, symbolName string) (*StructuredDoc, error) {
 	// Try to find the package directory locally
 	pkgDir, err := resolvePackageDir(ctx, pkgPath)
 	if err != nil {
 		// Fallback: try to fetch the package in a temp directory
-		return fetchAndRetry(ctx, pkgPath, symbolName, err)
+		// We need to duplicate fetch logic or refactor.
+		// For now, let's just stick to the existing GetDocumentation flow which handles strings.
+		// Wait, code_outline needs StructuredDoc.
+		// Let's refactor fetchAndRetry to return *StructuredDoc.
+		return fetchAndRetryStructured(ctx, pkgPath, symbolName, err)
 	}
 
 	result, err := parsePackageDocs(ctx, pkgPath, pkgDir, symbolName, pkgPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse documentation: %w", err)
+		return nil, fmt.Errorf("failed to parse documentation: %w", err)
 	}
+	return result, nil
+}
 
-	return Render(result), nil
+// GetDocumentation retrieves the documentation for a package or symbol as Markdown.
+func GetDocumentation(ctx context.Context, pkgPath, symbolName string) (string, error) {
+	doc, err := GetStructuredDoc(ctx, pkgPath, symbolName)
+	if err != nil {
+		return "", err
+	}
+	return Render(doc), nil
 }
 
 // Example represents a code example extracted from documentation.
@@ -67,6 +79,13 @@ type StructuredDoc struct {
 	Examples     []Example `json:"examples,omitempty"`
 	SubPackages  []string  `json:"subPackages,omitempty"`
 	PkgGoDevURL  string    `json:"pkgGoDevURL"`
+
+	// Lists of symbols (signatures or summaries)
+	Funcs  []string `json:"funcs,omitempty"`
+	Types  []string `json:"types,omitempty"`
+	Vars   []string `json:"vars,omitempty"`
+	Consts []string `json:"consts,omitempty"`
+
 	// Extra fields for Describe superset
 	SourcePath string   `json:"sourcePath,omitempty"`
 	Line       int      `json:"line,omitempty"`
@@ -137,6 +156,22 @@ func parsePackageDocs(ctx context.Context, importPath, pkgDir, symbolName, reque
 		result.Description = targetPkg.Doc
 		result.Definition = fmt.Sprintf("package %s // import %q", targetPkg.Name, importPath)
 		result.Examples = extractExamples(fset, targetPkg.Examples)
+
+		// Populate symbol lists
+		for _, f := range targetPkg.Funcs {
+			result.Funcs = append(result.Funcs, bufferCode(fset, f.Decl))
+		}
+		for _, t := range targetPkg.Types {
+			// Just the type decl, not full methods unless we want detailed summary
+			result.Types = append(result.Types, bufferCode(fset, t.Decl))
+		}
+		for _, v := range targetPkg.Vars {
+			result.Vars = append(result.Vars, bufferCode(fset, v.Decl))
+		}
+		for _, c := range targetPkg.Consts {
+			result.Consts = append(result.Consts, bufferCode(fset, c.Decl))
+		}
+
 		return result, nil
 	}
 
@@ -364,6 +399,46 @@ func Render(doc *StructuredDoc) string {
 		}
 	}
 
+	// Render Symbol Lists (if available and not focusing on a single symbol)
+	if doc.SymbolName == "" {
+		if len(doc.Consts) > 0 {
+			buf.WriteString("### Constants\n\n")
+			buf.WriteString("```go\n")
+			for _, c := range doc.Consts {
+				buf.WriteString(c)
+				buf.WriteString("\n")
+			}
+			buf.WriteString("```\n\n")
+		}
+		if len(doc.Vars) > 0 {
+			buf.WriteString("### Variables\n\n")
+			buf.WriteString("```go\n")
+			for _, v := range doc.Vars {
+				buf.WriteString(v)
+				buf.WriteString("\n")
+			}
+			buf.WriteString("```\n\n")
+		}
+		if len(doc.Funcs) > 0 {
+			buf.WriteString("### Functions\n\n")
+			buf.WriteString("```go\n")
+			for _, f := range doc.Funcs {
+				buf.WriteString(f)
+				buf.WriteString("\n\n")
+			}
+			buf.WriteString("```\n\n")
+		}
+		if len(doc.Types) > 0 {
+			buf.WriteString("### Types\n\n")
+			buf.WriteString("```go\n")
+			for _, t := range doc.Types {
+				buf.WriteString(t)
+				buf.WriteString("\n\n")
+			}
+			buf.WriteString("```\n\n")
+		}
+	}
+
 	if len(doc.References) > 0 {
 		buf.WriteString("### Usages\n\n")
 		for _, ref := range doc.References {
@@ -444,10 +519,10 @@ func levenshtein(s1, s2 string) int {
 	return currentRow[n]
 }
 
-func fetchAndRetry(ctx context.Context, pkgPath, symbolName string, originalErr error) (string, error) {
+func fetchAndRetryStructured(ctx context.Context, pkgPath, symbolName string, originalErr error) (*StructuredDoc, error) {
 	tempDir, err := setupTempModule(ctx)
 	if err != nil {
-		return "", fmt.Errorf("failed to setup temp module: %w", err)
+		return nil, fmt.Errorf("failed to setup temp module: %w", err)
 	}
 	defer func() {
 		_ = os.RemoveAll(tempDir)
@@ -462,16 +537,16 @@ func fetchAndRetry(ctx context.Context, pkgPath, symbolName string, originalErr 
 			suggestionText = fmt.Sprintf("\nDid you mean: %s?", strings.Join(suggestions, ", "))
 		}
 
-		return "", fmt.Errorf("failed to download package %q: %v\nOriginal error: %v%s",
+		return nil, fmt.Errorf("failed to download package %q: %v\nOriginal error: %v%s",
 			pkgPath, err, originalErr, suggestionText)
 	}
 
 	result, err := parsePackageDocs(ctx, actualPkgPath, pkgDir, symbolName, pkgPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse documentation after download: %w", err)
+		return nil, fmt.Errorf("failed to parse documentation after download: %w", err)
 	}
 
-	return Render(result), nil
+	return result, nil
 }
 
 func suggestPackages(ctx context.Context, query string) []string {

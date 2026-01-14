@@ -3,7 +3,9 @@ package read_docs
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/danicat/godoctor/internal/godoc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -14,18 +16,19 @@ func Register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "read_docs",
 		Title:       "Read Go Documentation (Map Module)",
-		Description: "The high-level map builder. Lists all sub-packages and exported symbols in a module. Use this FIRST to visualize the codebase structure without flooding your context window.",
-	}, ToolHandler)
+		Description: "The high-level map builder. Lists all sub-packages and exported symbols in a module. Use this FIRST to visualize the codebase structure without flooding your context window. Supports Markdown (default) and JSON.",
+	}, Handler)
 }
 
 // Params defines the input parameters for the read_docs tool.
 type Params struct {
-	PackagePath string `json:"package_path"`
-	SymbolName  string `json:"symbol_name,omitempty"`
+	PackagePath string `json:"package_path" jsonschema:"Import path of the package (e.g. 'fmt')"`
+	SymbolName  string `json:"symbol_name,omitempty" jsonschema:"Optional symbol name to lookup"`
+	Format      string `json:"format,omitempty" jsonschema:"Output format: 'markdown' (default) or 'json'"`
 }
 
-// ToolHandler handles the read_docs tool execution.
-func ToolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
+// Handler handles the read_docs tool execution.
+func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
 	if args.PackagePath == "" {
 		return &mcp.CallToolResult{
 			IsError: true,
@@ -35,7 +38,22 @@ func ToolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 		}, nil, nil
 	}
 
-	markdown, err := godoc.GetDocumentation(ctx, args.PackagePath, args.SymbolName)
+	// Default to markdown
+	if args.Format == "" {
+		args.Format = "markdown"
+	}
+	args.Format = strings.ToLower(args.Format)
+	if args.Format != "markdown" && args.Format != "json" {
+		return &mcp.CallToolResult{
+			IsError: true,
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: "invalid format: must be 'markdown' or 'json'"},
+			},
+		}, nil, nil
+	}
+
+	// Use GetStructuredDoc for flexibility
+	doc, err := godoc.GetStructuredDoc(ctx, args.PackagePath, args.SymbolName)
 	if err != nil {
 		return &mcp.CallToolResult{
 			IsError: true,
@@ -45,9 +63,28 @@ func ToolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 		}, nil, nil
 	}
 
+	var output string
+
+	if args.Format == "json" {
+		bytes, err := json.MarshalIndent(doc, "", "  ")
+		if err != nil {
+			return &mcp.CallToolResult{
+				IsError: true,
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("failed to marshal JSON: %v", err)},
+				},
+			}, nil, nil
+		}
+		output = string(bytes)
+	} else {
+		// Render logic duplicated from godoc.GetDocumentation?
+		// No, use godoc.Render
+		output = godoc.Render(doc)
+	}
+
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
-			&mcp.TextContent{Text: markdown},
+			&mcp.TextContent{Text: output},
 		},
 	}, nil, nil
 }

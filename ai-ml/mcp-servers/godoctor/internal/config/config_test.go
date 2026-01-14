@@ -44,8 +44,8 @@ func TestLoad(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Load() error = %v", err)
 			}
-			if cfg.Experimental != tt.wantExperimental {
-				t.Errorf("Load().Experimental = %v, want %v", cfg.Experimental, tt.wantExperimental)
+			if cfg.EnableExperimentalFeatures() != tt.wantExperimental {
+				t.Errorf("Load().EnableExperimentalFeatures() = %v, want %v", cfg.EnableExperimentalFeatures(), tt.wantExperimental)
 			}
 
 			if len(tt.wantDisabled) != len(cfg.DisabledTools) {

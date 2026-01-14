@@ -12,21 +12,21 @@ import (
 	"golang.org/x/tools/imports"
 )
 
-// Register registers the edit tool with the server.
+// Register registers the smart_edit tool with the server.
 func Register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "edit",
-		Title:       "Edit Go Code (Smart Patch)",
+		Name:        "smart_edit",
+		Title:       "Smart Edit (Fuzzy Patch)",
 		Description: "The 'Senior Dev' editor. Uses fuzzy-matching to patch specific code blocks. It auto-formats, updates imports, and PRE-COMPILES your change to catch errors before saving. Use this to safely modify large files.",
 	}, toolHandler)
 }
 
-// Params defines the input parameters for the edit tool.
+// Params defines the input parameters for the smart_edit tool.
 type Params struct {
-	File          string `json:"file" jsonschema:"The path to the file to edit"`
-	SearchContext string `json:"search_context" jsonschema:"The block of code to find (ignores whitespace)"`
-	Replacement   string `json:"replacement" jsonschema:"The new code to insert"`
-	Autofix       int    `json:"autofix,omitempty" jsonschema:"Similarity threshold (0-100) for fuzzy matching, default 95"`
+	File          string  `json:"file" jsonschema:"The absolute path to the file to edit"`
+	SearchContext string  `json:"search_context" jsonschema:"The block of code to find (ignores whitespace)"`
+	Replacement   string  `json:"replacement" jsonschema:"The new code to insert"`
+	Threshold     float64 `json:"threshold,omitempty" jsonschema:"Similarity threshold (0.0-1.0) for fuzzy matching, default 0.95"`
 }
 
 func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
@@ -36,8 +36,17 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 	if !strings.HasSuffix(args.File, ".go") {
 		return errorResult("file must be a Go file (*.go)"), nil, nil
 	}
-	if args.Autofix == 0 {
-		args.Autofix = 95
+
+	// Default threshold
+	if args.Threshold == 0 {
+		args.Threshold = 0.95
+	}
+	// Cap threshold
+	if args.Threshold > 1.0 {
+		args.Threshold = 1.0
+	}
+	if args.Threshold < 0.0 {
+		args.Threshold = 0.0
 	}
 
 	// 1. Read File
@@ -47,21 +56,24 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 	}
 
 	// 2. Fuzzy Match (Ignore Whitespace)
-	// We'll use the logic from the old edit_code but streamlined
 	original := string(content)
 	matchStart, matchEnd, score := findBestMatch(original, args.SearchContext)
 
-	if score < float64(args.Autofix)/100.0 {
-		return errorResult(fmt.Sprintf("match not found with sufficient confidence (score: %.2f%%). Suggestions: verify your search_context", score*100)), nil, nil
+	if score < args.Threshold {
+		return errorResult(fmt.Sprintf("match not found with sufficient confidence (score: %.2f < %.2f). Suggestions: verify your search_context or lower threshold", score, args.Threshold)), nil, nil
 	}
 
 	// 3. Apply Edit
+	// Ensure we don't duplicate newlines if replacement handles them differently
+	// But simple string replacement is safest for now.
 	newContent := original[:matchStart] + args.Replacement + original[matchEnd:]
 
 	// 4. Auto-Format & Import check
+	// Use imports.Process which runs gofmt and goimports
 	formatted, err := imports.Process(args.File, []byte(newContent), nil)
 	if err != nil {
-		return errorResult(fmt.Sprintf("edit produced invalid Go code: %v", err)), nil, nil
+		// Try to give a helpful error location
+		return errorResult(fmt.Sprintf("edit produced invalid Go code: %v\nHint: Ensure your Replacement is syntactically valid in context.", err)), nil, nil
 	}
 
 	// 5. Write to disk
@@ -70,16 +82,22 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 	}
 
 	// 6. Post-Check Verification (Type Check)
+	// We want to verify that the file compiles within its package
 	pkg, err := graph.Global.Load(args.File)
 	var warning string
-	if err == nil && len(pkg.Errors) > 0 {
+
+	if err != nil {
+		// Graph loading failed, maybe severe syntax error skipped by imports.Process?
+		warning = fmt.Sprintf("\n\n**WARNING:** Failed to reload package context: %v", err)
+	} else if len(pkg.Errors) > 0 {
 		warning = "\n\n**WARNING:** Edit successful but introduced compilation errors:\n"
 		for _, e := range pkg.Errors {
 			warning += fmt.Sprintf("- %s\n", e.Msg)
 		}
-	} else if err == nil {
+	} else {
 		// 7. Impact Analysis (Reverse Dependencies)
 		// Only run if local compilation passed
+		// We limit this to avoiding massive scans in large repos, relying on the graph.
 		importers := graph.Global.FindImporters(pkg.PkgPath)
 		var impactWarnings []string
 
@@ -95,7 +113,6 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 			// Check for errors
 			reloadedImp, err := graph.Global.Load(impDir)
 			if err == nil && len(reloadedImp.Errors) > 0 {
-				// We conservatively report the first error to avoid spam
 				impactWarnings = append(impactWarnings, fmt.Sprintf("Package %s: %s", reloadedImp.PkgPath, reloadedImp.Errors[0].Msg))
 			}
 		}

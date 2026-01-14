@@ -1,6 +1,7 @@
 package edit
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,7 +54,7 @@ func main() {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res, _, err := toolHandler(nil, nil, Params{
+			res, _, err := toolHandler(context.TODO(), nil, Params{
 				File:          filePath,
 				SearchContext: tt.search,
 				Replacement:   tt.replace,
@@ -80,12 +81,12 @@ func TestEdit_Broken(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 	os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module broken\n\ngo 1.24\n"), 0644)
-	
+
 	filePath := filepath.Join(tmpDir, "main.go")
 	os.WriteFile(filePath, []byte("package main\n\nfunc main() {}"), 0644)
 
 	// Introduce a build error
-	res, _, _ := toolHandler(nil, nil, Params{
+	res, _, _ := toolHandler(context.TODO(), nil, Params{
 		File:          filePath,
 		SearchContext: "func main() {}",
 		Replacement:   "func main() { undefinedVar() }",

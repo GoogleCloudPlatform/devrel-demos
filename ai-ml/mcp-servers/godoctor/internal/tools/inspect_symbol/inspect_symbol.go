@@ -1,4 +1,4 @@
-package describe
+package inspect_symbol
 
 import (
 	"context"
@@ -12,23 +12,23 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// Register registers the describe tool with the server.
+// Register registers the inspect_symbol tool with the server.
 func Register(server *mcp.Server) {
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "describe",
-		Title:       "Describe Symbol (Inspect Source)",
-		Description: "The ultimate 'Go to Definition'. Returns the LIVE implementation source code, signature, and cross-references for any symbol. Essential for verifying APIs and avoiding compilation errors.",
-	}, toolHandler)
+		Name:        "inspect_symbol",
+		Title:       "Inspect Symbol",
+		Description: "Returns detailed information about a symbol (signature, documentation, source code, references). Prioritizes local source code over external documentation.",
+	}, Handler)
 }
 
-// Params defines the input parameters for the describe tool.
+// Params defines the input parameters.
 type Params struct {
-	Package string `json:"package,omitempty" jsonschema:"The import path of the package (e.g. 'fmt')"`
-	Symbol  string `json:"symbol,omitempty" jsonschema:"The name of the symbol to look up"`
-	File    string `json:"file,omitempty" jsonschema:"A local file path to resolve context from"`
+	File    string `json:"file,omitempty" jsonschema:"File context for local lookup"`
+	Package string `json:"package,omitempty" jsonschema:"Package path (if not local or explicit external lookup)"`
+	Symbol  string `json:"symbol" jsonschema:"Symbol name to inspect"`
 }
 
-func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
+func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
 	if args.Package == "" && args.File == "" {
 		return errorResult("at least package or file must be specified"), nil, nil
 	}

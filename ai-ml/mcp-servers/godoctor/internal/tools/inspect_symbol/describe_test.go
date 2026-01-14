@@ -1,4 +1,4 @@
-package describe
+package inspect_symbol
 
 import (
 	"context"
@@ -50,22 +50,22 @@ func NewUser(name string) *User {
 		symbol   string
 		contains []string
 	}{
-		{"Describe Const", "Message", []string{"const Message = \"Hello\"", "Implementation"}},
+		{"Describe Const", "Message", []string{"const Message = \"Hello\"", "Defined in"}},
 		{"Describe Type", "User", []string{"type User struct", "Name string"}},
 		{"Describe Method", "User.SayHello", []string{"func (u *User) SayHello()", "fmt.Println(Message)", "type User struct"}},
 		{"Describe Func Return", "NewUser", []string{"func NewUser(name string) *User", "type User struct"}},
-		{"Describe File", "", []string{"# File:", "package testpkg", "func (u *User) SayHello()"}},
+		{"Describe File", "", []string{"package testpkg", "func (u *User) SayHello()", "// File:"}},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			res, _, err := toolHandler(ctx, nil, Params{File: filePath, Symbol: tt.symbol})
+			res, _, err := Handler(ctx, nil, Params{File: filePath, Symbol: tt.symbol})
 			if err != nil {
-				t.Fatalf("toolHandler failed: %v", err)
+				t.Fatalf("Handler failed: %v", err)
 			}
 			if res.IsError {
-				t.Fatalf("toolHandler returned error: %v", res.Content[0].(*mcp.TextContent).Text)
+				t.Fatalf("Handler returned error: %v", res.Content[0].(*mcp.TextContent).Text)
 			}
 
 			output := res.Content[0].(*mcp.TextContent).Text
@@ -80,7 +80,7 @@ func NewUser(name string) *User {
 
 func TestDescribe_External(t *testing.T) {
 	ctx := context.Background()
-	res, _, err := toolHandler(ctx, nil, Params{Package: "fmt", Symbol: "Println"})
+	res, _, err := Handler(ctx, nil, Params{Package: "fmt", Symbol: "Println"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,13 +90,15 @@ func TestDescribe_External(t *testing.T) {
 	output := res.Content[0].(*mcp.TextContent).Text
 
 	// Updated expectations for Source-Aware Describe
-	if !strings.Contains(output, "# Symbol: Println") {
-		t.Errorf("missing symbol header: %s", output)
+	if !strings.Contains(output, "# fmt") {
+		t.Errorf("missing package header: %s", output)
 	}
-	if !strings.Contains(output, "## Implementation") {
-		t.Errorf("missing implementation: %s", output)
+	// "## symbol Println" or "## function Println" depending on godoc resolution
+	if !strings.Contains(output, "Println") {
+		t.Errorf("missing symbol name: %s", output)
 	}
 	if !strings.Contains(output, "func Println(a ...any)") {
+		// This signature might vary slightly by version but usually consistent
 		t.Errorf("missing function signature: %s", output)
 	}
 }

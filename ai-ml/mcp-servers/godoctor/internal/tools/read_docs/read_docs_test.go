@@ -71,7 +71,7 @@ func TestToolHandler(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, _, err := ToolHandler(ctx, nil, tc.params)
+			result, _, err := Handler(ctx, nil, tc.params)
 			if err != nil {
 				t.Fatalf("ToolHandler returned an unexpected error: %v", err)
 			}

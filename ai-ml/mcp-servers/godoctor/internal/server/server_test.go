@@ -38,9 +38,13 @@ func TestServer_RegisterHandlers_DisableTools(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			profile := config.ProfileStandard
+			if tt.experimental {
+				profile = config.ProfileFull
+			}
 			cfg := &config.Config{
 				DisabledTools: tt.disabledTools,
-				Experimental:  tt.experimental,
+				Profile:       profile,
 			}
 			s := New(cfg, "test")
 			err := s.RegisterHandlers()

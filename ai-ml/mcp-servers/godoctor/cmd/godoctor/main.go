@@ -23,6 +23,7 @@ import (
 	"syscall"
 
 	"github.com/danicat/godoctor/internal/config"
+	"github.com/danicat/godoctor/internal/instructions"
 	"github.com/danicat/godoctor/internal/server"
 )
 
@@ -58,7 +59,10 @@ func run(ctx context.Context, args []string) error {
 	}
 
 	if cfg.Agents {
-		printAgentInstructions(cfg.Experimental, cfg.DisabledTools)
+		// printAgentInstructions needs to be updated or we perform a manual check here.
+		// Since printAgentInstructions likely uses instructions.Get, we can refactor that.
+		// For now, let's just assume we want to print instructions using the new method.
+		fmt.Println(instructions.Get(cfg))
 		return nil
 	}
 	srv := server.New(cfg, version)

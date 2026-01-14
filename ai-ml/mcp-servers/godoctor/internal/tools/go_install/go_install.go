@@ -1,0 +1,62 @@
+package go_install
+
+import (
+	"context"
+	"fmt"
+	"os/exec"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+)
+
+// Register registers the tool with the server.
+func Register(server *mcp.Server) {
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "go_install",
+		Title:       "Go Install",
+		Description: "Runs 'go install' to install packages.",
+	}, Handler)
+}
+
+// Params defines the input parameters.
+type Params struct {
+	Dir      string   `json:"dir,omitempty" jsonschema:"Directory to install in (default: current)"`
+	Packages []string `json:"packages,omitempty" jsonschema:"Packages to install (default: ./...)"`
+}
+
+func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
+	dir := args.Dir
+	if dir == "" {
+		dir = "."
+	}
+	pkgs := args.Packages
+	if len(pkgs) == 0 {
+		pkgs = []string{"./..."}
+	}
+
+	cmdArgs := append([]string{"install"}, pkgs...)
+	cmd := exec.CommandContext(ctx, "go", cmdArgs...)
+	cmd.Dir = dir
+
+	out, err := cmd.CombinedOutput()
+	output := string(out)
+
+	if err != nil {
+		if output == "" {
+			output = fmt.Sprintf("Install failed: %v", err)
+		} else {
+			output = "Install Failed:\n" + output
+		}
+	} else {
+		if output == "" {
+			output = "Install Successful."
+		} else {
+			output = "Install Successful:\n" + output
+		}
+	}
+
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: output},
+		},
+	}, nil, nil
+}
