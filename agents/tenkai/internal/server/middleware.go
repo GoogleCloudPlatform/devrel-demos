@@ -3,6 +3,7 @@ package server
 import (
 	"log"
 	"net/http"
+	"time"
 )
 
 // Middleware: CORS
@@ -23,13 +24,28 @@ func CORSMiddleware(next http.Handler) http.Handler {
 // Middleware: Logger & Recovery
 func LoggerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
 		defer func() {
 			if err := recover(); err != nil {
 				log.Printf("Panic: %v", err)
 				http.Error(w, `{"error": "Internal Server Error"}`, http.StatusInternalServerError)
 			}
 		}()
-		// TODO: Add request logging if needed, for now standard lib logs errors
-		next.ServeHTTP(w, r)
+
+		// Wrap ResponseWriter to capture status code
+		rw := &responseWriter{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rw, r)
+
+		log.Printf("[HTTP] %s %s %d %s", r.Method, r.URL.Path, rw.status, time.Since(start))
 	})
+}
+
+type responseWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.status = code
+	rw.ResponseWriter.WriteHeader(code)
 }

@@ -125,7 +125,7 @@ func (c *Config) IsToolEnabled(name string, experimental bool) bool {
 	case ProfileStandard:
 		// Standard set
 		switch name {
-		case "code_outline", "inspect_symbol", "smart_edit", "read_docs", "go_build", "go_test", "list_files":
+		case "code_outline", "inspect_symbol", "smart_edit", "read_docs", "go_build", "go_test", "list_files", "analyze_project":
 			return true
 		default:
 			// Experimental tools are disabled in standard profile unless explicitly allowed

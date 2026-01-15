@@ -67,7 +67,7 @@ This document lists the tools available in each of the GoDoctor server profiles,
 | Tool | Title | Description | Standard | Full | Oracle | Dynamic |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: |
 | `analyze_dependency_updates` | Analyze Dependency Updates | Checks for breaking changes in your Go packages or dependencies. Wrapper around 'apidiff'. useful before upgrading dependencies or releasing new versions. | - | ✅ | - | - |
-| `analyze_project` | Analyze Project | Use this first when joining a new project to get a mental map. | - | ✅ | - | - |
+| `analyze_project` | Analyze Project | Use this first when joining a new project to get a mental map. | ✅ | ✅ | - | - |
 | `ask_specialist` | Ask Specialist | Ask a complex question. The specialist will autonomously use other tools (read docs, inspect code, run tests) to investigate and answer. | ✅ | ✅ | ✅ | - |
 | `ask_the_master_gopher` | Ask The Master Gopher | Consult the Master Gopher for guidance. Use this when you are unsure which tool to use or how to solve a problem. The Master will review your request, unlock appropriate capabilities in the server, and give you wise instructions. | - | ✅ | - | ✅ |
 | `code_outline` | Code Outline | Returns the skeleton of a Go file (declarations without function bodies) and a summary of external imports. | ✅ | ✅ | - | - |

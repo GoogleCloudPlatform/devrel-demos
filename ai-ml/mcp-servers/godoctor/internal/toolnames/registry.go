@@ -161,6 +161,6 @@ var Registry = map[string]ToolDef{
 		Title:       "Analyze Project",
 		Description: "Use this first when joining a new project to get a mental map.",
 		Instruction: "*   **`analyze_project`**: Use this first when joining a new project to get a mental map.",
-		Experimental: true,
+		Experimental: false,
 	},
 }

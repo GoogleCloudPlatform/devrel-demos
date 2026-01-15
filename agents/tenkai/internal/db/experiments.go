@@ -52,16 +52,15 @@ func (db *DB) GetExperiments() ([]models.Experiment, error) {
 		e.AvgTokens = aTok
 
 		// Aggregation for Progress (Real-time from run_results)
-		var completedActual, aborted int
+		var completedActual int
 		// Use COALESCE to ensure 0 is returned instead of NULL if no runs exist
 		err := db.conn.QueryRow(`
 			SELECT 
-				COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END), 0),
-				COALESCE(SUM(CASE WHEN status = 'ABORTED' THEN 1 ELSE 0 END), 0)
-			FROM run_results WHERE experiment_id = ?`, e.ID).Scan(&completedActual, &aborted)
+				COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END), 0)
+			FROM run_results WHERE experiment_id = ?`, e.ID).Scan(&completedActual)
 
 		if err == nil {
-			e.CompletedJobs = completedActual + aborted
+			e.CompletedJobs = completedActual
 		} else {
 			// If error (shouldn't happen with COALESCE), assume 0 to avoid stale data
 			e.CompletedJobs = 0
@@ -149,7 +148,7 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 	if err == nil {
 		// Target total is from experiments table (intended), progress is from actual terminal runs
 		// Treat ABORTED as terminal for progress bar
-		completed := completedActual + aborted
+		completed := completedActual
 
 		// If the experiment is not yet marked terminal in DB, check if it finished naturally
 		if exp.Status != ExperimentStatusAborted && exp.Status != ExperimentStatusCompleted {
