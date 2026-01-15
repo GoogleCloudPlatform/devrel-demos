@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/execution"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/parser"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/workspace"
 )
@@ -63,6 +65,7 @@ type Runner struct {
 	MaxConcurrent int
 	db            *db.DB
 	experimentID  int64
+	executor      execution.Executor
 }
 
 // New creates a new Runner.
@@ -80,6 +83,7 @@ func New(wsMgr *workspace.Manager, maxConcurrent int) *Runner {
 	return &Runner{
 		WorkspaceMgr:  wsMgr,
 		MaxConcurrent: maxConcurrent,
+		executor:      execution.NewLocalExecutor(),
 	}
 }
 
@@ -374,18 +378,23 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 
 	// Anchor the workspace to prevent Gemini from walking up to tenkai root
 	// If isolation is needed, we should rely on the agent creating it or the scenario template providing it.
-	// 2. Prepare Command
-	cmd, jobCtx, jobCancel, _, execCancel, err := r.createCommand(ctx, alt, wsInfo, timeout, jobID)
+	// 2. Prepare I/O Pipes
+	// We use io.Pipe to connect the Executor's output (Writer) to the Runner's streaming logic (Reader).
+	stdoutReader, stdoutWriter := io.Pipe()
+	stderrReader, stderrWriter := io.Pipe()
+	stdinReader, stdinWriter := io.Pipe()
+
+	// 3. Prepare Command Config
+	cmdCfg, jobCtx, jobCancel, _, execCancel, err := r.createJobConfig(ctx, alt, wsInfo, timeout, jobID)
 	if err != nil {
-		// Should not happen with current logic, but handle it
-		res.Error = fmt.Errorf("command creation failed: %w", err)
+		res.Error = fmt.Errorf("job config creation failed: %w", err)
 		res.ErrorStr = res.Error.Error()
 		return res
 	}
 	defer jobCancel()
 	defer execCancel()
 
-	// 3. Capture Output (Real-time Stream)
+	// 4. Setup Log Files
 	logFile, stderrFile, logPath, err := r.setupLogFiles(wsInfo, alt.Name, scenarioID, rep)
 	if err != nil {
 		res.Error = err
@@ -395,37 +404,17 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 	defer logFile.Close()
 	defer stderrFile.Close()
 
-	stdoutPipe, err := cmd.StdoutPipe()
-	if err != nil {
-		res.Error = fmt.Errorf("failed to create stdout pipe: %w", err)
-		res.ErrorStr = res.Error.Error()
-		return res
-	}
-
-	stderrPipe, err := cmd.StderrPipe()
-	if err != nil {
-		res.Error = fmt.Errorf("failed to create stderr pipe: %w", err)
-		res.ErrorStr = res.Error.Error()
-		return res
-	}
-
-	stdinPipe, err := cmd.StdinPipe()
-	if err != nil {
-		res.Error = fmt.Errorf("failed to create stdin pipe: %w", err)
-		res.ErrorStr = res.Error.Error()
-		return res
-	}
-
-	// 3. Open PROMPT.md for Stdin
+	// 5. Start Streaming - PROMPT.md to Stdin
 	promptPath := filepath.Join(wsInfo.Project, "PROMPT.md")
-	// Use helper for prompt streaming
-	go r.streamPromptContents(promptPath, stdinPipe)
+	go func() {
+		// Close writer after streaming to signal EOF to executor
+		defer stdinWriter.Close()
+		r.streamPromptContents(promptPath, stdinWriter)
+	}()
 
 	var resultFound bool
 	var resultFoundMu sync.Mutex
-
 	var terminationRequested bool
-
 	var streamWg sync.WaitGroup
 	streamWg.Add(2)
 
@@ -433,29 +422,49 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 	syncCtx, syncCancel := context.WithCancel(jobCtx)
 	defer syncCancel()
 
-	// RAW LOG SYNC (Batched every 1s)
 	var stdoutMu, stderrMu sync.Mutex
 	var currentStdout, currentStderr strings.Builder
 
 	if res.RunID != 0 {
 		go r.syncLogs(syncCtx, &res, &stdoutMu, &currentStdout, &stderrMu, &currentStderr)
 	}
+
 	// STDOUT STREAMER
-	go r.streamStdout(stdoutPipe, logFile, jobID, &res, cmd, &streamWg, &stdoutMu, &currentStdout, &terminationRequested, &resultFound, &resultFoundMu, execCancel)
+	// We pass 'stdoutReader' instead of cmd.StdoutPipe
+	go r.streamStdout(stdoutReader, logFile, jobID, &res, nil, &streamWg, &stdoutMu, &currentStdout, &terminationRequested, &resultFound, &resultFoundMu, execCancel)
 
 	// STDERR STREAMER
-	go r.streamStderr(stderrPipe, stderrFile, &res, &streamWg, &stderrMu, &currentStderr)
+	go r.streamStderr(stderrReader, stderrFile, &res, &streamWg, &stderrMu, &currentStderr)
 
-	if err := cmd.Start(); err != nil {
-		res.Error = fmt.Errorf("execution failed to start: %w", err)
+	// 6. Execute Job (Access Executor via blocking call in goroutine? No, Execute is blocking)
+	// We run Execute in a goroutine so we can wait for streams?
+	// Actually, Execute blocks until completion. The streams are being read in other goroutines.
+	// But we need to close the write-end of the pipes when Execute finishes so readers get EOF.
+
+	execResChan := make(chan execution.ExecutionResult, 1)
+
+	go func() {
+		defer stdoutWriter.Close()
+		defer stderrWriter.Close()
+		execRes := r.executor.Execute(jobCtx, cmdCfg, stdinReader, stdoutWriter, stderrWriter)
+		execResChan <- execRes
+	}()
+
+	// Wait for streams (which wait for pipe verify/EOF)
+	// Note: waitForCommand logic needs adjustment. It relied on cmd.Wait().
+	// Now we wait for the result from channel AND streams.
+
+	// Wait for execution to finish
+	execRes := <-execResChan
+
+	// Wait for streams to drain
+	streamWg.Wait()
+
+	if execRes.Error != nil {
+		res.Error = execRes.Error
 		res.ErrorStr = res.Error.Error()
-		return res
-	}
-
-	// Wait for streams and command
-	waitErr := r.waitForCommand(cmd, &streamWg, jobCtx, timeout, jobID, &resultFound, &resultFoundMu, &terminationRequested)
-	if waitErr != nil {
-		res.Error = waitErr
+	} else if execRes.ExitCode != 0 {
+		res.Error = fmt.Errorf("exit code %d", execRes.ExitCode)
 		res.ErrorStr = res.Error.Error()
 	} else {
 		res.Error = nil

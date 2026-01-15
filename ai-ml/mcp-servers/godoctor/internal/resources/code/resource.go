@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/danicat/godoctor/internal/tools/code_outline"
+	"github.com/danicat/godoctor/internal/tools/file/outline"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -28,7 +28,7 @@ func ResourceHandler(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.Re
 	}
 	path := strings.TrimPrefix(uri, "code://")
 
-	skeleton, _, _, err := code_outline.GetSkeleton(path)
+	skeleton, _, _, err := outline.GetSkeleton(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get skeleton: %w", err)
 	}

@@ -61,6 +61,7 @@ type ValidationRule struct {
 	Env            map[string]string `yaml:"env,omitempty" json:"env,omitempty"`                             // Environment variables for the validation command
 	ExpectExitCode int               `yaml:"expect_exit_code,omitempty" json:"expected_exit_code,omitempty"` // Frontend expects expected_exit_code
 	ExpectOutput   string            `yaml:"expect_output,omitempty" json:"expect_output,omitempty"`
+	Path           string            `yaml:"path,omitempty" json:"path,omitempty"` // Path to custom validator script/binary (for type=custom)
 }
 
 // ScenarioConfig represents the content of a scenario.yaml file.

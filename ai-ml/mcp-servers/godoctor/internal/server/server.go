@@ -16,24 +16,23 @@ import (
 	"github.com/danicat/godoctor/internal/resources/godoc"
 	"github.com/danicat/godoctor/internal/resources/project"
 	"github.com/danicat/godoctor/internal/resources/symbol"
-	"github.com/danicat/godoctor/internal/tools/analyze_dependency_updates"
-	"github.com/danicat/godoctor/internal/tools/analyze_project"
-	"github.com/danicat/godoctor/internal/tools/code_outline"
-	"github.com/danicat/godoctor/internal/tools/edit"
-	"github.com/danicat/godoctor/internal/tools/edit_code"
-	"github.com/danicat/godoctor/internal/tools/go_build"
-	"github.com/danicat/godoctor/internal/tools/go_install"
-	"github.com/danicat/godoctor/internal/tools/go_test"
-	"github.com/danicat/godoctor/internal/tools/inspect_symbol"
-	"github.com/danicat/godoctor/internal/tools/list_files"
-	"github.com/danicat/godoctor/internal/tools/master_gopher"
-	"github.com/danicat/godoctor/internal/tools/modernize"
-	"github.com/danicat/godoctor/internal/tools/oracle"
-	"github.com/danicat/godoctor/internal/tools/read_code"
-	"github.com/danicat/godoctor/internal/tools/read_docs"
-	"github.com/danicat/godoctor/internal/tools/rename_symbol"
-	"github.com/danicat/godoctor/internal/tools/review_code"
-	"github.com/danicat/godoctor/internal/tools/write"
+	"github.com/danicat/godoctor/internal/tools/agent/master"
+	"github.com/danicat/godoctor/internal/tools/agent/review"
+	"github.com/danicat/godoctor/internal/tools/agent/specialist"
+	"github.com/danicat/godoctor/internal/tools/file/create"
+	"github.com/danicat/godoctor/internal/tools/file/edit"
+	"github.com/danicat/godoctor/internal/tools/file/list"
+	"github.com/danicat/godoctor/internal/tools/file/outline"
+	"github.com/danicat/godoctor/internal/tools/file/read"
+	"github.com/danicat/godoctor/internal/tools/golang/build"
+	"github.com/danicat/godoctor/internal/tools/golang/diff"
+	"github.com/danicat/godoctor/internal/tools/golang/install"
+	"github.com/danicat/godoctor/internal/tools/golang/modernize"
+	"github.com/danicat/godoctor/internal/tools/golang/test"
+	"github.com/danicat/godoctor/internal/tools/project/docs"
+	"github.com/danicat/godoctor/internal/tools/project/map"
+	"github.com/danicat/godoctor/internal/tools/symbol/inspect"
+	"github.com/danicat/godoctor/internal/tools/symbol/rename"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -69,27 +68,27 @@ func (s *Server) RegisterHandlers() error {
 	}
 
 	availableTools := []toolDef{
-		{name: "go.docs", experimental: false, register: read_docs.Register},
+		{name: "go.docs", experimental: false, register: docs.Register},
 		{name: "agent.review", experimental: true, register: func(srv *mcp.Server) {
-			review_code.Register(srv, s.cfg.DefaultModel)
+			review.Register(srv, s.cfg.DefaultModel)
 		}},
-		{name: "file.edit_legacy", experimental: false, register: edit_code.Register},
-		{name: "file.read", experimental: false, register: read_code.Register},
-		{name: "file.outline", experimental: false, register: code_outline.Register},
-		{name: "symbol.inspect", experimental: false, register: inspect_symbol.Register},
+		// edit_code is removed
+		{name: "file.read", experimental: false, register: read.Register},
+		{name: "file.outline", experimental: false, register: outline.Register},
+		{name: "symbol.inspect", experimental: false, register: inspect.Register},
 		{name: "file.edit", experimental: false, register: edit.Register},
-		{name: "file.create", experimental: true, register: write.Register},
-		{name: "go.diff", experimental: true, register: analyze_dependency_updates.Register},
-		{name: "project.map", experimental: false, register: analyze_project.Register},
+		{name: "file.create", experimental: true, register: create.Register},
+		{name: "go.diff", experimental: true, register: diff.Register},
+		{name: "project.map", experimental: false, register: projectmap.Register},
 		{name: "go.modernize", experimental: true, register: modernize.Register},
-		{name: "file.list", experimental: false, register: list_files.Register},
-		{name: "go.build", experimental: false, register: go_build.Register},
-		{name: "go.install", experimental: false, register: go_install.Register},
-		{name: "go.test", experimental: false, register: go_test.Register},
-		{name: "symbol.rename", experimental: true, register: rename_symbol.Register}, // experimental because likely to fail if no gopls
-		{name: "agent.specialist", experimental: false, register: oracle.Register},
+		{name: "file.list", experimental: false, register: list.Register},
+		{name: "go.build", experimental: false, register: build.Register},
+		{name: "go.install", experimental: false, register: install.Register},
+		{name: "go.test", experimental: false, register: test.Register},
+		{name: "symbol.rename", experimental: true, register: rename.Register},
+		{name: "agent.specialist", experimental: false, register: specialist.Register},
 		{name: "agent.master", experimental: true, register: func(srv *mcp.Server) {
-			master_gopher.Register(srv, s.UpdateTools)
+			master.Register(srv, s.UpdateTools)
 		}},
 	}
 

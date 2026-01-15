@@ -71,6 +71,8 @@ func (r *Runner) Validate(ctx context.Context,
 			item, err = r.validateCommand(ctx, wsPath, rule, env)
 		case "model":
 			item, err = r.validateModel(ctx, wsPath, rule, stdout, env)
+		case "custom":
+			item, err = r.validateCustom(ctx, wsPath, rule, env)
 		default:
 			item = ValidationItem{
 				Type:        rule.Type,

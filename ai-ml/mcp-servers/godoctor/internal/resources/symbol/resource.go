@@ -6,7 +6,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/danicat/godoctor/internal/tools/inspect_symbol"
+	"github.com/danicat/godoctor/internal/tools/symbol/inspect"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -55,9 +55,9 @@ func ResourceHandler(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.Re
 		pkgName = base
 	}
 
-	desc, err := inspect_symbol.Describe(ctx, pkgName, symName, fileName)
+	desc, err := inspect.Describe(ctx, pkgName, symName, fileName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to describe symbol: %w", err)
+		return nil, err
 	}
 
 	return &mcp.ReadResourceResult{
