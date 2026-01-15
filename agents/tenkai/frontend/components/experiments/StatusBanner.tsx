@@ -17,7 +17,7 @@ export default function StatusBanner({ checkpoint: initialCheckpoint }: { checkp
         return null;
     }
 
-    const isRunning = checkpoint.status.toUpperCase() === 'RUNNING';
+    const isRunning = checkpoint.status?.toUpperCase() === 'RUNNING';
 
     return (
         <div className="px-6 py-4 bg-card border-b border-border flex items-center justify-between animate-in slide-in-from-top duration-500 text-body">
@@ -35,7 +35,7 @@ export default function StatusBanner({ checkpoint: initialCheckpoint }: { checkp
                             percentage={checkpoint.percentage}
                             completed={checkpoint.completed_jobs}
                             total={checkpoint.total_jobs}
-                            status={checkpoint.status}
+                            status={checkpoint.status || 'UNKNOWN'}
                             showLabel={false}
                         />
                     </div>

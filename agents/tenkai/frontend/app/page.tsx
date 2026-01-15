@@ -72,7 +72,7 @@ export default function Home() {
                     <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Active Processes</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {activeExperiments.map(exp => (
-                            <Link href={`/experiments/${exp.id}`} key={exp.id}>
+                            <Link href={`/experiments/view?id=${exp.id}`} key={exp.id}>
                                 <Card className="hover:border-primary/50 transition-colors group">
                                     <CardHeader className="pb-2">
                                         <div className="flex justify-between items-start">

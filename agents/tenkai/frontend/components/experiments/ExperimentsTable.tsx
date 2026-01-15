@@ -49,7 +49,7 @@ export default function ExperimentsTable({ experiments }: ExperimentsTableProps)
                             </TableCell>
                             <TableCell>
                                 <div className="flex items-center gap-2">
-                                    <Link href={`/experiments/${exp.id}`} className="hover:text-primary font-bold text-base transition-colors truncate block max-w-[350px]" title={exp.name}>
+                                    <Link href={`/experiments/view?id=${exp.id}`} className="hover:text-primary font-bold text-base transition-colors truncate block max-w-[350px]" title={exp.name}>
                                         {exp.name || "Unnamed Experiment"}
                                     </Link>
                                     {exp.is_locked && (

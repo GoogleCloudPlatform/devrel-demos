@@ -18,7 +18,7 @@ export default function ActiveExperimentCard({ exp, index }: { exp: ExperimentRe
     if (status === 'ABORTED' || status === 'completed') return null;
 
     return (
-        <Link href={`/experiments/${exp.id}`}>
+        <Link href={`/experiments/view?id=${exp.id}`}>
             <Card className="hover:border-indigo-500/30 bg-slate-900/40 cursor-pointer group transition-all duration-300">
                 <div className="flex justify-between items-start mb-6">
                     <div>
@@ -33,7 +33,7 @@ export default function ActiveExperimentCard({ exp, index }: { exp: ExperimentRe
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="flex justify-between items-end mb-2">
 
                     <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
@@ -47,7 +47,7 @@ export default function ActiveExperimentCard({ exp, index }: { exp: ExperimentRe
                         {exp.progress ? Math.round(exp.progress.percentage) : 0}%
                     </div>
                 </div>
-                
+
                 <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
                     <div
                         className={`h-full relative ${status === 'running' ? 'bg-indigo-500' : 'bg-amber-500'} transition-all duration-500`}
@@ -56,7 +56,7 @@ export default function ActiveExperimentCard({ exp, index }: { exp: ExperimentRe
                         {status === 'running' && <div className="absolute inset-0 bg-white/20 animate-[shimmer_1s_infinite]"></div>}
                     </div>
                 </div>
-                
+
                 <div className="mt-4 flex justify-between items-center text-[10px] uppercase font-bold tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <span className="text-slate-600">View Details</span>
                     <span className="text-indigo-400">Live Report →</span>

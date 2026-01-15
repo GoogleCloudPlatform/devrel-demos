@@ -35,7 +35,10 @@ gcloud run deploy tenkai-server \
     --allow-unauthenticated \
     --set-env-vars TENKAI_MODE=cloud \
     --set-env-vars GOOGLE_CLOUD_PROJECT=${PROJECT_ID} \
-    --set-env-vars TENKAI_JOB_IMAGE=${IMAGE_URI}
+    --set-env-vars TENKAI_JOB_IMAGE=${IMAGE_URI} \
+    --set-env-vars TENKAI_REGION=${REGION} \
+    --set-env-vars TENKAI_JOB_NAME=projects/${PROJECT_ID}/locations/${REGION}/jobs/tenkai-worker \
+    --set-env-vars TENKAI_DB_PATH=/tmp/tenkai.db
 
 # Note: We use the SAME image for the Orchestrator (Server) and the Workers (Jobs).
 # When running as a Job, the entrypoint/cmd will be overridden by the Runner (orchestrator).

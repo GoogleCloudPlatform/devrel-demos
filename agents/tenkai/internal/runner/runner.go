@@ -80,10 +80,23 @@ func New(wsMgr *workspace.Manager, maxConcurrent int) *Runner {
 		maxConcurrent = numCPU
 	}
 
+	var exec execution.Executor
+	if os.Getenv("TENKAI_MODE") == "cloud" {
+		log.Println("Initializing CloudRunExecutor...")
+		cre, err := execution.NewCloudRunExecutor(context.Background())
+		if err != nil {
+			log.Fatalf("Failed to initialize CloudRunExecutor: %v", err)
+		}
+		exec = cre
+	} else {
+		log.Println("Initializing LocalExecutor...")
+		exec = execution.NewLocalExecutor()
+	}
+
 	return &Runner{
 		WorkspaceMgr:  wsMgr,
 		MaxConcurrent: maxConcurrent,
-		executor:      execution.NewLocalExecutor(),
+		executor:      exec,
 	}
 }
 

@@ -1,95 +1,52 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, FileText, Lock, LockOpen } from 'lucide-react';
-import { lockTemplate } from '@/app/api/api';
-
-interface Template {
-
-    id: string;
-    name: string;
-    description: string;
-    alt_count?: number;
-    scen_count?: number;
-    alternatives?: string[];
-    reps?: number;
-    locked?: boolean;
-}
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Loader2, Plus, Lock, Unlock, Edit, Copy } from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
+import { PageHeader } from "@/components/ui/page-header";
+import { getTemplates, Template, lockTemplate } from "../api/api";
+import { useRouter } from "next/navigation";
 
 export default function TemplatesPage() {
+    const router = useRouter();
     const [templates, setTemplates] = useState<Template[]>([]);
     const [loading, setLoading] = useState(true);
     const [deletingAll, setDeletingAll] = useState(false);
 
-    useEffect(() => {
-        fetch('/api/templates')
-            .then(res => res.json())
-            .then(data => {
-                if (Array.isArray(data)) {
-                    setTemplates(data);
-                }
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error(err);
-                setLoading(false);
-            });
-    }, []);
-
-    const handleDelete = async (e: React.MouseEvent, id: string) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const template = templates.find(t => t.id === id);
-        if (template?.locked) {
-            toast.error("Template is locked. Unlock it first.");
-            return;
-        }
-
-        if (!confirm(`Are you sure you want to delete template "${id}"?`)) return;
-
+    const fetchTemplates = async () => {
+        setLoading(true);
         try {
-            const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                toast.success('Template deleted successfully');
-                setTemplates(prev => prev.filter(t => t.id !== id));
-            } else {
-                toast.error('Failed to delete template');
-            }
-        } catch (err) {
-            console.error(err);
-            toast.error('Error deleting template');
+            if (typeof window === 'undefined') return;
+            const data = await getTemplates();
+            setTemplates(data);
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load templates");
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleDeleteAll = async () => {
-        if (!confirm("⚠️ WARNING: This will delete ALL UNLOCKED templates. This action cannot be undone.")) return;
-        if (!confirm("Are you really sure?")) return;
+    useEffect(() => {
+        fetchTemplates();
+    }, []);
 
+    const handleDeleteAll = async () => {
+        if (!confirm("Delete ALL templates?")) return;
         setDeletingAll(true);
         try {
             const res = await fetch('/api/templates/delete-all', { method: 'DELETE' });
             if (res.ok) {
-                toast.success('All unlocked templates deleted successfully');
-                // Reload list
-                const listRes = await fetch('/api/templates');
-                const listData = await listRes.json();
-                if (Array.isArray(listData)) {
-                    setTemplates(listData);
-                } else {
-                    setTemplates([]);
-                }
+                toast.success("All templates deleted");
+                fetchTemplates();
             } else {
-                toast.error('Failed to delete all templates');
+                toast.error("Failed to delete templates");
             }
-        } catch (err) {
-            console.error(err);
-            toast.error('Error deleting templates');
+        } catch (e) {
+            toast.error("Error deleting templates");
         } finally {
             setDeletingAll(false);
         }
@@ -100,6 +57,7 @@ export default function TemplatesPage() {
         e.stopPropagation();
 
         try {
+            // Check if ID is number or string. interface says string. api says string|number.
             const res = await lockTemplate(id, !currentLocked);
             if (res) {
                 setTemplates(prev => prev.map(t => t.id === id ? { ...t, locked: !currentLocked } : t));
@@ -112,100 +70,68 @@ export default function TemplatesPage() {
     };
 
     return (
-        <div className="p-6 space-y-6">
-            <header className="flex justify-between items-center pb-6 border-b border-border">
-                <div>
-                    <h1 className="text-title text-foreground">Templates</h1>
-                    <p className="text-muted-foreground mt-1 font-medium">Experiment configurations.</p>
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="destructive" size="sm" onClick={handleDeleteAll} disabled={deletingAll}>
-                        Delete All
-                    </Button>
-                    <Link href="/templates/new">
-                        <Button variant="default" size="sm">
-                            <Plus className="mr-2 h-4 w-4" /> Create
+        <div className="p-8 max-w-7xl mx-auto space-y-8 animate-enter text-body">
+            <PageHeader
+                title="Experiment Templates"
+                description="Reusable configurations for running experiments."
+                actions={
+                    <div className="flex gap-2">
+                        <Button variant="destructive" size="sm" onClick={handleDeleteAll} disabled={deletingAll}>
+                            Delete All
                         </Button>
-                    </Link>
-                </div>
-            </header>
+                        <Link href="/templates/view?id=new">
+                            <Button>
+                                <Plus className="w-4 h-4 mr-2" />
+                                New Template
+                            </Button>
+                        </Link>
+                    </div>
+                }
+            />
 
             {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
-                    {[1, 2, 3, 4].map(i => (
-                        <div key={i} className="h-48 bg-muted rounded-md border border-border"></div>
-                    ))}
+                <div className="flex justify-center p-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {templates.map((template) => (
-                        <Link href={`/templates/${template.id}`} key={template.id} className="block group">
-                            <Card className="h-full p-6 hover:border-primary/50 transition-colors border border-border flex flex-col justify-between bg-card">
+                        <Link href={`/templates/view?id=${template.id}`} key={template.id} className="block group">
+                            <Card className="h-full p-6 hover:border-primary/50 transition-colors border border-border flex flex-col justify-between bg-card text-card-foreground">
                                 <div>
                                     <div className="flex justify-between items-start mb-4">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center text-title text-muted-foreground group-hover:text-foreground transition-colors">
-                                                📝
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-2 rounded-lg 
+                                                ${template.locked ? 'bg-amber-500/10 text-amber-500' : 'bg-primary/10 text-primary'}`}>
+                                                {template.locked ? <Lock className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                                             </div>
                                             <div>
-                                                <h3 className="text-header capitalize group-hover:text-primary transition-colors text-foreground">
-                                                    {template.name}
-                                                </h3>
-                                                <p className="text-muted-foreground font-mono opacity-60 mt-1 text-xs">ID: {template.id}</p>
+                                                <h3 className="font-bold text-lg group-hover:text-primary transition-colors">{template.name}</h3>
+                                                <p className="text-xs font-mono text-muted-foreground">{template.id}</p>
                                             </div>
                                         </div>
-                                        <button
-                                            onClick={(e) => handleToggleLock(e, template.id, !!template.locked)}
-                                            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-                                            title={template.locked ? "Unlock" : "Lock"}
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => handleToggleLock(e, template.id, template.locked)}
+                                            className={template.locked ? "text-amber-500 hover:text-amber-400" : "text-zinc-500 hover:text-zinc-400"}
                                         >
-                                            {template.locked ? (
-                                                <Lock className="w-4 h-4 text-amber-500" />
-                                            ) : (
-                                                <LockOpen className="w-4 h-4 opacity-50 hover:opacity-100" />
-                                            )}
-                                        </button>
-                                        <button
-                                            onClick={(e) => handleDelete(e, template.id)}
-                                            className={`p-2 transition-opacity ${template.locked ? 'text-muted-foreground opacity-30 cursor-not-allowed' : 'text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100'}`}
-                                            title={template.locked ? "Locked" : "Delete"}
-                                            disabled={!!template.locked}
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                        </button>
+                                            {template.locked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                                        </Button>
                                     </div>
-
-                                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4 h-11 leading-relaxed">
+                                    <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
                                         {template.description || "No description provided."}
                                     </p>
-
-                                    <div className="mb-6 space-y-2 flex-1">
-                                        <div className="text-xs font-mono">
-                                            <span className="font-bold text-muted-foreground mr-2 block mb-1 uppercase tracking-widest">Alternatives:</span>
-                                            <span className="text-foreground/70 line-clamp-2 leading-relaxed italic">
-                                                {template.alternatives?.join(', ') || "No alternatives defined"}
-                                            </span>
-                                        </div>
-                                    </div>
                                 </div>
-
-                                <div className="flex flex-wrap gap-2 mt-4 pt-0">
-                                    <span className="px-3 py-1 rounded-full text-mono font-bold text-[10px] uppercase tracking-wider border bg-primary/10 text-primary border-primary/20">
-                                        {template.alt_count} Alternatives
-                                    </span>
-                                    <span className="px-3 py-1 rounded-full text-mono font-bold text-[10px] uppercase tracking-wider border bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
-                                        {template.scen_count} Scenarios
-                                    </span>
-                                    <span className="px-3 py-1 rounded-full text-mono font-bold text-[10px] uppercase tracking-wider border bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
-                                        {template.reps} Repetitions
-                                    </span>
+                                <div className="flex items-center gap-2 pt-4 border-t border-border mt-4">
+                                    {/* Additional info badges */}
                                 </div>
                             </Card>
                         </Link>
                     ))}
                     {templates.length === 0 && (
-                        <div className="col-span-2 text-center py-12 text-muted-foreground opacity-50 italic border border-dashed border-border rounded">
-                            No templates found. <Link href="/templates/new" className="text-primary hover:underline font-bold not-italic">Create one</Link>.
+                        <div className="col-span-2 text-center p-12 text-muted-foreground bg-card/50 rounded-xl border border-border border-dashed">
+                            No templates found. Create one to get started.
                         </div>
                     )}
                 </div>

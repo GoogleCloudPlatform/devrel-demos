@@ -135,3 +135,8 @@ func LoadScenarioConfig(path string) (*ScenarioConfig, error) {
 
 	return &cfg, nil
 }
+
+// GetPublicDir returns the configured public directory for static assets.
+func GetPublicDir() string {
+	return os.Getenv("TENKAI_PUBLIC_DIR")
+}

@@ -7,7 +7,7 @@ export interface ExperimentRecord {
     name: string;
     description: string;
     timestamp: string;
-    status: string;
+    status: 'RUNNING' | 'COMPLETED' | 'ABORTED' | 'running' | 'completed';
     reps: number;
     concurrent: number;
     total_jobs: number;
@@ -21,7 +21,9 @@ export interface ExperimentRecord {
     successful_runs: number;
     timeout: string;
     error_message: string;
+    report_content: string;
     config_content: string;
+    experiment_control?: string;
     ai_analysis: string;
     progress?: {
         completed: number;
@@ -61,6 +63,14 @@ export interface ToolAnalysis {
     succ_fail_p_value: number;
     duration_corr: number;
     tokens_corr: number;
+}
+
+export interface ToolStatRow {
+    tool_name: string;
+    alternative: string;
+    total_calls: number;
+    failed_calls: number;
+    // other fields if needed
 }
 
 export interface RunResultRecord {
@@ -129,9 +139,29 @@ export interface LintResultRecord {
 }
 
 export interface Checkpoint {
+    experiment_id?: number | string;
+    status?: string;
     completed: number;
     total: number;
     percentage: number;
+    last_update?: string;
+    // Aliases for compatibility
+    completed_jobs: number;
+    total_jobs: number;
+}
+
+// ...
+
+// Helper for checkpoint (progress)
+export async function getCheckpoint(id: string | number): Promise<Checkpoint> {
+    const exp = await getExperiment(id);
+    const progress = exp.progress || { completed: 0, total: 0, percentage: 0, completed_jobs: 0, total_jobs: 0 };
+    return {
+        ...progress,
+        completed_jobs: progress.completed,
+        total_jobs: progress.total,
+        status: exp.status
+    };
 }
 
 export interface Scenario {
@@ -175,8 +205,8 @@ export async function getExperimentSummaries(id: string | number): Promise<Exper
     return fetchAPI(`/experiments/${id}/summaries`);
 }
 
-export async function getRunResults(id: string | number): Promise<RunResultRecord[]> {
-    return fetchAPI(`/experiments/${id}/runs`);
+export async function getRunResults(id: string | number, page: number = 1, limit: number = 100): Promise<RunResultRecord[]> {
+    return fetchAPI(`/experiments/${id}/runs?page=${page}&limit=${limit}`);
 }
 
 export async function getScenarios(): Promise<Scenario[]> {
@@ -196,28 +226,46 @@ export async function getSimplifiedMetrics(id: string | number): Promise<any> {
 }
 
 // Helper for checkpoint (progress)
-export async function getCheckpoint(id: string | number): Promise<Checkpoint> {
-    // Often part of experiment data, but if requested separately:
-    const exp = await getExperiment(id);
-    return exp.progress || { completed: 0, total: 0, percentage: 0 };
+
+
+export async function lockExperiment(id: string | number, locked: boolean): Promise<void> {
+    await fetchAPI(`/experiments/${id}/lock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locked })
+    });
 }
 
-export async function lockExperiment(id: string | number): Promise<void> {
-    await fetchAPI(`/experiments/${id}/lock`, { method: 'POST' });
+export async function reValidateExperiment(id: string | number): Promise<any> {
+    return fetchAPI(`/experiments/${id}/reval`, { method: 'POST' });
 }
 
-export async function reValidateExperiment(id: string | number): Promise<void> {
-    await fetchAPI(`/experiments/${id}/reval`, { method: 'POST' });
+export async function reValidateRun(id: string | number): Promise<any> {
+    return fetchAPI(`/runs/${id}/reval`, { method: 'POST' });
 }
 
-export async function reValidateRun(id: string | number): Promise<void> {
-    await fetchAPI(`/runs/${id}/reval`, { method: 'POST' });
+export async function lockScenario(id: string | number, locked: boolean): Promise<boolean> {
+    const res = await fetch(`${API_BASE}/scenarios/${id}/lock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locked })
+    });
+    return res.ok;
 }
 
-export async function lockScenario(id: string | number): Promise<void> {
-    await fetchAPI(`/scenarios/${id}/lock`, { method: 'POST' });
+export async function deleteScenario(id: string) {
+    return fetchAPI(`/scenarios/${id}`, { method: 'DELETE' });
 }
 
-export async function lockTemplate(id: string | number): Promise<void> {
-    await fetchAPI(`/templates/${id}/lock`, { method: 'POST' });
+export async function lockTemplate(id: string | number, locked: boolean): Promise<boolean> {
+    const res = await fetch(`${API_BASE}/templates/${id}/lock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locked })
+    });
+    return res.ok;
+}
+
+export async function deleteTemplate(id: string) {
+    return fetchAPI(`/templates/${id}`, { method: 'DELETE' });
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 
 	run "cloud.google.com/go/run/apiv2"
 	runpb "cloud.google.com/go/run/apiv2/runpb"
@@ -24,17 +25,22 @@ func NewCloudRunExecutor(ctx context.Context) (*CloudRunExecutor, error) {
 
 func (e *CloudRunExecutor) Execute(ctx context.Context, cfg JobConfig, stdin io.Reader, stdout, stderr io.Writer) ExecutionResult {
 	// 1. Construct the execution request
-	// We assume a 'parent' Job already exists and we are just triggering an execution
-	// with overrides.
-	// Actually, creating a new Job for every run might be too much.
-	// We probably want 'run job execute' with overrides.
 
 	// Name format: projects/{project}/locations/{location}/jobs/{job}
-	// We need to know the Job name. Let's assume passed in cfg.ID or cfg.Env["TENKAI_JOB_NAME"]
-
-	jobName := cfg.ID // E.g., "projects/my-project/locations/us-central1/jobs/tenkai-worker"
+	// We use TENKAI_JOB_NAME env var, constructed by the deploy script/server environment.
+	// Fallback to strict format if needed.
+	jobName := os.Getenv("TENKAI_JOB_NAME")
 	if jobName == "" {
-		return ExecutionResult{ExitCode: 1, Error: fmt.Errorf("Cloud Run Job name (ID) is required")}
+		// Try to construct from components if available
+		project := os.Getenv("GOOGLE_CLOUD_PROJECT")
+		region := os.Getenv("TENKAI_REGION")
+		if project != "" && region != "" {
+			jobName = fmt.Sprintf("projects/%s/locations/%s/jobs/tenkai-worker", project, region)
+		}
+	}
+
+	if jobName == "" {
+		return ExecutionResult{ExitCode: 1, Error: fmt.Errorf("Cloud Run Job name (TENKAI_JOB_NAME) is required")}
 	}
 
 	req := &runpb.RunJobRequest{
@@ -53,11 +59,10 @@ func (e *CloudRunExecutor) Execute(ctx context.Context, cfg JobConfig, stdin io.
 	for k, v := range cfg.Env {
 		req.Overrides.ContainerOverrides[0].Env = append(req.Overrides.ContainerOverrides[0].Env, &runpb.EnvVar{
 			Name: k,
-			// Value: v, // Linter complains about Value? TODO: Verify field name.
-			// Values? Content?
+			Values: &runpb.EnvVar_Value{
+				Value: v,
+			},
 		})
-		// usage of v
-		_ = v
 	}
 
 	// 2. Start Execution

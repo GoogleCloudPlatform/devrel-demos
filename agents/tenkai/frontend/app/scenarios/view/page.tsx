@@ -1,20 +1,22 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Input, TextArea, Select } from "@/components/ui/input";
 import { AssetUploader } from "@/components/AssetUploader";
+import { Loader2 } from "lucide-react";
 
-export default function ScenarioEditorPage({ params }: { params: Promise<{ id: string }> }) {
+function ScenarioEditorContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const id = searchParams.get('id');
+
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
-    const [id, setId] = useState<string>("");
 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
@@ -57,9 +59,12 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
     };
 
     useEffect(() => {
+        if (!id) {
+            setFetching(false);
+            return;
+        }
+
         const fetchScenario = async () => {
-            const { id } = await params;
-            setId(id);
             try {
                 const res = await fetch(`/api/scenarios/${id}`);
                 if (!res.ok) throw new Error("Failed");
@@ -95,8 +100,6 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
                         setAssetType('folder');
                     } else if (first.type === 'file' && first.content === "") {
                         // Assuming non-inline files means uploaded assets?
-                        // Actually existing assets might be hard to map back to upload state perfectly without metadata.
-                        // For now default to folder or keep existing.
                         setAssetType('folder');
                     }
                 }
@@ -109,7 +112,7 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
             }
         };
         fetchScenario();
-    }, [params, router]);
+    }, [id, router]);
 
     const addValidation = () => {
         const val: any = { type: newValType };
@@ -248,6 +251,7 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
     };
 
     if (fetching) return <div className="p-20 text-center text-body animate-pulse">Loading Workbench...</div>;
+    if (!id) return <div className="p-20 text-center text-red-500">Missing Scenario ID</div>;
 
     return (
         <div className="p-8 max-w-5xl mx-auto space-y-8 animate-enter text-body">
@@ -484,5 +488,13 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
                 </Card>
             </form>
         </div>
+    );
+}
+
+export default function ScenarioEditorPage() {
+    return (
+        <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>}>
+            <ScenarioEditorContent />
+        </Suspense>
     );
 }
