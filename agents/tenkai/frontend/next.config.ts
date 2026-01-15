@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "export",
+  // rewrites are ignored in export mode, but valid for dev
   async rewrites() {
     return [
       {

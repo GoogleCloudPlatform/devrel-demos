@@ -57,7 +57,7 @@ func ResourceHandler(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.Re
 
 	desc, err := inspect.Describe(ctx, pkgName, symName, fileName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to describe symbol: %w", err)
 	}
 
 	return &mcp.ReadResourceResult{

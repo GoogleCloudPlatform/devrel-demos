@@ -1,5 +1,11 @@
 package server
 
+import (
+	"net/http"
+
+	pkgConfig "github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
+)
+
 func (s *Server) registerRoutes() {
 	// Health
 	s.router.HandleFunc("GET /api/health", s.api.Wrap(s.api.HandleHealth))
@@ -57,4 +63,15 @@ func (s *Server) registerRoutes() {
 	s.router.HandleFunc("PUT /api/templates/{id}/config", s.api.Wrap(s.api.UpdateTemplate)) // Idiomatic PUT
 	s.router.HandleFunc("POST /api/templates/{id}/lock", s.api.Wrap(s.api.LockTemplate))
 	s.router.HandleFunc("DELETE /api/templates/{id}", s.api.Wrap(s.api.DeleteTemplate))
+
+	// Static Assets (UI)
+	// We serve from "frontend/out" (or env TENKAI_PUBLIC_DIR)
+	publicDir := "frontend/out"
+	if ConfiguredPublicDir := pkgConfig.GetPublicDir(); ConfiguredPublicDir != "" {
+		publicDir = ConfiguredPublicDir
+	}
+
+	// Check if directory exists to avoid panic/logs? http.FileServer handles it.
+	fs := http.FileServer(http.Dir(publicDir))
+	s.router.Handle("/", http.StripPrefix("/", fs))
 }

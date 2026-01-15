@@ -42,9 +42,9 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 		return errorResult("file must be a Go file (*.go)"), nil, nil
 	}
 
-	skeleton, imports, errs, err := GetSkeleton(args.File)
+	outline, imports, errs, err := GetOutline(args.File)
 	if err != nil {
-		return errorResult(fmt.Sprintf("failed to generate skeleton: %v", err)), nil, nil
+		return errorResult(fmt.Sprintf("failed to generate outline: %v", err)), nil, nil
 	}
 
 	// Build Markdown Response
@@ -59,9 +59,9 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 		sb.WriteString("\n")
 	}
 
-	sb.WriteString("## Skeleton\n")
+	sb.WriteString("## Outline\n")
 	sb.WriteString("```go\n")
-	sb.WriteString(skeleton)
+	sb.WriteString(outline)
 	sb.WriteString("\n```\n\n")
 
 	// Appendix: External Imports
@@ -124,8 +124,8 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 	}, nil, nil
 }
 
-// GetSkeleton loads a file and returns its skeleton, list of imports, and build errors.
-func GetSkeleton(file string) (string, []string, []packages.Error, error) {
+// GetOutline loads a file and returns its outline, list of imports, and build errors.
+func GetOutline(file string) (string, []string, []packages.Error, error) {
 	// 1. Load into Knowledge Graph
 	pkg, err := graph.Global.Load(file)
 	if err != nil {
@@ -163,14 +163,14 @@ func GetSkeleton(file string) (string, []string, []packages.Error, error) {
 		}
 	}
 
-	// 4. Create Skeleton
-	skeleton := skeletonize(targetFile)
+	// 4. Create Outline
+	outline := outlinize(targetFile)
 
 	// 5. Format Output
 	var buf bytes.Buffer
 	config := &printer.Config{Mode: printer.TabIndent | printer.UseSpaces, Tabwidth: 8}
-	if err := config.Fprint(&buf, fset, skeleton); err != nil {
-		return "", nil, nil, fmt.Errorf("failed to format skeleton: %w", err)
+	if err := config.Fprint(&buf, fset, outline); err != nil {
+		return "", nil, nil, fmt.Errorf("failed to format outline: %w", err)
 	}
 
 	formatted, err := format.Source(buf.Bytes())
@@ -181,7 +181,7 @@ func GetSkeleton(file string) (string, []string, []packages.Error, error) {
 	return string(formatted), imports, pkg.Errors, nil
 }
 
-func skeletonize(f *ast.File) *ast.File {
+func outlinize(f *ast.File) *ast.File {
 	res := *f
 	res.Decls = make([]ast.Decl, len(f.Decls))
 

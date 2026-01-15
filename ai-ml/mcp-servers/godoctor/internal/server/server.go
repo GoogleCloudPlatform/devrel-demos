@@ -24,12 +24,12 @@ import (
 	"github.com/danicat/godoctor/internal/tools/file/list"
 	"github.com/danicat/godoctor/internal/tools/file/outline"
 	"github.com/danicat/godoctor/internal/tools/file/read"
-	"github.com/danicat/godoctor/internal/tools/golang/build"
-	"github.com/danicat/godoctor/internal/tools/golang/diff"
-	"github.com/danicat/godoctor/internal/tools/golang/install"
-	"github.com/danicat/godoctor/internal/tools/golang/modernize"
-	"github.com/danicat/godoctor/internal/tools/golang/test"
-	"github.com/danicat/godoctor/internal/tools/project/docs"
+	"github.com/danicat/godoctor/internal/tools/go/build"
+	"github.com/danicat/godoctor/internal/tools/go/diff"
+	"github.com/danicat/godoctor/internal/tools/go/docs"
+	"github.com/danicat/godoctor/internal/tools/go/install"
+	"github.com/danicat/godoctor/internal/tools/go/modernize"
+	"github.com/danicat/godoctor/internal/tools/go/test"
 	"github.com/danicat/godoctor/internal/tools/project/map"
 	"github.com/danicat/godoctor/internal/tools/symbol/inspect"
 	"github.com/danicat/godoctor/internal/tools/symbol/rename"
@@ -72,7 +72,6 @@ func (s *Server) RegisterHandlers() error {
 		{name: "agent.review", experimental: true, register: func(srv *mcp.Server) {
 			review.Register(srv, s.cfg.DefaultModel)
 		}},
-		// edit_code is removed
 		{name: "file.read", experimental: false, register: read.Register},
 		{name: "file.outline", experimental: false, register: outline.Register},
 		{name: "symbol.inspect", experimental: false, register: inspect.Register},

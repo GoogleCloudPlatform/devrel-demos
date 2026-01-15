@@ -28,9 +28,9 @@ func ResourceHandler(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.Re
 	}
 	path := strings.TrimPrefix(uri, "code://")
 
-	skeleton, _, _, err := outline.GetSkeleton(path)
+	skeleton, _, _, err := outline.GetOutline(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get skeleton: %w", err)
+		return nil, fmt.Errorf("failed to get outline: %w", err)
 	}
 
 	return &mcp.ReadResourceResult{
