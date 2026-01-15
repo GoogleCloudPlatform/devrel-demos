@@ -8,16 +8,18 @@ import (
 	"strings"
 
 	"github.com/danicat/godoctor/internal/graph"
+	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/tools/imports"
 )
 
 // Register registers the write tool with the server.
 func Register(server *mcp.Server) {
+	def := toolnames.Registry["write"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "write",
-		Title:       "Write New Go File",
-		Description: "The context-aware builder. Use this to create NEW Go files. It automatically handles import validation against the current project context. For existing files, use 'edit' instead.",
+		Name:        def.Name,
+		Title:       def.Title,
+		Description: def.Description,
 	}, toolHandler)
 }
 
@@ -25,7 +27,6 @@ func Register(server *mcp.Server) {
 type Params struct {
 	Name    string `json:"name" jsonschema:"The path to the file to write"`
 	Content string `json:"content" jsonschema:"The content to write"`
-	Mode    string `json:"mode,omitempty" jsonschema:"Write mode: 'append' (default) or 'overwrite',enum=append,enum=overwrite"`
 }
 
 func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
@@ -35,23 +36,8 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 	if !strings.HasSuffix(args.Name, ".go") {
 		return errorResult("file must be a Go file (*.go)"), nil, nil
 	}
-	if args.Mode == "" {
 
-		args.Mode = "append"
-	}
-
-	var finalContent []byte
-	if args.Mode == "append" {
-		existing, err := os.ReadFile(args.Name)
-		if err == nil {
-			finalContent = append(existing, []byte("\n")...)
-			finalContent = append(finalContent, []byte(args.Content)...)
-		} else {
-			finalContent = []byte(args.Content)
-		}
-	} else {
-		finalContent = []byte(args.Content)
-	}
+	finalContent := []byte(args.Content)
 
 	// 1. Auto-Format & Import check
 	formatted, err := imports.Process(args.Name, finalContent, nil)

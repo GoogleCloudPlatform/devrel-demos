@@ -14,16 +14,18 @@ import (
 
 	"github.com/danicat/godoctor/internal/godoc"
 	"github.com/danicat/godoctor/internal/graph"
+	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/tools/go/packages"
 )
 
 // Register registers the code_outline tool with the server.
 func Register(server *mcp.Server) {
+	def := toolnames.Registry["code_outline"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "code_outline",
-		Title:       "Code Outline",
-		Description: "Returns the skeleton of a Go file (declarations without function bodies) and a summary of external imports.",
+		Name:        def.Name,
+		Title:       def.Title,
+		Description: def.Description,
 	}, Handler)
 }
 

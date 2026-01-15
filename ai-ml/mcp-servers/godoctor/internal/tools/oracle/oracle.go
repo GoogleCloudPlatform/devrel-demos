@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/danicat/godoctor/internal/tools/code_outline"
 	"github.com/danicat/godoctor/internal/tools/go_test"
 	"github.com/danicat/godoctor/internal/tools/inspect_symbol"
@@ -19,10 +20,11 @@ import (
 
 // Register registers the tool with the server.
 func Register(server *mcp.Server) {
+	def := toolnames.Registry["ask_specialist"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "ask_specialist",
-		Title:       "Ask Specialist (Oracle Mode)",
-		Description: "Ask a complex question. The specialist will autonomously use other tools (read docs, inspect code, run tests) to investigate and answer.",
+		Name:        def.Name,
+		Title:       def.Title,
+		Description: def.Description,
 	}, toolHandler)
 }
 

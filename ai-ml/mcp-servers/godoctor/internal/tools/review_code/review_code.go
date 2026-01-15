@@ -24,6 +24,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/genai"
 )
@@ -43,10 +44,11 @@ func Register(server *mcp.Server, defaultModel string) {
 		log.Printf("Disabling code_review tool: failed to create handler: %v", err)
 		return
 	}
+	def := toolnames.Registry["review_code"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "review_code",
-		Title:       "Review Go Code",
-		Description: "Reviews Go code for correctness, style, and idiomatic usage.",
+		Name:        def.Name,
+		Title:       def.Title,
+		Description: def.Description,
 	}, reviewHandler.Tool)
 }
 

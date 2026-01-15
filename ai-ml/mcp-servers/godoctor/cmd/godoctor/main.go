@@ -20,11 +20,13 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sort"
 	"syscall"
 
 	"github.com/danicat/godoctor/internal/config"
 	"github.com/danicat/godoctor/internal/instructions"
 	"github.com/danicat/godoctor/internal/server"
+	"github.com/danicat/godoctor/internal/toolnames"
 )
 
 var (
@@ -55,6 +57,25 @@ func run(ctx context.Context, args []string) error {
 
 	if cfg.Version {
 		fmt.Println(version)
+		return nil
+	}
+
+	if cfg.ListTools {
+		var tools []toolnames.ToolDef
+		for _, def := range toolnames.Registry {
+			if cfg.IsToolEnabled(def.Name, def.Experimental) {
+				tools = append(tools, def)
+			}
+		}
+
+		// Sort by name
+		sort.Slice(tools, func(i, j int) bool {
+			return tools[i].Name < tools[j].Name
+		})
+
+		for _, tool := range tools {
+			fmt.Printf("Name: %s\nTitle: %s\nDescription: %s\n\n", tool.Name, tool.Title, tool.Description)
+		}
 		return nil
 	}
 

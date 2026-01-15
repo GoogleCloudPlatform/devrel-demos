@@ -8,15 +8,17 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // Register registers the tool with the server.
 func Register(server *mcp.Server) {
+	def := toolnames.Registry["list_files"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "list_files",
-		Title:       "List Files (ls -R)",
-		Description: "Lists files in a directory recursively. Useful for exploring project structure. Supports max depth and ignore patterns.",
+		Name:        def.Name,
+		Title:       def.Title,
+		Description: def.Description,
 	}, Handler)
 }
 

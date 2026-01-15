@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/genai"
 )
@@ -19,10 +20,11 @@ func Register(server *mcp.Server, updater ToolUpdater) {
 	handler := &Handler{
 		updater: updater,
 	}
+	def := toolnames.Registry["ask_the_master_gopher"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "ask_the_master_gopher",
-		Title:       "Ask The Master Gopher",
-		Description: "Consult the Master Gopher for guidance. Use this when you are unsure which tool to use or how to solve a problem. The Master will review your request, unlock appropriate capabilities in the server, and give you wise instructions.",
+		Name:        def.Name,
+		Title:       def.Title,
+		Description: def.Description,
 	}, handler.Handle)
 }
 

@@ -9,15 +9,17 @@ import (
 
 	"github.com/danicat/godoctor/internal/godoc"
 	"github.com/danicat/godoctor/internal/graph"
+	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // Register registers the inspect_symbol tool with the server.
 func Register(server *mcp.Server) {
+	def := toolnames.Registry["inspect_symbol"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "inspect_symbol",
-		Title:       "Inspect Symbol",
-		Description: "Returns detailed information about a symbol (signature, documentation, source code, references). Prioritizes local source code over external documentation.",
+		Name:        def.Name,
+		Title:       def.Title,
+		Description: def.Description,
 	}, Handler)
 }
 

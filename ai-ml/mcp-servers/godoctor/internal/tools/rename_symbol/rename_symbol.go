@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // Register registers the tool with the server.
 func Register(server *mcp.Server) {
+	def := toolnames.Registry["rename_symbol"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "rename_symbol",
-		Title:       "Rename Symbol (Safe)",
-		Description: "Renames a symbol refactoring-style using 'gopls'. Updates all references safely.",
+		Name:        def.Name,
+		Title:       def.Title,
+		Description: def.Description,
 	}, toolHandler)
 }
 

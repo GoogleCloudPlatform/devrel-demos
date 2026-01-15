@@ -12,16 +12,18 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/tools/go/packages"
 )
 
 // Register registers the read_code tool with the server.
 func Register(server *mcp.Server) {
+	def := toolnames.Registry["read_code"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "read_code",
-		Title:       "Read Go Code (with Symbols & Analysis)",
-		Description: "Reads a Go file (*.go) and extracts a symbol table (functions, types, variables).",
+		Name:        def.Name,
+		Title:       def.Title,
+		Description: def.Description,
 	}, readCodeHandler)
 }
 

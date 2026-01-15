@@ -8,15 +8,17 @@ import (
 	"strings"
 
 	"github.com/danicat/godoctor/internal/godoc"
+	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // Register registers the read_docs tool with the server.
 func Register(server *mcp.Server) {
+	def := toolnames.Registry["read_docs"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "read_docs",
-		Title:       "Read Go Documentation (Map Module)",
-		Description: "The high-level map builder. Lists all sub-packages and exported symbols in a module. Use this FIRST to visualize the codebase structure without flooding your context window. Supports Markdown (default) and JSON.",
+		Name:        def.Name,
+		Title:       def.Title,
+		Description: def.Description,
 	}, Handler)
 }
 

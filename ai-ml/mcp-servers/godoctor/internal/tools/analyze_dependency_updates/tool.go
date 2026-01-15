@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // Register registers the tool with the server.
 func Register(server *mcp.Server) {
+	def := toolnames.Registry["analyze_dependency_updates"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "analyze_dependency_updates",
-		Title:       "Analyze API Changes (apidiff)",
-		Description: "Checks for breaking changes in your Go packages or dependencies. Wrapper around 'apidiff'. useful before upgrading dependencies or releasing new versions.",
+		Name:        def.Name,
+		Title:       def.Title,
+		Description: def.Description,
 	}, toolHandler)
 }
 

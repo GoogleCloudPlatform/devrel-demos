@@ -22,6 +22,7 @@ type Config struct {
 	ListenAddr    string
 	Version       bool
 	Agents        bool
+	ListTools     bool // List available tools for the selected profile and exit
 	DefaultModel  string
 	Profile       Profile
 	AllowedTools  map[string]bool // If non-empty, ONLY these tools are allowed (after profile expansion)
@@ -33,6 +34,7 @@ func Load(args []string) (*Config, error) {
 	fs := flag.NewFlagSet("godoctor", flag.ContinueOnError)
 	versionFlag := fs.Bool("version", false, "print the version and exit")
 	agentsFlag := fs.Bool("agents", false, "print LLM agent instructions and exit")
+	listToolsFlag := fs.Bool("list-tools", false, "list available tools for the selected profile and exit")
 	listenAddr := fs.String("listen", "", "listen address for HTTP transport (e.g., :8080)")
 	defaultModel := fs.String("model", "gemini-2.5-pro", "default Gemini model to use")
 	profileFlag := fs.String("profile", "standard", "server profile: standard, full, oracle")
@@ -76,6 +78,7 @@ func Load(args []string) (*Config, error) {
 		ListenAddr:    *listenAddr,
 		Version:       *versionFlag,
 		Agents:        *agentsFlag,
+		ListTools:     *listToolsFlag,
 		DefaultModel:  *defaultModel,
 		Profile:       profile,
 		AllowedTools:  parseList(*allowFlag),

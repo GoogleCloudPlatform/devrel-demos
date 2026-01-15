@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // Register registers the tool with the server.
 func Register(server *mcp.Server) {
+	def := toolnames.Registry["go_install"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "go_install",
-		Title:       "Go Install",
-		Description: "Runs 'go install' to install packages.",
+		Name:        def.Name,
+		Title:       def.Title,
+		Description: def.Description,
 	}, Handler)
 }
 

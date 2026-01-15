@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/modernize"
@@ -19,10 +20,11 @@ import (
 
 // Register registers the tool with the server.
 func Register(server *mcp.Server) {
+	def := toolnames.Registry["modernize"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "modernize",
-		Title:       "Modernize Go Code",
-		Description: "Runs the 'modernize' analyzer to suggest and apply updates for newer Go versions (e.g. replacing s[i:len(s)] with s[i:], using min/max/slices/maps packages).",
+		Name:        def.Name,
+		Title:       def.Title,
+		Description: def.Description,
 	}, toolHandler)
 }
 

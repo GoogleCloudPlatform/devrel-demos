@@ -8,16 +8,18 @@ import (
 	"strings"
 
 	"github.com/danicat/godoctor/internal/graph"
+	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/tools/imports"
 )
 
 // Register registers the smart_edit tool with the server.
 func Register(server *mcp.Server) {
+	def := toolnames.Registry["smart_edit"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "smart_edit",
-		Title:       "Smart Edit (Fuzzy Patch)",
-		Description: "The 'Senior Dev' editor. Uses fuzzy-matching to patch specific code blocks. It auto-formats, updates imports, and PRE-COMPILES your change to catch errors before saving. Use this to safely modify large files.",
+		Name:        def.Name,
+		Title:       def.Title,
+		Description: def.Description,
 	}, toolHandler)
 }
 
@@ -55,18 +57,32 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 		return errorResult(fmt.Sprintf("failed to read file: %v", err)), nil, nil
 	}
 
-	// 2. Fuzzy Match (Ignore Whitespace)
+	// 2. Logic: Append OR Edit
+	var newContent string
 	original := string(content)
-	matchStart, matchEnd, score := findBestMatch(original, args.SearchContext)
 
-	if score < args.Threshold {
-		return errorResult(fmt.Sprintf("match not found with sufficient confidence (score: %.2f < %.2f). Suggestions: verify your search_context or lower threshold", score, args.Threshold)), nil, nil
+	if args.SearchContext == "" {
+		// APPEND MODE
+		// Check if file ends with newline
+		if len(original) > 0 && !strings.HasSuffix(original, "\n") {
+			newContent = original + "\n" + args.Replacement
+		} else {
+			newContent = original + args.Replacement
+		}
+	} else {
+		// EDIT MODE (Fuzzy Match)
+		matchStart, matchEnd, score := findBestMatch(original, args.SearchContext)
+
+		if score < args.Threshold {
+			bestMatch := ""
+			if matchStart < matchEnd && matchEnd <= len(original) {
+				bestMatch = original[matchStart:matchEnd]
+			}
+			return errorResult(fmt.Sprintf("match not found with sufficient confidence (score: %.2f < %.2f).\n\nBest Match Found:\n```go\n%s\n```\n\nSuggestions: verify your search_context or lower threshold.", score, args.Threshold, bestMatch)), nil, nil
+		}
+
+		newContent = original[:matchStart] + args.Replacement + original[matchEnd:]
 	}
-
-	// 3. Apply Edit
-	// Ensure we don't duplicate newlines if replacement handles them differently
-	// But simple string replacement is safest for now.
-	newContent := original[:matchStart] + args.Replacement + original[matchEnd:]
 
 	// 4. Auto-Format & Import check
 	// Use imports.Process which runs gofmt and goimports
@@ -132,52 +148,129 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 	}, nil, nil
 }
 
-// Minimal fuzzy matching for the spike/prototype
+// findBestMatch locates the best match for 'search' within 'content' ignoring whitespace and newlines.
+// It returns the start and end byte offsets in the original content and a similarity score (0-1).
 func findBestMatch(content, search string) (int, int, float64) {
-	// Simple implementation: normalized whitespace comparison
+	// 1. Pre-process search string: remove all whitespace
 	normSearch := normalize(search)
 	if normSearch == "" {
 		return 0, 0, 0
 	}
 
-	// We'll use a sliding window of lines
-	lines := strings.Split(content, "\n")
-	searchLines := strings.Split(strings.TrimSpace(search), "\n")
-
-	bestScore := 0.0
-	bestStart := 0
-	bestEnd := 0
-
-	for i := 0; i <= len(lines)-len(searchLines); i++ {
-		window := strings.Join(lines[i:i+len(searchLines)], "\n")
-		normWindow := normalize(window)
-
-		score := similarity(normSearch, normWindow)
-		if score > bestScore {
-			bestScore = score
-			bestStart = getByteOffset(lines, i)
-			endLineIdx := i + len(searchLines)
-			if endLineIdx > len(lines) {
-				endLineIdx = len(lines)
-			}
-			bestEnd = getByteOffset(lines, endLineIdx)
-			// Adjust bestEnd if it includes the trailing newline of the last line
-			if bestEnd > bestStart && bestEnd < len(content) && content[bestEnd] == '\n' {
-				// but we want to include the newline of the matched block
-			}
-			// If bestEnd is at the end of a line, it already includes the \n because getByteOffset adds it.
-			// Let's ensure it doesn't overshoot.
-			if bestEnd > len(content) {
-				bestEnd = len(content)
-			}
+	// 2. Pre-process content: remove all whitespace and track original offsets
+	type charMap struct {
+		char   rune
+		offset int
+	}
+	var mapped []charMap
+	for offset, char := range content {
+		if !isWhitespace(char) {
+			mapped = append(mapped, charMap{char, offset})
 		}
 	}
 
-	return bestStart, bestEnd, bestScore
+	// 3. Extract just the characters for searching
+	normContentRunes := make([]rune, len(mapped))
+	for i, cm := range mapped {
+		normContentRunes[i] = cm.char
+	}
+	normContent := string(normContentRunes)
+
+	// 4. Sliding window search on the normalized content
+	searchLen := len([]rune(normSearch))
+	contentLen := len(normContentRunes)
+
+	if searchLen > contentLen {
+		// If search is longer than content, it definitely won't match perfectly,
+		// but let's at least return a score based on the whole file.
+		return 0, len(content), similarity(normSearch, normContent)
+	}
+
+	bestScore := 0.0
+	bestStartIdx := 0
+	bestEndIdx := 0
+
+	// We use a small buffer around the search length to account for slight mismatches
+	// but a substring search is the primary goal.
+	// Optimization: check for exact substring match first
+	exactIdx := strings.Index(normContent, normSearch)
+	if exactIdx != -1 {
+		start := mapped[exactIdx].offset
+		endIdx := exactIdx + searchLen - 1
+		end := mapped[endIdx].offset + 1 // +1 to include the character itself
+
+		// For Go, we want to include the rest of the line if it was just whitespace
+		// and we should check if we ended in the middle of a multi-byte char
+		// but mapped[].offset is already the byte index.
+		return start, end, 1.0
+	}
+
+	// Fuzzy matching with sliding window
+	// Check windows of varying lengths to account for insertions/deletions
+	// We check searchLen +/- 10%
+	delta := searchLen / 10
+	if delta < 2 {
+		delta = 2
+	}
+
+	for i := 0; i <= contentLen-searchLen; i++ {
+		// Optimization: heuristic filter? (e.g. first char match)
+		// normalized content first char check is cheap
+		if normContent[i] != normSearch[0] {
+			// Optimization: Skip if start char doesn't match?
+			// Levenshtein handles substitution of first char, so skipping might miss that.
+			// But for code matching, usually start aligns.
+			// Let's keep it safe and NOT skip yet.
+		}
+
+		for l := searchLen - delta; l <= searchLen+delta; l++ {
+			if l <= 0 {
+				continue
+			}
+			if i+l > contentLen {
+				break
+			}
+			window := normContent[i : i+l]
+			score := similarity(normSearch, window)
+
+			if score > bestScore {
+				bestScore = score
+				bestStartIdx = i
+				bestEndIdx = i + l - 1
+			}
+
+			if bestScore == 1.0 {
+				goto Found
+			}
+		}
+	}
+Found:
+
+	if bestScore > 0 {
+		start := mapped[bestStartIdx].offset
+		end := mapped[bestEndIdx].offset + 1
+		return start, end, bestScore
+	}
+
+	return 0, 0, 0
+}
+
+func isWhitespace(r rune) bool {
+	switch r {
+	case ' ', '\t', '\n', '\r':
+		return true
+	}
+	return false
 }
 
 func normalize(s string) string {
-	return strings.Join(strings.Fields(s), "")
+	var sb strings.Builder
+	for _, r := range s {
+		if !isWhitespace(r) {
+			sb.WriteRune(r)
+		}
+	}
+	return sb.String()
 }
 
 func similarity(s1, s2 string) float64 {

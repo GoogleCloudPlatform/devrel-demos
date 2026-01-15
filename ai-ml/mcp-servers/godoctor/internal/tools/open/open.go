@@ -13,16 +13,18 @@ import (
 	"strings"
 
 	"github.com/danicat/godoctor/internal/graph"
+	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/tools/go/packages"
 )
 
 // Register registers the open tool with the server.
 func Register(server *mcp.Server) {
+	def := toolnames.Registry["open"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "open",
-		Title:       "Open Go File (Skeleton View)",
-		Description: "Entry Point. Returns a lightweight skeleton of a Go file (imports and signatures only). Use this for 'Satellite View' exploration to save tokens and avoid context noise compared to reading the full file.",
+		Name:        def.Name,
+		Title:       def.Title,
+		Description: def.Description,
 	}, toolHandler)
 }
 
