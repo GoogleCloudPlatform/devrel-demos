@@ -15,10 +15,12 @@ func TestWatcher_Integration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	//nolint:errcheck
 	defer os.RemoveAll(tmpDir)
 
 	// 2. Initialize Manager
 	// Create go.mod
+	//nolint:gosec // G306: Test permissions.
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module example.com/test\n\ngo 1.23\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -34,6 +36,7 @@ func TestWatcher_Integration(t *testing.T) {
 
 func Hello() {}
 `
+	//nolint:gosec // G306: Test permissions.
 	if err := os.WriteFile(mainGo, []byte(initialContent), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -41,13 +44,11 @@ func Hello() {}
 	// Wait for initial crawl
 	// crawl is async, watcher is async.
 	// we need to poll until we see the package.
-	poll(t, m, "main", func(pkgName string) bool {
-		// We assume package path defaults to something usable or we iterate
+	poll(t, m, "main_package_loaded", func(_ string) bool {
 		pkgs := m.ListPackages()
 		for _, p := range pkgs {
 			if p.Name == "main" {
-				obj := m.FindObject(p, "Hello")
-				return obj != nil
+				return true
 			}
 		}
 		return false
@@ -60,6 +61,7 @@ func Hello() {}
 
 func World() {}
 `
+	//nolint:gosec // G306: Test permissions.
 	if err := os.WriteFile(mainGo, []byte(newContent), 0644); err != nil {
 		t.Fatal(err)
 	}

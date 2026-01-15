@@ -21,10 +21,10 @@ func Register(server *mcp.Server) {
 }
 
 // ResourceHandler handles code:// requests.
-func ResourceHandler(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+func ResourceHandler(_ context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 	uri := req.Params.URI
 	if !strings.HasPrefix(uri, "code://") {
-		return nil, fmt.Errorf("invalid URI scheme")
+		return nil, mcp.ResourceNotFoundError(uri)
 	}
 	path := strings.TrimPrefix(uri, "code://")
 

@@ -383,14 +383,29 @@ export default function RunDetails({
     const loadMore = async () => {
         setLoadingMore(true);
         try {
-            const nextPage = page + 1;
-            // Using limit 1000 to match backend default page size
-            const res = await fetch(`/api/runs/${run.id}/messages?page=${nextPage}&limit=1000`);
+            const limit = 1000;
+            // Calculate which page we should fetch based on current count
+            // e.g. 1050 items -> floor(1.05) + 1 = Page 2.
+            // e.g. 1000 items -> floor(1.0) + 1 = Page 2 (Fetch next)
+            // e.g. 900 items  -> floor(0.9) + 1 = Page 1 (Refresh current - though polling handles this, manual click shouldn't hurt)
+            const targetPage = Math.floor(messages.length / limit) + 1;
+
+            const res = await fetch(`/api/runs/${run.id}/messages?page=${targetPage}&limit=${limit}`);
             if (res.ok) {
                 const newMsgs: MessageRecord[] = await res.json();
                 if (newMsgs && newMsgs.length > 0) {
-                    setMessages(prev => [...prev, ...newMsgs]);
-                    setPage(nextPage);
+                    // Deduplicate
+                    const existingIds = new Set(messages.map(m => m.id));
+                    const uniqueMsgs = newMsgs.filter(m => !existingIds.has(m.id));
+
+                    if (uniqueMsgs.length > 0) {
+                        setMessages(prev => [...prev, ...uniqueMsgs]);
+                    }
+                    
+                    // Update page state to ensure we lock polling if we moved past page 1
+                    if (targetPage > page) {
+                        setPage(targetPage);
+                    }
                 }
             }
         } catch (e) {

@@ -57,12 +57,15 @@ func runExperiment(database *db.DB, cwd string, cfg *config.Configuration, overr
 	}
 	r.SetExperimentID(expID)
 
-	handleExperimentSignals(database, expID)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	handleExperimentSignals(database, expID, cancel)
 
 	fmt.Printf("Starting Tenkai experiment with %d repetition(s) and %d concurrent worker(s)...\n", cfg.Repetitions, cfg.MaxConcurrent)
 	fmt.Printf("Output Directory: %s\n", experimentDir)
 
-	results, err := r.Run(context.Background(), cfg, timestamp, experimentDir)
+	results, err := r.Run(ctx, cfg, timestamp, experimentDir)
 	if err != nil {
 		database.UpdateExperimentError(expID, err.Error())
 		database.UpdateExperimentStatus(expID, db.ExperimentStatusAborted)
@@ -92,9 +95,13 @@ func runExperiment(database *db.DB, cwd string, cfg *config.Configuration, overr
 	}
 
 	fmt.Println("Experiment execution finished.")
+
+	if ctx.Err() == context.Canceled {
+		os.Exit(1)
+	}
 }
 
-func handleExperimentSignals(database *db.DB, expID int64) {
+func handleExperimentSignals(database *db.DB, expID int64, cancel context.CancelFunc) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -118,6 +125,6 @@ func handleExperimentSignals(database *db.DB, expID int64) {
 				}
 			}
 		}
-		os.Exit(1)
+		cancel()
 	}()
 }

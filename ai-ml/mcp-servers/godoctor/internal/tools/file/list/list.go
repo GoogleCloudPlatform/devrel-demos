@@ -1,3 +1,4 @@
+// Package list implements the file listing tool.
 package list
 
 import (
@@ -29,7 +30,7 @@ type Params struct {
 	Depth     int    `json:"depth,omitempty" jsonschema:"Maximum recursion depth (0 for no limit, default: 5 to prevent overload)"`
 }
 
-func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
+func Handler(_ context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
 	root := args.Path
 	if root == "" {
 		root = "."
@@ -65,6 +66,7 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 
 	err = filepath.WalkDir(absRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
+			//nolint:nilerr // Ignore access errors
 			return nil // Skip access errors
 		}
 

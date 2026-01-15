@@ -22,7 +22,6 @@ import (
 )
 
 func TestToolHandler(t *testing.T) {
-
 	ctx := context.Background()
 
 	testCases := []struct {

@@ -10,35 +10,6 @@ type ToolDef struct {
 	Experimental bool   // Whether the tool is considered experimental
 }
 
-// ToolConfigEntry defines the structure for overriding a tool's definition in the config file.
-type ToolConfigEntry struct {
-	ExternalName string `json:"name" yaml:"name"`
-	Title        string `json:"title" yaml:"title"`
-	Description  string `json:"description" yaml:"description"`
-	Instruction  string `json:"instruction" yaml:"instruction"`
-}
-
-// ApplyOverrides updates the registry with values from the provided map.
-func ApplyOverrides(overrides map[string]ToolConfigEntry) {
-	for internalName, override := range overrides {
-		if original, ok := Registry[internalName]; ok {
-			if override.ExternalName != "" {
-				original.ExternalName = override.ExternalName
-			}
-			if override.Title != "" {
-				original.Title = override.Title
-			}
-			if override.Description != "" {
-				original.Description = override.Description
-			}
-			if override.Instruction != "" {
-				original.Instruction = override.Instruction
-			}
-			Registry[internalName] = original
-		}
-	}
-}
-
 // Registry holds all tool definitions, keyed by InternalName.
 var Registry = map[string]ToolDef{
 	// --- FILE OPERATIONS ---
@@ -160,6 +131,14 @@ var Registry = map[string]ToolDef{
 		Instruction:  "*   **`go.mod`**: Manage module requirements.\n    *   **Usage:** `go.mod(command=\"tidy\")`\n    *   **Outcome:** go.mod and go.sum are updated/cleaned.",
 		Experimental: true,
 	},
+	"go.lint": {
+		InternalName: "go.lint",
+		ExternalName: "go.lint",
+		Title:        "Go Lint",
+		Description:  "Runs 'golangci-lint' on the project. Automatically installs the linter if it is not found in the path.",
+		Instruction:  "*   **`go.lint`**: Analyze code quality.\n    *   **Usage:** `go.lint(args=[\"./...\"])`\n    *   **Outcome:** A report of style and correctness issues.",
+		Experimental: true,
+	},
 	"go.modernize": {
 		InternalName: "go.modernize",
 		ExternalName: "go.modernize",
@@ -193,13 +172,5 @@ var Registry = map[string]ToolDef{
 		Description:  "Delegate complex investigation to a specialized autonomous agent. The specialist can independently research the codebase to answer difficult architectural questions.",
 		Instruction:  "*   **`agent.specialist`**: Ask a question requiring deep research.\n    *   **Usage:** `agent.specialist(query=\"How does the auth flow handle token expiry?\")`\n    *   **Outcome:** Comprehensive investigative report.",
 		Experimental: false,
-	},
-	"agent.master": {
-		InternalName: "agent.master",
-		ExternalName: "agent.master",
-		Title:        "Master Gopher",
-		Description:  "Consult the Master Gopher for strategic guidance. The lead analyzes your task and dynamically unlocks the tools you need to succeed.",
-		Instruction:  "*   **`agent.master`**: Get help with tool selection and strategy.\n    *   **Usage:** `agent.master(query=\"I need to modernize the logging layer.\")`\n    *   **Outcome:** Guidance and dynamic tool enablement.",
-		Experimental: true,
 	},
 }

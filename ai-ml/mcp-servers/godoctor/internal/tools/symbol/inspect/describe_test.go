@@ -1,3 +1,4 @@
+// Package inspect implements the symbol inspection tool.
 package inspect
 
 import (
@@ -16,10 +17,14 @@ func TestDescribe_Local(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	//nolint:errcheck
 	defer os.RemoveAll(tmpDir)
 
 	// Setup module
-	os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module testpkg\n\ngo 1.24\n"), 0644)
+	//nolint:gosec // G306: Test permissions.
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module testpkg\n\ngo 1.24\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	content := `package testpkg
 import "fmt"
@@ -40,7 +45,10 @@ func NewUser(name string) *User {
 }
 `
 	filePath := filepath.Join(tmpDir, "test.go")
-	os.WriteFile(filePath, []byte(content), 0644)
+	//nolint:gosec // G306: Test permissions.
+	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	// Reset graph for clean test
 	graph.Global = graph.NewManager()

@@ -44,6 +44,11 @@ func (m *Manager) ListTemplates() []Template {
 		id := entry.Name()
 		configPath := filepath.Join(templatesBase, id, "config.yaml")
 
+		// Check if config.yaml exists to avoid noisy warnings for empty dirs
+		if _, err := os.Stat(configPath); os.IsNotExist(err) {
+			continue
+		}
+
 		// Parse config to get details
 		cfg, err := config.Load(configPath)
 		if err != nil {
@@ -165,6 +170,14 @@ func (m *Manager) CreateTemplate(name, description, configContent string, files 
 		return "", err
 	}
 
+	// Transactional cleanup: if function returns error, remove the dir
+	success := false
+	defer func() {
+		if !success {
+			os.RemoveAll(tmplDir)
+		}
+	}()
+
 	// Normalize config content
 	normConfig, err := m.normalizeConfig(configContent)
 	if err != nil {
@@ -186,6 +199,7 @@ func (m *Manager) CreateTemplate(name, description, configContent string, files 
 		}
 	}
 
+	success = true
 	return id, nil
 }
 
@@ -251,3 +265,5 @@ func (m *Manager) DeleteAllTemplates() error {
 func GetTimestampID() int64 {
 	return time.Now().UnixNano()
 }
+
+// CreateTemplate creates a new template directory and config file.

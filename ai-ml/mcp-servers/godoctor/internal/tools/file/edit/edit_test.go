@@ -16,9 +16,12 @@ func TestEdit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	//nolint:errcheck
 	defer os.RemoveAll(tmpDir)
 
-	os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.24\n"), 0644)
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.24\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	content := `package main
 import "fmt"
@@ -28,7 +31,9 @@ func main() {
 }
 `
 	filePath := filepath.Join(tmpDir, "main.go")
-	os.WriteFile(filePath, []byte(content), 0644)
+	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	graph.Global = graph.NewManager()
 
@@ -66,6 +71,7 @@ func main() {
 				t.Fatalf("Tool returned error: %v", res.Content[0].(*mcp.TextContent).Text)
 			}
 
+			//nolint:gosec // G304: Test file path.
 			newContent, _ := os.ReadFile(filePath)
 			if !strings.Contains(string(newContent), tt.expected) {
 				t.Errorf("expected %q in content, got: %s", tt.expected, string(newContent))
@@ -79,11 +85,16 @@ func TestEdit_Broken(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	//nolint:errcheck
 	defer os.RemoveAll(tmpDir)
-	os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module broken\n\ngo 1.24\n"), 0644)
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module broken\n\ngo 1.24\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	filePath := filepath.Join(tmpDir, "main.go")
-	os.WriteFile(filePath, []byte("package main\n\nfunc main() {}"), 0644)
+	if err := os.WriteFile(filePath, []byte("package main\n\nfunc main() {}"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	// Introduce a build error
 	res, _, _ := toolHandler(context.TODO(), nil, Params{

@@ -1,3 +1,4 @@
+// Package test implements the go test tool.
 package test
 
 import (
@@ -26,6 +27,7 @@ type Params struct {
 	Run      string   `json:"run,omitempty" jsonschema:"Run only those tests matching the regular expression."`
 	Verbose  bool     `json:"verbose,omitempty" jsonschema:"Run tests in verbose mode (-v)"`
 	Coverage bool     `json:"coverage,omitempty" jsonschema:"Run tests with coverage analysis (-cover)"`
+	Args     []string `json:"args,omitempty" jsonschema:"Additional test arguments (e.g. -bench, -count, -failfast)"`
 }
 
 func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
@@ -48,6 +50,7 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 	if args.Run != "" {
 		cmdArgs = append(cmdArgs, "-run", args.Run)
 	}
+	cmdArgs = append(cmdArgs, args.Args...)
 	cmdArgs = append(cmdArgs, pkgs...)
 
 	cmd := exec.CommandContext(ctx, "go", cmdArgs...)

@@ -23,7 +23,7 @@ func Register(server *mcp.Server) {
 	}, ResourceHandler)
 }
 
-func ResourceHandler(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+func ResourceHandler(_ context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 	if req.Params.URI != "project://map" {
 		return nil, mcp.ResourceNotFoundError(req.Params.URI)
 	}
@@ -90,11 +90,9 @@ func ResourceHandler(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.Re
 
 func renderPackageList(sb *strings.Builder, pkgs []*packages.Package, root string) {
 	for _, pkg := range pkgs {
-		sb.WriteString(fmt.Sprintf("- **%s**\n", pkg.PkgPath))
-		var files []string
-		for _, f := range pkg.GoFiles {
-			files = append(files, f)
-		}
+		fmt.Fprintf(sb, "- **%s**\n", pkg.PkgPath)
+		files := make([]string, 0, len(pkg.GoFiles))
+		files = append(files, pkg.GoFiles...)
 		sort.Strings(files)
 
 		for _, f := range files {
@@ -109,13 +107,11 @@ func renderPackageList(sb *strings.Builder, pkgs []*packages.Package, root strin
 			}
 
 			// Ensure triple slash for absolute paths
-			if strings.HasPrefix(uri, "code:///") {
-				// already absolute
-			} else if strings.HasPrefix(uri, "code://") && strings.HasPrefix(f, "/") {
-				uri = "code://" + f // f starts with /, so this becomes code:///...
+			if !strings.HasPrefix(uri, "code:///") && strings.HasPrefix(uri, "code://") && strings.HasPrefix(f, "/") {
+				uri = "code://" + f
 			}
 
-			sb.WriteString(fmt.Sprintf("  - [%s](%s)\n", display, uri))
+			fmt.Fprintf(sb, "  - [%s](%s)\n", display, uri)
 		}
 	}
 }

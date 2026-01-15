@@ -16,7 +16,6 @@ import (
 	"github.com/danicat/godoctor/internal/resources/godoc"
 	"github.com/danicat/godoctor/internal/resources/project"
 	"github.com/danicat/godoctor/internal/resources/symbol"
-	"github.com/danicat/godoctor/internal/tools/agent/master"
 	"github.com/danicat/godoctor/internal/tools/agent/review"
 	"github.com/danicat/godoctor/internal/tools/agent/specialist"
 	"github.com/danicat/godoctor/internal/tools/file/create"
@@ -29,10 +28,11 @@ import (
 	"github.com/danicat/godoctor/internal/tools/go/docs"
 	"github.com/danicat/godoctor/internal/tools/go/get"
 	"github.com/danicat/godoctor/internal/tools/go/install"
+	"github.com/danicat/godoctor/internal/tools/go/lint"
 	"github.com/danicat/godoctor/internal/tools/go/mod"
 	"github.com/danicat/godoctor/internal/tools/go/modernize"
 	"github.com/danicat/godoctor/internal/tools/go/test"
-	"github.com/danicat/godoctor/internal/tools/project/map"
+	projectmap "github.com/danicat/godoctor/internal/tools/project/map"
 	"github.com/danicat/godoctor/internal/tools/symbol/inspect"
 	"github.com/danicat/godoctor/internal/tools/symbol/rename"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -87,12 +87,10 @@ func (s *Server) RegisterHandlers() error {
 		{name: "go.install", experimental: false, register: install.Register},
 		{name: "go.get", experimental: true, register: get.Register},
 		{name: "go.mod", experimental: true, register: mod.Register},
+		{name: "go.lint", experimental: true, register: lint.Register},
 		{name: "go.test", experimental: false, register: test.Register},
 		{name: "symbol.rename", experimental: true, register: rename.Register},
 		{name: "agent.specialist", experimental: false, register: specialist.Register},
-		{name: "agent.master", experimental: true, register: func(srv *mcp.Server) {
-			master.Register(srv, s.UpdateTools)
-		}},
 	}
 
 	// Validate disabled tools (only check this once or if disabled tools logic didn't change)
@@ -155,24 +153,6 @@ func (s *Server) RegisterHandlers() error {
 	if !s.registeredTools["prompt_import_this"] {
 		s.mcpServer.AddPrompt(prompts.ImportThis("doc"), prompts.ImportThisHandler)
 		s.registeredTools["prompt_import_this"] = true
-	}
-
-	return nil
-}
-
-// UpdateTools updates the allowed tools configuration and refreshes registrations.
-// It sends a 'notifications/tools/list_changed' notification to the client.
-func (s *Server) UpdateTools(allowedTools []string) error {
-	// Update allow list
-	newAllow := make(map[string]bool)
-	for _, t := range allowedTools {
-		newAllow[t] = true
-	}
-	s.cfg.AllowedTools = newAllow
-
-	// Refresh registrations (this will add any newly enabled tools)
-	if err := s.RegisterHandlers(); err != nil {
-		return err
 	}
 
 	return nil

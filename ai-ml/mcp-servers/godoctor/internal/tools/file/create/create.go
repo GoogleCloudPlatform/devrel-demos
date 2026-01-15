@@ -1,3 +1,4 @@
+// Package create implements the file creation tool.
 package create
 
 import (
@@ -29,39 +30,43 @@ type Params struct {
 	Content string `json:"content" jsonschema:"The content to write"`
 }
 
-func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
+func toolHandler(_ context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
 	if args.Name == "" {
 		return errorResult("name (file path) cannot be empty"), nil, nil
 	}
-	if !strings.HasSuffix(args.Name, ".go") {
-		return errorResult("file must be a Go file (*.go)"), nil, nil
-	}
 
 	finalContent := []byte(args.Content)
+	var warning string
 
-	// 1. Auto-Format & Import check
-	formatted, err := imports.Process(args.Name, finalContent, nil)
-	if err != nil {
-		return errorResult(fmt.Sprintf("write produced invalid Go code: %v", err)), nil, nil
+	// 1. Auto-Format & Import check (GO ONLY)
+	if strings.HasSuffix(args.Name, ".go") {
+		formatted, err := imports.Process(args.Name, finalContent, nil)
+		if err != nil {
+			return errorResult(fmt.Sprintf("write produced invalid Go code: %v", err)), nil, nil
+		}
+		finalContent = formatted
 	}
 
 	// 2. Ensure directory exists
+	//nolint:gosec // G301: Standard permissions for source directories.
 	if err := os.MkdirAll(filepath.Dir(args.Name), 0755); err != nil {
 		return errorResult(fmt.Sprintf("failed to create directory: %v", err)), nil, nil
 	}
 
 	// 3. Write to disk
-	if err := os.WriteFile(args.Name, formatted, 0644); err != nil {
+	//nolint:gosec // G306: Standard permissions for source files.
+	if err := os.WriteFile(args.Name, finalContent, 0644); err != nil {
 		return errorResult(fmt.Sprintf("failed to write file: %v", err)), nil, nil
 	}
 
-	// 4. Post-Check Verification
-	pkg, err := graph.Global.Load(args.Name)
-	var warning string
-	if err == nil && len(pkg.Errors) > 0 {
-		warning = "\n\n**WARNING:** Write successful but introduced errors:\n"
-		for _, e := range pkg.Errors {
-			warning += fmt.Sprintf("- %s\n", e.Msg)
+	// 4. Post-Check Verification (GO ONLY)
+	if strings.HasSuffix(args.Name, ".go") {
+		pkg, err := graph.Global.Load(args.Name)
+		if err == nil && len(pkg.Errors) > 0 {
+			warning = "\n\n**WARNING:** Write successful but introduced errors:\n"
+			for _, e := range pkg.Errors {
+				warning += fmt.Sprintf("- %s\n", e.Msg)
+			}
 		}
 	}
 

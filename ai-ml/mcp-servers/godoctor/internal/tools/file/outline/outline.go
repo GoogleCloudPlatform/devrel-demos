@@ -1,3 +1,4 @@
+// Package outline implements the file outlining tool.
 package outline
 
 import (
@@ -138,10 +139,11 @@ func GetOutline(file string) (string, []string, []packages.Error, error) {
 	}
 
 	if targetFile == nil {
-		content, err := os.ReadFile(file)
-		if err != nil {
-			return "", nil, nil, fmt.Errorf("failed to read file: %w", err)
-		}
+		        //nolint:gosec // G304: File path provided by user is expected.
+		        content, err := os.ReadFile(file)
+		        if err != nil {
+		            return "", nil, nil, fmt.Errorf("failed to read file: %w", err)
+		        }
 		fset = token.NewFileSet()
 		targetFile, err = parser.ParseFile(fset, file, content, parser.ParseComments)
 		if err != nil {

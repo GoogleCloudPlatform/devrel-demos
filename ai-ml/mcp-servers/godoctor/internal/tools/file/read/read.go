@@ -42,14 +42,20 @@ func readCodeHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (
 	if args.FilePath == "" {
 		return errorResult("file_path cannot be empty"), nil, nil
 	}
-	if !strings.HasSuffix(args.FilePath, ".go") {
-		return errorResult("file must be a Go file (*.go)"), nil, nil
-	}
 
+	//nolint:gosec // G304: File path provided by user is expected.
 	content, err := os.ReadFile(args.FilePath)
 
 	if err != nil {
 		return errorResult(fmt.Sprintf("failed to read file: %v", err)), nil, nil
+	}
+
+	if !strings.HasSuffix(args.FilePath, ".go") {
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("# File: %s\n\n```\n%s\n```", args.FilePath, string(content))},
+			},
+		}, nil, nil
 	}
 
 	fset := token.NewFileSet()
@@ -155,7 +161,7 @@ func checkAnalysis(ctx context.Context, filePath string) ([]string, error) {
 		for _, err := range pkg.Errors {
 			// Basic deduplication
 			if !seen[err.Msg] {
-				diags = append(diags, fmt.Sprintf("%s", err.Msg)) // err.Msg typically includes position
+				diags = append(diags, err.Msg) // err.Msg typically includes position
 				seen[err.Msg] = true
 			}
 		}

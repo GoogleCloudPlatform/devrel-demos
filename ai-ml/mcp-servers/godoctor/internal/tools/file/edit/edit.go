@@ -1,3 +1,4 @@
+// Package edit implements the file editing tool.
 package edit
 
 import (
@@ -34,9 +35,6 @@ type Params struct {
 func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
 	if args.File == "" {
 		return errorResult("file cannot be empty"), nil, nil
-	}
-	if !strings.HasSuffix(args.File, ".go") {
-		return errorResult("file must be a Go file (*.go)"), nil, nil
 	}
 
 	// Default threshold
@@ -84,59 +82,70 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 		newContent = original[:matchStart] + args.Replacement + original[matchEnd:]
 	}
 
-	// 4. Auto-Format & Import check
-	// Use imports.Process which runs gofmt and goimports
-	formatted, err := imports.Process(args.File, []byte(newContent), nil)
-	if err != nil {
-		// Try to give a helpful error location
-		return errorResult(fmt.Sprintf("edit produced invalid Go code: %v\nHint: Ensure your Replacement is syntactically valid in context.", err)), nil, nil
+	// 4. Auto-Format & Import check (GO ONLY)
+	var formatted []byte
+	isGo := strings.HasSuffix(args.File, ".go")
+
+	if isGo {
+		// Use imports.Process which runs gofmt and goimports
+		formatted, err = imports.Process(args.File, []byte(newContent), nil)
+		if err != nil {
+			// Try to give a helpful error location
+			return errorResult(fmt.Sprintf("edit produced invalid Go code: %v\nHint: Ensure your Replacement is syntactically valid in context.", err)), nil, nil
+		}
+	} else {
+		formatted = []byte(newContent)
 	}
 
 	// 5. Write to disk
+	//nolint:gosec // G306: Standard permissions for source files.
 	if err := os.WriteFile(args.File, formatted, 0644); err != nil {
 		return errorResult(fmt.Sprintf("failed to write file: %v", err)), nil, nil
 	}
 
-	// 6. Post-Check Verification (Type Check)
-	// We want to verify that the file compiles within its package
-	pkg, err := graph.Global.Load(args.File)
+	// 6. Post-Check Verification (Type Check) (GO ONLY)
 	var warning string
 
-	if err != nil {
-		// Graph loading failed, maybe severe syntax error skipped by imports.Process?
-		warning = fmt.Sprintf("\n\n**WARNING:** Failed to reload package context: %v", err)
-	} else if len(pkg.Errors) > 0 {
-		warning = "\n\n**WARNING:** Edit successful but introduced compilation errors:\n"
-		for _, e := range pkg.Errors {
-			warning += fmt.Sprintf("- %s\n", e.Msg)
-		}
-	} else {
-		// 7. Impact Analysis (Reverse Dependencies)
-		// Only run if local compilation passed
-		// We limit this to avoiding massive scans in large repos, relying on the graph.
-		importers := graph.Global.FindImporters(pkg.PkgPath)
-		var impactWarnings []string
+	if isGo {
+		// We want to verify that the file compiles within its package
+		pkg, err := graph.Global.Load(args.File)
 
-		for _, imp := range importers {
-			if len(imp.GoFiles) == 0 {
-				continue
+		if err != nil {
+			// Graph loading failed, maybe severe syntax error skipped by imports.Process?
+			warning = fmt.Sprintf("\n\n**WARNING:** Failed to reload package context: %v", err)
+		} else if len(pkg.Errors) > 0 {
+			warning = "\n\n**WARNING:** Edit successful but introduced compilation errors:\n"
+			for _, e := range pkg.Errors {
+				warning += fmt.Sprintf("- %s\n", e.Msg)
 			}
-			impDir := filepath.Dir(imp.GoFiles[0])
+		} else {
+			// 7. Impact Analysis (Reverse Dependencies)
+			// Only run if local compilation passed
+			// We limit this to avoiding massive scans in large repos, relying on the graph.
+			importers := graph.Global.FindImporters(pkg.PkgPath)
+			var impactWarnings []string
 
-			// Force reload to check against new API
-			graph.Global.Invalidate(impDir)
+			for _, imp := range importers {
+				if len(imp.GoFiles) == 0 {
+					continue
+				}
+				impDir := filepath.Dir(imp.GoFiles[0])
 
-			// Check for errors
-			reloadedImp, err := graph.Global.Load(impDir)
-			if err == nil && len(reloadedImp.Errors) > 0 {
-				impactWarnings = append(impactWarnings, fmt.Sprintf("Package %s: %s", reloadedImp.PkgPath, reloadedImp.Errors[0].Msg))
+				// Force reload to check against new API
+				graph.Global.Invalidate(impDir)
+
+				// Check for errors
+				reloadedImp, err := graph.Global.Load(impDir)
+				if err == nil && len(reloadedImp.Errors) > 0 {
+					impactWarnings = append(impactWarnings, fmt.Sprintf("Package %s: %s", reloadedImp.PkgPath, reloadedImp.Errors[0].Msg))
+				}
 			}
-		}
 
-		if len(impactWarnings) > 0 {
-			warning += "\n\n**IMPACT WARNING:** This edit broke the following dependent packages:\n"
-			for _, w := range impactWarnings {
-				warning += fmt.Sprintf("- %s\n", w)
+			if len(impactWarnings) > 0 {
+				warning += "\n\n**IMPACT WARNING:** This edit broke the following dependent packages:\n"
+				for _, w := range impactWarnings {
+					warning += fmt.Sprintf("- %s\n", w)
+				}
 			}
 		}
 	}
@@ -321,13 +330,7 @@ func levenshtein(s1, s2 string) int {
 	return currentRow[n]
 }
 
-func getByteOffset(lines []string, lineIdx int) int {
-	offset := 0
-	for i := 0; i < lineIdx && i < len(lines); i++ {
-		offset += len(lines[i]) + 1 // +1 for newline
-	}
-	return offset
-}
+
 
 func errorResult(msg string) *mcp.CallToolResult {
 	return &mcp.CallToolResult{

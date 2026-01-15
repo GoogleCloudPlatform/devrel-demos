@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/danicat/godoctor/internal/tools/inspect_symbol"
-	"github.com/danicat/godoctor/internal/tools/list_files"
-	"github.com/danicat/godoctor/internal/tools/read_docs"
+	"github.com/danicat/godoctor/internal/tools/symbol/inspect"
+	"github.com/danicat/godoctor/internal/tools/file/list"
+	docs "github.com/danicat/godoctor/internal/tools/go/docs"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -20,7 +20,7 @@ func TestRefinedTools(t *testing.T) {
 	// 1. read_docs: JSON vs Markdown
 	t.Run("read_docs_formats", func(t *testing.T) {
 		// Happy Path: Markdown (Default)
-		res, _, err := read_docs.Handler(ctx, nil, read_docs.Params{
+		res, _, err := docs.Handler(ctx, nil, docs.Params{
 			PackagePath: "fmt",
 			SymbolName:  "Println",
 		})
@@ -32,7 +32,7 @@ func TestRefinedTools(t *testing.T) {
 		}
 
 		// Happy Path: JSON
-		resJSON, _, err := read_docs.Handler(ctx, nil, read_docs.Params{
+		resJSON, _, err := docs.Handler(ctx, nil, docs.Params{
 			PackagePath: "fmt",
 			SymbolName:  "Println",
 			Format:      "json",
@@ -45,7 +45,7 @@ func TestRefinedTools(t *testing.T) {
 		}
 
 		// Sad Path: Invalid Format
-		resErr, _, _ := read_docs.Handler(ctx, nil, read_docs.Params{
+		resErr, _, _ := docs.Handler(ctx, nil, docs.Params{
 			PackagePath: "fmt",
 			Format:      "yaml",
 		})
@@ -57,7 +57,7 @@ func TestRefinedTools(t *testing.T) {
 	// 2. list_files: Depth & Patterns
 	t.Run("list_files_depth", func(t *testing.T) {
 		// Happy Path: Depth 1
-		res, _, err := list_files.Handler(ctx, nil, list_files.Params{
+		res, _, err := list.Handler(ctx, nil, list.Params{
 			Path:      wd,
 			Recursive: true,
 			Depth:     1,
@@ -80,13 +80,13 @@ func TestRefinedTools(t *testing.T) {
 	// 3. inspect_symbol: Edge Cases
 	t.Run("inspect_symbol_edge_cases", func(t *testing.T) {
 		// Sad Path: Missing args
-		res, _, _ := inspect_symbol.Handler(ctx, nil, inspect_symbol.Params{})
+		res, _, _ := inspect.Handler(ctx, nil, inspect.Params{})
 		if !res.IsError {
 			t.Error("Expected error for missing args")
 		}
 
 		// Edge Case: Non-existent symbol
-		res, _, _ = inspect_symbol.Handler(ctx, nil, inspect_symbol.Params{
+		res, _, _ = inspect.Handler(ctx, nil, inspect.Params{
 			Package: "fmt",
 			Symbol:  "Supercalifragilistic",
 		})

@@ -37,9 +37,8 @@ func GetStructuredDoc(ctx context.Context, pkgPath, symbolName string) (*Structu
 	pkgDir, err := resolvePackageDir(ctx, pkgPath)
 	if err != nil {
 		// Fallback: try to fetch the package in a temp directory
-		// We need to duplicate fetch logic or refactor.
-			// Fetch documentation
-			doc, err := GetStructuredDoc(ctx, pkgPath, symbolName)	}
+		return fetchAndRetryStructured(ctx, pkgPath, symbolName, err)
+	}
 
 	result, err := parsePackageDocs(ctx, pkgPath, pkgDir, symbolName, pkgPath)
 	if err != nil {
@@ -604,18 +603,20 @@ func downloadPackage(ctx context.Context, tempDir, pkgPath string) (string, stri
 		if len(matches) > 1 {
 			actualPath = string(matches[1])
 			// Retry with correct path
+			//nolint:gosec // G204: Subprocess launched with variable is expected behavior.
 			retryCmd := exec.CommandContext(ctx, "go", "get", actualPath)
 			retryCmd.Dir = tempDir
 			if retryOut, retryErr := retryCmd.CombinedOutput(); retryErr != nil {
 				return "", "", fmt.Errorf("go get failed after vanity retry: %v\nOutput: %s", retryErr, retryOut)
 			}
-			err = nil // Success on retry
+			// Success on retry
 		} else {
 			return "", "", fmt.Errorf("go get failed: %v\nOutput: %s", err, out)
 		}
 	}
 
 	// Try to locate as a package first
+	//nolint:gosec // G204: Subprocess launched with variable is expected behavior.
 	listCmd := exec.CommandContext(ctx, "go", "list", "-f", "{{.Dir}}", actualPath)
 	listCmd.Dir = tempDir
 	out, err = listCmd.CombinedOutput()
@@ -624,6 +625,7 @@ func downloadPackage(ctx context.Context, tempDir, pkgPath string) (string, stri
 	}
 
 	// If failed, try to locate as a module (e.g. root of repo with no root package files)
+	//nolint:gosec // G204: Subprocess launched with variable is expected behavior.
 	modCmd := exec.CommandContext(ctx, "go", "list", "-m", "-f", "{{.Dir}}", actualPath)
 	modCmd.Dir = tempDir
 	out, err = modCmd.CombinedOutput()

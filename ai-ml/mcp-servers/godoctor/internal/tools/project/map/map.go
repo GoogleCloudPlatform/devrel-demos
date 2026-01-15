@@ -1,3 +1,4 @@
+// Package projectmap implements the project mapping tool.
 package projectmap
 
 import (
@@ -27,7 +28,7 @@ func Register(server *mcp.Server) {
 type Params struct {
 }
 
-func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
+func Handler(_ context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
 	// Initialize graph if not done (though usually server handles this)
 	if graph.Global.Root == "" {
 		graph.Global.Initialize(".")
@@ -90,11 +91,9 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 
 func renderPackageList(sb *strings.Builder, pkgs []*packages.Package, root string) {
 	for _, pkg := range pkgs {
-		sb.WriteString(fmt.Sprintf("- **%s**\n", pkg.PkgPath))
-		var files []string
-		for _, f := range pkg.GoFiles {
-			files = append(files, f)
-		}
+		fmt.Fprintf(sb, "- **%s**\n", pkg.PkgPath)
+		files := make([]string, 0, len(pkg.GoFiles))
+		files = append(files, pkg.GoFiles...)
 		sort.Strings(files)
 
 		for _, f := range files {
@@ -105,7 +104,7 @@ func renderPackageList(sb *strings.Builder, pkgs []*packages.Package, root strin
 					display = rel
 				}
 			}
-			sb.WriteString(fmt.Sprintf("  - %s\n", display))
+			fmt.Fprintf(sb, "  - %s\n", display)
 		}
 	}
 }

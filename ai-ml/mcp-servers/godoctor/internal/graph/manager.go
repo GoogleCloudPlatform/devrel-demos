@@ -52,6 +52,7 @@ func (m *Manager) Initialize(root string) {
 	m.mu.Unlock()
 
 	// Try to parse go.mod to get ModuleName
+	//nolint:gosec // G304: File path from internal logic/user input is expected.
 	if gomod, err := os.ReadFile(filepath.Join(absRoot, "go.mod")); err == nil {
 		if f, err := modfile.Parse("go.mod", gomod, nil); err == nil {
 			m.mu.Lock()
@@ -76,7 +77,9 @@ func (m *Manager) Initialize(root string) {
 
 func (m *Manager) crawl(root string) {
 	// Walk the root directory and load all Go packages
+	//nolint:errcheck // Best effort crawling.
 	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		//nolint:nilerr // Ignore access errors during crawl
 		if err != nil || !info.IsDir() {
 			return nil
 		}
@@ -229,9 +232,9 @@ func (m *Manager) Get(pkgPath string) *packages.Package {
 func (m *Manager) ListPackages() []*packages.Package {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	var pkgs []*packages.Package
-	for _, state := range m.Packages {
-		pkgs = append(pkgs, state.Pkg)
+	pkgs := make([]*packages.Package, 0, len(m.Packages))
+	for _, p := range m.Packages {
+		pkgs = append(pkgs, p.Pkg)
 	}
 	return pkgs
 }
@@ -441,6 +444,7 @@ func (m *Manager) FindSymbolLocation(pkg *packages.Package, obj types.Object) (s
 
 			if node != nil {
 				var buf strings.Builder
+				//nolint:errcheck // bytes.Buffer write
 				printer.Fprint(&buf, pkg.Fset, node)
 				return buf.String(), pos.Filename, pos.Line
 			}
@@ -452,10 +456,4 @@ func (m *Manager) FindSymbolLocation(pkg *packages.Package, obj types.Object) (s
 
 // Parent is a hacky way to find parent node during Inspect if not provided by AST.
 // Better: Use a custom inspector or pre-computed parent map if needed.
-func formatType(t types.Type) string {
-	if t == nil {
-		return "unknown"
-	}
-	s := t.String()
-	return s
-}
+

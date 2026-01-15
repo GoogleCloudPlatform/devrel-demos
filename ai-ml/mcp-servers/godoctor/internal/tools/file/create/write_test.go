@@ -1,6 +1,7 @@
 package create
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,36 +16,29 @@ func TestWrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	//nolint:errcheck
 	defer os.RemoveAll(tmpDir)
 
-	os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module write-test\n\ngo 1.24\n"), 0644)
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module write-test\n\ngo 1.24\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	graph.Global = graph.NewManager()
 
 	filePath := filepath.Join(tmpDir, "lib.go")
 
 	// 1. Overwrite (Initial create)
-	res, _, _ := toolHandler(nil, nil, Params{
+	res, _, _ := toolHandler(context.TODO(), nil, Params{
 		Name:    filePath,
 		Content: "package lib\n\nfunc A() {}",
-		Mode:    "overwrite",
 	})
 	if res.IsError {
 		t.Fatalf("Initial write failed: %v", res.Content[0].(*mcp.TextContent).Text)
 	}
 
-	// 2. Append
-	res, _, _ = toolHandler(nil, nil, Params{
-		Name:    filePath,
-		Content: "func B() {}",
-		Mode:    "append",
-	})
-	if res.IsError {
-		t.Fatalf("Append failed: %v", res.Content[0].(*mcp.TextContent).Text)
-	}
-
+	//nolint:gosec // G304: Test file path.
 	content, _ := os.ReadFile(filePath)
-	if !strings.Contains(string(content), "func A()") || !strings.Contains(string(content), "func B()") {
-		t.Errorf("expected both functions in file, got: %s", string(content))
+	if !strings.Contains(string(content), "func A()") {
+		t.Errorf("expected func A() in file, got: %s", string(content))
 	}
 }
 
@@ -53,16 +47,18 @@ func TestWrite_Validation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	//nolint:errcheck
 	defer os.RemoveAll(tmpDir)
-	os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module val-test\n\ngo 1.24\n"), 0644)
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module val-test\n\ngo 1.24\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	
 	filePath := filepath.Join(tmpDir, "main.go")
 
 	// Write code with missing import/symbol
-	res, _, _ := toolHandler(nil, nil, Params{
+	res, _, _ := toolHandler(context.TODO(), nil, Params{
 		Name:    filePath,
 		Content: "package main\n\nfunc main() { fmt.Println(NonExistent) }",
-		Mode:    "overwrite",
 	})
 
 	output := res.Content[0].(*mcp.TextContent).Text

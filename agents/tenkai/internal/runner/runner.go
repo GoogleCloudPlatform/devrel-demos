@@ -151,9 +151,7 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 		Sem:             sem,
 	}
 
-	for _, alt := range cfg.Alternatives {
-		r.dispatchAlternative(rc, alt, cfg.Scenarios, cfg.Repetitions)
-	}
+	r.DispatchAll(rc, cfg)
 
 	go func() {
 		wg.Wait()
@@ -296,7 +294,7 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 Done:
 	// Final checkpoint
 	finalStatus := db.ExperimentStatusCompleted
-	if r.checkAction() == "stop" {
+	if r.checkAction() == "stop" || ctx.Err() != nil {
 		finalStatus = db.ExperimentStatusAborted // Use consistent status
 	}
 	r.db.UpdateExperimentStatus(r.experimentID, finalStatus)
@@ -391,11 +389,6 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 	// Use helper for prompt streaming
 	go r.streamPromptContents(promptPath, stdinPipe)
 
-	var resultFound bool
-	var resultFoundMu sync.Mutex
-
-	var terminationRequested bool
-
 	var streamWg sync.WaitGroup
 	streamWg.Add(2)
 
@@ -407,14 +400,26 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 	var stdoutMu, stderrMu sync.Mutex
 	var currentStdout, currentStderr strings.Builder
 
+	ss := &StreamState{
+		JobID:         jobID,
+		Res:           &res,
+		Cmd:           cmd,
+		StreamWg:      &streamWg,
+		StdoutMu:      &stdoutMu,
+		CurrentStdout: &currentStdout,
+		StderrMu:      &stderrMu,
+		CurrentStderr: &currentStderr,
+		ExecCancel:    execCancel,
+	}
+
 	if res.RunID != 0 {
 		go r.syncLogs(syncCtx, &res, &stdoutMu, &currentStdout, &stderrMu, &currentStderr)
 	}
 	// STDOUT STREAMER
-	go r.streamStdout(stdoutPipe, logFile, jobID, &res, cmd, &streamWg, &stdoutMu, &currentStdout, &terminationRequested, &resultFound, &resultFoundMu, execCancel)
+	go r.streamStdout(stdoutPipe, logFile, ss)
 
 	// STDERR STREAMER
-	go r.streamStderr(stderrPipe, stderrFile, &res, &streamWg, &stderrMu, &currentStderr)
+	go r.streamStderr(stderrPipe, stderrFile, ss)
 
 	if err := cmd.Start(); err != nil {
 		res.Error = fmt.Errorf("execution failed to start: %w", err)
@@ -423,7 +428,7 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 	}
 
 	// Wait for streams and command
-	waitErr := r.waitForCommand(cmd, &streamWg, jobCtx, timeout, jobID, &resultFound, &resultFoundMu, &terminationRequested)
+	waitErr := r.waitForCommand(cmd, ss, jobCtx, timeout)
 	if waitErr != nil {
 		res.Error = waitErr
 		res.ErrorStr = res.Error.Error()

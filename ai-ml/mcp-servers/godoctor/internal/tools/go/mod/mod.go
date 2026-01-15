@@ -1,3 +1,4 @@
+// Package mod implements the go mod tool.
 package mod
 
 import (
@@ -21,7 +22,8 @@ func Register(server *mcp.Server) {
 
 // Params defines the input parameters.
 type Params struct {
-	Command string `json:"command" jsonschema:"The subcommand to run (e.g. 'tidy', 'download', 'verify'). Default: 'tidy'"`
+	Command string   `json:"command" jsonschema:"The subcommand to run (e.g. 'tidy', 'init', 'edit', 'vendor', 'verify', 'why', 'graph', 'download'). Default: 'tidy'"`
+	Args    []string `json:"args,omitempty" jsonschema:"Additional arguments for the subcommand (e.g. module name for 'init', package for 'why')"`
 }
 
 func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
@@ -30,22 +32,22 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 		subCmd = "tidy"
 	}
 
-	// Whitelist allowed subcommands for safety?
-	// go mod has: download, edit, graph, init, tidy, vendor, verify, why
-	// Let's allow standard ones.
+	// Whitelist allowed subcommands for safety
 	switch subCmd {
-	case "tidy", "download", "verify", "vendor":
+	case "tidy", "download", "verify", "vendor", "graph", "why", "edit", "init":
 		// ok
 	default:
 		return &mcp.CallToolResult{
 			IsError: true,
 			Content: []mcp.Content{
-				&mcp.TextContent{Text: fmt.Sprintf("unsupported go mod subcommand: %s. Supported: tidy, download, verify, vendor", subCmd)},
+				&mcp.TextContent{Text: fmt.Sprintf("unsupported go mod subcommand: %s. Supported: tidy, download, verify, vendor, graph, why, edit, init", subCmd)},
 			},
 		}, nil, nil
 	}
 
-	cmd := exec.CommandContext(ctx, "go", "mod", subCmd)
+	cmdArgs := append([]string{"mod", subCmd}, args.Args...)
+	//nolint:gosec // G204: Subprocess launched with variable is expected behavior.
+	cmd := exec.CommandContext(ctx, "go", cmdArgs...)
 	output, err := cmd.CombinedOutput()
 
 	result := string(output)
@@ -59,7 +61,7 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 	}
 
 	if result == "" {
-		result = fmt.Sprintf("Successfully ran 'go mod %s'", subCmd)
+		result = fmt.Sprintf("Successfully ran 'go mod %s %v'", subCmd, args.Args)
 	}
 
 	return &mcp.CallToolResult{

@@ -21,18 +21,23 @@ func TestEdit_ImpactAnalysis(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// go.mod
+	//nolint:gosec // G306: Test permissions.
 	os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module example.com/impact\n\ngo 1.24\n"), 0644)
 
 	// pkg/a/a.go
 	aDir := filepath.Join(tmpDir, "pkg", "a")
+	//nolint:gosec // G301: Test permissions.
 	os.MkdirAll(aDir, 0755)
 	aFile := filepath.Join(aDir, "a.go")
+	//nolint:gosec // G306: Test permissions.
 	os.WriteFile(aFile, []byte("package a\n\nfunc Hello() {}\n"), 0644)
 
 	// pkg/b/b.go (Depends on A)
 	bDir := filepath.Join(tmpDir, "pkg", "b")
+	//nolint:gosec // G301: Test permissions.
 	os.MkdirAll(bDir, 0755)
 	bFile := filepath.Join(bDir, "b.go")
+	//nolint:gosec // G306: Test permissions.
 	os.WriteFile(bFile, []byte("package b\n\nimport \"example.com/impact/pkg/a\"\n\nfunc Use() {\n\ta.Hello()\n}\n"), 0644)
 
 	// 2. Initialize Graph

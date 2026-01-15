@@ -1,3 +1,4 @@
+// Package rename implements the symbol renaming tool.
 package rename
 
 import (
@@ -29,6 +30,7 @@ type Params struct {
 
 func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
 	// Check for gopls
+	//nolint:nilerr // Returning error result instead of Go error
 	if _, err := exec.LookPath("gopls"); err != nil {
 		return errorResult("Tool 'gopls' not found. Please install: go install golang.org/x/tools/gopls@latest"), nil, nil
 	}
@@ -39,12 +41,11 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 
 	location := fmt.Sprintf("%s:%d:%d", args.File, args.Line, args.Col)
 
-	// Command: gopls rename -w <location> <newname>
-	// -w writes changes.
-
+	//nolint:gosec // G204: Subprocess launched with variable is expected behavior.
 	cmd := exec.CommandContext(ctx, "gopls", "rename", "-w", location, args.NewName)
-	// We might need to run in module root?
-	// gopls usually finds the module based on file path.
+	// Run in project root (or file dir?)
+	// gopls needs to run where go.mod is visible usually.
+	// We assume current working directory is the project root.
 
 	out, err := cmd.CombinedOutput()
 	output := string(out)

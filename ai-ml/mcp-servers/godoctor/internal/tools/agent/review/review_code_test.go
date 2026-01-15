@@ -120,7 +120,7 @@ func TestNewHandler_VertexAI_MissingConfig(t *testing.T) {
 
 func TestTool_Success(t *testing.T) {
 	// 1. Setup
-	expectedSuggestions := []ReviewSuggestion{
+	expectedSuggestions := []Suggestion{
 		{LineNumber: 1, Finding: "Testing", Comment: "This is a test", Severity: "suggestion"},
 	}
 	mockResponse, err := json.Marshal(expectedSuggestions)
@@ -169,7 +169,7 @@ func TestTool_Success(t *testing.T) {
 
 func TestTool_Hint(t *testing.T) {
 	// 1. Setup
-	expectedSuggestions := []ReviewSuggestion{
+	expectedSuggestions := []Suggestion{
 		{LineNumber: 1, Finding: "Hint", Comment: "This is a hint test", Severity: "suggestion"},
 	}
 	mockResponse, err := json.Marshal(expectedSuggestions)

@@ -17,16 +17,19 @@ func TestDescribe_LocalUnexported_ByPackagePath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	//nolint:errcheck
 	defer os.RemoveAll(tmpDir)
 
 	// Create go.mod
 	modContent := "module example.com/testmod\n\ngo 1.24\n"
+	//nolint:gosec // G306: Test permissions.
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	// Create a subdirectory for the package
 	pkgDir := filepath.Join(tmpDir, "mypkg")
+	//nolint:gosec // G301: Test permissions.
 	if err := os.Mkdir(pkgDir, 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -42,6 +45,7 @@ func secretFunc() *hiddenStruct {
 	return &hiddenStruct{Field: 42}
 }
 `
+	//nolint:gosec // G306: Test permissions.
 	if err := os.WriteFile(filepath.Join(pkgDir, "secret.go"), []byte(srcContent), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -51,6 +55,7 @@ func secretFunc() *hiddenStruct {
 
 func RootSecret() int { return 1 }
 `
+	//nolint:gosec // G306: Test permissions.
 	if err := os.WriteFile(filepath.Join(tmpDir, "root.go"), []byte(rootSrcContent), 0644); err != nil {
 		t.Fatal(err)
 	}

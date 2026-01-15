@@ -1,0 +1,31 @@
+name: godoctor
+description: ''
+reps: 1
+concurrent: 1
+timeout: ''
+experiment_control: default
+scenarios:
+  - scenarios/1
+alternatives:
+  - name: default
+    context: ''
+    command: gemini
+    args:
+      - '-y'
+      - '-o'
+      - stream-json
+  - name: godoctor-advanced
+    context: ''
+    command: gemini
+    args:
+      - '-y'
+      - '-o'
+      - stream-json
+    settings:
+      mcpServers:
+        godoctor:
+          args:
+            - '--profile=advanced'
+          command: godoctor
+      tools:
+        core: []

@@ -1,3 +1,4 @@
+// Package get implements the go get tool.
 package get
 
 import (
@@ -23,6 +24,7 @@ func Register(server *mcp.Server) {
 type Params struct {
 	Packages []string `json:"packages" jsonschema:"Packages to get (e.g. example.com/pkg@latest)"`
 	Update   bool     `json:"update,omitempty" jsonschema:"If true, adds -u flag to update modules"`
+	Args     []string `json:"args,omitempty" jsonschema:"Additional arguments (e.g. -t, -v)"`
 }
 
 func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
@@ -39,6 +41,7 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 	if args.Update {
 		cmdArgs = append(cmdArgs, "-u")
 	}
+	cmdArgs = append(cmdArgs, args.Args...)
 	cmdArgs = append(cmdArgs, args.Packages...)
 
 	cmd := exec.CommandContext(ctx, "go", cmdArgs...)

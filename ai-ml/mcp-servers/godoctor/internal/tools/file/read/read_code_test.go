@@ -15,6 +15,7 @@ func TestReadCodeTool(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Create go.mod
+	//nolint:gosec // G306: Test permissions.
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module example.com/test\ngo 1.21\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -37,6 +38,7 @@ func main() {
 	undefinedFunc() // This should trigger an analysis error
 }
 `
+	//nolint:gosec // G306: Test permissions.
 	if err := os.WriteFile(srcFile, []byte(src), 0644); err != nil {
 		t.Fatal(err)
 	}

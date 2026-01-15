@@ -1,3 +1,4 @@
+// Package install implements the go install tool.
 package install
 
 import (
@@ -23,6 +24,7 @@ func Register(server *mcp.Server) {
 type Params struct {
 	Dir      string   `json:"dir,omitempty" jsonschema:"Directory to install in (default: current)"`
 	Packages []string `json:"packages,omitempty" jsonschema:"Packages to install (default: ./...)"`
+	Args     []string `json:"args,omitempty" jsonschema:"Additional arguments (e.g. -v, -tags)"`
 }
 
 func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
@@ -35,7 +37,9 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 		pkgs = []string{"./..."}
 	}
 
-	cmdArgs := append([]string{"install"}, pkgs...)
+	cmdArgs := append([]string{"install"}, args.Args...)
+	cmdArgs = append(cmdArgs, pkgs...)
+	//nolint:gosec // G204: Subprocess launched with variable is expected behavior.
 	cmd := exec.CommandContext(ctx, "go", cmdArgs...)
 	cmd.Dir = dir
 

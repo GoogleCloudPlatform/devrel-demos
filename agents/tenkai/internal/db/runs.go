@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
@@ -191,8 +192,20 @@ func (db *DB) SaveRunEvent(runID int64, evtType string, payload any) error {
 		return err
 	}
 	query := `INSERT INTO run_events (run_id, type, timestamp, payload) VALUES (?, ?, ?, ?)`
-	_, err = db.conn.Exec(query, runID, evtType, time.Now().UTC().Format(time.RFC3339), string(jsonBytes))
-	return err
+
+	var lastErr error
+	for attempt := 0; attempt < 10; attempt++ {
+		_, err = db.conn.Exec(query, runID, evtType, time.Now().UTC().Format(time.RFC3339), string(jsonBytes))
+		if err == nil {
+			return nil
+		}
+		lastErr = err
+		if !strings.Contains(strings.ToLower(err.Error()), "locked") {
+			return err
+		}
+		time.Sleep(50 * time.Millisecond * time.Duration(1<<attempt))
+	}
+	return fmt.Errorf("failed to save run event after retries: %w", lastErr)
 }
 
 func (db *DB) SaveTestResults(results []models.TestResult) error {

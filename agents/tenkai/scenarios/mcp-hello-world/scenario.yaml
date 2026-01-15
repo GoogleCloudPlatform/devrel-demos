@@ -1,7 +1,0 @@
-name: MCP Hello World
-description: Creates a simple MCP server using Go SDK for MCP
-task: "Your task is to create a Model Context Protocol (MCP) server to expose a “hello_world” tool. \n\nRequirements:\n- Use the official Go SDK for MCP: `github.com/modelcontextprotocol/go-sdk`\n- Create a server that uses standard input/output (stdio) transport.\n- Create one tool named `hello_world` that takes no arguments and returns the string \"Hello from MCP!\".\n- Initialize a Go module `example.com/mcphello`.\n\nValidation:\n- `go build` should succeed.\n- The server should respond to a `tools/list` request on stdin.\n- The server should respond to a `tools/call` request for `hello_world`."
-assets: []
-validation:
-    - type: command
-      command: go build -o hello . && ( echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}'; echo '{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}'; echo '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'; sleep 1; ) | ./hello | grep "hello_world"

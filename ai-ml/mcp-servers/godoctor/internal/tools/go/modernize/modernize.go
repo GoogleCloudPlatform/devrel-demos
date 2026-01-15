@@ -1,3 +1,4 @@
+// Package modernize implements the modernize tool.
 package modernize
 
 import (
@@ -100,7 +101,7 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 							}
 						} else {
 							pendingCount++
-							sb.WriteString(fmt.Sprintf("   💡 Fix available (run with fix=true to apply)\n"))
+							sb.WriteString("   💡 Fix available (run with fix=true to apply)\n")
 							for _, fix := range d.SuggestedFixes {
 								for _, edit := range fix.TextEdits {
 									sb.WriteString(fmt.Sprintf("      - Replace at %d .. %d\n", edit.Pos, edit.End))
@@ -174,6 +175,7 @@ func applyFixes(fset *token.FileSet, fixes []analysis.SuggestedFix) error {
 	}
 
 	for path, fileEdits := range filesToUpdate {
+		//nolint:gosec // G304: File path provided by user is expected.
 		content, err := os.ReadFile(path)
 		if err != nil {
 			return err
@@ -198,10 +200,10 @@ func applyFixes(fset *token.FileSet, fixes []analysis.SuggestedFix) error {
 			formatted = content
 		}
 
-		if err := os.WriteFile(path, formatted, 0644); err != nil {
-			return err
-		}
-	}
+		        //nolint:gosec // G306: Standard permissions for source files.
+		        if err := os.WriteFile(path, formatted, 0644); err != nil {
+		            return err
+		        }	}
 	return nil
 }
 

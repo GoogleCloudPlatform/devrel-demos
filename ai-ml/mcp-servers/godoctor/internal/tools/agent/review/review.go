@@ -59,17 +59,17 @@ type Params struct {
 	Hint        string `json:"hint,omitempty"`
 }
 
-// ReviewSuggestion defines the structured output for a single review suggestion.
-type ReviewSuggestion struct {
+// Suggestion defines the structured output for a single review suggestion.
+type Suggestion struct {
 	LineNumber int    `json:"line_number"`
 	Severity   string `json:"severity"` // "error", "warning", "suggestion"
 	Finding    string `json:"finding"`
 	Comment    string `json:"comment"`
 }
 
-// ReviewResult defines the structured output for the code_review tool.
-type ReviewResult struct {
-	Suggestions []ReviewSuggestion `json:"suggestions"`
+// Result defines the structured output for the code_review tool.
+type Result struct {
+	Suggestions []Suggestion `json:"suggestions"`
 }
 
 // ContentGenerator abstracts the generative model for testing.
@@ -164,7 +164,7 @@ var jsonMarkdownRegex = regexp.MustCompile("(?s)```json" + "\\s*(.*?)" + "```")
 
 // Tool performs an AI-powered code review and returns structured data.
 func (h *Handler) Tool(ctx context.Context, _ *mcp.CallToolRequest, args Params) (
-	*mcp.CallToolResult, *ReviewResult, error) {
+	*mcp.CallToolResult, *Result, error) {
 	if args.FileContent == "" {
 		return &mcp.CallToolResult{
 			IsError: true,
@@ -204,7 +204,7 @@ func (h *Handler) Tool(ctx context.Context, _ *mcp.CallToolRequest, args Params)
 	return h.processResponse(resp)
 }
 
-func (h *Handler) processResponse(resp *genai.GenerateContentResponse) (*mcp.CallToolResult, *ReviewResult, error) {
+func (h *Handler) processResponse(resp *genai.GenerateContentResponse) (*mcp.CallToolResult, *Result, error) {
 	if !isValidResponse(resp) {
 		return &mcp.CallToolResult{
 			IsError: true,
@@ -239,21 +239,21 @@ func (h *Handler) processResponse(resp *genai.GenerateContentResponse) (*mcp.Cal
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: renderReviewMarkdown(suggestions)},
 		},
-	}, &ReviewResult{Suggestions: suggestions}, nil
+	}, &Result{Suggestions: suggestions}, nil
 }
 
-func parseReviewResponse(text string) ([]ReviewSuggestion, error) {
+func parseReviewResponse(text string) ([]Suggestion, error) {
 	// Clean the response by trimming markdown and whitespace
 	cleanedJSON := jsonMarkdownRegex.ReplaceAllString(text, "$1")
 
-	var suggestions []ReviewSuggestion
+	var suggestions []Suggestion
 	if err := json.Unmarshal([]byte(cleanedJSON), &suggestions); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal suggestions: %w", err)
 	}
 	return suggestions, nil
 }
 
-func renderReviewMarkdown(suggestions []ReviewSuggestion) string {
+func renderReviewMarkdown(suggestions []Suggestion) string {
 	if len(suggestions) == 0 {
 		return "## Code Review\n\nNo issues found. Great job! 🚀"
 	}

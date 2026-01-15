@@ -15,6 +15,7 @@ func setupTestGraph(t *testing.T) (string, string, string) {
 	tmpDir := t.TempDir()
 
 	// go.mod
+	//nolint:gosec // G306: Test permissions.
 	err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module example.com/testproject\n\ngo 1.24\n"), 0644)
 	if err != nil {
 		t.Fatal(err)
@@ -22,6 +23,7 @@ func setupTestGraph(t *testing.T) (string, string, string) {
 
 	// lib/lib.go
 	libDir := filepath.Join(tmpDir, "lib")
+	//nolint:gosec // G301: Test permissions.
 	if err := os.Mkdir(libDir, 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -39,6 +41,7 @@ func (u *User) Greet() string {
 	return "Hello " + u.Name
 }
 `
+	//nolint:gosec // G306: Test permissions.
 	if err := os.WriteFile(filepath.Join(libDir, "lib.go"), []byte(libContent), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -57,6 +60,7 @@ func main() {
 }
 `
 	mainPath := filepath.Join(tmpDir, "main.go")
+	//nolint:gosec // G306: Test permissions.
 	if err := os.WriteFile(mainPath, []byte(mainContent), 0644); err != nil {
 		t.Fatal(err)
 	}

@@ -1,3 +1,4 @@
+// Package diff implements the apidiff tool.
 package diff
 
 import (
@@ -32,15 +33,20 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 		return errorResult("Tool 'apidiff' not found. Please install it: go install golang.org/x/exp/cmd/apidiff@latest"), nil, nil
 	}
 
-	if args.Old == "" || args.New == "" {
-		return errorResult("both 'old' and 'new' revisions must be specified (use '.' for local)"), nil, nil
-	}
-
 	dir := args.Dir
 	if dir == "" {
 		dir = "."
 	}
 
+	if args.Old == "" || args.New == "" {
+		return errorResult("both 'old' and 'new' revisions must be specified (use '.' for local)"), nil, nil
+	}
+
+	if args.New == "" {
+		args.New = "."
+	}
+
+	//nolint:gosec // G204: Subprocess launched with variable is expected behavior.
 	cmd := exec.CommandContext(ctx, "apidiff", args.Old, args.New)
 	cmd.Dir = dir
 

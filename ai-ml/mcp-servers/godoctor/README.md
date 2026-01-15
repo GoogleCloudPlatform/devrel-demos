@@ -21,18 +21,18 @@ GoDoctor organizes its capabilities into **Profiles** to suit different workflow
     *   `go_test`: Run specific tests to validate logic.
     *   `read_docs`: internal documentation retrieval.
 
-### ⚡ Advanced Modernization (Full Profile)
+### ⚡ Advanced Modernization (Advanced Profile)
 
 Includes all Standard tools, plus:
 *   **♻️ Modernize**:
+    *   `mo*   **♻️ Modernize**:
     *   `modernize`: Automatically upgrades legacy patterns (e.g., `interface{}` → `any`, manual loops → slices).
 *   **📦 Dependency Analysis**:
     *   `analyze_dependency_updates`: Assess breaking changes and risks *before* upgrading dependencies.
-
-### 🔮 Specialized Profiles
+*   **🧹 Linting**:
+    *   `go_lint`: Runs `golangci-lint` to catch style issues and bugs. Auto-installs if missing.es
 
 *   **Oracle**: Exposes *only* `ask_specialist`, a high-level tool that acts as a gateway to other hidden tools, forcing a "Human-in-the-Loop" or "Manager Agent" pattern.
-*   **Dynamic**: Exposes *only* `ask_the_master_gopher`, an experimental dynamic agent interface.
 
 ## Installation
 
@@ -82,7 +82,7 @@ export GOOGLE_CLOUD_LOCATION="us-central1"
 
 | Flag | Description | Default |
 | :--- | :--- | :--- |
-| `--profile` | Server profile: `standard`, `full`, `oracle`, `dynamic`. | `standard` |
+| `--profile` | Server profile: `standard`, `advanced`, `oracle`. | `standard` |
 | `--model` | Default Gemini model to use for AI tasks. | `gemini-2.5-pro` |
 | `--allow` | Comma-separated list of tools to explicitly **enable** (overrides profile defaults). | `""` |
 | `--disable` | Comma-separated list of tools to explicitly **disable**. | `""` |
@@ -104,8 +104,8 @@ To get the optimal system prompt for your AI agent based on your chosen profile:
 # Get instructions for the standard profile
 godoctor --agents --profile=standard
 
-# Get instructions for the full profile with modernization tools
-godoctor --agents --profile=full
+# Get instructions for the advanced profile with modernization tools
+godoctor --agents --profile=advanced
 ```
 
 ## License

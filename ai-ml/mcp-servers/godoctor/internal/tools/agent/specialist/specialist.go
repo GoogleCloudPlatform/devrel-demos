@@ -1,3 +1,4 @@
+// Package specialist implements the autonomous specialist agent.
 package specialist
 
 import (
@@ -28,6 +29,7 @@ func Register(server *mcp.Server) {
 	}, toolHandler)
 }
 
+// Params defines the input parameters for the specialist agent.
 type Params struct {
 	Query string `json:"query" jsonschema:"The question or task for the specialist"`
 }
@@ -213,35 +215,45 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 }
 
 func executeTool(ctx context.Context, name string, args map[string]interface{}) (*mcp.CallToolResult, error) {
-	// Helper to marshal args to json then unmarshal to specific struct?
-	// Or simplified manual mapping.
-	// We reused json marshalling for simplicity in many places.
-	jsonBytes, _ := json.Marshal(args)
+	jsonBytes, err := json.Marshal(args)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal args: %v", err)
+	}
 
 	switch name {
 	case "list_files":
 		var p list.Params
-		json.Unmarshal(jsonBytes, &p)
+		if err := json.Unmarshal(jsonBytes, &p); err != nil {
+			return nil, fmt.Errorf("invalid args for list_files: %v", err)
+		}
 		res, _, err := list.Handler(ctx, nil, p)
 		return res, err
 	case "read_docs":
 		var p docs.Params
-		json.Unmarshal(jsonBytes, &p)
+		if err := json.Unmarshal(jsonBytes, &p); err != nil {
+			return nil, fmt.Errorf("invalid args for read_docs: %v", err)
+		}
 		res, _, err := docs.Handler(ctx, nil, p)
 		return res, err
 	case "inspect_symbol":
 		var p inspect.Params
-		json.Unmarshal(jsonBytes, &p)
+		if err := json.Unmarshal(jsonBytes, &p); err != nil {
+			return nil, fmt.Errorf("invalid args for inspect_symbol: %v", err)
+		}
 		res, _, err := inspect.Handler(ctx, nil, p)
 		return res, err
 	case "code_outline":
 		var p outline.Params
-		json.Unmarshal(jsonBytes, &p)
+		if err := json.Unmarshal(jsonBytes, &p); err != nil {
+			return nil, fmt.Errorf("invalid args for code_outline: %v", err)
+		}
 		res, _, err := outline.Handler(ctx, nil, p)
 		return res, err
 	case "go_test":
 		var p test.Params
-		json.Unmarshal(jsonBytes, &p)
+		if err := json.Unmarshal(jsonBytes, &p); err != nil {
+			return nil, fmt.Errorf("invalid args for go_test: %v", err)
+		}
 		res, _, err := test.Handler(ctx, nil, p)
 		return res, err
 	}
