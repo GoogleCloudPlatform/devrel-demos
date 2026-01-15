@@ -27,7 +27,9 @@ import (
 	"github.com/danicat/godoctor/internal/tools/go/build"
 	"github.com/danicat/godoctor/internal/tools/go/diff"
 	"github.com/danicat/godoctor/internal/tools/go/docs"
+	"github.com/danicat/godoctor/internal/tools/go/get"
 	"github.com/danicat/godoctor/internal/tools/go/install"
+	"github.com/danicat/godoctor/internal/tools/go/mod"
 	"github.com/danicat/godoctor/internal/tools/go/modernize"
 	"github.com/danicat/godoctor/internal/tools/go/test"
 	"github.com/danicat/godoctor/internal/tools/project/map"
@@ -83,6 +85,8 @@ func (s *Server) RegisterHandlers() error {
 		{name: "file.list", experimental: false, register: list.Register},
 		{name: "go.build", experimental: false, register: build.Register},
 		{name: "go.install", experimental: false, register: install.Register},
+		{name: "go.get", experimental: true, register: get.Register},
+		{name: "go.mod", experimental: true, register: mod.Register},
 		{name: "go.test", experimental: false, register: test.Register},
 		{name: "symbol.rename", experimental: true, register: rename.Register},
 		{name: "agent.specialist", experimental: false, register: specialist.Register},
@@ -171,14 +175,6 @@ func (s *Server) UpdateTools(allowedTools []string) error {
 		return err
 	}
 
-	// Notify client
-	// Note: The go-sdk might usually handle this or we might need to expose the ability to send notification.
-	// s.mcpServer currently doesn't expose a direct Notify method in the minimal interface wrapper?
-	// Assuming s.mcpServer has a method for this or we ignore it for now if sdk handles it.
-	// Checking mcp.Server methods: It operates on requests.
-	// TODO: Implement notification sending when SDK supports it or if we can access the transport.
-
-	// For now, we assume the internal state update is sufficient for the next ToolList call.
 	return nil
 }
 

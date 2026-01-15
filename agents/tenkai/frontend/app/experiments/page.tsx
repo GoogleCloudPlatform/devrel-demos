@@ -4,8 +4,10 @@ import { ExperimentRecord, getExperiments } from "../api/api";
 import { PageHeader } from "@/components/ui/page-header";
 import ExperimentsTable from "@/components/experiments/ExperimentsTable";
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 export default function ExperimentsPage() {
     const [experiments, setExperiments] = useState<ExperimentRecord[]>([]);
@@ -39,7 +41,13 @@ export default function ExperimentsPage() {
             <PageHeader
                 title="Experiments"
                 description="Manage and monitor agent evaluation experiments."
-                actions={<div />} // Add create button if needed
+                actions={
+                    <Link href="/experiments/new">
+                        <Button size="sm">
+                            <Plus className="mr-2 h-4 w-4" /> New Experiment
+                        </Button>
+                    </Link>
+                }
             />
 
             {loading ? (

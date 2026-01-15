@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/danicat/godoctor/internal/toolnames"
@@ -46,41 +47,25 @@ func (h *Handler) Handle(ctx context.Context, _ *mcp.CallToolRequest, args Param
 		return &mcp.CallToolResult{IsError: true, Content: []mcp.Content{&mcp.TextContent{Text: fmt.Sprintf("The Master Gopher is asleep (failed to init AI): %v", err)}}}, nil, nil
 	}
 
-	// Definition of all available tools (except this one, and oracle)
-	availableTools := []struct {
-		Name string
-		Desc string
-	}{
-		{"code_outline", "Get file skeleton and imports"},
-		{"inspect_symbol", "Deep dive into symbol implementation"},
-		{"read_docs", "Read package documentation (Markdown/JSON)"},
-		{"smart_edit", "Intelligently edit code with fuzzy matching"},
-		{"list_files", "List directory contents recursively"},
-		{"go_build", "Compile project"},
-		{"go_test", "Run tests"},
-		{"rename_symbol", "Safe semantic renaming"},
-		{"analyze_dependency_updates", "Check for breaking dependency changes"},
-		{"modernize", "Modernize Go code patterns"},
-	}
-
 	prompt := fmt.Sprintf(`You are the Master Gopher, a wise and slightly witty Go programming expert.
 The user has a problem: "%s"
 
-You have access to the following toolkit (currently locked):
+You have access to the following toolkit (currently locked). Use this reference to guide the user:
+
 %s
 
 Your goal is to:
 1. Select the best subset of tools to help the user solve their problem.
 2. ENABLE those tools for the user.
-3. Provide a response that explains WHY you chose those tools and HOW the user (an AI agent) should use them to solve the problem.
-4. Be helpful, concise, and maybe a little "pun-y" (use Go puns).
+3. Provide a response that explains WHY you chose those tools.
+4. Provide **Recommended Next Steps** with concrete examples of how to call the selected tools to solve the specific problem. Use the usage patterns from the toolkit reference.
 
 Output JSON format:
 {
-  "selected_tools": ["tool_name1", "tool_name2"],
-  "instructions": "Your wise instructions here..."
+  "selected_tools": ["tool_external_name1", "tool_external_name2"],
+  "instructions": "Markdown text with explanation and code blocks showing exactly how to call the tools for this specific task."
 }
-`, args.Query, formatToolList(availableTools))
+`, args.Query, formatToolListFromRegistry())
 
 	resp, err := client.Models.GenerateContent(ctx, "gemini-2.5-pro", []*genai.Content{
 		{Parts: []*genai.Part{{Text: prompt}}},
@@ -120,10 +105,22 @@ Output JSON format:
 	}, nil, nil
 }
 
-func formatToolList(tools []struct{ Name, Desc string }) string {
+func formatToolListFromRegistry() string {
 	var sb strings.Builder
+	var tools []toolnames.ToolDef
+	for _, t := range toolnames.Registry {
+		if t.InternalName == "agent.master" {
+			continue
+		}
+		tools = append(tools, t)
+	}
+
+	sort.Slice(tools, func(i, j int) bool {
+		return tools[i].ExternalName < tools[j].ExternalName
+	})
+
 	for _, t := range tools {
-		sb.WriteString(fmt.Sprintf("- %s: %s\n", t.Name, t.Desc))
+		sb.WriteString(t.Instruction + "\n")
 	}
 	return sb.String()
 }

@@ -21,7 +21,7 @@ SERVICE_ACCOUNT="tenkai-runner@${PROJECT_ID}.iam.gserviceaccount.com"
 echo "Building and Pushing Image to ${IMAGE_URI}..."
 # Copy Dockerfile to root temporarily because gcloud builds submit prefers it in the context root
 cp deploy/Dockerfile .
-trap "rm Dockerfile" EXIT
+trap "rm -f Dockerfile" EXIT
 
 # Submit build to Cloud Build
 gcloud builds submit --tag ${IMAGE_URI} .

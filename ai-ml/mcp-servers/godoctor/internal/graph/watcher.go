@@ -65,12 +65,8 @@ func (w *Watcher) Start(root string) error {
 }
 
 // Close stops the watcher and waits for the event loop to exit.
-func (w *Watcher) Close() {
-	close(w.done)
-	// We can't strictly wait for watcher.Close() here because it might block events?
-	// Actually typical usage is Close then Wait.
-	_ = w.watcher.Close()
-	w.wg.Wait()
+func (w *Watcher) Close() error {
+	return w.watcher.Close()
 }
 
 func (w *Watcher) eventLoop() {
@@ -144,11 +140,6 @@ func (w *Watcher) processDebouncedEvents() {
 
 // Invalidate removes a package from the manager's cache and reloads it.
 func (m *Manager) Invalidate(dir string) {
-	// 1. Identify package path from dir?
-	// This is tricky without loading it.
-	// Heuristic: Remove all cached packages that have Go files in this dir?
-
-	// For now, let's just do a naive invalidation:
 	// We check which cached package has files in this dir.
 	m.mu.Lock()
 	var pathsToReload []string

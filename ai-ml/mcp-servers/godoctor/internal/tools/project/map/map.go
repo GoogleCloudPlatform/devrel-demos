@@ -25,7 +25,6 @@ func Register(server *mcp.Server) {
 
 // Params defines the input parameters.
 type Params struct {
-	// No params for now, maybe 'Filter' in the future
 }
 
 func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {

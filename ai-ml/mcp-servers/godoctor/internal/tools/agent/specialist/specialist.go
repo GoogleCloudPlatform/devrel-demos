@@ -145,15 +145,6 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 			var toolOutputs []*genai.Part
 			hasCalls := false
 
-			for _, ignoredPart := range cand.Content.Parts {
-				// The SDK might have multiple parts? usually one func call per part if parallel calling?
-				// Actually genai.Part has FunctionCall field.
-
-				// Let's assume sequential or check parts.
-				// Wait, range over parts:
-				_ = ignoredPart
-			}
-
 			for _, p := range cand.Content.Parts {
 				if p.FunctionCall != nil {
 					hasCalls = true

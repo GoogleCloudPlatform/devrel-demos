@@ -25,7 +25,6 @@ func TestWatcher_Integration(t *testing.T) {
 
 	m := graph.NewManager()
 
-	// Note: We need to ensure we don't start the global one, but our local one.
 	// Initialize calls crawl and NewWatcher.
 	m.Initialize(tmpDir)
 

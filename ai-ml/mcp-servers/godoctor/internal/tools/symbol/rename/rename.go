@@ -37,13 +37,6 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 		return errorResult("Invalid arguments: file, new_name, line (>0), and col (>0) are required"), nil, nil
 	}
 
-	// Position format: file:line:col
-	// Note: gopls uses byte offsets optionally, but line:col is user-friendly.
-	// However, gopls rename command signature:
-	// gopls rename [flags] <location> <newname>
-	// location is file:line:col-offset? Or file:line:col?
-	// Let's assume file:line:col
-
 	location := fmt.Sprintf("%s:%d:%d", args.File, args.Line, args.Col)
 
 	// Command: gopls rename -w <location> <newname>

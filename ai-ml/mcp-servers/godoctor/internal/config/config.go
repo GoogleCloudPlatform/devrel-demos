@@ -121,9 +121,6 @@ func loadToolConfig(path string) error {
 func (c *Config) IsToolEnabled(name string, experimental bool) bool {
 	// 1. Explicitly Disabled?
 	// Users likely use External Name in flags, but we receive Internal Name here.
-	// This is tricky. We need to check both or map it.
-	// For now, let's assume users use External Name in flags.
-	// We need to resolve Internal -> External to check flags.
 	externalName := toolnames.Registry[name].ExternalName
 	if externalName == "" {
 		externalName = name // Fallback

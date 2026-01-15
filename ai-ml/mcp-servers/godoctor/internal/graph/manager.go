@@ -157,7 +157,6 @@ func (m *Manager) Load(dirOrFile string) (*packages.Package, error) {
 			packages.NeedImports | packages.NeedDeps | packages.NeedTypes |
 			packages.NeedSyntax | packages.NeedTypesInfo,
 		Dir: dir,
-		// TODO: Add Context support
 	}
 
 	pkgs, err := packages.Load(cfg, pattern)
@@ -453,4 +452,10 @@ func (m *Manager) FindSymbolLocation(pkg *packages.Package, obj types.Object) (s
 
 // Parent is a hacky way to find parent node during Inspect if not provided by AST.
 // Better: Use a custom inspector or pre-computed parent map if needed.
-// For now, let's keep it simple.
+func formatType(t types.Type) string {
+	if t == nil {
+		return "unknown"
+	}
+	s := t.String()
+	return s
+}

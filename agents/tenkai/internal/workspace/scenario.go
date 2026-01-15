@@ -26,7 +26,7 @@ type Scenario struct {
 
 // ListScenarios returns a list of available scenarios found in the templates directories.
 func (m *Manager) ListScenarios() []Scenario {
-	var scenarios []Scenario
+	scenarios := []Scenario{}
 	seen := make(map[string]bool)
 
 	for _, dir := range m.TemplatesDirs {

@@ -27,7 +27,7 @@ type Template struct {
 
 // ListTemplates returns a list of available templates found in the experiments/templates directory.
 func (m *Manager) ListTemplates() []Template {
-	var templates []Template
+	templates := []Template{}
 
 	// Assume standard location relative to BasePath
 	templatesBase := filepath.Join(m.BasePath, "experiments", "templates")

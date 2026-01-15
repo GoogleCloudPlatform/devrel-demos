@@ -30,7 +30,7 @@ func (db *DB) GetExperiments() ([]models.Experiment, error) {
 	}
 	defer rows.Close()
 
-	var exps []models.Experiment
+	exps := []models.Experiment{}
 	for rows.Next() {
 		var e models.Experiment
 		var ts string

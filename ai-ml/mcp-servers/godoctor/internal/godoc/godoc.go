@@ -38,11 +38,8 @@ func GetStructuredDoc(ctx context.Context, pkgPath, symbolName string) (*Structu
 	if err != nil {
 		// Fallback: try to fetch the package in a temp directory
 		// We need to duplicate fetch logic or refactor.
-		// For now, let's just stick to the existing GetDocumentation flow which handles strings.
-		// Wait, code_outline needs StructuredDoc.
-		// Let's refactor fetchAndRetry to return *StructuredDoc.
-		return fetchAndRetryStructured(ctx, pkgPath, symbolName, err)
-	}
+			// Fetch documentation
+			doc, err := GetStructuredDoc(ctx, pkgPath, symbolName)	}
 
 	result, err := parsePackageDocs(ctx, pkgPath, pkgDir, symbolName, pkgPath)
 	if err != nil {

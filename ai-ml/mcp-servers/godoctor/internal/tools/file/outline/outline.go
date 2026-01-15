@@ -67,12 +67,6 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 	// Appendix: External Imports
 	if len(imports) > 0 {
 		sb.WriteString("## Appendix: External Imports\n")
-		// Filter for external imports (heuristic: contains dot, not standard lib-ish)
-		// Or assume everything not in GOROOT?
-		// For simplicity, we just look for dot and skip known std prefixes if needed.
-		// Detailed std lib check is complex without loading packages.
-		// We'll rely on the fact that most useful docs are external.
-		// But inspecting fmt is also useful. Let's show all imports for now, focusing on summary.
 
 		for _, imp := range imports {
 			// Clean quotes

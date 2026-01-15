@@ -97,15 +97,9 @@ func resolveLocal(ctx context.Context, pkgName, symName, fileName string) *godoc
 		}
 
 		// Enrich with sub-packages using 'go list' logic from godoc package
-		// We need the directory of the package to run go list
 		if len(pkg.GoFiles) > 0 {
-			pkgDir := strings.TrimSuffix(pkg.GoFiles[0], "/"+strings.Split(pkg.GoFiles[0], "/")[len(strings.Split(pkg.GoFiles[0], "/"))-1])
-			// Actually filepath.Dir is safer but we don't import filepath here yet
-			// Let's assume graph package provides a way or we just use the first file's dir
-			// But wait, pkg.GoFiles[0] is absolute path.
-			// Let's use graph.Global.FindObject which requires loading...
-			// simpler:
-			doc.SubPackages = godoc.ListSubPackages(ctx, pkgDir) // This requires directory
+			pkgDir := filepath.Dir(pkg.GoFiles[0])
+			doc.SubPackages = godoc.ListSubPackages(ctx, pkgDir)
 		} else {
 			// Fallback to graph known packages if no files (e.g. empty dir loaded)
 			// But graph.Global.Load would fail if no files.

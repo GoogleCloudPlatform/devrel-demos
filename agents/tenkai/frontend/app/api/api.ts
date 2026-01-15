@@ -194,7 +194,8 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
 }
 
 export async function getExperiments(): Promise<ExperimentRecord[]> {
-    return fetchAPI('/experiments');
+    const data = await fetchAPI<ExperimentRecord[]>('/experiments');
+    return data || [];
 }
 
 export async function getExperiment(id: string | number): Promise<ExperimentRecord> {
@@ -202,19 +203,23 @@ export async function getExperiment(id: string | number): Promise<ExperimentReco
 }
 
 export async function getExperimentSummaries(id: string | number): Promise<ExperimentSummaryRow[]> {
-    return fetchAPI(`/experiments/${id}/summaries`);
+    const data = await fetchAPI<ExperimentSummaryRow[]>(`/experiments/${id}/summaries`);
+    return data || [];
 }
 
 export async function getRunResults(id: string | number, page: number = 1, limit: number = 100): Promise<RunResultRecord[]> {
-    return fetchAPI(`/experiments/${id}/runs?page=${page}&limit=${limit}`);
+    const data = await fetchAPI<RunResultRecord[]>(`/experiments/${id}/runs?page=${page}&limit=${limit}`);
+    return data || [];
 }
 
 export async function getScenarios(): Promise<Scenario[]> {
-    return fetchAPI('/scenarios');
+    const data = await fetchAPI<Scenario[]>('/scenarios');
+    return data || [];
 }
 
 export async function getTemplates(): Promise<Template[]> {
-    return fetchAPI('/templates');
+    const data = await fetchAPI<Template[]>('/templates');
+    return data || [];
 }
 
 export async function getSimplifiedMetrics(id: string | number): Promise<any> {
