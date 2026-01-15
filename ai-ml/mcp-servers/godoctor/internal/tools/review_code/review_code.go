@@ -44,9 +44,9 @@ func Register(server *mcp.Server, defaultModel string) {
 		log.Printf("Disabling code_review tool: failed to create handler: %v", err)
 		return
 	}
-	def := toolnames.Registry["review_code"]
+	def := toolnames.Registry["agent.review"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.Name,
+		Name:        def.ExternalName,
 		Title:       def.Title,
 		Description: def.Description,
 	}, reviewHandler.Tool)

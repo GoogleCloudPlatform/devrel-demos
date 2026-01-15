@@ -15,9 +15,9 @@ import (
 
 // Register registers the inspect_symbol tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["inspect_symbol"]
+	def := toolnames.Registry["symbol.inspect"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.Name,
+		Name:        def.ExternalName,
 		Title:       def.Title,
 		Description: def.Description,
 	}, Handler)

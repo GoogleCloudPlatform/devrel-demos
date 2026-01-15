@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/imports"
@@ -18,10 +19,11 @@ import (
 
 // Register registers the edit_code tool with the server.
 func Register(server *mcp.Server) {
+	def := toolnames.Registry["file.edit_legacy"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "edit_code",
-		Title:       "Edit Go Code (Smart)",
-		Description: "Smartly edits a Go file (*.go) with fuzzy matching and safety checks.",
+		Name:        def.ExternalName,
+		Title:       def.Title,
+		Description: def.Description,
 	}, editCodeHandler)
 }
 

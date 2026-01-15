@@ -15,9 +15,9 @@ import (
 
 // Register registers the tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["analyze_project"]
+	def := toolnames.Registry["project.map"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.Name,
+		Name:        def.ExternalName,
 		Title:       def.Title,
 		Description: def.Description,
 	}, Handler)

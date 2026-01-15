@@ -21,70 +21,57 @@ func Get(cfg *config.Config) string {
 
 	// 2. Navigation
 	sb.WriteString("### 🔍 Navigation: Save Tokens & Context\n")
-	if isEnabled("code_outline", true) || isEnabled("open", true) {
+	if isEnabled("file.outline", true) {
 		// Adapting for transition: code_outline is future, open is current equivalent-ish
-		if isEnabled("code_outline", true) {
-			sb.WriteString(toolnames.Registry["code_outline"].Instruction + "\n")
-		} else {
-			sb.WriteString(toolnames.Registry["open"].Instruction + "\n")
-		}
+		sb.WriteString(toolnames.Registry["file.outline"].Instruction + "\n")
 	}
 
-	if isEnabled("inspect_symbol", true) || isEnabled("describe", true) {
-		name := "inspect_symbol"
-		if !isEnabled(name, true) {
-			name = "describe" // Fallback, though registry key is inspect_symbol. Assuming 'describe' is legacy config key but tool name is standard.
-			// Actually, if config key is 'describe', we might need a fallback lookup, but let's stick to standard names in registry.
-		}
-		// We use the registry instruction for inspect_symbol regardless of the legacy config name, 
-		// as long as the intent is the same. The instruction text in registry uses "inspect_symbol".
-		// If the user sees "describe" in the tool list (from MCP), but instructions say "inspect_symbol", that's a mismatch.
-		// However, I'm refactoring the tool definitions too, so the tool name WILL be "inspect_symbol".
-		sb.WriteString(toolnames.Registry["inspect_symbol"].Instruction + "\n")
+	if isEnabled("symbol.inspect", true) {
+		sb.WriteString(toolnames.Registry["symbol.inspect"].Instruction + "\n")
 	}
 
-	if isEnabled("list_files", true) {
-		sb.WriteString(toolnames.Registry["list_files"].Instruction + "\n")
+	if isEnabled("file.list", true) {
+		sb.WriteString(toolnames.Registry["file.list"].Instruction + "\n")
 	}
 	sb.WriteString("\n")
 
 	// 3. Editing
 	sb.WriteString("### ✏️ Editing: Ensure Safety\n")
-	if isEnabled("smart_edit", true) || isEnabled("edit", true) {
+	if isEnabled("file.edit", true) {
 		// Prioritize smart_edit
-		sb.WriteString(toolnames.Registry["smart_edit"].Instruction + "\n")
-	} else if isEnabled("edit_code", false) {
+		sb.WriteString(toolnames.Registry["file.edit"].Instruction + "\n")
+	} else if isEnabled("file.edit_legacy", false) {
 		// Fallback for non-experimental profile
-		sb.WriteString(toolnames.Registry["edit_code"].Instruction + "\n")
+		sb.WriteString(toolnames.Registry["file.edit_legacy"].Instruction + "\n")
 	}
 	sb.WriteString("\n")
 
 	// 4. Modernization & Upgrades
 	sb.WriteString("### 🚀 Modernization & Upgrades\n")
-	if isEnabled("analyze_dependency_updates", true) {
-		sb.WriteString(toolnames.Registry["analyze_dependency_updates"].Instruction + "\n")
+	if isEnabled("go.diff", true) {
+		sb.WriteString(toolnames.Registry["go.diff"].Instruction + "\n")
 	}
-	if isEnabled("modernize_code", true) || isEnabled("modernize", true) {
-		sb.WriteString(toolnames.Registry["modernize"].Instruction + "\n")
+	if isEnabled("go.modernize", true) {
+		sb.WriteString(toolnames.Registry["go.modernize"].Instruction + "\n")
 	}
 	sb.WriteString("\n")
 
 	// 5. Utilities
 	sb.WriteString("### 🛠️ Utilities\n")
-	if isEnabled("go_build", true) {
-		sb.WriteString(toolnames.Registry["go_build"].Instruction + "\n")
+	if isEnabled("go.build", true) {
+		sb.WriteString(toolnames.Registry["go.build"].Instruction + "\n")
 	}
-	if isEnabled("go_test", true) {
-		sb.WriteString(toolnames.Registry["go_test"].Instruction + "\n")
+	if isEnabled("go.test", true) {
+		sb.WriteString(toolnames.Registry["go.test"].Instruction + "\n")
 	}
-	if isEnabled("analyze_project", true) {
-		sb.WriteString(toolnames.Registry["analyze_project"].Instruction + "\n")
+	if isEnabled("project.map", true) {
+		sb.WriteString(toolnames.Registry["project.map"].Instruction + "\n")
 	}
-	if isEnabled("read_docs", false) {
-		sb.WriteString(toolnames.Registry["read_docs"].Instruction + "\n")
+	if isEnabled("go.docs", false) {
+		sb.WriteString(toolnames.Registry["go.docs"].Instruction + "\n")
 	}
-	if isEnabled("ask_specialist", false) {
-		sb.WriteString(toolnames.Registry["ask_specialist"].Instruction + "\n")
+	if isEnabled("agent.specialist", false) {
+		sb.WriteString(toolnames.Registry["agent.specialist"].Instruction + "\n")
 	}
 
 	return sb.String()

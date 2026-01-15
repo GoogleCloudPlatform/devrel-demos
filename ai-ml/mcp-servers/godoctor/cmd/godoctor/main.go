@@ -63,18 +63,18 @@ func run(ctx context.Context, args []string) error {
 	if cfg.ListTools {
 		var tools []toolnames.ToolDef
 		for _, def := range toolnames.Registry {
-			if cfg.IsToolEnabled(def.Name, def.Experimental) {
+			if cfg.IsToolEnabled(def.InternalName, def.Experimental) {
 				tools = append(tools, def)
 			}
 		}
 
 		// Sort by name
 		sort.Slice(tools, func(i, j int) bool {
-			return tools[i].Name < tools[j].Name
+			return tools[i].ExternalName < tools[j].ExternalName
 		})
 
 		for _, tool := range tools {
-			fmt.Printf("Name: %s\nTitle: %s\nDescription: %s\n\n", tool.Name, tool.Title, tool.Description)
+			fmt.Printf("Name: %s\nTitle: %s\nDescription: %s\n\n", tool.ExternalName, tool.Title, tool.Description)
 		}
 		return nil
 	}

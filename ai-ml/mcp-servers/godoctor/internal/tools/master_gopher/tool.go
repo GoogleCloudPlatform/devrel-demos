@@ -20,9 +20,9 @@ func Register(server *mcp.Server, updater ToolUpdater) {
 	handler := &Handler{
 		updater: updater,
 	}
-	def := toolnames.Registry["ask_the_master_gopher"]
+	def := toolnames.Registry["agent.master"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.Name,
+		Name:        def.ExternalName,
 		Title:       def.Title,
 		Description: def.Description,
 	}, handler.Handle)

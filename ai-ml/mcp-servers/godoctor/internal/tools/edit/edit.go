@@ -15,9 +15,9 @@ import (
 
 // Register registers the smart_edit tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["smart_edit"]
+	def := toolnames.Registry["file.edit"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.Name,
+		Name:        def.ExternalName,
 		Title:       def.Title,
 		Description: def.Description,
 	}, toolHandler)

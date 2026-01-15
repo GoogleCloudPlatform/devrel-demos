@@ -28,7 +28,6 @@ import (
 	"github.com/danicat/godoctor/internal/tools/list_files"
 	"github.com/danicat/godoctor/internal/tools/master_gopher"
 	"github.com/danicat/godoctor/internal/tools/modernize"
-	"github.com/danicat/godoctor/internal/tools/open"
 	"github.com/danicat/godoctor/internal/tools/oracle"
 	"github.com/danicat/godoctor/internal/tools/read_code"
 	"github.com/danicat/godoctor/internal/tools/read_docs"
@@ -70,27 +69,26 @@ func (s *Server) RegisterHandlers() error {
 	}
 
 	availableTools := []toolDef{
-		{name: "read_docs", experimental: false, register: read_docs.Register},
-		{name: "review_code", experimental: false, register: func(srv *mcp.Server) {
+		{name: "go.docs", experimental: false, register: read_docs.Register},
+		{name: "agent.review", experimental: true, register: func(srv *mcp.Server) {
 			review_code.Register(srv, s.cfg.DefaultModel)
 		}},
-		{name: "edit_code", experimental: false, register: edit_code.Register},
-		{name: "read_code", experimental: false, register: read_code.Register},
-		{name: "code_outline", experimental: false, register: code_outline.Register},
-		{name: "open", experimental: true, register: open.Register},
-		{name: "inspect_symbol", experimental: false, register: inspect_symbol.Register},
-		{name: "smart_edit", experimental: false, register: edit.Register},
-		{name: "write", experimental: true, register: write.Register},
-		{name: "analyze_dependency_updates", experimental: true, register: analyze_dependency_updates.Register},
-		{name: "analyze_project", experimental: true, register: analyze_project.Register},
-		{name: "modernize", experimental: true, register: modernize.Register},
-		{name: "list_files", experimental: false, register: list_files.Register},
-		{name: "go_build", experimental: false, register: go_build.Register},
-		{name: "go_install", experimental: false, register: go_install.Register},
-		{name: "go_test", experimental: false, register: go_test.Register},
-		{name: "rename_symbol", experimental: true, register: rename_symbol.Register}, // experimental because likely to fail if no gopls
-		{name: "ask_specialist", experimental: true, register: oracle.Register},
-		{name: "ask_the_master_gopher", experimental: true, register: func(srv *mcp.Server) {
+		{name: "file.edit_legacy", experimental: false, register: edit_code.Register},
+		{name: "file.read", experimental: false, register: read_code.Register},
+		{name: "file.outline", experimental: false, register: code_outline.Register},
+		{name: "symbol.inspect", experimental: false, register: inspect_symbol.Register},
+		{name: "file.edit", experimental: false, register: edit.Register},
+		{name: "file.create", experimental: true, register: write.Register},
+		{name: "go.diff", experimental: true, register: analyze_dependency_updates.Register},
+		{name: "project.map", experimental: false, register: analyze_project.Register},
+		{name: "go.modernize", experimental: true, register: modernize.Register},
+		{name: "file.list", experimental: false, register: list_files.Register},
+		{name: "go.build", experimental: false, register: go_build.Register},
+		{name: "go.install", experimental: false, register: go_install.Register},
+		{name: "go.test", experimental: false, register: go_test.Register},
+		{name: "symbol.rename", experimental: true, register: rename_symbol.Register}, // experimental because likely to fail if no gopls
+		{name: "agent.specialist", experimental: false, register: oracle.Register},
+		{name: "agent.master", experimental: true, register: func(srv *mcp.Server) {
 			master_gopher.Register(srv, s.UpdateTools)
 		}},
 	}

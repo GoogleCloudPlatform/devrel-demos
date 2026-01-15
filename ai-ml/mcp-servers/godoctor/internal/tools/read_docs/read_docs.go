@@ -14,9 +14,9 @@ import (
 
 // Register registers the read_docs tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["read_docs"]
+	def := toolnames.Registry["go.docs"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.Name,
+		Name:        def.ExternalName,
 		Title:       def.Title,
 		Description: def.Description,
 	}, Handler)

@@ -15,9 +15,9 @@ import (
 
 // Register registers the write tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["write"]
+	def := toolnames.Registry["file.create"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.Name,
+		Name:        def.ExternalName,
 		Title:       def.Title,
 		Description: def.Description,
 	}, toolHandler)

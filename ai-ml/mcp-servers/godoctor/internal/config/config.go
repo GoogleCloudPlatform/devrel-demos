@@ -2,9 +2,13 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"os"
 	"strings"
+
+	"github.com/danicat/godoctor/internal/toolnames"
 )
 
 // Profile defines the operating mode of the server.
@@ -35,6 +39,7 @@ func Load(args []string) (*Config, error) {
 	versionFlag := fs.Bool("version", false, "print the version and exit")
 	agentsFlag := fs.Bool("agents", false, "print LLM agent instructions and exit")
 	listToolsFlag := fs.Bool("list-tools", false, "list available tools for the selected profile and exit")
+	toolConfigFlag := fs.String("tool-config", "", "path to tool definition overrides JSON file")
 	listenAddr := fs.String("listen", "", "listen address for HTTP transport (e.g., :8080)")
 	defaultModel := fs.String("model", "gemini-2.5-pro", "default Gemini model to use")
 	profileFlag := fs.String("profile", "standard", "server profile: standard, full, oracle")
@@ -46,6 +51,13 @@ func Load(args []string) (*Config, error) {
 
 	if err := fs.Parse(args); err != nil {
 		return nil, err
+	}
+
+	// Load Tool Overrides if specified
+	if *toolConfigFlag != "" {
+		if err := loadToolConfig(*toolConfigFlag); err != nil {
+			return nil, fmt.Errorf("failed to load tool config: %w", err)
+		}
 	}
 
 	profile := Profile(*profileFlag)
@@ -88,32 +100,56 @@ func Load(args []string) (*Config, error) {
 	return cfg, nil
 }
 
+func loadToolConfig(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	var overrides map[string]toolnames.ToolConfigEntry
+	if err := json.Unmarshal(data, &overrides); err != nil {
+		return err
+	}
+
+	toolnames.ApplyOverrides(overrides)
+	return nil
+}
+
+
 // IsToolEnabled checks if a tool should be enabled based on the current profile and overrides.
 // 'experimental' indicates if the tool is considered experimental (legacy concept, now mostly handled by profiles).
 func (c *Config) IsToolEnabled(name string, experimental bool) bool {
 	// 1. Explicitly Disabled?
-	if c.DisabledTools[name] {
+	// Users likely use External Name in flags, but we receive Internal Name here.
+	// This is tricky. We need to check both or map it.
+	// For now, let's assume users use External Name in flags.
+	// We need to resolve Internal -> External to check flags.
+	externalName := toolnames.Registry[name].ExternalName
+	if externalName == "" {
+		externalName = name // Fallback
+	}
+
+	if c.DisabledTools[externalName] || c.DisabledTools[name] {
 		return false
 	}
 
 	// 2. Explicitly Allowed?
-	if c.AllowedTools[name] {
+	if c.AllowedTools[externalName] || c.AllowedTools[name] {
 		return true
 	}
 
-	// 3. Profile-based defaults
+	// 3. Profile-based defaults (Using Internal Names)
 	switch c.Profile {
 	case ProfileOracle:
-		// Oracle starts with ONLY "ask_specialist" (and maybe "list_files" for context)
-		// Everything else must be explicitly allowed by the oracle via UpdateTools
-		if name == "ask_specialist" {
+		// Oracle starts with ONLY "ask_specialist"
+		if name == "agent.specialist" {
 			return true
 		}
 		return false
 
 	case ProfileDynamic:
 		// Dynamic starts with ONLY "ask_the_master_gopher"
-		if name == "ask_the_master_gopher" {
+		if name == "agent.master" {
 			return true
 		}
 		return false
@@ -125,7 +161,7 @@ func (c *Config) IsToolEnabled(name string, experimental bool) bool {
 	case ProfileStandard:
 		// Standard set
 		switch name {
-		case "code_outline", "inspect_symbol", "smart_edit", "read_docs", "go_build", "go_test", "list_files", "analyze_project":
+		case "file.outline", "symbol.inspect", "file.edit", "go.docs", "go.build", "go.test", "file.list", "project.map", "file.read":
 			return true
 		default:
 			// Experimental tools are disabled in standard profile unless explicitly allowed
