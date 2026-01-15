@@ -27,22 +27,22 @@ export default function RunHistory({ runs, selectedRunId, onSelectRun, onLoadMor
 
     return (
         <div className="flex flex-col h-full text-body">
-            <div className="p-4 border-b border-border bg-muted/30 flex flex-col gap-3">
+            <div className="p-4 border-b border-[#27272a] bg-[#161618] flex flex-col gap-3">
                 <div className="flex justify-between items-center">
-                    <h3 className="font-bold uppercase tracking-widest text-muted-foreground">Experiment Runs ({runs.length})</h3>
+                    <h3 className="font-bold uppercase tracking-widest text-[#52525b]">Experiment Runs ({runs.length})</h3>
                 </div>
                 <select
-                    className="w-full bg-background/50 border border-border rounded px-2 py-1 text-xs text-foreground focus:outline-none focus:border-primary"
+                    className="w-full bg-black/20 border border-white/10 rounded px-2 py-1 text-xs text-zinc-400 focus:outline-none focus:border-blue-500"
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                 >
-                    <option value="ALL" className="bg-background">All Runs</option>
-                    <option value="SUCCESS" className="bg-background">Success Only</option>
-                    <option value="FAILED" className="bg-background">Failed Only (All Types)</option>
-                    <option value="FAILED (VALIDATION)" className="bg-background">Validation Failures</option>
-                    <option value="FAILED (TIMEOUT)" className="bg-background">Timeouts</option>
-                    <option value="FAILED (LOOP)" className="bg-background">Loop Detection</option>
-                    <option value="FAILED (ERROR)" className="bg-background">System Errors</option>
+                    <option value="ALL">All Runs</option>
+                    <option value="SUCCESS">Success Only</option>
+                    <option value="FAILED">Failed Only (All Types)</option>
+                    <option value="FAILED (VALIDATION)">Validation Failures</option>
+                    <option value="FAILED (TIMEOUT)">Timeouts</option>
+                    <option value="FAILED (LOOP)">Loop Detection</option>
+                    <option value="FAILED (ERROR)">System Errors</option>
                 </select>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -52,7 +52,7 @@ export default function RunHistory({ runs, selectedRunId, onSelectRun, onLoadMor
                         .filter(r => {
                             if (filter === "ALL") return true;
                             if (filter === "SUCCESS") return r.is_success;
-                            if (filter === "FAILED") return !r.is_success && r.status !== 'RUNNING' && r.status !== 'QUEUED' && r.status !== 'running' && r.status !== 'queued';
+                            if (filter === "FAILED") return !r.is_success;
                             return r.reason === filter || r.status === filter; // Loose match for exact reasons
                         })
                         .sort((a, b) => a.id - b.id); // Chronological
@@ -60,28 +60,28 @@ export default function RunHistory({ runs, selectedRunId, onSelectRun, onLoadMor
                     if (altRuns.length === 0) return null;
 
                     return (
-                        <div key={alt} className="border-b border-border">
-                            <div className="px-4 py-2 bg-muted/10 text-muted-foreground font-bold uppercase tracking-tighter text-xs">
+                        <div key={alt} className="border-b border-[#27272a]">
+                            <div className="px-4 py-2 bg-black/20 text-[#71717a] font-bold uppercase tracking-tighter">
                                 {alt}
                             </div>
-                            <div className="divide-y divide-border/30">
+                            <div className="divide-y divide-[#27272a]/50">
                                 {altRuns.map(run => (
                                     <button
                                         key={run.id}
                                         onClick={() => onSelectRun(run)}
-                                        className={`w-full text-left p-4 hover:bg-muted/20 transition-all flex flex-col gap-2 ${selectedRunId === run.id ? 'bg-primary/10 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'}`}
+                                        className={`w-full text-left p-4 hover:bg-white/5 transition-all flex flex-col gap-2 ${selectedRunId === run.id ? 'bg-[#6366f1]/10 border-l-4 border-l-[#6366f1]' : 'border-l-4 border-l-transparent'}`}
                                     >
                                         <div className="flex justify-between items-start">
 
-                                            <span className="font-mono font-bold text-muted-foreground text-xs">Run {run.id} (Rep {run.repetition})</span>
+                                            <span className="font-mono font-bold text-zinc-400">Run {run.id} (Rep {run.repetition})</span>
                                             <div className="flex flex-col items-end">
-                                                <span className={`font-bold uppercase tracking-widest text-[10px] ${run.status?.toUpperCase() === 'RUNNING' || run.status?.toUpperCase() === 'QUEUED' ? 'text-blue-500' :
-                                                    run.status?.toUpperCase() === 'COMPLETED' ? 'text-emerald-500' : 'text-destructive'
+                                                <span className={`font-bold uppercase tracking-widest text-xs ${run.status?.toUpperCase() === 'RUNNING' || run.status?.toUpperCase() === 'QUEUED' ? 'text-blue-400' :
+                                                    run.status?.toUpperCase() === 'COMPLETED' ? 'text-emerald-400' : 'text-red-500'
                                                     }`}>
                                                     {run.status}
                                                 </span>
                                                 {run.reason && (
-                                                    <span className={`font-mono font-bold text-[9px] ${run.reason.toUpperCase() === 'SUCCESS' ? 'text-emerald-500' : 'text-destructive/80'
+                                                    <span className={`font-mono font-bold text-[10px] ${run.reason.toUpperCase() === 'SUCCESS' ? 'text-emerald-500' : 'text-red-400'
                                                         }`}>
                                                         {run.reason}
                                                     </span>
@@ -89,7 +89,7 @@ export default function RunHistory({ runs, selectedRunId, onSelectRun, onLoadMor
                                             </div>
                                         </div>
 
-                                        <div className="flex gap-4 items-center opacity-60 font-mono text-xs text-foreground">
+                                        <div className="flex gap-4 items-center opacity-50 font-mono text-sm">
                                             <span>{run.status === 'RUNNING' || run.status === 'QUEUED' ? '---' : `${(run.duration / 1e9).toFixed(1)}s`}</span>
                                             <span>{run.tests_passed}/{run.tests_passed + run.tests_failed} Tests</span>
                                         </div>
@@ -101,11 +101,11 @@ export default function RunHistory({ runs, selectedRunId, onSelectRun, onLoadMor
                 })}
             </div>
             {hasMore && (
-                <div className="p-4 border-t border-border bg-muted/20">
+                <div className="p-4 border-t border-[#27272a] bg-[#161618]">
                     <button
                         onClick={onLoadMore}
                         disabled={loading}
-                        className="w-full py-2 px-4 bg-secondary text-secondary-foreground font-bold uppercase tracking-widest text-[10px] rounded transition-colors disabled:opacity-50"
+                        className="w-full py-2 px-4 bg-[#27272a] hover:bg-[#3f3f46] text-zinc-300 font-bold uppercase tracking-widest text-xs rounded transition-colors disabled:opacity-50"
                     >
                         {loading ? 'Loading...' : 'Load More Results'}
                     </button>

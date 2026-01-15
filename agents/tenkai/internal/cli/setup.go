@@ -28,10 +28,7 @@ func setupLogging(cwd string) {
 }
 
 func initDB(cwd string) (*db.DB, error) {
-	dbPath := os.Getenv("TENKAI_DB_PATH")
-	if dbPath == "" {
-		dbPath = filepath.Join(cwd, "experiments", "tenkai.db")
-	}
+	dbPath := filepath.Join(cwd, "experiments", "tenkai.db")
 	database, err := db.Open(dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)

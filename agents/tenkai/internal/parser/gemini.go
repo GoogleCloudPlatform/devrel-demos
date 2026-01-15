@@ -197,30 +197,15 @@ func ParseLine(line string, metrics *AgentMetrics, pendingTools map[string]*Tool
 		}
 
 	case "message":
-		// Standardize content as JSON
-		contentObj := map[string]string{"text": evt.Content}
-		contentBytes, _ := json.Marshal(contentObj)
-		standardContent := string(contentBytes)
-
 		if evt.Delta {
 			// Aggregate deltas
 			if len(metrics.Messages) > 0 && metrics.Messages[len(metrics.Messages)-1].Role == evt.Role {
-				// We need to unmarshal, append, and marshal again if we want to keep it valid JSON
-				// Or simpler: just append raw text for deltas and only JSON-wrap finalized messages?
-				// Actually, deltas are tricky. Let's just append the raw content to the "text" field of the previous JSON.
-				lastMsg := &metrics.Messages[len(metrics.Messages)-1]
-
-				var lastContent map[string]string
-				if err := json.Unmarshal([]byte(lastMsg.Content), &lastContent); err == nil {
-					lastContent["text"] += evt.Content
-					newBytes, _ := json.Marshal(lastContent)
-					lastMsg.Content = string(newBytes)
-				}
+				metrics.Messages[len(metrics.Messages)-1].Content += evt.Content
 			} else {
 				metrics.Messages = append(metrics.Messages, MessageEvent{
 					Timestamp: ts,
 					Role:      evt.Role,
-					Content:   standardContent,
+					Content:   evt.Content,
 					Delta:     true,
 				})
 			}
@@ -228,11 +213,12 @@ func ParseLine(line string, metrics *AgentMetrics, pendingTools map[string]*Tool
 			metrics.Messages = append(metrics.Messages, MessageEvent{
 				Timestamp: ts,
 				Role:      evt.Role,
-				Content:   standardContent,
+				Content:   evt.Content,
 				Delta:     false,
 			})
 		}
 
+		// Check for termination token in the content
 		// Check for termination token in the content
 		// Only check if it comes from the model/assistant, to avoid self-triggering on echoed prompts.
 		if (evt.Role == "model" || evt.Role == "assistant") && strings.Contains(evt.Content, "<<TENKAI_DONE>>") {

@@ -70,15 +70,7 @@ func (api *API) CreateScenario(r *http.Request) (any, error) {
 		}
 	}
 
-	var env map[string]string
-	envJSON := r.FormValue("env")
-	if envJSON != "" {
-		if err := json.Unmarshal([]byte(envJSON), &env); err != nil {
-			return nil, NewAPIError(http.StatusBadRequest, fmt.Sprintf("Invalid env JSON: %v", err))
-		}
-	}
-
-	id, err := api.WSMgr.CreateScenario(name, desc, task, assets, validation, env)
+	id, err := api.WSMgr.CreateScenario(name, desc, task, assets, validation)
 	if err != nil {
 		return nil, err
 	}
@@ -92,11 +84,10 @@ func (api *API) GetScenario(r *http.Request) (any, error) {
 
 func (api *API) UpdateScenario(r *http.Request) (any, error) {
 	id := r.PathValue("id")
-
+	
 	var name, desc, task string
 	var validation []config.ValidationRule
 	var assets []config.Asset
-	var env map[string]string
 
 	contentType := r.Header.Get("Content-Type")
 	if strings.HasPrefix(contentType, "multipart/form-data") {
@@ -151,13 +142,6 @@ func (api *API) UpdateScenario(r *http.Request) (any, error) {
 			})
 		}
 
-		envJSON := r.FormValue("env")
-		if envJSON != "" {
-			if err := json.Unmarshal([]byte(envJSON), &env); err != nil {
-				return nil, NewAPIError(http.StatusBadRequest, fmt.Sprintf("Invalid env JSON: %v", err))
-			}
-		}
-
 	} else {
 		// JSON fallback
 		var req struct {
@@ -165,7 +149,6 @@ func (api *API) UpdateScenario(r *http.Request) (any, error) {
 			Description string                  `json:"description"`
 			Task        string                  `json:"task"`
 			Validation  []config.ValidationRule `json:"validation"`
-			Env         map[string]string       `json:"env"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			return nil, NewAPIError(http.StatusBadRequest, err.Error())
@@ -174,31 +157,15 @@ func (api *API) UpdateScenario(r *http.Request) (any, error) {
 		desc = req.Description
 		task = req.Task
 		validation = req.Validation
-		env = req.Env
 	}
 
-	if err := api.WSMgr.UpdateScenario(id, name, desc, task, validation, assets, env); err != nil {
+	if err := api.WSMgr.UpdateScenario(id, name, desc, task, validation, assets); err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return nil, NewAPIError(http.StatusNotFound, err.Error())
 		}
 		return nil, err
 	}
 
-	return map[string]string{"status": "updated"}, nil
-}
-
-func (api *API) LockScenario(r *http.Request) (any, error) {
-	id := r.PathValue("id")
-	var req struct {
-		Locked bool `json:"locked"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return nil, NewAPIError(http.StatusBadRequest, err.Error())
-	}
-
-	if err := api.WSMgr.LockScenario(id, req.Locked); err != nil {
-		return nil, NewAPIError(http.StatusInternalServerError, err.Error())
-	}
 	return map[string]string{"status": "updated"}, nil
 }
 
@@ -211,11 +178,4 @@ func (api *API) DeleteScenario(r *http.Request) (any, error) {
 		return nil, err
 	}
 	return map[string]string{"status": "deleted"}, nil
-}
-
-func (api *API) DeleteAllScenarios(r *http.Request) (any, error) {
-	if err := api.WSMgr.DeleteAllScenarios(); err != nil {
-		return nil, err
-	}
-	return map[string]string{"message": "All scenarios deleted"}, nil
 }

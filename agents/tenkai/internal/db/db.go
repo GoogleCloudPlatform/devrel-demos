@@ -59,11 +59,8 @@ func (db *DB) migrate() error {
 			report_content TEXT,
 			execution_control TEXT,
 			experiment_control TEXT,
-			ai_analysis TEXT,
-			is_locked BOOLEAN DEFAULT 0
+			ai_analysis TEXT
 		);`,
-		// Migration for existing tables
-		`ALTER TABLE experiments ADD COLUMN is_locked BOOLEAN DEFAULT 0;`,
 		`CREATE TABLE IF NOT EXISTS run_results (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			experiment_id INTEGER,
@@ -158,10 +155,6 @@ func (db *DB) migrate() error {
 
 	for _, q := range queries {
 		if _, err := db.conn.Exec(q); err != nil {
-			// Ignore error for adding existing column
-			if len(q) > 5 && q[:5] == "ALTER" {
-				continue
-			}
 			return err
 		}
 	}

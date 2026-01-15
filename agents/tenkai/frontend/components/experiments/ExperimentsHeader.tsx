@@ -33,7 +33,7 @@ export default function ExperimentsHeader() {
     };
 
     return (
-        <header className="flex justify-between items-center pb-6 border-b border-border">
+        <header className="flex justify-between items-center pb-6 border-b border-[#27272a]">
             <div>
                 <h1 className="text-title">Experiments</h1>
                 <p className="text-body mt-1 font-medium">Full history of agent benchmarking runs.</p>

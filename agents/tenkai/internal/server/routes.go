@@ -1,11 +1,5 @@
 package server
 
-import (
-	"net/http"
-
-	pkgConfig "github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
-)
-
 func (s *Server) registerRoutes() {
 	// Health
 	s.router.HandleFunc("GET /api/health", s.api.Wrap(s.api.HandleHealth))
@@ -25,7 +19,6 @@ func (s *Server) registerRoutes() {
 	s.router.HandleFunc("GET /api/experiments/{id}/tool-stats", s.api.Wrap(s.api.GetToolStats))
 	s.router.HandleFunc("POST /api/experiments/{id}/control", s.api.Wrap(s.api.ControlExperiment))
 	s.router.HandleFunc("POST /api/experiments/{id}/relaunch", s.api.Wrap(s.api.RelaunchExperiment))
-	s.router.HandleFunc("POST /api/experiments/{id}/lock", s.api.Wrap(s.api.LockExperiment))
 	s.router.HandleFunc("GET /api/experiments/{id}/export", s.api.HandleExportReport) // No Wrap!
 
 	// Logs
@@ -48,9 +41,7 @@ func (s *Server) registerRoutes() {
 	s.router.HandleFunc("POST /api/scenarios", s.api.Wrap(s.api.CreateScenario))
 	s.router.HandleFunc("GET /api/scenarios/{id}", s.api.Wrap(s.api.GetScenario))
 	s.router.HandleFunc("PUT /api/scenarios/{id}", s.api.Wrap(s.api.UpdateScenario))
-	s.router.HandleFunc("POST /api/scenarios/{id}/lock", s.api.Wrap(s.api.LockScenario))
 	s.router.HandleFunc("DELETE /api/scenarios/{id}", s.api.Wrap(s.api.DeleteScenario))
-	s.router.HandleFunc("DELETE /api/scenarios/delete-all", s.api.Wrap(s.api.DeleteAllScenarios))
 
 	// Templates
 	s.router.HandleFunc("GET /api/templates", s.api.Wrap(s.api.ListTemplates))
@@ -61,17 +52,5 @@ func (s *Server) registerRoutes() {
 	s.router.HandleFunc("GET /api/templates/{id}/config", s.api.Wrap(s.api.GetTemplateConfig))
 	s.router.HandleFunc("POST /api/templates/{id}/config", s.api.Wrap(s.api.UpdateTemplate))
 	s.router.HandleFunc("PUT /api/templates/{id}/config", s.api.Wrap(s.api.UpdateTemplate)) // Idiomatic PUT
-	s.router.HandleFunc("POST /api/templates/{id}/lock", s.api.Wrap(s.api.LockTemplate))
 	s.router.HandleFunc("DELETE /api/templates/{id}", s.api.Wrap(s.api.DeleteTemplate))
-
-	// Static Assets (UI)
-	// We serve from "frontend/out" (or env TENKAI_PUBLIC_DIR)
-	publicDir := "frontend/out"
-	if ConfiguredPublicDir := pkgConfig.GetPublicDir(); ConfiguredPublicDir != "" {
-		publicDir = ConfiguredPublicDir
-	}
-
-	// Check if directory exists to avoid panic/logs? http.FileServer handles it.
-	fs := http.FileServer(http.Dir(publicDir))
-	s.router.Handle("/", http.StripPrefix("/", fs))
 }

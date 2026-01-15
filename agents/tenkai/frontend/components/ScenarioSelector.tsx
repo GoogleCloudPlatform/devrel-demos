@@ -43,15 +43,15 @@ export function ScenarioSelector({ scenarios, selectedIds, onToggle, className }
                                 className={cn(
                                     "text-left p-4 panel transition-all flex items-start gap-4 border rounded-md group",
                                     isSelected
-                                        ? "border-primary bg-primary/5 shadow-[0_0_0_1px] shadow-primary/20"
-                                        : "border-border hover:border-accent bg-muted/20"
+                                        ? "border-primary bg-primary/5"
+                                        : "border-zinc-800 hover:border-zinc-600 bg-zinc-900/50"
                                 )}
                             >
                                 <div className={cn(
                                     "mt-1 w-5 h-5 flex-shrink-0 rounded border flex items-center justify-center transition-colors",
                                     isSelected
                                         ? "bg-primary border-primary"
-                                        : "border-muted-foreground/30 group-hover:border-muted-foreground/60"
+                                        : "border-zinc-600 group-hover:border-zinc-500"
                                 )}>
                                     {isSelected && <span className="text-primary-foreground text-xs font-bold">✓</span>}
                                 </div>
@@ -59,21 +59,21 @@ export function ScenarioSelector({ scenarios, selectedIds, onToggle, className }
                                     <div className="flex items-center gap-2">
                                         <span className={cn(
                                             "font-bold text-base",
-                                            isSelected ? "text-primary" : "text-foreground"
+                                            isSelected ? "text-primary" : "text-zinc-200"
                                         )}>
                                             {scen.name || `Scenario ${scen.id}`}
                                         </span>
-                                        <span className="text-xs font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-border">
+                                        <span className="text-xs font-mono text-zinc-500 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">
                                             {scen.id}
                                         </span>
                                     </div>
 
                                     {scen.description ? (
-                                        <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl">
+                                        <p className="text-sm text-zinc-400 leading-relaxed max-w-3xl">
                                             {scen.description}
                                         </p>
                                     ) : (
-                                        <p className="text-sm text-muted-foreground/50 italic">No description provided.</p>
+                                        <p className="text-sm text-zinc-600 italic">No description provided.</p>
                                     )}
                                 </div>
                             </button>

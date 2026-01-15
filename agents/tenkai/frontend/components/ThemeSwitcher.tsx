@@ -3,7 +3,7 @@
 import { useTheme } from "./ThemeProvider";
 import { Button } from "./ui/button";
 import { Sun, Moon, Smile, Palmtree } from "lucide-react";
-import { cn } from "@/utils/cn";
+import { cn } from "@/lib/utils";
 
 import { useEffect, useState } from "react";
 

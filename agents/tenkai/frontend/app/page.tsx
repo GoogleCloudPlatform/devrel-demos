@@ -1,27 +1,16 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { getExperiments, ExperimentRecord } from "@/app/api/api";
+import { getExperiments } from "@/app/api/api";
 import RefreshOnInterval from "@/components/RefreshOnInterval";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/utils/cn";
-import { Plus, Terminal, Loader2 } from "lucide-react";
+import { Plus, Terminal } from "lucide-react";
 import ProgressBar from "@/components/ui/progress-bar";
 import ExperimentsTable from "@/components/experiments/ExperimentsTable";
 
-export default function Home() {
-    const [experiments, setExperiments] = useState<ExperimentRecord[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        getExperiments()
-            .then(data => setExperiments(data))
-            .catch(err => console.error("Failed to fetch experiments:", err))
-            .finally(() => setLoading(false));
-    }, []);
+export default async function Home() {
+    const experiments = await getExperiments();
 
     const sortedExperiments = [...experiments].sort((a, b) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -29,14 +18,6 @@ export default function Home() {
 
     const activeExperiments = sortedExperiments.filter(e => e.status === 'RUNNING' || e.status === 'running');
     const completedExperiments = sortedExperiments.filter(e => e.status !== 'RUNNING' && e.status !== 'running');
-
-    if (loading) {
-        return (
-            <div className="flex h-screen items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-        );
-    }
 
     return (
         <div className="p-6 space-y-8">
@@ -72,7 +53,7 @@ export default function Home() {
                     <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Active Processes</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {activeExperiments.map(exp => (
-                            <Link href={`/experiments/view?id=${exp.id}`} key={exp.id}>
+                            <Link href={`/experiments/${exp.id}`} key={exp.id}>
                                 <Card className="hover:border-primary/50 transition-colors group">
                                     <CardHeader className="pb-2">
                                         <div className="flex justify-between items-start">

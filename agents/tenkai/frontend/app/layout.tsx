@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Roboto_Mono } from "next/font/google";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -18,7 +19,6 @@ export const metadata: Metadata = {
   description: "Benchmarking and optimizing tool-calling behaviors of AI agents.",
 };
 
-import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "sonner";
 
 export default function RootLayout({
@@ -27,16 +27,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${robotoMono.variable} antialiased bg-background text-foreground transition-colors duration-300`}>
-        <ThemeProvider>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <main className="flex-1 ml-[240px] bg-background">
-              {children}
-            </main>
-          </div>
-          <Toaster position="bottom-right" closeButton richColors />
+    <html lang="en" className="dark">
+      <body className={`${inter.variable} ${robotoMono.variable} bg-[#09090b] text-[#f4f4f5] antialiased`}>
+        <ThemeProvider defaultTheme="dark">
+          <Sidebar />
+          <main className="ml-[240px] min-h-screen bg-[#09090b]">
+            {children}
+          </main>
+          <Toaster position="bottom-right" theme="dark" closeButton richColors />
         </ThemeProvider>
       </body>
     </html>

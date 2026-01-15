@@ -3,7 +3,6 @@ package runner
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -15,7 +14,6 @@ import (
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
-	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/execution"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/parser"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/workspace"
 )
@@ -65,7 +63,6 @@ type Runner struct {
 	MaxConcurrent int
 	db            *db.DB
 	experimentID  int64
-	executor      execution.Executor
 }
 
 // New creates a new Runner.
@@ -80,23 +77,9 @@ func New(wsMgr *workspace.Manager, maxConcurrent int) *Runner {
 		maxConcurrent = numCPU
 	}
 
-	var exec execution.Executor
-	if os.Getenv("TENKAI_MODE") == "cloud" {
-		log.Println("Initializing CloudRunExecutor...")
-		cre, err := execution.NewCloudRunExecutor(context.Background())
-		if err != nil {
-			log.Fatalf("Failed to initialize CloudRunExecutor: %v", err)
-		}
-		exec = cre
-	} else {
-		log.Println("Initializing LocalExecutor...")
-		exec = execution.NewLocalExecutor()
-	}
-
 	return &Runner{
 		WorkspaceMgr:  wsMgr,
 		MaxConcurrent: maxConcurrent,
-		executor:      exec,
 	}
 }
 
@@ -168,14 +151,8 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 		Sem:             sem,
 	}
 
-	log.Printf("Starting experiment with %d unique jobs. Max concurrency: %d", resultsLimit, r.MaxConcurrent)
-
-	for i := 1; i <= cfg.Repetitions; i++ {
-		for _, scenPath := range cfg.Scenarios {
-			for _, alt := range cfg.Alternatives {
-				r.dispatchRun(rc, alt, scenPath, i)
-			}
-		}
+	for _, alt := range cfg.Alternatives {
+		r.dispatchAlternative(rc, alt, cfg.Scenarios, cfg.Repetitions)
 	}
 
 	go func() {
@@ -184,8 +161,6 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 	}()
 
 	completed := 0
-	stopping := false
-	lastLogTime := time.Now()
 	for {
 		select {
 		case res, ok := <-resultsChan:
@@ -200,29 +175,15 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 				goto Done
 			}
 			completed++
-			// Reset heartbeat timer on activity
-			lastLogTime = time.Now()
 
 			// Refine Reason and Status before appending to results slice
 			// Spec: Status must be COMPLETED for finished runs.
 			// Reasons: SUCCESS, VALIDATION, LOOP, ERROR, TIMEOUT.
-			// If we are stopping, and this result was cancelled/aborted, verify status.
-
-			// ... (rest of processing logic remains)
-
-			if stopping && !res.IsSuccess {
-				res.Status = db.RunStatusAborted
-				res.Reason = "CANCELLED"
-			} else {
-				res.Status = db.RunStatusCompleted
-			}
+			res.Status = db.RunStatusCompleted
 
 			switch {
 			case res.IsSuccess:
-				res.Status = db.RunStatusCompleted // Ensure success is always completed
 				res.Reason = db.ReasonSuccess
-			case res.Status == db.RunStatusAborted:
-				// Already handled above
 			case res.AgentMetrics != nil && res.AgentMetrics.LoopDetected:
 				res.Reason = db.ReasonFailedLoop
 			case res.ErrorStr != "" && IsTimeoutErr(res.Error):
@@ -319,24 +280,16 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 			results = append(results, res)
 
 		case <-time.After(1 * time.Second):
-			// Heartbeat Log
-			if time.Since(lastLogTime) > 30*time.Second {
-				percentage := float64(completed) / float64(resultsLimit) * 100
-				log.Printf("Heartbeat: Still working. Progress: %d/%d (%.1f%%)", completed, resultsLimit, percentage)
-				lastLogTime = time.Now()
-			}
-
-			if stopping {
-				continue
-			}
 
 			// Periodically check for STOP signal from DB to cancel context
 			action := r.checkAction()
 			if action == "stop" {
 				log.Printf("[Runner] Received STOP signal for Experiment %d. Canceling context...", r.experimentID)
 				cancel()
-				stopping = true
-				// Do NOT drain channel. Let the loop continue to process results as they finish/error out.
+				// Drain channel
+				for range resultsChan {
+				}
+				goto Done
 			}
 		}
 	}
@@ -377,7 +330,7 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 
 	// Calculate a job ID for logging
 	jobID := fmt.Sprintf("[%s|%s|#%d]", alt.Name, scenarioID, rep)
-	log.Printf("STARTED %s", jobID)
+	log.Printf("START %s", jobID)
 
 	// Ensure paths are absolute before passing to WorkspaceMgr
 	// 1. Prepare Workspace
@@ -391,23 +344,18 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 
 	// Anchor the workspace to prevent Gemini from walking up to tenkai root
 	// If isolation is needed, we should rely on the agent creating it or the scenario template providing it.
-	// 2. Prepare I/O Pipes
-	// We use io.Pipe to connect the Executor's output (Writer) to the Runner's streaming logic (Reader).
-	stdoutReader, stdoutWriter := io.Pipe()
-	stderrReader, stderrWriter := io.Pipe()
-	stdinReader, stdinWriter := io.Pipe()
-
-	// 3. Prepare Command Config
-	cmdCfg, jobCtx, jobCancel, _, execCancel, err := r.createJobConfig(ctx, alt, wsInfo, timeout, jobID)
+	// 2. Prepare Command
+	cmd, jobCtx, jobCancel, _, execCancel, err := r.createCommand(ctx, alt, wsInfo, timeout, jobID)
 	if err != nil {
-		res.Error = fmt.Errorf("job config creation failed: %w", err)
+		// Should not happen with current logic, but handle it
+		res.Error = fmt.Errorf("command creation failed: %w", err)
 		res.ErrorStr = res.Error.Error()
 		return res
 	}
 	defer jobCancel()
 	defer execCancel()
 
-	// 4. Setup Log Files
+	// 3. Capture Output (Real-time Stream)
 	logFile, stderrFile, logPath, err := r.setupLogFiles(wsInfo, alt.Name, scenarioID, rep)
 	if err != nil {
 		res.Error = err
@@ -417,17 +365,37 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 	defer logFile.Close()
 	defer stderrFile.Close()
 
-	// 5. Start Streaming - PROMPT.md to Stdin
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		res.Error = fmt.Errorf("failed to create stdout pipe: %w", err)
+		res.ErrorStr = res.Error.Error()
+		return res
+	}
+
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		res.Error = fmt.Errorf("failed to create stderr pipe: %w", err)
+		res.ErrorStr = res.Error.Error()
+		return res
+	}
+
+	stdinPipe, err := cmd.StdinPipe()
+	if err != nil {
+		res.Error = fmt.Errorf("failed to create stdin pipe: %w", err)
+		res.ErrorStr = res.Error.Error()
+		return res
+	}
+
+	// 3. Open PROMPT.md for Stdin
 	promptPath := filepath.Join(wsInfo.Project, "PROMPT.md")
-	go func() {
-		// Close writer after streaming to signal EOF to executor
-		defer stdinWriter.Close()
-		r.streamPromptContents(promptPath, stdinWriter)
-	}()
+	// Use helper for prompt streaming
+	go r.streamPromptContents(promptPath, stdinPipe)
 
 	var resultFound bool
 	var resultFoundMu sync.Mutex
+
 	var terminationRequested bool
+
 	var streamWg sync.WaitGroup
 	streamWg.Add(2)
 
@@ -435,49 +403,29 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 	syncCtx, syncCancel := context.WithCancel(jobCtx)
 	defer syncCancel()
 
+	// RAW LOG SYNC (Batched every 1s)
 	var stdoutMu, stderrMu sync.Mutex
 	var currentStdout, currentStderr strings.Builder
 
 	if res.RunID != 0 {
 		go r.syncLogs(syncCtx, &res, &stdoutMu, &currentStdout, &stderrMu, &currentStderr)
 	}
-
 	// STDOUT STREAMER
-	// We pass 'stdoutReader' instead of cmd.StdoutPipe
-	go r.streamStdout(stdoutReader, logFile, jobID, &res, nil, &streamWg, &stdoutMu, &currentStdout, &terminationRequested, &resultFound, &resultFoundMu, execCancel)
+	go r.streamStdout(stdoutPipe, logFile, jobID, &res, cmd, &streamWg, &stdoutMu, &currentStdout, &terminationRequested, &resultFound, &resultFoundMu, execCancel)
 
 	// STDERR STREAMER
-	go r.streamStderr(stderrReader, stderrFile, &res, &streamWg, &stderrMu, &currentStderr)
+	go r.streamStderr(stderrPipe, stderrFile, &res, &streamWg, &stderrMu, &currentStderr)
 
-	// 6. Execute Job (Access Executor via blocking call in goroutine? No, Execute is blocking)
-	// We run Execute in a goroutine so we can wait for streams?
-	// Actually, Execute blocks until completion. The streams are being read in other goroutines.
-	// But we need to close the write-end of the pipes when Execute finishes so readers get EOF.
-
-	execResChan := make(chan execution.ExecutionResult, 1)
-
-	go func() {
-		defer stdoutWriter.Close()
-		defer stderrWriter.Close()
-		execRes := r.executor.Execute(jobCtx, cmdCfg, stdinReader, stdoutWriter, stderrWriter)
-		execResChan <- execRes
-	}()
-
-	// Wait for streams (which wait for pipe verify/EOF)
-	// Note: waitForCommand logic needs adjustment. It relied on cmd.Wait().
-	// Now we wait for the result from channel AND streams.
-
-	// Wait for execution to finish
-	execRes := <-execResChan
-
-	// Wait for streams to drain
-	streamWg.Wait()
-
-	if execRes.Error != nil {
-		res.Error = execRes.Error
+	if err := cmd.Start(); err != nil {
+		res.Error = fmt.Errorf("execution failed to start: %w", err)
 		res.ErrorStr = res.Error.Error()
-	} else if execRes.ExitCode != 0 {
-		res.Error = fmt.Errorf("exit code %d", execRes.ExitCode)
+		return res
+	}
+
+	// Wait for streams and command
+	waitErr := r.waitForCommand(cmd, &streamWg, jobCtx, timeout, jobID, &resultFound, &resultFoundMu, &terminationRequested)
+	if waitErr != nil {
+		res.Error = waitErr
 		res.ErrorStr = res.Error.Error()
 	} else {
 		res.Error = nil
@@ -552,14 +500,7 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 	// Ensure live monitor is stopped before returning to avoid race conditions on DB
 	jobCancel()
 
-	statusStr := "Success"
-	if !res.IsSuccess {
-		statusStr = "Failed"
-		if res.ErrorStr != "" {
-			statusStr = fmt.Sprintf("Failed (%s)", res.ErrorStr)
-		}
-	}
-	log.Printf("COMPLETED %s [%s] in %s", jobID, statusStr, res.Duration.Round(time.Millisecond))
+	log.Printf("DONE  %s in %s", jobID, res.Duration.Round(time.Millisecond))
 
 	// Result will be saved to DB in the main Run loop
 	return res
@@ -570,7 +511,7 @@ func (r *Runner) evaluateCode(ctx context.Context, wsPath string, scenConfig *co
 		return nil, nil, fmt.Errorf("invalid scenario: no validation rules defined")
 	}
 
-	report, err := r.Validate(ctx, wsPath, scenConfig.Validation, stdout, scenConfig.Env)
+	report, err := r.Validate(ctx, wsPath, scenConfig.Validation, stdout)
 	if err != nil {
 		return nil, nil, err
 	}

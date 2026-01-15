@@ -1,12 +1,29 @@
-.PHONY: setup deploy test-local
+# Makefile for Tenkai
 
-setup:
-	chmod +x deploy/setup_cloud.sh
-	./deploy/setup_cloud.sh
+# Go parameters
+GOCMD=go
+GOBUILD=$(GOCMD) build
+GOCLEAN=$(GOCMD) clean
+GOTEST=$(GOCMD) test
+GOINSTALL=$(GOCMD) install
+BINARY_NAME=tenkai
 
-deploy:
-	chmod +x deploy/deploy.sh
-	./deploy/deploy.sh
+# Version
+VERSION := 0.1.0
+LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 
-test-local:
-	go test -v ./internal/...
+all: build
+
+build:
+	$(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME) .
+
+install:
+	$(GOINSTALL) $(LDFLAGS) .
+
+clean:
+	@rm -f $(BINARY_NAME)
+
+test:
+	$(GOTEST) -v ./...
+
+.PHONY: all build install clean test

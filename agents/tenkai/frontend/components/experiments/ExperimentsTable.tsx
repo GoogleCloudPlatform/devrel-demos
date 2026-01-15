@@ -1,15 +1,30 @@
+'use client';
+
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/utils/cn";
 import ProgressBar from "@/components/ui/progress-bar";
 import { ExperimentRecord } from "@/types/domain";
+import { toggleLock } from "@/app/api/api";
+import LockToggle from "@/components/LockToggle";
+import { useRouter } from "next/navigation";
 
 interface ExperimentsTableProps {
     experiments: ExperimentRecord[];
 }
 
 export default function ExperimentsTable({ experiments }: ExperimentsTableProps) {
+    const router = useRouter();
+
+    const handleToggleLock = async (id: number, locked: boolean) => {
+        const success = await toggleLock(id, locked);
+        if (success) {
+            router.refresh(); // Refresh to update UI state
+        }
+        return success;
+    };
+
     return (
         <div className="rounded-md border bg-card text-body">
             <Table>
@@ -32,32 +47,31 @@ export default function ExperimentsTable({ experiments }: ExperimentsTableProps)
                 <TableBody>
                     {experiments.map((exp) => (
                         <TableRow key={exp.id}>
-                            <TableCell className="font-mono text-muted-foreground font-bold">#{exp.id}</TableCell>
+                            <TableCell className="font-mono text-muted-foreground font-bold flex items-center gap-2">
+                                <span>#{exp.id}</span>
+                                <LockToggle
+                                    locked={!!exp.is_locked}
+                                    onToggle={(locked) => handleToggleLock(exp.id, locked)}
+                                />
+                            </TableCell>
                             <TableCell>
                                 <Badge variant={
                                     exp.status?.toUpperCase() === 'COMPLETED' ? 'secondary' :
                                         exp.status?.toUpperCase() === 'FAILED' ? 'destructive' : 'outline'
                                 } className={cn(
                                     "uppercase font-bold tracking-wider text-[10px]",
-                                    exp.status?.toUpperCase() === 'COMPLETED' && "border-emerald-500/50 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
-                                    exp.status?.toUpperCase() === 'RUNNING' && "border-primary/50 text-primary bg-primary/10 animate-pulse",
-                                    exp.status?.toUpperCase() === 'ABORTED' && "border-border text-muted-foreground bg-muted/50",
-                                    exp.status?.toUpperCase() === 'QUEUED' && "border-blue-500/50 text-blue-500 bg-blue-500/10"
+                                    exp.status?.toUpperCase() === 'COMPLETED' && "border-emerald-500/50 text-emerald-500 bg-emerald-500/10",
+                                    exp.status?.toUpperCase() === 'RUNNING' && "border-indigo-500/50 text-indigo-400 bg-indigo-500/10 animate-pulse",
+                                    exp.status?.toUpperCase() === 'ABORTED' && "border-zinc-500/50 text-zinc-400 bg-zinc-500/10",
+                                    exp.status?.toUpperCase() === 'QUEUED' && "border-blue-500/50 text-blue-400 bg-blue-500/10"
                                 )}>
                                     {exp.status}
                                 </Badge>
                             </TableCell>
                             <TableCell>
-                                <div className="flex items-center gap-2">
-                                    <Link href={`/experiments/view?id=${exp.id}`} className="hover:text-primary font-bold text-base transition-colors truncate block max-w-[350px]" title={exp.name}>
-                                        {exp.name || "Unnamed Experiment"}
-                                    </Link>
-                                    {exp.is_locked && (
-                                        <span title="Locked" className="text-amber-500">
-                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                                        </span>
-                                    )}
-                                </div>
+                                <Link href={`/experiments/${exp.id}`} className="hover:text-primary font-bold text-base transition-colors truncate block max-w-[350px]" title={exp.name}>
+                                    {exp.name || "Unnamed Experiment"}
+                                </Link>
                             </TableCell>
                             <TableCell>
                                 <p className="text-sm text-muted-foreground truncate max-w-[500px]" title={exp.description}>

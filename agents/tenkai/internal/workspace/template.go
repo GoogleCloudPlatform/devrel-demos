@@ -16,7 +16,6 @@ type Template struct {
 	ID            string   `json:"id"`
 	Name          string   `json:"name"`
 	Description   string   `json:"description"`
-	Locked        bool     `json:"locked"`
 	Path          string   `json:"path"`
 	ConfigContent string   `json:"config_content,omitempty"` // For detail view
 	AltCount      int      `json:"alt_count"`
@@ -27,7 +26,7 @@ type Template struct {
 
 // ListTemplates returns a list of available templates found in the experiments/templates directory.
 func (m *Manager) ListTemplates() []Template {
-	templates := []Template{}
+	var templates []Template
 
 	// Assume standard location relative to BasePath
 	templatesBase := filepath.Join(m.BasePath, "experiments", "templates")
@@ -58,7 +57,6 @@ func (m *Manager) ListTemplates() []Template {
 			ID:            id,
 			Name:          cfg.Name,
 			Description:   cfg.Description,
-			Locked:        cfg.Locked,
 			Path:          configPath,
 			ConfigContent: string(contentBytes),
 			AltCount:      len(cfg.Alternatives),
@@ -93,7 +91,6 @@ func (m *Manager) GetTemplate(id string) (*Template, error) {
 			ID:            id,
 			Name:          cfg.Name,
 			Description:   cfg.Description,
-			Locked:        cfg.Locked,
 			Path:          configPath,
 			ConfigContent: string(contentBytes),
 			AltCount:      len(cfg.Alternatives),
@@ -224,46 +221,11 @@ func (m *Manager) UpdateTemplate(id, configContent string, files map[string]stri
 	return nil
 }
 
-// LockTemplate updates the locked status of a template.
-func (m *Manager) LockTemplate(id string, locked bool) error {
-	templatesBase := filepath.Join(m.BasePath, "experiments", "templates")
-	tmplDir := filepath.Join(templatesBase, id)
-	configPath := filepath.Join(tmplDir, "config.yaml")
-
-	if _, err := os.Stat(tmplDir); os.IsNotExist(err) {
-		return fmt.Errorf("template %q not found", id)
-	}
-
-	// Load existing config
-	cfg, err := config.Load(configPath)
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
-
-	// Update locked status
-	cfg.Locked = locked
-
-	// Save config
-	data, err := yaml.Marshal(cfg)
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(configPath, data, 0644)
-}
-
 // DeleteTemplate deletes a template directory.
 func (m *Manager) DeleteTemplate(id string) error {
 	templatesBase := filepath.Join(m.BasePath, "experiments", "templates")
 	path := filepath.Join(templatesBase, id)
-	configPath := filepath.Join(path, "config.yaml")
-
 	if _, err := os.Stat(path); err == nil {
-		// Check if locked
-		cfg, err := config.Load(configPath)
-		if err == nil && cfg.Locked {
-			return fmt.Errorf("template is locked")
-		}
 		return os.RemoveAll(path)
 	}
 	return fmt.Errorf("template %q not found", id)
@@ -278,15 +240,7 @@ func (m *Manager) DeleteAllTemplates() error {
 	}
 	for _, entry := range entries {
 		if entry.IsDir() {
-			path := filepath.Join(templatesBase, entry.Name())
-			configPath := filepath.Join(path, "config.yaml")
-
-			// Check if locked
-			cfg, err := config.Load(configPath)
-			if err == nil && cfg.Locked {
-				continue // Skip locked templates
-			}
-			os.RemoveAll(path)
+			os.RemoveAll(filepath.Join(templatesBase, entry.Name()))
 		}
 	}
 	return nil

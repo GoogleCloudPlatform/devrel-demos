@@ -47,7 +47,7 @@ func (api *API) GetSummaries(r *http.Request) (any, error) {
 	summary := runner.CalculateSummary(results, exp.ExperimentControl, allAlts)
 
 	// 5. Flatten to list
-	rows := []models.ExperimentSummaryRow{}
+	var rows []models.ExperimentSummaryRow
 	for _, row := range summary.Alternatives {
 		row.ExperimentID = id
 		rows = append(rows, row)

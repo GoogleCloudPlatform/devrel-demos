@@ -1,102 +1,34 @@
-import { notFound } from "next/navigation";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import {
+    ExperimentRecord,
+    Checkpoint,
+    ExperimentSummaryRow as ExperimentSummaryRecord,
+    RunResult
+} from '@/types/domain';
 
-const API_BASE = '/api';
+export type { ExperimentRecord, ExperimentSummaryRecord, Checkpoint };
 
-export interface ExperimentRecord {
-    id: number;
-    name: string;
-    description: string;
-    timestamp: string;
-    status: 'RUNNING' | 'COMPLETED' | 'ABORTED' | 'running' | 'completed';
-    reps: number;
-    concurrent: number;
-    total_jobs: number;
-    completed_jobs: number;
-    completion_percentage: number;
-    is_locked: boolean;
-    success_rate: number;
-    avg_duration: number;
-    avg_tokens: number;
-    total_lint: number;
-    successful_runs: number;
-    timeout: string;
-    error_message: string;
-    report_content: string;
-    config_content: string;
-    experiment_control?: string;
-    ai_analysis: string;
-    progress?: {
-        completed: number;
-        total: number;
-        percentage: number;
-    };
+const API_BASE = typeof window === 'undefined'
+    ? 'http://127.0.0.1:8080/api'
+    : '/api';
+
+async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    const url = `${API_BASE}${endpoint}`;
+    const res = await fetch(url, {
+        cache: 'no-store', // Always fetch fresh data
+        ...options
+    });
+
+    if (!res.ok) {
+        // Handle 404 gracefully for some resources if needed, or throw
+        if (res.status === 404) return null as any;
+        throw new Error(`API call failed: ${res.status} ${res.statusText} at ${url}`);
+    }
+
+    return res.json();
 }
 
-export interface ExperimentSummaryRow {
-    id: number;
-    experiment_id: number;
-    alternative: string;
-    total_runs: number;
-    success_count: number;
-    success_rate: number;
-    avg_duration: number;
-    avg_tokens: number;
-    avg_lint: number;
-    avg_tests_passed: number;
-    avg_tests_failed: number;
-    timeouts: number;
-    total_tool_calls: number;
-    failed_tool_calls: number;
-    p_success: number;
-    p_duration: number;
-    p_tokens: number;
-    p_lint: number;
-    p_tests_passed: number;
-    p_tests_failed: number;
-    p_timeout: number;
-    p_tool_calls: number;
-    tool_analysis: ToolAnalysis[];
-}
-
-export interface ToolAnalysis {
-    tool_name: string;
-    succ_fail_p_value: number;
-    duration_corr: number;
-    tokens_corr: number;
-}
-
-export interface ToolStatRow {
-    tool_name: string;
-    alternative: string;
-    total_calls: number;
-    failed_calls: number;
-    // other fields if needed
-}
-
-export interface RunResultRecord {
-    id: number;
-    experiment_id: number;
-    alternative: string;
-    scenario: string;
-    repetition: number;
-    duration: number;
-    error: string;
-    tests_passed: number;
-    tests_failed: number;
-    lint_issues: number;
-    total_tokens: number;
-    input_tokens: number;
-    output_tokens: number;
-    tool_calls_count: number;
-    failed_tool_calls: number;
-    loop_detected: boolean;
-    status: string;
-    reason: string;
-    stdout: string;
-    stderr: string;
-    is_success: boolean;
-    validation_report: string;
-}
+export type RunResultRecord = RunResult;
 
 export interface ToolUsageRecord {
     id: number;
@@ -106,7 +38,7 @@ export interface ToolUsageRecord {
     status: string;
     output: string;
     error: string;
-    duration: number;
+    duration: number; // seconds
     timestamp: string;
 }
 
@@ -137,140 +69,191 @@ export interface LintResultRecord {
     severity: string;
     rule_id: string;
 }
-
-export interface Checkpoint {
-    experiment_id?: number | string;
-    status?: string;
-    completed: number;
-    total: number;
-    percentage: number;
-    last_update?: string;
-    // Aliases for compatibility
-    completed_jobs: number;
-    total_jobs: number;
-}
-
-// ...
-
-// Helper for checkpoint (progress)
-export async function getCheckpoint(id: string | number): Promise<Checkpoint> {
-    const exp = await getExperiment(id);
-    const progress = exp.progress || { completed: 0, total: 0, percentage: 0, completed_jobs: 0, total_jobs: 0 };
-    return {
-        ...progress,
-        completed_jobs: progress.completed,
-        total_jobs: progress.total,
-        status: exp.status
-    };
-}
-
-export interface Scenario {
-    id: string; // ID is name in scenario.yaml usually, but looking at routes it might be handling IDs.
-    name: string;
-    description: string;
-    locked: boolean;
-    task: string;
-    // ... assets, validation
-}
-
-export interface Template {
-    id: string;
-    name: string;
-    description: string;
-    locked: boolean;
-    // ... config
-}
-
-async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    // Check if we are checking "local" build or really client side?
-    // If client side, relative path is fine.
-    // If server side (build time), we might need absolute URL if backend is needed.
-    // Assuming client side mostly.
-    const res = await fetch(`${API_BASE}${endpoint}`, options);
-    if (!res.ok) {
-        throw new Error(`API Error ${res.status}: ${res.statusText}`);
-    }
-    return res.json();
+export interface JobResponse {
+    job_id?: string;
+    error?: string;
 }
 
 export async function getExperiments(): Promise<ExperimentRecord[]> {
-    const data = await fetchAPI<ExperimentRecord[]>('/experiments');
-    return data || [];
+    try {
+        return (await fetchAPI<ExperimentRecord[]>('/experiments')) || [];
+    } catch (e) {
+        console.error("Failed to fetch experiments:", e);
+        return [];
+    }
 }
 
-export async function getExperiment(id: string | number): Promise<ExperimentRecord> {
-    return fetchAPI(`/experiments/${id}`);
+export async function getExperimentById(id: number | string): Promise<ExperimentRecord | null> {
+    return fetchAPI<ExperimentRecord>(`/experiments/${id}`);
 }
 
-export async function getExperimentSummaries(id: string | number): Promise<ExperimentSummaryRow[]> {
-    const data = await fetchAPI<ExperimentSummaryRow[]>(`/experiments/${id}/summaries`);
-    return data || [];
+export async function getGlobalStats() {
+    const data = await fetchAPI<any>('/stats');
+    if (!data) return { totalRuns: 0, avgSuccessRate: '0%' };
+    return {
+        totalRuns: data.total_runs || 0,
+        avgSuccessRate: (data.avg_success_rate || 0).toFixed(1) + '%'
+    };
 }
 
-export async function getRunResults(id: string | number, page: number = 1, limit: number = 100): Promise<RunResultRecord[]> {
-    const data = await fetchAPI<RunResultRecord[]>(`/experiments/${id}/runs?page=${page}&limit=${limit}`);
-    return data || [];
+export async function getReportContent(reportPath: string): Promise<string> {
+    return ""; // Deprecated
 }
 
-export async function getScenarios(): Promise<Scenario[]> {
-    const data = await fetchAPI<Scenario[]>('/scenarios');
-    return data || [];
+export async function getCheckpoint(idOrPath: string): Promise<Checkpoint | null> {
+    // Determine ID from input (could be "experiments/123" or "123")
+    const id = idOrPath.toString().split('/').pop();
+    if (!id) return null;
+
+    const exp = await getExperimentById(id);
+    if (!exp) return null;
+
+    return {
+        experiment_id: exp.id,
+        status: exp.status,
+        total_jobs: exp.progress?.total || exp.total_jobs || 0,
+        completed_jobs: exp.progress?.completed || exp.completed_jobs || 0,
+        percentage: exp.progress?.percentage || 0,
+        last_update: new Date().toISOString()
+    };
 }
 
-export async function getTemplates(): Promise<Template[]> {
-    const data = await fetchAPI<Template[]>('/templates');
-    return data || [];
+// Fetch a single experiment by ID (Alias)
+export function getExperiment(id: number): Promise<ExperimentRecord | null> {
+    return getExperimentById(id);
 }
 
-export async function getSimplifiedMetrics(id: string | number): Promise<any> {
-    // Based on route /tool-stats or similar? Or /stats?
-    // The error log mentioned usage in [id]/page.tsx.
-    // Let's assume it calls /tool-stats or just returns a part of ExperimentRecord?
-    // I'll map it to /tool-stats for now.
-    return fetchAPI(`/experiments/${id}/tool-stats`);
-}
-
-// Helper for checkpoint (progress)
-
-
-export async function lockExperiment(id: string | number, locked: boolean): Promise<void> {
-    await fetchAPI(`/experiments/${id}/lock`, {
+export async function saveAIAnalysis(id: number | string, analysis: string) {
+    return fetchAPI(`/experiments/${id}/analysis`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ locked })
+        body: JSON.stringify({ analysis })
     });
 }
 
-export async function reValidateExperiment(id: string | number): Promise<any> {
-    return fetchAPI(`/experiments/${id}/reval`, { method: 'POST' });
+export async function getSimplifiedMetrics(id: number | string) {
+    // Derived from getExperiment
+    const exp = await getExperimentById(id);
+    if (!exp) return null;
+
+    return {
+        total: exp.total_jobs || 0,
+        successful: exp.successful_runs || 0,
+        successRate: (exp.success_rate || 0).toFixed(1) + '%',
+        avgDuration: (exp.avg_duration || 0).toFixed(1) + 's',
+        avgTokens: ((exp.avg_tokens || 0) / 1000).toFixed(1) + 'k',
+        totalLint: exp.total_lint || 0,
+        results: []
+    };
 }
 
-export async function reValidateRun(id: string | number): Promise<any> {
-    return fetchAPI(`/runs/${id}/reval`, { method: 'POST' });
+export async function getExperimentSummaries(id: number | string): Promise<ExperimentSummaryRecord[]> {
+    return fetchAPI<ExperimentSummaryRecord[]>(`/experiments/${id}/summaries`);
 }
 
-export async function lockScenario(id: string | number, locked: boolean): Promise<boolean> {
-    const res = await fetch(`${API_BASE}/scenarios/${id}/lock`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ locked })
+export async function getRunResults(experimentId: number | string, page = 1, limit = 100): Promise<RunResultRecord[]> {
+    return fetchAPI<RunResultRecord[]>(`/experiments/${experimentId}/runs?page=${page}&limit=${limit}`);
+}
+export async function getToolUsage(runId: number): Promise<ToolUsageRecord[]> {
+    const res = await fetchAPI<ToolUsageRecord[]>(`/runs/${runId}/tools`);
+    if (!res) return [];
+    return res.map(r => ({
+        ...r,
+        duration: (r.duration || 0) / 1e9 // Convert nanoseconds to seconds for UI
+    }));
+}
+
+export async function getMessages(runId: number, page = 1, limit = 1000): Promise<MessageRecord[]> {
+    return (await fetchAPI<MessageRecord[]>(`/runs/${runId}/messages?page=${page}&limit=${limit}`)) || [];
+}
+
+export async function getRunFiles(runId: number) {
+    return (await fetchAPI<any[]>(`/runs/${runId}/files`)) || [];
+}
+
+export async function getTestResults(runId: number): Promise<TestResultRecord[]> {
+    return (await fetchAPI<TestResultRecord[]>(`/runs/${runId}/tests`)) || [];
+}
+
+export async function getLintResults(runId: number): Promise<LintResultRecord[]> {
+    return (await fetchAPI<LintResultRecord[]>(`/runs/${runId}/lint`)) || [];
+}
+
+
+export async function getNextExperimentNumber(nameBase: string): Promise<number> {
+    return 0; // Not needed if Go handles ID/Naming
+}
+
+export async function getConfigFile(experimentId: number | string, relativePath: string): Promise<string | null> {
+    return null; // File access restricted
+}
+// Fetch all scenarios from API
+export async function getScenarios(): Promise<any[]> {
+    try {
+        return (await fetchAPI<any[]>('/scenarios')) || [];
+    } catch (e) {
+        console.error("Failed to fetch scenarios:", e);
+        return [];
+    }
+}
+
+export async function getScenarioById(id: string): Promise<any | null> {
+    // Implement detail endpoint or filter list
+    const scenarios = await getScenarios();
+    return scenarios.find(s => s.id === id) || null;
+}
+
+export async function getTemplates(): Promise<any[]> {
+    try {
+        return (await fetchAPI<any[]>('/templates')) || [];
+    } catch (e) {
+        console.error("Failed to fetch templates:", e);
+        return [];
+    }
+}
+
+
+export async function getTemplateConfig(name: string): Promise<any | null> {
+    // Templates endpoint should probably return details?
+    // Current list endpoint returns basic info.
+    // Assuming backend might need /api/templates/{id} for content.
+    return null;
+}
+
+export interface ToolStatRow {
+    alternative: string;
+    tool_name: string;
+    total_calls: number;
+    failed_calls: number; // Added
+    avg_calls: number;
+}
+
+export async function getToolStats(experimentId: number): Promise<ToolStatRow[]> {
+    return fetchAPI<ToolStatRow[]>(`/experiments/${experimentId}/tool-stats`);
+}
+
+export async function reValidateRun(runId: number): Promise<JobResponse> {
+    return fetchAPI<JobResponse>(`/runs/${runId}/reval`, {
+        method: 'POST'
     });
-    return res.ok;
 }
 
-export async function deleteScenario(id: string) {
-    return fetchAPI(`/scenarios/${id}`, { method: 'DELETE' });
-}
-
-export async function lockTemplate(id: string | number, locked: boolean): Promise<boolean> {
-    const res = await fetch(`${API_BASE}/templates/${id}/lock`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ locked })
+export async function reValidateExperiment(experimentId: number): Promise<JobResponse> {
+    return fetchAPI<JobResponse>(`/experiments/${experimentId}/reval`, {
+        method: 'POST'
     });
-    return res.ok;
 }
 
-export async function deleteTemplate(id: string) {
-    return fetchAPI(`/templates/${id}`, { method: 'DELETE' });
+export async function toggleLock(experimentId: number, locked: boolean): Promise<boolean> {
+    try {
+        await fetchAPI(`/experiments/${experimentId}/lock`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ locked })
+        });
+        return true;
+    } catch (e) {
+        console.error("Failed to toggle lock:", e);
+        return false;
+    }
 }

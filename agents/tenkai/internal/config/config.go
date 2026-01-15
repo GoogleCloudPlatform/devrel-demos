@@ -12,7 +12,6 @@ import (
 type Configuration struct {
 	Name          string        `yaml:"name" json:"name"`
 	Description   string        `yaml:"description,omitempty" json:"description,omitempty"`
-	Locked        bool          `yaml:"locked,omitempty" json:"locked,omitempty"`
 	Repetitions   int           `yaml:"repetitions,omitempty" json:"repetitions,omitempty"`
 	MaxConcurrent int           `yaml:"max_concurrent,omitempty" json:"max_concurrent,omitempty"`
 	Timeout       string        `yaml:"timeout,omitempty" json:"timeout,omitempty"`                       // e.g. "5m", "10m"
@@ -49,31 +48,27 @@ type Asset struct {
 
 // ValidationRule defines a success criterion for the scenario.
 type ValidationRule struct {
-	Type           string            `yaml:"type" json:"type"`
-	Target         string            `yaml:"target,omitempty" json:"target,omitempty"`
-	MinCoverage    float64           `yaml:"min_coverage,omitempty" json:"min_coverage,omitempty"`
-	MaxIssues      int               `yaml:"max_issues,omitempty" json:"max_issues,omitempty"`
-	Exclude        []string          `yaml:"exclude,omitempty" json:"exclude,omitempty"`
-	Prompt         string            `yaml:"prompt,omitempty" json:"prompt,omitempty"`
-	Context        []string          `yaml:"context,omitempty" json:"context,omitempty"`
-	Command        string            `yaml:"command,omitempty" json:"command,omitempty"`
-	Args           []string          `yaml:"args,omitempty" json:"args,omitempty"`
-	Env            map[string]string `yaml:"env,omitempty" json:"env,omitempty"`                             // Environment variables for the validation command
-	ExpectExitCode int               `yaml:"expect_exit_code,omitempty" json:"expected_exit_code,omitempty"` // Frontend expects expected_exit_code
-	ExpectOutput   string            `yaml:"expect_output,omitempty" json:"expect_output,omitempty"`
-	Path           string            `yaml:"path,omitempty" json:"path,omitempty"` // Path to custom validator script/binary (for type=custom)
+	Type           string   `yaml:"type" json:"type"`
+	Target         string   `yaml:"target,omitempty" json:"target,omitempty"`
+	MinCoverage    float64  `yaml:"min_coverage,omitempty" json:"min_coverage,omitempty"`
+	MaxIssues      int      `yaml:"max_issues,omitempty" json:"max_issues,omitempty"`
+	Exclude        []string `yaml:"exclude,omitempty" json:"exclude,omitempty"`
+	Prompt         string   `yaml:"prompt,omitempty" json:"prompt,omitempty"`
+	Context        []string `yaml:"context,omitempty" json:"context,omitempty"`
+	Command        string   `yaml:"command,omitempty" json:"command,omitempty"`
+	Args           []string `yaml:"args,omitempty" json:"args,omitempty"`
+	ExpectExitCode int      `yaml:"expect_exit_code,omitempty" json:"expected_exit_code,omitempty"` // Frontend expects expected_exit_code
+	ExpectOutput   string   `yaml:"expect_output,omitempty" json:"expect_output,omitempty"`
 }
 
 // ScenarioConfig represents the content of a scenario.yaml file.
 type ScenarioConfig struct {
-	Name        string            `yaml:"name" json:"name"`
-	Description string            `yaml:"description,omitempty" json:"description,omitempty"`
-	Locked      bool              `yaml:"locked,omitempty" json:"locked,omitempty"`
-	Task        string            `yaml:"task,omitempty" json:"task,omitempty"`
-	GithubIssue string            `yaml:"github_issue,omitempty" json:"github_issue,omitempty"`
-	Assets      []Asset           `yaml:"assets" json:"assets"`
-	Validation  []ValidationRule  `yaml:"validation" json:"validation"`
-	Env         map[string]string `yaml:"env,omitempty" json:"env,omitempty"`
+	Name        string           `yaml:"name" json:"name"`
+	Description string           `yaml:"description,omitempty" json:"description,omitempty"`
+	Task        string           `yaml:"task,omitempty" json:"task,omitempty"`
+	GithubIssue string           `yaml:"github_issue,omitempty" json:"github_issue,omitempty"`
+	Assets      []Asset          `yaml:"assets" json:"assets"`
+	Validation  []ValidationRule `yaml:"validation" json:"validation"`
 }
 
 // Load reads the configuration from the specified file path.
@@ -134,9 +129,4 @@ func LoadScenarioConfig(path string) (*ScenarioConfig, error) {
 	}
 
 	return &cfg, nil
-}
-
-// GetPublicDir returns the configured public directory for static assets.
-func GetPublicDir() string {
-	return os.Getenv("TENKAI_PUBLIC_DIR")
 }

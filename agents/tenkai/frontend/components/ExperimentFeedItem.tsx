@@ -3,17 +3,17 @@ import Link from 'next/link';
 import { ExperimentRecord } from '@/app/api/api';
 
 export default function ExperimentFeedItem({ exp }: { exp: ExperimentRecord }) {
-    const statusColor =
+    const statusColor = 
         exp.status === 'completed' ? 'bg-emerald-500' :
-            exp.status === 'running' ? 'bg-blue-500' :
-                'bg-amber-500';
+        exp.status === 'running' ? 'bg-blue-500' :
+        'bg-amber-500';
 
     return (
-        <Link href={`/experiments/view?id=${exp.id}`} className="block group">
+        <Link href={`/experiments/${exp.id}`} className="block group">
             <div className="relative pl-8 py-6 border-l-2 border-white/5 hover:border-white/20 transition-colors">
                 {/* Timeline Dot */}
                 <div className={`absolute left-[-5px] top-8 w-2.5 h-2.5 rounded-full ${statusColor} ring-4 ring-[#0A0A0A] group-hover:scale-125 transition-transform duration-300`} />
-
+                
                 <div className="flex justify-between items-start">
                     <div className="space-y-1">
                         <div className="flex items-center gap-3">

@@ -24,7 +24,7 @@ func (db *DB) GetRunResults(expID int64, limit, offset int) ([]models.RunResult,
 	}
 	defer rows.Close()
 
-	results := []models.RunResult{}
+	var results []models.RunResult
 	for rows.Next() {
 		var r models.RunResult
 		var valRep, errStr, reason, status sql.NullString
@@ -453,7 +453,7 @@ func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
 		WHERE run_id = ? 
 		  AND type = 'error' 
 		  AND json_extract(payload, '$.message') LIKE 'Error executing tool %'`
-
+	
 	var failedStderr int
 	db.conn.QueryRow(queryStderr, runID).Scan(&failedStderr)
 

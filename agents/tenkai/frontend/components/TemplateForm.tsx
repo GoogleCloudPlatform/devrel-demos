@@ -43,7 +43,7 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
     );
     const [alternatives, setAlternatives] = useState<any[]>(
         initialData?.config?.alternatives || [
-            { name: "", description: "", system_prompt: "", command: "gemini", args: ["-y"], settings: {}, env: {} }
+            { name: "", description: "", system_prompt: "", settings: {} }
         ]
     );
     const [experimentControl, setExperimentControl] = useState(initialData?.config?.experiment_control || "");
@@ -62,7 +62,7 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
 
     const addAlternative = () => {
         if (alternatives.length >= 10) return;
-        setAlternatives([...alternatives, { name: "", description: "", system_prompt: "", command: "gemini", args: ["-y"], settings: {}, env: {} }]);
+        setAlternatives([...alternatives, { name: "", description: "", system_prompt: "", command: "gemini", args: ["-y"], settings: {} }]);
     };
 
     const updateAlternative = (index: number, field: string, value: any) => {
@@ -81,16 +81,19 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
 
     const handleAltFileUpload = (index: number, type: 'system_prompt' | 'context' | 'settings', file: File) => {
         handleFileRead(file, (content) => {
-            // Populate the text area with the file content
+            const filename = file.name;
+            setFileUploads(prev => ({ ...prev, [filename]: content }));
+
+            // Update alternative config to reference the file path
             if (type === 'system_prompt') {
-                updateAlternative(index, 'system_prompt', content);
-                updateAlternative(index, 'system_prompt_file', undefined); // Clear file reference
+                updateAlternative(index, 'system_prompt_file', `./${filename}`);
+                updateAlternative(index, 'system_prompt', ''); // Clear inline
             } else if (type === 'context') {
-                updateAlternative(index, 'context', content);
-                updateAlternative(index, 'context_file_path', undefined); // Clear file reference
+                updateAlternative(index, 'context_file_path', `./${filename}`);
+                updateAlternative(index, 'context', ''); // Clear inline
             } else if (type === 'settings') {
-                updateAlternative(index, 'settings', content);
-                updateAlternative(index, 'settings_path', undefined); // Clear file reference
+                updateAlternative(index, 'settings_path', `./${filename}`);
+                updateAlternative(index, 'settings', {}); // Clear inline
             }
         });
     };
@@ -120,14 +123,13 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
                 name: a.name,
                 description: a.description,
                 system_prompt: a.system_prompt,
-                // system_prompt_file: a.system_prompt_file, // Removed as we use inline now for uploads
+                system_prompt_file: a.system_prompt_file,
                 context: a.context,
-                // context_file_path: a.context_file_path, // Removed as we use inline now for uploads
-                // settings_path: a.settings_path, // Removed as we use inline now for uploads
+                context_file_path: a.context_file_path,
+                settings_path: a.settings_path,
                 command: a.command || "gemini",
                 args: (Array.isArray(a.args) && a.args.length > 0) ? a.args : (typeof a.args === 'string' && a.args.trim().length > 0 ? a.args.split(' ').filter(Boolean) : ["-y"]),
-                settings: typeof a.settings === 'string' ? JSON.parse(a.settings) : a.settings,
-                env: typeof a.env === 'string' ? JSON.parse(a.env) : a.env
+                settings: typeof a.settings === 'string' ? JSON.parse(a.settings) : a.settings
             }))
         };
 
@@ -246,14 +248,14 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
                                                 <div className="h-px bg-border flex-1 border-t border-dashed" />
                                             </div>
                                         )}
-                                        <div className={`panel p-5 relative border rounded-xl hover:border-accent transition-colors ${colorClass}`}>
-                                            <div className="absolute -left-3 -top-3 w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-xs text-muted-foreground font-mono shadow-sm">
+                                        <div className={`panel p-5 relative border rounded-xl hover:border-zinc-700 transition-colors ${colorClass}`}>
+                                            <div className="absolute -left-3 -top-3 w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs text-zinc-400 font-mono shadow-sm">
                                                 {idx + 1}
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={() => removeAlternative(idx)}
-                                                className="absolute top-4 right-4 text-muted-foreground hover:text-destructive transition-colors p-1 hover:bg-muted/30 rounded"
+                                                className="absolute top-4 right-4 text-zinc-500 hover:text-red-400 transition-colors p-1 hover:bg-white/5 rounded"
                                                 title="Remove Alternative"
                                             >
                                                 ✕
@@ -271,12 +273,7 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
                                                     <div className="flex justify-between items-center mb-1">
                                                         <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">System Prompt Override</label>
                                                         <div className="relative">
-                                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
-                                                                if (e.target.files?.[0]) {
-                                                                    handleAltFileUpload(idx, 'system_prompt', e.target.files[0]);
-                                                                    e.target.value = '';
-                                                                }
-                                                            }} />
+                                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files && handleAltFileUpload(idx, 'system_prompt', e.target.files[0])} />
                                                             <span className="text-[10px] uppercase font-bold text-indigo-400 cursor-pointer hover:underline">Upload File</span>
                                                         </div>
                                                     </div>
@@ -288,12 +285,7 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
                                                     <div className="flex justify-between items-center mb-1">
                                                         <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">GEMINI.md Content (Context)</label>
                                                         <div className="relative">
-                                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
-                                                                if (e.target.files?.[0]) {
-                                                                    handleAltFileUpload(idx, 'context', e.target.files[0]);
-                                                                    e.target.value = '';
-                                                                }
-                                                            }} />
+                                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files && handleAltFileUpload(idx, 'context', e.target.files[0])} />
                                                             <span className="text-[10px] uppercase font-bold text-indigo-400 cursor-pointer hover:underline">Upload File</span>
                                                         </div>
                                                     </div>
@@ -305,24 +297,12 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
                                                     <div className="flex justify-between items-center mb-1">
                                                         <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Settings JSON Override</label>
                                                         <div className="relative">
-                                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
-                                                                if (e.target.files?.[0]) {
-                                                                    handleAltFileUpload(idx, 'settings', e.target.files[0]);
-                                                                    e.target.value = '';
-                                                                }
-                                                            }} />
+                                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files && handleAltFileUpload(idx, 'settings', e.target.files[0])} />
                                                             <span className="text-[10px] uppercase font-bold text-indigo-400 cursor-pointer hover:underline">Upload File</span>
                                                         </div>
                                                     </div>
                                                     {alt.settings_path && <div className="text-xs font-mono text-emerald-400 mb-1">File: {alt.settings_path}</div>}
                                                     <TextArea value={typeof alt.settings === 'string' ? alt.settings : JSON.stringify(alt.settings, null, 2)} onChange={(e) => updateAlternative(idx, 'settings', e.target.value)} rows={3} className="font-mono text-sm" placeholder="{}" />
-                                                </div>
-
-                                                <div className="md:col-span-2">
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Environment Variables (JSON)</label>
-                                                    </div>
-                                                    <TextArea value={typeof alt.env === 'string' ? alt.env : JSON.stringify(alt.env || {}, null, 2)} onChange={(e) => updateAlternative(idx, 'env', e.target.value)} rows={3} className="font-mono text-sm" placeholder='{ "KEY": "VALUE", "API_KEY": "$HOST_API_KEY" }' />
                                                 </div>
                                             </div>
                                         </div>
@@ -334,6 +314,5 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
                 </div>
             </div>
         </form>
-
     );
 }

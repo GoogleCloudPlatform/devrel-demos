@@ -6,11 +6,11 @@ export interface ExperimentRecord {
     status: 'running' | 'ABORTED' | 'completed' | 'RUNNING' | 'COMPLETED';
     reps: number;
     concurrent: number;
+    is_locked?: boolean;
 
     error_message?: string;
     experiment_control?: string;
     ai_analysis?: string;
-    is_locked?: boolean;
     success_rate?: number;
     avg_duration?: number;
     avg_tokens?: number;

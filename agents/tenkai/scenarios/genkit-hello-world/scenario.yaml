@@ -7,7 +7,4 @@ validation:
     # Since running a flow might require an API key if not careful, we'll try to just check compilation and maybe a "dry run" if possible.
     # For now, let's stick to compilation and valid module structure as a basic check, possibly grepping for the flow definition.
     - type: command
-      command: go build -o hello . && genkit flow:run helloFlow '"Tenkai"'
-      env:
-        GENKIT_ENV: dev
-      expect_output: "Hello Tenkai!"
+      command: go build -o hello . && ./hello --help

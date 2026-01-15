@@ -15,11 +15,20 @@ To test the server, you can use shell commands like these:
 ```
 TODO:
 - Get package github.com/modelcontextprotocol/go-sdk/mcp to create the mcp server (official SDK)
-- Read the package documentation to discover the API (do not rely on your training data, the API has changed)
+- Read the package documentation to discover the API (it is not trivial)
 - Create the server with stdio transport
 - Create one tool "hello_world" that returns the message "Hello from Tenkai!"
 
+Not to do:
+- Do not implement the streaming http protocol. This server should be stdio only.
+- Do not initialize a git repo. This will be done in a future step.
+- Do not use validation commands different than the ones specified below
+
 Acceptance Criteria:
+- Less than 5 lint issues when running golangci-lint run ./... (use default configuration)
+- Test coverage >= 70%
 - `go build -o hello .` is successful
 - hello responds to method tools/list request successfully
 - hello responds to method tools/call request for the hello_world tool returning the phrase "Hello from Tenkai!"
+
+The task accepts some level of ambiguity, but it will fail if the acceptance criteria above is not met even if the software works.
