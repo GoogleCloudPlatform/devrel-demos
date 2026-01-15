@@ -47,7 +47,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "file.create",
 		Title:        "Create File",
 		Description:  "Creates a new file at the specified path with the provided content. Automatically creates parent directories if they do not exist. Runs `goimports` to format the code and manage imports before saving. Defaults to overwrite mode.",
-		Instruction:  "*   **`file.create`**: Use this to create NEW Go files. For existing files, use `file.edit`.",
+		Instruction:  "*   **`file.create`**: Create a new file from scratch.\n    *   **Usage:** `file.create(name=\"cmd/main.go\", content=\"package main\\n...\")`\n    *   **Outcome:** File is created, formatted, and imports are organized. Parent directories are created automatically.",
 		Experimental: true,
 	},
 	"file.edit": {
@@ -55,7 +55,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "file.edit",
 		Title:        "Edit File (Smart)",
 		Description:  "Modifies an existing Go file using fuzzy matching or appending. If `search_context` is provided, locates the block with the highest similarity score and replaces it. If `search_context` is empty, appends content to the end. Automatically formats code using `goimports` and verifies syntax before saving.",
-		Instruction:  "*   **`file.edit`**: Use this for all code modifications.\n    *   **Modify:** Provide `search_context` to replace code.\n    *   **Append:** Leave `search_context` empty to add new code (e.g. new functions).\n    *   **Safety:** Automatically runs `goimports` and checks syntax.",
+		Instruction:  "*   **`file.edit`**: Modify or append to an existing file.\n    *   **Modify:** `file.edit(file=\"main.go\", search_context=\"func old() {\\n}\", replacement=\"func new() {\\n}\")`\n    *   **Append:** `file.edit(file=\"main.go\", replacement=\"func newFunc() {\\n}\")` (Leave `search_context` empty)\n    *   **Outcome:** Code is patched, formatted, and syntax-checked. If the match fails, you will receive the best match found to help you correct the context.",
 		Experimental: true,
 	},
 	"file.outline": {
@@ -63,7 +63,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "file.outline",
 		Title:        "File Outline",
 		Description:  "Parses a Go source file and returns a skeleton containing imports, type definitions, and function signatures. Does not include function bodies. Useful for quickly assessing file structure with minimal token usage.",
-		Instruction:  "*   **`file.outline`**: PREFER this over `file.read`. It gives you the file structure (like a folded IDE view) using 90% fewer tokens.",
+		Instruction:  "*   **`file.outline`**: Get the structure of a file without reading the entire body.\n    *   **Usage:** `file.outline(file=\"pkg/service.go\")`\n    *   **Outcome:** Returns imports, type definitions, and function signatures. Use this to quickly navigate large files.",
 		Experimental: true,
 	},
 	"file.read": {
@@ -71,7 +71,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "file.read",
 		Title:        "Read File",
 		Description:  "Reads and returns the complete content of a Go source file. Additionally extracts and lists a symbol table containing functions, types, and variables defined in the file.",
-		Instruction:  "*   **`file.read`**: Reads a Go file (*.go) and extracts a symbol table (functions, types, variables).",
+		Instruction:  "*   **`file.read`**: Read the full content of a file.\n    *   **Usage:** `file.read(file_path=\"pkg/utils.go\")`\n    *   **Outcome:** Returns the complete file content and a list of defined symbols (functions, types).",
 		Experimental: false,
 	},
 	"file.list": {
@@ -79,7 +79,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "file.list",
 		Title:        "List Files",
 		Description:  "Recursively lists files and directories starting from a specified root path. Supports depth limiting to manage output size.",
-		Instruction:  "*   **`file.list`**: Use this to explore standard library or external module files if needed.",
+		Instruction:  "*   **`file.list`**: Explore the project structure.\n    *   **Usage:** `file.list(path=\".\", depth=2)`\n    *   **Outcome:** Lists files and directories up to the specified depth. Useful for discovering where code lives.",
 		Experimental: true,
 	},
 
@@ -89,7 +89,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "symbol.inspect",
 		Title:        "Inspect Symbol",
 		Description:  "Retrieves detailed information for a specific Go symbol, including its signature, source code definition, and documentation comments. Resolves symbols using the project's knowledge graph.",
-		Instruction:  "*   **`symbol.inspect`**: Use this to get the **Ground Truth** for code you plan to edit. It returns the exact implementation AND definitions of related types (fields, structs), ensuring your edit fits perfectly.",
+		Instruction:  "*   **`symbol.inspect`**: Get the definition and documentation of a specific symbol.\n    *   **Usage:** `symbol.inspect(package=\"fmt\", symbol=\"Println\")` or `symbol.inspect(file=\"main.go\", symbol=\"MyFunc\")`\n    *   **Outcome:** Returns the source code, documentation, and location of the symbol. Essential for understanding how to use or modify existing code.",
 		Experimental: true,
 	},
 	"symbol.rename": {
@@ -97,7 +97,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "symbol.rename",
 		Title:        "Rename Symbol",
 		Description:  "Renames a Go identifier (function, type, variable) and updates all references throughout the codebase using the `gopls` tool to ensure semantic correctness.",
-		Instruction:  "*   **`symbol.rename`**: Renames a symbol refactoring-style using 'gopls'. Updates all references safely.",
+		Instruction:  "*   **`symbol.rename`**: Safely rename a symbol and update all references.\n    *   **Usage:** `symbol.rename(file=\"pkg/user.go\", line=10, col=5, new_name=\"Customer\")`\n    *   **Outcome:** The symbol is renamed globally, and all usages are updated. Prevents build errors caused by manual renaming.",
 		Experimental: true,
 	},
 
@@ -107,7 +107,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "project.map",
 		Title:        "Project Map",
 		Description:  "Generates a hierarchical map of the project structure, listing all local packages and their files, as well as a summary of external dependencies and standard library usage.",
-		Instruction:  "*   **`project.map`**: Use this first when joining a new project to get a mental map.",
+		Instruction:  "*   **`project.map`**: Get a high-level overview of the project.\n    *   **Usage:** `project.map()`\n    *   **Outcome:** Returns a Markdown map of all packages, files, and dependencies. Use this when you first join a project to understand its layout.",
 		Experimental: false,
 	},
 	"go.docs": {
@@ -115,7 +115,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "go.docs",
 		Title:        "Go Documentation",
 		Description:  "Retrieves documentation for a specific Go package. Lists exported types, functions, and variables. Supports returning output in Markdown or JSON format.",
-		Instruction:  "*   **`go.docs`**: Efficiently lists sub-packages and exported symbols.",
+		Instruction:  "*   **`go.docs`**: Read documentation for a package.\n    *   **Usage:** `go.docs(package_path=\"net/http\")`\n    *   **Outcome:** Returns a summary of exported symbols and package documentation. Use this to learn how to use a library.",
 		Experimental: false,
 	},
 
@@ -125,7 +125,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "go.build",
 		Title:        "Go Build",
 		Description:  "Executes the `go build` command for the specified packages or the current directory. Captures and returns the standard output and standard error to verify compilation status.",
-		Instruction:  "*   **`go.build`**: Run this after a sequence of edits to ensure the whole project compiles.",
+		Instruction:  "*   **`go.build`**: Compile the project to check for errors.\n    *   **Usage:** `go.build(packages=[\"./...\"])`\n    *   **Outcome:** Returns success or a list of compiler errors. Run this after making edits to ensure you haven't broken the build.",
 		Experimental: true,
 	},
 	"go.test": {
@@ -133,7 +133,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "go.test",
 		Title:        "Go Test",
 		Description:  "Executes the `go test` command. Supports running tests for specific packages, filtering tests by regex (`-run`), and enabling verbose output or coverage analysis.",
-		Instruction:  "*   **`go.test`**: Run specific tests to verify logic.",
+		Instruction:  "*   **`go.test`**: Run tests to verify logic.\n    *   **Usage:** `go.test(packages=[\"./pkg/...\"], run=\"TestAuth\")`\n    *   **Outcome:** Returns test results (PASS/FAIL). Use this to prevent regressions.",
 		Experimental: true,
 	},
 	"go.install": {
@@ -141,7 +141,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "go.install",
 		Title:        "Go Install",
 		Description:  "Executes the `go install` command to install packages or binaries to the environment.",
-		Instruction:  "*   **`go.install`**: Use this to install packages.",
+		Instruction:  "*   **`go.install`**: Install a Go tool or package.\n    *   **Usage:** `go.install(packages=[\"golang.org/x/tools/cmd/goimports@latest\"])`\n    *   **Outcome:** The package is installed to the environment.",
 		Experimental: true,
 	},
 	"go.modernize": {
@@ -149,7 +149,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "go.modernize",
 		Title:        "Modernize Go Code",
 		Description:  "Runs the `modernize` analyzer on the codebase to identify and optionally fix legacy Go patterns, replacing them with modern equivalents (e.g., `interface{}` to `any`).",
-		Instruction:  "*   **`go.modernize`**: Run this to automatically upgrade old patterns (e.g. `interface{}` -> `any`, manual loops -> `slices`).",
+		Instruction:  "*   **`go.modernize`**: Automatically upgrade old Go patterns.\n    *   **Usage:** `go.modernize(dir=\".\", fix=true)`\n    *   **Outcome:** Replaces legacy code (e.g., `interface{}`) with modern equivalents (e.g., `any`).",
 		Experimental: true,
 	},
 	"go.diff": {
@@ -157,7 +157,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "go.diff",
 		Title:        "Check API Diff",
 		Description:  "Compares the public API of a Go package between two different versions using the `apidiff` tool. Reports incompatible changes to assess upgrade risks.",
-		Instruction:  "*   **`go.diff`**: Run this BEFORE upgrading dependencies to catch breaking API changes (Risk Assessment).",
+		Instruction:  "*   **`go.diff`**: Check for breaking API changes.\n    *   **Usage:** `go.diff(old=\"v1.0.0\", new=\".\")`\n    *   **Outcome:** Reports incompatible changes in the public API. Use this before upgrading dependencies.",
 		Experimental: true,
 	},
 
@@ -167,7 +167,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "agent.review",
 		Title:        "Code Review Agent",
 		Description:  "Submit Go code to an AI reviewer. Returns a structured analysis focusing on correctness, idiomatic style, and potential bugs, with line-specific comments and severity levels.",
-		Instruction:  "*   **`agent.review`**: Reviews Go code for correctness, style, and idiomatic usage.",
+		Instruction:  "*   **`agent.review`**: Request an expert code review.\n    *   **Usage:** `agent.review(file_content=\"...\")`\n    *   **Outcome:** Returns a list of suggestions, bugs, and style improvements.",
 		Experimental: true,
 	},
 	"agent.specialist": {
@@ -175,7 +175,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "agent.specialist",
 		Title:        "Specialist Agent",
 		Description:  "Invokes a specialized autonomous agent capable of using investigation tools (read_docs, list_files, inspect_symbol) to answer complex queries about the codebase.",
-		Instruction:  "*   **`agent.specialist`**: Use this if you are stuck or need access to more tools. DONT hallucinate tools, ask the specialist to provide them.",
+		Instruction:  "*   **`agent.specialist`**: Ask a complex question that requires investigation.\n    *   **Usage:** `agent.specialist(query=\"How does the authentication middleware work?\")`\n    *   **Outcome:** The Specialist investigates the code and provides a detailed answer.",
 		Experimental: false,
 	},
 	"agent.master": {
@@ -183,7 +183,7 @@ var Registry = map[string]ToolDef{
 		ExternalName: "agent.master",
 		Title:        "Master Gopher",
 		Description:  "Invokes the Master Gopher agent to analyze the user's request and dynamically update the list of available tools to best suit the current task.",
-		Instruction:  "*   **`agent.master`**: Use this when you are unsure which tool to use or how to solve a problem. The Master will review your request, unlock appropriate capabilities in the server, and give you wise instructions.",
+		Instruction:  "*   **`agent.master`**: Get help deciding which tools to use.\n    *   **Usage:** `agent.master(query=\"I need to refactor the user service.\")`\n    *   **Outcome:** The Master Gopher selects and enables the best tools for your task.",
 		Experimental: true,
 	},
 }
