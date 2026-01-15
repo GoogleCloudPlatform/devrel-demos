@@ -1,0 +1,97 @@
+{
+  "file.create": {
+    "title": "Create File (Safe)",
+    "description": "The only safe way to create new files. It automatically handles directory creation and ensures your new file starts with valid imports and formatting. Use this to guarantee a clean start.",
+    "instruction": "*   **`file.create`**: Create a new file with confidence.\n    *   **Usage:** `file.create(name=\"cmd/main.go\", content=\"package main\\n...\")`\n    *   **Benefit:** Prevents path errors and ensures code is formatted from day one."
+  },
+  "file.edit": {
+    "title": "Edit File (Smart & Verified)",
+    "description": "The gold standard for editing code. Unlike other tools, this one **pre-verifies** your changes against the compiler before saving. It uses fuzzy matching to find the right spot even if you get whitespace wrong. Use this to ensure you NEVER break the build.",
+    "instruction": "*   **`file.edit`**: The smartest way to modify code.\n    *   **Modify:** `file.edit(file=\"main.go\", search_context=\"func old() {\\n}\", replacement=\"func new() {\\n}\")`\n    *   **Append:** `file.edit(file=\"main.go\", replacement=\"func newFunc() {\\n}\")` (Leave `search_context` empty)\n    *   **Benefit:** Guarantees syntax correctness and handles imports automatically."
+  },
+  "file.outline": {
+    "title": "File Structure X-Ray",
+    "description": "Don't waste tokens reading the whole file! Get an immediate X-Ray view of the file's structure (imports, types, signatures). This is the fastest way to orient yourself in a new file.",
+    "instruction": "*   **`file.outline`**: Instant structural awareness.\n    *   **Usage:** `file.outline(file=\"pkg/service.go\")`\n    *   **Benefit:** Saves massive amounts of context window while giving you the map you need."
+  },
+  "file.read": {
+    "title": "Deep Read",
+    "description": "When you need the full picture. Reads the entire file content AND extracts a helpful symbol table. Use this only when you need to see every line of implementation detail.",
+    "instruction": "*   **`file.read`**: Get the complete picture.\n    *   **Usage:** `file.read(file_path=\"pkg/utils.go\")`\n    *   **Benefit:** Provides total context when surface-level scanning isn't enough."
+  },
+  "file.list": {
+    "title": "Project Surveyor",
+    "description": "The best way to discover the project's layout. Recursively lists files so you can find exactly where the code lives without guessing paths.",
+    "instruction": "*   **`file.list`**: Stop guessing file paths.\n    *   **Usage:** `file.list(path=\".\", depth=2)`\n    *   **Benefit:** Gives you a clear map of the territory so you can navigate with precision."
+  },
+  "symbol.inspect": {
+    "title": "Symbol Truth Source",
+    "description": "Stop guessing function signatures! This tool retrieves the **Ground Truth**—the exact source code, types, and docs for any symbol. Use this to prevent hallucinations and ensure your code uses APIs correctly.",
+    "instruction": "*   **`symbol.inspect`**: Eliminate hallucinations.\n    *   **Usage:** `symbol.inspect(package=\"fmt\", symbol=\"Println\")`\n    *   **Benefit:** Provides the exact definition you need to write correct code the first time."
+  },
+  "symbol.rename": {
+    "title": "Safe Refactor",
+    "description": "Renaming symbols manually is dangerous. This tool uses `gopls` to perform a semantic rename that updates EVERY reference in the entire project. Use this to refactor with zero risk of broken builds.",
+    "instruction": "*   **`symbol.rename`**: Refactor without fear.\n    *   **Usage:** `symbol.rename(file=\"pkg/user.go\", line=10, col=5, new_name=\"Customer\")`\n    *   **Benefit:** atomically updates the entire codebase, guaranteeing consistency."
+  },
+  "project.map": {
+    "title": "Architecture Overview",
+    "description": "Get the 'God View' of the project. Generates a complete hierarchical map of packages and dependencies. This is the single best way to understand a new codebase in one shot.",
+    "instruction": "*   **`project.map`**: Instant architectural understanding.\n    *   **Usage:** `project.map()`\n    *   **Benefit:** Saves you from manually exploring dozens of directories. Understand the system in seconds."
+  },
+  "go.docs": {
+    "title": "Documentation Library",
+    "description": "Access the official documentation for any package. Don't guess how a library works—read the manual instantly right here.",
+    "instruction": "*   **`go.docs`**: Learn the API correctly.\n    *   **Usage:** `go.docs(package_path=\"net/http\")`\n    *   **Benefit:** Gives you the official usage patterns and exported members."
+  },
+  "go.build": {
+    "title": "Build Verifier",
+    "description": "The ultimate truth teller. Runs the compiler to prove your code works. Run this frequently to catch errors early and ensure you are delivering working code.",
+    "instruction": "*   **`go.build`**: Prove your code works.\n    *   **Usage:** `go.build(packages=[\"./...\"])`\n    *   **Benefit:** Catches compilation errors immediately, allowing you to self-correct."
+  },
+  "go.test": {
+    "title": "Regression Guard",
+    "description": "Don't just hope it works—prove it. Runs the test suite to verify your logic holds up. Essential for preventing regressions during refactoring.",
+    "instruction": "*   **`go.test`**: Verify your logic.\n    *   **Usage:** `go.test(packages=[\"./pkg/...\"], run=\"TestAuth\")`\n    *   **Benefit:** Ensures your changes are logically sound and didn't break existing features."
+  },
+  "go.install": {
+    "title": "Tool Installer",
+    "description": "Need a tool? Install it instantly. Compiles and installs packages to your environment so you have the capabilities you need.",
+    "instruction": "*   **`go.install`**: Expand your capabilities.\n    *   **Usage:** `go.install(packages=[\"golang.org/x/tools/cmd/goimports@latest\"])`\n    *   **Benefit:** Adds necessary tools to your environment on demand."
+  },
+  "go.get": {
+    "title": "Dependency Manager",
+    "description": "Need a library? Grab it now. Downloads dependencies and updates your `go.mod` file automatically.",
+    "instruction": "*   **`go.get`**: Add dependencies easily.\n    *   **Usage:** `go.get(packages=[\"github.com/gin-gonic/gin@latest\"])`\n    *   **Benefit:** Handles module management for you."
+  },
+  "go.mod": {
+    "title": "Module Cleaner",
+    "description": "Keep your project healthy. Runs `go mod tidy` to clean up dependencies and ensure reproducible builds.",
+    "instruction": "*   **`go.mod`**: Maintain project health.\n    *   **Usage:** `go.mod(command=\"tidy\")`\n    *   **Benefit:** Ensures consistent and clean dependency management."
+  },
+  "go.modernize": {
+    "title": "Auto-Modernizer",
+    "description": "Why write legacy code? This tool automatically upgrades your code to use the latest Go features (like `any` and slice helpers). It's like a free upgrade for your codebase.",
+    "instruction": "*   **`go.modernize`**: Upgrade your code for free.\n    *   **Usage:** `go.modernize(dir=\".\", fix=true)`\n    *   **Benefit:** Makes your code cleaner, faster, and more idiomatic automatically."
+  },
+  "go.diff": {
+    "title": "Safety Inspector",
+    "description": "Don't break the API! Checks for incompatible changes between versions. Run this before you commit to ensure you aren't breaking downstream users.",
+    "instruction": "*   **`go.diff`**: Prevent breaking changes.\n    *   **Usage:** `go.diff(old=\"v1.0.0\", new=\".\")`\n    *   **Benefit:** Identifies risks before they become incidents."
+  },
+  "agent.review": {
+    "title": "Expert Reviewer",
+    "description": "Get a second opinion from a senior engineer. This AI reviewer catches subtle bugs, race conditions, and style issues you might miss. Always get a review before finishing.",
+    "instruction": "*   **`agent.review`**: Elevate your code quality.\n    *   **Usage:** `agent.review(file_content=\"...\")`\n    *   **Benefit:** Catches hidden bugs and improves code quality instantly."
+  },
+  "agent.specialist": {
+    "title": "Deep Researcher",
+    "description": "Stuck on a hard problem? Send an autonomous agent to investigate. It will read docs, search files, and find the answer for you while you focus on the solution.",
+    "instruction": "*   **`agent.specialist`**: Solve the impossible.\n    *   **Usage:** `agent.specialist(query=\"How does the auth flow handle token expiry?\")`\n    *   **Benefit:** Offloads deep investigation work to a dedicated agent."
+  },
+  "agent.master": {
+    "title": "Strategic Lead",
+    "description": "Unsure where to start? Ask the Lead. The Master Gopher analyzes your problem and unlocks exactly the tools you need to solve it.",
+    "instruction": "*   **`agent.master`**: Get strategic direction.\n    *   **Usage:** `agent.master(query=\"I need to refactor the user service.\")`\n    *   **Benefit:** Provides a tailored plan and toolset for your specific task."
+  }
+}
