@@ -1,16 +1,27 @@
+"use client";
+
 import Link from "next/link";
-import { getExperiments } from "@/app/api/api";
+import { useEffect, useState } from "react";
+import { getExperiments, ExperimentRecord } from "@/app/api/api";
 import RefreshOnInterval from "@/components/RefreshOnInterval";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/utils/cn";
-import { Plus, Terminal } from "lucide-react";
+import { Plus, Terminal, Loader2 } from "lucide-react";
 import ProgressBar from "@/components/ui/progress-bar";
 import ExperimentsTable from "@/components/experiments/ExperimentsTable";
 
-export default async function Home() {
-    const experiments = await getExperiments();
+export default function Home() {
+    const [experiments, setExperiments] = useState<ExperimentRecord[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        getExperiments()
+            .then(data => setExperiments(data))
+            .catch(err => console.error("Failed to fetch experiments:", err))
+            .finally(() => setLoading(false));
+    }, []);
 
     const sortedExperiments = [...experiments].sort((a, b) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -18,6 +29,14 @@ export default async function Home() {
 
     const activeExperiments = sortedExperiments.filter(e => e.status === 'RUNNING' || e.status === 'running');
     const completedExperiments = sortedExperiments.filter(e => e.status !== 'RUNNING' && e.status !== 'running');
+
+    if (loading) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        );
+    }
 
     return (
         <div className="p-6 space-y-8">
