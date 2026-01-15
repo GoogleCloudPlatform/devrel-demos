@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ExperimentRecord, Checkpoint, RunResultRecord, getRunResults, reValidateExperiment } from "@/app/api/api";
+import { ExperimentRecord, Checkpoint, RunResultRecord, getRunResults, reValidateExperiment, lockExperiment } from "@/app/api/api";
 import { Loader2, RefreshCw } from "lucide-react";
 import MetricsOverview from "./experiments/MetricsOverview";
 import PerformanceTable from "./experiments/PerformanceTable";
@@ -18,6 +18,8 @@ import StatusBanner from "./experiments/StatusBanner";
 import { Button } from "./ui/button";
 import RelaunchButton from "./RelaunchButton";
 import KillExperimentButton from "./KillExperimentButton";
+import DeleteExperimentButton from "./DeleteExperimentButton";
+import LockToggle from "./LockToggle";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import ProgressBar from "./ui/progress-bar";
@@ -128,7 +130,7 @@ function RevalidateExperimentButton({ experimentId, isExperimentRunning, onState
                     status="RUNNING"
                     showLabel={true}
                 />
-                <span className="text-[10px] text-zinc-500 uppercase font-bold text-center">Re-validating...</span>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold text-center">Re-validating...</span>
             </div>
         )
     }
@@ -163,8 +165,20 @@ export default function ReportViewer({
     const [inspectedValidation, setInspectedValidation] = useState<any>(null);
     const [configModalContent, setConfigModalContent] = useState<{ title: string, content: string } | null>(null);
     const [isRevalidating, setIsRevalidating] = useState(false);
+    const [isLocked, setIsLocked] = useState(experiment.is_locked || false);
 
     const isRunning = experiment.status?.toUpperCase() === 'RUNNING';
+
+    const handleToggleLock = async (newLocked: boolean) => {
+        try {
+            await lockExperiment(experiment.id, newLocked);
+            setIsLocked(newLocked);
+            return true;
+        } catch (e) {
+            console.error(e);
+            return false;
+        }
+    };
 
     // Pagination State
     const [runs, setRuns] = useState<RunResultRecord[]>(runResults);
@@ -178,10 +192,10 @@ export default function ReportViewer({
         try {
             const nextPage = page + 1;
             const newRuns = await getRunResults(experiment.id, nextPage, 100); // Limit 100 matches backend default
-            if (newRuns.length < 100) {
+            if (!newRuns || newRuns.length < 100) {
                 setHasMore(false);
             }
-            if (newRuns.length > 0) {
+            if (newRuns && newRuns.length > 0) {
                 setRuns(prev => [...prev, ...newRuns]);
                 setPage(nextPage);
             }
@@ -285,9 +299,9 @@ export default function ReportViewer({
     }, [selectedRun]);
 
     return (
-        <div className="flex flex-col h-full bg-[#0c0c0e] text-body">
+        <div className="flex flex-col h-full bg-background text-body">
             {/* Workbench Tab Bar */}
-            <div className="flex justify-between items-center px-4 h-[56px] border-b border-[#27272a] bg-[#09090b]">
+            <div className="flex justify-between items-center px-4 h-[56px] border-b border-border bg-card">
                 <div className="flex h-full">
                     {[
                         { id: 'overview', label: 'Overview' },
@@ -298,8 +312,8 @@ export default function ReportViewer({
                             key={tab.id}
                             onClick={() => handleTabChange(tab.id as any)}
                             className={`px-6 h-full font-bold uppercase tracking-widest transition-all border-b-2 ${activeTab === tab.id
-                                ? "border-[#6366f1] text-[#f4f4f5]"
-                                : "border-transparent text-[#52525b] hover:text-[#a1a1aa]"
+                                ? "border-primary text-foreground"
+                                : "border-transparent text-muted-foreground/60 hover:text-muted-foreground"
                                 }`}
                         >
                             {tab.label}
@@ -320,8 +334,10 @@ export default function ReportViewer({
                             <span className="mr-2">📄</span> Export MD
                         </Button>
                     </Link>
+                    <LockToggle locked={isLocked} onToggle={handleToggleLock} />
                     <RelaunchButton experimentId={experiment.id} disabled={isRunning} />
                     <KillExperimentButton experimentId={experiment.id} disabled={!isRunning} />
+                    <DeleteExperimentButton id={experiment.id} name={experiment.name} locked={isLocked} />
                 </div>
             </div>
 
@@ -333,12 +349,12 @@ export default function ReportViewer({
                     {activeTab === 'overview' && (
                         <div className="space-y-8 animate-in fade-in duration-500">
                             {experiment.ai_analysis && (
-                                <div className="panel p-8 bg-indigo-600/[0.03] border-indigo-500/10">
+                                <div className="panel p-8 bg-primary/5 border-primary/10">
                                     <div className="flex items-center gap-2 mb-6">
                                         <span className="text-header">✨</span>
-                                        <h3 className="text-header font-black uppercase tracking-tighter text-indigo-400">Executive Summary</h3>
+                                        <h3 className="text-header font-black uppercase tracking-tighter text-primary">Executive Summary</h3>
                                     </div>
-                                    <div className="prose prose-invert prose-lg max-w-none prose-headings:text-indigo-300">
+                                    <div className="prose prose-invert prose-lg max-w-none prose-headings:text-primary/80">
                                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{experiment.ai_analysis}</ReactMarkdown>
                                     </div>
                                 </div>
@@ -370,7 +386,7 @@ export default function ReportViewer({
 
                     {activeTab === 'investigate' && (
                         <div className="flex h-[calc(100vh-200px)] gap-6 animate-in fade-in duration-500">
-                            <div className="w-[350px] flex-shrink-0 panel bg-[#09090b]">
+                            <div className="w-[350px] flex-shrink-0 panel bg-card">
                                 <RunHistory
                                     runs={runs}
                                     selectedRunId={selectedRun?.id || null}
@@ -380,11 +396,11 @@ export default function ReportViewer({
                                     loading={loadingRuns}
                                 />
                             </div>
-                            <div className="flex-1 overflow-y-auto panel bg-[#0c0c0e] p-6">
+                            <div className="flex-1 overflow-y-auto panel bg-background/50 p-6">
                                 {selectedRun ? (
                                     loadingDetails ? (
                                         <div className="flex items-center justify-center h-full animate-pulse">
-                                            <p className="text-header uppercase font-bold text-zinc-700 tracking-widest">Loading Telemetry...</p>
+                                            <p className="text-header uppercase font-bold text-muted-foreground/50 tracking-widest">Loading Telemetry...</p>
                                         </div>
                                     ) : runDetails ? (
                                         <RunDetails
@@ -399,7 +415,7 @@ export default function ReportViewer({
                                     <div className="flex flex-col items-center justify-center h-full text-center opacity-30">
                                         <div className="text-6xl mb-4">🔍</div>
                                         <h3 className="text-header font-bold uppercase tracking-widest">Select a run to investigate</h3>
-                                        <p>Browse the repetitions on the left to see full trace and file snapshots.</p>
+                                        <p className="text-foreground">Browse the repetitions on the left to see full trace and file snapshots.</p>
                                     </div>
                                 )}
                             </div>
@@ -428,24 +444,24 @@ export default function ReportViewer({
 
                                     return (
                                         <div key={i} className={`panel overflow-hidden flex flex-col ${containerClass}`}>
-                                            <div className={`p-4 border-b flex justify-between items-center ${isControl ? 'border-indigo-500/20 bg-indigo-500/10' : 'border-white/5 bg-white/[0.02]'}`}>
+                                            <div className={`p-4 border-b flex justify-between items-center ${isControl ? 'border-primary/20 bg-primary/10' : 'border-border bg-muted/20'}`}>
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-lg ${isControl ? 'bg-indigo-500 text-white' : 'bg-zinc-800 text-zinc-400'}`}>
+                                                    <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-lg ${isControl ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                                                         {i + 1}
                                                     </div>
                                                     <div>
-                                                        <h3 className={`font-bold text-lg ${isControl ? 'text-indigo-400' : 'text-white'}`}>{alt.name}</h3>
-                                                        {isControl && <span className="text-xs uppercase font-bold tracking-widest text-indigo-300 opacity-70">Control Baseline</span>}
+                                                        <h3 className={`font-bold text-lg ${isControl ? 'text-primary' : 'text-foreground'}`}>{alt.name}</h3>
+                                                        {isControl && <span className="text-xs uppercase font-bold tracking-widest text-primary/70">Control Baseline</span>}
                                                     </div>
                                                 </div>
-                                                {alt.description && <span className="text-zinc-500 text-sm italic" title={alt.description}>{alt.description}</span>}
+                                                {alt.description && <span className="text-muted-foreground text-sm italic" title={alt.description}>{alt.description}</span>}
                                             </div>
                                             <div className="p-6 space-y-6 flex-1 bg-transparent">
                                                 {/* Command */}
                                                 <div className="space-y-2">
-                                                    <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">Execution Command</p>
-                                                    <div className="font-mono text-sm bg-black/40 p-3 rounded border border-white/5 text-zinc-300 break-all cursor-default">
-                                                        <span className="text-emerald-400 font-bold">{alt.command}</span> {alt.args?.join(' ')} <span className="text-zinc-500 italic">&lt;PROMPT&gt;</span>
+                                                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Execution Command</p>
+                                                    <div className="font-mono text-sm bg-muted/30 p-3 rounded border border-border text-foreground break-all cursor-default">
+                                                        <span className="text-emerald-500 font-bold">{alt.command}</span> {alt.args?.join(' ')} <span className="text-muted-foreground italic">&lt;PROMPT&gt;</span>
                                                     </div>
                                                 </div>
 
@@ -453,21 +469,21 @@ export default function ReportViewer({
 
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div className="space-y-2">
-                                                        <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">System Prompt</p>
+                                                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">System Prompt</p>
                                                         {alt.system_prompt_file ? (
                                                             <div
-                                                                className="flex items-center gap-2 text-indigo-400 font-mono text-sm cursor-pointer hover:underline"
+                                                                className="flex items-center gap-2 text-primary font-mono text-sm cursor-pointer hover:underline"
                                                                 onClick={() => setConfigModalContent({
                                                                     title: `System Prompt Path: ${alt.name}`,
                                                                     content: `Loaded from: ${alt.system_prompt_file}`
                                                                 })}
                                                             >
-                                                                <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                                                <span className="w-2 h-2 rounded-full bg-primary"></span>
                                                                 {alt.system_prompt_file.split('/').pop()}
                                                             </div>
                                                         ) : (
                                                             <div
-                                                                className={`text-sm ${alt.system_prompt ? 'text-indigo-400 cursor-pointer hover:underline' : 'text-zinc-600 italic'}`}
+                                                                className={`text-sm ${alt.system_prompt ? 'text-primary cursor-pointer hover:underline' : 'text-muted-foreground italic'}`}
                                                                 onClick={() => alt.system_prompt && setConfigModalContent({
                                                                     title: `System Prompt: ${alt.name}`,
                                                                     content: alt.system_prompt
@@ -479,10 +495,10 @@ export default function ReportViewer({
                                                     </div>
 
                                                     <div className="space-y-2">
-                                                        <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">GEMINI.md (Context)</p>
+                                                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">GEMINI.md (Context)</p>
                                                         {alt.context_file_path ? (
                                                             <div
-                                                                className="flex items-center gap-2 text-emerald-400 font-mono text-sm cursor-pointer hover:underline"
+                                                                className="flex items-center gap-2 text-emerald-500 font-mono text-sm cursor-pointer hover:underline"
                                                                 onClick={() => setConfigModalContent({
                                                                     title: `Context Path: ${alt.name}`,
                                                                     content: `Loaded from: ${alt.context_file_path}`
@@ -493,7 +509,7 @@ export default function ReportViewer({
                                                             </div>
                                                         ) : alt.context ? (
                                                             <div
-                                                                className="flex items-center gap-2 text-emerald-400 font-mono text-sm cursor-pointer hover:underline"
+                                                                className="flex items-center gap-2 text-emerald-500 font-mono text-sm cursor-pointer hover:underline"
                                                                 onClick={() => setConfigModalContent({
                                                                     title: `Context Content: ${alt.name}`,
                                                                     content: alt.context
@@ -503,15 +519,15 @@ export default function ReportViewer({
                                                                 Custom Context
                                                             </div>
                                                         ) : (
-                                                            <div className="text-zinc-600 italic text-sm">None</div>
+                                                            <div className="text-muted-foreground italic text-sm">None</div>
                                                         )}
                                                     </div>
 
                                                     <div className="space-y-2">
-                                                        <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">Settings</p>
+                                                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Settings</p>
                                                         {alt.settings_path ? (
                                                             <div
-                                                                className="flex items-center gap-2 text-amber-400 font-mono text-sm cursor-pointer hover:underline"
+                                                                className="flex items-center gap-2 text-amber-500 font-mono text-sm cursor-pointer hover:underline"
                                                                 onClick={() => setConfigModalContent({
                                                                     title: `Settings Path: ${alt.name}`,
                                                                     content: `Loaded from: ${alt.settings_path}`
@@ -522,7 +538,7 @@ export default function ReportViewer({
                                                             </div>
                                                         ) : alt.settings && Object.keys(alt.settings).length > 0 ? (
                                                             <div
-                                                                className="flex items-center gap-2 text-amber-400 font-mono text-sm cursor-pointer hover:underline"
+                                                                className="flex items-center gap-2 text-amber-500 font-mono text-sm cursor-pointer hover:underline"
                                                                 onClick={() => setConfigModalContent({
                                                                     title: `Settings: ${alt.name}`,
                                                                     content: JSON.stringify(alt.settings, null, 2)
@@ -532,7 +548,7 @@ export default function ReportViewer({
                                                                 Custom Profile
                                                             </div>
                                                         ) : (
-                                                            <div className="text-zinc-600 italic text-sm">Standard Profile</div>
+                                                            <div className="text-muted-foreground italic text-sm">Standard Profile</div>
                                                         )}
                                                     </div>
                                                 </div>
@@ -552,12 +568,12 @@ export default function ReportViewer({
 
             {configModalContent && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setConfigModalContent(null)}>
-                    <div className="bg-[#161618] border border-[#27272a] rounded-lg shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center p-4 border-b border-[#27272a]">
-                            <h3 className="font-bold uppercase tracking-widest text-[#f4f4f5]">{configModalContent.title}</h3>
-                            <button onClick={() => setConfigModalContent(null)} className="text-zinc-500 hover:text-white transition-colors">✕</button>
+                    <div className="bg-card border border-border rounded-lg shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center p-4 border-b border-border">
+                            <h3 className="font-bold uppercase tracking-widest text-foreground">{configModalContent.title}</h3>
+                            <button onClick={() => setConfigModalContent(null)} className="text-muted-foreground hover:text-foreground transition-colors">✕</button>
                         </div>
-                        <div className="p-6 overflow-auto font-mono text-sm text-zinc-300 whitespace-pre-wrap">
+                        <div className="p-6 overflow-auto font-mono text-sm text-muted-foreground whitespace-pre-wrap">
                             {configModalContent.content}
                         </div>
                     </div>

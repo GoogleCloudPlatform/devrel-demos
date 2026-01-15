@@ -12,6 +12,7 @@ import (
 type Configuration struct {
 	Name          string        `yaml:"name" json:"name"`
 	Description   string        `yaml:"description,omitempty" json:"description,omitempty"`
+	Locked        bool          `yaml:"locked,omitempty" json:"locked,omitempty"`
 	Repetitions   int           `yaml:"repetitions,omitempty" json:"repetitions,omitempty"`
 	MaxConcurrent int           `yaml:"max_concurrent,omitempty" json:"max_concurrent,omitempty"`
 	Timeout       string        `yaml:"timeout,omitempty" json:"timeout,omitempty"`                       // e.g. "5m", "10m"
@@ -64,12 +65,14 @@ type ValidationRule struct {
 
 // ScenarioConfig represents the content of a scenario.yaml file.
 type ScenarioConfig struct {
-	Name        string           `yaml:"name" json:"name"`
-	Description string           `yaml:"description,omitempty" json:"description,omitempty"`
-	Task        string           `yaml:"task,omitempty" json:"task,omitempty"`
-	GithubIssue string           `yaml:"github_issue,omitempty" json:"github_issue,omitempty"`
-	Assets      []Asset          `yaml:"assets" json:"assets"`
-	Validation  []ValidationRule `yaml:"validation" json:"validation"`
+	Name        string            `yaml:"name" json:"name"`
+	Description string            `yaml:"description,omitempty" json:"description,omitempty"`
+	Locked      bool              `yaml:"locked,omitempty" json:"locked,omitempty"`
+	Task        string            `yaml:"task,omitempty" json:"task,omitempty"`
+	GithubIssue string            `yaml:"github_issue,omitempty" json:"github_issue,omitempty"`
+	Assets      []Asset           `yaml:"assets" json:"assets"`
+	Validation  []ValidationRule  `yaml:"validation" json:"validation"`
+	Env         map[string]string `yaml:"env,omitempty" json:"env,omitempty"`
 }
 
 // Load reads the configuration from the specified file path.

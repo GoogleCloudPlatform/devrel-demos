@@ -88,8 +88,34 @@ func (r *Runner) createCommand(ctx context.Context, alt config.Alternative, wsIn
 	cmd.Env = append(cmd.Env, fmt.Sprintf("HOME=%s", wsInfo.Home))
 
 	envMap := make(map[string]string)
+
+	// Collect Host Env
+	hostEnv := make(map[string]string)
+	for _, e := range os.Environ() {
+		parts := strings.SplitN(e, "=", 2)
+		if len(parts) == 2 {
+			hostEnv[parts[0]] = parts[1]
+		}
+	}
+
+	// 1. Scenario Level Env
+	if wsInfo.Config != nil {
+		for k, v := range wsInfo.Config.Env {
+			val := v
+			if strings.HasPrefix(v, "$") {
+				val = hostEnv[strings.TrimPrefix(v, "$")]
+			}
+			envMap[k] = val
+		}
+	}
+
+	// 2. Alternative Level Env (Overrides Scenario)
 	for k, v := range alt.Env {
-		envMap[k] = v
+		val := v
+		if strings.HasPrefix(v, "$") {
+			val = hostEnv[strings.TrimPrefix(v, "$")]
+		}
+		envMap[k] = val
 	}
 
 	systemPath := filepath.Join(wsInfo.Project, "SYSTEM.md")

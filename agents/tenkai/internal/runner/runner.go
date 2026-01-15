@@ -151,8 +151,14 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 		Sem:             sem,
 	}
 
-	for _, alt := range cfg.Alternatives {
-		r.dispatchAlternative(rc, alt, cfg.Scenarios, cfg.Repetitions)
+	log.Printf("Starting experiment with %d unique jobs. Max concurrency: %d", resultsLimit, r.MaxConcurrent)
+
+	for i := 1; i <= cfg.Repetitions; i++ {
+		for _, scenPath := range cfg.Scenarios {
+			for _, alt := range cfg.Alternatives {
+				r.dispatchRun(rc, alt, scenPath, i)
+			}
+		}
 	}
 
 	go func() {
@@ -162,6 +168,7 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 
 	completed := 0
 	stopping := false
+	lastLogTime := time.Now()
 	for {
 		select {
 		case res, ok := <-resultsChan:
@@ -176,19 +183,29 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 				goto Done
 			}
 			completed++
+			// Reset heartbeat timer on activity
+			lastLogTime = time.Now()
 
 			// Refine Reason and Status before appending to results slice
 			// Spec: Status must be COMPLETED for finished runs.
 			// Reasons: SUCCESS, VALIDATION, LOOP, ERROR, TIMEOUT.
 			// If we are stopping, and this result was cancelled/aborted, verify status.
-			
+
 			// ... (rest of processing logic remains)
 
-			res.Status = db.RunStatusCompleted
+			if stopping && !res.IsSuccess {
+				res.Status = db.RunStatusAborted
+				res.Reason = "CANCELLED"
+			} else {
+				res.Status = db.RunStatusCompleted
+			}
 
 			switch {
 			case res.IsSuccess:
+				res.Status = db.RunStatusCompleted // Ensure success is always completed
 				res.Reason = db.ReasonSuccess
+			case res.Status == db.RunStatusAborted:
+				// Already handled above
 			case res.AgentMetrics != nil && res.AgentMetrics.LoopDetected:
 				res.Reason = db.ReasonFailedLoop
 			case res.ErrorStr != "" && IsTimeoutErr(res.Error):
@@ -196,12 +213,7 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 			case res.ValidationReport != "":
 				res.Reason = db.ReasonFailedValidation
 			default:
-				// If we are stopping, it might be an abortion error
-				if stopping {
-					res.Reason = db.ReasonFailedError // Or specific aborted reason if we want
-				} else {
-					res.Reason = db.ReasonFailedError
-				}
+				res.Reason = db.ReasonFailedError
 			}
 
 			percentage := float64(completed) / float64(resultsLimit) * 100
@@ -290,6 +302,13 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 			results = append(results, res)
 
 		case <-time.After(1 * time.Second):
+			// Heartbeat Log
+			if time.Since(lastLogTime) > 30*time.Second {
+				percentage := float64(completed) / float64(resultsLimit) * 100
+				log.Printf("Heartbeat: Still working. Progress: %d/%d (%.1f%%)", completed, resultsLimit, percentage)
+				lastLogTime = time.Now()
+			}
+
 			if stopping {
 				continue
 			}
@@ -341,7 +360,7 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 
 	// Calculate a job ID for logging
 	jobID := fmt.Sprintf("[%s|%s|#%d]", alt.Name, scenarioID, rep)
-	log.Printf("START %s", jobID)
+	log.Printf("STARTED %s", jobID)
 
 	// Ensure paths are absolute before passing to WorkspaceMgr
 	// 1. Prepare Workspace
@@ -511,7 +530,14 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 	// Ensure live monitor is stopped before returning to avoid race conditions on DB
 	jobCancel()
 
-	log.Printf("DONE  %s in %s", jobID, res.Duration.Round(time.Millisecond))
+	statusStr := "Success"
+	if !res.IsSuccess {
+		statusStr = "Failed"
+		if res.ErrorStr != "" {
+			statusStr = fmt.Sprintf("Failed (%s)", res.ErrorStr)
+		}
+	}
+	log.Printf("COMPLETED %s [%s] in %s", jobID, statusStr, res.Duration.Round(time.Millisecond))
 
 	// Result will be saved to DB in the main Run loop
 	return res
@@ -522,7 +548,7 @@ func (r *Runner) evaluateCode(ctx context.Context, wsPath string, scenConfig *co
 		return nil, nil, fmt.Errorf("invalid scenario: no validation rules defined")
 	}
 
-	report, err := r.Validate(ctx, wsPath, scenConfig.Validation, stdout)
+	report, err := r.Validate(ctx, wsPath, scenConfig.Validation, stdout, scenConfig.Env)
 	if err != nil {
 		return nil, nil, err
 	}

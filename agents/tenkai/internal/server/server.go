@@ -27,8 +27,8 @@ func New(database *db.DB, r *runner.Runner, ws *workspace.Manager) *Server {
 }
 
 func (s *Server) Start(port int) error {
-	addr := fmt.Sprintf(":%d", port)
-	log.Printf("[Server] Listening on http://localhost%s", addr)
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	log.Printf("[Server] Listening on http://%s", addr)
 
 	// Chain middlewares: CORS -> Recovery -> Logger -> Router
 	// Note: Middleware functions are now in middleware.go

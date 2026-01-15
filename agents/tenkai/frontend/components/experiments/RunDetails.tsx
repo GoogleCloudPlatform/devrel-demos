@@ -108,11 +108,11 @@ function RevalidateButton({ runId }: { runId: number }) {
                 disabled={loading}
                 className={`text-xs flex items-center justify-center gap-1.5 px-3 py-1.5 rounded transition-all shadow-sm
                     ${loading
-                        ? 'bg-zinc-800 text-zinc-500 border-zinc-700 cursor-not-allowed'
-                        : 'bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 hover:border-blue-500/50'
+                        ? 'bg-muted text-muted-foreground border-border cursor-not-allowed'
+                        : 'bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 hover:border-primary/50'
                     } uppercase font-bold tracking-wider`}
             >
-                {loading ? <Loader2 size={12} className="animate-spin text-blue-400" /> : <RefreshCw size={12} />}
+                {loading ? <Loader2 size={12} className="animate-spin text-primary" /> : <RefreshCw size={12} />}
                 {loading ? 'Re-validating...' : 'Re-validate'}
             </button>
             {loading && (
@@ -131,9 +131,9 @@ function RevalidateButton({ runId }: { runId: number }) {
 function CollapsibleEvent({
     title,
     timestamp,
-    color = "text-zinc-400",
-    bgColor = "bg-zinc-500/10",
-    borderColor = "border-zinc-500/20",
+    color = "text-muted-foreground",
+    bgColor = "bg-muted/30",
+    borderColor = "border-border/50",
     children,
     defaultOpen = false,
     count = 1
@@ -153,21 +153,21 @@ function CollapsibleEvent({
         <div className={`w-full my-2 border rounded ${borderColor} ${bgColor} overflow-hidden`}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full h-8 px-3 flex items-center justify-between text-xs font-bold uppercase tracking-wider hover:bg-white/5 transition-colors text-left"
+                className="w-full h-8 px-3 flex items-center justify-between text-xs font-bold uppercase tracking-wider hover:bg-muted/20 transition-colors text-left"
             >
                 <div className="flex items-center gap-2">
                     {isOpen ? <ChevronDown size={14} className={color} /> : <ChevronRight size={14} className={color} />}
                     <span className={color}>{title}</span>
-                    {count > 1 && <span className="bg-white/10 text-white px-1.5 rounded-full text-[10px]">x{count}</span>}
+                    {count > 1 && <span className="bg-foreground/10 text-foreground px-1.5 rounded-full text-[10px]">x{count}</span>}
                 </div>
                 <div className="flex items-center gap-3">
-                    {timestamp && <span className="text-[10px] text-zinc-500 font-mono">{new Date(timestamp).toLocaleTimeString()}</span>}
-                    <span className="text-[10px] text-zinc-600 font-mono opacity-50">{isOpen ? 'COLLAPSE' : 'EXPAND'}</span>
+                    {timestamp && <span className="text-[10px] text-muted-foreground font-mono">{new Date(timestamp).toLocaleTimeString()}</span>}
+                    <span className="text-[10px] text-muted-foreground/50 font-mono italic">{isOpen ? 'COLLAPSE' : 'EXPAND'}</span>
                 </div>
             </button>
 
             {isOpen && (
-                <div className="p-3 border-t border-white/5 font-mono text-xs text-zinc-300 break-words max-h-[500px] overflow-y-auto bg-black/20">
+                <div className="p-3 border-t border-border/30 font-mono text-xs text-foreground break-words max-h-[500px] overflow-y-auto bg-background/30">
                     {children}
                 </div>
             )}
@@ -250,17 +250,17 @@ function ResultEvent({ content, timestamp, count }: { content: string, timestamp
             <div className="space-y-4">
                 {data.stats && (
                     <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="bg-black/40 p-2 rounded border border-white/5">
-                            <div className="text-[10px] text-zinc-500 uppercase font-bold">Tokens</div>
-                            <div className="text-white font-mono text-sm font-bold">{data.stats.total_tokens?.toLocaleString()}</div>
+                        <div className="bg-card p-2 rounded border border-border">
+                            <div className="text-[10px] text-muted-foreground uppercase font-bold">Tokens</div>
+                            <div className="text-foreground font-mono text-sm font-bold">{data.stats.total_tokens?.toLocaleString()}</div>
                         </div>
-                        <div className="bg-black/40 p-2 rounded border border-white/5">
-                            <div className="text-[10px] text-zinc-500 uppercase font-bold">Input</div>
-                            <div className="text-zinc-400 font-mono text-sm">{data.stats.input_tokens?.toLocaleString()}</div>
+                        <div className="bg-card p-2 rounded border border-border">
+                            <div className="text-[10px] text-muted-foreground uppercase font-bold">Input</div>
+                            <div className="text-muted-foreground font-mono text-sm">{data.stats.input_tokens?.toLocaleString()}</div>
                         </div>
-                        <div className="bg-black/40 p-2 rounded border border-white/5">
-                            <div className="text-[10px] text-zinc-500 uppercase font-bold">Output</div>
-                            <div className="text-zinc-400 font-mono text-sm">{data.stats.output_tokens?.toLocaleString()}</div>
+                        <div className="bg-card p-2 rounded border border-border">
+                            <div className="text-[10px] text-muted-foreground uppercase font-bold">Output</div>
+                            <div className="text-muted-foreground font-mono text-sm">{data.stats.output_tokens?.toLocaleString()}</div>
                         </div>
                     </div>
                 )}
@@ -274,9 +274,9 @@ function GenericEvent({ role, content, timestamp, count }: { role: string, conte
         <CollapsibleEvent
             title={`Event: ${role}`}
             timestamp={timestamp}
-            color="text-zinc-500"
-            bgColor="bg-zinc-900/50"
-            borderColor="border-zinc-800"
+            color="text-muted-foreground"
+            bgColor="bg-muted/10"
+            borderColor="border-border"
             count={count}
         >
             <JsonView data={content} />
@@ -314,24 +314,24 @@ function ToolMessage({ role, content, timestamp, count }: { role: string, conten
 }
 
 function RunStatusBanner({ run }: { run: RunResultRecord }) {
-    let statusColor = "bg-zinc-800 text-zinc-400 border-zinc-700";
+    let statusColor = "bg-muted text-muted-foreground border-border";
     let icon = "⏳";
     let statusText = run.status || "UNKNOWN";
     let reasonText = "";
 
     if (run.status === 'COMPLETED' || run.status === 'completed') {
         if (run.is_success) {
-            statusColor = "bg-emerald-500/20 border-emerald-500/30 text-emerald-400";
+            statusColor = "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400";
             icon = "✅";
             statusText = "SUCCESS";
         } else {
-            statusColor = "bg-red-500/20 border-red-500/30 text-red-400";
+            statusColor = "bg-destructive/10 border-destructive/30 text-destructive";
             icon = "❌";
             statusText = "FAILED";
             reasonText = run.reason || "Unknown Failure";
         }
     } else if (run.status === 'ABORTED' || run.status === 'aborted') {
-        statusColor = "bg-zinc-700/50 border-zinc-600 text-zinc-300";
+        statusColor = "bg-muted border-border text-muted-foreground";
         icon = "🛑";
         statusText = "ABORTED";
     }
@@ -436,44 +436,44 @@ export default function RunDetails({
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="panel p-4">
-                    <p className="font-bold text-zinc-500 uppercase tracking-widest mb-1">Tokens</p>
+                    <p className="font-bold text-muted-foreground uppercase tracking-widest mb-1 text-[10px]">Tokens</p>
                     <p className="text-header font-bold">{run.total_tokens?.toLocaleString()}</p>
-                    <p className="text-[#52525b] mt-1 uppercase font-mono">In_{run.input_tokens} Out_{run.output_tokens}</p>
+                    <p className="text-muted-foreground/60 mt-1 uppercase font-mono text-[10px]">In_{run.input_tokens} Out_{run.output_tokens}</p>
                 </div>
                 <div className="panel p-4">
-                    <p className="font-bold text-zinc-500 uppercase tracking-widest mb-1">Tools</p>
+                    <p className="font-bold text-muted-foreground uppercase tracking-widest mb-1 text-[10px]">Tools</p>
                     <p className="text-header font-bold">{run.tool_calls_count}</p>
                 </div>
                 <div className="panel p-4">
-                    <p className="font-bold text-zinc-500 uppercase tracking-widest mb-1">Tests</p>
-                    <p className="text-header font-bold text-emerald-400">{run.tests_passed}</p>
-                    <p className="text-red-500 mt-1 uppercase font-bold">{run.tests_failed} Failures</p>
+                    <p className="font-bold text-muted-foreground uppercase tracking-widest mb-1 text-[10px]">Tests</p>
+                    <p className="text-header font-bold text-emerald-500">{run.tests_passed}</p>
+                    <p className="text-destructive mt-1 uppercase font-bold text-[10px]">{run.tests_failed} Failures</p>
                 </div>
                 <div className="panel p-4">
-                    <p className="font-bold text-zinc-500 uppercase tracking-widest mb-1">Lint</p>
-                    <p className="text-header font-bold text-amber-400">{run.lint_issues}</p>
+                    <p className="font-bold text-muted-foreground uppercase tracking-widest mb-1 text-[10px]">Lint</p>
+                    <p className="text-header font-bold text-amber-500">{run.lint_issues}</p>
                 </div>
             </div>
 
             {/* Validation Report */}
             <div className="panel overflow-hidden">
-                <div className="p-4 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
-                    <h4 className="font-bold uppercase tracking-widest text-blue-400">Validation Report</h4>
+                <div className="p-4 border-b border-border bg-muted/10 flex justify-between items-center">
+                    <h4 className="font-bold uppercase tracking-widest text-primary">Validation Report</h4>
                     <div className="flex gap-4 items-center">
                         {run.reason === 'FAILED (VALIDATION)' && <RevalidateButton runId={run.id} />}
                         {run.validation_report ? (() => {
                             try {
                                 const report = JSON.parse(run.validation_report);
                                 return (
-                                    <span className={`font-bold uppercase tracking-widest ${report.overall_success ? 'text-emerald-400' : 'text-red-500'}`}>
+                                    <span className={`font-bold uppercase tracking-widest ${report.overall_success ? 'text-emerald-500' : 'text-destructive'}`}>
                                         {report.overall_success ? 'SUCCESS' : 'FAILURE'}
                                     </span>
                                 );
                             } catch (e) {
-                                return <span className="text-zinc-500 italic">PARSE ERROR</span>;
+                                return <span className="text-muted-foreground italic">PARSE ERROR</span>;
                             }
                         })() : (
-                            <span className="text-zinc-500 italic">PENDING</span>
+                            <span className="text-muted-foreground italic">PENDING</span>
                         )}
                     </div>
                 </div>
@@ -485,25 +485,25 @@ export default function RunDetails({
                                 return <p className="p-10 text-center text-zinc-500 italic">No validation items recorded.</p>;
                             }
                             return (
-                                <table className="w-full text-left bg-black/20">
+                                <table className="w-full text-left bg-background/30">
                                     <thead>
-                                        <tr className="border-b border-white/5 text-zinc-500 uppercase tracking-widest text-xs">
+                                        <tr className="border-b border-border text-muted-foreground uppercase tracking-widest text-[10px]">
                                             <th className="px-6 py-3 w-[120px]">Type</th>
                                             <th className="px-6 py-3">Description</th>
                                             <th className="px-6 py-3 text-right w-[150px]">Status</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-white/5">
+                                    <tbody className="divide-y divide-border/50">
                                         {report.items.map((item: any, i: number) => {
                                             const typeKey = item.type?.toUpperCase() || 'UNKNOWN';
                                             const typeColors: Record<string, string> = {
-                                                'TEST': 'text-blue-400',
-                                                'LINT': 'text-amber-400',
-                                                'COMMAND': 'text-purple-400',
-                                                'MODEL': 'text-rose-400',
-                                                'UNKNOWN': 'text-zinc-400'
+                                                'TEST': 'text-emerald-500',
+                                                'LINT': 'text-amber-500',
+                                                'COMMAND': 'text-purple-500',
+                                                'MODEL': 'text-rose-500',
+                                                'UNKNOWN': 'text-muted-foreground'
                                             };
-                                            const typeColor = typeColors[typeKey] || 'text-zinc-400';
+                                            const typeColor = typeColors[typeKey] || 'text-muted-foreground';
 
                                             return (
                                                 <tr key={i} className="group cursor-pointer hover:bg-white/[0.02] transition-colors" onClick={() => onInspectValidation(item)}>
@@ -589,17 +589,17 @@ export default function RunDetails({
                             return (
                                 <div key={i} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} my-4`}>
                                     <div className="flex items-center gap-2 mb-2 ml-1">
-                                        <span className="font-bold text-zinc-600 uppercase tracking-tighter text-xs">{msg.role}</span>
-                                        {msg.count > 1 && <span className="bg-zinc-800 text-zinc-400 px-1.5 rounded-full text-[10px] font-bold">x{msg.count}</span>}
+                                        <span className="font-bold text-muted-foreground uppercase tracking-tighter text-[10px]">{msg.role}</span>
+                                        {msg.count > 1 && <span className="bg-muted text-muted-foreground px-1.5 rounded-full text-[10px] font-bold">x{msg.count}</span>}
                                     </div>
-                                    <div className={`p-4 rounded-md max-w-[90%] border shadow-sm ${isUser ? 'bg-indigo-600/10 border-indigo-500/20 text-indigo-100' : 'bg-[#161618] border-[#27272a] text-[#f4f4f5]'}`}>
-                                        <div className="prose prose-invert prose-sm max-w-none prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/5">
+                                    <div className={`p-4 rounded-md max-w-[90%] border shadow-sm ${isUser ? 'bg-primary/10 border-primary/20 text-foreground' : 'bg-card border-border text-foreground'}`}>
+                                        <div className="prose prose-invert prose-sm max-w-none prose-pre:bg-background/50 prose-pre:border prose-pre:border-border">
                                             <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
                                                 {msg.content}
                                             </ReactMarkdown>
                                         </div>
                                     </div>
-                                    <span className="text-[10px] text-zinc-600 mt-1 font-mono">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                                    <span className="text-[10px] text-muted-foreground/50 mt-1 font-mono">{new Date(msg.timestamp).toLocaleTimeString()}</span>
                                 </div>
                             );
                         }

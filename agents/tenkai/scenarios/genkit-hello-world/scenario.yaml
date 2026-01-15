@@ -1,0 +1,10 @@
+name: Genkit Go Hello World
+description: Creates a simple flow using Genkit Go
+task: "Your task is to create a 'Hello World' application using the Genkit Go framework. You need to create a simple flow that takes a string input and returns a string output. When the input is 'Tenkai', the output should be 'Hello Tenkai!'.\n\nRequirements:\n- Initialize a Go module `example.com/hello`\n- Use the package `github.com/firebase/genkit/go`\n- Create a `main.go` file that defines and starts the flow.\n- Ensure the flow is named `helloFlow`.\n- The application should run and listen for requests (the standard genkit start behavior).\n\nTo validate, we will run the binary and check for the flow definition or simple execution.\n"
+assets: []
+validation:
+    # We validate by building and checking if the binary can print its flow list or run.
+    # Since running a flow might require an API key if not careful, we'll try to just check compilation and maybe a "dry run" if possible.
+    # For now, let's stick to compilation and valid module structure as a basic check, possibly grepping for the flow definition.
+    - type: command
+      command: go build -o hello . && ./hello --help

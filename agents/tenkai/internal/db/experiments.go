@@ -15,7 +15,7 @@ import (
 func (db *DB) GetExperiments() ([]models.Experiment, error) {
 	query := `
 	SELECT 
-		e.id, e.name, e.timestamp, e.status, e.reps, e.total_jobs, e.description, e.concurrent, e.config_content, e.experiment_control,
+		e.id, e.name, e.timestamp, e.status, e.reps, e.total_jobs, e.description, e.concurrent, e.config_content, e.experiment_control, e.pid, e.is_locked,
 		COALESCE(AVG(CASE WHEN r.is_success THEN 1.0 ELSE 0.0 END) * 100, 0) as success_rate,
 		COALESCE(AVG(CASE WHEN r.is_success THEN r.duration ELSE NULL END) / 1000000000.0, 0) as avg_duration,
 		COALESCE(AVG(CASE WHEN r.is_success THEN r.total_tokens ELSE NULL END), 0) as avg_tokens
@@ -38,7 +38,7 @@ func (db *DB) GetExperiments() ([]models.Experiment, error) {
 		var desc, confContent, expControl sql.NullString
 
 		if err := rows.Scan(
-			&e.ID, &e.Name, &ts, &e.Status, &e.Reps, &e.TotalJobs, &desc, &e.Concurrent, &confContent, &expControl,
+			&e.ID, &e.Name, &ts, &e.Status, &e.Reps, &e.TotalJobs, &desc, &e.Concurrent, &confContent, &expControl, &e.PID, &e.IsLocked,
 			&sRate, &aDur, &aTok,
 		); err != nil {
 			return nil, err
@@ -96,7 +96,7 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 	query := `SELECT 
 		e.id, e.name, e.timestamp, e.config_path, e.report_path, e.results_path, 
 		e.status, e.reps, e.concurrent, e.total_jobs,
-		e.description, e.duration, e.config_content, e.report_content, e.execution_control, e.experiment_control, e.error_message, e.ai_analysis, e.pid
+		e.description, e.duration, e.config_content, e.report_content, e.execution_control, e.experiment_control, e.error_message, e.ai_analysis, e.pid, e.is_locked
 		FROM experiments e WHERE e.id = ?`
 
 	row := db.conn.QueryRow(query, id)
@@ -108,7 +108,7 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 	err := row.Scan(
 		&exp.ID, &exp.Name, &ts, &exp.ConfigPath, &exp.ReportPath, &exp.ResultsPath,
 		&exp.Status, &exp.Reps, &exp.Concurrent, &exp.TotalJobs,
-		&desc, &exp.Duration, &conf, &rep, &execCtrl, &expCtrl, &errMsg, &aiAn, &exp.PID,
+		&desc, &exp.Duration, &conf, &rep, &execCtrl, &expCtrl, &errMsg, &aiAn, &exp.PID, &exp.IsLocked,
 	)
 	if err != nil {
 		return nil, err
@@ -155,8 +155,14 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 		if exp.Status != ExperimentStatusAborted && exp.Status != ExperimentStatusCompleted {
 			if completed >= exp.TotalJobs && exp.TotalJobs > 0 {
 				exp.Status = ExperimentStatusCompleted
+				// Also sync to DB to persist the state change if it was just calculated
+				db.UpdateExperimentStatus(exp.ID, ExperimentStatusCompleted)
 			}
 		}
+
+		// BUT, if we have aborted runs, and the experiment is marked "ABORTED" in DB,
+		// we should trust the DB status.
+		// Detailed view logic:
 
 		exp.SuccessRate = sRate.Float64
 		exp.AvgDuration = aDur.Float64
@@ -216,6 +222,11 @@ func (db *DB) UpdateExperimentProgress(id int64, completed, total int) error {
 	return err
 }
 
+func (db *DB) UpdateExperimentLock(id int64, locked bool) error {
+	_, err := db.conn.Exec("UPDATE experiments SET is_locked = ? WHERE id = ?", locked, id)
+	return err
+}
+
 func (db *DB) UpdateExecutionControl(expID int64, control string) error {
 	_, err := db.conn.Exec("UPDATE experiments SET execution_control = ? WHERE id = ?", control, expID)
 	return err
@@ -267,26 +278,51 @@ func (db *DB) DeleteAllExperiments() error {
 	}
 	defer tx.Rollback()
 
-	// Clear child tables (using generic delete for safety, could truncate if sqlite supported it well)
-	if _, err := tx.Exec("DELETE FROM run_events"); err != nil {
+	// Only delete unlocked experiments
+	// Subquery based approach (sqlite specific)
+
+	// Delete runs for unlocked experiments
+	_, err = tx.Exec(`DELETE FROM run_events WHERE run_id IN (
+		SELECT r.id FROM run_results r 
+		JOIN experiments e ON r.experiment_id = e.id 
+		WHERE e.is_locked = 0
+	)`)
+	if err != nil {
 		return err
 	}
-	if _, err := tx.Exec("DELETE FROM tool_usage"); err != nil {
-		// view, skip
-	}
-	if _, err := tx.Exec("DELETE FROM test_results"); err != nil {
+	_, err = tx.Exec(`DELETE FROM test_results WHERE run_id IN (
+		SELECT r.id FROM run_results r 
+		JOIN experiments e ON r.experiment_id = e.id 
+		WHERE e.is_locked = 0
+	)`)
+	if err != nil {
 		return err
 	}
-	if _, err := tx.Exec("DELETE FROM lint_results"); err != nil {
+	_, err = tx.Exec(`DELETE FROM lint_results WHERE run_id IN (
+		SELECT r.id FROM run_results r 
+		JOIN experiments e ON r.experiment_id = e.id 
+		WHERE e.is_locked = 0
+	)`)
+	if err != nil {
 		return err
 	}
-	if _, err := tx.Exec("DELETE FROM run_files"); err != nil {
+	_, err = tx.Exec(`DELETE FROM run_files WHERE run_id IN (
+		SELECT r.id FROM run_results r 
+		JOIN experiments e ON r.experiment_id = e.id 
+		WHERE e.is_locked = 0
+	)`)
+	if err != nil {
 		return err
 	}
-	if _, err := tx.Exec("DELETE FROM run_results"); err != nil {
+	_, err = tx.Exec(`DELETE FROM run_results WHERE experiment_id IN (
+		SELECT id FROM experiments WHERE is_locked = 0
+	)`)
+	if err != nil {
 		return err
 	}
-	if _, err := tx.Exec("DELETE FROM experiments"); err != nil {
+
+	_, err = tx.Exec("DELETE FROM experiments WHERE is_locked = 0")
+	if err != nil {
 		return err
 	}
 

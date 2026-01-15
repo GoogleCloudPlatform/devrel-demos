@@ -62,6 +62,82 @@
   --radius: 0.5rem;
 }
 
+[data-theme='light'] {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(240 10% 3.9%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(240 10% 3.9%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(240 10% 3.9%);
+  --primary: hsl(243.4 75.4% 58.6%);
+  /* Indigo-600 */
+  --primary-foreground: hsl(0 0% 98%);
+  --secondary: hsl(240 4.8% 95.9%);
+  --secondary-foreground: hsl(240 5.9% 10%);
+  --muted: hsl(240 4.8% 95.9%);
+  --muted-foreground: hsl(240 3.8% 46.1%);
+  --accent: hsl(240 4.8% 95.9%);
+  --accent-foreground: hsl(240 5.9% 10%);
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --border: hsl(240 5.9% 90%);
+  --input: hsl(240 5.9% 90%);
+  --ring: hsl(240 5.9% 10%);
+}
+
+[data-theme='happy'] {
+  --background: hsl(265 48% 12%);
+  --foreground: hsl(265 10% 98%);
+  --card: hsl(265 40% 15%);
+  --card-foreground: hsl(265 10% 98%);
+  --popover: hsl(265 40% 15%);
+  --popover-foreground: hsl(265 10% 98%);
+  --primary: hsl(325 90% 65%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(190 85% 55%);
+  /* Brighter cyan for better reach */
+  --secondary-foreground: hsl(200 60% 5%);
+  /* Near black blue for maximum contrast */
+  --muted: hsl(265 30% 25%);
+  --muted-foreground: hsl(265 20% 75%);
+  --accent: hsl(300 60% 50%);
+  --accent-foreground: hsl(0 0% 100%);
+  --destructive: hsl(0 80% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(265 30% 30%);
+  --input: hsl(265 30% 30%);
+  --ring: hsl(325 90% 65%);
+}
+
+[data-theme='beach'] {
+  --background: hsl(42 45% 92%);
+  /* Warm Sand */
+  --foreground: hsl(200 70% 12%);
+  /* Deep Nautical Blue */
+  --card: hsl(42 40% 95%);
+  --card-foreground: hsl(200 70% 12%);
+  --popover: hsl(42 40% 95%);
+  --popover-foreground: hsl(200 70% 12%);
+  --primary: hsl(188 85% 32%);
+  /* Ocean Teal */
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(15 90% 65%);
+  /* Sunset Orange */
+  --secondary-foreground: hsl(0 0% 100%);
+  --muted: hsl(195 30% 88%);
+  /* Sea Foam */
+  --muted-foreground: hsl(200 50% 35%);
+  --accent: hsl(48 95% 55%);
+  /* Bright Sun */
+  --accent-foreground: hsl(200 70% 12%);
+  --destructive: hsl(0 80% 50%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(40 30% 82%);
+  --input: hsl(40 30% 82%);
+  --ring: hsl(188 85% 40%);
+}
+
+
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
@@ -94,6 +170,6 @@ body {
 
 @layer components {
   .panel {
-    @apply rounded-lg border bg-card text-card-foreground shadow-sm border-white/5;
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm;
   }
 }

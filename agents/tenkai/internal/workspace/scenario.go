@@ -17,6 +17,7 @@ type Scenario struct {
 	ID          string                  `json:"id"`
 	Name        string                  `json:"name"`
 	Description string                  `json:"description"`
+	Locked      bool                    `json:"locked"`
 	Path        string                  `json:"path"`
 	Task        string                  `json:"task,omitempty"`
 	Assets      []config.Asset          `json:"assets,omitempty"`
@@ -53,15 +54,16 @@ func (m *Manager) ListScenarios() []Scenario {
 			}
 
 			configPath := filepath.Join(dir, name, "scenario.yaml")
-			            if cfg, err := config.LoadScenarioConfig(configPath); err == nil {
-			                if cfg.Name != "" {
-			                    scen.Name = cfg.Name
-			                }
-			                scen.Description = cfg.Description
-			                scen.Task = cfg.Task
-			                scen.Assets = cfg.Assets
-			                scen.Validation = cfg.Validation
-			            }
+			if cfg, err := config.LoadScenarioConfig(configPath); err == nil {
+				if cfg.Name != "" {
+					scen.Name = cfg.Name
+				}
+				scen.Description = cfg.Description
+				scen.Locked = cfg.Locked
+				scen.Task = cfg.Task
+				scen.Assets = cfg.Assets
+				scen.Validation = cfg.Validation
+			}
 
 			scenarios = append(scenarios, scen)
 			seen[name] = true
@@ -87,6 +89,7 @@ func (m *Manager) GetScenario(id string) (*Scenario, error) {
 					scen.Name = cfg.Name
 				}
 				scen.Description = cfg.Description
+				scen.Locked = cfg.Locked
 				scen.Task = cfg.Task
 				scen.Assets = cfg.Assets
 				scen.Validation = cfg.Validation
@@ -98,7 +101,7 @@ func (m *Manager) GetScenario(id string) (*Scenario, error) {
 }
 
 // CreateScenario creates a new scenario directory and assets.
-func (m *Manager) CreateScenario(name, description, task string, assets []config.Asset, validation []config.ValidationRule) (string, error) {
+func (m *Manager) CreateScenario(name, description, task string, assets []config.Asset, validation []config.ValidationRule, env map[string]string) (string, error) {
 	// Use the first templates dir for creation (usually scenarios/)
 	if len(m.TemplatesDirs) == 0 {
 		return "", fmt.Errorf("no templates directory configured")
@@ -131,6 +134,7 @@ func (m *Manager) CreateScenario(name, description, task string, assets []config
 		Task:        task,
 		Assets:      assets,
 		Validation:  validation,
+		Env:         env,
 	}
 
 	// Persist file assets to disk instead of embedding in YAML
@@ -186,7 +190,7 @@ func (m *Manager) CreateScenario(name, description, task string, assets []config
 }
 
 // UpdateScenario updates an existing scenario configuration.
-func (m *Manager) UpdateScenario(id, name, description, task string, validation []config.ValidationRule, assets []config.Asset) error {
+func (m *Manager) UpdateScenario(id, name, description, task string, validation []config.ValidationRule, assets []config.Asset, env map[string]string) error {
 	for _, dir := range m.TemplatesDirs {
 		path := filepath.Join(dir, id)
 		if info, err := os.Stat(path); err == nil && info.IsDir() {
@@ -194,7 +198,7 @@ func (m *Manager) UpdateScenario(id, name, description, task string, validation 
 			configPath := filepath.Join(path, "scenario.yaml")
 			var cfg config.ScenarioConfig
 			if existing, err := config.LoadScenarioConfig(configPath); err == nil {
-				cfg = *existing 
+				cfg = *existing
 			}
 
 			// Update fields
@@ -204,13 +208,16 @@ func (m *Manager) UpdateScenario(id, name, description, task string, validation 
 				cfg.Task = task
 			}
 			cfg.Validation = validation
+			if env != nil {
+				cfg.Env = env
+			}
 
 			// Append new assets if any
 			// Note: This appends. It doesn't replace existing unless logic is added.
 			// Ideally we might want to merge or allow full replacement.
 			// For now, let's append new ones which seems to be the intent of "uploading files".
 			// But we also need to handle the file persistence.
-			
+
 			// Process new assets
 			for i := range assets {
 				asset := &assets[i]
@@ -220,7 +227,7 @@ func (m *Manager) UpdateScenario(id, name, description, task string, validation 
 						relPath = strings.TrimPrefix(relPath, "/")
 						relPath = strings.ReplaceAll(relPath, "../", "")
 					}
-					
+
 					if relPath == "." || relPath == "" {
 						continue
 					}
@@ -274,13 +281,73 @@ func (m *Manager) UpdateScenario(id, name, description, task string, validation 
 	return fmt.Errorf("scenario %q not found", id)
 }
 
+// LockScenario updates the locked status of a scenario.
+func (m *Manager) LockScenario(id string, locked bool) error {
+	for _, dir := range m.TemplatesDirs {
+		path := filepath.Join(dir, id)
+		if info, err := os.Stat(path); err == nil && info.IsDir() {
+			configPath := filepath.Join(path, "scenario.yaml")
+			var cfg config.ScenarioConfig
+			if existing, err := config.LoadScenarioConfig(configPath); err == nil {
+				cfg = *existing
+			} else {
+				// If no config exists, we can't lock it properly without creating one?
+				// Or we should fail? Assuming scenario usually has config.
+				return fmt.Errorf("failed to load scenario config: %w", err)
+			}
+
+			cfg.Locked = locked
+
+			data, err := yaml.Marshal(cfg)
+			if err != nil {
+				return err
+			}
+
+			return os.WriteFile(configPath, data, 0644)
+		}
+	}
+	return fmt.Errorf("scenario %q not found", id)
+}
+
 // DeleteScenario deletes a scenario directory.
 func (m *Manager) DeleteScenario(id string) error {
 	for _, dir := range m.TemplatesDirs {
 		path := filepath.Join(dir, id)
 		if info, err := os.Stat(path); err == nil && info.IsDir() {
+			configPath := filepath.Join(path, "scenario.yaml")
+			if cfg, err := config.LoadScenarioConfig(configPath); err == nil {
+				if cfg.Locked {
+					return fmt.Errorf("scenario is locked")
+				}
+			}
 			return os.RemoveAll(path)
 		}
 	}
 	return fmt.Errorf("scenario %q not found", id)
+}
+
+// DeleteAllScenarios deletes all scenarios.
+func (m *Manager) DeleteAllScenarios() error {
+	for _, dir := range m.TemplatesDirs {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, entry := range entries {
+			if entry.IsDir() {
+				path := filepath.Join(dir, entry.Name())
+				configPath := filepath.Join(path, "scenario.yaml")
+
+				// Only delete if it looks like a scenario
+				if _, err := os.Stat(configPath); err == nil {
+					// Check if locked
+					if cfg, err := config.LoadScenarioConfig(configPath); err == nil && cfg.Locked {
+						continue
+					}
+					os.RemoveAll(path)
+				}
+			}
+		}
+	}
+	return nil
 }

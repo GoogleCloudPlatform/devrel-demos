@@ -39,7 +39,7 @@ type ValidationItem struct {
 }
 
 func (r *Runner) Validate(ctx context.Context,
-	wsPath string, rules []config.ValidationRule, stdout string) (*ValidationReport, error) {
+	wsPath string, rules []config.ValidationRule, stdout string, env map[string]string) (*ValidationReport, error) {
 	report := &ValidationReport{
 		OverallSuccess: true,
 		Items:          make([]ValidationItem, 0),
@@ -56,7 +56,7 @@ func (r *Runner) Validate(ctx context.Context,
 
 		switch rule.Type {
 		case "test":
-			tests, item, tPass, tFail, err = r.validateTest(ctx, wsPath, rule)
+			tests, item, tPass, tFail, err = r.validateTest(ctx, wsPath, rule, env)
 			report.TestsPassed += tPass
 			report.TestsFailed += tFail
 			report.DetailedTests = append(report.DetailedTests, tests...)
@@ -64,13 +64,13 @@ func (r *Runner) Validate(ctx context.Context,
 				report.Coverage = item.Coverage
 			}
 		case "lint":
-			lints, item, lIssues, err = r.validateLint(ctx, wsPath, rule)
+			lints, item, lIssues, err = r.validateLint(ctx, wsPath, rule, env)
 			report.LintIssues += lIssues
 			report.DetailedLints = append(report.DetailedLints, lints...)
 		case "command":
-			item, err = r.validateCommand(ctx, wsPath, rule)
+			item, err = r.validateCommand(ctx, wsPath, rule, env)
 		case "model":
-			item, err = r.validateModel(ctx, wsPath, rule, stdout)
+			item, err = r.validateModel(ctx, wsPath, rule, stdout, env)
 		default:
 			item = ValidationItem{
 				Type:        rule.Type,
@@ -113,22 +113,44 @@ func (r *Runner) ApplyValidationReport(run *models.RunResult, report *Validation
 }
 
 // Helper to prepare environment variables
-func (r *Runner) prepareEnv(ruleEnv map[string]string) []string {
-	if len(ruleEnv) == 0 {
-		return nil // Inherit parent env
+func (r *Runner) prepareEnv(ruleEnv map[string]string, baseEnv map[string]string) []string {
+	envMap := make(map[string]string)
+
+	// Host env base
+	for _, e := range os.Environ() {
+		parts := strings.SplitN(e, "=", 2)
+		if len(parts) == 2 {
+			envMap[parts[0]] = parts[1]
+		}
 	}
-	env := os.Environ()
+
+	// Apply base scenario env
+	for k, v := range baseEnv {
+		val := v
+		if strings.HasPrefix(v, "$") {
+			val = os.Getenv(strings.TrimPrefix(v, "$"))
+		}
+		envMap[k] = val
+	}
+
+	// Apply rule env
 	for k, v := range ruleEnv {
 		val := v
 		if strings.HasPrefix(v, "$") {
 			val = os.Getenv(strings.TrimPrefix(v, "$"))
 		}
-		env = append(env, fmt.Sprintf("%s=%s", k, val))
+		envMap[k] = val
+	}
+
+	// Convert back to slice
+	var env []string
+	for k, v := range envMap {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 	return env
 }
 
-func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.ValidationRule) ([]models.TestResult, ValidationItem, int, int, error) {
+func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.ValidationRule, baseEnv map[string]string) ([]models.TestResult, ValidationItem, int, int, error) {
 	target := rule.Target
 	if target == "" {
 		return nil, ValidationItem{
@@ -140,7 +162,7 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 
 	cmd := exec.CommandContext(ctx, "go", "test", "-json", "-cover", target)
 	cmd.Dir = wsPath // Run in workspace
-	cmd.Env = r.prepareEnv(rule.Env)
+	cmd.Env = r.prepareEnv(rule.Env, baseEnv)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	// Ignore exit code error, we parse JSON
@@ -214,10 +236,10 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 		Coverage: coverage,
 	}
 
-covDesc := ""
+	covDesc := ""
 	if coverage > 0 {
-	
-covDesc = fmt.Sprintf(" (Cov: %.1f%%)", coverage)
+
+		covDesc = fmt.Sprintf(" (Cov: %.1f%%)", coverage)
 	}
 	item.Description = fmt.Sprintf("Run tests on %s%s", target, covDesc)
 
@@ -256,7 +278,7 @@ covDesc = fmt.Sprintf(" (Cov: %.1f%%)", coverage)
 	return results, item, passedCount, failedCount, nil
 }
 
-func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.ValidationRule) ([]models.LintIssue, ValidationItem, int, error) {
+func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.ValidationRule, baseEnv map[string]string) ([]models.LintIssue, ValidationItem, int, error) {
 	target := rule.Target
 	if target == "" {
 		target = "./..."
@@ -265,7 +287,7 @@ func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.Va
 	// golangci-lint run --out-format json ./...
 	cmd := exec.CommandContext(ctx, "golangci-lint", "run", "--out-format", "json", target)
 	cmd.Dir = wsPath
-	cmd.Env = r.prepareEnv(rule.Env)
+	cmd.Env = r.prepareEnv(rule.Env, baseEnv)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	_ = cmd.Run() // It exits non-zero on issues
@@ -344,7 +366,7 @@ func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.Va
 	return finalIssuesList, item, finalIssuesCount, nil
 }
 
-func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config.ValidationRule) (ValidationItem, error) {
+func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config.ValidationRule, baseEnv map[string]string) (ValidationItem, error) {
 	// Wrap command in sh -c to support pipes and shell syntax
 	fullCmd := rule.Command
 	if len(rule.Args) > 0 {
@@ -352,7 +374,7 @@ func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config
 	}
 	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", fullCmd)
 	cmd.Dir = wsPath
-	cmd.Env = r.prepareEnv(rule.Env)
+	cmd.Env = r.prepareEnv(rule.Env, baseEnv)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -384,16 +406,16 @@ func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config
 	return item, nil
 }
 
-func (r *Runner) validateModel(ctx context.Context, wsPath string, rule config.ValidationRule, stdout string) (ValidationItem, error) {
+func (r *Runner) validateModel(ctx context.Context, wsPath string, rule config.ValidationRule, stdout string, baseEnv map[string]string) (ValidationItem, error) {
 	// Construct prompt
 	if rule.Prompt == "" {
 		return ValidationItem{
-			Type:        "model",
-			Status:      "FAIL",
-			Description: "Model validation",
-			Details:     "No validation prompt provided",
-		},
-		nil
+				Type:        "model",
+				Status:      "FAIL",
+				Description: "Model validation",
+				Details:     "No validation prompt provided",
+			},
+			nil
 	}
 	promptText := rule.Prompt
 
@@ -411,37 +433,37 @@ func (r *Runner) validateModel(ctx context.Context, wsPath string, rule config.V
 	fullPrompt := promptText + "\n\nCONTEXT:\n" + contextContent
 	fullPrompt += "\n\nIMPORTANT: Evaluate the above context based on the criteria in the prompt. If the criteria are met, output only the token <<TENKAI_PASS>>. If the criteria are not met, output only the token <<TENKAI_FAIL>> followed by a brief reason."
 
-		// Call Gemini CLI with stream-json
+	// Call Gemini CLI with stream-json
 
-		cmd := exec.CommandContext(ctx, "gemini", "-y", "--output-format", "stream-json")
+	cmd := exec.CommandContext(ctx, "gemini", "-y", "--output-format", "stream-json")
 
-		cmd.Dir = wsPath                 // ISOLATION FIX
+	cmd.Dir = wsPath // ISOLATION FIX
 
-		cmd.Env = r.prepareEnv(rule.Env) // Restore Env forwarding
+	cmd.Env = r.prepareEnv(rule.Env, baseEnv) // Restore Env forwarding
 	cmd.Stdin = strings.NewReader(fullPrompt)
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
-	
+
 	if err := cmd.Run(); err != nil {
 		return ValidationItem{
-			Type:        "model",
-			Status:      "FAIL",
-			Description: "Model validation",
-			Details:     fmt.Sprintf("Gemini invocation failed: %v\nStderr: %s", err, stderr.String()),
-		},
-		nil
+				Type:        "model",
+				Status:      "FAIL",
+				Description: "Model validation",
+				Details:     fmt.Sprintf("Gemini invocation failed: %v\nStderr: %s", err, stderr.String()),
+			},
+			nil
 	}
 
 	// Parse Streaming Output
 	var textBuilder strings.Builder
 	scanner := bufio.NewScanner(&out)
-	
+
 	// Dummy containers for parser
 	metrics := &parser.AgentMetrics{}
 
-pendingTools := make(map[string]*parser.ToolCall)
+	pendingTools := make(map[string]*parser.ToolCall)
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -449,7 +471,7 @@ pendingTools := make(map[string]*parser.ToolCall)
 		if err != nil {
 			// Fallback: If line is not JSON, treat as raw text (e.g. system warnings)
 			textBuilder.WriteString(line + "\n")
-			continue 
+			continue
 		}
 		if evt == nil {
 			continue
@@ -479,7 +501,7 @@ pendingTools := make(map[string]*parser.ToolCall)
 			textBuilder.WriteString(fmt.Sprintf("[TOOL RESULT (%s)]: %s\n", status, evt.Output))
 		}
 	}
-	
+
 	// Append stderr if present, as it often contains critical failure info (like auth errors)
 	if stderr.Len() > 0 {
 		textBuilder.WriteString("\n--- STDERR ---\n")
@@ -500,10 +522,10 @@ pendingTools := make(map[string]*parser.ToolCall)
 	}
 
 	return ValidationItem{
-		Type:        "model",
-		Status:      status,
-		Description: "Model validation (LLM Grader)",
-		Details:     modelOut,
-	},
-	nil
+			Type:        "model",
+			Status:      status,
+			Description: "Model validation (LLM Grader)",
+			Details:     modelOut,
+		},
+		nil
 }

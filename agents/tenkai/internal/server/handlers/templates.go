@@ -70,6 +70,21 @@ func (api *API) UpdateTemplate(r *http.Request) (any, error) {
 	return map[string]string{"status": "updated"}, nil
 }
 
+func (api *API) LockTemplate(r *http.Request) (any, error) {
+	id := r.PathValue("id")
+	var req struct {
+		Locked bool `json:"locked"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, NewAPIError(http.StatusBadRequest, err.Error())
+	}
+
+	if err := api.WSMgr.LockTemplate(id, req.Locked); err != nil {
+		return nil, NewAPIError(http.StatusInternalServerError, err.Error())
+	}
+	return map[string]string{"status": "updated"}, nil
+}
+
 func (api *API) DeleteTemplate(r *http.Request) (any, error) {
 	id := r.PathValue("id")
 	if err := api.WSMgr.DeleteTemplate(id); err != nil {

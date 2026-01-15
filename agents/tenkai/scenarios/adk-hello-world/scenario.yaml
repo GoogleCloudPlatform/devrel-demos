@@ -1,0 +1,7 @@
+name: ADK Go Hello World
+description: Creates a simple agent using ADK Go
+task: "Your task is to create a simple AI agent using the Agent Development Kit (ADK) for Go (`google.golang.org/adk/agent`). \n\nThe agent should be a basic 'Hello World' agent that can be initialized and run.\n\nRequirements:\n- Initialize a Go module `example.com/adkagent`\n- Use the package `google.golang.org/adk/agent` aka `github.com/googleapis/genai-toolbox/agent`.\n- Create a `main.go` that defines a simple agent.\n- Ensure the code builds successfully.\n\nValidation:\nWe will check if `go build` works and if the binary runs (it might exit if no config is provided, but that's fine as long as it's a valid ADK agent binary)."
+assets: []
+validation:
+    - type: command
+      command: go build -o agent .

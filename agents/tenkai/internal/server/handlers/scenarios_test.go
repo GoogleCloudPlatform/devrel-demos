@@ -17,8 +17,8 @@ func TestListScenarios(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// Seed via Workspace Manager
-	api.WSMgr.CreateScenario("S1", "Desc1", "Task1", nil, nil)
-	api.WSMgr.CreateScenario("S2", "Desc2", "Task2", nil, nil)
+	api.WSMgr.CreateScenario("S1", "Desc1", "Task1", nil, nil, nil)
+	api.WSMgr.CreateScenario("S2", "Desc2", "Task2", nil, nil, nil)
 
 	req := httptest.NewRequest("GET", "/api/scenarios", nil)
 
@@ -70,7 +70,7 @@ func TestUpdateScenario(t *testing.T) {
 	api, tmpDir := setupAPI(t)
 	defer os.RemoveAll(tmpDir)
 
-	id, _ := api.WSMgr.CreateScenario("Old Name", "Desc", "Task", nil, nil)
+	id, _ := api.WSMgr.CreateScenario("Old Name", "Desc", "Task", nil, nil, nil)
 
 	reqBody := map[string]interface{}{
 		"name":        "New Name",

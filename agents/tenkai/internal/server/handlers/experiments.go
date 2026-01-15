@@ -114,6 +114,25 @@ func (api *API) ControlExperiment(r *http.Request) (any, error) {
 	return map[string]string{"status": "updated"}, nil
 }
 
+func (api *API) LockExperiment(r *http.Request) (any, error) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		return nil, NewAPIError(http.StatusBadRequest, "Invalid ID")
+	}
+
+	var req struct {
+		Locked bool `json:"locked"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, NewAPIError(http.StatusBadRequest, err.Error())
+	}
+
+	if err := api.DB.UpdateExperimentLock(id, req.Locked); err != nil {
+		return nil, err
+	}
+	return map[string]string{"status": "updated"}, nil
+}
+
 func (api *API) RelaunchExperiment(r *http.Request) (any, error) {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)

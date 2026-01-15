@@ -50,7 +50,7 @@ func markAbortedSpeculative(database *db.DB, exp models.Experiment) {
 		for _, r := range results {
 			st := strings.ToUpper(r.Status)
 			if st == db.RunStatusRunning || st == db.RunStatusQueued {
-				database.UpdateRunStatusAndReason(r.ID, db.RunStatusCompleted, db.ExperimentStatusAborted)
+				database.UpdateRunStatusAndReason(r.ID, db.RunStatusAborted, db.ExperimentStatusAborted)
 			}
 		}
 	}

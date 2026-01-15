@@ -39,18 +39,25 @@ export default function ExperimentsTable({ experiments }: ExperimentsTableProps)
                                         exp.status?.toUpperCase() === 'FAILED' ? 'destructive' : 'outline'
                                 } className={cn(
                                     "uppercase font-bold tracking-wider text-[10px]",
-                                    exp.status?.toUpperCase() === 'COMPLETED' && "border-emerald-500/50 text-emerald-500 bg-emerald-500/10",
-                                    exp.status?.toUpperCase() === 'RUNNING' && "border-indigo-500/50 text-indigo-400 bg-indigo-500/10 animate-pulse",
-                                    exp.status?.toUpperCase() === 'ABORTED' && "border-zinc-500/50 text-zinc-400 bg-zinc-500/10",
-                                    exp.status?.toUpperCase() === 'QUEUED' && "border-blue-500/50 text-blue-400 bg-blue-500/10"
+                                    exp.status?.toUpperCase() === 'COMPLETED' && "border-emerald-500/50 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
+                                    exp.status?.toUpperCase() === 'RUNNING' && "border-primary/50 text-primary bg-primary/10 animate-pulse",
+                                    exp.status?.toUpperCase() === 'ABORTED' && "border-border text-muted-foreground bg-muted/50",
+                                    exp.status?.toUpperCase() === 'QUEUED' && "border-blue-500/50 text-blue-500 bg-blue-500/10"
                                 )}>
                                     {exp.status}
                                 </Badge>
                             </TableCell>
                             <TableCell>
-                                <Link href={`/experiments/${exp.id}`} className="hover:text-primary font-bold text-base transition-colors truncate block max-w-[350px]" title={exp.name}>
-                                    {exp.name || "Unnamed Experiment"}
-                                </Link>
+                                <div className="flex items-center gap-2">
+                                    <Link href={`/experiments/${exp.id}`} className="hover:text-primary font-bold text-base transition-colors truncate block max-w-[350px]" title={exp.name}>
+                                        {exp.name || "Unnamed Experiment"}
+                                    </Link>
+                                    {exp.is_locked && (
+                                        <span title="Locked" className="text-amber-500">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                        </span>
+                                    )}
+                                </div>
                             </TableCell>
                             <TableCell>
                                 <p className="text-sm text-muted-foreground truncate max-w-[500px]" title={exp.description}>

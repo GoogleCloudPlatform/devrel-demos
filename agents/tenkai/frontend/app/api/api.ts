@@ -148,11 +148,11 @@ export async function getSimplifiedMetrics(id: number | string) {
 }
 
 export async function getExperimentSummaries(id: number | string): Promise<ExperimentSummaryRecord[]> {
-    return fetchAPI<ExperimentSummaryRecord[]>(`/experiments/${id}/summaries`);
+    return (await fetchAPI<ExperimentSummaryRecord[]>(`/experiments/${id}/summaries`)) || [];
 }
 
 export async function getRunResults(experimentId: number | string, page = 1, limit = 100): Promise<RunResultRecord[]> {
-    return fetchAPI<RunResultRecord[]>(`/experiments/${experimentId}/runs?page=${page}&limit=${limit}`);
+    return (await fetchAPI<RunResultRecord[]>(`/experiments/${experimentId}/runs?page=${page}&limit=${limit}`)) || [];
 }
 export async function getToolUsage(runId: number): Promise<ToolUsageRecord[]> {
     const res = await fetchAPI<ToolUsageRecord[]>(`/runs/${runId}/tools`);
@@ -229,7 +229,7 @@ export interface ToolStatRow {
 }
 
 export async function getToolStats(experimentId: number): Promise<ToolStatRow[]> {
-    return fetchAPI<ToolStatRow[]>(`/experiments/${experimentId}/tool-stats`);
+    return (await fetchAPI<ToolStatRow[]>(`/experiments/${experimentId}/tool-stats`)) || [];
 }
 
 export async function reValidateRun(runId: number): Promise<JobResponse> {
@@ -241,5 +241,35 @@ export async function reValidateRun(runId: number): Promise<JobResponse> {
 export async function reValidateExperiment(experimentId: number): Promise<JobResponse> {
     return fetchAPI<JobResponse>(`/experiments/${experimentId}/reval`, {
         method: 'POST'
+    });
+}
+
+export async function lockExperiment(id: number, locked: boolean): Promise<any> {
+    return fetchAPI(`/experiments/${id}/lock`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ locked })
+    });
+}
+
+export async function lockTemplate(id: string, locked: boolean): Promise<any> {
+    return fetchAPI(`/templates/${id}/lock`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ locked })
+    });
+}
+
+export async function lockScenario(id: string, locked: boolean): Promise<any> {
+    return fetchAPI(`/scenarios/${id}/lock`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ locked })
     });
 }

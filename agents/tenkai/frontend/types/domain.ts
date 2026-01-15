@@ -10,6 +10,7 @@ export interface ExperimentRecord {
     error_message?: string;
     experiment_control?: string;
     ai_analysis?: string;
+    is_locked?: boolean;
     success_rate?: number;
     avg_duration?: number;
     avg_tokens?: number;

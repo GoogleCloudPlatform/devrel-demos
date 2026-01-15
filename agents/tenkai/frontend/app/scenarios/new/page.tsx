@@ -39,6 +39,22 @@ export default function NewScenarioPage() {
     const [newValTarget, setNewValTarget] = useState("");
     const [newValThreshold, setNewValThreshold] = useState("");
 
+    // Environment Variables
+    const [envVars, setEnvVars] = useState<{ key: string, value: string }[]>([]);
+    const [newEnvKey, setNewEnvKey] = useState("");
+    const [newEnvValue, setNewEnvValue] = useState("");
+
+    const addEnvVar = () => {
+        if (!newEnvKey) return;
+        setEnvVars([...envVars, { key: newEnvKey, value: newEnvValue }]);
+        setNewEnvKey("");
+        setNewEnvValue("");
+    };
+
+    const removeEnvVar = (idx: number) => {
+        setEnvVars(envVars.filter((_, i) => i !== idx));
+    };
+
     const addValidation = () => {
         const val: any = { type: newValType };
 
@@ -99,6 +115,10 @@ export default function NewScenarioPage() {
         formData.append('name', name);
         formData.append('description', description);
         formData.append('validation', JSON.stringify(validation));
+
+        const envMap: Record<string, string> = {};
+        envVars.forEach(e => { envMap[e.key] = e.value; });
+        formData.append('env', JSON.stringify(envMap));
 
         // Task Logic
         if (taskMode === 'prompt' || (taskMode === 'github' && githubTaskType === 'prompt')) {
@@ -277,30 +297,57 @@ export default function NewScenarioPage() {
                     </Card>
                 )}
 
+                <Card title="Environment Variables">
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            {envVars.map((e, i) => (
+                                <div key={i} className="flex gap-4 items-center bg-muted/50 p-2 rounded border border-border">
+                                    <span className="font-mono text-emerald-400">{e.key}</span>
+                                    <span className="text-muted-foreground">=</span>
+                                    <span className="font-mono text-body flex-1 truncate text-foreground">{e.value}</span>
+                                    <button type="button" onClick={() => removeEnvVar(i)} className="text-muted-foreground hover:text-destructive">✕</button>
+                                </div>
+                            ))}
+                            {envVars.length === 0 && <p className="text-body opacity-30 italic">No environment variables defined.</p>}
+                        </div>
+                        <div className="flex gap-4">
+                            <div className="w-1/3">
+                                <Input label="Key" value={newEnvKey} onChange={(e) => setNewEnvKey(e.target.value)} placeholder="GEMINI_API_KEY" />
+                            </div>
+                            <div className="flex-1">
+                                <Input label="Value" value={newEnvValue} onChange={(e) => setNewEnvValue(e.target.value)} placeholder="secret..." />
+                            </div>
+                            <div className="pt-8">
+                                <Button type="button" variant="outline" onClick={addEnvVar}>Add</Button>
+                            </div>
+                        </div>
+                    </div>
+                </Card>
+
                 <Card title="Validation Rules">
                     <div className="space-y-6">
                         <div className="space-y-3">
                             {validation.map((v, i) => (
                                 <div
                                     key={i}
-                                    className="flex justify-between items-center p-3 bg-[#161618] rounded border border-[#27272a] cursor-pointer hover:border-indigo-500/50 transition-colors group"
+                                    className="flex justify-between items-center p-3 bg-muted/50 rounded border border-border cursor-pointer hover:border-primary/50 transition-colors group"
                                     onClick={() => editValidation(i)}
                                     title="Click to edit"
                                 >
                                     <div className="flex gap-4 items-center">
                                         <span className={`px-2 py-0.5 rounded text-mono font-bold uppercase ${v.type === 'test' ? 'bg-emerald-500/10 text-emerald-400' : v.type === 'lint' ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'}`}>{v.type}</span>
-                                        <span className="text-body font-mono">{v.type === 'command' ? v.command : v.target}</span>
-                                        {v.min_coverage !== undefined && <span className="text-mono text-[#52525b]">min_cov: {v.min_coverage}%</span>}
-                                        {v.max_issues !== undefined && <span className="text-mono text-[#52525b]">max_issues: {v.max_issues}</span>}
-                                        {v.expected_exit_code !== undefined && <span className="text-mono text-[#52525b]">exit: {v.expected_exit_code}</span>}
+                                        <span className="text-body font-mono text-foreground">{v.type === 'command' ? v.command : v.target}</span>
+                                        {v.min_coverage !== undefined && <span className="text-mono text-muted-foreground">min_cov: {v.min_coverage}%</span>}
+                                        {v.max_issues !== undefined && <span className="text-mono text-muted-foreground">max_issues: {v.max_issues}</span>}
+                                        {v.expected_exit_code !== undefined && <span className="text-mono text-muted-foreground">exit: {v.expected_exit_code}</span>}
                                     </div>
-                                    <button type="button" onClick={(e) => { e.stopPropagation(); removeValidation(i); }} className="text-[#52525b] hover:text-red-500 px-2">✕</button>
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); removeValidation(i); }} className="text-muted-foreground hover:text-destructive px-2">✕</button>
                                 </div>
                             ))}
                             {validation.length === 0 && <p className="text-body opacity-30 italic">No validation rules defined.</p>}
                         </div>
 
-                        <div className="p-4 bg-[#09090b] border border-[#27272a] rounded flex gap-4 items-end">
+                        <div className="p-4 bg-background border border-border rounded flex gap-4 items-end">
                             <div className="w-1/4">
                                 <Select
                                     label="Type"

@@ -25,7 +25,7 @@ func TestScenarioCRUD(t *testing.T) {
 	m, _ := setupTestManager(t)
 
 	// Create
-	id, err := m.CreateScenario("Test Scen", "Desc", "Task", nil, nil)
+	id, err := m.CreateScenario("Test Scen", "Desc", "Task", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("CreateScenario failed: %v", err)
 	}
@@ -49,7 +49,7 @@ func TestScenarioCRUD(t *testing.T) {
 	}
 
 	// Update
-	err = m.UpdateScenario(id, "Updated Name", "Updated Desc", "Updated Task", nil)
+	err = m.UpdateScenario(id, "Updated Name", "Updated Desc", "Updated Task", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("UpdateScenario failed: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestPrepareWorkspace(t *testing.T) {
 	m, tmpDir := setupTestManager(t)
 
 	// Create a dummy scenario to use
-	sID, _ := m.CreateScenario("Scen1", "D", "Goal", nil, nil)
+	sID, _ := m.CreateScenario("Scen1", "D", "Goal", nil, nil, nil)
 
 	// Prepare
 	opts := WorkspaceOptions{

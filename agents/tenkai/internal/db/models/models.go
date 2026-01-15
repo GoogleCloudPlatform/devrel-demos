@@ -38,6 +38,7 @@ type Experiment struct {
 	ExperimentControl string    `json:"experiment_control"` // Statistical reference alternative
 	ErrorMessage      string    `json:"error_message"`
 	AIAnalysis        string    `json:"ai_analysis"`
+	IsLocked          bool      `json:"is_locked"`
 
 	// Derived Metrics (Calculated on read)
 	SuccessRate     float64             `json:"success_rate"`

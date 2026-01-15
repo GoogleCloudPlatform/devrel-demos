@@ -113,7 +113,7 @@ func handleExperimentSignals(database *db.DB, expID int64) {
 				for _, r := range results {
 					st := strings.ToUpper(r.Status)
 					if st == db.RunStatusRunning || st == db.RunStatusQueued {
-						database.UpdateRunStatus(r.ID, "FAILED (INTERRUPTED)")
+						database.UpdateRunStatusAndReason(r.ID, db.RunStatusAborted, "FAILED (INTERRUPTED)")
 					}
 				}
 			}
