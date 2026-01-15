@@ -186,14 +186,4 @@ var Registry = map[string]ToolDef{
 		Instruction:  "*   **`agent.master`**: Use this when you are unsure which tool to use or how to solve a problem. The Master will review your request, unlock appropriate capabilities in the server, and give you wise instructions.",
 		Experimental: true,
 	},
-	
-	// --- LEGACY/FALLBACK ---
-	"file.edit_legacy": {
-		InternalName: "file.edit_legacy",
-		ExternalName: "file.edit_legacy",
-		Title:        "Edit Code (Legacy)",
-		Description:  "Modifies files using fuzzy matching context. (Legacy tool)",
-		Instruction:  "*   **`file.edit_legacy`**: Modifies files using fuzzy matching context.",
-		Experimental: false,
-	},
 }

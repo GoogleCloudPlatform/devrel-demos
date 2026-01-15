@@ -21,6 +21,7 @@ export interface ExperimentRecord {
     successful_runs: number;
     timeout: string;
     error_message: string;
+    config_content: string;
     ai_analysis: string;
     progress?: {
         completed: number;

@@ -40,9 +40,6 @@ func Get(cfg *config.Config) string {
 	if isEnabled("file.edit", true) {
 		// Prioritize smart_edit
 		sb.WriteString(toolnames.Registry["file.edit"].Instruction + "\n")
-	} else if isEnabled("file.edit_legacy", false) {
-		// Fallback for non-experimental profile
-		sb.WriteString(toolnames.Registry["file.edit_legacy"].Instruction + "\n")
 	}
 	sb.WriteString("\n")
 
