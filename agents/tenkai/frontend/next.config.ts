@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "export",
+  trailingSlash: true,
   // rewrites are ignored in export mode, but valid for dev
   // rewrites are ignored in export mode, but valid for dev
   async rewrites() {
