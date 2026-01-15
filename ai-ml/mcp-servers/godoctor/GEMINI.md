@@ -1,68 +1,73 @@
-# GoDoctor Context
+# GoDoctor
 
 ## Project Overview
-**GoDoctor** is an intelligent, AI-powered Model Context Protocol (MCP) server designed to assist Go developers. It integrates with AI-powered IDEs to provide context-aware code reviews and on-demand documentation.
 
-*   **Version:** 0.7.1
-*   **Language:** Go 1.24+
-*   **License:** Apache 2.0 (implied by headers)
+**GoDoctor** is an intelligent, AI-powered Model Context Protocol (MCP) server designed to assist Go developers. It provides a comprehensive suite of tools for navigating, editing, analyzing, and modernizing Go codebases, all integrated via the MCP standard for use with AI agents and IDEs.
 
-## Key Features & Tools
-The server exposes the following MCP tools:
+The project is architected with a separation between **Internal Tool Logic** and **External Tool Presentation**, allowing for dynamic renaming and A/B testing of prompts without code changes.
 
-1.  **`review_code`**
-    *   **Purpose:** Analyzes Go code for style, correctness, and idioms.
-    *   **Input:** `file_content` (string), `model_name` (optional), `hint` (optional).
-    *   **Output:** Structured JSON suggestions (line number, severity, finding, comment).
-    *   **Backend:** Uses Google's `gemini-2.5-pro` (default) via `google.golang.org/genai`.
+### Key Concepts
 
-2.  **`read_docs`**
-    *   **Purpose:** Retrieves documentation for Go packages or symbols in Markdown format.
-    *   **Input:** `package_path` (string), `symbol_name` (optional).
-    *   **Mechanism:** Uses native `go/doc` and `go/parser` parsing. Supports merging examples from `_test.go` files and fuzzy matching for symbols and packages. Includes fallback to download missing packages.
+*   **Profiles:** Presets that enable specific subsets of tools (`standard`, `full`, `oracle`, `dynamic`).
+*   **Tool Registry:** A centralized definition file (`internal/toolnames/registry.go`) that maps stable internal IDs (e.g., `file.edit`) to external agent-facing names (e.g., `smart_edit`).
+*   **Smart Editing:** The editor (`smart_edit`) uses fuzzy matching and pre-verification (syntax checks, `goimports`) to ensure safe code modifications.
 
-3.  **`edit_code`**
-    *   **Purpose:** Smartly edits Go code with fuzzy matching and safety checks.
-    *   **Input:** `file_path`, `search_context`, `new_content`, `strategy` ("replace_block", "replace_all", "overwrite_file", or "append").
-    *   **Mechanism:** Uses Levenshtein distance for fuzzy matching, runs `goimports` for auto-formatting, and performs syntax validation before saving.
+## Building and Running
 
-4.  **`read_code`** (Experimental)
-    *   **Purpose:** Reads a Go file and extracts a symbol table (functions, types, variables).
-    *   **Input:** `file_path`.
-    *   **Output:** File content + Markdown symbol table.
+**Prerequisites:**
+*   Go 1.24 or later
 
-## Architecture & Structure
-*   **`cmd/godoctor/`**: Main entry point. Handles signal processing and server startup.
-*   **`internal/server/`**: Core server logic. Registers tools and prompts. Handles transport (Stdio/HTTP).
-*   **`internal/config/`**: Configuration loading (flags and defaults).
-*   **`internal/tools/`**:
-    *   `codereview/`: Implementation of the AI code review tool.
-    *   `read_docs/`: Implementation of the documentation retrieval tool.
-    *   `edit_code/`: Implementation of the smart editing tool.
-    *   `read_code/`: Implementation of the file reading and symbol extraction tool.
+**Key Commands:**
 
-## Build & Development
-*   **Build:** `make build` (creates binary in `bin/godoctor`)
-*   **Install:** `make install` (installs to `$GOPATH/bin`)
-*   **Test:** `make test` (runs `go test ./...`)
-*   **Test Coverage:** `make test-cov`
+*   **Build the server:**
+    ```bash
+    go build -o godoctor cmd/godoctor/main.go
+    ```
 
-## Configuration & Authentication
-The server supports two authentication modes for the AI features:
+*   **Run the server (Stdio mode):**
+    ```bash
+    go run cmd/godoctor/main.go
+    ```
 
-1.  **Gemini API (Personal):**
-    *   Requires `GOOGLE_API_KEY` or `GEMINI_API_KEY` environment variable.
+*   **List available tools for a profile:**
+    ```bash
+    go run cmd/godoctor/main.go --list-tools --profile=standard
+    ```
 
-2.  **Vertex AI (Enterprise):**
-    *   Requires `GOOGLE_GENAI_USE_VERTEXAI=true`.
-    *   Requires `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION`.
-    *   Uses Application Default Credentials (ADC).
+*   **Run tests:**
+    ```bash
+    go test ./...
+    ```
 
-**Command-Line Flags:**
-*   `--listen <addr>`: Start HTTP server on specified address (e.g., `:8080`). Default is Stdio.
-*   `--model <name>`: Override default Gemini model (default: `gemini-2.5-pro`).
+## Development Conventions
 
-## Conventions
-*   **Style:** Standard Go project layout.
-*   **Testing:** Table-driven tests. Mocking used for external AI calls (`ContentGenerator` interface).
-*   **MCP:** Follows Model Context Protocol specifications (2025-06-18).
+### Project Structure
+
+The project follows a domain-driven package layout for tools:
+
+*   **`cmd/godoctor/`**: Main entry point.
+*   **`internal/server/`**: MCP server implementation and tool wiring.
+*   **`internal/toolnames/`**: **CRITICAL**. Contains `registry.go`, which defines the Name, Title, Description, and Instructions for *all* tools. Modify this file to change how agents perceive tools.
+*   **`internal/tools/`**: Tool implementations grouped by domain.
+    *   `file/` (`create`, `edit`, `read`, `list`, `outline`)
+    *   `symbol/` (`inspect`, `rename`)
+    *   `go/` (`build`, `test`, `install`, `modernize`, `diff`, `docs`)
+    *   `project/` (`map`)
+    *   `agent/` (`review`, `specialist`, `master`)
+
+### Adding a New Tool
+
+1.  **Implement:** Create a new package in `internal/tools/<domain>/<toolname>/`.
+2.  **Define:** Add the tool definition to `internal/toolnames/registry.go` with a unique `InternalName`.
+3.  **Register:** Add the registration logic to `internal/server/server.go`.
+4.  **Enable:** Add the tool's internal name to the `ProfileStandard` whitelist in `internal/config/config.go` (if applicable).
+
+### Tool Naming Convention
+
+*   **Internal Name:** `domain.verb` (e.g., `file.create`, `go.build`). Stable, used in code.
+*   **External Name:** `verb_noun` (e.g., `write`, `go_build`). Flexible, used by agents. Configurable via `registry.go`.
+
+### Documentation
+
+*   **`PROFILES.md`**: detailed matrix of which tools are available in each profile.
+*   **`EVOLUTION.md`**: History of tool changes and architectural shifts.
