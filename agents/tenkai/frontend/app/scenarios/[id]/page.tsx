@@ -1,20 +1,21 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Input, TextArea, Select } from "@/components/ui/input";
 import { AssetUploader } from "@/components/AssetUploader";
+import { Loader2 } from "lucide-react";
+import { ValidationRule, ScenarioAsset } from "@/types/domain";
 
-export default function ScenarioEditorPage({ params }: { params: Promise<{ id: string }> }) {
+function ScenarioEditorContent({ id }: { id: string }) {
     const router = useRouter();
+
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
-    const [id, setId] = useState<string>("");
 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
@@ -27,10 +28,10 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
     const [gitUrl, setGitUrl] = useState("");
     const [gitRef, setGitRef] = useState("");
 
-    const [assets, setAssets] = useState<any[]>([]);
+    const [assets, setAssets] = useState<ScenarioAsset[]>([]);
 
     // Validation state
-    const [validation, setValidation] = useState<any[]>([]);
+    const [validation, setValidation] = useState<ValidationRule[]>([]);
     const [newValType, setNewValType] = useState("test");
     const [newValTarget, setNewValTarget] = useState("");
     const [newValThreshold, setNewValThreshold] = useState("");
@@ -40,10 +41,29 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
     const [fileName, setFileName] = useState("");
     const [fileContent, setFileContent] = useState("");
 
+    // Environment Variables
+    const [envVars, setEnvVars] = useState<{ key: string, value: string }[]>([]);
+    const [newEnvKey, setNewEnvKey] = useState("");
+    const [newEnvValue, setNewEnvValue] = useState("");
+
+    const addEnvVar = () => {
+        if (!newEnvKey) return;
+        setEnvVars([...envVars, { key: newEnvKey, value: newEnvValue }]);
+        setNewEnvKey("");
+        setNewEnvValue("");
+    };
+
+    const removeEnvVar = (idx: number) => {
+        setEnvVars(envVars.filter((_, i) => i !== idx));
+    };
+
     useEffect(() => {
+        if (!id) {
+            setFetching(false);
+            return;
+        }
+
         const fetchScenario = async () => {
-            const { id } = await params;
-            setId(id);
             try {
                 const res = await fetch(`/api/scenarios/${id}`);
                 if (!res.ok) throw new Error("Failed");
@@ -54,6 +74,10 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
                 setTask(data.task || "");
                 setValidation(data.validation || []);
                 setAssets(data.assets || []);
+
+                if (data.env) {
+                    setEnvVars(Object.entries(data.env).map(([key, value]) => ({ key, value: String(value) })));
+                }
 
                 // Infer modes
                 if (data.github_issue) {
@@ -75,8 +99,6 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
                         setAssetType('folder');
                     } else if (first.type === 'file' && first.content === "") {
                         // Assuming non-inline files means uploaded assets?
-                        // Actually existing assets might be hard to map back to upload state perfectly without metadata.
-                        // For now default to folder or keep existing.
                         setAssetType('folder');
                     }
                 }
@@ -89,10 +111,10 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
             }
         };
         fetchScenario();
-    }, [params, router]);
+    }, [id, router]);
 
     const addValidation = () => {
-        const val: any = { type: newValType };
+        const val: Partial<ValidationRule> = { type: newValType };
 
         if (newValType === 'command') {
             val.command = newValTarget;
@@ -105,7 +127,7 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
             if (newValType === 'lint') val.max_issues = parseInt(newValThreshold) || 0;
         }
 
-        setValidation([...validation, val]);
+        setValidation([...validation, val as ValidationRule]);
         setNewValTarget("");
         setNewValThreshold("");
     };
@@ -114,13 +136,13 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
         const val = validation[idx];
         setNewValType(val.type);
         if (val.type === 'command') {
-            setNewValTarget(val.command);
+            setNewValTarget(val.command || "");
             setNewValThreshold(val.expected_exit_code?.toString() || "");
         } else if (val.type === 'model') {
-            setNewValTarget(val.prompt);
+            setNewValTarget(val.prompt || "");
             setNewValThreshold("");
         } else {
-            setNewValTarget(val.target);
+            setNewValTarget(val.target || "");
             if (val.type === 'test') setNewValThreshold(val.min_coverage?.toString() || "");
             if (val.type === 'lint') setNewValThreshold(val.max_issues?.toString() || "");
         }
@@ -178,6 +200,10 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
         formData.append('description', description);
         formData.append('validation', JSON.stringify(validation));
 
+        const envMap: Record<string, string> = {};
+        envVars.forEach(e => { envMap[e.key] = e.value; });
+        formData.append('env', JSON.stringify(envMap));
+
         if (taskMode === 'prompt' || githubTaskType === 'prompt') {
             formData.append('task', task);
         }
@@ -224,6 +250,7 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
     };
 
     if (fetching) return <div className="p-20 text-center text-body animate-pulse">Loading Workbench...</div>;
+    if (!id) return <div className="p-20 text-center text-red-500">Missing Scenario ID</div>;
 
     return (
         <div className="p-8 max-w-5xl mx-auto space-y-8 animate-enter text-body">
@@ -360,30 +387,57 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
                     </Card>
                 )}
 
+                <Card title="Environment Variables">
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            {envVars.map((e, i) => (
+                                <div key={i} className="flex gap-4 items-center bg-card p-2 rounded border border-border">
+                                    <span className="font-mono text-emerald-600 dark:text-emerald-400">{e.key}</span>
+                                    <span className="text-muted-foreground">=</span>
+                                    <span className="font-mono text-body flex-1 truncate text-foreground">{e.value}</span>
+                                    <button type="button" onClick={() => removeEnvVar(i)} className="text-muted-foreground hover:text-destructive">✕</button>
+                                </div>
+                            ))}
+                            {envVars.length === 0 && <p className="text-body opacity-30 italic">No environment variables defined.</p>}
+                        </div>
+                        <div className="flex gap-4">
+                            <div className="w-1/3">
+                                <Input label="Key" value={newEnvKey} onChange={(e) => setNewEnvKey(e.target.value)} placeholder="GEMINI_API_KEY" />
+                            </div>
+                            <div className="flex-1">
+                                <Input label="Value" value={newEnvValue} onChange={(e) => setNewEnvValue(e.target.value)} placeholder="secret..." />
+                            </div>
+                            <div className="pt-8">
+                                <Button type="button" variant="outline" onClick={addEnvVar}>Add</Button>
+                            </div>
+                        </div>
+                    </div>
+                </Card>
+
                 <Card title="Validation Rules">
                     <div className="space-y-6">
                         <div className="space-y-3">
                             {validation.map((v, i) => (
                                 <div
                                     key={i}
-                                    className="flex justify-between items-center p-3 bg-[#161618] rounded border border-[#27272a] cursor-pointer hover:border-indigo-500/50 transition-colors group"
+                                    className="flex justify-between items-center p-3 bg-card rounded border border-border cursor-pointer hover:border-primary/50 transition-colors group"
                                     onClick={() => editValidation(i)}
                                     title="Click to edit"
                                 >
                                     <div className="flex gap-4 items-center">
-                                        <span className={`px-2 py-0.5 rounded text-mono font-bold uppercase ${v.type === 'test' ? 'bg-emerald-500/10 text-emerald-400' : v.type === 'lint' ? 'bg-amber-500/10 text-amber-400' : v.type === 'model' ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400'}`}>{v.type}</span>
-                                        <span className="text-body font-mono truncate max-w-md">{v.type === 'command' ? v.command : v.type === 'model' ? v.prompt : v.target}</span>
-                                        {v.min_coverage !== undefined && <span className="text-mono text-[#52525b]">min_cov: {v.min_coverage}%</span>}
-                                        {v.max_issues !== undefined && <span className="text-mono text-[#52525b]">max_issues: {v.max_issues}</span>}
-                                        {v.expected_exit_code !== undefined && <span className="text-mono text-[#52525b]">exit: {v.expected_exit_code}</span>}
-                                        {v.context !== undefined && <span className="text-mono text-[#52525b]">ctx: {v.context.join(', ')}</span>}
+                                        <span className={`px-2 py-0.5 rounded text-mono font-bold uppercase text-[10px] ${v.type === 'test' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : v.type === 'lint' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : v.type === 'model' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400' : 'bg-primary/10 text-primary'}`}>{v.type}</span>
+                                        <span className="text-foreground font-mono truncate max-w-md text-sm">{v.type === 'command' ? v.command : v.type === 'model' ? v.prompt : v.target}</span>
+                                        {v.min_coverage !== undefined && <span className="text-mono text-muted-foreground text-[10px]">min_cov: {v.min_coverage}%</span>}
+                                        {v.max_issues !== undefined && <span className="text-mono text-muted-foreground text-[10px]">max_issues: {v.max_issues}</span>}
+                                        {v.expected_exit_code !== undefined && <span className="text-mono text-muted-foreground text-[10px]">exit: {v.expected_exit_code}</span>}
+                                        {v.context !== undefined && <span className="text-mono text-muted-foreground text-[10px]">ctx: {v.context.join(', ')}</span>}
                                     </div>
-                                    <button type="button" onClick={(e) => { e.stopPropagation(); removeValidation(i); }} className="text-[#52525b] hover:text-red-500 px-2">✕</button>
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); removeValidation(i); }} className="text-muted-foreground hover:text-destructive px-2">✕</button>
                                 </div>
                             ))}
                         </div>
 
-                        <div className="p-4 bg-[#09090b] border border-[#27272a] rounded flex gap-4 items-start">
+                        <div className="p-4 bg-muted/10 border border-border rounded flex gap-4 items-start">
                             <div className="w-1/4">
                                 <Select
                                     label="Type"
@@ -433,5 +487,15 @@ export default function ScenarioEditorPage({ params }: { params: Promise<{ id: s
                 </Card>
             </form>
         </div>
+    );
+}
+
+export default function ScenarioEditorPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
+    
+    return (
+        <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>}>
+            <ScenarioEditorContent id={id} />
+        </Suspense>
     );
 }
