@@ -45,39 +45,62 @@ func (r *Runner) createCommand(ctx context.Context, alt config.Alternative, wsIn
 	cmd.WaitDelay = 2 * time.Second
 
 	// Environment setup
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, fmt.Sprintf("HOME=%s", wsInfo.Home))
+	cmd.Env = mergeEnv(os.Environ(), map[string]string{
+		"HOME": wsInfo.Home,
+	})
 
-	envMap := make(map[string]string)
-	for k, v := range alt.Env {
-		envMap[k] = v
-	}
+	// Add alt.Env
+	cmd.Env = mergeEnv(cmd.Env, alt.Env)
 
+	// Add System Prompt
 	systemPath := filepath.Join(wsInfo.Project, "SYSTEM.md")
 	if _, err := os.Stat(systemPath); err == nil {
-		envMap["GEMINI_SYSTEM_MD"] = systemPath
-	}
-
-	for k, v := range envMap {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+		cmd.Env = mergeEnv(cmd.Env, map[string]string{
+			"GEMINI_SYSTEM_MD": systemPath,
+		})
 	}
 
 	// Share Go caches
-	if goCache := os.Getenv("GOCACHE"); goCache != "" {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("GOCACHE=%s", goCache))
-	}
-
+	goEnv := make(map[string]string)
+	
+	// Try to get them from go env if not in current env
 	goEnvCmd := exec.Command("go", "env", "GOCACHE", "GOMODCACHE")
 	goEnvOut, err := goEnvCmd.Output()
 	if err == nil {
 		parts := strings.Split(strings.TrimSpace(string(goEnvOut)), "\n")
 		if len(parts) >= 2 {
-			cmd.Env = append(cmd.Env, fmt.Sprintf("GOCACHE=%s", parts[0]))
-			cmd.Env = append(cmd.Env, fmt.Sprintf("GOMODCACHE=%s", parts[1]))
+			goEnv["GOCACHE"] = parts[0]
+			goEnv["GOMODCACHE"] = parts[1]
+		}
+	}
+	cmd.Env = mergeEnv(cmd.Env, goEnv)
+
+	return cmd, jobCtx, jobCancel, execCtx, execCancel, nil
+}
+
+// mergeEnv merges new key-value pairs into an existing environment slice.
+// It overrides existing keys and appends new ones, preventing duplicates.
+func mergeEnv(base []string, overrides map[string]string) []string {
+	// Parse base into a map for easy lookup
+	envMap := make(map[string]string)
+	for _, entry := range base {
+		parts := strings.SplitN(entry, "=", 2)
+		if len(parts) == 2 {
+			envMap[parts[0]] = parts[1]
 		}
 	}
 
-	return cmd, jobCtx, jobCancel, execCtx, execCancel, nil
+	// Apply overrides
+	for k, v := range overrides {
+		envMap[k] = v
+	}
+
+	// Reconstruct slice
+	result := make([]string, 0, len(envMap))
+	for k, v := range envMap {
+		result = append(result, fmt.Sprintf("%s=%s", k, v))
+	}
+	return result
 }
 
 func (r *Runner) waitForCommand(cmd *exec.Cmd, s *StreamState, jobCtx context.Context, timeout time.Duration) error {
