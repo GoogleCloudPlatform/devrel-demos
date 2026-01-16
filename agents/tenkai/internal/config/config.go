@@ -53,7 +53,7 @@ type ValidationRule struct {
 	MinCoverage    float64  `yaml:"min_coverage,omitempty" json:"min_coverage,omitempty"`
 	MaxIssues      int      `yaml:"max_issues,omitempty" json:"max_issues,omitempty"`
 	Exclude        []string `yaml:"exclude,omitempty" json:"exclude,omitempty"`
-	PromptFile     string   `yaml:"prompt_file,omitempty" json:"prompt_file,omitempty"`
+	Prompt         string   `yaml:"prompt,omitempty" json:"prompt,omitempty"`
 	Context        []string `yaml:"context,omitempty" json:"context,omitempty"`
 	Command        string   `yaml:"command,omitempty" json:"command,omitempty"`
 	Args           []string `yaml:"args,omitempty" json:"args,omitempty"`

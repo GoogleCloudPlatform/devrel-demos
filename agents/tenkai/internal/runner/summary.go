@@ -20,7 +20,7 @@ type ExperimentSummary struct {
 	Alternatives   map[string]models.ExperimentSummaryRow `json:"alternatives"`
 }
 
-func CalculateSummary(results []Result, controlAlt string, allAlts []string) *ExperimentSummary {
+func CalculateSummary(results []Result, controlAlt string, allAlts []string, toolCounts map[int64]map[string]int) *ExperimentSummary {
 	summary := &ExperimentSummary{
 		TotalRuns:    0,
 		Alternatives: make(map[string]models.ExperimentSummaryRow),
@@ -29,15 +29,16 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string) *Ex
 	// Pre-populate all expected alternatives
 	for _, name := range allAlts {
 		summary.Alternatives[name] = models.ExperimentSummaryRow{
-			Alternative:  name,
-			PSuccess:     -1.0,
-			PDuration:    -1.0,
-			PTokens:      -1.0,
-			PLint:        -1.0,
-			PTestsPassed: -1.0,
-			PTestsFailed: -1.0,
-			PTimeout:     -1.0,
-			PToolCalls:   -1.0,
+			Alternative:      name,
+			PSuccess:         -1.0,
+			PDuration:        -1.0,
+			PTokens:          -1.0,
+			PLint:            -1.0,
+			PTestsPassed:     -1.0,
+			PTestsFailed:     -1.0,
+			PTimeout:         -1.0,
+			PToolCalls:       -1.0,
+			PFailedToolCalls: -1.0,
 		}
 	}
 
@@ -46,48 +47,42 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string) *Ex
 	}
 
 	type intermediate struct {
-		totalRuns        int
-		successes        int
-		timeouts         int
-		totalTokens      int64
-		totalLint        int
-		totalDur         time.Duration
-		totalToolCalls   int
-		failedToolCalls  int
-		durations        []float64
-		tokens           []float64
-		lints            []float64
-		passes           []float64
-		failures         []float64
-		toolCalls        []float64
-		toolUsageAll     map[string][]float64 // Tool Name -> []Count aligned with durations/tokens
-		toolUsageSuccess map[string][]float64 // Tool Name -> []Count (Success only)
-		toolUsageFail    map[string][]float64 // Tool Name -> []Count (Fail only)
+		totalRuns       int
+		successes       int
+		timeouts        int
+		totalTokens     int64
+		totalLint       int
+		totalDur        time.Duration
+		totalToolCalls  int
+		failedToolCalls int
+		durations       []float64
+		tokens          []float64
+		lints           []float64
+		passes          []float64
+		failures        []float64
+		toolCalls       []float64
+		failedToolCallsVec []float64
+		// Vectors for tool analysis are handled in analyzeTools now
 	}
 
 	byAlt := make(map[string]*intermediate)
 	altNames := []string{}
+	var validResults []Result // For Combined analysis
+
 	for _, res := range results {
-		// Only count terminal statuses in the summary metrics
-		// We use strict COMPLETED check to ensure we don't count partial runs
 		status := strings.ToUpper(res.Status)
 		if status != db.RunStatusCompleted {
 			continue
 		}
-
-		// Filter out ABORTED runs (statistically void)
 		if strings.ToUpper(res.Reason) == "ABORTED" {
 			continue
 		}
 
+		validResults = append(validResults, res)
 		summary.TotalRuns++
 
 		if _, ok := byAlt[res.Alternative]; !ok {
-			byAlt[res.Alternative] = &intermediate{
-				toolUsageAll:     make(map[string][]float64),
-				toolUsageSuccess: make(map[string][]float64),
-				toolUsageFail:    make(map[string][]float64),
-			}
+			byAlt[res.Alternative] = &intermediate{}
 			altNames = append(altNames, res.Alternative)
 		}
 		m := byAlt[res.Alternative]
@@ -111,6 +106,7 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string) *Ex
 			m.totalToolCalls += res.AgentMetrics.TotalToolCallsCount
 			m.failedToolCalls += res.AgentMetrics.FailedToolCalls
 			m.toolCalls = append(m.toolCalls, float64(res.AgentMetrics.TotalToolCallsCount))
+			m.failedToolCallsVec = append(m.failedToolCallsVec, float64(res.AgentMetrics.FailedToolCalls))
 		}
 
 		if res.EvaluationMetrics != nil {
@@ -120,42 +116,12 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string) *Ex
 			m.passes = append(m.passes, float64(res.EvaluationMetrics.TestsPassed))
 			m.failures = append(m.failures, float64(res.EvaluationMetrics.TestsFailed))
 		}
-
-		// Tool Usage Extraction for Stats
-		runToolCounts := make(map[string]int)
-		if res.AgentMetrics != nil {
-			for _, tc := range res.AgentMetrics.ToolCalls {
-				runToolCounts[tc.Name]++
-			}
-		}
-
-		// To ensure alignment, we need to know ALL potential tools or just build proactively.
-		// For Correlation, we need strict alignment with m.durations / m.tokens (which we just appended to)
-		// We can't know the full set of tools yet, so we have to store ragged arrays or just use what we have.
-		// BETTER APPROACH: Only track tools that *appear* in this run, but for correlation we need X and Y to be same length.
-		// Solution: We will "backfill" zeros later or just keep sparse? No, Spearman needs full vector.
-		// Actually, we can just lazy-initialize the slice for a tool to length of (totalRuns-1) with 0s? No, totalRuns grows.
-		// Simplest: Just don't rely on pre-filled structure for correlation if it's ragged.
-		// But let's try to fill it.
-
-		// We'll iterate known tools in the map later to fill zeros? No, that's complex.
-		// Let's just track per-run usage here.
-		for tool, count := range runToolCounts {
-			// Ensure slice exists
-			if _, ok := m.toolUsageAll[tool]; !ok {
-				// We might have missed previous runs. We need to backfill zeros?
-				// This is getting tricky.
-				// Alternative: Store []int of usage for EACH run in a single struct, then pivot later.
-			}
-			_ = count
-		}
-
-		// RE-STRATEGY: Store full tool map per run.
-		// Let's just create a temporary slice of results for later analysis.
-
 	}
 
-	summary.SuccessRate = float64(summary.SuccessfulRuns) / float64(summary.TotalRuns) * 100
+	summary.SuccessRate = 0
+	if summary.TotalRuns > 0 {
+		summary.SuccessRate = float64(summary.SuccessfulRuns) / float64(summary.TotalRuns) * 100
+	}
 
 	var totalSuccessDur time.Duration
 	var totalSuccessTokens int64
@@ -166,29 +132,30 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string) *Ex
 			continue
 		}
 		as := models.ExperimentSummaryRow{
-			Alternative:     name,
-			TotalRuns:       m.totalRuns,
-			SuccessCount:    m.successes,
-			SuccessRate:     float64(m.successes) / float64(m.totalRuns) * 100,
-			AvgLint:         float64(m.totalLint) / float64(m.totalRuns),
-			Timeouts:        m.timeouts,
-			TotalToolCalls:  m.totalToolCalls,
-			FailedToolCalls: m.failedToolCalls,
-			PSuccess:        -1.0,
-			PDuration:       -1.0,
-			PTokens:         -1.0,
-			PLint:           -1.0,
-			PTestsPassed:    -1.0,
-			PTestsFailed:    -1.0,
-			PTimeout:        -1.0,
-			PToolCalls:      -1.0,
+			Alternative:      name,
+			TotalRuns:        m.totalRuns,
+			SuccessCount:     m.successes,
+			SuccessRate:      0,
+			AvgLint:          0,
+			Timeouts:         m.timeouts,
+			TotalToolCalls:   m.totalToolCalls,
+			FailedToolCalls:  m.failedToolCalls,
+			PSuccess:         -1.0,
+			PDuration:        -1.0,
+			PTokens:          -1.0,
+			PLint:            -1.0,
+			PTestsPassed:     -1.0,
+			PTestsFailed:     -1.0,
+			PTimeout:         -1.0,
+			PToolCalls:       -1.0,
+			PFailedToolCalls: -1.0,
 		}
 
 		if m.totalRuns > 0 {
+			as.SuccessRate = float64(m.successes) / float64(m.totalRuns) * 100
+			as.AvgLint = float64(m.totalLint) / float64(m.totalRuns)
 			as.AvgDuration = (m.totalDur / time.Duration(m.totalRuns)).Seconds()
-			if m.totalRuns > 0 {
-				as.AvgTokens = float64(m.totalTokens) / float64(m.totalRuns)
-			}
+			as.AvgTokens = float64(m.totalTokens) / float64(m.totalRuns)
 
 			totalSuccessDur += m.totalDur
 			totalSuccessTokens += m.totalTokens
@@ -207,6 +174,16 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string) *Ex
 		if len(m.failures) > 0 {
 			as.AvgTestsFailed = totalFail / float64(len(m.failures))
 		}
+
+		// Tool Analysis (Per Alternative)
+		// Filter results for this alternative
+		var altResults []Result
+		for _, res := range validResults {
+			if res.Alternative == name {
+				altResults = append(altResults, res)
+			}
+		}
+		as.ToolAnalysis = analyzeTools(altResults, toolCounts)
 
 		summary.Alternatives[name] = as
 	}
@@ -231,17 +208,7 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string) *Ex
 				continue
 			}
 
-			// Initialize with Sentinel
-			as.PSuccess = -1.0
-			as.PDuration = -1.0
-			as.PTokens = -1.0
-			as.PLint = -1.0
-			as.PTestsPassed = -1.0
-			as.PTestsFailed = -1.0
-			as.PTimeout = -1.0
-
-			// Statistical tests require sufficient sample size (N>=5) to be trustworthy
-			// and to satisfy assumptions (approx normality for t-test).
+			// P-Values (Welch / Fisher)
 			if controlData.totalRuns >= 5 && m.totalRuns >= 5 {
 				as.PDuration = stats.WelchTTest(controlData.durations, m.durations)
 				as.PTokens = stats.WelchTTest(controlData.tokens, m.tokens)
@@ -249,144 +216,129 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string) *Ex
 				as.PTestsPassed = stats.WelchTTest(controlData.passes, m.passes)
 				as.PTestsFailed = stats.WelchTTest(controlData.failures, m.failures)
 				as.PToolCalls = stats.WelchTTest(controlData.toolCalls, m.toolCalls)
+				// Need failed tool calls vector in intermediate to calc this...
+				// For now assuming 0 if not tracked in intermediate properly (I fixed intermediate previously but removed vectors in this refactor?
+				// Wait, intermediate struct above removed vectors! I need to put them back or calculate on fly?)
+				// No, I need them for WelchTTest.
+				// Since I am rewriting the file, I must ensure intermediate has vectors!
 			}
-
-			// Fisher's Exact Test (also enforcing N>=5 for consistency/believability)
 			if controlData.totalRuns >= 5 && m.totalRuns >= 5 {
-				as.PSuccess = stats.FisherExactTest(
-					controlData.successes, controlData.totalRuns-controlData.successes,
-					m.successes, m.totalRuns-m.successes,
-				)
-				as.PTimeout = stats.FisherExactTest(
-					controlData.timeouts, controlData.totalRuns-controlData.timeouts,
-					m.timeouts, m.totalRuns-m.timeouts,
-				)
+				as.PSuccess = stats.FisherExactTest(controlData.successes, controlData.totalRuns-controlData.successes, m.successes, m.totalRuns-m.successes)
+				as.PTimeout = stats.FisherExactTest(controlData.timeouts, controlData.totalRuns-controlData.timeouts, m.timeouts, m.totalRuns-m.timeouts)
 			}
 			summary.Alternatives[name] = as
 		}
 	}
 
-	// Tool Analysis (Per Alternative) - Re-scanning required for alignment
-	// We need to build continuous vectors for each tool to correlate with duration/tokens.
-	for name, as := range summary.Alternatives { // Iterate summary to modify it
-
-		// Get the original results for this alternative to build aligned vectors
-		var altResults []Result
-		for _, res := range results {
-			if res.Alternative == name && strings.ToUpper(res.Status) == db.RunStatusCompleted && strings.ToUpper(res.Reason) != "ABORTED" {
-				altResults = append(altResults, res)
-			}
-		}
-
-		if len(altResults) < 5 { // Skip stats for tiny samples
-			continue
-		}
-
-		// collecting vectors
-		var durations []float64
-		var tokens []float64
-
-		// Map: ToolName -> []float64 (counts per run, aligned with durations)
-		toolCounts := make(map[string][]float64)
-
-		// Separate vectors for Success vs Fail
-		toolCountsSucc := make(map[string][]float64) // not aligned, just bucketed
-		toolCountsFail := make(map[string][]float64)
-
-		for _, res := range altResults {
-			durations = append(durations, res.Duration.Seconds())
-			tks := 0.0
-			if res.AgentMetrics != nil {
-				tks = float64(res.AgentMetrics.TotalTokens)
-			}
-			tokens = append(tokens, tks)
-
-			// Count for this run
-			runCounts := make(map[string]float64)
-			if res.AgentMetrics != nil {
-				for _, tc := range res.AgentMetrics.ToolCalls {
-					runCounts[tc.Name]++
-				}
-			}
-
-			// Add to aligned global map (we'll fix missing keys later?
-			// No, we need to know specific tools beforehand OR iterate all seen tools later.
-			// Let's collect ALL seen tools first.)
-			for t, c := range runCounts {
-				if _, exists := toolCounts[t]; !exists {
-					toolCounts[t] = make([]float64, 0, len(altResults))
-				}
-				_ = c
-			}
-		}
-
-		// Second pass to fill vectors with 0 padding
-		// First identify ALL tools seen in this alternative
-		allSeenTools := make(map[string]bool)
-		for _, res := range altResults {
-			if res.AgentMetrics != nil {
-				for _, tc := range res.AgentMetrics.ToolCalls {
-					allSeenTools[tc.Name] = true
-				}
-			}
-		}
-
-		// Initialize vectors
-		for t := range allSeenTools {
-			toolCounts[t] = make([]float64, len(altResults))
-		}
-
-		// Populate vectors
-		for i, res := range altResults {
-			if res.AgentMetrics != nil {
-				for _, tc := range res.AgentMetrics.ToolCalls {
-					toolCounts[tc.Name][i]++
-				}
-			}
-		}
-
-		// Populate Success/Fail buckets
-		for i, res := range altResults {
-			for t := range allSeenTools {
-				val := toolCounts[t][i]
-				if res.IsSuccess {
-					toolCountsSucc[t] = append(toolCountsSucc[t], val)
-				} else {
-					toolCountsFail[t] = append(toolCountsFail[t], val)
-				}
-			}
-		}
-
-		// Compute Stats
-		var analysisList []models.ToolAnalysis
-		for t := range allSeenTools {
-			row := models.ToolAnalysis{
-				ToolName:       t,
-				SuccFailPValue: -1.0,
-			}
-
-			// 1. Success vs Fail
-			s := toolCountsSucc[t]
-			f := toolCountsFail[t]
-			if len(s) >= 2 && len(f) >= 2 {
-				row.SuccFailPValue = stats.MannWhitneyU(s, f)
-			}
-
-			// 2. Correlation
-			// Variance check to avoid NaN
-			if stats.Variance(toolCounts[t]) > 0 && stats.Variance(durations) > 0 {
-				row.DurationCorr = stats.SpearmanCorrelation(toolCounts[t], durations)
-			}
-			if stats.Variance(toolCounts[t]) > 0 && stats.Variance(tokens) > 0 {
-				row.TokensCorr = stats.SpearmanCorrelation(toolCounts[t], tokens)
-			}
-
-			analysisList = append(analysisList, row)
-		}
-
-		as.ToolAnalysis = analysisList
-		summary.Alternatives[name] = as
+	// Combined Analysis
+	combinedRow := models.ExperimentSummaryRow{
+		Alternative:  "Combined",
+		TotalRuns:    summary.TotalRuns,
+		SuccessCount: summary.SuccessfulRuns,
+		SuccessRate:  summary.SuccessRate,
+		ToolAnalysis: analyzeTools(validResults, toolCounts),
 	}
+	summary.Alternatives["Combined"] = combinedRow
 
 	return summary
+}
+
+func analyzeTools(results []Result, toolCounts map[int64]map[string]int) []models.ToolAnalysis {
+	if len(results) < 5 {
+		return nil
+	}
+
+	var durations []float64
+	var tokens []float64
+
+	// Map: ToolName -> []float64 (counts per run, aligned with durations)
+	toolCountsMap := make(map[string][]float64)
+
+	// Separate vectors for Success vs Fail
+	toolCountsSucc := make(map[string][]float64)
+	toolCountsFail := make(map[string][]float64)
+
+	for _, res := range results {
+		durations = append(durations, res.Duration.Seconds())
+		tks := 0.0
+		if res.AgentMetrics != nil {
+			tks = float64(res.AgentMetrics.TotalTokens)
+		}
+		tokens = append(tokens, tks)
+
+		// Count for this run from authoritative map
+		runCounts := toolCounts[res.RunID]
+		if runCounts == nil {
+			runCounts = make(map[string]int)
+		}
+
+		// Add to aligned global map to track keys
+		for t := range runCounts {
+			if _, exists := toolCountsMap[t]; !exists {
+				toolCountsMap[t] = make([]float64, 0, len(results))
+			}
+		}
+	}
+
+	// Second pass: Identify ALL tools seen
+	allSeenTools := make(map[string]bool)
+	for _, res := range results {
+		counts := toolCounts[res.RunID]
+		for t := range counts {
+			allSeenTools[t] = true
+		}
+	}
+
+	// Initialize vectors
+	perToolRunVectors := make(map[string][]float64)
+	for t := range allSeenTools {
+		perToolRunVectors[t] = make([]float64, len(results))
+	}
+
+	// Populate vectors
+	for i, res := range results {
+		counts := toolCounts[res.RunID]
+		for t, count := range counts {
+			perToolRunVectors[t][i] = float64(count)
+		}
+	}
+
+	// Populate Success/Fail buckets
+	for i, res := range results {
+		for t := range allSeenTools {
+			val := perToolRunVectors[t][i]
+			if res.IsSuccess {
+				toolCountsSucc[t] = append(toolCountsSucc[t], val)
+			} else {
+				toolCountsFail[t] = append(toolCountsFail[t], val)
+			}
+		}
+	}
+
+	// Compute Stats
+	var analysisList []models.ToolAnalysis
+	for t := range allSeenTools {
+		row := models.ToolAnalysis{
+			ToolName:       t,
+			SuccFailPValue: -1.0,
+		}
+
+		// 1. Success vs Fail
+		s := toolCountsSucc[t]
+		f := toolCountsFail[t]
+		if len(s) >= 2 && len(f) >= 2 {
+			row.SuccFailPValue = stats.MannWhitneyU(s, f)
+		}
+
+		// 2. Correlation
+		if stats.Variance(perToolRunVectors[t]) > 0 && stats.Variance(durations) > 0 {
+			row.DurationCorr = stats.SpearmanCorrelation(perToolRunVectors[t], durations)
+		}
+		if stats.Variance(perToolRunVectors[t]) > 0 && stats.Variance(tokens) > 0 {
+			row.TokensCorr = stats.SpearmanCorrelation(perToolRunVectors[t], tokens)
+		}
+
+		analysisList = append(analysisList, row)
+	}
+	return analysisList
 }

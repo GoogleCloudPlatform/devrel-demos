@@ -74,6 +74,7 @@ type ExperimentSummaryRow struct {
 	PTestsFailed float64 `json:"p_tests_failed"`
 	PTimeout     float64 `json:"p_timeout"`
 	PToolCalls   float64 `json:"p_tool_calls"`
+	PFailedToolCalls float64 `json:"p_failed_tool_calls"`
 
 	ToolAnalysis []ToolAnalysis `json:"tool_analysis"`
 }

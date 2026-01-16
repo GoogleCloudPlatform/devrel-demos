@@ -1,0 +1,13 @@
+name: Hello World
+description: Use this to test the framework is working!
+experiment_control: default
+alternatives:
+    - name: default
+      description: Base Gemini CLI
+      command: gemini
+      args:
+        - -y
+        - -o
+        - stream-json
+scenarios:
+    - scenarios/2

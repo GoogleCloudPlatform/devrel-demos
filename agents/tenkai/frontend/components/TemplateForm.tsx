@@ -261,8 +261,8 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
                                                 ✕
                                             </button>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
-                                                <Input label="Identifier" value={alt.name} onChange={(e) => updateAlternative(idx, 'name', e.target.value)} placeholder="e.g. gemini-1.5-flash" />
-                                                <Input label="Short Desc" value={alt.description} onChange={(e) => updateAlternative(idx, 'description', e.target.value)} placeholder="Brief description..." />
+                                                <Input label="Identifier" value={alt.name || ""} onChange={(e) => updateAlternative(idx, 'name', e.target.value)} placeholder="e.g. gemini-1.5-flash" />
+                                                <Input label="Short Desc" value={alt.description || ""} onChange={(e) => updateAlternative(idx, 'description', e.target.value)} placeholder="Brief description..." />
 
                                                 <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     <Input label="Command" placeholder="gemini" value={alt.command || ""} onChange={(e) => updateAlternative(idx, 'command', e.target.value)} />
@@ -278,7 +278,7 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
                                                         </div>
                                                     </div>
                                                     {alt.system_prompt_file && <div className="text-xs font-mono text-emerald-400 mb-1">File: {alt.system_prompt_file}</div>}
-                                                    <TextArea value={alt.system_prompt} onChange={(e) => updateAlternative(idx, 'system_prompt', e.target.value)} rows={3} className="font-mono text-sm" placeholder="Inline system prompt..." />
+                                                    <TextArea value={alt.system_prompt || ""} onChange={(e) => updateAlternative(idx, 'system_prompt', e.target.value)} rows={3} className="font-mono text-sm" placeholder="Inline system prompt..." />
                                                 </div>
 
                                                 <div className="md:col-span-2">
@@ -302,7 +302,7 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
                                                         </div>
                                                     </div>
                                                     {alt.settings_path && <div className="text-xs font-mono text-emerald-400 mb-1">File: {alt.settings_path}</div>}
-                                                    <TextArea value={typeof alt.settings === 'string' ? alt.settings : JSON.stringify(alt.settings, null, 2)} onChange={(e) => updateAlternative(idx, 'settings', e.target.value)} rows={3} className="font-mono text-sm" placeholder="{}" />
+                                                    <TextArea value={typeof alt.settings === 'string' ? alt.settings : JSON.stringify(alt.settings || {}, null, 2)} onChange={(e) => updateAlternative(idx, 'settings', e.target.value)} rows={3} className="font-mono text-sm" placeholder="{}" />
                                                 </div>
                                             </div>
                                         </div>

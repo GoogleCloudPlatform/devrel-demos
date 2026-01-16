@@ -27,7 +27,8 @@ func ImportThis(namespace string) *mcp.Prompt {
 	}
 	return &mcp.Prompt{
 		Name:        name,
-		Description: "This is not the Zen of Python, but it will help you write good code.",
+		Title:       "Import Go Philosophy",
+		Description: "Produces a set of instructions for LLMs to write idiomatic and maintainable Go code.",
 		Arguments:   nil,
 	}
 }

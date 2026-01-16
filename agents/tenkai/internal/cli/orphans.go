@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -13,9 +14,11 @@ import (
 func cleanupOrphanExperiments(database *db.DB) {
 	experiments, err := database.GetExperiments()
 	if err != nil {
+		log.Printf("Warning: failed to fetch experiments for cleanup: %v", err)
 		return
 	}
 
+	count := 0
 	for _, exp := range experiments {
 		status := strings.ToUpper(exp.Status)
 		if status == db.ExperimentStatusRunning {
@@ -27,6 +30,7 @@ func cleanupOrphanExperiments(database *db.DB) {
 			process, err := os.FindProcess(exp.PID)
 			if err != nil {
 				markAbortedSpeculative(database, exp)
+				count++
 				continue
 			}
 
@@ -34,8 +38,12 @@ func cleanupOrphanExperiments(database *db.DB) {
 			if err != nil {
 				// Signal 0 failed, process is likely dead
 				markAbortedSpeculative(database, exp)
+				count++
 			}
 		}
+	}
+	if count > 0 {
+		fmt.Printf("Cleaned up %d orphaned experiment(s).\n", count)
 	}
 }
 
@@ -50,7 +58,7 @@ func markAbortedSpeculative(database *db.DB, exp models.Experiment) {
 		for _, r := range results {
 			st := strings.ToUpper(r.Status)
 			if st == db.RunStatusRunning || st == db.RunStatusQueued {
-				database.UpdateRunStatusAndReason(r.ID, db.RunStatusCompleted, db.ExperimentStatusAborted)
+				database.UpdateRunStatusAndReason(r.ID, db.RunStatusAborted, "ORPHANED")
 			}
 		}
 	}

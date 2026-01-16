@@ -58,6 +58,7 @@ export default function PerformanceTable({ runResults, stats, controlBaseline, a
                         const durationSigLevel = isControl ? '' : getSigLevel(s.p_duration);
                         const tokenSigLevel = isControl ? '' : getSigLevel(s.p_tokens);
                         const toolCallSigLevel = isControl ? '' : getSigLevel(s.p_tool_calls);
+                        const failedToolSigLevel = isControl ? '' : getSigLevel(s.p_failed_tool_calls);
 
                         // Handle both snake_case (DB) and camelCase (client calc)
                         const successRate = s.success_rate;
@@ -103,8 +104,11 @@ export default function PerformanceTable({ runResults, stats, controlBaseline, a
                                     </div>
                                 </TableCell>
                                 <TableCell className="px-6 text-right">
-                                    <div className={`font-mono ${avgFailedTools > 0 ? 'text-red-400 font-bold' : 'text-zinc-500'}`}>
-                                        {avgFailedTools.toFixed(1)}
+                                    <div className="flex items-center justify-end gap-2">
+                                        <span className={`font-mono ${avgFailedTools > 0 ? 'text-red-400 font-bold' : 'text-zinc-500'}`}>
+                                            {avgFailedTools.toFixed(1)}
+                                        </span>
+                                        {failedToolSigLevel && <span className="text-primary font-bold">{failedToolSigLevel}</span>}
                                     </div>
                                 </TableCell>
                                 <TableCell className="px-6 text-right font-mono">

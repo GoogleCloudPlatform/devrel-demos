@@ -151,9 +151,7 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 		Sem:             sem,
 	}
 
-	for _, alt := range cfg.Alternatives {
-		r.dispatchAlternative(rc, alt, cfg.Scenarios, cfg.Repetitions)
-	}
+	r.DispatchAll(rc, cfg)
 
 	go func() {
 		wg.Wait()
@@ -219,14 +217,33 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 				runRes.TestsFailed = res.EvaluationMetrics.TestsFailed
 				runRes.LintIssues = res.EvaluationMetrics.LintIssues
 			}
-			if res.AgentMetrics != nil {
-				runRes.TotalTokens = res.AgentMetrics.TotalTokens
-				runRes.InputTokens = res.AgentMetrics.InputTokens
-				runRes.OutputTokens = res.AgentMetrics.OutputTokens
-				runRes.ToolCallsCount = len(res.AgentMetrics.ToolCalls)
-				runRes.FailedToolCalls = res.AgentMetrics.FailedToolCalls
-				runRes.LoopDetected = res.AgentMetrics.LoopDetected
+			// 4. Fetch authoritative metrics from DB (Single Source of Truth)
+			var dbMetrics *parser.AgentMetrics
+			var fetchErr error
+
+			// Retry fetching metrics to handle transient DB issues or read-after-write delays
+			for attempt := 0; attempt < 5; attempt++ {
+				dbMetrics, fetchErr = r.db.GetRunMetrics(res.RunID)
+				if fetchErr == nil {
+					break
+				}
+				time.Sleep(100 * time.Millisecond * time.Duration(1<<attempt))
 			}
+
+			if fetchErr != nil {
+				return results, fmt.Errorf("failed to fetch authoritative metrics for run %d after retries: %w", res.RunID, fetchErr)
+			}
+
+			// Update the Result object so that CalculateSummary (which uses res.AgentMetrics) is correct
+			res.AgentMetrics = dbMetrics
+
+			// Sync to runRes for DB persistence in run_results table
+			runRes.TotalTokens = dbMetrics.TotalTokens
+			runRes.InputTokens = dbMetrics.InputTokens
+			runRes.OutputTokens = dbMetrics.OutputTokens
+			runRes.ToolCallsCount = dbMetrics.TotalToolCallsCount
+			runRes.FailedToolCalls = dbMetrics.FailedToolCalls
+			runRes.LoopDetected = dbMetrics.LoopDetected
 
 			// Build Telemetry for Final Save
 			telemetry := &db.RunTelemetry{
@@ -277,7 +294,7 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 Done:
 	// Final checkpoint
 	finalStatus := db.ExperimentStatusCompleted
-	if r.checkAction() == "stop" {
+	if r.checkAction() == "stop" || ctx.Err() != nil {
 		finalStatus = db.ExperimentStatusAborted // Use consistent status
 	}
 	r.db.UpdateExperimentStatus(r.experimentID, finalStatus)
@@ -372,11 +389,6 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 	// Use helper for prompt streaming
 	go r.streamPromptContents(promptPath, stdinPipe)
 
-	var resultFound bool
-	var resultFoundMu sync.Mutex
-
-	var terminationRequested bool
-
 	var streamWg sync.WaitGroup
 	streamWg.Add(2)
 
@@ -388,14 +400,26 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 	var stdoutMu, stderrMu sync.Mutex
 	var currentStdout, currentStderr strings.Builder
 
+	ss := &StreamState{
+		JobID:         jobID,
+		Res:           &res,
+		Cmd:           cmd,
+		StreamWg:      &streamWg,
+		StdoutMu:      &stdoutMu,
+		CurrentStdout: &currentStdout,
+		StderrMu:      &stderrMu,
+		CurrentStderr: &currentStderr,
+		ExecCancel:    execCancel,
+	}
+
 	if res.RunID != 0 {
 		go r.syncLogs(syncCtx, &res, &stdoutMu, &currentStdout, &stderrMu, &currentStderr)
 	}
 	// STDOUT STREAMER
-	go r.streamStdout(stdoutPipe, logFile, jobID, &res, cmd, &streamWg, &stdoutMu, &currentStdout, &terminationRequested, &resultFound, &resultFoundMu, execCancel)
+	go r.streamStdout(stdoutPipe, logFile, ss)
 
 	// STDERR STREAMER
-	go r.streamStderr(stderrPipe, stderrFile, &res, &streamWg, &stderrMu, &currentStderr)
+	go r.streamStderr(stderrPipe, stderrFile, ss)
 
 	if err := cmd.Start(); err != nil {
 		res.Error = fmt.Errorf("execution failed to start: %w", err)
@@ -404,7 +428,7 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 	}
 
 	// Wait for streams and command
-	waitErr := r.waitForCommand(cmd, &streamWg, jobCtx, timeout, jobID, &resultFound, &resultFoundMu, &terminationRequested)
+	waitErr := r.waitForCommand(cmd, ss, jobCtx, timeout)
 	if waitErr != nil {
 		res.Error = waitErr
 		res.ErrorStr = res.Error.Error()
@@ -512,6 +536,7 @@ func (r *Runner) evaluateCode(ctx context.Context, wsPath string, scenConfig *co
 func (r *Runner) FromDBRunResult(dr *models.RunResult) Result {
 
 	res := Result{
+		RunID:            dr.ID,
 		Alternative:      dr.Alternative,
 		Scenario:         dr.Scenario,
 		Repetition:       dr.Repetition,

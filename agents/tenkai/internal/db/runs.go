@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
@@ -191,8 +192,20 @@ func (db *DB) SaveRunEvent(runID int64, evtType string, payload any) error {
 		return err
 	}
 	query := `INSERT INTO run_events (run_id, type, timestamp, payload) VALUES (?, ?, ?, ?)`
-	_, err = db.conn.Exec(query, runID, evtType, time.Now().UTC().Format(time.RFC3339), string(jsonBytes))
-	return err
+
+	var lastErr error
+	for attempt := 0; attempt < 10; attempt++ {
+		_, err = db.conn.Exec(query, runID, evtType, time.Now().UTC().Format(time.RFC3339), string(jsonBytes))
+		if err == nil {
+			return nil
+		}
+		lastErr = err
+		if !strings.Contains(strings.ToLower(err.Error()), "locked") {
+			return err
+		}
+		time.Sleep(50 * time.Millisecond * time.Duration(1<<attempt))
+	}
+	return fmt.Errorf("failed to save run event after retries: %w", lastErr)
 }
 
 func (db *DB) SaveTestResults(results []models.TestResult) error {
@@ -399,55 +412,110 @@ func msgsFromEvent(acc []models.Message, current *models.Message, id, runID int6
 	return acc, nil
 }
 
-// GetRunMetrics calculates aggregated metrics from run_events for a specific run.
+// GetRunMetrics calculates aggregated metrics purely from run_events.
+// This ensures the DB event log is the Single Source of Truth.
 func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
-	// Reconstruct metrics from DB columns + events
-	// This is critical for Runner to have Single Source of Truth
-	var r models.RunResult
-	err := db.conn.QueryRow("SELECT total_tokens, input_tokens, output_tokens, failed_tool_calls, loop_detected, is_success, error FROM run_results WHERE id = ?", runID).Scan(
-		&r.TotalTokens, &r.InputTokens, &r.OutputTokens, &r.FailedToolCalls, &r.LoopDetected, &r.IsSuccess, &r.Error,
-	)
+	metrics := &parser.AgentMetrics{}
+
+	// 1. Get Tokens and Result status from 'result' event
+	// We order by id DESC to get the latest result if multiple exist (unlikely but safe)
+	queryResult := `
+		SELECT 
+			json_extract(payload, '$.stats.total_tokens'),
+			json_extract(payload, '$.stats.input_tokens'),
+			json_extract(payload, '$.stats.output_tokens'),
+			json_extract(payload, '$.status')
+		FROM run_events 
+		WHERE run_id = ? AND type = 'result'
+		ORDER BY id DESC LIMIT 1`
+
+	var tTok, iTok, oTok sql.NullInt64
+	var resStatus sql.NullString
+	if err := db.conn.QueryRow(queryResult, runID).Scan(&tTok, &iTok, &oTok, &resStatus); err != nil {
+		if err != sql.ErrNoRows {
+			log.Printf("[DB] Warning: failed to fetch tokens for run %d: %v", runID, err)
+		}
+	} else {
+		metrics.TotalTokens = int(tTok.Int64)
+		metrics.InputTokens = int(iTok.Int64)
+		metrics.OutputTokens = int(oTok.Int64)
+		metrics.Result = resStatus.String
+	}
+
+	// 2. Detect Loops from 'error' events
+	queryLoop := `
+		SELECT COUNT(*) 
+		FROM run_events 
+		WHERE run_id = ? AND type = 'error' AND json_extract(payload, '$.message') LIKE '%Loop detected%'`
+	var loopCount int
+	if err := db.conn.QueryRow(queryLoop, runID).Scan(&loopCount); err != nil {
+		log.Printf("[DB] Warning: failed to check loops for run %d: %v", runID, err)
+	} else if loopCount > 0 {
+		metrics.LoopDetected = true
+	}
+
+	// 3. Count structured tool calls (stdout)
+	queryTools := `
+		SELECT 
+			COUNT(*),
+			SUM(CASE WHEN json_extract(payload, '$.status') != 'success' THEN 1 ELSE 0 END)
+		FROM run_events 
+		WHERE run_id = ? AND type = 'tool'`
+
+	var totalStructured, failedStructured sql.NullInt64
+	if err := db.conn.QueryRow(queryTools, runID).Scan(&totalStructured, &failedStructured); err != nil {
+		log.Printf("[DB] Warning: failed to count structured tool calls for run %d: %v", runID, err)
+	}
+
+	// 4. Count stderr tool errors
+	queryStderr := `
+		SELECT COUNT(*)
+		FROM run_events 
+		WHERE run_id = ? 
+		  AND type = 'error' 
+		  AND json_extract(payload, '$.message') LIKE 'Error executing tool %'`
+
+	var failedStderr int
+	if err := db.conn.QueryRow(queryStderr, runID).Scan(&failedStderr); err != nil {
+		log.Printf("[DB] Warning: failed to count stderr tool errors for run %d: %v", runID, err)
+	}
+
+	// Aggregate counts
+	metrics.FailedToolCalls = int(failedStructured.Int64) + failedStderr
+	metrics.TotalToolCallsCount = int(totalStructured.Int64) + failedStderr
+
+	return metrics, nil
+}
+
+func (db *DB) GetExperimentToolCounts(experimentID int64) (map[int64]map[string]int, error) {
+	query := `
+	SELECT 
+		t.run_id, t.name, COUNT(*)
+	FROM tool_usage t
+	JOIN run_results r ON t.run_id = r.id
+	WHERE r.experiment_id = ?
+	GROUP BY t.run_id, t.name`
+
+	rows, err := db.conn.Query(query, experimentID)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	metrics := &parser.AgentMetrics{
-		TotalTokens:     r.TotalTokens,
-		InputTokens:     r.InputTokens,
-		OutputTokens:    r.OutputTokens,
-		FailedToolCalls: r.FailedToolCalls,
-		LoopDetected:    r.LoopDetected,
-		Result:          "",
-	}
-
-	// Reconstruct ToolCalls from run_events for detailed display if needed
-	// (Keeping this for completeness if the frontend uses it via debug views)
-	toolRows, err := db.conn.Query(`SELECT 
-			json_extract(payload, '$.name'),
-			json_extract(payload, '$.args'),
-			json_extract(payload, '$.status'),
-			json_extract(payload, '$.output'),
-			json_extract(payload, '$.error')
-		FROM run_events WHERE run_id = ? AND type = 'tool'`, runID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query tool usage: %w", err)
-	}
-	defer toolRows.Close()
-	for toolRows.Next() {
-		var tc parser.ToolCall
-		var name, args, status, output, errStr sql.NullString
-		if err := toolRows.Scan(&name, &args, &status, &output, &errStr); err == nil {
-			tc.Name = name.String
-			tc.Args = args.String
-			tc.Status = status.String
-			tc.Output = output.String
-			tc.Error = errStr.String
-			metrics.ToolCalls = append(metrics.ToolCalls, tc)
+	// Map: RunID -> ToolName -> Count
+	counts := make(map[int64]map[string]int)
+	for rows.Next() {
+		var runID int64
+		var name string
+		var count int
+		if err := rows.Scan(&runID, &name, &count); err == nil {
+			if counts[runID] == nil {
+				counts[runID] = make(map[string]int)
+			}
+			counts[runID][name] = count
 		}
-		metrics.TotalToolCallsCount = len(metrics.ToolCalls)
 	}
-
-	return metrics, nil
+	return counts, nil
 }
 
 func (db *DB) UpdateRunStatusAndReason(runID int64, status string, reason string) error {

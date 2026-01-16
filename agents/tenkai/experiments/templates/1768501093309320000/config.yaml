@@ -1,0 +1,56 @@
+name: godoctor
+experiment_control: default
+alternatives:
+    - name: default
+      description: Base Gemini CLI
+      command: gemini
+      args:
+        - -y
+        - -o
+        - stream-json
+    - name: godoctor-advanced
+      description: All core tools enabled
+      command: gemini
+      args:
+        - -y
+        - -o
+        - stream-json
+      settings:
+        mcpServers:
+            godoctor:
+                args:
+                    - --profile=advanced
+                command: godoctor
+    - name: godoctor-advanced-no-core
+      description: No core tools enabled
+      command: gemini
+      args:
+        - -y
+        - -o
+        - stream-json
+      settings:
+        mcpServers:
+            godoctor:
+                args:
+                    - --profile=advanced
+                command: godoctor
+        tools:
+            core: []
+    - name: godoctor-advanced-with-shell
+      description: Only run_shell_command is enabled
+      command: gemini
+      args:
+        - -y
+        - -o
+        - stream-json
+      settings:
+        mcpServers:
+            godoctor:
+                args:
+                    - --profile=advanced
+                command: godoctor
+        tools:
+            core:
+                - run_shell_command
+scenarios:
+    - scenarios/1

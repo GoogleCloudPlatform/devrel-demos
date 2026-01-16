@@ -20,10 +20,13 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sort"
 	"syscall"
 
 	"github.com/danicat/godoctor/internal/config"
+	"github.com/danicat/godoctor/internal/instructions"
 	"github.com/danicat/godoctor/internal/server"
+	"github.com/danicat/godoctor/internal/toolnames"
 )
 
 var (
@@ -57,13 +60,36 @@ func run(ctx context.Context, args []string) error {
 		return nil
 	}
 
-	if cfg.Agents {
-		printAgentInstructions()
+	if cfg.ListTools {
+		var tools []toolnames.ToolDef
+		for _, def := range toolnames.Registry {
+			if cfg.IsToolEnabled(def.InternalName, def.Experimental) {
+				tools = append(tools, def)
+			}
+		}
+
+		// Sort by name
+		sort.Slice(tools, func(i, j int) bool {
+			return tools[i].ExternalName < tools[j].ExternalName
+		})
+
+		for _, tool := range tools {
+			fmt.Printf("Name: %s\nTitle: %s\nDescription: %s\n\n", tool.ExternalName, tool.Title, tool.Description)
+		}
 		return nil
 	}
 
+	if cfg.Agents {
+		// printAgentInstructions needs to be updated or we perform a manual check here.
+		// Since printAgentInstructions likely uses instructions.Get, we can refactor that.
+		// For now, let's just assume we want to print instructions using the new method.
+		fmt.Println(instructions.Get(cfg))
+		return nil
+	}
 	srv := server.New(cfg, version)
-	srv.RegisterHandlers()
+	if err := srv.RegisterHandlers(); err != nil {
+		return err
+	}
 
 	return srv.Run(ctx)
 }

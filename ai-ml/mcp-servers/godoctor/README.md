@@ -1,19 +1,51 @@
 # GoDoctor
 
-**GoDoctor** is an intelligent, AI-powered Model Context Protocol (MCP) server designed to assist Go developers. It integrates seamlessly with AI-powered IDEs and agents to provide context-aware code reviews, on-demand documentation, and smart code editing capabilities.
+**GoDoctor** is an intelligent, AI-powered Model Context Protocol (MCP) server designed to assist Go developers. It integrates context-aware code analysis, smart editing, and on-demand documentation into AI-powered IDEs and agentic workflows.
 
 ## Features
 
-*   **🤖 AI Code Review:** Analyze your code for bugs, race conditions, and idiomatic Go style using Google's Gemini models.
-*   **📚 Documentation Retrieval:** Instantly fetch documentation for standard library and third-party packages without leaving your editor.
-*   **🔍 Deep Inspection:** Analyze file dependencies and external symbol usage to understand code context.
-*   **✨ Smart Editing:** Safely modify code with fuzzy matching, auto-formatting (`goimports`), and syntax validation.
+GoDoctor organizes its capabilities into **Profiles** to suit different workflow needs, from safe, standard editing to full-blown autonomous modernization.
+
+### 🚀 Core Capabilities (Standard Profile)
+
+*   **🔍 Smart Navigation**:
+    *   `code_outline`: View file structure (imports, types, signatures) with minimal token usage. Supersedes reading entire files.
+    *   `inspect_symbol`: Retrieve "Ground Truth" for any symbol—its definition, source code, and related types—to ensure edits feature 100% correct context.
+    *   `list_files`: Explore the file system.
+
+*   **✏️ Smart Editing**:
+    *   `smart_edit`: The gold standard for code modification. It performs **Pre-Verification** (syntax check + `goimports`) *before* saving to disk, ensuring you never break the build. It also handles fuzzy matching and auto-fixes typos in search blocks.
+
+*   **🛠️ Utilities**:
+    *   `go_build`: Compile the project to verify changes.
+    *   `go_test`: Run specific tests to validate logic.
+    *   `read_docs`: internal documentation retrieval.
+
+### ⚡ Advanced Modernization (Advanced Profile)
+
+Includes all Standard tools, plus:
+*   **♻️ Modernize**:
+    *   `mo*   **♻️ Modernize**:
+    *   `modernize`: Automatically upgrades legacy patterns (e.g., `interface{}` → `any`, manual loops → slices).
+*   **📦 Dependency Analysis**:
+    *   `analyze_dependency_updates`: Assess breaking changes and risks *before* upgrading dependencies.
+*   **🧹 Linting**:
+    *   `go_lint`: Runs `golangci-lint` to catch style issues and bugs. Auto-installs if missing.es
+
+*   **Oracle**: Exposes *only* `ask_specialist`, a high-level tool that acts as a gateway to other hidden tools, forcing a "Human-in-the-Loop" or "Manager Agent" pattern.
 
 ## Installation
 
 ### Prerequisites
 *   Go 1.24 or later
 *   Make
+
+### Quick Install
+
+```bash
+make install
+# Installs to $GOPATH/bin/godoctor
+```
 
 ### Build from Source
 
@@ -24,27 +56,20 @@ make build
 # Binary will be in bin/godoctor
 ```
 
-### Install
-
-```bash
-make install
-# Installs to $GOPATH/bin/godoctor
-```
-
 ## Configuration
 
-GoDoctor requires access to Google's Generative AI models. You can use either the Gemini API (personal) or Vertex AI (enterprise).
+### 1. Authentication
 
-### Authentication
+GoDoctor requires access to Google's Generative AI models.
 
-**Option 1: Gemini API (Simplest)**
-Set the `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) environment variable.
+**Option 1: Gemini API (Personal)**
+Set the `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) environment variable.
 
 ```bash
-export GOOGLE_API_KEY="your-api-key"
+export GEMINI_API_KEY="your-api-key"
 ```
 
-**Option 2: Vertex AI**
+**Option 2: Vertex AI (Enterprise)**
 Set the following environment variables:
 
 ```bash
@@ -53,58 +78,34 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 export GOOGLE_CLOUD_LOCATION="us-central1"
 ```
 
-### Command-Line Flags
+### 2. Command-Line Flags
 
 | Flag | Description | Default |
 | :--- | :--- | :--- |
+| `--profile` | Server profile: `standard`, `advanced`, `oracle`. | `standard` |
+| `--model` | Default Gemini model to use for AI tasks. | `gemini-2.5-pro` |
+| `--allow` | Comma-separated list of tools to explicitly **enable** (overrides profile defaults). | `""` |
+| `--disable` | Comma-separated list of tools to explicitly **disable**. | `""` |
 | `--listen` | Address to listen on for HTTP transport (e.g., `:8080`). If empty, uses Stdio. | `""` (Stdio) |
-| `--model` | Default Gemini model to use for code reviews. | `gemini-2.5-pro` |
+| `--agents` | Print LLM agent instructions for the current profile and exit. | `false` |
 | `--version` | Print version and exit. | `false` |
-| `--agents` | Print LLM agent instructions and exit. | `false` |
 
-## Tools Usage
+### Legacy Tools
+The following tools are still available for backward compatibility but are superseded by the "Smart" suite:
+*   `edit_code` (Superseded by `smart_edit`)
+*   `read_code`
+*   `review_code`
 
-GoDoctor exposes the following tools via the Model Context Protocol:
+## Agent Integration
 
-### 1. `review_code`
-Reviews Go code for correctness, style, and best practices.
-
-*   **file_content**: The raw content of the Go file.
-*   **model_name**: (Optional) Override the default model.
-*   **hint**: (Optional) Focus the review on a specific aspect (e.g., "security", "performance").
-
-### 2. `read_docs`
-Retrieves documentation for packages and symbols.
-
-*   **package_path**: The import path (e.g., `fmt`, `encoding/json`).
-*   **symbol_name**: (Optional) Specific symbol to look up (e.g., `Println`, `Decoder`).
-
-### 3. `read_code` (Experimental)
-Reads a file and returns its content along with a symbol table (functions, types, variables).
-
-*   **file_path**: Absolute path to the file.
-
-### 4. `edit_code`
-Intelligently edits a file with safety checks and auto-formatting.
-
-*   **file_path**: Path to the file.
-*   **search_context**: Code block to replace (3+ lines recommended for uniqueness). Required for replace strategies.
-*   **new_content**: The new code to insert.
-*   **strategy**: `replace_block` (default), `replace_all`, `overwrite_file`, or `append`.
-*   **autofix**: (Optional) Attempt to fix minor typos in search context.
-
-## Development
-
-### Running Tests
-```bash
-make test
-```
-
-### Agent Configuration
-To generate instructions for configuring an LLM agent to use GoDoctor:
+To get the optimal system prompt for your AI agent based on your chosen profile:
 
 ```bash
-./bin/godoctor -agents
+# Get instructions for the standard profile
+godoctor --agents --profile=standard
+
+# Get instructions for the advanced profile with modernization tools
+godoctor --agents --profile=advanced
 ```
 
 ## License

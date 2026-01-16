@@ -30,7 +30,7 @@ func Register(server *mcp.Server) {
 	server.AddResourceTemplate(&mcp.ResourceTemplate{
 		URITemplate: "godoc://{path}",
 		Name:        "Go Documentation",
-		Description: "Documentation for Go packages and symbols (e.g. godoc://net/http or godoc://net/http/Client)",
+		Description: "Documentation for Go packages and symbols (e.g. godoc://net/http or godoc://fmt.Println)",
 		MIMEType:    "text/markdown",
 	}, ResourceHandler)
 }
@@ -64,6 +64,25 @@ func ResourceHandler(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.Re
 	if dir != "" && file != "" {
 		doc, err2 := godoc.GetDocumentation(ctx, dir, file)
 		if err2 == nil {
+			return &mcp.ReadResourceResult{
+				Contents: []*mcp.ResourceContents{
+					{
+						URI:      uri,
+						MIMEType: "text/markdown",
+						Text:     doc,
+					},
+				},
+			}, nil
+		}
+	}
+
+	// Try splitting by dot (e.g. fmt.Println or net/http.Client)
+	lastDot := strings.LastIndex(pkgPath, ".")
+	if lastDot != -1 {
+		pkg := pkgPath[:lastDot]
+		sym := pkgPath[lastDot+1:]
+		doc, err3 := godoc.GetDocumentation(ctx, pkg, sym)
+		if err3 == nil {
 			return &mcp.ReadResourceResult{
 				Contents: []*mcp.ResourceContents{
 					{

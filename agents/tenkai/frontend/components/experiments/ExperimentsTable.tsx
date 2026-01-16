@@ -1,15 +1,30 @@
+'use client';
+
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/utils/cn";
 import ProgressBar from "@/components/ui/progress-bar";
 import { ExperimentRecord } from "@/types/domain";
+import { toggleLock } from "@/app/api/api";
+import LockToggle from "@/components/LockToggle";
+import { useRouter } from "next/navigation";
 
 interface ExperimentsTableProps {
     experiments: ExperimentRecord[];
 }
 
 export default function ExperimentsTable({ experiments }: ExperimentsTableProps) {
+    const router = useRouter();
+
+    const handleToggleLock = async (id: number, locked: boolean) => {
+        const success = await toggleLock(id, locked);
+        if (success) {
+            router.refresh(); // Refresh to update UI state
+        }
+        return success;
+    };
+
     return (
         <div className="rounded-md border bg-card text-body">
             <Table>
@@ -32,7 +47,13 @@ export default function ExperimentsTable({ experiments }: ExperimentsTableProps)
                 <TableBody>
                     {experiments.map((exp) => (
                         <TableRow key={exp.id}>
-                            <TableCell className="font-mono text-muted-foreground font-bold">#{exp.id}</TableCell>
+                            <TableCell className="font-mono text-muted-foreground font-bold flex items-center gap-2">
+                                <span>#{exp.id}</span>
+                                <LockToggle
+                                    locked={!!exp.is_locked}
+                                    onToggle={(locked) => handleToggleLock(exp.id, locked)}
+                                />
+                            </TableCell>
                             <TableCell>
                                 <Badge variant={
                                     exp.status?.toUpperCase() === 'COMPLETED' ? 'secondary' :

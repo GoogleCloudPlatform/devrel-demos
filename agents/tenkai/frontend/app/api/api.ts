@@ -243,3 +243,17 @@ export async function reValidateExperiment(experimentId: number): Promise<JobRes
         method: 'POST'
     });
 }
+
+export async function toggleLock(experimentId: number, locked: boolean): Promise<boolean> {
+    try {
+        await fetchAPI(`/experiments/${experimentId}/lock`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ locked })
+        });
+        return true;
+    } catch (e) {
+        console.error("Failed to toggle lock:", e);
+        return false;
+    }
+}

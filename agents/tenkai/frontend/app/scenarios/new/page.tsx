@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, TextArea, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { AssetUploader } from "@/components/AssetUploader";
 
 export default function NewScenarioPage() {
     const router = useRouter();
@@ -21,11 +22,13 @@ export default function NewScenarioPage() {
     // Assets & Links
     const [githubIssue, setGithubIssue] = useState("");
     const [githubTaskType, setGithubTaskType] = useState<'issue' | 'prompt'>('issue');
-    const [assetType, setAssetType] = useState<'none' | 'folder' | 'files' | 'git'>('none');
+    const [assetType, setAssetType] = useState<'none' | 'folder' | 'files' | 'git' | 'create'>('none');
     const [gitUrl, setGitUrl] = useState("");
     const [gitRef, setGitRef] = useState("");
 
     const [files, setFiles] = useState<FileList | null>(null);
+    const [fileName, setFileName] = useState("");
+    const [fileContent, setFileContent] = useState("");
 
     // Validation
     const [validation, setValidation] = useState<any[]>([
@@ -117,9 +120,11 @@ export default function NewScenarioPage() {
                 formData.append('files', files[i]);
             }
         } else if (assetType === 'git') {
-
             formData.append('git_url', gitUrl);
             formData.append('git_ref', gitRef);
+        } else if (assetType === 'create') {
+            formData.append('file_name', fileName);
+            formData.append('file_content', fileContent);
         }
 
         try {
@@ -259,49 +264,16 @@ export default function NewScenarioPage() {
 
                 {taskMode === 'prompt' && (
                     <Card title="Workspace Assets">
-                        <div className="space-y-6">
-                            <div className="flex gap-4 border-b border-[#27272a] pb-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setAssetType('none')}
-                                    className={`px-4 py-2 rounded font-bold text-body transition-colors ${assetType === 'none' ? 'bg-[#27272a] text-[#f4f4f5]' : 'text-[#71717a] hover:text-[#f4f4f5]'}`}
-                                >
-                                    Empty Workspace
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { setAssetType('folder'); setFiles(null); }}
-                                    className={`px-4 py-2 rounded font-bold text-body transition-colors ${assetType === 'folder' ? 'bg-[#27272a] text-[#f4f4f5]' : 'text-[#71717a] hover:text-[#f4f4f5]'}`}
-                                >
-                                    Upload Folder
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { setAssetType('files'); setFiles(null); }}
-                                    className={`px-4 py-2 rounded font-bold text-body transition-colors ${assetType === 'files' ? 'bg-[#27272a] text-[#f4f4f5]' : 'text-[#71717a] hover:text-[#f4f4f5]'}`}
-                                >
-                                    Upload Files
-                                </button>
-                            </div>
-
-                            {(assetType === 'folder' || assetType === 'files') && (
-                                <div className="panel p-6 border-dashed bg-[#09090b] flex flex-col items-center justify-center text-center relative overflow-hidden group">
-                                    <div className="text-2xl mb-2 grayscale opacity-50">{assetType === 'folder' ? '📂' : '📄'}</div>
-                                    <p className="text-body font-bold text-[#6366f1] uppercase tracking-widest hover:text-[#818cf8]">
-                                        {assetType === 'folder' ? 'Click to Select Folder' : 'Click to Select Files'}
-                                    </p>
-                                    <input
-                                        type="file"
-                                        className="absolute opacity-0 w-full h-full cursor-pointer inset-0 z-10"
-                                        {...(assetType === 'folder' ? { webkitdirectory: "", directory: "" } as any : { multiple: true })}
-                                        onChange={(e) => setFiles(e.target.files)}
-                                    />
-                                    <p className="text-body font-mono opacity-50 mt-2">
-                                        {files ? `${files.length} items selected` : (assetType === 'folder' ? "Drag folder here or click" : "Drag files here or click")}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
+                        <AssetUploader
+                            assetType={assetType}
+                            setAssetType={setAssetType}
+                            files={files}
+                            setFiles={setFiles}
+                            fileName={fileName}
+                            setFileName={setFileName}
+                            fileContent={fileContent}
+                            setFileContent={setFileContent}
+                        />
                     </Card>
                 )}
 

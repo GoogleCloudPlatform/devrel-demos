@@ -31,7 +31,7 @@ func (r *Reporter) GenerateConsoleReport() error {
 		toolCalls := 0
 		if res.AgentMetrics != nil {
 			tokens = res.AgentMetrics.TotalTokens
-			toolCalls = len(res.AgentMetrics.ToolCalls)
+			toolCalls = res.AgentMetrics.TotalToolCallsCount
 		}
 
 		testStatus := "-"

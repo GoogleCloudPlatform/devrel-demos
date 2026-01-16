@@ -31,21 +31,29 @@ import (
 	"strings"
 )
 
-// GetDocumentation retrieves the documentation for a package or symbol.
-func GetDocumentation(ctx context.Context, pkgPath, symbolName string) (string, error) {
+// GetStructuredDoc parses the package documentation and returns a structured representation.
+func GetStructuredDoc(ctx context.Context, pkgPath, symbolName string) (*StructuredDoc, error) {
 	// Try to find the package directory locally
 	pkgDir, err := resolvePackageDir(ctx, pkgPath)
 	if err != nil {
 		// Fallback: try to fetch the package in a temp directory
-		return fetchAndRetry(ctx, pkgPath, symbolName, err)
+		return fetchAndRetryStructured(ctx, pkgPath, symbolName, err)
 	}
 
 	result, err := parsePackageDocs(ctx, pkgPath, pkgDir, symbolName, pkgPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse documentation: %w", err)
+		return nil, fmt.Errorf("failed to parse documentation: %w", err)
 	}
+	return result, nil
+}
 
-	return renderMarkdown(result), nil
+// GetDocumentation retrieves the documentation for a package or symbol as Markdown.
+func GetDocumentation(ctx context.Context, pkgPath, symbolName string) (string, error) {
+	doc, err := GetStructuredDoc(ctx, pkgPath, symbolName)
+	if err != nil {
+		return "", err
+	}
+	return Render(doc), nil
 }
 
 // Example represents a code example extracted from documentation.
@@ -67,6 +75,17 @@ type StructuredDoc struct {
 	Examples     []Example `json:"examples,omitempty"`
 	SubPackages  []string  `json:"subPackages,omitempty"`
 	PkgGoDevURL  string    `json:"pkgGoDevURL"`
+
+	// Lists of symbols (signatures or summaries)
+	Funcs  []string `json:"funcs,omitempty"`
+	Types  []string `json:"types,omitempty"`
+	Vars   []string `json:"vars,omitempty"`
+	Consts []string `json:"consts,omitempty"`
+
+	// Extra fields for Describe superset
+	SourcePath string   `json:"sourcePath,omitempty"`
+	Line       int      `json:"line,omitempty"`
+	References []string `json:"references,omitempty"`
 }
 
 func resolvePackageDir(ctx context.Context, pkgPath string) (string, error) {
@@ -104,7 +123,7 @@ func parsePackageDocs(ctx context.Context, importPath, pkgDir, symbolName, reque
 	}
 
 	// Always look for sub-packages
-	subs := listSubPackages(ctx, pkgDir)
+	subs := ListSubPackages(ctx, pkgDir)
 	for _, sub := range subs {
 		if sub != importPath { // Exclude self
 			result.SubPackages = append(result.SubPackages, sub)
@@ -133,6 +152,22 @@ func parsePackageDocs(ctx context.Context, importPath, pkgDir, symbolName, reque
 		result.Description = targetPkg.Doc
 		result.Definition = fmt.Sprintf("package %s // import %q", targetPkg.Name, importPath)
 		result.Examples = extractExamples(fset, targetPkg.Examples)
+
+		// Populate symbol lists
+		for _, f := range targetPkg.Funcs {
+			result.Funcs = append(result.Funcs, bufferCode(fset, f.Decl))
+		}
+		for _, t := range targetPkg.Types {
+			// Just the type decl, not full methods unless we want detailed summary
+			result.Types = append(result.Types, bufferCode(fset, t.Decl))
+		}
+		for _, v := range targetPkg.Vars {
+			result.Vars = append(result.Vars, bufferCode(fset, v.Decl))
+		}
+		for _, c := range targetPkg.Consts {
+			result.Consts = append(result.Consts, bufferCode(fset, c.Decl))
+		}
+
 		return result, nil
 	}
 
@@ -313,7 +348,8 @@ func bufferCode(fset *token.FileSet, node any) string {
 	return buf.String()
 }
 
-func renderMarkdown(doc *StructuredDoc) string {
+// Render converts a StructuredDoc to Markdown.
+func Render(doc *StructuredDoc) string {
 	var buf strings.Builder
 
 	buf.WriteString(fmt.Sprintf("# %s\n\n", doc.ImportPath))
@@ -324,6 +360,10 @@ func renderMarkdown(doc *StructuredDoc) string {
 
 	if doc.SymbolName != "" {
 		buf.WriteString(fmt.Sprintf("## %s %s\n\n", doc.Type, doc.SymbolName))
+	}
+
+	if doc.SourcePath != "" {
+		buf.WriteString(fmt.Sprintf("Defined in: `%s:%d`\n\n", doc.SourcePath, doc.Line))
 	}
 
 	if doc.Definition != "" {
@@ -353,6 +393,54 @@ func renderMarkdown(doc *StructuredDoc) string {
 			}
 			buf.WriteString("\n")
 		}
+	}
+
+	// Render Symbol Lists (if available and not focusing on a single symbol)
+	if doc.SymbolName == "" {
+		if len(doc.Consts) > 0 {
+			buf.WriteString("### Constants\n\n")
+			buf.WriteString("```go\n")
+			for _, c := range doc.Consts {
+				buf.WriteString(c)
+				buf.WriteString("\n")
+			}
+			buf.WriteString("```\n\n")
+		}
+		if len(doc.Vars) > 0 {
+			buf.WriteString("### Variables\n\n")
+			buf.WriteString("```go\n")
+			for _, v := range doc.Vars {
+				buf.WriteString(v)
+				buf.WriteString("\n")
+			}
+			buf.WriteString("```\n\n")
+		}
+		if len(doc.Funcs) > 0 {
+			buf.WriteString("### Functions\n\n")
+			buf.WriteString("```go\n")
+			for _, f := range doc.Funcs {
+				buf.WriteString(f)
+				buf.WriteString("\n\n")
+			}
+			buf.WriteString("```\n\n")
+		}
+		if len(doc.Types) > 0 {
+			buf.WriteString("### Types\n\n")
+			buf.WriteString("```go\n")
+			for _, t := range doc.Types {
+				buf.WriteString(t)
+				buf.WriteString("\n\n")
+			}
+			buf.WriteString("```\n\n")
+		}
+	}
+
+	if len(doc.References) > 0 {
+		buf.WriteString("### Usages\n\n")
+		for _, ref := range doc.References {
+			buf.WriteString(fmt.Sprintf("- %s\n", ref))
+		}
+		buf.WriteString("\n")
 	}
 
 	if len(doc.SubPackages) > 0 {
@@ -427,10 +515,10 @@ func levenshtein(s1, s2 string) int {
 	return currentRow[n]
 }
 
-func fetchAndRetry(ctx context.Context, pkgPath, symbolName string, originalErr error) (string, error) {
+func fetchAndRetryStructured(ctx context.Context, pkgPath, symbolName string, originalErr error) (*StructuredDoc, error) {
 	tempDir, err := setupTempModule(ctx)
 	if err != nil {
-		return "", fmt.Errorf("failed to setup temp module: %w", err)
+		return nil, fmt.Errorf("failed to setup temp module: %w", err)
 	}
 	defer func() {
 		_ = os.RemoveAll(tempDir)
@@ -445,16 +533,16 @@ func fetchAndRetry(ctx context.Context, pkgPath, symbolName string, originalErr 
 			suggestionText = fmt.Sprintf("\nDid you mean: %s?", strings.Join(suggestions, ", "))
 		}
 
-		return "", fmt.Errorf("failed to download package %q: %v\nOriginal error: %v%s",
+		return nil, fmt.Errorf("failed to download package %q: %v\nOriginal error: %v%s",
 			pkgPath, err, originalErr, suggestionText)
 	}
 
 	result, err := parsePackageDocs(ctx, actualPkgPath, pkgDir, symbolName, pkgPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse documentation after download: %w", err)
+		return nil, fmt.Errorf("failed to parse documentation after download: %w", err)
 	}
 
-	return renderMarkdown(result), nil
+	return result, nil
 }
 
 func suggestPackages(ctx context.Context, query string) []string {
@@ -469,7 +557,8 @@ func suggestPackages(ctx context.Context, query string) []string {
 	return findFuzzyMatches(query, candidates)
 }
 
-func listSubPackages(ctx context.Context, pkgDir string) []string {
+// ListSubPackages finds sub-packages within a directory using go list.
+func ListSubPackages(ctx context.Context, pkgDir string) []string {
 	cmd := exec.CommandContext(ctx, "go", "list", "-f", "{{.ImportPath}}", "./...")
 	cmd.Dir = pkgDir
 	out, err := cmd.Output()
@@ -514,18 +603,20 @@ func downloadPackage(ctx context.Context, tempDir, pkgPath string) (string, stri
 		if len(matches) > 1 {
 			actualPath = string(matches[1])
 			// Retry with correct path
+			//nolint:gosec // G204: Subprocess launched with variable is expected behavior.
 			retryCmd := exec.CommandContext(ctx, "go", "get", actualPath)
 			retryCmd.Dir = tempDir
 			if retryOut, retryErr := retryCmd.CombinedOutput(); retryErr != nil {
 				return "", "", fmt.Errorf("go get failed after vanity retry: %v\nOutput: %s", retryErr, retryOut)
 			}
-			err = nil // Success on retry
+			// Success on retry
 		} else {
 			return "", "", fmt.Errorf("go get failed: %v\nOutput: %s", err, out)
 		}
 	}
 
 	// Try to locate as a package first
+	//nolint:gosec // G204: Subprocess launched with variable is expected behavior.
 	listCmd := exec.CommandContext(ctx, "go", "list", "-f", "{{.Dir}}", actualPath)
 	listCmd.Dir = tempDir
 	out, err = listCmd.CombinedOutput()
@@ -534,6 +625,7 @@ func downloadPackage(ctx context.Context, tempDir, pkgPath string) (string, stri
 	}
 
 	// If failed, try to locate as a module (e.g. root of repo with no root package files)
+	//nolint:gosec // G204: Subprocess launched with variable is expected behavior.
 	modCmd := exec.CommandContext(ctx, "go", "list", "-m", "-f", "{{.Dir}}", actualPath)
 	modCmd.Dir = tempDir
 	out, err = modCmd.CombinedOutput()

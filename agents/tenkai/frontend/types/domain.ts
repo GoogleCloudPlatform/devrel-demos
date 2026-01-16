@@ -6,6 +6,7 @@ export interface ExperimentRecord {
     status: 'running' | 'ABORTED' | 'completed' | 'RUNNING' | 'COMPLETED';
     reps: number;
     concurrent: number;
+    is_locked?: boolean;
 
     error_message?: string;
     experiment_control?: string;
@@ -99,5 +100,50 @@ export interface RunResult {
     validation_report?: string;
     reason?: string;
     status: string;
+}
+
+export interface ValidationRule {
+    type: string;
+    target?: string;
+    command?: string;
+    prompt?: string;
+    min_coverage?: number;
+    max_issues?: number;
+    expected_exit_code?: number;
+    context?: string[];
+}
+
+export interface ScenarioAsset {
+    type: 'git' | 'directory' | 'file';
+    source?: string;
+    target?: string;
+    ref?: string;
+    content?: string;
+}
+
+export interface ScenarioData {
+    id?: string;
+    name: string;
+    description: string;
+    task?: string;
+    github_issue?: string;
+    assets?: ScenarioAsset[];
+    validation?: ValidationRule[];
+    env?: Record<string, string>;
+}
+
+export interface TemplateData {
+    id: string;
+    name: string;
+    description: string;
+    config: {
+        reps: number;
+        concurrent: number;
+        timeout: string;
+        experiment_control: string;
+        scenarios: string[];
+        alternatives: Alternative[];
+    };
+    yaml_content: string;
 }
 
