@@ -143,11 +143,11 @@ typing-extensions==4.12.2
     # via
     #   opentelemetry-resourcedetector-gcp
     #   opentelemetry-sdk
-urllib3==2.6.0
+urllib3==2.6.3
     # via
     #   -r requirements.in
     #   requests
-werkzeug==3.0.4
+werkzeug==3.1.5
     # via flask
 wrapt==1.16.0
     # via
