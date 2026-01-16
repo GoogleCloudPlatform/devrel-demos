@@ -41,20 +41,12 @@ func Hello() {}
 		t.Fatal(err)
 	}
 
-	// Wait for initial crawl
-	// crawl is async, watcher is async.
-	// we need to poll until we see the package.
-	poll(t, m, "main_package_loaded", func(_ string) bool {
-		pkgs := m.ListPackages()
-		for _, p := range pkgs {
-			if p.Name == "main" {
-				return true
-			}
-		}
-		return false
-	})
+	// 4. Scan explicitly
+	if err := m.Scan(); err != nil {
+		t.Fatalf("Scan failed: %v", err)
+	}
 
-	// 4. Modify File (Add Function)
+	// 5. Modify File (Add Function)
 	newContent := `package main
 
 func Hello() {}

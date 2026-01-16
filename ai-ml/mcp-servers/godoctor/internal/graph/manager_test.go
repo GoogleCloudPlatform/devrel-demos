@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/danicat/godoctor/internal/graph"
 )
@@ -183,29 +182,6 @@ func TestManager_FindRelatedSymbols(t *testing.T) {
 	}
 	if !foundUser {
 		t.Errorf("FindRelatedSymbols(NewUser) missed 'User'. Got: %v", related)
-	}
-}
-
-func TestManager_Crawl(t *testing.T) {
-	tmpDir, _, _ := setupTestGraph(t)
-	m := graph.NewManager()
-	m.Initialize(tmpDir)
-
-	// Give crawler time to finish
-	time.Sleep(500 * time.Millisecond)
-
-	// Check if packages were loaded without explicit Load call
-	pkgs := m.ListPackages()
-	foundLib := false
-	for _, p := range pkgs {
-		if strings.Contains(p.PkgPath, "testproject/lib") {
-			foundLib = true
-			break
-		}
-	}
-
-	if !foundLib {
-		t.Error("Crawl did not auto-load 'lib' package")
 	}
 }
 

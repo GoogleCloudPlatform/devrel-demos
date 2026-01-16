@@ -17,9 +17,9 @@ package review
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
-	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -41,7 +41,12 @@ var (
 func Register(server *mcp.Server, defaultModel string) {
 	reviewHandler, err := NewHandler(context.Background(), defaultModel)
 	if err != nil {
-		log.Printf("Disabling code_review tool: failed to create handler: %v", err)
+		// Log to Stderr to avoid breaking JSON-RPC on Stdout
+		if errors.Is(err, ErrAuthFailed) || errors.Is(err, ErrVertexAIMissingConfig) {
+			fmt.Fprintf(os.Stderr, "WARN: Disabling code_review tool (agent.review): %v\n", err)
+		} else {
+			fmt.Fprintf(os.Stderr, "ERROR: Disabling code_review tool: failed to create handler: %v\n", err)
+		}
 		return
 	}
 	def := toolnames.Registry["agent.review"]

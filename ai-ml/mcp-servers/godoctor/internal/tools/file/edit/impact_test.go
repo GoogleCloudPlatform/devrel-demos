@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/danicat/godoctor/internal/graph"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -45,26 +44,9 @@ func TestEdit_ImpactAnalysis(t *testing.T) {
 	graph.Global = graph.NewManager()
 	graph.Global.Initialize(tmpDir)
 
-	// Poll until packages are loaded
-	// We need 'example.com/impact/pkg/b' to be loaded to know it imports 'a'
-	deadline := time.Now().Add(10 * time.Second)
-	loaded := false
-	for time.Now().Before(deadline) {
-		pkgs := graph.Global.ListPackages()
-		count := 0
-		for _, p := range pkgs {
-			if strings.Contains(p.PkgPath, "example.com/impact/pkg") {
-				count++
-			}
-		}
-		if count >= 2 {
-			loaded = true
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	if !loaded {
-		t.Fatal("Timeout waiting for packages to load")
+	// Scan explicitly to load packages
+	if err := graph.Global.Scan(); err != nil {
+		t.Fatalf("Scan failed: %v", err)
 	}
 
 	// 3. Perform Breaking Edit on A

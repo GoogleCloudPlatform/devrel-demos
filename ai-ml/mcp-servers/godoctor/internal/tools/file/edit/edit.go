@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/danicat/godoctor/internal/graph"
+	"github.com/danicat/godoctor/internal/roots"
 	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/tools/imports"
@@ -33,9 +34,11 @@ type Params struct {
 }
 
 func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
-	if args.File == "" {
-		return errorResult("file cannot be empty"), nil, nil
+	absPath, err := roots.Global.Validate(args.File)
+	if err != nil {
+		return errorResult(err.Error()), nil, nil
 	}
+	args.File = absPath
 
 	// Default threshold
 	if args.Threshold == 0 {
@@ -329,8 +332,6 @@ func levenshtein(s1, s2 string) int {
 	}
 	return currentRow[n]
 }
-
-
 
 func errorResult(msg string) *mcp.CallToolResult {
 	return &mcp.CallToolResult{

@@ -65,6 +65,7 @@ export interface ExperimentSummaryRow {
     p_tests_failed?: number;
     p_timeout?: number;
     p_tool_calls?: number;
+    tool_analysis?: any[];
 }
 
 export interface Alternative {
@@ -103,8 +104,9 @@ export interface RunResult {
 }
 
 export interface ValidationRule {
-    type: string;
+    type: "test" | "lint" | "command" | "model" | "manual";
     target?: string;
+    include_in_prompt?: boolean;
     command?: string;
     prompt?: string;
     min_coverage?: number;
@@ -122,7 +124,7 @@ export interface ScenarioAsset {
 }
 
 export interface ScenarioData {
-    id?: string;
+    id: string;
     name: string;
     description: string;
     task?: string;

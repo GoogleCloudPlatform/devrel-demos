@@ -15,6 +15,7 @@ func DefaultProfiles() map[string]ProfileDef {
 			Description: "The default profile. Balanced for general coding tasks.",
 			Tools: []string{
 				"agent.specialist",
+				"cmd.run",
 				"file.edit",
 				"file.list",
 				"file.outline",
@@ -32,7 +33,7 @@ func DefaultProfiles() map[string]ProfileDef {
 			Tools: []string{
 				// All tools (implicitly handled by logic usually, but here explicit)
 				"agent.master", "agent.review", "agent.specialist",
-				"file.create", "file.edit", "file.edit_legacy", "file.list", "file.outline", "file.read",
+				"cmd.run", "file.create", "file.edit", "file.edit_legacy", "file.list", "file.outline", "file.read",
 				"go.build", "go.diff", "go.docs", "go.get", "go.install", "go.mod", "go.modernize", "go.test",
 				"project.map",
 				"symbol.inspect", "symbol.rename",

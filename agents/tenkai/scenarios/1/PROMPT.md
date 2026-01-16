@@ -19,11 +19,8 @@ TODO:
 - Create the server with stdio transport
 - Create one tool "hello_world" that returns the message "Hello from Tenkai!"
 
-Acceptance Criteria:
-- Less than 5 lint issues when running golangci-lint run ./... (use default configuration)
-- Test coverage >= 50%
-- `go build -o hello .` is successful
-- hello responds to method tools/list request successfully
-- hello responds to method tools/call request for the hello_world tool returning the phrase "Hello from Tenkai!"
-
-The task accepts some level of ambiguity, but it will fail if the acceptance criteria above is not met even if the software works.
+## Acceptance Criteria
+- Command `go build -o hello .` must succeed (exit code 0).
+- Linter `./...` must pass with max 5 issues.
+- Command `(   echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}';   echo '{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}';   echo '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}';   sleep 1; ) | ./hello` must succeed (exit code 0).
+- Unit tests for `./...` must pass with min 50% coverage.

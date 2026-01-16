@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/danicat/godoctor/internal/roots"
 	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/tools/go/packages"
@@ -39,12 +40,14 @@ type symbol struct {
 }
 
 func readCodeHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
-	if args.FilePath == "" {
-		return errorResult("file_path cannot be empty"), nil, nil
+	absPath, err := roots.Global.Validate(args.FilePath)
+	if err != nil {
+		return errorResult(err.Error()), nil, nil
 	}
 
-	//nolint:gosec // G304: File path provided by user is expected.
-	content, err := os.ReadFile(args.FilePath)
+	//nolint:gosec // G304: File path provided by user is validated against roots.
+	content, err := os.ReadFile(absPath)
+	args.FilePath = absPath // ensure we use absolute path for analysis
 
 	if err != nil {
 		return errorResult(fmt.Sprintf("failed to read file: %v", err)), nil, nil

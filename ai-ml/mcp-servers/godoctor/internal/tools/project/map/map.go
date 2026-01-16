@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/danicat/godoctor/internal/graph"
+	"github.com/danicat/godoctor/internal/roots"
 	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/tools/go/packages"
@@ -28,13 +29,17 @@ func Register(server *mcp.Server) {
 type Params struct {
 }
 
-func Handler(_ context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
-	// Initialize graph if not done (though usually server handles this)
-	if graph.Global.Root == "" {
-		graph.Global.Initialize(".")
+func Handler(ctx context.Context, req *mcp.CallToolRequest, _ Params) (*mcp.CallToolResult, any, error) {
+	// Initialize graph/roots if not done
+	if len(roots.Global.Get()) == 0 {
+		roots.Global.Sync(ctx, req.Session)
 	}
 
 	pkgs := graph.Global.ListPackages()
+	if len(pkgs) == 0 {
+		_ = graph.Global.Scan()
+		pkgs = graph.Global.ListPackages()
+	}
 
 	// Sort for deterministic output
 	sort.Slice(pkgs, func(i, j int) bool {
@@ -44,14 +49,19 @@ func Handler(_ context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallT
 	var localPkgs []*packages.Package
 	var externalPkgs []*packages.Package
 
-	root := graph.Global.Root
+	rts := roots.Global.Get()
 
 	for _, pkg := range pkgs {
 		isLocal := false
 		for _, f := range pkg.GoFiles {
-			rel, err := filepath.Rel(root, f)
-			if err == nil && !strings.HasPrefix(rel, "..") {
-				isLocal = true
+			for _, root := range rts {
+				rel, err := filepath.Rel(root, f)
+				if err == nil && !strings.HasPrefix(rel, "..") {
+					isLocal = true
+					break
+				}
+			}
+			if isLocal {
 				break
 			}
 		}
@@ -68,17 +78,17 @@ func Handler(_ context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallT
 		len(pkgs), len(localPkgs), len(externalPkgs)))
 
 	sb.WriteString("## 🏠 Local Packages\n\n")
-	renderPackageList(&sb, localPkgs, root)
+	renderPackageList(&sb, localPkgs, rts)
 
 	if len(externalPkgs) > 0 {
 		sb.WriteString("\n## 📦 External Dependencies & Stdlib\n\n")
 		// Limit external packages to avoid token bloat
 		if len(externalPkgs) > 10 { // Stricter limit for tool output
 			sb.WriteString(fmt.Sprintf("<details><summary>Show %d external packages</summary>\n\n", len(externalPkgs)))
-			renderPackageList(&sb, externalPkgs, "")
+			renderPackageList(&sb, externalPkgs, nil)
 			sb.WriteString("\n</details>\n")
 		} else {
-			renderPackageList(&sb, externalPkgs, "")
+			renderPackageList(&sb, externalPkgs, nil)
 		}
 	}
 
@@ -89,7 +99,7 @@ func Handler(_ context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallT
 	}, nil, nil
 }
 
-func renderPackageList(sb *strings.Builder, pkgs []*packages.Package, root string) {
+func renderPackageList(sb *strings.Builder, pkgs []*packages.Package, rts []string) {
 	for _, pkg := range pkgs {
 		fmt.Fprintf(sb, "- **%s**\n", pkg.PkgPath)
 		files := make([]string, 0, len(pkg.GoFiles))
@@ -98,10 +108,13 @@ func renderPackageList(sb *strings.Builder, pkgs []*packages.Package, root strin
 
 		for _, f := range files {
 			display := f
-			if root != "" {
-				rel, err := filepath.Rel(root, f)
-				if err == nil && !strings.HasPrefix(rel, "..") {
-					display = rel
+			if len(rts) > 0 {
+				for _, root := range rts {
+					rel, err := filepath.Rel(root, f)
+					if err == nil && !strings.HasPrefix(rel, "..") {
+						display = rel
+						break
+					}
 				}
 			}
 			fmt.Fprintf(sb, "  - %s\n", display)

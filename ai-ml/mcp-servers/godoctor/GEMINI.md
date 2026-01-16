@@ -51,9 +51,9 @@ The project follows a domain-driven package layout for tools:
 *   **`internal/tools/`**: Tool implementations grouped by domain.
     *   `file/` (`create`, `edit`, `read`, `list`, `outline`)
     *   `symbol/` (`inspect`, `rename`)
-    *   `go/` (`build`, `test`, `install`, `modernize`, `diff`, `docs`)
+    *   `go/` (`build`, `test`, `install`, `modernize`, `diff`, `docs`, `lint`, `get`, `mod`)
     *   `project/` (`map`)
-    *   `agent/` (`review`, `specialist`, `master`)
+    *   `agent/` (`review`, `specialist`)
 
 ### Adding a New Tool
 

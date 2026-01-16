@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/danicat/godoctor/internal/roots"
 	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -31,16 +32,9 @@ type Params struct {
 }
 
 func Handler(_ context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
-	root := args.Path
-	if root == "" {
-		root = "."
-	}
-
-	// Default recursive to true
-	if !args.Recursive {
-		// If explicitly false, we handle it by depth=1 logic basically
-	} else {
-		// recursive is true or omitted
+	absRoot, err := roots.Global.Validate(args.Path)
+	if err != nil {
+		return errorResult(err.Error()), nil, nil
 	}
 
 	maxDepth := args.Depth
@@ -49,11 +43,6 @@ func Handler(_ context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallT
 	}
 	if !args.Recursive {
 		maxDepth = 1
-	}
-
-	absRoot, err := filepath.Abs(root)
-	if err != nil {
-		return errorResult(fmt.Sprintf("invalid path: %v", err)), nil, nil
 	}
 
 	var sb strings.Builder
