@@ -536,6 +536,7 @@ func (r *Runner) evaluateCode(ctx context.Context, wsPath string, scenConfig *co
 func (r *Runner) FromDBRunResult(dr *models.RunResult) Result {
 
 	res := Result{
+		RunID:            dr.ID,
 		Alternative:      dr.Alternative,
 		Scenario:         dr.Scenario,
 		Repetition:       dr.Repetition,

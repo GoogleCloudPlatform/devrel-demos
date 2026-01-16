@@ -80,8 +80,14 @@ func runExperiment(database *db.DB, cwd string, cfg *config.Configuration, overr
 		log.Printf("Warning: failed to update experiment duration: %v", err)
 	}
 
+	// Fetch tool counts for report
+	toolCounts, err := database.GetExperimentToolCounts(expID)
+	if err != nil {
+		log.Printf("Warning: failed to fetch tool counts: %v", err)
+	}
+
 	fmt.Println("All jobs processed. Analytics available in Dashboard.")
-	rep := report.New(results, os.Stdout, cfg, overrideNotes)
+	rep := report.New(results, os.Stdout, cfg, overrideNotes, toolCounts)
 	println("\n--- Results ---")
 	if err := rep.GenerateConsoleReport(); err != nil {
 		log.Printf("Failed to generate console report: %v", err)

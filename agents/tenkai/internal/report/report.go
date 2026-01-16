@@ -10,19 +10,21 @@ import (
 
 // Reporter generates reports from run results.
 type Reporter struct {
-	Results []runner.Result
-	Out     io.Writer
-	Cfg     *config.Configuration
-	Notes   []string
+	Results    []runner.Result
+	Out        io.Writer
+	Cfg        *config.Configuration
+	Notes      []string
+	ToolCounts map[int64]map[string]int
 }
 
 // New creates a new Reporter.
-func New(results []runner.Result, out io.Writer, cfg *config.Configuration, notes []string) *Reporter {
+func New(results []runner.Result, out io.Writer, cfg *config.Configuration, notes []string, toolCounts map[int64]map[string]int) *Reporter {
 	return &Reporter{
-		Results: results,
-		Out:     out,
-		Cfg:     cfg,
-		Notes:   notes,
+		Results:    results,
+		Out:        out,
+		Cfg:        cfg,
+		Notes:      notes,
+		ToolCounts: toolCounts,
 	}
 }
 
@@ -40,10 +42,11 @@ func (r *Reporter) GenerateMarkdownReport(path string) error {
 // GenerateMarkdown writes the enhanced markdown report to the provided writer.
 func (r *Reporter) GenerateMarkdown(w io.Writer) error {
 	gen := &EnhancedMarkdownGenerator{
-		Results: r.Results,
-		Cfg:     r.Cfg,
-		Notes:   r.Notes,
-		w:       w,
+		Results:    r.Results,
+		Cfg:        r.Cfg,
+		Notes:      r.Notes,
+		w:          w,
+		ToolCounts: r.ToolCounts,
 	}
 
 	return gen.Generate()

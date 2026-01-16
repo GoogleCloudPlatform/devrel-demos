@@ -477,6 +477,37 @@ func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
 	return metrics, nil
 }
 
+func (db *DB) GetExperimentToolCounts(experimentID int64) (map[int64]map[string]int, error) {
+	query := `
+	SELECT 
+		t.run_id, t.name, COUNT(*)
+	FROM tool_usage t
+	JOIN run_results r ON t.run_id = r.id
+	WHERE r.experiment_id = ?
+	GROUP BY t.run_id, t.name`
+
+	rows, err := db.conn.Query(query, experimentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Map: RunID -> ToolName -> Count
+	counts := make(map[int64]map[string]int)
+	for rows.Next() {
+		var runID int64
+		var name string
+		var count int
+		if err := rows.Scan(&runID, &name, &count); err == nil {
+			if counts[runID] == nil {
+				counts[runID] = make(map[string]int)
+			}
+			counts[runID][name] = count
+		}
+	}
+	return counts, nil
+}
+
 func (db *DB) UpdateRunStatusAndReason(runID int64, status string, reason string) error {
 	query := `UPDATE run_results SET status = ?, reason = ? WHERE id = ?`
 	_, err := db.conn.Exec(query, status, reason, runID)

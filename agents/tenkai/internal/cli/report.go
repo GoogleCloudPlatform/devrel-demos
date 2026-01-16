@@ -47,7 +47,13 @@ func handleReportOnly(database *db.DB, expID int64) {
 		log.Printf("Warning: failed to unmarshal config from DB: %v", err)
 	}
 
-	rep := report.New(results, os.Stdout, cfg, []string{"Report regenerated from SQLite Database"})
+	// Fetch tool counts
+	toolCounts, err := database.GetExperimentToolCounts(exp.ID)
+	if err != nil {
+		log.Printf("Warning: failed to fetch tool counts: %v", err)
+	}
+
+	rep := report.New(results, os.Stdout, cfg, []string{"Report regenerated from SQLite Database"}, toolCounts)
 	println("\n--- Results ---")
 	if err := rep.GenerateConsoleReport(); err != nil {
 		log.Printf("Failed to generate console report: %v", err)
@@ -76,7 +82,7 @@ func handleReportOnly(database *db.DB, expID int64) {
 	for _, a := range cfg.Alternatives {
 		allAlts = append(allAlts, a.Name)
 	}
-	runner.CalculateSummary(results, cfg.Control, allAlts)
+	runner.CalculateSummary(results, cfg.Control, allAlts, toolCounts)
 
 	fmt.Printf("Database analytics for Experiment %d are now computed on-demand.\n", exp.ID)
 }

@@ -17,11 +17,12 @@ import (
 
 // EnhancedReporter extends Reporter with better formatting
 type EnhancedMarkdownGenerator struct {
-	Results []runner.Result
-	Cfg     *config.Configuration
-	Notes   []string
-	w       io.Writer
-	summary *runner.ExperimentSummary
+	Results    []runner.Result
+	Cfg        *config.Configuration
+	Notes      []string
+	w          io.Writer
+	summary    *runner.ExperimentSummary
+	ToolCounts map[int64]map[string]int
 }
 
 func (r *EnhancedMarkdownGenerator) Generate() error {
@@ -70,7 +71,7 @@ func (r *EnhancedMarkdownGenerator) calculateStats() {
 			allAlts = append(allAlts, alt.Name)
 		}
 	}
-	r.summary = runner.CalculateSummary(r.Results, control, allAlts)
+	r.summary = runner.CalculateSummary(r.Results, control, allAlts, r.ToolCounts)
 }
 
 func (r *EnhancedMarkdownGenerator) writeHeader() {
@@ -408,15 +409,16 @@ func (r *EnhancedMarkdownGenerator) writeEvaluationDetails() {
 func (r *EnhancedMarkdownGenerator) writeToolUsage() {
 	fmt.Fprintln(r.w, "\n## 🛠️ Tool Usage Analysis")
 
-	// 1. Raw Counts (Existing)
+	// 1. Raw Counts (Using authoritative ToolCounts map)
 	usage := make(map[string]map[string]int)
 	for _, res := range r.Results {
-		if res.AgentMetrics != nil {
+		counts := r.ToolCounts[res.RunID]
+		if counts != nil {
 			if _, ok := usage[res.Alternative]; !ok {
 				usage[res.Alternative] = make(map[string]int)
 			}
-			for _, tc := range res.AgentMetrics.ToolCalls {
-				usage[res.Alternative][tc.Name]++
+			for name, count := range counts {
+				usage[res.Alternative][name] += count
 			}
 		}
 	}

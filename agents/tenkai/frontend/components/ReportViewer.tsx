@@ -11,6 +11,7 @@ import PerformanceTable from "./experiments/PerformanceTable";
 import RunHistory from "./experiments/RunHistory";
 import RunDetails from "./experiments/RunDetails";
 import ToolUsageTable from "./experiments/ToolUsageTable";
+import ToolImpactTable from "./experiments/ToolImpactTable";
 import ToolInspectionModal from "./experiments/ToolInspectionModal";
 import ValidationModal from "./experiments/ValidationModal";
 import FailureAnalysis from "./experiments/FailureAnalysis";
@@ -354,6 +355,11 @@ export default function ReportViewer({
                                         stats={stats}
                                         controlBaseline={experiment.experiment_control}
                                         alternatives={config?.alternatives?.map((a: any) => a.name)}
+                                    />
+
+                                    <ToolImpactTable
+                                        stats={stats}
+                                        alternatives={[...(config?.alternatives?.map((a: any) => a.name) || Object.keys(stats).sort()), "Combined"]}
                                     />
 
                                     <FailureAnalysis runs={runResults} />

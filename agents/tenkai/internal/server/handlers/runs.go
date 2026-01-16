@@ -28,6 +28,12 @@ func (api *API) GetSummaries(r *http.Request) (any, error) {
 		return nil, err
 	}
 
+	// 2b. Get Tool Usage Counts for correlation analysis
+	toolCounts, err := api.DB.GetExperimentToolCounts(id)
+	if err != nil {
+		log.Printf("Warning: failed to fetch tool counts for summary: %v", err)
+	}
+
 	// 3. Convert
 	var results []runner.Result
 	for _, dr := range runResults {
@@ -44,7 +50,7 @@ func (api *API) GetSummaries(r *http.Request) (any, error) {
 		allAlts = append(allAlts, k)
 	}
 
-	summary := runner.CalculateSummary(results, exp.ExperimentControl, allAlts)
+	summary := runner.CalculateSummary(results, exp.ExperimentControl, allAlts, toolCounts)
 
 	// 5. Flatten to list
 	var rows []models.ExperimentSummaryRow
