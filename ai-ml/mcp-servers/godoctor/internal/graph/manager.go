@@ -77,10 +77,12 @@ func (m *Manager) Initialize(root string) {
 
 func (m *Manager) crawl(root string) {
 	// Walk the root directory and load all Go packages
-	//nolint:errcheck // Best effort crawling.
-	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		//nolint:nilerr // Ignore access errors during crawl
-		if err != nil || !info.IsDir() {
+	if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			fmt.Printf("Warning: error accessing path %q during crawl: %v\n", path, err)
+			return nil // Continue walk
+		}
+		if !info.IsDir() {
 			return nil
 		}
 		// Skip hidden dirs and vendor
@@ -103,7 +105,9 @@ func (m *Manager) crawl(root string) {
 			_, _ = m.Load(path)
 		}
 		return nil
-	})
+	}); err != nil {
+		fmt.Printf("Warning: crawl failed: %v\n", err)
+	}
 }
 
 // Load loads the package containing the specified file or directory.

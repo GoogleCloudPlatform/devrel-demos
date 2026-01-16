@@ -431,7 +431,11 @@ func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
 
 	var tTok, iTok, oTok sql.NullInt64
 	var resStatus sql.NullString
-	if err := db.conn.QueryRow(queryResult, runID).Scan(&tTok, &iTok, &oTok, &resStatus); err == nil {
+	if err := db.conn.QueryRow(queryResult, runID).Scan(&tTok, &iTok, &oTok, &resStatus); err != nil {
+		if err != sql.ErrNoRows {
+			log.Printf("[DB] Warning: failed to fetch tokens for run %d: %v", runID, err)
+		}
+	} else {
 		metrics.TotalTokens = int(tTok.Int64)
 		metrics.InputTokens = int(iTok.Int64)
 		metrics.OutputTokens = int(oTok.Int64)
@@ -444,7 +448,9 @@ func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
 		FROM run_events 
 		WHERE run_id = ? AND type = 'error' AND json_extract(payload, '$.message') LIKE '%Loop detected%'`
 	var loopCount int
-	if err := db.conn.QueryRow(queryLoop, runID).Scan(&loopCount); err == nil && loopCount > 0 {
+	if err := db.conn.QueryRow(queryLoop, runID).Scan(&loopCount); err != nil {
+		log.Printf("[DB] Warning: failed to check loops for run %d: %v", runID, err)
+	} else if loopCount > 0 {
 		metrics.LoopDetected = true
 	}
 
@@ -457,7 +463,9 @@ func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
 		WHERE run_id = ? AND type = 'tool'`
 
 	var totalStructured, failedStructured sql.NullInt64
-	db.conn.QueryRow(queryTools, runID).Scan(&totalStructured, &failedStructured)
+	if err := db.conn.QueryRow(queryTools, runID).Scan(&totalStructured, &failedStructured); err != nil {
+		log.Printf("[DB] Warning: failed to count structured tool calls for run %d: %v", runID, err)
+	}
 
 	// 4. Count stderr tool errors
 	queryStderr := `
@@ -466,9 +474,11 @@ func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
 		WHERE run_id = ? 
 		  AND type = 'error' 
 		  AND json_extract(payload, '$.message') LIKE 'Error executing tool %'`
-	
+
 	var failedStderr int
-	db.conn.QueryRow(queryStderr, runID).Scan(&failedStderr)
+	if err := db.conn.QueryRow(queryStderr, runID).Scan(&failedStderr); err != nil {
+		log.Printf("[DB] Warning: failed to count stderr tool errors for run %d: %v", runID, err)
+	}
 
 	// Aggregate counts
 	metrics.FailedToolCalls = int(failedStructured.Int64) + failedStderr

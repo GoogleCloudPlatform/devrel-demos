@@ -30,7 +30,6 @@ type Params struct {
 
 func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
 	// Check for gopls
-	//nolint:nilerr // Returning error result instead of Go error
 	if _, err := exec.LookPath("gopls"); err != nil {
 		return errorResult("Tool 'gopls' not found. Please install: go install golang.org/x/tools/gopls@latest"), nil, nil
 	}

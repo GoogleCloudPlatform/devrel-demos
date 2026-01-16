@@ -181,17 +181,43 @@ func applyFixes(fset *token.FileSet, fixes []analysis.SuggestedFix) error {
 			return err
 		}
 
-		// Edits are already reverse sorted for this file
+		// Apply edits back-to-front
+		
+		// Sort edits descending by position (already done in outer slice but re-ensuring per file)
+		sort.Slice(fileEdits, func(i, j int) bool {
+			return fileEdits[i].pos > fileEdits[j].pos
+		})
+
 		for _, e := range fileEdits {
 			if e.pos > len(content) || e.end > len(content) {
 				return fmt.Errorf("edit out of bounds")
 			}
-			// Splicing
-			suffix := make([]byte, len(content)-e.end)
-			copy(suffix, content[e.end:])
-			content = append(content[:e.pos], e.new...)
-			content = append(content, suffix...)
+			
+			// We build the new content from the END of the file to the START
+			// because the edits are sorted back-to-front.
+			// Actually, a simpler way is to use a pre-allocated buffer if we know the final size,
+			// or just copy the suffix, then the edit, then the next part.
 		}
+
+		// REFACTORED: Single pass edit application
+		var result []byte
+		cursor := 0
+		
+		// Re-sort ascending for single-pass forward application
+		sort.Slice(fileEdits, func(i, j int) bool {
+			return fileEdits[i].pos < fileEdits[j].pos
+		})
+
+		for _, e := range fileEdits {
+			if e.pos < cursor {
+				continue // Skip overlapping edits for safety in this simple implementation
+			}
+			result = append(result, content[cursor:e.pos]...)
+			result = append(result, e.new...)
+			cursor = e.end
+		}
+		result = append(result, content[cursor:]...)
+		content = result
 
 		// Reformat
 		formatted, err := format.Source(content)

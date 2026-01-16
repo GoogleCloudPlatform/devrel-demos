@@ -66,8 +66,8 @@ func Handler(_ context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallT
 
 	err = filepath.WalkDir(absRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			//nolint:nilerr // Ignore access errors
-			return nil // Skip access errors
+			sb.WriteString(fmt.Sprintf("Warning: skipping %s: %v\n", path, err))
+			return nil // Skip access errors but report them
 		}
 
 		relPath, _ := filepath.Rel(absRoot, path)

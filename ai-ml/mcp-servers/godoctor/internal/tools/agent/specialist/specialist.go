@@ -34,6 +34,9 @@ type Params struct {
 	Query string `json:"query" jsonschema:"The question or task for the specialist"`
 }
 
+// MaxToolOutputLength is the maximum size allowed for tool output text.
+const MaxToolOutputLength = 20000
+
 func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
 	if args.Query == "" {
 		return &mcp.CallToolResult{IsError: true, Content: []mcp.Content{&mcp.TextContent{Text: "query cannot be empty"}}}, nil, nil
@@ -168,9 +171,9 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 							}
 						}
 						output = sb.String()
-						// Truncate if too long?
-						if len(output) > 20000 {
-							output = output[:20000] + "...(truncated)"
+						// Truncate if too long
+						if len(output) > MaxToolOutputLength {
+							output = output[:MaxToolOutputLength] + "...(truncated)"
 						}
 					}
 
