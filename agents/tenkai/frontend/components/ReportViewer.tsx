@@ -142,6 +142,8 @@ function RevalidateExperimentButton({ experimentId, isExperimentRunning, onState
     );
 }
 
+
+
 export default function ReportViewer({
     experiment,
     initialContent,
@@ -178,8 +180,8 @@ export default function ReportViewer({
         setLoadingRuns(true);
         try {
             const nextPage = page + 1;
-            const newRuns = await getRunResults(experiment.id, nextPage, 100); // Limit 100 matches backend default
-            if (newRuns.length < 100) {
+            const newRuns = await getRunResults(experiment.id, nextPage, 5000);
+            if (newRuns.length < 5000) {
                 setHasMore(false);
             }
             if (newRuns.length > 0) {
@@ -321,6 +323,7 @@ export default function ReportViewer({
                             <span className="mr-2">📄</span> Export MD
                         </Button>
                     </Link>
+
                     <RelaunchButton experimentId={experiment.id} disabled={isRunning} />
                     <KillExperimentButton experimentId={experiment.id} disabled={!isRunning} />
                 </div>
@@ -333,17 +336,7 @@ export default function ReportViewer({
                 <div className="p-6">
                     {activeTab === 'overview' && (
                         <div className="space-y-8 animate-in fade-in duration-500">
-                            {experiment.ai_analysis && (
-                                <div className="panel p-8 bg-indigo-600/[0.03] border-indigo-500/10">
-                                    <div className="flex items-center gap-2 mb-6">
-                                        <span className="text-header">✨</span>
-                                        <h3 className="text-header font-black uppercase tracking-tighter text-indigo-400">Executive Summary</h3>
-                                    </div>
-                                    <div className="prose prose-invert prose-lg max-w-none prose-headings:text-indigo-300">
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{experiment.ai_analysis}</ReactMarkdown>
-                                    </div>
-                                </div>
-                            )}
+
 
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                                 <div className="lg:col-span-12">
@@ -362,7 +355,7 @@ export default function ReportViewer({
                                         alternatives={[...(config?.alternatives?.map((a: any) => a.name) || Object.keys(stats).sort()), "Combined"]}
                                     />
 
-                                    <FailureAnalysis runs={runResults} />
+                                    <FailureAnalysis runs={runResults} stats={stats} />
 
                                     <ToolUsageTable
                                         experimentId={experiment.id}

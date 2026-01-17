@@ -4,16 +4,13 @@ package read
 import (
 	"context"
 	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/danicat/godoctor/internal/roots"
 	"github.com/danicat/godoctor/internal/toolnames"
+	"github.com/danicat/godoctor/internal/tools/shared"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/tools/go/packages"
 )
@@ -30,13 +27,9 @@ func Register(server *mcp.Server) {
 
 // Params defines the input parameters for the read_code tool.
 type Params struct {
-	Filename string `json:"filename"`
-}
-
-type symbol struct {
-	Name string
-	Type string
-	Line int
+	Filename  string `json:"filename" jsonschema:"The path to the file to read"`
+	StartLine int    `json:"start_line,omitempty" jsonschema:"Optional: start reading from this line number"`
+	EndLine   int    `json:"end_line,omitempty" jsonschema:"Optional: stop reading at this line number"`
 }
 
 func readCodeHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
@@ -53,79 +46,60 @@ func readCodeHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (
 		return errorResult(fmt.Sprintf("failed to read file: %v", err)), nil, nil
 	}
 
-	if !strings.HasSuffix(args.Filename, ".go") {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: fmt.Sprintf("# File: %s\n\n```\n%s\n```", args.Filename, string(content))},
-			},
-		}, nil, nil
-	}
+	var diags []string
+	isGo := strings.HasSuffix(args.Filename, ".go")
+	original := string(content)
 
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, args.Filename, content, parser.ParseComments)
+	// 1. Partial Read & Line Numbering
+	startLine := args.StartLine
+	if startLine <= 0 {
+		startLine = 1
+	}
+	endLine := args.EndLine
+
+	startOffset, endOffset, err := shared.GetLineOffsets(original, startLine, endLine)
 	if err != nil {
-		// If it's not a Go file or has errors, still return the content but skip symbols/analysis
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: fmt.Sprintf("# File: %s\n\n```go\n%s\n```\n\n*Note: Symbol extraction skipped due to parse error: %v*", args.Filename, string(content), err)},
-			},
-		}, nil, nil
+		return errorResult(fmt.Sprintf("line range error: %v", err)), nil, nil
 	}
 
-	// 1. Symbol Extraction
-	var symbols []symbol
-	ast.Inspect(file, func(n ast.Node) bool {
-		switch x := n.(type) {
-		case *ast.FuncDecl:
-			name := x.Name.Name
-			if x.Recv != nil && len(x.Recv.List) > 0 {
-				recv := x.Recv.List[0].Type
-				name = fmt.Sprintf("(%s) %s", typeToString(recv), name)
-			}
-			symbols = append(symbols, symbol{
-				Name: name,
-				Type: "Function",
-				Line: fset.Position(x.Pos()).Line,
-			})
-		case *ast.TypeSpec:
-			symbols = append(symbols, symbol{
-				Name: x.Name.Name,
-				Type: "Type",
-				Line: fset.Position(x.Pos()).Line,
-			})
-		case *ast.ValueSpec:
-			for _, name := range x.Names {
-				symbols = append(symbols, symbol{
-					Name: name.Name,
-					Type: "Variable/Constant",
-					Line: fset.Position(x.Pos()).Line,
-				})
-			}
-		}
-		return true
-	})
+	viewContent := original[startOffset:endOffset]
+	lines := strings.Split(viewContent, "\n")
+	
+	// Remove trailing empty line from split if it exists and wasn't intended
+	if len(lines) > 0 && lines[len(lines)-1] == "" && !strings.HasSuffix(viewContent, "\n") {
+		lines = lines[:len(lines)-1]
+	}
 
-	sort.Slice(symbols, func(i, j int) bool {
-		return symbols[i].Line < symbols[j].Line
-	})
+	var contentWithLines strings.Builder
+	for i, line := range lines {
+		contentWithLines.WriteString(fmt.Sprintf("%4d | %s\n", startLine+i, line))
+	}
 
-	// 2. Static Analysis
-	diags, _ := checkAnalysis(ctx, args.Filename) // Ignore generic error, just show diagnostics if any
+	isPartial := args.StartLine > 1 || args.EndLine > 0
+
+	if isGo && !isPartial {
+		// 2. Static Analysis (Compilation Check) - Only for full read
+		diags, _ = checkAnalysis(ctx, args.Filename)
+	}
+
 	// 3. Output Formatting
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("# File: %s\n\n", args.Filename))
+	rangeInfo := ""
+	if isPartial {
+		rangeInfo = fmt.Sprintf(" (Lines %d-%d)", startLine, startLine+len(lines)-1)
+	}
+	sb.WriteString(fmt.Sprintf("# File: %s%s\n\n", args.Filename, rangeInfo))
 
-	sb.WriteString("## Content\n")
-	sb.WriteString("```go\n")
-	sb.WriteString(string(content))
-	sb.WriteString("\n```\n\n")
+	sb.WriteString("```")
+	if isGo {
+		sb.WriteString("go")
+	}
+	sb.WriteString("\n")
+	sb.WriteString(contentWithLines.String())
+	sb.WriteString("```\n\n")
 
-	if len(symbols) > 0 {
-		sb.WriteString("## Symbols\n")
-		for _, sym := range symbols {
-			sb.WriteString(fmt.Sprintf("- `%s` (%s) at line %d\n", sym.Name, sym.Type, sym.Line))
-		}
-		sb.WriteString("\n")
+	if isPartial {
+		sb.WriteString("*Note: Partial read - analysis skipped.*\n\n")
 	}
 
 	if len(diags) > 0 {
@@ -176,19 +150,6 @@ func checkAnalysis(ctx context.Context, filePath string) ([]string, error) {
 	}
 
 	return diags, nil
-}
-
-func typeToString(expr ast.Expr) string {
-	switch x := expr.(type) {
-	case *ast.Ident:
-		return x.Name
-	case *ast.StarExpr:
-		return "*" + typeToString(x.X)
-	case *ast.SelectorExpr:
-		return typeToString(x.X) + "." + x.Sel.Name
-	default:
-		return fmt.Sprintf("%T", expr)
-	}
 }
 
 func errorResult(msg string) *mcp.CallToolResult {

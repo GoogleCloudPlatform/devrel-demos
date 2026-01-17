@@ -151,7 +151,7 @@ export async function getExperimentSummaries(id: number | string): Promise<Exper
     return fetchAPI<ExperimentSummaryRecord[]>(`/experiments/${id}/summaries`);
 }
 
-export async function getRunResults(experimentId: number | string, page = 1, limit = 100): Promise<RunResultRecord[]> {
+export async function getRunResults(experimentId: string | number, page: number = 1, limit: number = 1000): Promise<RunResultRecord[]> {
     return fetchAPI<RunResultRecord[]>(`/experiments/${experimentId}/runs?page=${page}&limit=${limit}`);
 }
 export async function getToolUsage(runId: number): Promise<ToolUsageRecord[]> {

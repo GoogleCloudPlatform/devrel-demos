@@ -30,6 +30,8 @@ export default function PerformanceTable({ runResults, stats, controlBaseline, a
                         <TableHead className="px-6 text-right">Success Rate</TableHead>
                         <TableHead className="px-6 text-right">Avg Duration</TableHead>
                         <TableHead className="px-6 text-right">Avg Tokens</TableHead>
+                        <TableHead className="px-6 text-right">Avg Cached</TableHead>
+                        <TableHead className="px-6 text-right">Avg Tool Calls</TableHead>
                         <TableHead className="px-6 text-right">Avg Tool Calls</TableHead>
                         <TableHead className="px-6 text-right">Avg Failed Tools</TableHead>
                         <TableHead className="px-6 text-right">Avg Lint Issues</TableHead>
@@ -57,6 +59,7 @@ export default function PerformanceTable({ runResults, stats, controlBaseline, a
                         const successSigLevel = isControl ? '' : getSigLevel(s.p_success);
                         const durationSigLevel = isControl ? '' : getSigLevel(s.p_duration);
                         const tokenSigLevel = isControl ? '' : getSigLevel(s.p_tokens);
+                        const cachedTokenSigLevel = isControl ? '' : getSigLevel(s.p_cached_tokens);
                         const toolCallSigLevel = isControl ? '' : getSigLevel(s.p_tool_calls);
                         const failedToolSigLevel = isControl ? '' : getSigLevel(s.p_failed_tool_calls);
 
@@ -64,6 +67,7 @@ export default function PerformanceTable({ runResults, stats, controlBaseline, a
                         const successRate = s.success_rate;
                         const avgDuration = s.avg_duration;
                         const avgTokens = s.avg_tokens;
+                        const avgCachedTokens = s.avg_cached_tokens || 0;
                         const avgLint = s.avg_lint;
                         const totalRuns = s.total_runs;
                         const successCount = s.success_count;
@@ -95,6 +99,12 @@ export default function PerformanceTable({ runResults, stats, controlBaseline, a
                                     <div className="flex items-center justify-end gap-2">
                                         <span className="font-mono">{(avgTokens / 1000).toFixed(1)}k</span>
                                         {tokenSigLevel && <span className="text-primary font-bold">{tokenSigLevel}</span>}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="px-6 text-right">
+                                    <div className="flex items-center justify-end gap-2">
+                                        <span className="font-mono">{(avgCachedTokens / 1000).toFixed(1)}k</span>
+                                        {cachedTokenSigLevel && <span className="text-primary font-bold">{cachedTokenSigLevel}</span>}
                                     </div>
                                 </TableCell>
                                 <TableCell className="px-6 text-right">

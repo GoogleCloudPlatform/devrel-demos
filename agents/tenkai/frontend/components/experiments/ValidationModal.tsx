@@ -27,14 +27,27 @@ export default function ValidationModal({ item, onClose }: { item: any, onClose:
                                 {item.status}
                             </span>
                         </div>
-                        {item.coverage > 0 && (
-                            <div className="space-y-1">
-                                <h4 className="font-bold text-muted-foreground uppercase tracking-widest">Coverage</h4>
-                                <span className={`text-3xl font-black ${item.coverage >= 80 ? 'text-emerald-400' : item.coverage >= 50 ? 'text-amber-400' : 'text-red-500'}`}>
-                                    {item.coverage.toFixed(1)}%
-                                </span>
-                            </div>
-                        )}
+                        {(() => {
+                            let minCoverage = 0;
+                            try {
+                                const def = JSON.parse(item.definition || '{}');
+                                minCoverage = def.min_coverage || 0;
+                            } catch (e) { }
+
+                            if (item.coverage > 0 || minCoverage > 0) {
+                                return (
+                                    <div className="space-y-1">
+                                        <h4 className="font-bold text-muted-foreground uppercase tracking-widest">
+                                            Coverage {minCoverage > 0 && <span className="text-xs normal-case opacity-70">(min {minCoverage}%)</span>}
+                                        </h4>
+                                        <span className={`text-3xl font-black ${item.coverage >= (minCoverage || 80) ? 'text-emerald-400' : 'text-red-500'}`}>
+                                            {item.coverage.toFixed(1)}%
+                                        </span>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
                     </div>
 
                     <div className="space-y-4">

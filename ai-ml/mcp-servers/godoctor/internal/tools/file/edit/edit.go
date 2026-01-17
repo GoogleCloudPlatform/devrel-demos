@@ -32,6 +32,8 @@ type Params struct {
 	SearchContext string  `json:"search_context" jsonschema:"The block of code to find (ignores whitespace)"`
 	Replacement   string  `json:"replacement" jsonschema:"The new code to insert"`
 	Threshold     float64 `json:"threshold,omitempty" jsonschema:"Similarity threshold (0.0-1.0) for fuzzy matching, default 0.95"`
+	StartLine     int     `json:"start_line,omitempty" jsonschema:"Optional: restrict search to this line number and after"`
+	EndLine       int     `json:"end_line,omitempty" jsonschema:"Optional: restrict search to this line number and before"`
 }
 
 func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
@@ -63,6 +65,18 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 	var newContent string
 	original := string(content)
 
+	// Determine Search Bounds
+	searchStart := 0
+	searchEnd := len(original)
+	if args.StartLine > 0 || args.EndLine > 0 {
+		s, e, err := shared.GetLineOffsets(original, args.StartLine, args.EndLine)
+		if err != nil {
+			return errorResult(fmt.Sprintf("line range error: %v", err)), nil, nil
+		}
+		searchStart = s
+		searchEnd = e
+	}
+
 	if args.SearchContext == "" {
 		// APPEND MODE
 		// Check if file ends with newline
@@ -73,15 +87,21 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 		}
 	} else {
 		// EDIT MODE (Fuzzy Match)
-		matchStart, matchEnd, score := findBestMatch(original, args.SearchContext)
+		// Restrict search to the specified window
+		searchArea := original[searchStart:searchEnd]
+		matchStart, matchEnd, score := findBestMatch(searchArea, args.SearchContext)
 
 		if score < args.Threshold {
 			bestMatch := ""
-			if matchStart < matchEnd && matchEnd <= len(original) {
-				bestMatch = original[matchStart:matchEnd]
+			if matchStart < matchEnd && matchEnd <= len(searchArea) {
+				bestMatch = searchArea[matchStart:matchEnd]
 			}
 			return errorResult(fmt.Sprintf("match not found with sufficient confidence (score: %.2f < %.2f).\n\nBest Match Found:\n```go\n%s\n```\n\nSuggestions: verify your search_context or lower threshold.", score, args.Threshold, bestMatch)), nil, nil
 		}
+
+		// Adjust local offsets to global offsets
+		matchStart += searchStart
+		matchEnd += searchStart
 
 		newContent = original[:matchStart] + args.Replacement + original[matchEnd:]
 	}

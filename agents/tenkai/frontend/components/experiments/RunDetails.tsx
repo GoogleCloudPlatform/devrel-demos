@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
+
 import { ChevronRight, ChevronDown, ArrowDown, Loader2, RefreshCw } from 'lucide-react';
 import { RunResultRecord, ToolUsageRecord, MessageRecord, TestResultRecord, LintResultRecord, reValidateRun } from '@/app/api/api';
 import { useRouter } from 'next/navigation';
@@ -255,6 +255,10 @@ function ResultEvent({ content, timestamp, count }: { content: string, timestamp
                             <div className="text-white font-mono text-sm font-bold">{data.stats.total_tokens?.toLocaleString()}</div>
                         </div>
                         <div className="bg-black/40 p-2 rounded border border-white/5">
+                            <div className="text-[10px] text-zinc-500 uppercase font-bold">Cached</div>
+                            <div className="text-blue-400 font-mono text-sm font-bold">{data.stats.cached_tokens?.toLocaleString()}</div>
+                        </div>
+                        <div className="bg-black/40 p-2 rounded border border-white/5">
                             <div className="text-[10px] text-zinc-500 uppercase font-bold">Input</div>
                             <div className="text-zinc-400 font-mono text-sm">{data.stats.input_tokens?.toLocaleString()}</div>
                         </div>
@@ -453,7 +457,7 @@ export default function RunDetails({
                 <div className="panel p-4">
                     <p className="font-bold text-zinc-500 uppercase tracking-widest mb-1">Tokens</p>
                     <p className="text-header font-bold">{run.total_tokens?.toLocaleString()}</p>
-                    <p className="text-[#52525b] mt-1 uppercase font-mono">In_{run.input_tokens} Out_{run.output_tokens}</p>
+                    <p className="text-[#52525b] mt-1 uppercase font-mono text-[10px]">In_{run.input_tokens} Out_{run.output_tokens} Cache_{run.cached_tokens}</p>
                 </div>
                 <div className="panel p-4">
                     <p className="font-bold text-zinc-500 uppercase tracking-widest mb-1">Tools</p>
@@ -613,7 +617,7 @@ export default function RunDetails({
                                     </div>
                                     <div className={`p-4 rounded-md max-w-[90%] border shadow-sm ${isUser ? 'bg-indigo-600/10 border-indigo-500/20 text-indigo-100' : 'bg-[#161618] border-[#27272a] text-[#f4f4f5]'}`}>
                                         <div className="prose prose-invert prose-sm max-w-none prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/5">
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                 {msg.content}
                                             </ReactMarkdown>
                                         </div>

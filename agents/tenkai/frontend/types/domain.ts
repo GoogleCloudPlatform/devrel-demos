@@ -51,6 +51,7 @@ export interface ExperimentSummaryRow {
     success_rate: number;
     avg_duration: number;
     avg_tokens: number;
+    avg_cached_tokens?: number;
     avg_lint: number;
     avg_tests_passed: number;
     avg_tests_failed: number;
@@ -60,6 +61,7 @@ export interface ExperimentSummaryRow {
     p_success?: number;
     p_duration?: number;
     p_tokens?: number;
+    p_cached_tokens?: number;
     p_lint?: number;
     p_tests_passed?: number;
     p_tests_failed?: number;
@@ -93,6 +95,7 @@ export interface RunResult {
     total_tokens: number;
     input_tokens: number;
     output_tokens: number;
+    cached_tokens: number;
     tool_calls_count: number;
     loop_detected: boolean;
     stdout?: string;

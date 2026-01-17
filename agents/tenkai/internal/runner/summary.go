@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -33,12 +34,14 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 			PSuccess:         -1.0,
 			PDuration:        -1.0,
 			PTokens:          -1.0,
+			PCachedTokens:    -1.0,
 			PLint:            -1.0,
 			PTestsPassed:     -1.0,
 			PTestsFailed:     -1.0,
 			PTimeout:         -1.0,
 			PToolCalls:       -1.0,
 			PFailedToolCalls: -1.0,
+			FailureReasons:   make(map[string]int),
 		}
 	}
 
@@ -47,21 +50,24 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 	}
 
 	type intermediate struct {
-		totalRuns       int
-		successes       int
-		timeouts        int
-		totalTokens     int64
-		totalLint       int
-		totalDur        time.Duration
-		totalToolCalls  int
-		failedToolCalls int
-		durations       []float64
-		tokens          []float64
-		lints           []float64
-		passes          []float64
-		failures        []float64
-		toolCalls       []float64
+		totalRuns          int
+		successes          int
+		timeouts           int
+		totalTokens        int64
+		totalCachedTokens  int64
+		totalLint          int
+		totalDur           time.Duration
+		totalToolCalls     int
+		failedToolCalls    int
+		durations          []float64
+		tokens             []float64
+		cachedTokens       []float64
+		lints              []float64
+		passes             []float64
+		failures           []float64
+		toolCalls          []float64
 		failedToolCallsVec []float64
+		failureReasons     map[string]int
 		// Vectors for tool analysis are handled in analyzeTools now
 	}
 
@@ -82,7 +88,9 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 		summary.TotalRuns++
 
 		if _, ok := byAlt[res.Alternative]; !ok {
-			byAlt[res.Alternative] = &intermediate{}
+			byAlt[res.Alternative] = &intermediate{
+				failureReasons: make(map[string]int),
+			}
 			altNames = append(altNames, res.Alternative)
 		}
 		m := byAlt[res.Alternative]
@@ -101,6 +109,8 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 		if res.AgentMetrics != nil {
 			m.totalTokens += int64(res.AgentMetrics.TotalTokens)
 			m.tokens = append(m.tokens, float64(res.AgentMetrics.TotalTokens))
+			m.totalCachedTokens += int64(res.AgentMetrics.CachedTokens)
+			m.cachedTokens = append(m.cachedTokens, float64(res.AgentMetrics.CachedTokens))
 		}
 		if res.Error == nil && res.AgentMetrics != nil {
 			m.totalToolCalls += res.AgentMetrics.TotalToolCallsCount
@@ -115,6 +125,14 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 			m.lints = append(m.lints, float64(res.EvaluationMetrics.LintIssues))
 			m.passes = append(m.passes, float64(res.EvaluationMetrics.TestsPassed))
 			m.failures = append(m.failures, float64(res.EvaluationMetrics.TestsFailed))
+		}
+
+		// Failure Analysis (if not success)
+		if !res.IsSuccess {
+			reasons := GetFailureReasons(res)
+			for _, r := range reasons {
+				m.failureReasons[r]++
+			}
 		}
 	}
 
@@ -143,12 +161,14 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 			PSuccess:         -1.0,
 			PDuration:        -1.0,
 			PTokens:          -1.0,
+			PCachedTokens:    -1.0,
 			PLint:            -1.0,
 			PTestsPassed:     -1.0,
 			PTestsFailed:     -1.0,
 			PTimeout:         -1.0,
 			PToolCalls:       -1.0,
 			PFailedToolCalls: -1.0,
+			FailureReasons:   m.failureReasons,
 		}
 
 		if m.totalRuns > 0 {
@@ -156,6 +176,7 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 			as.AvgLint = float64(m.totalLint) / float64(m.totalRuns)
 			as.AvgDuration = (m.totalDur / time.Duration(m.totalRuns)).Seconds()
 			as.AvgTokens = float64(m.totalTokens) / float64(m.totalRuns)
+			as.AvgCachedTokens = float64(m.totalCachedTokens) / float64(m.totalRuns)
 
 			totalSuccessDur += m.totalDur
 			totalSuccessTokens += m.totalTokens
@@ -212,6 +233,7 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 			if controlData.totalRuns >= 5 && m.totalRuns >= 5 {
 				as.PDuration = stats.WelchTTest(controlData.durations, m.durations)
 				as.PTokens = stats.WelchTTest(controlData.tokens, m.tokens)
+				as.PCachedTokens = stats.WelchTTest(controlData.cachedTokens, m.cachedTokens)
 				as.PLint = stats.WelchTTest(controlData.lints, m.lints)
 				as.PTestsPassed = stats.WelchTTest(controlData.passes, m.passes)
 				as.PTestsFailed = stats.WelchTTest(controlData.failures, m.failures)
@@ -231,16 +253,94 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 	}
 
 	// Combined Analysis
+	combinedFailures := make(map[string]int)
+	for _, m := range byAlt {
+		for r, count := range m.failureReasons {
+			combinedFailures[r] += count
+		}
+	}
+
 	combinedRow := models.ExperimentSummaryRow{
-		Alternative:  "Combined",
-		TotalRuns:    summary.TotalRuns,
-		SuccessCount: summary.SuccessfulRuns,
-		SuccessRate:  summary.SuccessRate,
-		ToolAnalysis: analyzeTools(validResults, toolCounts),
+		Alternative:    "Combined",
+		TotalRuns:      summary.TotalRuns,
+		SuccessCount:   summary.SuccessfulRuns,
+		SuccessRate:    summary.SuccessRate,
+		ToolAnalysis:   analyzeTools(validResults, toolCounts),
+		FailureReasons: combinedFailures,
 	}
 	summary.Alternatives["Combined"] = combinedRow
 
 	return summary
+}
+
+func GetFailureReasons(res Result) []string {
+	var reasons []string
+
+	switch res.Reason {
+	case db.ReasonFailedTimeout:
+		reasons = append(reasons, "Execution Timeout")
+	case db.ReasonFailedLoop:
+		reasons = append(reasons, "Loop Detected")
+	case db.ReasonFailedError:
+		reasons = append(reasons, "Runtime Error")
+	case db.ReasonFailedValidation:
+		if res.ValidationReport == "" {
+			reasons = append(reasons, "Missing Validation Report")
+			return reasons
+		}
+
+		var report ValidationReport
+		if err := json.Unmarshal([]byte(res.ValidationReport), &report); err != nil {
+			reasons = append(reasons, "Corrupt Validation Report")
+			return reasons
+		}
+
+		foundSpecific := false
+		for _, item := range report.Items {
+			if item.Status != "PASS" {
+				foundSpecific = true
+				switch item.Type {
+				case "test":
+					// Functional Test vs Coverage
+					if strings.Contains(item.Details, "tests failed") && !strings.Contains(item.Details, "0 tests failed") {
+						reasons = append(reasons, "Test Failure")
+					}
+					if strings.Contains(item.Details, "Requirement:") && strings.Contains(item.Details, "Cov:") {
+						reasons = append(reasons, "Test Failure (Coverage)")
+					}
+				case "lint":
+					reasons = append(reasons, "Lint Violation")
+				case "command":
+					reasons = append(reasons, "Command Failure")
+				case "model":
+					reasons = append(reasons, "Model Validation Failure")
+				default:
+					reasons = append(reasons, item.Type+" Failure")
+				}
+			}
+		}
+		if !foundSpecific {
+			reasons = append(reasons, "Unknown Validation Failure")
+		}
+	default:
+		if res.Reason != "" {
+			reasons = append(reasons, res.Reason)
+		} else {
+			reasons = append(reasons, "Unknown Failure")
+		}
+	}
+
+	// Dedup reasons
+	unique := make(map[string]bool)
+	var final []string
+	for _, r := range reasons {
+		if !unique[r] {
+			unique[r] = true
+			final = append(final, r)
+		}
+	}
+
+	return final
 }
 
 func analyzeTools(results []Result, toolCounts map[int64]map[string]int) []models.ToolAnalysis {
@@ -250,6 +350,7 @@ func analyzeTools(results []Result, toolCounts map[int64]map[string]int) []model
 
 	var durations []float64
 	var tokens []float64
+	var cachedTokens []float64
 
 	// Map: ToolName -> []float64 (counts per run, aligned with durations)
 	toolCountsMap := make(map[string][]float64)
@@ -261,10 +362,13 @@ func analyzeTools(results []Result, toolCounts map[int64]map[string]int) []model
 	for _, res := range results {
 		durations = append(durations, res.Duration.Seconds())
 		tks := 0.0
+		cached := 0.0
 		if res.AgentMetrics != nil {
 			tks = float64(res.AgentMetrics.TotalTokens)
+			cached = float64(res.AgentMetrics.CachedTokens)
 		}
 		tokens = append(tokens, tks)
+		cachedTokens = append(cachedTokens, cached)
 
 		// Count for this run from authoritative map
 		runCounts := toolCounts[res.RunID]
@@ -336,6 +440,9 @@ func analyzeTools(results []Result, toolCounts map[int64]map[string]int) []model
 		}
 		if stats.Variance(perToolRunVectors[t]) > 0 && stats.Variance(tokens) > 0 {
 			row.TokensCorr = stats.SpearmanCorrelation(perToolRunVectors[t], tokens)
+		}
+		if stats.Variance(perToolRunVectors[t]) > 0 && stats.Variance(cachedTokens) > 0 {
+			row.CachedTokensCorr = stats.SpearmanCorrelation(perToolRunVectors[t], cachedTokens)
 		}
 
 		analysisList = append(analysisList, row)

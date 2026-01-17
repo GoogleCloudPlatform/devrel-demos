@@ -60,6 +60,7 @@ type ExperimentSummaryRow struct {
 	SuccessRate     float64 `json:"success_rate"`
 	AvgDuration     float64 `json:"avg_duration"`
 	AvgTokens       float64 `json:"avg_tokens"`
+	AvgCachedTokens float64 `json:"avg_cached_tokens"`
 	AvgLint         float64 `json:"avg_lint"`
 	AvgTestsPassed  float64 `json:"avg_tests_passed"`
 	AvgTestsFailed  float64 `json:"avg_tests_failed"`
@@ -70,6 +71,7 @@ type ExperimentSummaryRow struct {
 	PSuccess         float64 `json:"p_success"`
 	PDuration        float64 `json:"p_duration"`
 	PTokens          float64 `json:"p_tokens"`
+	PCachedTokens    float64 `json:"p_cached_tokens"`
 	PLint            float64 `json:"p_lint"`
 	PTestsPassed     float64 `json:"p_tests_passed"`
 	PTestsFailed     float64 `json:"p_tests_failed"`
@@ -77,7 +79,8 @@ type ExperimentSummaryRow struct {
 	PToolCalls       float64 `json:"p_tool_calls"`
 	PFailedToolCalls float64 `json:"p_failed_tool_calls"`
 
-	ToolAnalysis []ToolAnalysis `json:"tool_analysis"`
+	ToolAnalysis   []ToolAnalysis `json:"tool_analysis"`
+	FailureReasons map[string]int `json:"failure_reasons"`
 }
 
 type RunResult struct {
@@ -95,6 +98,7 @@ type RunResult struct {
 	TotalTokens     int    `json:"total_tokens"`
 	InputTokens     int    `json:"input_tokens"`
 	OutputTokens    int    `json:"output_tokens"`
+	CachedTokens    int    `json:"cached_tokens"`
 	ToolCallsCount  int    `json:"tool_calls_count"`
 	FailedToolCalls int    `json:"failed_tool_calls"`
 	LoopDetected    bool   `json:"loop_detected"`
@@ -159,10 +163,11 @@ type RunFile struct {
 
 // ToolAnalysis contains statistical analysis of tool usage.
 type ToolAnalysis struct {
-	ToolName       string  `json:"tool_name"`
-	SuccFailPValue float64 `json:"succ_fail_p_value"`
-	DurationCorr   float64 `json:"duration_corr"`
-	TokensCorr     float64 `json:"tokens_corr"`
+	ToolName         string  `json:"tool_name"`
+	SuccFailPValue   float64 `json:"succ_fail_p_value"`
+	DurationCorr     float64 `json:"duration_corr"`
+	TokensCorr       float64 `json:"tokens_corr"`
+	CachedTokensCorr float64 `json:"cached_tokens_corr"`
 }
 
 type ToolStatRow struct {

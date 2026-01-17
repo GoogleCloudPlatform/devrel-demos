@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Roboto_Mono } from "next/font/google";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { SidebarProvider } from "@/components/layout/SidebarContext";
+import { MainLayoutWrapper } from "@/components/layout/MainLayoutWrapper";
 import "./globals.css";
 
 const inter = Inter({
@@ -30,10 +32,9 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.variable} ${robotoMono.variable} bg-background text-foreground antialiased`}>
         <ThemeProvider defaultTheme="dark">
-          <Sidebar />
-          <main className="ml-[240px] min-h-screen bg-background">
-            {children}
-          </main>
+          <SidebarProvider>
+            <MainLayoutWrapper>{children}</MainLayoutWrapper>
+          </SidebarProvider>
           <Toaster position="bottom-right" theme="dark" closeButton richColors />
         </ThemeProvider>
       </body>

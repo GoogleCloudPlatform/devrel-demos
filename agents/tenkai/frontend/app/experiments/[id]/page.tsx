@@ -4,6 +4,7 @@ import ReportViewer from "@/components/ReportViewer";
 import RefreshOnInterval from "@/components/RefreshOnInterval";
 import ExperimentLockToggle from "@/components/experiments/ExperimentLockToggle";
 import Link from "next/link";
+import ExperimentSidebar from "@/components/experiments/ExperimentSidebar";
 import { Suspense } from "react";
 
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
@@ -37,7 +38,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         [metrics, checkpoint, runResults, summaries] = await Promise.all([
             getSimplifiedMetrics(experiment.id),
             getCheckpoint(String(experiment.id)),
-            getRunResults(String(experiment.id)),
+            getRunResults(String(experiment.id), 1, 5000),
             getExperimentSummaries(experiment.id)
         ]);
     } catch (e) {
@@ -65,48 +66,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         <div className="flex h-screen overflow-hidden">
             <RefreshOnInterval active={experiment.status === 'running' || experiment.status === 'RUNNING'} />
             {/* Context Sidebar (Left Pane) */}
-            <aside className="w-[300px] border-r border-border bg-background flex flex-col h-full">
-                <div className="p-4 border-b border-border">
-                    <Link href="/experiments" className="text-body hover:text-white flex items-center mb-4 transition-colors font-bold uppercase tracking-wider">
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                        Back
-                    </Link>
-                    <h1 className="text-title leading-tight mb-2">{experiment.name || "Unnamed"}</h1>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <span className={`inline-block w-2.5 h-2.5 rounded-full ${experiment.status?.toUpperCase() === 'RUNNING' ? 'bg-primary animate-pulse shadow-[0_0_8px_var(--primary)]' : (experiment.status?.toUpperCase() === 'COMPLETED' ? 'bg-emerald-500' : 'bg-muted')}`}></span>
-                            <span className="text-body font-bold uppercase">{experiment.status}</span>
-                        </div>
-                        <ExperimentLockToggle
-                            experimentId={experiment.id}
-                            initialLocked={!!experiment.is_locked}
-                        />
-                    </div>
-                </div>
-
-                <div className="p-4 space-y-8 overflow-y-auto flex-1 text-body">
-                    <div>
-                        <h3 className="font-bold uppercase tracking-widest mb-2 opacity-50">Description</h3>
-                        <p className="leading-relaxed">
-                            {experiment.description || "No description provided."}
-                        </p>
-                    </div>
-
-                    <div className="space-y-4">
-                        <h3 className="font-bold uppercase tracking-widest opacity-50">Metadata</h3>
-                        <div className="grid grid-cols-2 gap-y-3">
-                            <span className="uppercase opacity-50">ID</span>
-                            <span className="text-foreground text-right font-mono font-bold">{experiment.id}</span>
-
-                            <span className="uppercase opacity-50">Started</span>
-                            <span className="text-foreground text-right">{new Date(experiment.timestamp).toLocaleDateString()}</span>
-
-                            <span className="uppercase opacity-50">Control</span>
-                            <span className="text-primary text-right font-bold">{experiment.experiment_control || "—"}</span>
-                        </div>
-                    </div>
-                </div>
-            </aside>
+            <ExperimentSidebar experiment={experiment} />
 
             {/* Main Content Area */}
             <main className="flex-1 h-full overflow-hidden flex flex-col bg-background">

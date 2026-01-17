@@ -16,7 +16,7 @@ import (
 func (db *DB) GetRunResults(expID int64, limit, offset int) ([]models.RunResult, error) {
 	query := `SELECT 
 		id, experiment_id, alternative, scenario, repetition, duration, error, 
-		tests_passed, tests_failed, lint_issues, total_tokens, input_tokens, output_tokens,
+		tests_passed, tests_failed, lint_issues, total_tokens, input_tokens, output_tokens, cached_tokens,
 		tool_calls_count, failed_tool_calls, loop_detected, is_success, validation_report, status, reason
 		FROM run_results WHERE experiment_id = ? ORDER BY id DESC LIMIT ? OFFSET ?`
 
@@ -30,12 +30,12 @@ func (db *DB) GetRunResults(expID int64, limit, offset int) ([]models.RunResult,
 	for rows.Next() {
 		var r models.RunResult
 		var valRep, errStr, reason, status sql.NullString
-		var dur, tPass, tFail, lint, tTok, iTok, oTok, tCalls, fCalls sql.NullInt64
+		var dur, tPass, tFail, lint, tTok, iTok, oTok, cTok, tCalls, fCalls sql.NullInt64
 		var loop, success sql.NullBool
 
 		err := rows.Scan(
 			&r.ID, &r.ExperimentID, &r.Alternative, &r.Scenario, &r.Repetition, &dur, &errStr,
-			&tPass, &tFail, &lint, &tTok, &iTok, &oTok,
+			&tPass, &tFail, &lint, &tTok, &iTok, &oTok, &cTok,
 			&tCalls, &fCalls, &loop, &success, &valRep, &status, &reason,
 		)
 		if err != nil {
@@ -53,6 +53,7 @@ func (db *DB) GetRunResults(expID int64, limit, offset int) ([]models.RunResult,
 		r.TotalTokens = int(tTok.Int64)
 		r.InputTokens = int(iTok.Int64)
 		r.OutputTokens = int(oTok.Int64)
+		r.CachedTokens = int(cTok.Int64)
 		r.ToolCallsCount = int(tCalls.Int64)
 		r.FailedToolCalls = int(fCalls.Int64)
 		r.LoopDetected = loop.Bool
@@ -116,13 +117,13 @@ func (db *DB) SaveRunTelemetry(t *RunTelemetry) error {
 		if t.Result != nil {
 			query := `UPDATE run_results SET 
                                 duration=?, error=?, tests_passed=?, tests_failed=?, lint_issues=?, 
-                                total_tokens=?, input_tokens=?, output_tokens=?, 
+                                total_tokens=?, input_tokens=?, output_tokens=?, cached_tokens=?,
                                 tool_calls_count=?, failed_tool_calls=?, loop_detected=?, stdout=?, stderr=?, 
                                 is_success=?, validation_report=?, status=?, reason=?
                                 WHERE id=?`
 			_, err := tx.Exec(query,
 				t.Result.Duration, t.Result.Error, t.Result.TestsPassed, t.Result.TestsFailed, t.Result.LintIssues,
-				t.Result.TotalTokens, t.Result.InputTokens, t.Result.OutputTokens,
+				t.Result.TotalTokens, t.Result.InputTokens, t.Result.OutputTokens, t.Result.CachedTokens,
 				t.Result.ToolCallsCount, t.Result.FailedToolCalls, t.Result.LoopDetected, t.Result.Stdout, t.Result.Stderr,
 				t.Result.IsSuccess, t.Result.ValidationReport, t.Result.Status, t.Result.Reason,
 				t.Result.ID)
@@ -425,14 +426,15 @@ func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
 			json_extract(payload, '$.stats.total_tokens'),
 			json_extract(payload, '$.stats.input_tokens'),
 			json_extract(payload, '$.stats.output_tokens'),
+			json_extract(payload, '$.stats.cached_tokens'),
 			json_extract(payload, '$.status')
 		FROM run_events 
 		WHERE run_id = ? AND type = 'result'
 		ORDER BY id DESC LIMIT 1`
 
-	var tTok, iTok, oTok sql.NullInt64
+	var tTok, iTok, oTok, cTok sql.NullInt64
 	var resStatus sql.NullString
-	if err := db.conn.QueryRow(queryResult, runID).Scan(&tTok, &iTok, &oTok, &resStatus); err != nil {
+	if err := db.conn.QueryRow(queryResult, runID).Scan(&tTok, &iTok, &oTok, &cTok, &resStatus); err != nil {
 		if err != sql.ErrNoRows {
 			log.Printf("[DB] Warning: failed to fetch tokens for run %d: %v", runID, err)
 		}
@@ -440,6 +442,7 @@ func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
 		metrics.TotalTokens = int(tTok.Int64)
 		metrics.InputTokens = int(iTok.Int64)
 		metrics.OutputTokens = int(oTok.Int64)
+		metrics.CachedTokens = int(cTok.Int64)
 		metrics.Result = resStatus.String
 	}
 

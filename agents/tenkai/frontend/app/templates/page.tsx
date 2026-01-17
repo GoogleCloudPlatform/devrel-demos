@@ -60,6 +60,53 @@ export default function TemplatesPage() {
         }
     };
 
+    const handleDuplicate = async (e: React.MouseEvent, id: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const toastId = toast.loading("Duplicating template...");
+
+        try {
+            // 1. Fetch Config
+            const configRes = await fetch(`/api/templates/${id}/config`);
+            if (!configRes.ok) throw new Error("Failed to fetch template config");
+            const configData = await configRes.json();
+
+            // 2. Prepare payload
+            const newName = `${configData.name}-copy`;
+            const payload = {
+                name: newName,
+                description: configData.description,
+                config: configData.config, // reuse config object
+                yaml_content: configData.content, // reuse raw content (might need name update inside? usually Backend handles/parses)
+                files: {} // No file duplication support in this quick action yet
+            };
+
+            // Update name in config if necessary, but usually the backend regenerates YAML from config obj if provided.
+            // Let's rely on config object.
+
+            const createRes = await fetch('/api/templates', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (createRes.ok) {
+                toast.success("Template duplicated successfully", { id: toastId });
+                // Refresh
+                const listRes = await fetch('/api/templates');
+                const listData = await listRes.json();
+                setTemplates(listData);
+            } else {
+                const err = await createRes.json();
+                toast.error(`Failed to duplicate: ${err.error || 'Unknown'}`, { id: toastId });
+            }
+
+        } catch (e) {
+            console.error(e);
+            toast.error("Error duplicating template", { id: toastId });
+        }
+    };
+
     const handleDeleteAll = async () => {
         if (!confirm("⚠️ WARNING: This will delete ALL templates. This action cannot be undone.")) return;
         if (!confirm("Are you really sure?")) return;
@@ -138,6 +185,13 @@ export default function TemplatesPage() {
                                                     }
                                                 }}
                                             />
+                                            <button
+                                                onClick={(e) => handleDuplicate(e, template.id)}
+                                                className="p-2 text-body text-muted-foreground hover:text-indigo-400 transition-colors"
+                                                title="Duplicate"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+                                            </button>
                                             <button
                                                 onClick={(e) => handleDelete(e, template.id)}
                                                 disabled={template.is_locked}

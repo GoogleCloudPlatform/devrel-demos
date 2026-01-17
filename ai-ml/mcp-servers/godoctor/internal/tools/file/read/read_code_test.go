@@ -63,34 +63,14 @@ func main() {
 	}
 	text := textContent.Text
 
-	// Check order: Content before Symbols
-	contentIdx := strings.Index(text, "## Content")
-	symbolsIdx := strings.Index(text, "## Symbols")
-
-	if contentIdx == -1 {
-		t.Error("Output missing ## Content")
-	}
-	if symbolsIdx == -1 {
-		t.Error("Output missing ## Symbols")
-	}
-	if contentIdx > symbolsIdx {
-		t.Error("Content should appear before Symbols")
+	// Check for line numbers
+	if !strings.Contains(text, "   1 | package main") {
+		t.Errorf("expected line numbers (e.g. '   1 | package main'), got: %s", text)
 	}
 
-	// Check for symbols (List format)
-	if !strings.Contains(text, "- `MyStruct` (Type) at line 5") {
-		t.Errorf("expected MyStruct type in list, got: %s", text)
-	}
-	if !strings.Contains(text, "- `(*MyStruct) Greet` (Function) at line 9") {
-		t.Errorf("expected Greet method in list, got: %s", text)
-	}
-	if !strings.Contains(text, "- `main` (Function) at line 13") {
-		t.Errorf("expected main function in list, got: %s", text)
-	}
-
-	// Ensure no table headers
-	if strings.Contains(text, "| Symbol | Type |") {
-		t.Error("Output still contains Markdown table header")
+	// Check that Symbols are GONE
+	if strings.Contains(text, "## Symbols") {
+		t.Error("Output should NOT contain ## Symbols section anymore")
 	}
 
 	// Check for Analysis
@@ -100,9 +80,50 @@ func main() {
 	if !strings.Contains(text, "undefined: undefinedFunc") {
 		t.Errorf("expected undefinedFunc error in analysis, got: %s", text)
 	}
+}
 
-	// Check for content
-	if !strings.Contains(text, "package main") {
-		t.Errorf("expected file content, got: %s", text)
+func TestReadCodeTool_Partial(t *testing.T) {
+	// Create temp dir
+	tmpDir := t.TempDir()
+	srcFile := filepath.Join(tmpDir, "partial.go")
+	src := `line 1
+line 2
+line 3
+line 4
+line 5`
+	if err := os.WriteFile(srcFile, []byte(src), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Test case: Read lines 2-4
+	res, _, err := readCodeHandler(context.Background(), nil, Params{
+		Filename:  srcFile,
+		StartLine: 2,
+		EndLine:   4,
+	})
+	if err != nil {
+		t.Fatalf("handler failed: %v", err)
+	}
+
+	text := res.Content[0].(*mcp.TextContent).Text
+
+	// Should contain lines 2, 3, 4
+	if !strings.Contains(text, "   2 | line 2") {
+		t.Errorf("expected line 2, got: %s", text)
+	}
+	if !strings.Contains(text, "   4 | line 4") {
+		t.Errorf("expected line 4, got: %s", text)
+	}
+	// Should NOT contain line 1 or 5
+	if strings.Contains(text, "   1 | line 1") {
+		t.Errorf("did not expect line 1, got: %s", text)
+	}
+	if strings.Contains(text, "   5 | line 5") {
+		t.Errorf("did not expect line 5, got: %s", text)
+	}
+
+	// Should contain "Partial read - analysis skipped"
+	if !strings.Contains(text, "Partial read - analysis skipped") {
+		t.Error("expected partial read warning")
 	}
 }

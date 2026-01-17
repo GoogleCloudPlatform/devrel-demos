@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 import { useEffect, useState } from "react";
 
-export function ThemeSwitcher() {
+export function ThemeSwitcher({ showLabel = true }: { showLabel?: boolean }) {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
@@ -17,7 +17,28 @@ export function ThemeSwitcher() {
 
     if (!mounted) {
         return (
-            <div className="flex gap-1 p-1 bg-muted/20 rounded-lg border border-border/50 h-10 w-[148px]" />
+            <div className={cn("flex gap-1 p-1 bg-muted/20 rounded-lg border border-border/50 transition-all", showLabel ? "h-10 w-[148px]" : "h-10 w-10")} />
+        );
+    }
+
+    const cycleTheme = () => {
+        const modes = ['light', 'dark', 'happy', 'beach'];
+        const currentIdx = modes.indexOf(theme);
+        const next = modes[(currentIdx + 1) % modes.length];
+        setTheme(next as any);
+    };
+
+    if (!showLabel) {
+        return (
+            <div className="flex justify-center w-full">
+                <Button variant="ghost" size="icon" onClick={cycleTheme} className="w-10 h-10 rounded-md bg-muted/20 border border-border/50 text-foreground hover:bg-muted/40" title={`Current: ${theme} (Click to cycle)`}>
+                    {theme === 'light' && <Sun className="w-4 h-4" />}
+                    {theme === 'dark' && <Moon className="w-4 h-4" />}
+                    {theme === 'happy' && <Smile className="w-4 h-4" />}
+                    {theme === 'beach' && <Palmtree className="w-4 h-4" />}
+                    {!['light', 'dark', 'happy', 'beach'].includes(theme) && <Moon className="w-4 h-4" />}
+                </Button>
+            </div>
         );
     }
 

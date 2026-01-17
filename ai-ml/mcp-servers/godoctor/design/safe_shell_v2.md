@@ -22,7 +22,7 @@ However, testing **long-running web services** (e.g., starting a local server to
     "properties": {
       "command": {
         "type": "string",
-        "description": "The binary to run (e.g., './server', 'go'). No shell metacharacters."
+        "description": "The binary to run. No shell metacharacters."
       },
       "args": {
         "type": "array",
@@ -33,13 +33,21 @@ However, testing **long-running web services** (e.g., starting a local server to
         "type": "string",
         "description": "Stdin data to feed to the process."
       },
+      "stdout_file": {
+        "type": "string",
+        "description": "Path to write stdout to. Required for background tasks."
+      },
+      "stderr_file": {
+        "type": "string",
+        "description": "Path to write stderr to. If not provided, stderr is merged into stdout_file. To discard stderr, use '/dev/null'."
+      },
       "background": {
         "type": "boolean",
-        "description": "If true, starts the process and returns immediately. Output is redirected to log files. (Default: false)"
+        "description": "If true, starts the process and returns immediately (PID returned). You must use stdout_file/stderr_file to capture output. (Default: false)"
       },
       "keep_alive": {
         "type": "integer",
-        "description": "Duration in seconds. For blocking calls: process is killed after this time. For background: acts as a strict time-to-live (optional). Default 5s for blocking."
+        "description": "Duration in seconds. Blocking mode: process is Killed (SIGKILL) after this time. Background mode: acts as a timeout signal (SIGKILL) if process exceeds duration. Default: 5s."
       }
     },
     "required": ["command"]
@@ -49,25 +57,26 @@ However, testing **long-running web services** (e.g., starting a local server to
 
 ### 2. Output Logic
 
-| Mode | `background` | `keep_alive` | Behavior | Output |
+| Mode | `background` | `stdout_file` | `stderr_file` | Behavior |
 | :--- | :--- | :--- | :--- | :--- |
-| **Interactive** | `false` | `> 0` | Run, feed `input`, wait `keep_alive` seconds, then Kill. | Merged Stdout/Stderr (capped). |
-| **Batch** | `false` | `0` (or omitted) | Run, feed `input`, wait until Exit. | Merged Stdout/Stderr (capped). |
-| **Daemon** | `true` | `any` | Start, detach, redirect output to files. Return PID. | JSON: `{ "pid": 123, "stdout": "/tmp/out.log", "stderr": "/tmp/err.log" }` |
+| **Interactive** | `false` | (Optional) | (Optional) | Run, feed `input`, wait. Output captured in memory (merged if no stderr_file) + written to files if provided. |
+| **Daemon (Explicit)** | `true` | `/tmp/out.log` | `/tmp/err.log` | Start & Detach. Stdout -> out.log, Stderr -> err.log. |
+| **Daemon (Merged)** | `true` | `/tmp/all.log` | (Omitted) | Start & Detach. Stdout & Stderr -> all.log. |
+| **Daemon (Discard)** | `true` | `/tmp/out.log` | `/dev/null` | Start & Detach. Stdout -> out.log, Stderr -> discarded. |
 
 ### 3. Background Output Strategy
-When `background=true`, we cannot return the output directly because it hasn't happened yet.
-*   **Redirect**: Automatically create temporary files:
-    *   Stdout: `/tmp/godoctor_<pid>_stdout.log`
-    *   Stderr: `/tmp/godoctor_<pid>_stderr.log`
-*   **Agent Workflow**:
-    1.  `safe_shell(command="./server", background=true)` -> Returns PID and log paths.
-    2.  Agent does work (e.g., `run_shell_command("curl localhost:8080")`).
-    3.  Agent checks logs: `safe_shell(command="cat", args=["/tmp/..._stderr.log"])` (or `file.read`).
-    4.  Agent kills server: `safe_shell(command="kill", args=["<pid>"])` (Wait, `safe.shell` blocks system binaries... we might need a `stop` tool or allow `kill` in `safe.shell`).
-        *   *Decision*: Add `kill` to the `safe_shell` allowlist.
+When `background=true`, the tool returns immediately. The output content in the tool result will be a JSON object pointing to the logs.
+
+*   **Return Format**:
+    ```json
+    {
+      "pid": 12345,
+      "stdout_path": "/path/to/stdout.log",
+      "stderr_path": "/path/to/stderr.log"
+    }
+    ```
 
 ## Migration Plan
-1.  **Refactor**: Update `cmd/run/run.go` to handle the new `Params` struct.
-2.  **Logic**: Split handler into `handleBlocking` and `handleBackground`.
+1.  **Refactor**: Update `cmd/run/run.go` to rename `output_file` to `stdout_file` and handle the new `Params` struct.
+2.  **Logic**: Implement `handleBlocking` and `handleBackground` logic branches.
 3.  **Logs**: Ensure the temp directory exists and is writable.

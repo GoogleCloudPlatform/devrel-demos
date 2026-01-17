@@ -129,7 +129,22 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 		}, 0, 0, nil
 	}
 
-	cmd := exec.CommandContext(ctx, "go", "test", "-json", "-cover", target)
+	// Create temp file for coverage profile
+	covFile, err := os.CreateTemp(wsPath, "coverage-*.out")
+	if err != nil {
+		return nil, ValidationItem{
+			Type:    "test",
+			Status:  "FAIL",
+			Details: fmt.Sprintf("Error creating coverage profile file: %v", err),
+		}, 0, 0, nil
+	}
+	covPath := covFile.Name()
+	covFile.Close()
+	defer os.Remove(covPath)
+
+	// Add -coverprofile and -coverpkg=./... to get project-wide total
+	relCovPath := filepath.Base(covPath) // relative path within workspace
+	cmd := exec.CommandContext(ctx, "go", "test", "-json", "-cover", fmt.Sprintf("-coverprofile=%s", relCovPath), "-coverpkg=./...", target)
 	cmd.Dir = wsPath // Run in workspace
 	var out bytes.Buffer
 	var preErr bytes.Buffer // stderr for build failures etc
@@ -138,7 +153,7 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 	// Ignore exit code error, we parse JSON
 	_ = cmd.Run()
 
-	fullCmd := fmt.Sprintf("go test -json -cover %s", target)
+	fullCmd := fmt.Sprintf("go test -json -cover -coverprofile=%s -coverpkg=./... %s", relCovPath, target)
 
 	scanner := bufio.NewScanner(strings.NewReader(out.String()))
 	testsFound := false
@@ -183,23 +198,36 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 				if entry.Test != "" {
 					failedCount++
 					detailsBuilder.WriteString(fmt.Sprintf("FAIL: %s\n", entry.Test))
-				} else {
-					packageFailed = true
 				}
 			}
-			// Only capture coverage from output lines associated with the package result (Test == ""),
-			// avoiding noise from individual test logs if they happen to contain the string.
-			if entry.Action == "output" && entry.Test == "" && strings.Contains(entry.Output, "coverage:") {
-				parts := strings.Split(entry.Output, " ")
-				for i, p := range parts {
-					if p == "coverage:" && i+1 < len(parts) {
-						covStr := strings.TrimRight(parts[i+1], "%")
-						if val, err := strconv.ParseFloat(covStr, 64); err == nil {
+		}
+	}
+
+	// Calculate total coverage if tests were run
+	if testsFound {
+		covCmd := exec.CommandContext(ctx, "go", "tool", "cover", fmt.Sprintf("-func=%s", relCovPath))
+		covCmd.Dir = wsPath
+		var covOut, covErr bytes.Buffer
+		covCmd.Stdout = &covOut
+		covCmd.Stderr = &covErr
+		if err := covCmd.Run(); err == nil {
+			// Parse: "total:\t\t\t(statements)\t100.0%"
+			lines := strings.Split(strings.TrimSpace(covOut.String()), "\n")
+			if len(lines) > 0 {
+				lastLine := lines[len(lines)-1]
+				if strings.HasPrefix(lastLine, "total:") {
+					parts := strings.Fields(lastLine)
+					if len(parts) > 0 {
+						pctStr := strings.TrimRight(parts[len(parts)-1], "%")
+						if val, err := strconv.ParseFloat(pctStr, 64); err == nil {
 							coverage = val
 						}
 					}
 				}
 			}
+		} else {
+			// If coverage tool fails, append error to details for debugging
+			detailsBuilder.WriteString(fmt.Sprintf("\nWARNING: Failed to calculate total coverage: %v\nStderr: %s\n", err, covErr.String()))
 		}
 	}
 

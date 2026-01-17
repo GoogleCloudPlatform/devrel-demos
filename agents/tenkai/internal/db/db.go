@@ -77,6 +77,7 @@ func (db *DB) migrate() error {
             total_tokens INTEGER DEFAULT 0,
 			input_tokens INTEGER DEFAULT 0,
 			output_tokens INTEGER DEFAULT 0,
+			cached_tokens INTEGER DEFAULT 0,
 			tool_calls_count INTEGER DEFAULT 0,
 			failed_tool_calls INTEGER DEFAULT 0,
 			loop_detected BOOLEAN DEFAULT 0,
