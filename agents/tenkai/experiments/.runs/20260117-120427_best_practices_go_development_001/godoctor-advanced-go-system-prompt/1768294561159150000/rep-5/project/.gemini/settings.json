@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "godoctor": {
+      "args": [
+        "--profile=advanced"
+      ],
+      "command": "godoctor"
+    }
+  }
+}
