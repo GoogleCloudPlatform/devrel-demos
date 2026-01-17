@@ -61,7 +61,7 @@ func TestCalculateSummary(t *testing.T) {
 	// Aborted runs (should be ignored)
 	results = append(results, Result{Alternative: control, Status: "COMPLETED", Reason: "ABORTED"})
 
-	summary := CalculateSummary(results, control, allAlts)
+	summary := CalculateSummary(results, control, allAlts, nil)
 
 	if summary.TotalRuns != 11 { // 5 + 5 + 1 (Aborted ignored)
 		t.Errorf("Expected 11 total runs, got %d", summary.TotalRuns)

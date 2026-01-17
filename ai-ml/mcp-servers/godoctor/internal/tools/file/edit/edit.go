@@ -11,6 +11,7 @@ import (
 	"github.com/danicat/godoctor/internal/graph"
 	"github.com/danicat/godoctor/internal/roots"
 	"github.com/danicat/godoctor/internal/toolnames"
+	"github.com/danicat/godoctor/internal/tools/shared"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/tools/imports"
 )
@@ -27,18 +28,18 @@ func Register(server *mcp.Server) {
 
 // Params defines the input parameters for the smart_edit tool.
 type Params struct {
-	File          string  `json:"file" jsonschema:"The absolute path to the file to edit"`
+	Filename      string  `json:"filename" jsonschema:"The path to the file to edit"`
 	SearchContext string  `json:"search_context" jsonschema:"The block of code to find (ignores whitespace)"`
 	Replacement   string  `json:"replacement" jsonschema:"The new code to insert"`
 	Threshold     float64 `json:"threshold,omitempty" jsonschema:"Similarity threshold (0.0-1.0) for fuzzy matching, default 0.95"`
 }
 
 func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
-	absPath, err := roots.Global.Validate(args.File)
+	absPath, err := roots.Global.Validate(args.Filename)
 	if err != nil {
 		return errorResult(err.Error()), nil, nil
 	}
-	args.File = absPath
+	args.Filename = absPath
 
 	// Default threshold
 	if args.Threshold == 0 {
@@ -53,7 +54,7 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 	}
 
 	// 1. Read File
-	content, err := os.ReadFile(args.File)
+	content, err := os.ReadFile(args.Filename)
 	if err != nil {
 		return errorResult(fmt.Sprintf("failed to read file: %v", err)), nil, nil
 	}
@@ -87,11 +88,11 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 
 	// 4. Auto-Format & Import check (GO ONLY)
 	var formatted []byte
-	isGo := strings.HasSuffix(args.File, ".go")
+	isGo := strings.HasSuffix(args.Filename, ".go")
 
 	if isGo {
 		// Use imports.Process which runs gofmt and goimports
-		formatted, err = imports.Process(args.File, []byte(newContent), nil)
+		formatted, err = imports.Process(args.Filename, []byte(newContent), nil)
 		if err != nil {
 			// Try to give a helpful error location
 			return errorResult(fmt.Sprintf("edit produced invalid Go code: %v\nHint: Ensure your Replacement is syntactically valid in context.", err)), nil, nil
@@ -102,7 +103,7 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 
 	// 5. Write to disk
 	//nolint:gosec // G306: Standard permissions for source files.
-	if err := os.WriteFile(args.File, formatted, 0644); err != nil {
+	if err := os.WriteFile(args.Filename, formatted, 0644); err != nil {
 		return errorResult(fmt.Sprintf("failed to write file: %v", err)), nil, nil
 	}
 
@@ -111,7 +112,7 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 
 	if isGo {
 		// We want to verify that the file compiles within its package
-		pkg, err := graph.Global.Load(args.File)
+		pkg, err := graph.Global.Load(args.Filename)
 
 		if err != nil {
 			// Graph loading failed, maybe severe syntax error skipped by imports.Process?
@@ -119,8 +120,13 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 		} else if len(pkg.Errors) > 0 {
 			warning = "\n\n**WARNING:** Edit successful but introduced compilation errors:\n"
 			for _, e := range pkg.Errors {
-				warning += fmt.Sprintf("- %s\n", e.Msg)
+				loc := ""
+				if e.Pos != "" {
+					loc = e.Pos + ": "
+				}
+				warning += fmt.Sprintf("- %s%s\n", loc, shared.CleanError(e.Msg))
 			}
+			warning += shared.GetMCPHint(pkg.Errors)
 		} else {
 			// 7. Impact Analysis (Reverse Dependencies)
 			// Only run if local compilation passed
@@ -149,13 +155,16 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 				for _, w := range impactWarnings {
 					warning += fmt.Sprintf("- %s\n", w)
 				}
+				// Also check impact warnings for MCP hints if possible
+				// (impactWarnings are strings, so we use the output helper)
+				warning += shared.GetMCPHintFromOutput(strings.Join(impactWarnings, "\n"))
 			}
 		}
 	}
 
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
-			&mcp.TextContent{Text: fmt.Sprintf("Successfully edited %s%s", args.File, warning)},
+			&mcp.TextContent{Text: fmt.Sprintf("Successfully edited %s%s", args.Filename, warning)},
 		},
 	}, nil, nil
 }

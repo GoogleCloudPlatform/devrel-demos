@@ -32,25 +32,25 @@ func Register(server *mcp.Server) {
 
 // Params defines the input parameters.
 type Params struct {
-	File string `json:"file" jsonschema:"Absolute path to the Go file to outline"`
+	Filename string `json:"filename" jsonschema:"Absolute path to the Go file to outline"`
 }
 
 func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
-	if args.File == "" {
-		return errorResult("file cannot be empty"), nil, nil
+	if args.Filename == "" {
+		return errorResult("filename cannot be empty"), nil, nil
 	}
-	if !strings.HasSuffix(args.File, ".go") {
-		return errorResult("file must be a Go file (*.go)"), nil, nil
+	if !strings.HasSuffix(args.Filename, ".go") {
+		return errorResult("filename must be a Go file (*.go)"), nil, nil
 	}
 
-	outline, imports, errs, err := GetOutline(args.File)
+	outline, imports, errs, err := GetOutline(args.Filename)
 	if err != nil {
 		return errorResult(fmt.Sprintf("failed to generate outline: %v", err)), nil, nil
 	}
 
 	// Build Markdown Response
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("# File: %s\n\n", args.File))
+	sb.WriteString(fmt.Sprintf("# File: %s\n\n", args.Filename))
 
 	if len(errs) > 0 {
 		sb.WriteString("## Analysis (Problems)\n")
@@ -139,11 +139,11 @@ func GetOutline(file string) (string, []string, []packages.Error, error) {
 	}
 
 	if targetFile == nil {
-		        //nolint:gosec // G304: File path provided by user is expected.
-		        content, err := os.ReadFile(file)
-		        if err != nil {
-		            return "", nil, nil, fmt.Errorf("failed to read file: %w", err)
-		        }
+		//nolint:gosec // G304: File path provided by user is expected.
+		content, err := os.ReadFile(file)
+		if err != nil {
+			return "", nil, nil, fmt.Errorf("failed to read file: %w", err)
+		}
 		fset = token.NewFileSet()
 		targetFile, err = parser.ParseFile(fset, file, content, parser.ParseComments)
 		if err != nil {

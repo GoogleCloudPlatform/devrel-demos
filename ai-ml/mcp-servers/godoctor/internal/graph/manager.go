@@ -41,6 +41,16 @@ func NewManager() *Manager {
 	}
 }
 
+// Close stops the background watcher and cleans up resources.
+func (m *Manager) Close() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.watcher != nil {
+		return m.watcher.Close()
+	}
+	return nil
+}
+
 // Initialize sets a project root and starts background indexing.
 func (m *Manager) Initialize(root string) {
 	absRoot, err := filepath.Abs(root)
@@ -113,12 +123,22 @@ func (m *Manager) Scan() error {
 }
 
 func (m *Manager) cachePackage(p *packages.Package) {
+	// Heuristic: If package name is empty, it might be a failed load.
+	// Try to infer it from PkgPath if possible.
+	if p.Name == "" && p.PkgPath != "" && p.PkgPath != "command-line-arguments" {
+		parts := strings.Split(p.PkgPath, "/")
+		p.Name = parts[len(parts)-1]
+	}
+
 	// If existing package is "better" (has types), keep it unless p also has types (refresh)
 	if existing, exists := m.Packages[p.PkgPath]; exists {
 		// If we already have a loaded package with types, keep it to ensure
 		// type identity consistency across the graph.
-		// We only overwrite if the existing one is "light" (no types) and the new one is "heavy".
 		if existing.Pkg.TypesInfo != nil {
+			return
+		}
+		// If both are "light" (no types), we already have it, so stop recursion (fixes A->B->A loop)
+		if p.TypesInfo == nil {
 			return
 		}
 	}

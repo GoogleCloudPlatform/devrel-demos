@@ -28,10 +28,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} ${robotoMono.variable} bg-[#09090b] text-[#f4f4f5] antialiased`}>
+      <body className={`${inter.variable} ${robotoMono.variable} bg-background text-foreground antialiased`}>
         <ThemeProvider defaultTheme="dark">
           <Sidebar />
-          <main className="ml-[240px] min-h-screen bg-[#09090b]">
+          <main className="ml-[240px] min-h-screen bg-background">
             {children}
           </main>
           <Toaster position="bottom-right" theme="dark" closeButton richColors />

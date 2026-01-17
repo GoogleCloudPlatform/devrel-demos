@@ -108,10 +108,14 @@ export interface ValidationRule {
     target?: string;
     include_in_prompt?: boolean;
     command?: string;
+    stdin?: string;
+    stdin_delay?: string;
     prompt?: string;
     min_coverage?: number;
     max_issues?: number;
-    expected_exit_code?: number;
+    expect_exit_code?: number;
+    expect_output?: string;
+    expect_output_regex?: string;
     context?: string[];
 }
 
@@ -132,6 +136,7 @@ export interface ScenarioData {
     assets?: ScenarioAsset[];
     validation?: ValidationRule[];
     env?: Record<string, string>;
+    is_locked?: boolean;
 }
 
 export interface TemplateData {
@@ -147,5 +152,6 @@ export interface TemplateData {
         alternatives: Alternative[];
     };
     yaml_content: string;
+    is_locked?: boolean;
 }
 

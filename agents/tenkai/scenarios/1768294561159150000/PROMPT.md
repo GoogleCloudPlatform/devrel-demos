@@ -22,3 +22,7 @@ Acceptance Criteria
 - Running "restore" with no arguments displays a help message
 - Running "restore" with an image as argument performs the restoration
 - A picture called "elvira.jpeg" is provided for tests. A successful restoration of this picture is required. (An LLM will be the judge)
+
+## Acceptance Criteria
+- Unit tests for `./...` must pass with min 50% coverage.
+- Linter `./...` must pass with max 5 issues.

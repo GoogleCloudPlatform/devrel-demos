@@ -44,7 +44,7 @@ func main() {
 	}
 
 	// Call tool
-	res, _, err := readCodeHandler(context.Background(), nil, Params{FilePath: srcFile})
+	res, _, err := readCodeHandler(context.Background(), nil, Params{Filename: srcFile})
 	if err != nil {
 		t.Fatalf("handler failed: %v", err)
 	}

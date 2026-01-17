@@ -26,17 +26,17 @@ func Register(server *mcp.Server) {
 
 // Params defines the input parameters.
 type Params struct {
-	File    string `json:"file,omitempty" jsonschema:"File context for local lookup"`
-	Package string `json:"package,omitempty" jsonschema:"Package path (if not local or explicit external lookup)"`
-	Symbol  string `json:"symbol" jsonschema:"Symbol name to inspect"`
+	Filename   string `json:"filename,omitempty" jsonschema:"File context for local lookup"`
+	ImportPath string `json:"import_path,omitempty" jsonschema:"Package path (if not local or explicit external lookup)"`
+	SymbolName string `json:"symbol_name" jsonschema:"Symbol name to inspect"`
 }
 
 func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
-	if args.Package == "" && args.File == "" {
-		return errorResult("at least package or file must be specified"), nil, nil
+	if args.ImportPath == "" && args.Filename == "" {
+		return errorResult("at least import_path or filename must be specified"), nil, nil
 	}
 
-	desc, err := Describe(ctx, args.Package, args.Symbol, args.File)
+	desc, err := Describe(ctx, args.ImportPath, args.SymbolName, args.Filename)
 
 	if err != nil {
 		return errorResult(err.Error()), nil, nil

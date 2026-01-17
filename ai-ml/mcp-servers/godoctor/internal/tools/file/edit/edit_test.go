@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/danicat/godoctor/internal/graph"
+	"github.com/danicat/godoctor/internal/roots"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -35,7 +36,12 @@ func main() {
 		t.Fatal(err)
 	}
 
+	// Ensure previous manager is closed to stop potential watchers
+	if graph.Global != nil {
+		_ = graph.Global.Close()
+	}
 	graph.Global = graph.NewManager()
+	defer func() { _ = graph.Global.Close() }()
 
 	tests := []struct {
 		name     string
@@ -60,7 +66,7 @@ func main() {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			res, _, err := toolHandler(context.TODO(), nil, Params{
-				File:          filePath,
+				Filename:      filePath,
 				SearchContext: tt.search,
 				Replacement:   tt.replace,
 			})
@@ -91,6 +97,9 @@ func TestEdit_Broken(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Register temp dir as a root
+	roots.Global.Add(tmpDir)
+
 	filePath := filepath.Join(tmpDir, "main.go")
 	if err := os.WriteFile(filePath, []byte("package main\n\nfunc main() {}"), 0644); err != nil {
 		t.Fatal(err)
@@ -98,7 +107,7 @@ func TestEdit_Broken(t *testing.T) {
 
 	// Introduce a build error
 	res, _, _ := toolHandler(context.TODO(), nil, Params{
-		File:          filePath,
+		Filename:      filePath,
 		SearchContext: "func main() {}",
 		Replacement:   "func main() { undefinedVar() }",
 	})

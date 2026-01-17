@@ -21,9 +21,10 @@ interface TemplateFormProps {
     scenarios: Scenario[];
     initialData?: any;
     mode?: 'create' | 'edit';
+    isLocked?: boolean;
 }
 
-export default function TemplateForm({ scenarios, initialData, mode = 'create' }: TemplateFormProps) {
+export default function TemplateForm({ scenarios, initialData, mode = 'create', isLocked = false }: TemplateFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -196,7 +197,7 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
             <div className="flex justify-end items-center bg-[#09090b] border border-[#27272a] p-2 rounded-md">
                 <div className="flex items-center gap-4 px-2">
                     {error && <span className="text-red-500 font-bold uppercase tracking-tighter">{error}</span>}
-                    <Button type="submit" variant="default" size="lg" isLoading={loading}>
+                    <Button type="submit" variant="default" size="lg" isLoading={loading} disabled={isLocked}>
                         Save Template
                     </Button>
                 </div>
@@ -227,16 +228,18 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
                 </div>
 
                 <div className="md:col-span-8 space-y-8">
-                    <ScenarioSelector
-                        scenarios={scenarios}
-                        selectedIds={selectedScenarios}
-                        onToggle={handleScenarioToggle}
-                    />
+                    <div className={isLocked ? "pointer-events-none opacity-60" : ""}>
+                        <ScenarioSelector
+                            scenarios={scenarios}
+                            selectedIds={selectedScenarios}
+                            onToggle={handleScenarioToggle}
+                        />
+                    </div>
 
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle>Alternatives</CardTitle>
-                            <Button type="button" variant="ghost" size="sm" onClick={addAlternative} className="text-primary font-bold uppercase hover:text-foreground transition-colors">+ Add Alt</Button>
+                            <Button type="button" variant="ghost" size="sm" onClick={addAlternative} disabled={isLocked} className="text-primary font-bold uppercase hover:text-foreground transition-colors">+ Add Alt</Button>
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
                             {alternatives.map((alt, idx) => {
@@ -269,7 +272,8 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
                                             <button
                                                 type="button"
                                                 onClick={() => removeAlternative(idx)}
-                                                className="absolute top-4 right-4 text-zinc-500 hover:text-red-400 transition-colors p-1 hover:bg-white/5 rounded"
+                                                disabled={isLocked}
+                                                className={`absolute top-4 right-4 text-zinc-500 hover:text-red-400 transition-colors p-1 hover:bg-white/5 rounded ${isLocked ? "cursor-not-allowed opacity-30" : ""}`}
                                                 title="Remove Alternative"
                                             >
                                                 ✕
@@ -277,7 +281,8 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
                                             <button
                                                 type="button"
                                                 onClick={() => duplicateAlternative(idx)}
-                                                className="absolute top-4 right-12 text-zinc-500 hover:text-indigo-400 transition-colors p-1 hover:bg-white/5 rounded"
+                                                disabled={isLocked}
+                                                className={`absolute top-4 right-12 text-zinc-500 hover:text-indigo-400 transition-colors p-1 hover:bg-white/5 rounded ${isLocked ? "cursor-not-allowed opacity-30" : ""}`}
                                                 title="Duplicate Alternative"
                                             >
                                                 📋

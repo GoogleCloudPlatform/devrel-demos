@@ -102,6 +102,18 @@ func (s *State) Validate(path string) (string, error) {
 
 	roots := s.Get()
 
+	// Allow access to system temporary directory
+	rawTemp := os.TempDir()
+	if strings.HasPrefix(absPath, rawTemp) {
+		return absPath, nil
+	}
+	if tempDir, err := filepath.EvalSymlinks(rawTemp); err == nil {
+		// handle /var/folders/ vs /tmp mismatch on macOS
+		if strings.HasPrefix(absPath, tempDir) || strings.HasPrefix(absPath, "/tmp") {
+			return absPath, nil
+		}
+	}
+
 	// If no roots are registered, default to CWD
 	if len(roots) == 0 {
 		cwd, _ := filepath.Abs(".")

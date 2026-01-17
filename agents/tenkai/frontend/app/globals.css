@@ -86,27 +86,28 @@
 }
 
 [data-theme='happy'] {
-  --background: hsl(265 48% 12%);
-  --foreground: hsl(265 10% 98%);
-  --card: hsl(265 40% 15%);
-  --card-foreground: hsl(265 10% 98%);
-  --popover: hsl(265 40% 15%);
-  --popover-foreground: hsl(265 10% 98%);
-  --primary: hsl(325 90% 65%);
+  --background: hsl(280 50% 10%);
+  --foreground: hsl(280 10% 98%);
+  --card: hsl(280 45% 14%);
+  --card-foreground: hsl(280 10% 98%);
+  --popover: hsl(280 45% 14%);
+  --popover-foreground: hsl(280 10% 98%);
+  --primary: hsl(328 100% 65%);
+  /* Electric hot pink */
   --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(190 85% 55%);
-  /* Brighter cyan for better reach */
+  --secondary: hsl(175 100% 50%);
+  /* Vibrant cyan/turquoise */
   --secondary-foreground: hsl(200 60% 5%);
-  /* Near black blue for maximum contrast */
-  --muted: hsl(265 30% 25%);
-  --muted-foreground: hsl(265 20% 75%);
-  --accent: hsl(300 60% 50%);
-  --accent-foreground: hsl(0 0% 100%);
-  --destructive: hsl(0 80% 60%);
+  --muted: hsl(280 35% 22%);
+  --muted-foreground: hsl(280 25% 70%);
+  --accent: hsl(55 100% 55%);
+  /* Bright sunshine yellow */
+  --accent-foreground: hsl(280 50% 10%);
+  --destructive: hsl(0 90% 60%);
   --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(265 30% 30%);
-  --input: hsl(265 30% 30%);
-  --ring: hsl(325 90% 65%);
+  --border: hsl(280 35% 28%);
+  --input: hsl(280 35% 28%);
+  --ring: hsl(328 100% 65%);
 }
 
 [data-theme='beach'] {

@@ -24,18 +24,18 @@ func Register(server *mcp.Server) {
 
 // Params defines the input parameters for the read_docs tool.
 type Params struct {
-	PackagePath string `json:"package_path" jsonschema:"Import path of the package (e.g. 'fmt')"`
-	SymbolName  string `json:"symbol_name,omitempty" jsonschema:"Optional symbol name to lookup"`
-	Format      string `json:"format,omitempty" jsonschema:"Output format: 'markdown' (default) or 'json'"`
+	ImportPath string `json:"import_path" jsonschema:"Import path of the package (e.g. 'fmt')"`
+	SymbolName string `json:"symbol_name,omitempty" jsonschema:"Optional symbol name to lookup"`
+	Format     string `json:"format,omitempty" jsonschema:"Output format: 'markdown' (default) or 'json'"`
 }
 
 // Handler handles the read_docs tool execution.
 func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
-	if args.PackagePath == "" {
+	if args.ImportPath == "" {
 		return &mcp.CallToolResult{
 			IsError: true,
 			Content: []mcp.Content{
-				&mcp.TextContent{Text: "package_path cannot be empty"},
+				&mcp.TextContent{Text: "import_path cannot be empty"},
 			},
 		}, nil, nil
 	}
@@ -55,7 +55,7 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 	}
 
 	// Use GetStructuredDoc for flexibility
-	doc, err := godoc.GetStructuredDoc(ctx, args.PackagePath, args.SymbolName)
+	doc, err := godoc.GetStructuredDoc(ctx, args.ImportPath, args.SymbolName)
 	if err != nil {
 		return &mcp.CallToolResult{
 			IsError: true,

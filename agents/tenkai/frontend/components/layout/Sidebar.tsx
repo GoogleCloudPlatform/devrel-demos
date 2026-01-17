@@ -15,12 +15,12 @@ export function Sidebar() {
     ];
 
     return (
-        <aside className="w-[240px] bg-[#09090b] border-r border-[#27272a] h-screen fixed left-0 top-0 flex flex-col z-50">
+        <aside className="w-[240px] bg-background border-r border-border h-screen fixed left-0 top-0 flex flex-col z-50">
             {/* Header */}
-            <div className="h-[56px] flex items-center px-4 border-b border-[#27272a]">
+            <div className="h-[56px] flex items-center px-4 border-b border-border">
                 <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 bg-[#6366f1] rounded-[2px] flex items-center justify-center">
-                        <span className="text-white text-body font-black italic">T</span>
+                    <div className="w-5 h-5 bg-primary rounded-[2px] flex items-center justify-center">
+                        <span className="text-primary-foreground text-body font-black italic">T</span>
                     </div>
                     <span className="text-header font-bold tracking-tight">Tenkai</span>
                 </div>
@@ -35,8 +35,8 @@ export function Sidebar() {
                             key={item.href}
                             href={item.href}
                             className={`flex items-center gap-3 px-3 py-2 rounded-[2px] transition-colors text-body font-medium ${isActive
-                                ? "bg-[#27272a] text-[#f4f4f5]"
-                                : "text-[#a1a1aa] hover:bg-[#121214] hover:text-[#f4f4f5]"
+                                ? "bg-muted text-foreground"
+                                : "text-muted-foreground hover:bg-card hover:text-foreground"
                                 }`}
                         >
                             <span className="opacity-80 flex items-center justify-center">{item.icon}</span>
@@ -47,7 +47,7 @@ export function Sidebar() {
             </nav>
 
             {/* Footer */}
-            <div className="p-4 border-t border-[#27272a] space-y-4">
+            <div className="p-4 border-t border-border space-y-4">
                 <ThemeSwitcher />
                 <div className="text-body font-mono font-bold uppercase opacity-20 tracking-widest text-xs">
                     v0.3.0

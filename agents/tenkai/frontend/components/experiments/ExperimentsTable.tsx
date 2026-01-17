@@ -46,7 +46,7 @@ export default function ExperimentsTable({ experiments }: ExperimentsTableProps)
                 </TableHeader>
                 <TableBody>
                     {experiments.map((exp) => (
-                        <TableRow key={exp.id}>
+                        <TableRow key={exp.id} className={exp.is_locked ? "border-l-2 border-l-amber-500" : ""}>
                             <TableCell className="font-mono text-muted-foreground font-bold flex items-center gap-2">
                                 <span>#{exp.id}</span>
                                 <LockToggle

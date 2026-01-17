@@ -4,23 +4,19 @@ Read these references to understand the protocol and the desired module layout:
 - https://modelcontexprotocol.io
 - https://go.dev/doc/modules/layout
 
-To test the server, you can use shell commands like these:
-```sh
-(
-  echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}';
-  echo '{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}';
-  echo '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}';
-  sleep 1;
-) | ./hello
-```
 TODO:
 - Get package github.com/modelcontextprotocol/go-sdk/mcp to create the mcp server (official SDK)
 - Read the package documentation to discover the API (it is not trivial)
 - Create the server with stdio transport
 - Create one tool "hello_world" that returns the message "Hello from Tenkai!"
+- Compile the binary as "./hello"
 
 ## Acceptance Criteria
-- Command `go build -o hello .` must succeed (exit code 0).
 - Linter `./...` must pass with max 5 issues.
-- Command `(   echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}';   echo '{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}';   echo '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}';   sleep 1; ) | ./hello` must succeed (exit code 0).
 - Unit tests for `./...` must pass with min 50% coverage.
+- Command `./hello` with stdin `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}
+{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}
+{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}` must succeed (must have: stdout containing `hello_world`).
+- Command `./hello` with stdin `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}
+{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"hello_world","arguments":{}}}` must succeed (must have: stdout containing `Hello from Tenkai!`).

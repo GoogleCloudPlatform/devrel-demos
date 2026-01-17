@@ -1,30 +1,6 @@
 name: Picture Restoration App with Genkit
 description: Creates a command line application that takes a picture as input and performs a complete restoration and (optionally) colorisation.
-task: |-
-    Create a command line application called "restore". This application will take a image file, like image.jpeg, as an argument and process it to perform photo restoration, bringing it up to modern standards. The main use case is to restore old photos (often black and white) that are damaged, warped, discoloured, etc. It can also be used to take a low resolution file and upscale it.
-
-    Requirements:
-    - The CLI should be developed in Go
-    - The core of the CLI will be the nano banana pro model (gemini-3-pro-image-preview)
-    - The SDK used should be Genkit Go (github.com/firebase/genkit/go)
-
-    TODO:
-    - Create a flow called "analyse" that will assess the picture for the improvements that should be made. This flow should produce a list of recommendations to be applied to the picture to bring it up to modern standards
-    - Create a flow called "repair" that will take a set of repair instructions and use the model (nano banana pro) to perform those edits. This step should enforce that the content of the picture should not change (e.g. do not elements not present in the original picture) and the focus of the improvements should be of quality alone
-    - Create a flow called "validate" that will assess the quality of the repair comparing the original picture with the restored one. This flow should also use nano banana pro.
-    - If the validate flow finds major defects in the picture, the application should try the repair again, up to 3 times, for when the application will either succeed (exit status 0) or return an error (exit status 1)
-    - Store prompts for reusability using dotprompt (suported by Genkit)
-    - The restored file is saved as <original_name>_restored.<original_extension>
-    - If multiple restored files are present, add a sequence number after _restored e.g. _restored_1 - do not overwrite files
-    - Include flags to display help and perform intermediate steps only e.g. --validate --analyse and --restore-only - this will be helpful for debugging purposes
-
-    Acceptance Criteria
-    - `go build . -o restore` compiles without errors
-    - Test coverage > 50%
-    - Lint issues <= 5 (using `golangci-lint run`)
-    - Running "restore" with no arguments displays a help message
-    - Running "restore" with an image as argument performs the restoration
-    - A picture called "elvira.jpeg" is provided for tests. A successful restoration of this picture is required. (An LLM will be the judge)
+task: "Create a command line application called \"restore\". This application will take a image file, like image.jpeg, as an argument and process it to perform photo restoration, bringing it up to modern standards. The main use case is to restore old photos (often black and white) that are damaged, warped, discoloured, etc. It can also be used to take a low resolution file and upscale it.\r\n\r\nRequirements:\r\n- The CLI should be developed in Go\r\n- The core of the CLI will be the nano banana pro model (gemini-3-pro-image-preview)\r\n- The SDK used should be Genkit Go (github.com/firebase/genkit/go)\r\n\r\nTODO:\r\n- Create a flow called \"analyse\" that will assess the picture for the improvements that should be made. This flow should produce a list of recommendations to be applied to the picture to bring it up to modern standards\r\n- Create a flow called \"repair\" that will take a set of repair instructions and use the model (nano banana pro) to perform those edits. This step should enforce that the content of the picture should not change (e.g. do not elements not present in the original picture) and the focus of the improvements should be of quality alone\r\n- Create a flow called \"validate\" that will assess the quality of the repair comparing the original picture with the restored one. This flow should also use nano banana pro.\r\n- If the validate flow finds major defects in the picture, the application should try the repair again, up to 3 times, for when the application will either succeed (exit status 0) or return an error (exit status 1)\r\n- Store prompts for reusability using dotprompt (suported by Genkit)\r\n- The restored file is saved as <original_name>_restored.<original_extension>\r\n- If multiple restored files are present, add a sequence number after _restored e.g. _restored_1 - do not overwrite files\r\n- Include flags to display help and perform intermediate steps only e.g. --validate --analyse and --restore-only - this will be helpful for debugging purposes\r\n\r\nAcceptance Criteria\r\n- `go build . -o restore` compiles without errors\r\n- Test coverage > 50%\r\n- Lint issues <= 5 (using `golangci-lint run`)\r\n- Running \"restore\" with no arguments displays a help message\r\n- Running \"restore\" with an image as argument performs the restoration\r\n- A picture called \"elvira.jpeg\" is provided for tests. A successful restoration of this picture is required. (An LLM will be the judge)\r\n\r\n## Acceptance Criteria\r\n- Unit tests for `./...` must pass with min 50% coverage.\r\n- Linter `./...` must pass with max 5 issues.\r\n"
 assets:
     - type: file
       target: elvira.jpeg
@@ -7664,5 +7640,3 @@ validation:
     - type: lint
       target: ./...
       max_issues: 5
-    - type: model
-      prompt: Inspect this repository. There should be a command called "restore" that performs photo restorations. Perform a restoration of the file "elvira.jpeg" and then compare the restored file with the original. The restored file should correct all defects and bring the picture to modern standards, including colorisation. Your evaluation should also consider the fidelity of the picture as, since this is a restoration process, no elements not originally present in the picture should be added and conversely, no elements should be removed.

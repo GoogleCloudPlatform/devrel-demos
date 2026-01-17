@@ -244,16 +244,26 @@ export async function reValidateExperiment(experimentId: number): Promise<JobRes
     });
 }
 
-export async function toggleLock(experimentId: number, locked: boolean): Promise<boolean> {
-    try {
-        await fetchAPI(`/experiments/${experimentId}/lock`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ locked })
-        });
-        return true;
-    } catch (e) {
-        console.error("Failed to toggle lock:", e);
-        return false;
-    }
+export async function toggleLock(experimentId: number, locked: boolean): Promise<any> {
+    return fetchAPI(`/experiments/${experimentId}/lock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locked }),
+    });
+}
+
+export async function toggleScenarioLock(scenarioId: string, locked: boolean): Promise<any> {
+    return fetchAPI(`/scenarios/${scenarioId}/lock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locked }),
+    });
+}
+
+export async function toggleTemplateLock(templateId: string, locked: boolean): Promise<any> {
+    return fetchAPI(`/templates/${templateId}/lock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locked }),
+    });
 }

@@ -90,8 +90,7 @@ func Load(args []string) (*Config, error) {
 }
 
 // IsToolEnabled checks if a tool should be enabled based on the current profile and overrides.
-// 'experimental' indicates if the tool is considered experimental (legacy concept, now mostly handled by profiles).
-func (c *Config) IsToolEnabled(name string, experimental bool) bool {
+func (c *Config) IsToolEnabled(name string) bool {
 	// 1. Explicitly Disabled?
 	// Users likely use External Name in flags, but we receive Internal Name here.
 	externalName := toolnames.Registry[name].ExternalName
@@ -125,10 +124,4 @@ func (c *Config) IsToolEnabled(name string, experimental bool) bool {
 	}
 
 	return false
-}
-
-// EnableExperimentalFeatures returns true if the profile supports experimental features.
-// This is a helper for legacy checks.
-func (c *Config) EnableExperimentalFeatures() bool {
-	return c.Profile == ProfileAdvanced
 }

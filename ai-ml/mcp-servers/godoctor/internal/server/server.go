@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -101,38 +102,39 @@ func (s *Server) ServeHTTP(ctx context.Context, addr string) error {
 // RegisterHandlers wires all tools, resources, and prompts.
 func (s *Server) RegisterHandlers() error {
 	type toolDef struct {
-		name         string
-		experimental bool
-		register     func(*mcp.Server)
+		name     string
+		register func(*mcp.Server)
 	}
 
 	availableTools := []toolDef{
-		{name: "go.docs", experimental: false, register: docs.Register},
-		{name: "cmd.run", experimental: true, register: run.Register},
-		{name: "agent.review", experimental: true, register: func(srv *mcp.Server) {
+		{name: "go.docs", register: docs.Register},
+		{name: "cmd.run", register: run.Register},
+		{name: "agent.review", register: func(srv *mcp.Server) {
 			review.Register(srv, s.cfg.DefaultModel)
 		}},
-		{name: "file.read", experimental: false, register: read.Register},
-		{name: "file.outline", experimental: false, register: outline.Register},
-		{name: "symbol.inspect", experimental: false, register: inspect.Register},
-		{name: "file.edit", experimental: false, register: edit.Register},
-		{name: "file.create", experimental: true, register: create.Register},
-		{name: "go.diff", experimental: true, register: diff.Register},
-		{name: "project.map", experimental: false, register: projectmap.Register},
-		{name: "go.modernize", experimental: true, register: modernize.Register},
-		{name: "file.list", experimental: false, register: list.Register},
-		{name: "go.build", experimental: false, register: build.Register},
-		{name: "go.install", experimental: false, register: install.Register},
-		{name: "go.get", experimental: true, register: get.Register},
-		{name: "go.mod", experimental: true, register: mod.Register},
-		{name: "go.lint", experimental: true, register: lint.Register},
-		{name: "go.test", experimental: false, register: test.Register},
-		{name: "symbol.rename", experimental: true, register: rename.Register},
-		{name: "agent.specialist", experimental: true, register: specialist.Register},
+		{name: "file.read", register: read.Register},
+		{name: "file.outline", register: outline.Register},
+		{name: "symbol.inspect", register: inspect.Register},
+		{name: "file.edit", register: edit.Register},
+		{name: "file.create", register: create.Register},
+		{name: "go.diff", register: diff.Register},
+		{name: "project.map", register: projectmap.Register},
+		{name: "go.modernize", register: modernize.Register},
+		{name: "file.list", register: list.Register},
+		{name: "go.build", register: build.Register},
+		{name: "go.install", register: install.Register},
+		{name: "go.get", register: get.Register},
+		{name: "go.mod", register: mod.Register},
+		{name: "go.lint", register: lint.Register},
+		{name: "go.test", register: test.Register},
+		{name: "symbol.rename", register: rename.Register},
+		{name: "agent.specialist", register: specialist.Register},
 	}
 
+	validTools := make(map[string]bool)
 	for _, t := range availableTools {
-		if s.cfg.IsToolEnabled(t.name, t.experimental) {
+		validTools[t.name] = true
+		if s.cfg.IsToolEnabled(t.name) {
 			t.register(s.mcpServer)
 			s.registeredTools[t.name] = true
 
@@ -140,6 +142,13 @@ func (s *Server) RegisterHandlers() error {
 			if idx := strings.Index(t.name, "."); idx != -1 {
 				s.registeredTools[t.name[:idx]] = true
 			}
+		}
+	}
+
+	// Validate disabled tools
+	for name := range s.cfg.DisabledTools {
+		if !validTools[name] {
+			return fmt.Errorf("unknown tool disabled: %s", name)
 		}
 	}
 

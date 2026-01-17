@@ -22,10 +22,10 @@ func Register(server *mcp.Server) {
 
 // Params defines the input parameters.
 type Params struct {
-	File    string `json:"file" jsonschema:"File containing the identifier to rename"`
-	Line    int    `json:"line" jsonschema:"Line number (1-based)"`
-	Col     int    `json:"col" jsonschema:"Column number (1-based)"`
-	NewName string `json:"new_name" jsonschema:"The new name for the identifier"`
+	Filename string `json:"filename" jsonschema:"File containing the identifier to rename"`
+	Line     int    `json:"line" jsonschema:"Line number (1-based)"`
+	Column   int    `json:"column" jsonschema:"Column number (1-based)"`
+	NewName  string `json:"new_name" jsonschema:"The new name for the identifier"`
 }
 
 func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
@@ -34,11 +34,11 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 		return errorResult("Tool 'gopls' not found. Please install: go install golang.org/x/tools/gopls@latest"), nil, nil
 	}
 
-	if args.File == "" || args.NewName == "" || args.Line < 1 || args.Col < 1 {
-		return errorResult("Invalid arguments: file, new_name, line (>0), and col (>0) are required"), nil, nil
+	if args.Filename == "" || args.NewName == "" || args.Line < 1 || args.Column < 1 {
+		return errorResult("Invalid arguments: filename, new_name, line (>0), and column (>0) are required"), nil, nil
 	}
 
-	location := fmt.Sprintf("%s:%d:%d", args.File, args.Line, args.Col)
+	location := fmt.Sprintf("%s:%d:%d", args.Filename, args.Line, args.Column)
 
 	//nolint:gosec // G204: Subprocess launched with variable is expected behavior.
 	cmd := exec.CommandContext(ctx, "gopls", "rename", "-w", location, args.NewName)

@@ -40,8 +40,12 @@ func TestEdit_ImpactAnalysis(t *testing.T) {
 	os.WriteFile(bFile, []byte("package b\n\nimport \"example.com/impact/pkg/a\"\n\nfunc Use() {\n\ta.Hello()\n}\n"), 0644)
 
 	// 2. Initialize Graph
-	// We reset Global for test isolation (though it's a singleton, so be careful running parallel tests)
+	// We reset Global for test isolation
+	if graph.Global != nil {
+		_ = graph.Global.Close()
+	}
 	graph.Global = graph.NewManager()
+	defer func() { _ = graph.Global.Close() }()
 	graph.Global.Initialize(tmpDir)
 
 	// Scan explicitly to load packages
@@ -52,7 +56,7 @@ func TestEdit_ImpactAnalysis(t *testing.T) {
 	// 3. Perform Breaking Edit on A
 	// Change Hello() to Hello(name string)
 	res, _, err := toolHandler(context.TODO(), nil, Params{
-		File:          aFile,
+		Filename:      aFile,
 		SearchContext: "func Hello() {}",
 		Replacement:   "func Hello(name string) {}",
 	})

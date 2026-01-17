@@ -401,7 +401,7 @@ export default function RunDetails({
                     if (uniqueMsgs.length > 0) {
                         setMessages(prev => [...prev, ...uniqueMsgs]);
                     }
-                    
+
                     // Update page state to ensure we lock polling if we moved past page 1
                     if (targetPage > page) {
                         setPage(targetPage);
@@ -535,7 +535,11 @@ export default function RunDetails({
                                                             )}
                                                         </div>
                                                         {item.details && (
-                                                            <p className="text-zinc-600 text-sm truncate max-w-2xl font-mono mt-1">{item.details.split('\n')[0]}</p>
+                                                            <div className="text-zinc-600 text-[11px] font-mono mt-1 line-clamp-3">
+                                                                {item.details.split('\n').map((line: string, i: number) => (
+                                                                    <div key={i} className={line.startsWith('✓') ? 'text-emerald-500/70' : ''}>{line}</div>
+                                                                ))}
+                                                            </div>
                                                         )}
                                                     </td>
                                                     <td className="px-6 py-4 text-right">

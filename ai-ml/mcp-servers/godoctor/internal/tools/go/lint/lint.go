@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -24,8 +25,9 @@ func Register(server *mcp.Server) {
 
 // Params defines the input parameters.
 type Params struct {
-	Dir  string   `json:"dir,omitempty" jsonschema:"Directory to run analysis in (default: current)"`
-	Args []string `json:"args,omitempty" jsonschema:"Additional arguments (e.g. ./..., --fix). Default: run ./..."`
+	Dir     string   `json:"dir,omitempty" jsonschema:"Directory to run analysis in (default: current)"`
+	Command string   `json:"command,omitempty" jsonschema:"Subcommand to run (run, linters, version). Default: run"`
+	Args    []string `json:"args,omitempty" jsonschema:"Arguments for the subcommand. For 'run', usually a path like './...'."`
 }
 
 const defaultConfig = `version: "2"
@@ -70,18 +72,23 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 		}
 	}
 
-	// 1. Check if installed
-	_, err := exec.LookPath("golangci-lint")
+	// 1. Check if installed, first in PATH, then in GOPATH/bin
+	lintBin, err := exec.LookPath("golangci-lint")
 	var installLog string
 	if err != nil {
+		// Check if it exists in GOPATH/bin but isn't in PATH
+		gopath, _ := exec.CommandContext(ctx, "go", "env", "GOPATH").Output()
+		gopathBin := filepath.Join(strings.TrimSpace(string(gopath)), "bin", "golangci-lint")
+		if _, statErr := os.Stat(gopathBin); statErr == nil {
+			lintBin = gopathBin
+		}
+	}
+
+	if lintBin == "" {
 		// Not found, try to install
 		installLog = "golangci-lint not found. Installing via 'go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest'...\n"
 
 		installCmd := exec.CommandContext(ctx, "go", "install", "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest")
-		// Install usually goes to GOPATH/bin which might be in PATH, or might not.
-		// If it wasn't found in LookPath, it might be because GOPATH/bin isn't in PATH.
-		// However, we can try running it anyway after install, or try resolving it again.
-
 		out, installErr := installCmd.CombinedOutput()
 		if installErr != nil {
 			return &mcp.CallToolResult{
@@ -92,22 +99,34 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 			}, nil, nil
 		}
 		installLog += "Installation successful.\n"
+
+		// Resolve the newly installed binary path
+		gopath, _ := exec.CommandContext(ctx, "go", "env", "GOPATH").Output()
+		lintBin = filepath.Join(strings.TrimSpace(string(gopath)), "bin", "golangci-lint")
 	}
 
 	// 2. Prepare Command
-	// We use "golangci-lint" directly. If it was just installed to $GOPATH/bin and that's not in $PATH,
-	// checking LookPath again might fail.
-	// A safer bet might be $(go env GOPATH)/bin/golangci-lint, but let's try the simple way first.
-	// If the user's environment is set up for Go dev, GOPATH/bin should be in PATH.
+	// Default to "run" if command is empty
+	cmdName := args.Command
+	if cmdName == "" {
+		cmdName = "run"
+	}
 
-	cmdArgs := []string{"run"}
+	// Allow specific commands only to avoid arbitrary code execution if that were a concern,
+	// though the tool itself is for dev usage.
+	// For now, we trust the agent/user to pick "run", "linters", "version", etc.
+
+	cmdArgs := []string{cmdName}
+
+	// Append arguments
 	if len(args.Args) > 0 {
 		cmdArgs = append(cmdArgs, args.Args...)
-	} else {
+	} else if cmdName == "run" {
+		// Only default to ./... for the run command if no args provided
 		cmdArgs = append(cmdArgs, "./...")
 	}
 
-	cmd := exec.CommandContext(ctx, "golangci-lint", cmdArgs...)
+	cmd := exec.CommandContext(ctx, lintBin, cmdArgs...)
 	cmd.Dir = dir
 
 	out, err := cmd.CombinedOutput()

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/danicat/godoctor/internal/tools/symbol/inspect"
 	"github.com/danicat/godoctor/internal/tools/file/list"
 	docs "github.com/danicat/godoctor/internal/tools/go/docs"
+	"github.com/danicat/godoctor/internal/tools/symbol/inspect"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -21,8 +21,8 @@ func TestRefinedTools(t *testing.T) {
 	t.Run("read_docs_formats", func(t *testing.T) {
 		// Happy Path: Markdown (Default)
 		res, _, err := docs.Handler(ctx, nil, docs.Params{
-			PackagePath: "fmt",
-			SymbolName:  "Println",
+			ImportPath: "fmt",
+			SymbolName: "Println",
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -33,9 +33,9 @@ func TestRefinedTools(t *testing.T) {
 
 		// Happy Path: JSON
 		resJSON, _, err := docs.Handler(ctx, nil, docs.Params{
-			PackagePath: "fmt",
-			SymbolName:  "Println",
-			Format:      "json",
+			ImportPath: "fmt",
+			SymbolName: "Println",
+			Format:     "json",
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -46,8 +46,8 @@ func TestRefinedTools(t *testing.T) {
 
 		// Sad Path: Invalid Format
 		resErr, _, _ := docs.Handler(ctx, nil, docs.Params{
-			PackagePath: "fmt",
-			Format:      "yaml",
+			ImportPath: "fmt",
+			Format:     "yaml",
 		})
 		if !resErr.IsError {
 			t.Error("Expected error for invalid format")
@@ -87,8 +87,8 @@ func TestRefinedTools(t *testing.T) {
 
 		// Edge Case: Non-existent symbol
 		res, _, _ = inspect.Handler(ctx, nil, inspect.Params{
-			Package: "fmt",
-			Symbol:  "Supercalifragilistic",
+			ImportPath: "fmt",
+			SymbolName: "Supercalifragilistic",
 		})
 		if !res.IsError {
 			t.Error("Expected error for non-existent symbol")

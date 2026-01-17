@@ -38,6 +38,7 @@ type Experiment struct {
 	ExperimentControl string    `json:"experiment_control"` // Statistical reference alternative
 	ErrorMessage      string    `json:"error_message"`
 	AIAnalysis        string    `json:"ai_analysis"`
+	IsLocked          bool      `json:"is_locked"`
 
 	// Derived Metrics (Calculated on read)
 	SuccessRate     float64             `json:"success_rate"`
@@ -66,14 +67,14 @@ type ExperimentSummaryRow struct {
 	TotalToolCalls  int     `json:"total_tool_calls"`
 	FailedToolCalls int     `json:"failed_tool_calls"`
 	// P-values computed by application, not DB
-	PSuccess     float64 `json:"p_success"`
-	PDuration    float64 `json:"p_duration"`
-	PTokens      float64 `json:"p_tokens"`
-	PLint        float64 `json:"p_lint"`
-	PTestsPassed float64 `json:"p_tests_passed"`
-	PTestsFailed float64 `json:"p_tests_failed"`
-	PTimeout     float64 `json:"p_timeout"`
-	PToolCalls   float64 `json:"p_tool_calls"`
+	PSuccess         float64 `json:"p_success"`
+	PDuration        float64 `json:"p_duration"`
+	PTokens          float64 `json:"p_tokens"`
+	PLint            float64 `json:"p_lint"`
+	PTestsPassed     float64 `json:"p_tests_passed"`
+	PTestsFailed     float64 `json:"p_tests_failed"`
+	PTimeout         float64 `json:"p_timeout"`
+	PToolCalls       float64 `json:"p_tool_calls"`
 	PFailedToolCalls float64 `json:"p_failed_tool_calls"`
 
 	ToolAnalysis []ToolAnalysis `json:"tool_analysis"`

@@ -68,8 +68,8 @@ func RootSecret() int { return 1 }
 	// 3a. Call Describe with Package path (Subpackage)
 	ctx := context.Background()
 	res, _, err := Handler(ctx, nil, Params{
-		Package: "example.com/testmod/mypkg",
-		Symbol:  "secretFunc",
+		ImportPath: "example.com/testmod/mypkg",
+		SymbolName: "secretFunc",
 	})
 	if err != nil {
 		t.Fatalf("toolHandler subpkg failed: %v", err)
@@ -84,8 +84,8 @@ func RootSecret() int { return 1 }
 
 	// 3b. Test Root Package
 	resRoot, _, err := Handler(ctx, nil, Params{
-		Package: "example.com/testmod",
-		Symbol:  "RootSecret",
+		ImportPath: "example.com/testmod",
+		SymbolName: "RootSecret",
 	})
 	if err != nil {
 		t.Fatalf("toolHandler root failed: %v", err)

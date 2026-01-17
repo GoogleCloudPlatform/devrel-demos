@@ -22,6 +22,7 @@ type Template struct {
 	ScenCount     int      `json:"scen_count"`
 	Alternatives  []string `json:"alternatives"`
 	Reps          int      `json:"reps"`
+	IsLocked      bool     `json:"is_locked"`
 }
 
 // ListTemplates returns a list of available templates found in the experiments/templates directory.
@@ -67,6 +68,7 @@ func (m *Manager) ListTemplates() []Template {
 			AltCount:      len(cfg.Alternatives),
 			ScenCount:     len(cfg.Scenarios),
 			Reps:          cfg.Repetitions,
+			IsLocked:      cfg.IsLocked,
 		}
 		for _, a := range cfg.Alternatives {
 			tmpl.Alternatives = append(tmpl.Alternatives, a.Name)
@@ -101,6 +103,7 @@ func (m *Manager) GetTemplate(id string) (*Template, error) {
 			AltCount:      len(cfg.Alternatives),
 			ScenCount:     len(cfg.Scenarios),
 			Reps:          cfg.Repetitions,
+			IsLocked:      cfg.IsLocked,
 		}
 		for _, a := range cfg.Alternatives {
 			tmpl.Alternatives = append(tmpl.Alternatives, a.Name)

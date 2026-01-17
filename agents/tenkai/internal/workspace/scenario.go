@@ -21,6 +21,7 @@ type Scenario struct {
 	Task        string                  `json:"task,omitempty"`
 	Assets      []config.Asset          `json:"assets,omitempty"`
 	Validation  []config.ValidationRule `json:"validation,omitempty"`
+	IsLocked    bool                    `json:"is_locked"`
 }
 
 // ListScenarios returns a list of available scenarios found in the templates directories.
@@ -53,15 +54,16 @@ func (m *Manager) ListScenarios() []Scenario {
 			}
 
 			configPath := filepath.Join(dir, name, "scenario.yaml")
-			            if cfg, err := config.LoadScenarioConfig(configPath); err == nil {
-			                if cfg.Name != "" {
-			                    scen.Name = cfg.Name
-			                }
-			                scen.Description = cfg.Description
-			                scen.Task = cfg.Task
-			                scen.Assets = cfg.Assets
-			                scen.Validation = cfg.Validation
-			            }
+			if cfg, err := config.LoadScenarioConfig(configPath); err == nil {
+				if cfg.Name != "" {
+					scen.Name = cfg.Name
+				}
+				scen.Description = cfg.Description
+				scen.Task = cfg.Task
+				scen.Assets = cfg.Assets
+				scen.Validation = cfg.Validation
+				scen.IsLocked = cfg.IsLocked
+			}
 
 			scenarios = append(scenarios, scen)
 			seen[name] = true
@@ -90,6 +92,7 @@ func (m *Manager) GetScenario(id string) (*Scenario, error) {
 				scen.Task = cfg.Task
 				scen.Assets = cfg.Assets
 				scen.Validation = cfg.Validation
+				scen.IsLocked = cfg.IsLocked
 			}
 			return scen, nil
 		}
@@ -119,6 +122,7 @@ func (m *Manager) CreateScenario(name, description, task string, assets []config
 		Task:        task,
 		Assets:      assets,
 		Validation:  validation,
+		IsLocked:    false, // Default new scenarios to unlocked
 	}
 
 	// Persist file assets to disk instead of embedding in YAML
@@ -182,7 +186,7 @@ func (m *Manager) UpdateScenario(id, name, description, task string, validation 
 			configPath := filepath.Join(path, "scenario.yaml")
 			var cfg config.ScenarioConfig
 			if existing, err := config.LoadScenarioConfig(configPath); err == nil {
-				cfg = *existing 
+				cfg = *existing
 			}
 
 			// Update fields
@@ -198,7 +202,7 @@ func (m *Manager) UpdateScenario(id, name, description, task string, validation 
 			// Ideally we might want to merge or allow full replacement.
 			// For now, let's append new ones which seems to be the intent of "uploading files".
 			// But we also need to handle the file persistence.
-			
+
 			// Process new assets
 			for i := range assets {
 				asset := &assets[i]
@@ -208,7 +212,7 @@ func (m *Manager) UpdateScenario(id, name, description, task string, validation 
 						relPath = strings.TrimPrefix(relPath, "/")
 						relPath = strings.ReplaceAll(relPath, "../", "")
 					}
-					
+
 					if relPath == "." || relPath == "" {
 						continue
 					}

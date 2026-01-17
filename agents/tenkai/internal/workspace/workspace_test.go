@@ -49,7 +49,7 @@ func TestScenarioCRUD(t *testing.T) {
 	}
 
 	// Update
-	err = m.UpdateScenario(id, "Updated Name", "Updated Desc", "Updated Task", nil)
+	err = m.UpdateScenario(id, "Updated Name", "Updated Desc", "Updated Task", nil, nil)
 	if err != nil {
 		t.Fatalf("UpdateScenario failed: %v", err)
 	}

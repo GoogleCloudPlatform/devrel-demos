@@ -36,7 +36,12 @@ func TestValidateCommand(t *testing.T) {
 		{"Advisory: go build (force)", "go", []string{"build", "."}, true, false},
 		{"Advisory: go mod (no force)", "go", []string{"mod", "tidy"}, false, true},
 		{"Advisory: go get (force)", "go", []string{"get", "example.com/pkg"}, true, false},
+		{"Local Binary: ./hello", "./hello", []string{}, false, false},
+		{"Local Binary: ./hello", "./hello", []string{}, false, false},
 		{"Metacharacter", "ls", []string{";", "rm", "-rf", "/"}, false, true},
+		// Silent Redirection Checks
+		{"Blocked: Redirection >", "ls", []string{">", "file.txt"}, false, true},
+		{"Blocked: Pipe |", "ls", []string{"|", "grep", "foo"}, false, true},
 	}
 
 	for _, tt := range tests {
@@ -60,7 +65,7 @@ func TestHandler_OutputTruncation(t *testing.T) {
 
 	params := Params{
 		Command: "python3",
-		Args:    []string{"-c", script},
+		Args:    argsPtr([]string{"-c", script}),
 	}
 
 	res, _, err := Handler(context.Background(), &mcp.CallToolRequest{}, params)
@@ -88,8 +93,8 @@ func TestHandler_OutputTruncation(t *testing.T) {
 func TestHandler_Input(t *testing.T) {
 	params := Params{
 		Command: "python3",
-		Args:    []string{"-c", "import sys; print(sys.stdin.read().strip().upper())"},
-		Input:   "hello world",
+		Args:    argsPtr([]string{"-c", "import sys; print(sys.stdin.read().strip().upper())"}),
+		Stdin:   "hello world",
 	}
 
 	res, _, err := Handler(context.Background(), &mcp.CallToolRequest{}, params)
@@ -101,4 +106,48 @@ func TestHandler_Input(t *testing.T) {
 	if !strings.Contains(content, "HELLO WORLD") {
 		t.Errorf("Expected 'HELLO WORLD', got: %q", content)
 	}
+	if !strings.Contains(content, "HELLO WORLD") {
+		t.Errorf("Expected 'HELLO WORLD', got: %q", content)
+	}
+}
+
+func TestHandler_OutputFile(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "test-output-*.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	outputFile := tmpFile.Name()
+	tmpFile.Close()
+	os.Remove(outputFile) // Ensure it creates it
+	defer os.Remove(outputFile)
+
+	params := Params{
+		Command:    "echo",
+		Args:       argsPtr([]string{"hello file"}),
+		OutputFile: outputFile,
+	}
+
+	res, _, err := Handler(context.Background(), &mcp.CallToolRequest{}, params)
+	if err != nil {
+		t.Fatalf("Handler failed: %v", err)
+	}
+
+	// Verify File Content
+	content, err := os.ReadFile(outputFile)
+	if err != nil {
+		t.Fatalf("Failed to read output file: %v", err)
+	}
+	if strings.TrimSpace(string(content)) != "hello file" {
+		t.Errorf("Expected file content 'hello file', got %q", string(content))
+	}
+
+	// Verify Tool Response
+	mcpc := res.Content[0].(*mcp.TextContent).Text
+	if !strings.Contains(mcpc, "hello file") {
+		t.Errorf("Expected tool output to contain 'hello file', got %q", mcpc)
+	}
+}
+
+func argsPtr(s []string) *[]string {
+	return &s
 }

@@ -59,7 +59,8 @@ func (db *DB) migrate() error {
 			report_content TEXT,
 			execution_control TEXT,
 			experiment_control TEXT,
-			ai_analysis TEXT
+			ai_analysis TEXT,
+			is_locked BOOLEAN DEFAULT 0
 		);`,
 		`CREATE TABLE IF NOT EXISTS run_results (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,

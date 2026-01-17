@@ -5,7 +5,9 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"strings"
 
+	"github.com/danicat/godoctor/internal/godoc"
 	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -58,13 +60,25 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 		}, nil, nil
 	}
 
-	if result == "" {
-		result = fmt.Sprintf("Successfully ran 'go get %s'", fmt.Sprint(args.Packages))
+	// Build success message
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Successfully ran 'go get %s'\n", strings.Join(args.Packages, " ")))
+
+	// Auto-fetch documentation for each package
+	for _, pkg := range args.Packages {
+		// Strip version suffix if present (e.g., @latest, @v1.2.3)
+		pkgPath := strings.Split(pkg, "@")[0]
+
+		doc, err := godoc.GetStructuredDoc(ctx, pkgPath, "")
+		if err == nil && doc.Package != "" {
+			sb.WriteString("\n")
+			sb.WriteString(godoc.Render(doc))
+		}
 	}
 
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
-			&mcp.TextContent{Text: result},
+			&mcp.TextContent{Text: sb.String()},
 		},
 	}, nil, nil
 }

@@ -18,7 +18,8 @@ func (db *DB) GetExperiments() ([]models.Experiment, error) {
 		e.id, e.name, e.timestamp, e.status, e.reps, e.total_jobs, e.description, e.concurrent, e.config_content, e.experiment_control,
 		COALESCE(AVG(CASE WHEN r.is_success THEN 1.0 ELSE 0.0 END) * 100, 0) as success_rate,
 		COALESCE(AVG(CASE WHEN r.is_success THEN r.duration ELSE NULL END) / 1000000000.0, 0) as avg_duration,
-		COALESCE(AVG(CASE WHEN r.is_success THEN r.total_tokens ELSE NULL END), 0) as avg_tokens
+		COALESCE(AVG(CASE WHEN r.is_success THEN r.total_tokens ELSE NULL END), 0) as avg_tokens,
+		e.is_locked
 	FROM experiments e
 	LEFT JOIN run_results r ON e.id = r.experiment_id
 	GROUP BY e.id
@@ -39,7 +40,7 @@ func (db *DB) GetExperiments() ([]models.Experiment, error) {
 
 		if err := rows.Scan(
 			&e.ID, &e.Name, &ts, &e.Status, &e.Reps, &e.TotalJobs, &desc, &e.Concurrent, &confContent, &expControl,
-			&sRate, &aDur, &aTok,
+			&sRate, &aDur, &aTok, &e.IsLocked,
 		); err != nil {
 			return nil, err
 		}
@@ -96,7 +97,7 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 	query := `SELECT 
 		e.id, e.name, e.timestamp, e.config_path, e.report_path, e.results_path, 
 		e.status, e.reps, e.concurrent, e.total_jobs,
-		e.description, e.duration, e.config_content, e.report_content, e.execution_control, e.experiment_control, e.error_message, e.ai_analysis, e.pid
+		e.description, e.duration, e.config_content, e.report_content, e.execution_control, e.experiment_control, e.error_message, e.ai_analysis, e.pid, e.is_locked
 		FROM experiments e WHERE e.id = ?`
 
 	row := db.conn.QueryRow(query, id)
@@ -108,7 +109,7 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 	err := row.Scan(
 		&exp.ID, &exp.Name, &ts, &exp.ConfigPath, &exp.ReportPath, &exp.ResultsPath,
 		&exp.Status, &exp.Reps, &exp.Concurrent, &exp.TotalJobs,
-		&desc, &exp.Duration, &conf, &rep, &execCtrl, &expCtrl, &errMsg, &aiAn, &exp.PID,
+		&desc, &exp.Duration, &conf, &rep, &execCtrl, &expCtrl, &errMsg, &aiAn, &exp.PID, &exp.IsLocked,
 	)
 	if err != nil {
 		return nil, err
@@ -185,8 +186,8 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 }
 
 func (db *DB) CreateExperiment(exp *models.Experiment) (int64, error) {
-	query := `INSERT INTO experiments (name, timestamp, config_path, report_path, results_path, status, reps, concurrent, total_jobs, pid, description, config_content, experiment_control) 
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO experiments (name, timestamp, config_path, report_path, results_path, status, reps, concurrent, total_jobs, pid, description, config_content, experiment_control, is_locked) 
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	res, err := db.conn.Exec(query,
 		exp.Name,
@@ -202,6 +203,7 @@ func (db *DB) CreateExperiment(exp *models.Experiment) (int64, error) {
 		exp.Description,
 		exp.ConfigContent,
 		exp.ExperimentControl,
+		exp.IsLocked,
 	)
 	if err != nil {
 		return 0, err
@@ -211,6 +213,11 @@ func (db *DB) CreateExperiment(exp *models.Experiment) (int64, error) {
 
 func (db *DB) UpdateExperimentStatus(id int64, status string) error {
 	_, err := db.conn.Exec("UPDATE experiments SET status = ? WHERE id = ?", status, id)
+	return err
+}
+
+func (db *DB) ToggleExperimentLock(id int64, locked bool) error {
+	_, err := db.conn.Exec("UPDATE experiments SET is_locked = ? WHERE id = ?", locked, id)
 	return err
 }
 

@@ -1,15 +1,27 @@
 name: Create MCP server with official Go SDK for MCP
 description: Creates an MCP server to read Go documentation using the go doc shell command.
-task: "Your task is to create a Model Context Protocol (MCP) server to expose a “hello_world” tool. For the MCP implementation, you should use the official Go SDK for MCP and use the stdio transport. When called, this tool should return the string \"Hello from Tenkai!\"\r\n\r\nRead these references to understand the protocol and the desired module layout:\r\n- https://modelcontexprotocol.io\r\n- https://go.dev/doc/modules/layout\r\n\r\nTo test the server, you can use shell commands like these:\r\n```sh\r\n(\r\n  echo '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\"}}';\r\n  echo '{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\",\"params\":{}}';\r\n  echo '{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}';\r\n  sleep 1;\r\n) | ./hello\r\n```\r\nTODO:\r\n- Get package github.com/modelcontextprotocol/go-sdk/mcp to create the mcp server (official SDK)\r\n- Read the package documentation to discover the API (it is not trivial)\r\n- Create the server with stdio transport\r\n- Create one tool \"hello_world\" that returns the message \"Hello from Tenkai!\"\r\n\r\n## Acceptance Criteria\r\n- Command `go build -o hello .` must succeed (exit code 0).\r\n- Linter `./...` must pass with max 5 issues.\r\n- Command `(   echo '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\"}}';   echo '{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\",\"params\":{}}';   echo '{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}';   sleep 1; ) | ./hello` must succeed (exit code 0).\r\n- Unit tests for `./...` must pass with min 50% coverage.\r\n"
+task: "Your task is to create a Model Context Protocol (MCP) server to expose a “hello_world” tool. For the MCP implementation, you should use the official Go SDK for MCP and use the stdio transport. When called, this tool should return the string \"Hello from Tenkai!\"\r\n\r\nRead these references to understand the protocol and the desired module layout:\r\n- https://modelcontexprotocol.io\r\n- https://go.dev/doc/modules/layout\r\n\r\nTODO:\r\n- Get package github.com/modelcontextprotocol/go-sdk/mcp to create the mcp server (official SDK)\r\n- Read the package documentation to discover the API (it is not trivial)\r\n- Create the server with stdio transport\r\n- Create one tool \"hello_world\" that returns the message \"Hello from Tenkai!\"\r\n- Compile the binary as \"./hello\"\r\n\r\n## Acceptance Criteria\r\n- Linter `./...` must pass with max 5 issues.\r\n- Unit tests for `./...` must pass with min 50% coverage.\r\n- Command `./hello` with stdin `{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\"}}\r\n{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\",\"params\":{}}\r\n{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}` must succeed (must have: stdout containing `hello_world`).\r\n- Command `./hello` with stdin `{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\"}}\r\n{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\",\"params\":{}}\r\n{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"hello_world\",\"arguments\":{}}}` must succeed (must have: stdout containing `Hello from Tenkai!`).\r\n"
 assets: []
 validation:
-    - type: command
-      command: go build -o hello .
     - type: lint
       target: ./...
       max_issues: 5
-    - type: command
-      command: (   echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}';   echo '{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}';   echo '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}';   sleep 1; ) | ./hello
     - type: test
       target: ./...
       min_coverage: 50
+    - type: command
+      command: ./hello
+      stdin: |-
+        {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}
+        {"jsonrpc":"2.0","method":"notifications/initialized","params":{}}
+        {"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}
+      stdin_delay: 1000ms
+      expect_output: hello_world
+    - type: command
+      command: ./hello
+      stdin: |-
+        {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}
+        {"jsonrpc":"2.0","method":"notifications/initialized","params":{}}
+        {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"hello_world","arguments":{}}}
+      stdin_delay: 1000ms
+      expect_output: Hello from Tenkai!

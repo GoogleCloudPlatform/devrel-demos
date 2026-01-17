@@ -64,7 +64,7 @@ func run(ctx context.Context, args []string) error {
 	if cfg.ListTools {
 		var tools []toolnames.ToolDef
 		for _, def := range toolnames.Registry {
-			if cfg.IsToolEnabled(def.InternalName, def.Experimental) {
+			if cfg.IsToolEnabled(def.InternalName) {
 				tools = append(tools, def)
 			}
 		}

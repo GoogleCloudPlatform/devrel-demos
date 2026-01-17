@@ -2,7 +2,7 @@
 
 Create a "hello world" program in Go, using the best practices of the language.
 
-# Acceptance Criteria
-- Test coverage > 70%
-- Lint errors < 5
-- go run main.go outputs "Hello from Tenkai"
+## Acceptance Criteria
+- Unit tests for `./...` must pass with min 70% coverage.
+- Linter `./...` must pass with max 5 issues.
+- Command `./hello` must succeed (must have: stdout containing `Hello from Tenkai`).

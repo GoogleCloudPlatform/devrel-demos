@@ -30,7 +30,7 @@ func Register(server *mcp.Server) {
 
 // Params defines the input parameters for the read_code tool.
 type Params struct {
-	FilePath string `json:"file_path"`
+	Filename string `json:"filename"`
 }
 
 type symbol struct {
@@ -40,34 +40,34 @@ type symbol struct {
 }
 
 func readCodeHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
-	absPath, err := roots.Global.Validate(args.FilePath)
+	absPath, err := roots.Global.Validate(args.Filename)
 	if err != nil {
 		return errorResult(err.Error()), nil, nil
 	}
 
 	//nolint:gosec // G304: File path provided by user is validated against roots.
 	content, err := os.ReadFile(absPath)
-	args.FilePath = absPath // ensure we use absolute path for analysis
+	args.Filename = absPath // ensure we use absolute path for analysis
 
 	if err != nil {
 		return errorResult(fmt.Sprintf("failed to read file: %v", err)), nil, nil
 	}
 
-	if !strings.HasSuffix(args.FilePath, ".go") {
+	if !strings.HasSuffix(args.Filename, ".go") {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
-				&mcp.TextContent{Text: fmt.Sprintf("# File: %s\n\n```\n%s\n```", args.FilePath, string(content))},
+				&mcp.TextContent{Text: fmt.Sprintf("# File: %s\n\n```\n%s\n```", args.Filename, string(content))},
 			},
 		}, nil, nil
 	}
 
 	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, args.FilePath, content, parser.ParseComments)
+	file, err := parser.ParseFile(fset, args.Filename, content, parser.ParseComments)
 	if err != nil {
 		// If it's not a Go file or has errors, still return the content but skip symbols/analysis
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
-				&mcp.TextContent{Text: fmt.Sprintf("# File: %s\n\n```go\n%s\n```\n\n*Note: Symbol extraction skipped due to parse error: %v*", args.FilePath, string(content), err)},
+				&mcp.TextContent{Text: fmt.Sprintf("# File: %s\n\n```go\n%s\n```\n\n*Note: Symbol extraction skipped due to parse error: %v*", args.Filename, string(content), err)},
 			},
 		}, nil, nil
 	}
@@ -110,10 +110,10 @@ func readCodeHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (
 	})
 
 	// 2. Static Analysis
-	diags, _ := checkAnalysis(ctx, args.FilePath) // Ignore generic error, just show diagnostics if any
+	diags, _ := checkAnalysis(ctx, args.Filename) // Ignore generic error, just show diagnostics if any
 	// 3. Output Formatting
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("# File: %s\n\n", args.FilePath))
+	sb.WriteString(fmt.Sprintf("# File: %s\n\n", args.Filename))
 
 	sb.WriteString("## Content\n")
 	sb.WriteString("```go\n")

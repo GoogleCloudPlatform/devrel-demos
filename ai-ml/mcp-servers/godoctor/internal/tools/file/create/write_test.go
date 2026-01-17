@@ -28,8 +28,8 @@ func TestWrite(t *testing.T) {
 
 	// 1. Overwrite (Initial create)
 	res, _, _ := toolHandler(context.TODO(), nil, Params{
-		Name:    filePath,
-		Content: "package lib\n\nfunc A() {}",
+		Filename: filePath,
+		Content:  "package lib\n\nfunc A() {}",
 	})
 	if res.IsError {
 		t.Fatalf("Initial write failed: %v", res.Content[0].(*mcp.TextContent).Text)
@@ -52,13 +52,13 @@ func TestWrite_Validation(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module val-test\n\ngo 1.24\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	
+
 	filePath := filepath.Join(tmpDir, "main.go")
 
 	// Write code with missing import/symbol
 	res, _, _ := toolHandler(context.TODO(), nil, Params{
-		Name:    filePath,
-		Content: "package main\n\nfunc main() { fmt.Println(NonExistent) }",
+		Filename: filePath,
+		Content:  "package main\n\nfunc main() { fmt.Println(NonExistent) }",
 	})
 
 	output := res.Content[0].(*mcp.TextContent).Text

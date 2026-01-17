@@ -146,11 +146,16 @@ func parsePackageDocs(ctx context.Context, importPath, pkgDir, symbolName, reque
 		return nil, fmt.Errorf("doc.NewFromFiles failed: %w", err)
 	}
 
-	result.Package = targetPkg.Name
+	pkgName := targetPkg.Name
+	if pkgName == "" {
+		parts := strings.Split(importPath, "/")
+		pkgName = parts[len(parts)-1]
+	}
+	result.Package = pkgName
 
 	if symbolName == "" {
 		result.Description = targetPkg.Doc
-		result.Definition = fmt.Sprintf("package %s // import %q", targetPkg.Name, importPath)
+		result.Definition = fmt.Sprintf("package %s // import %q", pkgName, importPath)
 		result.Examples = extractExamples(fset, targetPkg.Examples)
 
 		// Populate symbol lists
