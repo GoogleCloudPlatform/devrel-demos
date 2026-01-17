@@ -69,7 +69,7 @@ func Describe(ctx context.Context, pkgName, symName, fileName string) (string, e
 	return "", fmt.Errorf("could not find description for symbol %q in %s", symName, pkgName)
 }
 
-func resolveLocal(ctx context.Context, pkgName, symName, fileName string) *godoc.StructuredDoc {
+func resolveLocal(ctx context.Context, pkgName, symName, fileName string) *godoc.Doc {
 	target := fileName
 	if target == "" {
 		target = pkgName
@@ -80,7 +80,7 @@ func resolveLocal(ctx context.Context, pkgName, symName, fileName string) *godoc
 		return nil
 	}
 
-	doc := &godoc.StructuredDoc{
+	doc := &godoc.Doc{
 		ImportPath:  pkg.PkgPath,
 		Package:     pkg.Name,
 		PkgGoDevURL: fmt.Sprintf("https://pkg.go.dev/%s", pkg.PkgPath),

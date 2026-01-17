@@ -29,10 +29,13 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+
+	"golang.org/x/tools/go/packages"
 )
 
-// GetStructuredDoc parses the package documentation and returns a structured representation.
-func GetStructuredDoc(ctx context.Context, pkgPath, symbolName string) (*StructuredDoc, error) {
+// Load resolves an import path and returns documentation.
+// It performs disk I/O ("go list") and parsing. Use this when starting from a string path.
+func Load(ctx context.Context, pkgPath, symbolName string) (*Doc, error) {
 	// Try to find the package directory locally
 	pkgDir, err := resolvePackageDir(ctx, pkgPath)
 	if err != nil {
@@ -47,9 +50,54 @@ func GetStructuredDoc(ctx context.Context, pkgPath, symbolName string) (*Structu
 	return result, nil
 }
 
+// Extract returns documentation from an already loaded packages.Package.
+// It is efficient (no I/O) as it reuses the existing AST and Type information.
+// Use this when you have a *packages.Package available.
+func Extract(pkg *packages.Package, symbolName string) (*Doc, error) {
+	if pkg == nil {
+		return nil, errors.New("package is nil")
+	}
+
+	// Transform packages.Package files into godoc Doc
+	result := &Doc{
+		ImportPath:  pkg.PkgPath,
+		Package:     pkg.Name,
+		PkgGoDevURL: fmt.Sprintf("https://pkg.go.dev/%s", pkg.PkgPath),
+	}
+
+	// Compute documentation using the syntax already loaded in the package
+	targetPkg, err := doc.NewFromFiles(pkg.Fset, pkg.Syntax, pkg.PkgPath)
+	if err != nil {
+		return nil, fmt.Errorf("doc.NewFromFiles failed: %w", err)
+	}
+
+	if symbolName == "" {
+		result.Description = targetPkg.Doc
+		result.Definition = fmt.Sprintf("package %s // import %q", pkg.Name, pkg.PkgPath)
+		// Populate lists...
+		for _, f := range targetPkg.Funcs {
+			result.Funcs = append(result.Funcs, bufferCode(pkg.Fset, f.Decl))
+		}
+		for _, t := range targetPkg.Types {
+			result.Types = append(result.Types, bufferCode(pkg.Fset, t.Decl))
+		}
+		return result, nil
+	}
+
+	result.SymbolName = symbolName
+	result.PkgGoDevURL = fmt.Sprintf("https://pkg.go.dev/%s#%s", pkg.PkgPath, symbolName)
+
+	found, _ := findSymbol(pkg.Fset, targetPkg, symbolName, result)
+	if !found {
+		return nil, fmt.Errorf("symbol %q not found in package %s", symbolName, pkg.PkgPath)
+	}
+
+	return result, nil
+}
+
 // GetDocumentation retrieves the documentation for a package or symbol as Markdown.
 func GetDocumentation(ctx context.Context, pkgPath, symbolName string) (string, error) {
-	doc, err := GetStructuredDoc(ctx, pkgPath, symbolName)
+	doc, err := Load(ctx, pkgPath, symbolName)
 	if err != nil {
 		return "", err
 	}
@@ -63,8 +111,8 @@ type Example struct {
 	Output string `json:"output,omitempty"`
 }
 
-// StructuredDoc represents the parsed documentation.
-type StructuredDoc struct {
+// Doc represents the parsed documentation.
+type Doc struct {
 	Package      string    `json:"package"`
 	ImportPath   string    `json:"importPath"`
 	ResolvedPath string    `json:"resolvedPath,omitempty"`
@@ -98,7 +146,7 @@ func resolvePackageDir(ctx context.Context, pkgPath string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-func parsePackageDocs(ctx context.Context, importPath, pkgDir, symbolName, requestedPath string) (*StructuredDoc, error) {
+func parsePackageDocs(ctx context.Context, importPath, pkgDir, symbolName, requestedPath string) (*Doc, error) {
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, pkgDir, nil, parser.ParseComments)
 	if err != nil {
@@ -113,7 +161,7 @@ func parsePackageDocs(ctx context.Context, importPath, pkgDir, symbolName, reque
 		}
 	}
 
-	result := &StructuredDoc{
+	result := &Doc{
 		ImportPath:  importPath,
 		PkgGoDevURL: fmt.Sprintf("https://pkg.go.dev/%s", importPath),
 	}
@@ -192,7 +240,7 @@ func parsePackageDocs(ctx context.Context, importPath, pkgDir, symbolName, reque
 	return result, nil
 }
 
-func findSymbol(fset *token.FileSet, pkg *doc.Package, symName string, result *StructuredDoc) (bool, []string) {
+func findSymbol(fset *token.FileSet, pkg *doc.Package, symName string, result *Doc) (bool, []string) {
 	var candidates []string
 	add := func(name string) { candidates = append(candidates, name) }
 
@@ -212,7 +260,7 @@ func findSymbol(fset *token.FileSet, pkg *doc.Package, symName string, result *S
 	return false, candidates
 }
 
-func checkFuncs(fset *token.FileSet, pkg *doc.Package, symName string, result *StructuredDoc, add func(string)) bool {
+func checkFuncs(fset *token.FileSet, pkg *doc.Package, symName string, result *Doc, add func(string)) bool {
 	for _, f := range pkg.Funcs {
 		if f.Name == symName {
 			populateFunc(fset, pkg, f, result)
@@ -223,7 +271,7 @@ func checkFuncs(fset *token.FileSet, pkg *doc.Package, symName string, result *S
 	return false
 }
 
-func checkTypes(fset *token.FileSet, pkg *doc.Package, symName string, result *StructuredDoc, add func(string)) bool {
+func checkTypes(fset *token.FileSet, pkg *doc.Package, symName string, result *Doc, add func(string)) bool {
 	for _, t := range pkg.Types {
 		if t.Name == symName {
 			result.Type = "type"
@@ -256,7 +304,7 @@ func checkTypes(fset *token.FileSet, pkg *doc.Package, symName string, result *S
 	return false
 }
 
-func checkVars(fset *token.FileSet, pkg *doc.Package, symName string, result *StructuredDoc, add func(string)) bool {
+func checkVars(fset *token.FileSet, pkg *doc.Package, symName string, result *Doc, add func(string)) bool {
 	for _, v := range pkg.Vars {
 		for _, name := range v.Names {
 			if name == symName {
@@ -271,7 +319,7 @@ func checkVars(fset *token.FileSet, pkg *doc.Package, symName string, result *St
 	return false
 }
 
-func checkConsts(fset *token.FileSet, pkg *doc.Package, symName string, result *StructuredDoc, add func(string)) bool {
+func checkConsts(fset *token.FileSet, pkg *doc.Package, symName string, result *Doc, add func(string)) bool {
 	for _, c := range pkg.Consts {
 		for _, name := range c.Names {
 			if name == symName {
@@ -286,7 +334,7 @@ func checkConsts(fset *token.FileSet, pkg *doc.Package, symName string, result *
 	return false
 }
 
-func populateFunc(fset *token.FileSet, pkg *doc.Package, f *doc.Func, result *StructuredDoc) {
+func populateFunc(fset *token.FileSet, pkg *doc.Package, f *doc.Func, result *Doc) {
 	result.Type = "function"
 	result.Definition = bufferCode(fset, f.Decl)
 
@@ -353,8 +401,8 @@ func bufferCode(fset *token.FileSet, node any) string {
 	return buf.String()
 }
 
-// Render converts a StructuredDoc to Markdown.
-func Render(doc *StructuredDoc) string {
+// Render converts a Doc to Markdown.
+func Render(doc *Doc) string {
 	var buf strings.Builder
 
 	buf.WriteString(fmt.Sprintf("# %s\n\n", doc.ImportPath))
@@ -520,7 +568,7 @@ func levenshtein(s1, s2 string) int {
 	return currentRow[n]
 }
 
-func fetchAndRetryStructured(ctx context.Context, pkgPath, symbolName string, originalErr error) (*StructuredDoc, error) {
+func fetchAndRetryStructured(ctx context.Context, pkgPath, symbolName string, originalErr error) (*Doc, error) {
 	tempDir, err := setupTempModule(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup temp module: %w", err)

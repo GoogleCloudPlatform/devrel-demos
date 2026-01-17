@@ -80,6 +80,15 @@ func main() {
 	if !strings.Contains(text, "undefined: undefinedFunc") {
 		t.Errorf("expected undefinedFunc error in analysis, got: %s", text)
 	}
+
+	// Check for Referenced Symbols
+	// Note: We used "fmt" in the test code, so it should appear
+	if !strings.Contains(text, "## Referenced Symbols") {
+		t.Errorf("expected Referenced Symbols section, got: %s", text)
+	}
+	if !strings.Contains(text, "- `fmt.Println`") {
+		t.Errorf("expected fmt.Println in dependencies, got: %s", text)
+	}
 }
 
 func TestReadCodeTool_Partial(t *testing.T) {

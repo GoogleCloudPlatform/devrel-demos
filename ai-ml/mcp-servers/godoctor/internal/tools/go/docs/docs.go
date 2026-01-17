@@ -54,8 +54,8 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 		}, nil, nil
 	}
 
-	// Use GetStructuredDoc for flexibility
-	doc, err := godoc.GetStructuredDoc(ctx, args.ImportPath, args.SymbolName)
+	// Use Load for flexibility
+	doc, err := godoc.Load(ctx, args.ImportPath, args.SymbolName)
 	if err != nil {
 		return &mcp.CallToolResult{
 			IsError: true,

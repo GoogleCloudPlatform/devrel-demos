@@ -42,17 +42,11 @@ func Load(args []string) (*Config, error) {
 	allowFlag := fs.String("allow", "", "comma-separated list of tools to explicitly allow (overrides profile defaults)")
 	disableFlag := fs.String("disable", "", "comma-separated list of tools to disable")
 
-	// Legacy flag for backward compatibility, mapped to "full" profile conceptually or ignored if profile is set
-	experimentalFlag := fs.Bool("experimental", false, "[deprecated] enable experimental features (use --profile=advanced)")
-
 	if err := fs.Parse(args); err != nil {
 		return nil, err
 	}
 
 	profile := Profile(*profileFlag)
-	if *experimentalFlag && profile == ProfileStandard {
-		profile = ProfileAdvanced
-	}
 
 	switch profile {
 	case ProfileStandard, ProfileAdvanced, ProfileOracle:

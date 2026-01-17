@@ -6,34 +6,32 @@ import (
 
 func TestLoad(t *testing.T) {
 	tests := []struct {
-		name             string
-		args             []string
-		wantExperimental bool
-		wantDisabled     []string
+		name         string
+		args         []string
+		wantProfile  Profile
+		wantDisabled []string
 	}{
 		{
-			name:             "default",
-			args:             []string{},
-			wantExperimental: false,
-		},
-		{
-			name:             "experimental true",
-			args:             []string{"--experimental"},
-			wantExperimental: true,
+			name:        "default",
+			args:        []string{},
+			wantProfile: ProfileStandard,
 		},
 		{
 			name:         "disable single tool",
 			args:         []string{"--disable", "review_code"},
+			wantProfile:  ProfileStandard,
 			wantDisabled: []string{"review_code"},
 		},
 		{
 			name:         "disable multiple tools",
 			args:         []string{"--disable", "review_code,write, edit_code"},
+			wantProfile:  ProfileStandard,
 			wantDisabled: []string{"review_code", "write", "edit_code"},
 		},
 		{
 			name:         "disable empty",
 			args:         []string{"--disable", ""},
+			wantProfile:  ProfileStandard,
 			wantDisabled: []string{},
 		},
 	}
@@ -44,8 +42,9 @@ func TestLoad(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Load() error = %v", err)
 			}
-			if cfg.EnableExperimentalFeatures() != tt.wantExperimental {
-				t.Errorf("Load().EnableExperimentalFeatures() = %v, want %v", cfg.EnableExperimentalFeatures(), tt.wantExperimental)
+			
+			if cfg.Profile != tt.wantProfile {
+				t.Errorf("Load() Profile = %v, want %v", cfg.Profile, tt.wantProfile)
 			}
 
 			if len(tt.wantDisabled) != len(cfg.DisabledTools) {

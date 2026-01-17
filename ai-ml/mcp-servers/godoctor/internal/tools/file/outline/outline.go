@@ -83,7 +83,8 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 			// We only want to burn tokens on non-std or meaningful deps.
 			// Let's show all for now but minimal summary.
 
-			doc, err := godoc.GetStructuredDoc(ctx, pkgPath, "")
+			doc, err := godoc.Load(ctx, pkgPath, "")
+
 			if err == nil && doc != nil {
 				sb.WriteString(fmt.Sprintf("### %s\n", pkgPath))
 				sb.WriteString(doc.Description + "\n\n")
