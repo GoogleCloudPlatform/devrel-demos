@@ -43,10 +43,11 @@ The single `DenyList` will be split into three distinct categories:
 *   **Search:** `grep`, `find` → Hint: *"Use `file_search` (text) or `symbol_inspect` (code)."*
 
 ### 3. Dynamic Integrity Barrier (The "Code Guard")
-*   **Triggers:** `rm`, `mv`, `cp`, `sed`, `awk`, `echo` (with redirection).
+*   **Triggers:** `sed`, `awk`, `echo` (with redirection).
 *   **Check:** Does any argument end in `.go`?
 *   **Action:** **BLOCK**.
-*   **Message:** *"Modifying .go files via shell is forbidden to ensure integrity (goimports, syntax check). Use `file_edit`."*
+*   **Message:** *"Modifying .go files via shell text processing is forbidden to ensure integrity (goimports, syntax check). Use `file_edit`."*
+*   **Note:** `rm`, `mv`, and `cp` are **ALLOWED** for cleanup and refactoring purposes, subject to standard path traversal checks.
 
 ## Output Formatting
 If a command triggers an Advisory rule, the output will be wrapped:
