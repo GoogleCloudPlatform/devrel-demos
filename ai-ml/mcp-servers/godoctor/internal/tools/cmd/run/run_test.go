@@ -62,8 +62,8 @@ func TestValidateCommandV2(t *testing.T) {
 		{"Hard Block: go build", "go", []string{"build", "."}, false, true},
 		{"Advisory: ls", "ls", []string{"-la"}, true, false},
 		{"Advisory: cat", "cat", []string{"README.md"}, true, false},
-		{"Code Integrity: rm .go", "rm", []string{"main.go"}, false, true},
-		{"Code Integrity: mv .go", "mv", []string{"old.go", "new.go"}, false, true},
+		{"Code Integrity: rm .go (allowed)", "rm", []string{"main.go"}, false, false},
+		{"Code Integrity: mv .go (allowed)", "mv", []string{"old.go", "new.go"}, false, false},
 		{"Code Integrity: rm .md (allowed)", "rm", []string{"README.md"}, false, false},
 		{"Safe: echo", "echo", []string{"hello"}, false, false},
 	}

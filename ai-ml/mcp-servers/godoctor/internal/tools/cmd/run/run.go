@@ -373,14 +373,11 @@ var (
 		"cat":  "'file_read' is a more appropriate tool for reading files.",
 		"head": "'file_read' is a more appropriate tool for reading files.",
 		"tail": "'file_read' is a more appropriate tool for reading files.",
-		"grep": "use 'file_search' (text) or 'symbol_inspect' (code) for better results.",
+		"grep": "use 'symbol_inspect' for Go code search. For text search in non-Go files, grep is permitted.",
 		"find": "use 'file_list' for structured directory mapping.",
 	}
 
 	integrityBarrierTriggers = map[string]bool{
-		"rm":  true,
-		"mv":  true,
-		"cp":  true,
 		"sed": true,
 		"awk": true,
 	}
