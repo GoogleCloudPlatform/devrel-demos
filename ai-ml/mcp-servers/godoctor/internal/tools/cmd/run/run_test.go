@@ -11,46 +11,71 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func TestValidateCommand(t *testing.T) {
+func TestValidateCommandV1(t *testing.T) {
 	tests := []struct {
 		name    string
 		cmd     string
 		args    []string
-		force   bool
 		wantErr bool
 	}{
-		{"Allowed: go", "go", []string{"version"}, false, false},
-		{"Allowed: python", "python", []string{"script.py"}, false, false},
-		{"Allowed: Local Binary", "./bin/server", []string{}, false, false},
-		{"Allowed: File Op", "rm", []string{"foo.txt"}, false, false},
-		{"Blocked: git", "git", []string{"status"}, false, true},
-		{"Blocked: bash", "bash", []string{"-c", "echo hello"}, false, true},
+		{"Allowed: go", "go", []string{"version"}, false},
+		{"Allowed: python", "python", []string{"script.py"}, false},
+		{"Allowed: Local Binary", "./bin/server", []string{}, false},
+		{"Allowed: File Op", "rm", []string{"foo.txt"}, false},
+		{"Blocked: git", "git", []string{"status"}, true},
+		{"Blocked: bash", "bash", []string{"-c", "echo hello"}, true},
 		// Hardened Validation Tests
-		{"Universal: Abs Path", "python", []string{"/etc/passwd"}, false, true},
-		{"Universal: Traversal", "python", []string{"../header.h"}, false, true},
-		{"Universal: Unsafe Flag", "ls", []string{"--config=/etc/config"}, false, true},
-		{"Universal: Safe Flag", "ls", []string{"--verbose"}, true, true}, // Blocked by DenyList even with force
-		{"Blocked: File Op Abs Path", "rm", []string{"/etc/passwd"}, false, true},
-		{"Blocked: File Op Traversal", "rm", []string{"../foo.txt"}, false, true},
-		{"Nudged: grep (no force)", "grep", []string{"func"}, false, true},
-		{"Nudged: grep (force)", "grep", []string{"func"}, true, true}, // Blocked by DenyList
-		{"Advisory: go build (no force)", "go", []string{"build", "."}, false, true},
-		{"Advisory: go build (force)", "go", []string{"build", "."}, true, true}, // Blocked by DenyList
-		{"Advisory: go mod (no force)", "go", []string{"mod", "tidy"}, false, true},
-		{"Advisory: go get (force)", "go", []string{"get", "example.com/pkg"}, true, true}, // Blocked by DenyList
-		{"Local Binary: ./hello", "./hello", []string{}, false, false},
-		{"Local Binary: ./hello", "./hello", []string{}, false, false},
-		{"Metacharacter", "ls", []string{";", "rm", "-rf", "/"}, false, true},
+		{"Universal: Abs Path", "python", []string{"/etc/passwd"}, true},
+		{"Universal: Traversal", "python", []string{"../header.h"}, true},
+		{"Universal: Unsafe Flag", "ls", []string{"--config=/etc/config"}, true},
+		{"Blocked: File Op Abs Path", "rm", []string{"/etc/passwd"}, true},
+		{"Blocked: File Op Traversal", "rm", []string{"../foo.txt"}, true},
+		{"Blocked: grep", "grep", []string{"func"}, true},
+		{"Advisory: go build", "go", []string{"build", "."}, true},
+		{"Advisory: go mod", "go", []string{"mod", "tidy"}, true},
+		{"Advisory: go get", "go", []string{"get", "example.com/pkg"}, true},
+		{"Metacharacter", "ls", []string{";", "rm", "-rf", "/"}, true},
 		// Silent Redirection Checks
-		{"Blocked: Redirection >", "ls", []string{">", "file.txt"}, false, true},
-		{"Blocked: Pipe |", "ls", []string{"|", "grep", "foo"}, false, true},
+		{"Blocked: Redirection >", "ls", []string{">", "file.txt"}, true},
+		{"Blocked: Pipe |", "ls", []string{"|", "grep", "foo"}, true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateCommand(tt.cmd, tt.args, tt.force)
+			err := validateCommand(tt.cmd, tt.args, false)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("validateCommand() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateCommandV2(t *testing.T) {
+	tests := []struct {
+		name       string
+		cmd        string
+		args       []string
+		wantAdvice bool
+		wantErr    bool
+	}{
+		{"Hard Block: sudo", "sudo", []string{"ls"}, false, true},
+		{"Hard Block: go build", "go", []string{"build", "."}, false, true},
+		{"Advisory: ls", "ls", []string{"-la"}, true, false},
+		{"Advisory: cat", "cat", []string{"README.md"}, true, false},
+		{"Code Integrity: rm .go", "rm", []string{"main.go"}, false, true},
+		{"Code Integrity: mv .go", "mv", []string{"old.go", "new.go"}, false, true},
+		{"Code Integrity: rm .md (allowed)", "rm", []string{"README.md"}, false, false},
+		{"Safe: echo", "echo", []string{"hello"}, false, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			advice, err := validateCommandV2(tt.cmd, tt.args)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateCommandV2() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if (advice != "") != tt.wantAdvice {
+				t.Errorf("validateCommandV2() advice = %q, wantAdvice %v", advice, tt.wantAdvice)
 			}
 		})
 	}
@@ -70,7 +95,7 @@ func TestHandler_OutputTruncation(t *testing.T) {
 		Args:    []string{"-c", script},
 	}
 
-	res, _, err := Handler(context.Background(), &mcp.CallToolRequest{}, params)
+	res, _, err := Handler(context.Background(), &mcp.CallToolRequest{}, params, false)
 	if err != nil {
 		t.Fatalf("Handler failed: %v", err)
 	}
@@ -85,11 +110,6 @@ func TestHandler_OutputTruncation(t *testing.T) {
 	if !strings.Contains(content, "[...TAIL...]") {
 		t.Error("Expected tail marker")
 	}
-
-	// Clean up generated log file
-	// We can't easily guess the filename here without parsing the output,
-	// but the test is mainly about the response format.
-	// In a real integration test we'd check the file existence.
 }
 
 func TestHandler_Input(t *testing.T) {
@@ -99,7 +119,7 @@ func TestHandler_Input(t *testing.T) {
 		Stdin:   "hello world\n",
 	}
 
-	res, _, err := Handler(context.Background(), &mcp.CallToolRequest{}, params)
+	res, _, err := Handler(context.Background(), &mcp.CallToolRequest{}, params, false)
 	if err != nil {
 		t.Fatalf("Handler failed: %v", err)
 	}
@@ -126,7 +146,7 @@ func TestHandler_OutputFile(t *testing.T) {
 		OutputFile: outputFile,
 	}
 
-	res, _, err := Handler(context.Background(), &mcp.CallToolRequest{}, params)
+	res, _, err := Handler(context.Background(), &mcp.CallToolRequest{}, params, false)
 	if err != nil {
 		t.Fatalf("Handler failed: %v", err)
 	}
@@ -158,7 +178,7 @@ func TestHandler_BackgroundAndKill(t *testing.T) {
 		Background: true,
 	}
 
-	res, _, err := Handler(context.Background(), nil, params)
+	res, _, err := Handler(context.Background(), nil, params, false)
 	if err != nil {
 		t.Fatalf("Failed to start background process: %v", err)
 	}
@@ -190,7 +210,7 @@ func TestHandler_BackgroundAndKill(t *testing.T) {
 		Command: "kill",
 		Args:    []string{pidStr},
 	}
-	res, _, err = Handler(context.Background(), nil, killParams)
+	res, _, err = Handler(context.Background(), nil, killParams, false)
 	if err != nil {
 		t.Errorf("Safe kill failed: %v", err)
 	}
@@ -203,7 +223,7 @@ func TestHandler_BackgroundAndKill(t *testing.T) {
 	// Wait for cleanup
 	time.Sleep(500 * time.Millisecond)
 
-	res, _, _ = Handler(context.Background(), nil, killParams)
+	res, _, _ = Handler(context.Background(), nil, killParams, false)
 	// Handler doesn't return Go error for tool error, check result
 	if !res.IsError {
 		t.Error("Expected error result killing already-dead process")
@@ -218,7 +238,7 @@ func TestHandler_BackgroundAndKill(t *testing.T) {
 		Command: "kill",
 		Args:    []string{"999999"},
 	}
-	res, _, _ = Handler(context.Background(), nil, randomKill)
+	res, _, _ = Handler(context.Background(), nil, randomKill, false)
 	if !res.IsError {
 		t.Error("Expected error result killing random PID")
 	}

@@ -28,6 +28,7 @@ type Config struct {
 	Profile       Profile
 	AllowedTools  map[string]bool // If non-empty, ONLY these tools are allowed (after profile expansion)
 	DisabledTools map[string]bool // These tools are explicitly disabled
+	SafeShellV2   bool            // Use the new 3-tier advisory/integrity logic for safe_shell
 }
 
 // Load parses command-line arguments and returns a Config struct.
@@ -41,6 +42,7 @@ func Load(args []string) (*Config, error) {
 	profileFlag := fs.String("profile", "standard", "server profile: standard, advanced, oracle")
 	allowFlag := fs.String("allow", "", "comma-separated list of tools to explicitly allow (overrides profile defaults)")
 	disableFlag := fs.String("disable", "", "comma-separated list of tools to disable")
+	safeShellV2 := fs.Bool("safe-shell-v2", false, "enable the new 3-tier advisory/integrity logic for safe_shell")
 
 	if err := fs.Parse(args); err != nil {
 		return nil, err
@@ -78,6 +80,7 @@ func Load(args []string) (*Config, error) {
 		Profile:       profile,
 		AllowedTools:  parseList(*allowFlag),
 		DisabledTools: parseList(*disableFlag),
+		SafeShellV2:   *safeShellV2,
 	}
 
 	return cfg, nil

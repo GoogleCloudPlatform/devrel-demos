@@ -108,7 +108,9 @@ func (s *Server) RegisterHandlers() error {
 
 	availableTools := []toolDef{
 		{name: "go.docs", register: docs.Register},
-		{name: "cmd.run", register: run.Register},
+		{name: "cmd.run", register: func(srv *mcp.Server) {
+			run.Register(srv, s.cfg.SafeShellV2)
+		}},
 		{name: "agent.review", register: func(srv *mcp.Server) {
 			review.Register(srv, s.cfg.DefaultModel)
 		}},

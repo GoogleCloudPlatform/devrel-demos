@@ -10,7 +10,21 @@ Transform `safe_shell` from a "blocked/unblocked" gatekeeper into an **opinionat
 
 ## API Changes
 *   **Remove:** `Force` parameter from `Params` struct.
+*   **Add:** `CloseStdin` (bool) to `Params`.
 *   **Update:** `validateCommand` signature.
+
+## Execution Semantics (Batch vs. Interactive)
+
+`safe_shell` supports two modes of input handling to accommodate different tool behaviors.
+
+*   **Default (Keep-Alive):** `CloseStdin: false`
+    *   **Behavior:** Writes `stdin` content but leaves the pipe **open**.
+    *   **Use Case:** REPLs (`python -i`, `node`) that terminate immediately upon EOF.
+    *   **Result:** Process runs until `TimeoutSeconds` (default 5s) kills it. Output is captured.
+*   **Batch Mode:** `CloseStdin: true`
+    *   **Behavior:** Writes `stdin` content and **closes the pipe** (sends EOF).
+    *   **Use Case:** Filters (`grep`, `cat`, `sed`) that read until EOF.
+    *   **Result:** Process finishes immediately after processing input. Fast execution.
 
 ## Validation Logic
 
