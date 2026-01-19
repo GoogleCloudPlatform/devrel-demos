@@ -166,6 +166,7 @@ export default function ReportViewer({
     const [inspectedValidation, setInspectedValidation] = useState<any>(null);
     const [configModalContent, setConfigModalContent] = useState<{ title: string, content: string } | null>(null);
     const [isRevalidating, setIsRevalidating] = useState(false);
+    const [filterAlternative, setFilterAlternative] = useState<string | null>(null);
 
     const isRunning = experiment.status?.toUpperCase() === 'RUNNING';
 
@@ -200,7 +201,9 @@ export default function ReportViewer({
         if (runResults.length < 100) {
             setHasMore(false);
         }
-    }, []);
+        // Sync local state if prop updates (e.g. from polling in parent)
+        setRuns(runResults);
+    }, [runResults]);
 
     // Sync selectedRun with runId in URL
     useEffect(() => {
@@ -236,6 +239,11 @@ export default function ReportViewer({
 
     const handleSelectRun = (run: RunResultRecord) => {
         updateUrl({ tab: 'investigate', runId: run.id });
+    };
+
+    const handleAlternativeClick = (alt: string) => {
+        setFilterAlternative(alt);
+        handleTabChange('investigate');
     };
 
     // Fetch run details when a run is selected
@@ -288,9 +296,9 @@ export default function ReportViewer({
     }, [selectedRun]);
 
     return (
-        <div className="flex flex-col h-full bg-[#0c0c0e] text-body">
+        <div className="flex flex-col h-full bg-background text-body">
             {/* Workbench Tab Bar */}
-            <div className="flex justify-between items-center px-4 h-[56px] border-b border-[#27272a] bg-[#09090b]">
+            <div className="flex justify-between items-center px-4 h-[56px] border-b border-border bg-card">
                 <div className="flex h-full">
                     {[
                         { id: 'overview', label: 'Overview' },
@@ -301,8 +309,8 @@ export default function ReportViewer({
                             key={tab.id}
                             onClick={() => handleTabChange(tab.id as any)}
                             className={`px-6 h-full font-bold uppercase tracking-widest transition-all border-b-2 ${activeTab === tab.id
-                                ? "border-[#6366f1] text-[#f4f4f5]"
-                                : "border-transparent text-[#52525b] hover:text-[#a1a1aa]"
+                                ? "border-primary text-foreground"
+                                : "border-transparent text-muted-foreground hover:text-foreground"
                                 }`}
                         >
                             {tab.label}
@@ -348,6 +356,7 @@ export default function ReportViewer({
                                         stats={stats}
                                         controlBaseline={experiment.experiment_control}
                                         alternatives={config?.alternatives?.map((a: any) => a.name)}
+                                        onAlternativeClick={handleAlternativeClick}
                                     />
 
                                     <ToolImpactTable
@@ -369,7 +378,7 @@ export default function ReportViewer({
 
                     {activeTab === 'investigate' && (
                         <div className="flex h-[calc(100vh-200px)] gap-6 animate-in fade-in duration-500">
-                            <div className="w-[350px] flex-shrink-0 panel bg-[#09090b]">
+                            <div className="w-[350px] flex-shrink-0 panel bg-card">
                                 <RunHistory
                                     runs={runs}
                                     selectedRunId={selectedRun?.id || null}
@@ -377,9 +386,11 @@ export default function ReportViewer({
                                     onLoadMore={loadMoreRuns}
                                     hasMore={hasMore}
                                     loading={loadingRuns}
+                                    filterAlternative={filterAlternative}
+                                    onClearFilter={() => setFilterAlternative(null)}
                                 />
                             </div>
-                            <div className="flex-1 overflow-y-auto panel bg-[#0c0c0e] p-6">
+                            <div className="flex-1 overflow-y-auto panel bg-card p-6">
                                 {selectedRun ? (
                                     loadingDetails ? (
                                         <div className="flex items-center justify-center h-full animate-pulse">
@@ -442,7 +453,7 @@ export default function ReportViewer({
                                             <div className="p-6 space-y-6 flex-1 bg-transparent">
                                                 {/* Command */}
                                                 <div className="space-y-2">
-                                                    <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">Execution Command</p>
+                                                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Execution Command</p>
                                                     <div className="font-mono text-sm bg-black/40 p-3 rounded border border-white/5 text-zinc-300 break-all cursor-default">
                                                         <span className="text-emerald-400 font-bold">{alt.command}</span> {alt.args?.join(' ')} <span className="text-zinc-500 italic">&lt;PROMPT&gt;</span>
                                                     </div>
@@ -478,7 +489,7 @@ export default function ReportViewer({
                                                     </div>
 
                                                     <div className="space-y-2">
-                                                        <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">GEMINI.md (Context)</p>
+                                                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">GEMINI.md (Context)</p>
                                                         {alt.context_file_path ? (
                                                             <div
                                                                 className="flex items-center gap-2 text-emerald-400 font-mono text-sm cursor-pointer hover:underline"
@@ -507,7 +518,7 @@ export default function ReportViewer({
                                                     </div>
 
                                                     <div className="space-y-2">
-                                                        <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">Settings</p>
+                                                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Settings</p>
                                                         {alt.settings_path ? (
                                                             <div
                                                                 className="flex items-center gap-2 text-amber-400 font-mono text-sm cursor-pointer hover:underline"
@@ -551,12 +562,12 @@ export default function ReportViewer({
 
             {configModalContent && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setConfigModalContent(null)}>
-                    <div className="bg-[#161618] border border-[#27272a] rounded-lg shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center p-4 border-b border-[#27272a]">
-                            <h3 className="font-bold uppercase tracking-widest text-[#f4f4f5]">{configModalContent.title}</h3>
-                            <button onClick={() => setConfigModalContent(null)} className="text-zinc-500 hover:text-white transition-colors">✕</button>
+                    <div className="bg-popover border border-border rounded-lg shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center p-4 border-b border-border">
+                            <h3 className="font-bold uppercase tracking-widest text-foreground">{configModalContent.title}</h3>
+                            <button onClick={() => setConfigModalContent(null)} className="text-muted-foreground hover:text-foreground transition-colors">✕</button>
                         </div>
-                        <div className="p-6 overflow-auto font-mono text-sm text-zinc-300 whitespace-pre-wrap">
+                        <div className="p-6 overflow-auto font-mono text-sm text-muted-foreground whitespace-pre-wrap">
                             {configModalContent.content}
                         </div>
                     </div>

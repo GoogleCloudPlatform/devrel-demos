@@ -8,30 +8,25 @@ func TestLoad(t *testing.T) {
 	tests := []struct {
 		name         string
 		args         []string
-		wantProfile  Profile
 		wantDisabled []string
 	}{
 		{
-			name:        "default",
-			args:        []string{},
-			wantProfile: ProfileStandard,
+			name: "default",
+			args: []string{},
 		},
 		{
 			name:         "disable single tool",
 			args:         []string{"--disable", "review_code"},
-			wantProfile:  ProfileStandard,
 			wantDisabled: []string{"review_code"},
 		},
 		{
 			name:         "disable multiple tools",
 			args:         []string{"--disable", "review_code,write, edit_code"},
-			wantProfile:  ProfileStandard,
 			wantDisabled: []string{"review_code", "write", "edit_code"},
 		},
 		{
 			name:         "disable empty",
 			args:         []string{"--disable", ""},
-			wantProfile:  ProfileStandard,
 			wantDisabled: []string{},
 		},
 	}
@@ -41,10 +36,6 @@ func TestLoad(t *testing.T) {
 			cfg, err := Load(tt.args)
 			if err != nil {
 				t.Fatalf("Load() error = %v", err)
-			}
-			
-			if cfg.Profile != tt.wantProfile {
-				t.Errorf("Load() Profile = %v, want %v", cfg.Profile, tt.wantProfile)
 			}
 
 			if len(tt.wantDisabled) != len(cfg.DisabledTools) {

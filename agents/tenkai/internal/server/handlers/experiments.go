@@ -185,6 +185,27 @@ func (api *API) SaveAIAnalysis(r *http.Request) (any, error) {
 	return map[string]string{"status": "saved"}, nil
 }
 
+func (api *API) SaveExperimentAnnotations(r *http.Request) (any, error) {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return nil, NewAPIError(http.StatusBadRequest, "Invalid ID")
+	}
+
+	var req struct {
+		Annotations string `json:"annotations"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, NewAPIError(http.StatusBadRequest, err.Error())
+	}
+
+	if err := api.DB.UpdateExperimentAnnotations(id, req.Annotations); err != nil {
+		return nil, err
+	}
+
+	return map[string]string{"status": "saved"}, nil
+}
+
 func spawnRunner(args []string) (int, error) {
 	log.Printf("[Server] Spawning tenkai: %v", args)
 

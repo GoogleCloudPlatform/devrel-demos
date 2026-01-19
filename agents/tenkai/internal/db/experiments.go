@@ -97,19 +97,19 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 	query := `SELECT 
 		e.id, e.name, e.timestamp, e.config_path, e.report_path, e.results_path, 
 		e.status, e.reps, e.concurrent, e.total_jobs,
-		e.description, e.duration, e.config_content, e.report_content, e.execution_control, e.experiment_control, e.error_message, e.ai_analysis, e.pid, e.is_locked
+		e.description, e.duration, e.config_content, e.report_content, e.execution_control, e.experiment_control, e.error_message, e.ai_analysis, e.pid, e.is_locked, e.annotations
 		FROM experiments e WHERE e.id = ?`
 
 	row := db.conn.QueryRow(query, id)
 
 	var exp models.Experiment
 	var ts string
-	var desc, conf, rep, execCtrl, expCtrl, errMsg, aiAn sql.NullString
+	var desc, conf, rep, execCtrl, expCtrl, errMsg, aiAn, ann sql.NullString
 
 	err := row.Scan(
 		&exp.ID, &exp.Name, &ts, &exp.ConfigPath, &exp.ReportPath, &exp.ResultsPath,
 		&exp.Status, &exp.Reps, &exp.Concurrent, &exp.TotalJobs,
-		&desc, &exp.Duration, &conf, &rep, &execCtrl, &expCtrl, &errMsg, &aiAn, &exp.PID, &exp.IsLocked,
+		&desc, &exp.Duration, &conf, &rep, &execCtrl, &expCtrl, &errMsg, &aiAn, &exp.PID, &exp.IsLocked, &ann,
 	)
 	if err != nil {
 		return nil, err
@@ -122,6 +122,7 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 	exp.ExperimentControl = expCtrl.String
 	exp.ErrorMessage = errMsg.String
 	exp.AIAnalysis = aiAn.String
+	exp.Annotations = ann.String
 
 	// Aggregation Query (Real-time)
 	aggQuery := `
@@ -186,8 +187,8 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 }
 
 func (db *DB) CreateExperiment(exp *models.Experiment) (int64, error) {
-	query := `INSERT INTO experiments (name, timestamp, config_path, report_path, results_path, status, reps, concurrent, total_jobs, pid, description, config_content, experiment_control, is_locked) 
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO experiments (name, timestamp, config_path, report_path, results_path, status, reps, concurrent, total_jobs, pid, description, config_content, experiment_control, is_locked, annotations) 
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	res, err := db.conn.Exec(query,
 		exp.Name,
@@ -204,6 +205,7 @@ func (db *DB) CreateExperiment(exp *models.Experiment) (int64, error) {
 		exp.ConfigContent,
 		exp.ExperimentControl,
 		exp.IsLocked,
+		exp.Annotations,
 	)
 	if err != nil {
 		return 0, err
@@ -465,5 +467,11 @@ func (db *DB) UpdateExperimentReport(experimentID int64, reportContent string) e
 	// Also update report_path to indicate it's stored in DB/virtual
 	reportPath := fmt.Sprintf("db://experiments/%d/report.md", experimentID)
 	_, err := db.conn.Exec(query, reportContent, reportPath, experimentID)
+	return err
+}
+
+func (db *DB) UpdateExperimentAnnotations(experimentID int64, annotations string) error {
+	query := `UPDATE experiments SET annotations = ? WHERE id = ?`
+	_, err := db.conn.Exec(query, annotations, experimentID)
 	return err
 }

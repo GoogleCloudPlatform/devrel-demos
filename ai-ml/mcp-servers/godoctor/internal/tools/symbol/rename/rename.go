@@ -12,9 +12,9 @@ import (
 
 // Register registers the tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["symbol.rename"]
+	def := toolnames.Registry["symbol_rename"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.ExternalName,
+		Name:        def.Name,
 		Title:       def.Title,
 		Description: def.Description,
 	}, toolHandler)

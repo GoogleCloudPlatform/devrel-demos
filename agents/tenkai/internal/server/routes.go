@@ -12,6 +12,7 @@ func (s *Server) registerRoutes() {
 
 	s.router.HandleFunc("GET /api/experiments/{id}", s.api.Wrap(s.api.GetExperiment))
 	s.router.HandleFunc("POST /api/experiments/{id}/analysis", s.api.Wrap(s.api.SaveAIAnalysis))
+	s.router.HandleFunc("POST /api/experiments/{id}/annotations", s.api.Wrap(s.api.SaveExperimentAnnotations))
 	s.router.HandleFunc("DELETE /api/experiments/{id}", s.api.Wrap(s.api.DeleteExperiment))
 
 	s.router.HandleFunc("GET /api/experiments/{id}/summaries", s.api.Wrap(s.api.GetSummaries))

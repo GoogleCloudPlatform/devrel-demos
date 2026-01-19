@@ -49,9 +49,9 @@ func Register(server *mcp.Server, defaultModel string) {
 		}
 		return
 	}
-	def := toolnames.Registry["agent.review"]
+	def := toolnames.Registry["code_review"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.ExternalName,
+		Name:        def.Name,
 		Title:       def.Title,
 		Description: def.Description,
 	}, reviewHandler.Tool)

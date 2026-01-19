@@ -17,9 +17,9 @@ import (
 
 // Register registers the write tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["file.create"]
+	def := toolnames.Registry["file_create"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.ExternalName,
+		Name:        def.Name,
 		Title:       def.Title,
 		Description: def.Description,
 	}, toolHandler)
@@ -70,13 +70,12 @@ func toolHandler(_ context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.C
 				if e.Pos != "" {
 					loc = e.Pos + ": "
 				}
-				warning += fmt.Sprintf("- %s%s\n", loc, shared.CleanError(e.Msg))
-			}
-			warning += shared.GetMCPHint(pkg.Errors)
-		}
-	}
-
-	return &mcp.CallToolResult{
+				                                        warning += fmt.Sprintf("- %s%s\n", loc, shared.CleanError(e.Msg))
+				                        }
+				                        warning += shared.GetDocHint(pkg.Errors)
+				                }
+				        }
+					return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: fmt.Sprintf("Successfully wrote %s%s", args.Filename, warning)},
 		},

@@ -1,10 +1,59 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ExperimentLockToggle from "@/components/experiments/ExperimentLockToggle";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { saveExperimentAnnotations } from "@/app/api/api";
+import { toast } from "sonner";
+
+function AnnotationEditor({ experimentId, initialAnnotations }: { experimentId: number, initialAnnotations: string }) {
+    const [annotations, setAnnotations] = useState(initialAnnotations || "");
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Update local state if prop changes (e.g. navigation)
+    useEffect(() => {
+        setAnnotations(initialAnnotations || "");
+    }, [initialAnnotations]);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await saveExperimentAnnotations(experimentId, annotations);
+            toast.success("Annotations Saved", {
+                description: "Your notes have been updated.",
+            });
+        } catch (error) {
+            console.error(error);
+            toast.error("Error Saving", {
+                description: "Failed to save annotations.",
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <div className="space-y-2">
+            <Textarea
+                placeholder="Add tags, notes, or observations..."
+                className="min-h-[150px] font-mono text-xs bg-muted/30 resize-y"
+                value={annotations}
+                onChange={(e) => setAnnotations(e.target.value)}
+                onBlur={handleSave} // Auto-save on blur
+            />
+            <div className="flex justify-end">
+                <Button variant="ghost" size="sm" onClick={handleSave} disabled={isSaving} className="text-xs h-7 gap-1 text-muted-foreground hover:text-primary">
+                    <Save className="w-3 h-3" />
+                    {isSaving ? "Saving..." : "Save"}
+                </Button>
+            </div>
+        </div>
+    );
+}
 
 interface ExperimentSidebarProps {
     experiment: any;
@@ -76,11 +125,16 @@ export default function ExperimentSidebar({ experiment }: ExperimentSidebarProps
                             <span className="text-foreground text-right font-mono font-bold">{experiment.id}</span>
 
                             <span className="uppercase opacity-50">Started</span>
-                            <span className="text-foreground text-right">{new Date(experiment.timestamp).toLocaleDateString()}</span>
+                            <span className="text-foreground text-right">{new Date(experiment.timestamp).toISOString().split('T')[0]}</span>
 
                             <span className="uppercase opacity-50">Control</span>
                             <span className="text-primary text-right font-bold">{experiment.experiment_control || "—"}</span>
                         </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <h3 className="font-bold uppercase tracking-widest opacity-50">Annotations</h3>
+                        <AnnotationEditor experimentId={experiment.id} initialAnnotations={experiment.annotations} />
                     </div>
                 </div>
             )}

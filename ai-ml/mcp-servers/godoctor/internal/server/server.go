@@ -13,14 +13,12 @@ import (
 	"github.com/danicat/godoctor/internal/prompts"
 	"github.com/danicat/godoctor/internal/resources/code"
 	resgodoc "github.com/danicat/godoctor/internal/resources/godoc"
-	"github.com/danicat/godoctor/internal/resources/project"
 	"github.com/danicat/godoctor/internal/resources/symbol"
 	"github.com/danicat/godoctor/internal/roots"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	// Tools
 	"github.com/danicat/godoctor/internal/tools/agent/review"
-	"github.com/danicat/godoctor/internal/tools/agent/specialist"
 	"github.com/danicat/godoctor/internal/tools/cmd/run"
 	"github.com/danicat/godoctor/internal/tools/file/create"
 	"github.com/danicat/godoctor/internal/tools/file/edit"
@@ -31,12 +29,8 @@ import (
 	"github.com/danicat/godoctor/internal/tools/go/diff"
 	"github.com/danicat/godoctor/internal/tools/go/docs"
 	"github.com/danicat/godoctor/internal/tools/go/get"
-	"github.com/danicat/godoctor/internal/tools/go/install"
-	"github.com/danicat/godoctor/internal/tools/go/lint"
-	"github.com/danicat/godoctor/internal/tools/go/mod"
 	"github.com/danicat/godoctor/internal/tools/go/modernize"
 	"github.com/danicat/godoctor/internal/tools/go/test"
-	projectmap "github.com/danicat/godoctor/internal/tools/project/map"
 	"github.com/danicat/godoctor/internal/tools/symbol/inspect"
 	"github.com/danicat/godoctor/internal/tools/symbol/rename"
 )
@@ -107,30 +101,25 @@ func (s *Server) RegisterHandlers() error {
 	}
 
 	availableTools := []toolDef{
-		{name: "go.docs", register: docs.Register},
-		{name: "cmd.run", register: func(srv *mcp.Server) {
-			run.Register(srv, s.cfg.SafeShellV2)
+		{name: "go_docs", register: docs.Register},
+		{name: "safe_shell", register: func(srv *mcp.Server) {
+			run.Register(srv)
 		}},
-		{name: "agent.review", register: func(srv *mcp.Server) {
+		{name: "code_review", register: func(srv *mcp.Server) {
 			review.Register(srv, s.cfg.DefaultModel)
 		}},
-		{name: "file.read", register: read.Register},
-		{name: "file.outline", register: outline.Register},
-		{name: "symbol.inspect", register: inspect.Register},
-		{name: "file.edit", register: edit.Register},
-		{name: "file.create", register: create.Register},
-		{name: "go.diff", register: diff.Register},
-		{name: "project.map", register: projectmap.Register},
-		{name: "go.modernize", register: modernize.Register},
-		{name: "file.list", register: list.Register},
-		{name: "go.build", register: build.Register},
-		{name: "go.install", register: install.Register},
-		{name: "go.get", register: get.Register},
-		{name: "go.mod", register: mod.Register},
-		{name: "go.lint", register: lint.Register},
-		{name: "go.test", register: test.Register},
-		{name: "symbol.rename", register: rename.Register},
-		{name: "agent.specialist", register: specialist.Register},
+		{name: "file_read", register: read.Register},
+		{name: "file_outline", register: outline.Register},
+		{name: "symbol_inspect", register: inspect.Register},
+		{name: "file_edit", register: edit.Register},
+		{name: "file_create", register: create.Register},
+		{name: "go_diff", register: diff.Register},
+		{name: "go_modernize", register: modernize.Register},
+		{name: "file_list", register: list.Register},
+		{name: "go_build", register: build.Register},
+		{name: "go_get", register: get.Register},
+		{name: "go_test", register: test.Register},
+		{name: "symbol_rename", register: rename.Register},
 	}
 
 	validTools := make(map[string]bool)
@@ -141,8 +130,14 @@ func (s *Server) RegisterHandlers() error {
 			s.registeredTools[t.name] = true
 
 			// Track domain groups
-			if idx := strings.Index(t.name, "."); idx != -1 {
-				s.registeredTools[t.name[:idx]] = true
+			if strings.HasPrefix(t.name, "go_") {
+				s.registeredTools["go"] = true
+			}
+			if strings.HasPrefix(t.name, "file_") {
+				s.registeredTools["file"] = true
+			}
+			if strings.HasPrefix(t.name, "symbol_") {
+				s.registeredTools["symbol"] = true
 			}
 		}
 	}
@@ -165,12 +160,8 @@ func (s *Server) RegisterHandlers() error {
 		symbol.Register(s.mcpServer)
 		s.registeredTools["symbol"] = true
 	}
-	if s.registeredTools["project"] {
-		project.Register(s.mcpServer)
-		s.registeredTools["project"] = true
-	}
 
-	// Register resources (idempotent check)
+	// Register extra resources based on enabled domains
 	if !s.registeredTools["godoc"] {
 		resgodoc.Register(s.mcpServer)
 		s.registeredTools["godoc"] = true

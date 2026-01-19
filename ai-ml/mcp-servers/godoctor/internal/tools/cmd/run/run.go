@@ -35,15 +35,13 @@ var (
 )
 
 // Register registers the tool with the server.
-func Register(server *mcp.Server, safeShellV2 bool) {
-	def := toolnames.Registry["cmd.run"]
+func Register(server *mcp.Server) {
+	def := toolnames.Registry["safe_shell"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.ExternalName,
+		Name:        def.Name,
 		Title:       def.Title,
 		Description: def.Description,
-	}, func(ctx context.Context, req *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
-		return Handler(ctx, req, args, safeShellV2)
-	})
+	}, Handler)
 }
 
 // Params defines the input parameters for the safe_shell tool.
@@ -57,27 +55,20 @@ type Params struct {
 	Background     bool     `json:"background,omitempty" jsonschema:"If true, run command in background and return PID (output_file required)"`
 }
 
-func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params, safeShellV2 bool) (*mcp.CallToolResult, any, error) {
+func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
 	if args.Command == "" {
 		return errorResult("command cannot be empty"), nil, nil
 	}
 
 	// 1. Validation
-	var advice string
-	if safeShellV2 {
-		var err error
-		advice, err = validateCommandV2(args.Command, args.Args)
-		if err != nil {
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{Text: err.Error()},
-				},
-			}, nil, nil
-		}
-	} else {
-		if err := validateCommand(args.Command, args.Args, false); err != nil {
-			return errorResult(err.Error()), nil, nil
-		}
+	advice, err := validateCommand(args.Command, args.Args)
+	if err != nil {
+		return &mcp.CallToolResult{
+			IsError: true, // Fix: Silent Block Bug
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: err.Error()},
+			},
+		}, nil, nil
 	}
 
 	// Background Check
@@ -133,7 +124,7 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params, safeShell
 		// For sync, yes. For async, we need to let the process write to it.
 		// os.Create returns *os.File which implements WriteCloser.
 		// If we defer close, we close it immediately for async.
-		
+
 		if args.Background {
 			// For background, we just write to file, not memory buffer (too risky to buffer unbounded output)
 			cmd.Stdout = f
@@ -203,7 +194,7 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params, safeShell
 	// -----------------------------------
 
 	// Wait for command to complete
-	err := cmd.Wait()
+	err = cmd.Wait()
 	duration := time.Since(start)
 
 	// Combine output for merged view
@@ -242,7 +233,7 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params, safeShell
 			hint = "\n\n[Runtime Hint] Protocol Error detected. Do not send 'Content-Length' headers. Send raw newline-delimited JSON-RPC messages only."
 		}
 		// 3. Timeout Hint (Explicitly mention the 5s limit)
-		if ctx.Err() == context.DeadlineExceeded {
+		if cmdCtx.Err() == context.DeadlineExceeded {
 			status = fmt.Sprintf("Timeout (Killed after %v) - Output Captured", timeout)
 			hint += "\n\n[Runtime Hint] As expected, the process was killed by timeout to flush interactive output."
 			err = nil // Suppress error for timeout
@@ -294,48 +285,10 @@ func errorResult(msg string) *mcp.CallToolResult {
 
 // Security Configuration
 var (
-	// commandDenyList contains commands that are strictly forbidden or have better godoctor alternatives.
-	commandDenyList = map[string]string{
-		// System / Dangerous
-		"sudo":  "Privilege escalation is strictly forbidden.",
-		"chmod": "Changing permissions is forbidden.",
-		"chown": "Changing ownership is forbidden.",
-		// "kill":  Removed. Handled by custom validation.
-		"ssh":   "Remote connections are forbidden.",
-		// "curl":  Removed. Handled by custom validation.
-		"wget":  "Network requests are forbidden.",
-		"sh":    "Shell spawning is forbidden. Use 'output_file' parameter for redirection.",
-		"bash":  "Shell spawning is forbidden. Use 'output_file' parameter for redirection.",
-		"zsh":   "Shell spawning is forbidden.",
-		"git":   "Git commands should be performed via go_get or handled by the user outside the agent.",
-		"vim":   "Interactive editors are forbidden.",
-		"nano":  "Interactive editors are forbidden.",
-		"top":   "Interactive tools are forbidden.",
-
-		// Redundant with specialized tools
-		"grep":       "Do not use grep. Use 'symbol_inspect' or 'file_read' to find code.",
-		"ls":         "Do not use ls. Use 'file_list' or 'project_map'.",
-		"cat":        "Do not use cat. Use 'file_read'.",
-		"head":       "Do not use head. Use 'file_read'.",
-		"tail":       "Do not use tail. Use 'file_read'.",
-		"find":       "Use 'file_list'.",
-
-		// Go toolchain redundancy
-		"go build":   "Use 'go_build' for project compilation.",
-		"go test":    "Use 'go_test' for running tests.",
-		"go mod":     "Use 'go_mod' for dependency management.",
-		"go get":     "Use 'go_get' for adding packages.",
-		"go install": "Use 'go_install' for installing binaries.",
-		"go doc":     "Use 'go_docs' to query documentation.",
-		"go docs":    "Use 'go_docs' to query documentation.",
-		"go vet":     "Use 'go_lint' for code analysis.",
-		"go lint":    "Use 'go_lint' for code analysis.",
-	}
-
 	metaCharRegex = regexp.MustCompile(`[|><&;$` + "`" + `]`)
 )
 
-// Security Configuration V2
+// Security Configuration
 var (
 	hardBlockList = map[string]string{
 		// Danger
@@ -355,17 +308,6 @@ var (
 
 		// Complexity
 		"git": "Git commands should be handled by the user outside the agent.",
-
-		// Go Redundancy
-		"go build":   "Use 'go_build' for project compilation.",
-		"go test":    "Use 'go_test' for running tests.",
-		"go mod":     "Use 'go_mod' for dependency management.",
-		"go get":     "Use 'go_get' for adding packages.",
-		"go install": "Use 'go_install' for installing binaries.",
-		"go doc":     "Use 'go_docs' to query documentation.",
-		"go docs":    "Use 'go_docs' to query documentation.",
-		"go vet":     "Use 'go_lint' for code analysis.",
-		"go lint":    "Use 'go_lint' for code analysis.",
 	}
 
 	advisoryList = map[string]string{
@@ -383,7 +325,7 @@ var (
 	}
 )
 
-func validateCommandV2(cmd string, args []string) (string, error) {
+func validateCommand(cmd string, args []string) (string, error) {
 	// 1. Metacharacter Check
 	if metaCharRegex.MatchString(cmd) {
 		return "", fmt.Errorf("command contains illegal shell metacharacters")
@@ -392,13 +334,6 @@ func validateCommandV2(cmd string, args []string) (string, error) {
 	// 2. Hard Block List
 	if msg, blocked := hardBlockList[cmd]; blocked {
 		return "", fmt.Errorf("❌ Blocked: %s", msg)
-	}
-
-	if cmd == "go" && len(args) > 0 {
-		subCmd := "go " + args[0]
-		if msg, blocked := hardBlockList[subCmd]; blocked {
-			return "", fmt.Errorf("❌ Blocked: %s", msg)
-		}
 	}
 
 	// 3. Specialized Curl Validation
@@ -462,109 +397,18 @@ func validateCommandV2(cmd string, args []string) (string, error) {
 		}
 	}
 
-	// 7. Advisory Logic
+	// 7. Path-based Command Validation (Security Restoration)
+	if strings.Contains(cmd, "/") {
+		if filepath.IsAbs(cmd) || strings.Contains(cmd, "..") {
+			return "", fmt.Errorf("❌ Blocked: local binary path '%s' must be relative and within the project", cmd)
+		}
+		if _, err := roots.Global.Validate(cmd); err != nil {
+			return "", fmt.Errorf("❌ Blocked: command '%s' is outside project roots: %v", cmd, err)
+		}
+	}
+
+	// 8. Advisory Logic
 	advice := advisoryList[cmd]
 
 	return advice, nil
-}
-
-func validateCommand(cmd string, args []string, force bool) error {
-	// 1. Metacharacter Check
-	if metaCharRegex.MatchString(cmd) {
-		return fmt.Errorf("command contains illegal shell metacharacters")
-	}
-
-	// 2. Deny List Check (Command)
-	if msg, blocked := commandDenyList[cmd]; blocked {
-		return fmt.Errorf("command '%s' is blocked: %s", cmd, msg)
-	}
-
-	// 3. Specialized Curl Validation
-	if cmd == "curl" {
-		for _, arg := range args {
-			// Prevent downloading to files. Curl should only be used for API testing/interaction.
-			if arg == "-o" || strings.HasPrefix(arg, "--output") || arg == "-O" {
-				return fmt.Errorf("curl is restricted to API interaction only. Writing to files via -o/-O/--output is forbidden")
-			}
-		}
-	}
-	
-	// 4. Safe Kill Validation
-	if cmd == "kill" {
-		if len(args) == 0 {
-			return fmt.Errorf("kill requires a PID argument")
-		}
-		// Expecting "kill <PID>" or "kill -9 <PID>"
-		// Simple parsing: find the first numeric arg
-		var pid int
-		found := false
-		for _, arg := range args {
-			if p, err := strconv.Atoi(arg); err == nil {
-				pid = p
-				found = true
-				break
-			}
-		}
-		
-		if !found {
-			return fmt.Errorf("could not parse PID from kill arguments")
-		}
-		
-		processMu.Lock()
-		_, exists := activeProcesses[pid]
-		processMu.Unlock()
-		
-		if !exists {
-			return fmt.Errorf("permission denied: you can only kill processes started by this agent (PID %d not found in active background processes)", pid)
-		}
-	}
-
-	// 5. Deny List Check (Subcommand for 'go')
-	if cmd == "go" && len(args) > 0 {
-		subCmd := "go " + args[0]
-		if msg, blocked := commandDenyList[subCmd]; blocked {
-			return fmt.Errorf("command '%s' is blocked: %s", subCmd, msg)
-		}
-	}
-
-	// 6. Hardened Argument Validation (Universal)
-	for _, arg := range args {
-		if strings.HasPrefix(arg, "-") {
-			if strings.Contains(arg, "/..") || strings.Contains(arg, "../") {
-				return fmt.Errorf("argument '%s' contains unsafe path patterns", arg)
-			}
-			continue
-		}
-
-		if strings.Contains(arg, "..") {
-			return fmt.Errorf("argument '%s' contains path traversal '..'", arg)
-		}
-
-		// Detect Silent Redirection attempts
-		if strings.ContainsAny(arg, ">|") {
-			return fmt.Errorf("argument '%s' contains shell metacharacters (> or |). Redirection is not supported via args; use 'output_file' parameter", arg)
-		}
-
-		// Validate path containment
-		if strings.Contains(arg, "/") || strings.HasSuffix(arg, ".go") {
-			if _, err := roots.Global.Validate(arg); err != nil {
-				if filepath.IsAbs(arg) {
-					return err
-				}
-			}
-		}
-	}
-
-	// 7. Local Binary Check
-	if strings.Contains(cmd, "/") {
-		if !force && (filepath.IsAbs(cmd) || strings.Contains(cmd, "..")) {
-			return fmt.Errorf("local binary path '%s' must be relative and within the project", cmd)
-		}
-		if _, err := roots.Global.Validate(cmd); err == nil {
-			return nil
-		}
-	}
-
-	// In deny-list mode, we allow everything else.
-	return nil
 }

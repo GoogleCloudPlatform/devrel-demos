@@ -39,6 +39,7 @@ type Experiment struct {
 	ErrorMessage      string    `json:"error_message"`
 	AIAnalysis        string    `json:"ai_analysis"`
 	IsLocked          bool      `json:"is_locked"`
+	Annotations       string    `json:"annotations"`
 
 	// Derived Metrics (Calculated on read)
 	SuccessRate     float64             `json:"success_rate"`
@@ -60,8 +61,11 @@ type ExperimentSummaryRow struct {
 	SuccessRate     float64 `json:"success_rate"`
 	AvgDuration     float64 `json:"avg_duration"`
 	AvgTokens       float64 `json:"avg_tokens"`
+	AvgInputTokens  float64 `json:"avg_input_tokens"`
+	AvgOutputTokens float64 `json:"avg_output_tokens"`
 	AvgCachedTokens float64 `json:"avg_cached_tokens"`
 	AvgLint         float64 `json:"avg_lint"`
+	AvgCoverage     float64 `json:"avg_coverage"`
 	AvgTestsPassed  float64 `json:"avg_tests_passed"`
 	AvgTestsFailed  float64 `json:"avg_tests_failed"`
 	Timeouts        int     `json:"timeouts"`
@@ -71,16 +75,28 @@ type ExperimentSummaryRow struct {
 	PSuccess         float64 `json:"p_success"`
 	PDuration        float64 `json:"p_duration"`
 	PTokens          float64 `json:"p_tokens"`
+	PInputTokens     float64 `json:"p_input_tokens"`
+	POutputTokens    float64 `json:"p_output_tokens"`
 	PCachedTokens    float64 `json:"p_cached_tokens"`
 	PLint            float64 `json:"p_lint"`
+	PCoverage        float64 `json:"p_coverage"`
 	PTestsPassed     float64 `json:"p_tests_passed"`
 	PTestsFailed     float64 `json:"p_tests_failed"`
 	PTimeout         float64 `json:"p_timeout"`
 	PToolCalls       float64 `json:"p_tool_calls"`
 	PFailedToolCalls float64 `json:"p_failed_tool_calls"`
 
-	ToolAnalysis   []ToolAnalysis `json:"tool_analysis"`
-	FailureReasons map[string]int `json:"failure_reasons"`
+	// Effect Sizes (Cohen's d)
+	EffectDuration     float64 `json:"effect_duration,omitempty"`
+	EffectTokens       float64 `json:"effect_tokens,omitempty"`
+	EffectInputTokens  float64 `json:"effect_input_tokens,omitempty"`
+	EffectOutputTokens float64 `json:"effect_output_tokens,omitempty"`
+	EffectCachedTokens float64 `json:"effect_cached_tokens,omitempty"`
+	EffectCoverage     float64 `json:"effect_coverage,omitempty"`
+
+	ToolAnalysis    []ToolAnalysis     `json:"tool_analysis"`
+	FailureReasons  map[string]int     `json:"failure_reasons"`
+	PFailureReasons map[string]float64 `json:"p_failure_reasons"`
 }
 
 type RunResult struct {

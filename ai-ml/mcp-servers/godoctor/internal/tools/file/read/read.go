@@ -20,9 +20,9 @@ import (
 
 // Register registers the read_code tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["file.read"]
+	def := toolnames.Registry["file_read"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.ExternalName,
+		Name:        def.Name,
 		Title:       def.Title,
 		Description: def.Description,
 	}, readCodeHandler)

@@ -51,6 +51,8 @@ export interface ExperimentSummaryRow {
     success_rate: number;
     avg_duration: number;
     avg_tokens: number;
+    avg_input_tokens?: number;
+    avg_output_tokens?: number;
     avg_cached_tokens?: number;
     avg_lint: number;
     avg_tests_passed: number;
@@ -61,6 +63,8 @@ export interface ExperimentSummaryRow {
     p_success?: number;
     p_duration?: number;
     p_tokens?: number;
+    p_input_tokens?: number;
+    p_output_tokens?: number;
     p_cached_tokens?: number;
     p_lint?: number;
     p_tests_passed?: number;

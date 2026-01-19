@@ -5,15 +5,18 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 type SidebarContextType = {
     isCollapsed: boolean;
     toggleSidebar: () => void;
+    isMounted: boolean;
 };
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
 
     // Initialize from localStorage if available
     useEffect(() => {
+        setIsMounted(true);
         const stored = localStorage.getItem('tenkai-sidebar-collapsed');
         if (stored) {
             setIsCollapsed(stored === 'true');
@@ -29,7 +32,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <SidebarContext.Provider value={{ isCollapsed, toggleSidebar }}>
+        <SidebarContext.Provider value={{ isCollapsed, toggleSidebar, isMounted }}>
             {children}
         </SidebarContext.Provider>
     );

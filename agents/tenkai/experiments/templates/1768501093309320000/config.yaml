@@ -3,7 +3,7 @@ description: >-
   Compare the effectiveness of using different configurations of godoctor in
   Gemini CLI for development of Go programs
 reps: 1
-concurrent: 1
+concurrent: 5
 timeout: ''
 experiment_control: default
 scenarios:
@@ -16,6 +16,8 @@ alternatives:
       - '-y'
       - '-o'
       - stream-json
+      - '-m'
+      - gemini-3-pro-preview
   - name: godoctor-advanced
     description: All core tools enabled
     command: gemini
@@ -23,6 +25,8 @@ alternatives:
       - '-y'
       - '-o'
       - stream-json
+      - '-m'
+      - gemini-3-pro-preview
     settings:
       mcpServers:
         godoctor:
@@ -36,6 +40,8 @@ alternatives:
       - '-y'
       - '-o'
       - stream-json
+      - '-m'
+      - gemini-3-pro-preview
     settings:
       mcpServers:
         godoctor:
@@ -44,19 +50,21 @@ alternatives:
           command: godoctor
       tools:
         core: []
-  - name: godoctor-advanced-with-shell
-    description: Only run_shell_command is enabled
+  - name: godoctor-advanced-no-core-safe-shell-v2
+    description: No core. Uses safe_shell v2
     command: gemini
     args:
       - '-y'
       - '-o'
       - stream-json
+      - '-m'
+      - gemini-3-pro-preview
     settings:
       mcpServers:
         godoctor:
           args:
             - '--profile=advanced'
+            - '--safe-shell-v2'
           command: godoctor
       tools:
-        core:
-          - run_shell_command
+        core: []

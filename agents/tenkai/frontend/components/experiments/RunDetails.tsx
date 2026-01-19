@@ -167,7 +167,7 @@ function CollapsibleEvent({
             </button>
 
             {isOpen && (
-                <div className="p-3 border-t border-white/5 font-mono text-xs text-zinc-300 break-words max-h-[500px] overflow-y-auto bg-black/20">
+                <div className="p-3 border-t border-border font-mono text-xs text-muted-foreground break-words max-h-[500px] overflow-y-auto bg-muted/30">
                     {children}
                 </div>
             )}
@@ -250,21 +250,21 @@ function ResultEvent({ content, timestamp, count }: { content: string, timestamp
             <div className="space-y-4">
                 {data.stats && (
                     <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="bg-black/40 p-2 rounded border border-white/5">
-                            <div className="text-[10px] text-zinc-500 uppercase font-bold">Tokens</div>
-                            <div className="text-white font-mono text-sm font-bold">{data.stats.total_tokens?.toLocaleString()}</div>
+                        <div className="bg-muted/40 p-2 rounded border border-border">
+                            <div className="text-[10px] text-muted-foreground uppercase font-bold">Tokens</div>
+                            <div className="text-foreground font-mono text-sm font-bold">{data.stats.total_tokens?.toLocaleString()}</div>
                         </div>
-                        <div className="bg-black/40 p-2 rounded border border-white/5">
-                            <div className="text-[10px] text-zinc-500 uppercase font-bold">Cached</div>
-                            <div className="text-blue-400 font-mono text-sm font-bold">{data.stats.cached_tokens?.toLocaleString()}</div>
+                        <div className="bg-muted/40 p-2 rounded border border-border">
+                            <div className="text-[10px] text-muted-foreground uppercase font-bold">Cached</div>
+                            <div className="text-blue-500 font-mono text-sm font-bold">{(data.stats.cached || 0).toLocaleString()}</div>
                         </div>
-                        <div className="bg-black/40 p-2 rounded border border-white/5">
-                            <div className="text-[10px] text-zinc-500 uppercase font-bold">Input</div>
-                            <div className="text-zinc-400 font-mono text-sm">{data.stats.input_tokens?.toLocaleString()}</div>
+                        <div className="bg-muted/40 p-2 rounded border border-border">
+                            <div className="text-[10px] text-muted-foreground uppercase font-bold">Input</div>
+                            <div className="text-muted-foreground font-mono text-sm">{data.stats.input_tokens?.toLocaleString()}</div>
                         </div>
-                        <div className="bg-black/40 p-2 rounded border border-white/5">
-                            <div className="text-[10px] text-zinc-500 uppercase font-bold">Output</div>
-                            <div className="text-zinc-400 font-mono text-sm">{data.stats.output_tokens?.toLocaleString()}</div>
+                        <div className="bg-muted/40 p-2 rounded border border-border">
+                            <div className="text-[10px] text-muted-foreground uppercase font-bold">Output</div>
+                            <div className="text-muted-foreground font-mono text-sm">{data.stats.output_tokens?.toLocaleString()}</div>
                         </div>
                     </div>
                 )}
@@ -455,9 +455,9 @@ export default function RunDetails({
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="panel p-4">
-                    <p className="font-bold text-zinc-500 uppercase tracking-widest mb-1">Tokens</p>
+                    <p className="font-bold text-muted-foreground uppercase tracking-widest mb-1">Tokens</p>
                     <p className="text-header font-bold">{run.total_tokens?.toLocaleString()}</p>
-                    <p className="text-[#52525b] mt-1 uppercase font-mono text-[10px]">In_{run.input_tokens} Out_{run.output_tokens} Cache_{run.cached_tokens}</p>
+                    <p className="text-muted-foreground mt-1 uppercase font-mono text-[10px]">In_{run.input_tokens} Out_{run.output_tokens} Cache_{run.cached_tokens}</p>
                 </div>
                 <div className="panel p-4">
                     <p className="font-bold text-zinc-500 uppercase tracking-widest mb-1">Tools</p>
@@ -476,7 +476,7 @@ export default function RunDetails({
 
             {/* Validation Report */}
             <div className="panel overflow-hidden">
-                <div className="p-4 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
+                <div className="p-4 border-b border-border bg-muted/20 flex justify-between items-center">
                     <h4 className="font-bold uppercase tracking-widest text-blue-400">Validation Report</h4>
                     <div className="flex gap-4 items-center">
                         {run.reason === 'FAILED (VALIDATION)' && <RevalidateButton runId={run.id} />}
@@ -504,15 +504,15 @@ export default function RunDetails({
                                 return <p className="p-10 text-center text-zinc-500 italic">No validation items recorded.</p>;
                             }
                             return (
-                                <table className="w-full text-left bg-black/20">
+                                <table className="w-full text-left bg-transparent">
                                     <thead>
-                                        <tr className="border-b border-white/5 text-zinc-500 uppercase tracking-widest text-xs">
+                                        <tr className="border-b border-border text-muted-foreground uppercase tracking-widest text-xs">
                                             <th className="px-6 py-3 w-[120px]">Type</th>
                                             <th className="px-6 py-3">Description</th>
                                             <th className="px-6 py-3 text-right w-[150px]">Status</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-white/5">
+                                    <tbody className="divide-y divide-border">
                                         {report.items.map((item: any, i: number) => {
                                             const typeKey = item.type?.toUpperCase() || 'UNKNOWN';
                                             const typeColors: Record<string, string> = {
@@ -525,13 +525,13 @@ export default function RunDetails({
                                             const typeColor = typeColors[typeKey] || 'text-zinc-400';
 
                                             return (
-                                                <tr key={i} className="group cursor-pointer hover:bg-white/[0.02] transition-colors" onClick={() => onInspectValidation(item)}>
+                                                <tr key={i} className="group cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onInspectValidation(item)}>
                                                     <td className={`px-6 py-4 font-mono font-bold uppercase ${typeColor}`}>
                                                         {item.type}
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-3">
-                                                            <p className="font-bold text-zinc-300 group-hover:text-white transition-colors">{item.description}</p>
+                                                            <p className="font-bold text-foreground transition-colors">{item.description}</p>
                                                             {item.coverage > 0 && (
                                                                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 font-bold border border-blue-500/20">
                                                                     {item.coverage.toFixed(1)}% COV
@@ -573,7 +573,7 @@ export default function RunDetails({
 
             {/* Thread View */}
             <div className="panel overflow-hidden">
-                <div className="p-4 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
+                <div className="p-4 border-b border-border bg-muted/20 flex justify-between items-center">
                     <h4 className="font-bold uppercase tracking-widest">Conversation Thread</h4>
                     <button
                         onClick={scrollToBottom}
@@ -612,11 +612,11 @@ export default function RunDetails({
                             return (
                                 <div key={i} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} my-4`}>
                                     <div className="flex items-center gap-2 mb-2 ml-1">
-                                        <span className="font-bold text-zinc-600 uppercase tracking-tighter text-xs">{msg.role}</span>
-                                        {msg.count > 1 && <span className="bg-zinc-800 text-zinc-400 px-1.5 rounded-full text-[10px] font-bold">x{msg.count}</span>}
+                                        <span className="font-bold text-muted-foreground uppercase tracking-tighter text-xs">{msg.role}</span>
+                                        {msg.count > 1 && <span className="bg-muted text-foreground px-1.5 rounded-full text-[10px] font-bold">x{msg.count}</span>}
                                     </div>
-                                    <div className={`p-4 rounded-md max-w-[90%] border shadow-sm ${isUser ? 'bg-indigo-600/10 border-indigo-500/20 text-indigo-100' : 'bg-[#161618] border-[#27272a] text-[#f4f4f5]'}`}>
-                                        <div className="prose prose-invert prose-sm max-w-none prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/5">
+                                    <div className={`p-4 rounded-md max-w-[90%] border shadow-sm ${isUser ? 'bg-primary/10 border-primary/20 text-foreground' : 'bg-card border-border text-foreground'}`}>
+                                        <div className="prose dark:prose-invert prose-sm max-w-none prose-pre:bg-muted prose-pre:border prose-pre:border-border">
                                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                 {msg.content}
                                             </ReactMarkdown>
@@ -637,7 +637,7 @@ export default function RunDetails({
                             <button
                                 onClick={loadMore}
                                 disabled={loadingMore}
-                                className="flex items-center gap-2 px-6 py-2 rounded-full bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-bold uppercase tracking-widest text-zinc-300"
+                                className="flex items-center gap-2 px-6 py-2 rounded-full bg-secondary hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-bold uppercase tracking-widest text-secondary-foreground"
                             >
                                 {loadingMore ? (
                                     <>
@@ -659,22 +659,22 @@ export default function RunDetails({
             {/* Tool Usage */}
             {details.tools && details.tools.length > 0 && (
                 <div className="panel overflow-hidden">
-                    <div className="p-4 border-b border-white/5 bg-amber-500/5">
+                    <div className="p-4 border-b border-border bg-amber-500/5">
                         <h4 className="font-bold uppercase tracking-widest text-amber-500">Tool Executions</h4>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left bg-black/20">
+                        <table className="w-full text-left bg-transparent">
                             <thead>
-                                <tr className="border-b border-white/5 text-zinc-500 uppercase tracking-widest text-xs">
+                                <tr className="border-b border-border text-muted-foreground uppercase tracking-widest text-xs">
                                     <th className="px-6 py-3">Tool</th>
                                     <th className="px-6 py-3 text-center">Status</th>
                                     <th className="px-6 py-3 text-right">Duration</th>
                                     <th className="px-6 py-3 text-right">Details</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5">
+                            <tbody className="divide-y divide-border">
                                 {details.tools?.map((tool, i) => (
-                                    <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                                    <tr key={i} className="hover:bg-muted/50 transition-colors">
                                         <td className="px-6 py-3 font-mono font-bold text-blue-400">{tool.name}</td>
                                         <td className="px-6 py-3 text-center">
                                             <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${tool.status === 'success' ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10'}`}>
@@ -698,28 +698,28 @@ export default function RunDetails({
             {details.files && details.files.length > 0 && (
 
                 <div className="panel overflow-hidden">
-                    <div className="p-4 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
+                    <div className="p-4 border-b border-border bg-muted/20 flex justify-between items-center">
                         <h4 className="font-bold uppercase tracking-widest text-emerald-500">Workspace Snapshot</h4>
-                        <span className="text-zinc-500 font-mono uppercase italic">Captured from DB</span>
+                        <span className="text-muted-foreground font-mono uppercase italic">Captured from DB</span>
                     </div>
                     <div className="grid grid-cols-12 h-[500px]">
-                        <div className="col-span-4 border-r border-white/5 overflow-y-auto bg-black/20">
+                        <div className="col-span-4 border-r border-border overflow-y-auto bg-card">
                             {details.files?.map((file, i) => (
                                 <button
                                     key={i}
                                     onClick={() => setSelectedFile(file)}
 
-                                    className={`w-full p-3 text-left font-mono border-b border-white/5 transition-all hover:bg-white/5 ${selectedFile?.id === file.id ? 'bg-emerald-500/10 text-emerald-400 border-l-2 border-l-emerald-500' : 'text-zinc-400'}`}
+                                    className={`w-full p-3 text-left font-mono border-b border-border transition-all hover:bg-muted/50 ${selectedFile?.id === file.id ? 'bg-emerald-500/10 text-emerald-600 border-l-2 border-l-emerald-500' : 'text-muted-foreground'}`}
                                 >
                                     {file.path}
                                 </button>
                             ))}
                         </div>
-                        <div className="col-span-8 overflow-y-auto bg-black/40 p-4">
+                        <div className="col-span-8 overflow-y-auto bg-muted/10 p-4">
                             {selectedFile ? (
-                                <pre className="font-mono text-zinc-300 whitespace-pre-wrap">{selectedFile.content}</pre>
+                                <pre className="font-mono text-foreground whitespace-pre-wrap">{selectedFile.content}</pre>
                             ) : (
-                                <p className="text-zinc-600 italic text-center mt-20 uppercase font-bold tracking-tighter">Select a file to view content</p>
+                                <p className="text-muted-foreground italic text-center mt-20 uppercase font-bold tracking-tighter">Select a file to view content</p>
                             )}
                         </div>
                     </div>

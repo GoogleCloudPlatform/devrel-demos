@@ -63,7 +63,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
     try { if (experiment.config_content) configYaml = yaml.load(experiment.config_content); } catch (e) { }
 
     return (
-        <div className="flex h-screen overflow-hidden">
+        <div id="report-page-root" className="flex h-screen overflow-hidden">
             <RefreshOnInterval active={experiment.status === 'running' || experiment.status === 'RUNNING'} />
             {/* Context Sidebar (Left Pane) */}
             <ExperimentSidebar experiment={experiment} />

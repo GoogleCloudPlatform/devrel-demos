@@ -21,57 +21,49 @@ func Get(cfg *config.Config) string {
 
 	// 2. Navigation
 	sb.WriteString("### 🔍 Navigation: Save Tokens & Context\n")
-	if isEnabled("file.outline") {
-		// Adapting for transition: code_outline is future, open is current equivalent-ish
-		sb.WriteString(toolnames.Registry["file.outline"].Instruction + "\n")
+	if isEnabled("file_outline") {
+		sb.WriteString(toolnames.Registry["file_outline"].Instruction + "\n")
 	}
 
-	if isEnabled("symbol.inspect") {
-		sb.WriteString(toolnames.Registry["symbol.inspect"].Instruction + "\n")
+	if isEnabled("symbol_inspect") {
+		sb.WriteString(toolnames.Registry["symbol_inspect"].Instruction + "\n")
 	}
 
-	if isEnabled("file.list") {
-		sb.WriteString(toolnames.Registry["file.list"].Instruction + "\n")
+	if isEnabled("file_list") {
+		sb.WriteString(toolnames.Registry["file_list"].Instruction + "\n")
 	}
 	sb.WriteString("\n")
 
 	// 3. Editing
 	sb.WriteString("### ✏️ Editing: Ensure Safety\n")
-	if isEnabled("file.edit") {
-		// Prioritize smart_edit
-		sb.WriteString(toolnames.Registry["file.edit"].Instruction + "\n")
+	if isEnabled("file_edit") {
+		sb.WriteString(toolnames.Registry["file_edit"].Instruction + "\n")
 	}
 	sb.WriteString("\n")
 
 	// 4. Modernization & Upgrades
 	sb.WriteString("### 🚀 Modernization & Upgrades\n")
-	if isEnabled("go.diff") {
-		sb.WriteString(toolnames.Registry["go.diff"].Instruction + "\n")
+	if isEnabled("go_diff") {
+		sb.WriteString(toolnames.Registry["go_diff"].Instruction + "\n")
 	}
-	if isEnabled("go.modernize") {
-		sb.WriteString(toolnames.Registry["go.modernize"].Instruction + "\n")
+	if isEnabled("go_modernize") {
+		sb.WriteString(toolnames.Registry["go_modernize"].Instruction + "\n")
 	}
 	sb.WriteString("\n")
 
 	// 5. Utilities
 	sb.WriteString("### 🛠️ Utilities\n")
-	if isEnabled("go.build") {
-		sb.WriteString(toolnames.Registry["go.build"].Instruction + "\n")
+	if isEnabled("go_build") {
+		sb.WriteString(toolnames.Registry["go_build"].Instruction + "\n")
 	}
-	if isEnabled("go.test") {
-		sb.WriteString(toolnames.Registry["go.test"].Instruction + "\n")
+	if isEnabled("go_test") {
+		sb.WriteString(toolnames.Registry["go_test"].Instruction + "\n")
 	}
-	if isEnabled("project.map") {
-		sb.WriteString(toolnames.Registry["project.map"].Instruction + "\n")
+	if isEnabled("go_docs") {
+		sb.WriteString(toolnames.Registry["go_docs"].Instruction + "\n")
 	}
-	if isEnabled("go.docs") {
-		sb.WriteString(toolnames.Registry["go.docs"].Instruction + "\n")
-	}
-	if isEnabled("cmd.run") {
-		sb.WriteString(toolnames.Registry["cmd.run"].Instruction + "\n")
-	}
-	if isEnabled("agent.specialist") {
-		sb.WriteString(toolnames.Registry["agent.specialist"].Instruction + "\n")
+	if isEnabled("safe_shell") {
+		sb.WriteString(toolnames.Registry["safe_shell"].Instruction + "\n")
 	}
 
 	return sb.String()

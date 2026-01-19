@@ -14,9 +14,9 @@ import (
 
 // Register registers the tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["go.get"]
+	def := toolnames.Registry["go_get"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.ExternalName,
+		Name:        def.Name,
 		Title:       def.Title,
 		Description: def.Description,
 	}, Handler)

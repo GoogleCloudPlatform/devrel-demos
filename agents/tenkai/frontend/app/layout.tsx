@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { SidebarProvider } from "@/components/layout/SidebarContext";
 import { MainLayoutWrapper } from "@/components/layout/MainLayoutWrapper";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 const inter = Inter({
@@ -33,7 +34,9 @@ export default function RootLayout({
       <body className={`${inter.variable} ${robotoMono.variable} bg-background text-foreground antialiased`}>
         <ThemeProvider defaultTheme="dark">
           <SidebarProvider>
-            <MainLayoutWrapper>{children}</MainLayoutWrapper>
+            <TooltipProvider>
+              <MainLayoutWrapper>{children}</MainLayoutWrapper>
+            </TooltipProvider>
           </SidebarProvider>
           <Toaster position="bottom-right" theme="dark" closeButton richColors />
         </ThemeProvider>

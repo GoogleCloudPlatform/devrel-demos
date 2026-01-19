@@ -131,6 +131,16 @@ export async function saveAIAnalysis(id: number | string, analysis: string) {
     });
 }
 
+export async function saveExperimentAnnotations(id: number | string, annotations: string) {
+    const res = await fetchAPI(`/experiments/${id}/annotations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ annotations })
+    });
+    if (!res) throw new Error("Failed to save annotations: Endpoint not found");
+    return res;
+}
+
 export async function getSimplifiedMetrics(id: number | string) {
     // Derived from getExperiment
     const exp = await getExperimentById(id);
@@ -152,7 +162,7 @@ export async function getExperimentSummaries(id: number | string): Promise<Exper
 }
 
 export async function getRunResults(experimentId: string | number, page: number = 1, limit: number = 1000): Promise<RunResultRecord[]> {
-    return fetchAPI<RunResultRecord[]>(`/experiments/${experimentId}/runs?page=${page}&limit=${limit}`);
+    return (await fetchAPI<RunResultRecord[]>(`/experiments/${experimentId}/runs?page=${page}&limit=${limit}`)) || [];
 }
 export async function getToolUsage(runId: number): Promise<ToolUsageRecord[]> {
     const res = await fetchAPI<ToolUsageRecord[]>(`/runs/${runId}/tools`);

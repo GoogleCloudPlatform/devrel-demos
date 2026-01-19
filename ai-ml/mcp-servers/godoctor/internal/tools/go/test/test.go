@@ -4,7 +4,9 @@ package test
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/danicat/godoctor/internal/tools/shared"
@@ -13,9 +15,9 @@ import (
 
 // Register registers the tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["go.test"]
+	def := toolnames.Registry["go_test"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.ExternalName,
+		Name:        def.Name,
 		Title:       def.Title,
 		Description: def.Description,
 	}, Handler)
@@ -45,9 +47,23 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 	if args.Verbose {
 		cmdArgs = append(cmdArgs, "-v")
 	}
+
+	var covFile string
 	if args.Coverage {
-		cmdArgs = append(cmdArgs, "-cover")
+		// Create temp file for coverage profile
+		f, err := os.CreateTemp(dir, "coverage-*.out")
+		if err == nil {
+			covFile = f.Name()
+			f.Close()
+			defer os.Remove(covFile)
+			// Use -coverpkg=./... to get coverage across all packages in the project
+			cmdArgs = append(cmdArgs, "-cover", fmt.Sprintf("-coverprofile=%s", covFile), "-coverpkg=./...")
+		} else {
+			// Fallback to basic coverage if temp file creation fails
+			cmdArgs = append(cmdArgs, "-cover")
+		}
 	}
+
 	if args.Run != "" {
 		cmdArgs = append(cmdArgs, "-run", args.Run)
 	}
@@ -60,13 +76,29 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 	out, err := cmd.CombinedOutput()
 	output := string(out)
 
+	// Process coverage if profile was created
+	if covFile != "" {
+		covCmd := exec.CommandContext(ctx, "go", "tool", "cover", fmt.Sprintf("-func=%s", covFile))
+		covCmd.Dir = dir
+		covOut, covErr := covCmd.CombinedOutput()
+		if covErr == nil {
+			lines := strings.Split(string(covOut), "\n")
+			for _, line := range lines {
+				if strings.HasPrefix(line, "total:") {
+					output += "\n\n" + line
+					break
+				}
+			}
+		}
+	}
+
 	if err != nil {
 		if output == "" {
 			output = fmt.Sprintf("Tests failed: %v", err)
 		} else {
 			output = "Tests Failed:\n" + output
 		}
-		output += shared.GetMCPHintFromOutput(output)
+		output += shared.GetDocHintFromOutput(output)
 	} else {
 		if output == "" {
 			output = "Tests Passed (No output)."

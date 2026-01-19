@@ -426,7 +426,7 @@ func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
 			json_extract(payload, '$.stats.total_tokens'),
 			json_extract(payload, '$.stats.input_tokens'),
 			json_extract(payload, '$.stats.output_tokens'),
-			json_extract(payload, '$.stats.cached_tokens'),
+			json_extract(payload, '$.stats.cached'),
 			json_extract(payload, '$.status')
 		FROM run_events 
 		WHERE run_id = ? AND type = 'result'

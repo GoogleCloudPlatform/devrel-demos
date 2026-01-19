@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'dark' | 'light' | 'happy' | 'beach';
+type Theme = "dark" | "light" | "happy" | "beach" | "dracula" | "pacman" | "system";
 
 type ThemeProviderProps = {
     children: React.ReactNode;
@@ -41,20 +41,17 @@ export function ThemeProvider({
 
         // Reset classes/attributes
         root.classList.remove('light', 'dark');
-        root.removeAttribute('data-theme');
 
-        if (theme === 'happy') {
-            root.setAttribute('data-theme', 'happy');
-            root.classList.add('dark');
-        } else if (theme === 'beach') {
-            root.setAttribute('data-theme', 'beach');
-            root.classList.add('light'); // Beach is a light theme
-        } else if (theme === 'light') {
+        // Set the data-theme attribute directly
+        root.setAttribute('data-theme', theme);
+
+        // Determine if it's a light theme
+        const isLight = ['light', 'beach'].includes(theme);
+
+        if (isLight) {
             root.classList.add('light');
-            root.setAttribute('data-theme', 'light');
         } else {
             root.classList.add('dark');
-            root.setAttribute('data-theme', 'dark');
         }
     }, [theme]);
 

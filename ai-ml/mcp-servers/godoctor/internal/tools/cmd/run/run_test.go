@@ -11,46 +11,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func TestValidateCommandV1(t *testing.T) {
-	tests := []struct {
-		name    string
-		cmd     string
-		args    []string
-		wantErr bool
-	}{
-		{"Allowed: go", "go", []string{"version"}, false},
-		{"Allowed: python", "python", []string{"script.py"}, false},
-		{"Allowed: Local Binary", "./bin/server", []string{}, false},
-		{"Allowed: File Op", "rm", []string{"foo.txt"}, false},
-		{"Blocked: git", "git", []string{"status"}, true},
-		{"Blocked: bash", "bash", []string{"-c", "echo hello"}, true},
-		// Hardened Validation Tests
-		{"Universal: Abs Path", "python", []string{"/etc/passwd"}, true},
-		{"Universal: Traversal", "python", []string{"../header.h"}, true},
-		{"Universal: Unsafe Flag", "ls", []string{"--config=/etc/config"}, true},
-		{"Blocked: File Op Abs Path", "rm", []string{"/etc/passwd"}, true},
-		{"Blocked: File Op Traversal", "rm", []string{"../foo.txt"}, true},
-		{"Blocked: grep", "grep", []string{"func"}, true},
-		{"Advisory: go build", "go", []string{"build", "."}, true},
-		{"Advisory: go mod", "go", []string{"mod", "tidy"}, true},
-		{"Advisory: go get", "go", []string{"get", "example.com/pkg"}, true},
-		{"Metacharacter", "ls", []string{";", "rm", "-rf", "/"}, true},
-		// Silent Redirection Checks
-		{"Blocked: Redirection >", "ls", []string{">", "file.txt"}, true},
-		{"Blocked: Pipe |", "ls", []string{"|", "grep", "foo"}, true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validateCommand(tt.cmd, tt.args, false)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("validateCommand() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestValidateCommandV2(t *testing.T) {
+func TestValidateCommand(t *testing.T) {
 	tests := []struct {
 		name       string
 		cmd        string
@@ -58,24 +19,43 @@ func TestValidateCommandV2(t *testing.T) {
 		wantAdvice bool
 		wantErr    bool
 	}{
-		{"Hard Block: sudo", "sudo", []string{"ls"}, false, true},
-		{"Hard Block: go build", "go", []string{"build", "."}, false, true},
+		// Allowed Commands
+		{"Allowed: go", "go", []string{"version"}, false, false},
+		{"Allowed: python", "python", []string{"script.py"}, false, false},
+		{"Allowed: Local Binary", "./bin/server", []string{}, false, false},
+		
+		// Hard Blocked
+		{"Blocked: sudo", "sudo", []string{"ls"}, false, true},
+		{"Blocked: ssh", "ssh", []string{"user@host"}, false, true},
+		{"Blocked: vim", "vim", []string{"file.txt"}, false, true},
+		
+		// Advisory
 		{"Advisory: ls", "ls", []string{"-la"}, true, false},
 		{"Advisory: cat", "cat", []string{"README.md"}, true, false},
-		{"Code Integrity: rm .go (allowed)", "rm", []string{"main.go"}, false, false},
-		{"Code Integrity: mv .go (allowed)", "mv", []string{"old.go", "new.go"}, false, false},
-		{"Code Integrity: rm .md (allowed)", "rm", []string{"README.md"}, false, false},
-		{"Safe: echo", "echo", []string{"hello"}, false, false},
+		
+		// Go Commands (Now Allowed)
+		{"Allowed: go build", "go", []string{"build", "."}, false, false},
+		{"Allowed: go mod", "go", []string{"mod", "tidy"}, false, false},
+		{"Allowed: go get", "go", []string{"get", "example.com/pkg"}, false, false},
+
+		// Integrity Barriers
+		{"Code Integrity: rm .go (allowed)", "rm", []string{"main.go"}, false, false}, // Assuming rm is not integrity blocked for .go, only shell mod
+		
+		// Security Checks
+		{"Blocked: Abs Path", "python", []string{"/etc/passwd"}, false, true},
+		{"Blocked: Traversal", "python", []string{"../header.h"}, false, true},
+		{"Blocked: Redirection >", "ls", []string{">", "file.txt"}, false, true},
+		{"Blocked: Pipe |", "ls", []string{"|", "grep", "foo"}, false, true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			advice, err := validateCommandV2(tt.cmd, tt.args)
+			advice, err := validateCommand(tt.cmd, tt.args)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("validateCommandV2() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("validateCommand() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if (advice != "") != tt.wantAdvice {
-				t.Errorf("validateCommandV2() advice = %q, wantAdvice %v", advice, tt.wantAdvice)
+				t.Errorf("validateCommand() advice = %q, wantAdvice %v", advice, tt.wantAdvice)
 			}
 		})
 	}
@@ -95,7 +75,7 @@ func TestHandler_OutputTruncation(t *testing.T) {
 		Args:    []string{"-c", script},
 	}
 
-	res, _, err := Handler(context.Background(), &mcp.CallToolRequest{}, params, false)
+	res, _, err := Handler(context.Background(), &mcp.CallToolRequest{}, params)
 	if err != nil {
 		t.Fatalf("Handler failed: %v", err)
 	}
@@ -119,7 +99,7 @@ func TestHandler_Input(t *testing.T) {
 		Stdin:   "hello world\n",
 	}
 
-	res, _, err := Handler(context.Background(), &mcp.CallToolRequest{}, params, false)
+	res, _, err := Handler(context.Background(), &mcp.CallToolRequest{}, params)
 	if err != nil {
 		t.Fatalf("Handler failed: %v", err)
 	}
@@ -146,7 +126,7 @@ func TestHandler_OutputFile(t *testing.T) {
 		OutputFile: outputFile,
 	}
 
-	res, _, err := Handler(context.Background(), &mcp.CallToolRequest{}, params, false)
+	res, _, err := Handler(context.Background(), &mcp.CallToolRequest{}, params)
 	if err != nil {
 		t.Fatalf("Handler failed: %v", err)
 	}
@@ -178,7 +158,7 @@ func TestHandler_BackgroundAndKill(t *testing.T) {
 		Background: true,
 	}
 
-	res, _, err := Handler(context.Background(), nil, params, false)
+	res, _, err := Handler(context.Background(), nil, params)
 	if err != nil {
 		t.Fatalf("Failed to start background process: %v", err)
 	}
@@ -210,7 +190,7 @@ func TestHandler_BackgroundAndKill(t *testing.T) {
 		Command: "kill",
 		Args:    []string{pidStr},
 	}
-	res, _, err = Handler(context.Background(), nil, killParams, false)
+	res, _, err = Handler(context.Background(), nil, killParams)
 	if err != nil {
 		t.Errorf("Safe kill failed: %v", err)
 	}
@@ -223,13 +203,13 @@ func TestHandler_BackgroundAndKill(t *testing.T) {
 	// Wait for cleanup
 	time.Sleep(500 * time.Millisecond)
 
-	res, _, _ = Handler(context.Background(), nil, killParams, false)
+	res, _, _ = Handler(context.Background(), nil, killParams)
 	// Handler doesn't return Go error for tool error, check result
 	if !res.IsError {
 		t.Error("Expected error result killing already-dead process")
 	}
 	deadContent := res.Content[0].(*mcp.TextContent).Text
-	if !strings.Contains(deadContent, "permission denied") {
+	if !strings.Contains(deadContent, "❌ Permission Denied") {
 		t.Errorf("Expected permission denied error, got: %s", deadContent)
 	}
 
@@ -238,12 +218,12 @@ func TestHandler_BackgroundAndKill(t *testing.T) {
 		Command: "kill",
 		Args:    []string{"999999"},
 	}
-	res, _, _ = Handler(context.Background(), nil, randomKill, false)
+	res, _, _ = Handler(context.Background(), nil, randomKill)
 	if !res.IsError {
 		t.Error("Expected error result killing random PID")
 	}
 	randomContent := res.Content[0].(*mcp.TextContent).Text
-	if !strings.Contains(randomContent, "permission denied") {
+	if !strings.Contains(randomContent, "❌ Permission Denied") {
 		t.Errorf("Expected permission denied, got: %s", randomContent)
 	}
 }
@@ -263,7 +243,7 @@ func TestValidateCommand_Curl(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateCommand("curl", tt.args, false)
+			_, err := validateCommand("curl", tt.args)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("validateCommand(curl) error = %v, wantErr %v", err, tt.wantErr)
 			}

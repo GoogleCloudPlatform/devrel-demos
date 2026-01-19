@@ -43,7 +43,7 @@ export default function FailureAnalysis({ runs, stats }: { runs: RunResultRecord
 
     return (
         <div className="panel overflow-hidden mt-6 pb-0">
-            <div className="p-4 border-b border-white/5 bg-white/[0.02]">
+            <div className="p-4 border-b border-border bg-muted/40">
                 <h3 className="font-bold uppercase tracking-widest text-sm text-foreground">Failure Analysis (Run Count)</h3>
             </div>
             <div className="overflow-x-auto">
@@ -60,7 +60,7 @@ export default function FailureAnalysis({ runs, stats }: { runs: RunResultRecord
                     <TableBody>
                         {sortedReasons.map(reason => (
                             <TableRow key={reason}>
-                                <TableCell className="font-bold text-zinc-300 flex items-center gap-2 px-6">
+                                <TableCell className="font-bold text-muted-foreground flex items-center gap-2 px-6">
                                     <span className={`w-2 h-2 rounded-full ${reason.includes("Timeout") ? "bg-amber-500" :
                                         reason.includes("Test") ? "bg-red-500" :
                                             reason.includes("Lint") ? "bg-blue-400" :
@@ -70,13 +70,26 @@ export default function FailureAnalysis({ runs, stats }: { runs: RunResultRecord
                                 </TableCell>
                                 {alternatives.map(alt => {
                                     const count = matrix[reason]?.[alt] || 0;
+                                    const altData = stats?.[alt];
+                                    const pValue = altData?.p_failure_reasons?.[reason];
+
+                                    let sigLevel = '';
+                                    if (pValue !== undefined && pValue >= 0) {
+                                        if (pValue < 0.01) sigLevel = '***';
+                                        else if (pValue < 0.05) sigLevel = '**';
+                                        else if (pValue < 0.1) sigLevel = '*';
+                                    }
+
                                     return (
-                                        <TableCell key={alt} className="text-right font-mono text-zinc-400 px-6">
-                                            {count > 0 ? <span className="text-red-400 font-bold">{count}</span> : "-"}
+                                        <TableCell key={alt} className="text-right font-mono text-muted-foreground/70 px-6">
+                                            <div className="flex items-center justify-end gap-1">
+                                                {count > 0 ? <span className="text-red-400 font-bold">{count}</span> : "-"}
+                                                {sigLevel && <span className="text-primary font-bold text-xs" title={`p=${pValue?.toFixed(4)}`}>{sigLevel}</span>}
+                                            </div>
                                         </TableCell>
                                     );
                                 })}
-                                <TableCell className="text-right font-bold text-zinc-200 px-6">
+                                <TableCell className="text-right font-bold text-foreground px-6">
                                     {reasonTotals[reason]}
                                 </TableCell>
                             </TableRow>

@@ -1,46 +1,48 @@
 package shared
 
 import (
+	"fmt"
+	"regexp"
 	"strings"
 
 	"golang.org/x/tools/go/packages"
 )
 
-// MCPRelatedErrors contains common strings found in MCP-related compilation errors.
-var MCPRelatedErrors = []string{
-	"mcp.ToolDefinition",
-	"mcp.ToolCallRequest",
-	"mcp.ToolCallResponse",
-	"mcp.ToolContent",
-	"mcp.NewServer",
-	"mcp.Implementation",
-	"mcp.ServerOptions",
-	"RegisterTool",
-	"ListenAndServe",
-	"mcp.NewStdioServer",
-	"github.com/modelcontextprotocol/go-sdk/mcp",
-	"undefined: mcp",
-}
+var (
+	// undefinedPkg match: "undefined: pkgname.Symbol"
+	undefinedPkgRe = regexp.MustCompile(`undefined:\s+([a-zA-Z0-9_]+)\.`)
+	// importError match: "could not import github.com/foo/bar" or "package github.com/foo/bar is not in GOROOT"
+	importErrorRe = regexp.MustCompile(`(?:could not import|package)\s+([a-zA-Z0-9_./-]+)`)
+)
 
-// GetMCPHint checks a list of package errors for MCP-related issues and returns a hint if found.
-func GetMCPHint(errs []packages.Error) string {
+// GetDocHint checks a list of package errors for API usage issues and returns a generic doc hint.
+func GetDocHint(errs []packages.Error) string {
 	for _, e := range errs {
-		for _, pattern := range MCPRelatedErrors {
-			if strings.Contains(e.Msg, pattern) {
-				return "\n\n**HINT:** It looks like you're having trouble with the 'mcp' package. Try calling `go.docs` on \"github.com/modelcontextprotocol/go-sdk/mcp\" to see the correct API."
-			}
+		if hint := generateHint(e.Msg); hint != "" {
+			return hint
 		}
 	}
 	return ""
 }
 
-// GetMCPHintFromOutput checks a raw output string for MCP-related issues and returns a hint if found.
-func GetMCPHintFromOutput(output string) string {
-	for _, pattern := range MCPRelatedErrors {
-		if strings.Contains(output, pattern) {
-			return "\n\n**HINT:** It looks like you're having trouble with the 'mcp' package. Try calling `go.docs` on \"github.com/modelcontextprotocol/go-sdk/mcp\" to see the correct API."
-		}
+// GetDocHintFromOutput checks a raw output string for API usage issues and returns a generic doc hint.
+func GetDocHintFromOutput(output string) string {
+	return generateHint(output)
+}
+
+func generateHint(msg string) string {
+	// Check for "undefined: pkg.Symbol"
+	if matches := undefinedPkgRe.FindStringSubmatch(msg); len(matches) > 1 {
+		pkgName := matches[1]
+		return fmt.Sprintf("\n\n**HINT:** usage of '%s' failed. Try calling `go_docs` on that package to see the correct API.", pkgName)
 	}
+
+	// Check for "could not import ..."
+	if matches := importErrorRe.FindStringSubmatch(msg); len(matches) > 1 {
+		pkgPath := matches[1]
+		return fmt.Sprintf("\n\n**HINT:** import '%s' failed. Try calling `go_docs` on \"%s\" to verify the package path and exports.", pkgPath, pkgPath)
+	}
+
 	return ""
 }
 

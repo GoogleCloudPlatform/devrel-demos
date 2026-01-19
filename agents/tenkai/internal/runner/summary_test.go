@@ -107,6 +107,12 @@ func TestCalculateSummary(t *testing.T) {
 	if a2Stats.PDuration != -1.0 {
 		t.Errorf("Expected PDuration -1.0 (Not Calculated) for N=1, got %f", a2Stats.PDuration)
 	}
+	if a2Stats.PInputTokens != -1.0 {
+		t.Errorf("Expected PInputTokens -1.0 for N=1, got %f", a2Stats.PInputTokens)
+	}
+	if a2Stats.POutputTokens != -1.0 {
+		t.Errorf("Expected POutputTokens -1.0 for N=1, got %f", a2Stats.POutputTokens)
+	}
 
 	// Verify Alt3 Stats (N=0)
 	a3Stats := summary.Alternatives[alt3]

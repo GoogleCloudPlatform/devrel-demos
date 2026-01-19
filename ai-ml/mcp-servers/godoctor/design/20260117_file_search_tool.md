@@ -1,5 +1,8 @@
 # Specification: Generic File Search Tool (`file_search`)
 
+## Status: Shelved (2026-01-17)
+This tool was shelved following the implementation of `safe_shell` V2. Since `safe_shell` now uses an Advisory system, generic tools like `grep` are no longer hard-blocked; they return the requested data alongside a suggestion to use more specialized tools. Consequently, a custom `file_search` would be redundant with standard `grep` and would drift away from the project's focus on specialized Go-aware tools. Agents should use `safe_shell` with `grep` for non-Go content search.
+
 ## Goal
 Provide a way for agents to search for text patterns across all files in a project, not just Go files. This bridges the gap between `file_list` (locating files) and `file_read` (examining content).
 

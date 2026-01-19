@@ -61,25 +61,24 @@ func run(ctx context.Context, args []string) error {
 		return nil
 	}
 
-	if cfg.ListTools {
-		var tools []toolnames.ToolDef
-		for _, def := range toolnames.Registry {
-			if cfg.IsToolEnabled(def.InternalName) {
-				tools = append(tools, def)
+		if cfg.ListTools {
+			var tools []toolnames.ToolDef
+			for _, def := range toolnames.Registry {
+				if cfg.IsToolEnabled(def.Name) {
+					tools = append(tools, def)
+				}
 			}
+	
+			// Sort by name
+			sort.Slice(tools, func(i, j int) bool {
+				return tools[i].Name < tools[j].Name
+			})
+	
+			for _, tool := range tools {
+				fmt.Printf("Name: %s\nTitle: %s\nDescription: %s\n\n", tool.Name, tool.Title, tool.Description)
+			}
+			return nil
 		}
-
-		// Sort by name
-		sort.Slice(tools, func(i, j int) bool {
-			return tools[i].ExternalName < tools[j].ExternalName
-		})
-
-		for _, tool := range tools {
-			fmt.Printf("Name: %s\nTitle: %s\nDescription: %s\n\n", tool.ExternalName, tool.Title, tool.Description)
-		}
-		return nil
-	}
-
 	if cfg.Agents {
 		// printAgentInstructions needs to be updated or we perform a manual check here.
 		// Since printAgentInstructions likely uses instructions.Get, we can refactor that.

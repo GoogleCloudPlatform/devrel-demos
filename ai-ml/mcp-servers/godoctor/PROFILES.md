@@ -1,75 +1,65 @@
 # GoDoctor Profiles & Tool Availability
 
-This document lists the tools available in each of the GoDoctor server profiles, generated using the `--list-tools` flag.
+This document lists the tools available in each of the GoDoctor server profiles.
 
 ## 1. Standard Profile (`--profile=standard`)
-*The default profile. Balanced for general coding tasks.*
+*The default profile. Balanced for general coding tasks and iterative development.*
 
-**Count:** 10 Tools
+**Count:** 11 Tools
 
-| Tool | Description |
-| :--- | :--- |
-| **`ask_specialist`** | Autonomous investigator for complex queries. |
-| **`code_outline`** | Returns file skeleton (declarations only). |
-| **`edit_code`** | (Fallback) Basic fuzzy edit. |
-| **`go_build`** | Runs `go build`. |
-| **`go_test`** | Runs `go test`. |
-| **`inspect_symbol`** | Deep semantic inspection of symbols. |
-| **`list_files`** | Recursively lists project files. |
-| **`read_code`** | Reads full file content with symbol extraction. |
-| **`read_docs`** | High-level module documentation map. |
-| **`smart_edit`** | Advanced "Senior Dev" editor with pre-verification. |
+| Tool | Title | Description |
+| :--- | :--- | :--- |
+| `safe_shell` | Safe Execution | Execute a specific binary with arguments. Blocks until completion or timeout. |
+| `file_create` | Initialize File | Create a new source file from scratch. |
+| `file_edit` | Patch File | Targeted code modification using fuzzy-matching and pre-verification. |
+| `file_list` | Survey Directory | Explore the project hierarchy recursively. |
+| `file_read` | Examine Content | Perform a deep read of a file with symbol extraction. |
+| `go_build` | Go Build | Compiles the packages named by the import paths. |
+| `go_docs` | Consult Docs | Query Go documentation for any package or symbol. |
+| `go_get` | Go Get | Downloads and installs packages; updates `go.mod`. |
+| `go_lint` | Go Lint | Runs 'golangci-lint' on the project. |
+| `go_mod` | Go Mod | Module maintenance operations like `go mod tidy`. |
+| `go_test` | Run Tests | Execute the test suite with aggregate coverage reporting. |
 
 ---
 
 ## 2. Advanced Profile (`--profile=advanced`)
-*Enables all experimental and legacy features. The "Kitchen Sink".*
+*Enables all features, including specialized symbol navigation and refactoring tools.*
 
-**Count:** 19 Tools
+**Count:** 18 Tools
 
 **Includes all Standard tools plus:**
-| Tool | Description |
-| :--- | :--- |
-| **`analyze_dependency_updates`** | Checks for API breaking changes. |
-| **`analyze_project`** | (Placeholder) Project mental mapping. |
-| **`ask_the_master_gopher`** | Dynamic tool unlocking agent. |
-| **`go_install`** | Runs `go install`. |
-| **`modernize`** | Auto-upgrades old Go patterns. |
-| **`open`** | "Satellite View" (lightweight read). |
-| **`rename_symbol`** | Safe refactoring via `gopls`. |
-| **`review_code`** | AI-powered code review. |
-| **`write`** | Creates NEW files (distinct from edit). |
+| Tool | Title | Description |
+| :--- | :--- | :--- |
+| `code_review` | Request Review | Submit code for expert analysis focusing on correctness and style. |
+| `file_outline` | Scan Structure | Examine the structural layout of a file (signatures only). |
+| `go_diff` | Assess API Risk | Compare the public API of two versions of a package. |
+| `go_install` | Go Install | Compiles and installs the package/binary to `$GOPATH/bin`. |
+| `go_modernize` | Modernize Code | Automatically upgrade legacy Go patterns to modern standards. |
+| `symbol_inspect` | Diagnose Symbol | Deep-dive analysis of a specific symbol (definitions and references). |
+| `symbol_rename` | Refactor Symbol | Execute a safe, semantic rename of a Go identifier. |
 
 ---
 
-## 3. Oracle Profile (`--profile=oracle`)
-*Forced Agentic Flow. The user sees only one tool.*
+## 3. Tool Availability Matrix
 
-**Count:** 1 Tool
-
-| Tool | Description |
-| :--- | :--- |
-| **`ask_specialist`** | The specialist autonomously decides which hidden tools to use to solve the problem. |
-
-## 5. Tool Availability Matrix
-
-| Tool | Title | Description | Standard | Advanced | Oracle |
-| :--- | :--- | :--- | :---: | :---: | :---: |
-| `analyze_dependency_updates` | Analyze Dependency Updates | Checks for breaking changes in your Go packages or dependencies. Wrapper around 'apidiff'. useful before upgrading dependencies or releasing new versions. | - | ✅ | - |
-| `analyze_project` | Analyze Project | Use this first when joining a new project to get a mental map. | ✅ | ✅ | - |
-| `ask_specialist` | Ask Specialist | Ask a complex question. The specialist will autonomously use other tools (read docs, inspect code, run tests) to investigate and answer. | ✅ | ✅ | ✅ |
-| `code_outline` | Code Outline | Returns the skeleton of a Go file (declarations without function bodies) and a summary of external imports. | ✅ | ✅ | - |
-| `edit_code` | Edit Code | Smartly edits a Go file (*.go) with fuzzy matching and safety checks. | ✅ | ✅ | - |
-| `go_build` | Go Build | Runs 'go build' to compile packages and generate binaries. | ✅ | ✅ | - |
-| `go_install` | Go Install | | `go_install` | Go Install | Runs 'go install' to install packages. | - | ✅ | - |
-| `go_lint` | Go Lint | Runs 'golangci-lint' on the project. Automatically installs the linter if it is not found in the path. | - | ✅ | - |
-| `go_test` | Go Test | Runs 'go test' on specified packages/tests. Use this to verify your changes. | ✅ | ✅ | - |t Symbol | Returns detailed information about a symbol (signature, documentation, source code, references). Prioritizes local source code over external documentation. | ✅ | ✅ | - |
-| `list_files` | List Files | Lists files in a directory recursively. Useful for exploring project structure. Supports max depth and ignore patterns. | ✅ | ✅ | - |
-| `modernize` | Modernize Go Code | Runs the 'modernize' analyzer to suggest and apply updates for newer Go versions (e.g. replacing s[i:len(s)] with s[i:], using min/max/slices/maps packages). | - | ✅ | - |
-| `open` | Open File (Satellite View) | Entry Point. Returns a lightweight skeleton of a Go file (imports and signatures only). Use this for 'Satellite View' exploration to save tokens and avoid context noise compared to reading the full file. | - | ✅ | - |
-| `read_code` | Read Code | Reads a Go file (*.go) and extracts a symbol table (functions, types, variables). | ✅ | ✅ | - |
-| `read_docs` | Read Documentation | The high-level map builder. Lists all sub-packages and exported symbols in a module. Use this FIRST to visualize the codebase structure without flooding your context window. Supports Markdown (default) and JSON. | ✅ | ✅ | - |
-| `rename_symbol` | Rename Symbol | Renames a symbol refactoring-style using 'gopls'. Updates all references safely. | - | ✅ | - |
-| `review_code` | Review Go Code | Reviews Go code for correctness, style, and idiomatic usage. | - | ✅ | - |
-| `smart_edit` | Smart Edit (Fuzzy Patch) | The 'Senior Dev' editor. Uses fuzzy-matching to patch specific code blocks. It auto-formats, updates imports, and PRE-COMPILES your change to catch errors before saving. Use this to safely modify large files. | ✅ | ✅ | - |
-| `write` | Write New Go File | The context-aware builder. Use this to create NEW Go files. It automatically handles import validation against the current project context. For existing files, use 'edit' instead. | - | ✅ | - |
+| Tool | Standard | Advanced |
+| :--- | :---: | :---: |
+| `code_review` | ❌ | ✅ |
+| `safe_shell` | ✅ | ✅ |
+| `file_create` | ✅ | ✅ |
+| `file_edit` | ✅ | ✅ |
+| `file_list` | ✅ | ✅ |
+| `file_outline` | ❌ | ✅ |
+| `file_read` | ✅ | ✅ |
+| `go_build` | ✅ | ✅ |
+| `go_diff` | ❌ | ✅ |
+| `go_docs` | ✅ | ✅ |
+| `go_get` | ✅ | ✅ |
+| `go_install` | ❌ | ✅ |
+| `go_lint` | ✅ | ✅ |
+| `go_mod` | ✅ | ✅ |
+| `go_modernize` | ❌ | ✅ |
+| `go_test` | ✅ | ✅ |
+| `symbol_inspect` | ❌ | ✅ |
+| `symbol_rename` | ❌ | ✅ |

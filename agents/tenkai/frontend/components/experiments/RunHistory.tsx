@@ -8,11 +8,14 @@ interface RunHistoryProps {
     selectedRunId: number | null;
     onSelectRun: (run: RunResultRecord) => void;
     onLoadMore: () => void;
+    onLoadMore: () => void;
     hasMore: boolean;
     loading: boolean;
+    filterAlternative?: string | null;
+    onClearFilter?: () => void;
 }
 
-export default function RunHistory({ runs, selectedRunId, onSelectRun, onLoadMore, hasMore, loading }: RunHistoryProps) {
+export default function RunHistory({ runs, selectedRunId, onSelectRun, onLoadMore, hasMore, loading, filterAlternative, onClearFilter }: RunHistoryProps) {
     const [filter, setFilter] = useState("ALL");
 
     // Group by alternative
@@ -43,10 +46,27 @@ export default function RunHistory({ runs, selectedRunId, onSelectRun, onLoadMor
                     <option value="FAILED (TIMEOUT)">Timeouts</option>
                     <option value="FAILED (LOOP)">Loop Detection</option>
                     <option value="FAILED (ERROR)">System Errors</option>
+                    <option value="RUNNING">Running</option>
                 </select>
             </div>
+            {filterAlternative && (
+                <div className="bg-primary/10 px-4 py-2 border-b border-primary/20 flex justify-between items-center transition-all animate-in slide-in-from-top-2">
+                    <span className="text-xs uppercase font-bold tracking-wider text-primary">
+                        Filtered by: <span className="text-foreground">{filterAlternative}</span>
+                    </span>
+                    <button
+                        onClick={onClearFilter}
+                        className="text-primary hover:text-white transition-colors"
+                        title="Clear Filter"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
             <div className="flex-1 overflow-y-auto">
                 {alternatives.map(alt => {
+                    if (filterAlternative && alt !== filterAlternative) return null;
+
                     const altRuns = runs
                         .filter(r => r.alternative === alt)
                         .filter(r => {

@@ -8,7 +8,7 @@ The project is architected with a separation between **Internal Tool Logic** and
 
 ### Key Concepts
 
-*   **Profiles:** Presets that enable specific subsets of tools (`standard`, `advanced`, `oracle`).
+*   **Profiles:** Presets that enable specific subsets of tools (`standard`, `advanced`).
 *   **Tool Registry:** A centralized definition file (`internal/toolnames/registry.go`) that maps stable internal IDs (e.g., `file.edit`) to external agent-facing names (e.g., `smart_edit`).
 *   **Smart Editing:** The editor (`smart_edit`) uses fuzzy matching and pre-verification (syntax checks, `goimports`) to ensure safe code modifications.
 
@@ -52,8 +52,7 @@ The project follows a domain-driven package layout for tools:
     *   `file/` (`create`, `edit`, `read`, `list`, `outline`)
     *   `symbol/` (`inspect`, `rename`)
     *   `go/` (`build`, `test`, `install`, `modernize`, `diff`, `docs`, `lint`, `get`, `mod`)
-    *   `project/` (`map`)
-    *   `agent/` (`review`, `specialist`)
+    *   `agent/` (`review`)
 
 ### Adding a New Tool
 

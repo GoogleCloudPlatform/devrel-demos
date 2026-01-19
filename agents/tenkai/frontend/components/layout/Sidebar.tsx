@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export function Sidebar() {
     const pathname = usePathname();
-    const { isCollapsed, toggleSidebar } = useSidebar();
+    const { isCollapsed, toggleSidebar, isMounted } = useSidebar();
 
     const navItems = [
         { icon: "📊", label: "Dashboard", href: "/" },
@@ -17,8 +17,11 @@ export function Sidebar() {
         { icon: "🧪", label: "Scenarios", href: "/scenarios" },
     ];
 
+    // During SSR/Hydration, render default (expanded) width to match server
+    const currentCollapsed = isMounted ? isCollapsed : false;
+
     return (
-        <aside className={`${isCollapsed ? 'w-[60px]' : 'w-[240px]'} bg-background border-r border-border h-screen fixed left-0 top-0 flex flex-col z-50 transition-all duration-300`}>
+        <aside className={`${currentCollapsed ? 'w-[60px]' : 'w-[240px]'} bg-background border-r border-border h-screen fixed left-0 top-0 flex flex-col z-50 transition-all duration-300`}>
             {/* Header */}
             <div className={`h-[56px] flex items-center ${isCollapsed ? 'justify-center' : 'px-4'} border-b border-border relative group`}>
                 <div className="flex items-center gap-2">

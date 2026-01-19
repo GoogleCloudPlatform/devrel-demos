@@ -18,9 +18,9 @@ import (
 
 // Register registers the smart_edit tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["file.edit"]
+	def := toolnames.Registry["file_edit"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.ExternalName,
+		Name:        def.Name,
 		Title:       def.Title,
 		Description: def.Description,
 	}, toolHandler)
@@ -146,43 +146,42 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 				}
 				warning += fmt.Sprintf("- %s%s\n", loc, shared.CleanError(e.Msg))
 			}
-			warning += shared.GetMCPHint(pkg.Errors)
-		} else {
-			// 7. Impact Analysis (Reverse Dependencies)
-			// Only run if local compilation passed
-			// We limit this to avoiding massive scans in large repos, relying on the graph.
-			importers := graph.Global.FindImporters(pkg.PkgPath)
-			var impactWarnings []string
-
-			for _, imp := range importers {
-				if len(imp.GoFiles) == 0 {
-					continue
-				}
-				impDir := filepath.Dir(imp.GoFiles[0])
-
-				// Force reload to check against new API
-				graph.Global.Invalidate(impDir)
-
-				// Check for errors
-				reloadedImp, err := graph.Global.Load(impDir)
-				if err == nil && len(reloadedImp.Errors) > 0 {
-					impactWarnings = append(impactWarnings, fmt.Sprintf("Package %s: %s", reloadedImp.PkgPath, reloadedImp.Errors[0].Msg))
-				}
-			}
-
-			if len(impactWarnings) > 0 {
-				warning += "\n\n**IMPACT WARNING:** This edit broke the following dependent packages:\n"
-				for _, w := range impactWarnings {
-					warning += fmt.Sprintf("- %s\n", w)
-				}
-				// Also check impact warnings for MCP hints if possible
-				// (impactWarnings are strings, so we use the output helper)
-				warning += shared.GetMCPHintFromOutput(strings.Join(impactWarnings, "\n"))
-			}
-		}
-	}
-
-	return &mcp.CallToolResult{
+			                        warning += shared.GetDocHint(pkg.Errors)
+			                } else {
+			                        // 7. Impact Analysis (Reverse Dependencies)
+			                        // Only run if local compilation passed
+			                        // We limit this to avoiding massive scans in large repos, relying on the graph.
+			                        importers := graph.Global.FindImporters(pkg.PkgPath)
+			                        var impactWarnings []string
+			
+			                        for _, imp := range importers {
+			                                if len(imp.GoFiles) == 0 {
+			                                        continue
+			                                }
+			                                impDir := filepath.Dir(imp.GoFiles[0])
+			
+			                                // Force reload to check against new API
+			                                graph.Global.Invalidate(impDir)
+			
+			                                // Check for errors
+			                                reloadedImp, err := graph.Global.Load(impDir)
+			                                if err == nil && len(reloadedImp.Errors) > 0 {
+			                                        impactWarnings = append(impactWarnings, fmt.Sprintf("Package %s: %s", reloadedImp.PkgPath, reloadedImp.Errors[0].Msg))
+			                                }
+			                        }
+			
+			                        if len(impactWarnings) > 0 {
+			                                warning += "\n\n**IMPACT WARNING:** This edit broke the following dependent packages:\n"
+			                                for _, w := range impactWarnings {
+			                                        warning += fmt.Sprintf("- %s\n", w)
+			                                }
+			                                // Also check impact warnings for MCP hints if possible
+			                                // (impactWarnings are strings, so we use the output helper)
+			                                warning += shared.GetDocHintFromOutput(strings.Join(impactWarnings, "\n"))
+			                        }
+			                }
+			        }
+				return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: fmt.Sprintf("Successfully edited %s%s", args.Filename, warning)},
 		},

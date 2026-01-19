@@ -34,14 +34,18 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 			PSuccess:         -1.0,
 			PDuration:        -1.0,
 			PTokens:          -1.0,
+			PInputTokens:     -1.0,
+			POutputTokens:    -1.0,
 			PCachedTokens:    -1.0,
 			PLint:            -1.0,
+			PCoverage:        -1.0,
 			PTestsPassed:     -1.0,
 			PTestsFailed:     -1.0,
 			PTimeout:         -1.0,
 			PToolCalls:       -1.0,
 			PFailedToolCalls: -1.0,
 			FailureReasons:   make(map[string]int),
+			PFailureReasons:  make(map[string]float64),
 		}
 	}
 
@@ -54,15 +58,21 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 		successes          int
 		timeouts           int
 		totalTokens        int64
+		totalInputTokens   int64
+		totalOutputTokens  int64
 		totalCachedTokens  int64
 		totalLint          int
+		totalCoverage      float64
 		totalDur           time.Duration
 		totalToolCalls     int
 		failedToolCalls    int
 		durations          []float64
 		tokens             []float64
+		inputTokens        []float64
+		outputTokens       []float64
 		cachedTokens       []float64
 		lints              []float64
+		coverages          []float64
 		passes             []float64
 		failures           []float64
 		toolCalls          []float64
@@ -96,39 +106,51 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 		m := byAlt[res.Alternative]
 		m.totalRuns++
 
-		m.totalDur += res.Duration
-		m.durations = append(m.durations, res.Duration.Seconds())
-
-		if res.IsSuccess {
-			m.successes++
-			summary.SuccessfulRuns++
-		} else if res.IsTimeout() {
-			m.timeouts++
-		}
-
 		if res.AgentMetrics != nil {
 			m.totalTokens += int64(res.AgentMetrics.TotalTokens)
 			m.tokens = append(m.tokens, float64(res.AgentMetrics.TotalTokens))
+			m.totalInputTokens += int64(res.AgentMetrics.InputTokens)
+			m.inputTokens = append(m.inputTokens, float64(res.AgentMetrics.InputTokens))
+			m.totalOutputTokens += int64(res.AgentMetrics.OutputTokens)
+			m.outputTokens = append(m.outputTokens, float64(res.AgentMetrics.OutputTokens))
 			m.totalCachedTokens += int64(res.AgentMetrics.CachedTokens)
 			m.cachedTokens = append(m.cachedTokens, float64(res.AgentMetrics.CachedTokens))
-		}
-		if res.Error == nil && res.AgentMetrics != nil {
+
 			m.totalToolCalls += res.AgentMetrics.TotalToolCallsCount
 			m.failedToolCalls += res.AgentMetrics.FailedToolCalls
 			m.toolCalls = append(m.toolCalls, float64(res.AgentMetrics.TotalToolCallsCount))
 			m.failedToolCallsVec = append(m.failedToolCallsVec, float64(res.AgentMetrics.FailedToolCalls))
 		}
 
-		if res.EvaluationMetrics != nil {
-			m.totalLint += res.EvaluationMetrics.LintIssues
-			summary.TotalLint += res.EvaluationMetrics.LintIssues
-			m.lints = append(m.lints, float64(res.EvaluationMetrics.LintIssues))
-			m.passes = append(m.passes, float64(res.EvaluationMetrics.TestsPassed))
-			m.failures = append(m.failures, float64(res.EvaluationMetrics.TestsFailed))
-		}
+		if res.IsSuccess {
+			m.successes++
+			summary.SuccessfulRuns++
 
-		// Failure Analysis (if not success)
-		if !res.IsSuccess {
+			m.totalDur += res.Duration
+			m.durations = append(m.durations, res.Duration.Seconds())
+
+			if res.EvaluationMetrics != nil {
+				m.totalLint += res.EvaluationMetrics.LintIssues
+				summary.TotalLint += res.EvaluationMetrics.LintIssues
+				m.lints = append(m.lints, float64(res.EvaluationMetrics.LintIssues))
+				m.passes = append(m.passes, float64(res.EvaluationMetrics.TestsPassed))
+				m.failures = append(m.failures, float64(res.EvaluationMetrics.TestsFailed))
+
+				// Extract Coverage from ValidationReport
+				if res.ValidationReport != "" {
+					var report ValidationReport
+					if err := json.Unmarshal([]byte(res.ValidationReport), &report); err == nil {
+						// Include coverage even if 0 to avoid bias
+						m.totalCoverage += report.Coverage
+						m.coverages = append(m.coverages, report.Coverage)
+					}
+				}
+			}
+		} else {
+			// Failure Handling
+			if res.IsTimeout() {
+				m.timeouts++
+			}
 			reasons := GetFailureReasons(res)
 			for _, r := range reasons {
 				m.failureReasons[r]++
@@ -161,14 +183,18 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 			PSuccess:         -1.0,
 			PDuration:        -1.0,
 			PTokens:          -1.0,
+			PInputTokens:     -1.0,
+			POutputTokens:    -1.0,
 			PCachedTokens:    -1.0,
 			PLint:            -1.0,
+			PCoverage:        -1.0,
 			PTestsPassed:     -1.0,
 			PTestsFailed:     -1.0,
 			PTimeout:         -1.0,
 			PToolCalls:       -1.0,
 			PFailedToolCalls: -1.0,
 			FailureReasons:   m.failureReasons,
+			PFailureReasons:  make(map[string]float64),
 		}
 
 		if m.totalRuns > 0 {
@@ -176,7 +202,15 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 			as.AvgLint = float64(m.totalLint) / float64(m.totalRuns)
 			as.AvgDuration = (m.totalDur / time.Duration(m.totalRuns)).Seconds()
 			as.AvgTokens = float64(m.totalTokens) / float64(m.totalRuns)
+			as.AvgInputTokens = float64(m.totalInputTokens) / float64(m.totalRuns)
+			as.AvgOutputTokens = float64(m.totalOutputTokens) / float64(m.totalRuns)
 			as.AvgCachedTokens = float64(m.totalCachedTokens) / float64(m.totalRuns)
+
+			if len(m.coverages) > 0 {
+				as.AvgCoverage = m.totalCoverage / float64(len(m.coverages))
+			} else {
+				as.AvgCoverage = 0
+			}
 
 			totalSuccessDur += m.totalDur
 			totalSuccessTokens += m.totalTokens
@@ -215,10 +249,6 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 	}
 
 	// Stats vs Control
-	if controlAlt == "" && len(altNames) > 0 {
-		controlAlt = altNames[0]
-	}
-
 	if controlData, ok := byAlt[controlAlt]; ok {
 		for name, as := range summary.Alternatives {
 			if name == controlAlt {
@@ -230,23 +260,60 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 			}
 
 			// P-Values (Welch / Fisher)
-			if controlData.totalRuns >= 5 && m.totalRuns >= 5 {
+			// Checks individually per metric to ensure we have enough valid samples (N>=5)
+			if len(controlData.durations) >= 5 && len(m.durations) >= 5 {
 				as.PDuration = stats.WelchTTest(controlData.durations, m.durations)
+				as.EffectDuration = stats.CohensD(m.durations, controlData.durations)
+			}
+			if len(controlData.tokens) >= 5 && len(m.tokens) >= 5 {
 				as.PTokens = stats.WelchTTest(controlData.tokens, m.tokens)
+				as.EffectTokens = stats.CohensD(m.tokens, controlData.tokens)
+
+				as.PInputTokens = stats.WelchTTest(controlData.inputTokens, m.inputTokens)
+				as.EffectInputTokens = stats.CohensD(m.inputTokens, controlData.inputTokens)
+
+				as.POutputTokens = stats.WelchTTest(controlData.outputTokens, m.outputTokens)
+				as.EffectOutputTokens = stats.CohensD(m.outputTokens, controlData.outputTokens)
+
 				as.PCachedTokens = stats.WelchTTest(controlData.cachedTokens, m.cachedTokens)
+				as.EffectCachedTokens = stats.CohensD(m.cachedTokens, controlData.cachedTokens)
+			}
+			if len(controlData.lints) >= 5 && len(m.lints) >= 5 {
 				as.PLint = stats.WelchTTest(controlData.lints, m.lints)
 				as.PTestsPassed = stats.WelchTTest(controlData.passes, m.passes)
 				as.PTestsFailed = stats.WelchTTest(controlData.failures, m.failures)
-				as.PToolCalls = stats.WelchTTest(controlData.toolCalls, m.toolCalls)
-				// Need failed tool calls vector in intermediate to calc this...
-				// For now assuming 0 if not tracked in intermediate properly (I fixed intermediate previously but removed vectors in this refactor?
-				// Wait, intermediate struct above removed vectors! I need to put them back or calculate on fly?)
-				// No, I need them for WelchTTest.
-				// Since I am rewriting the file, I must ensure intermediate has vectors!
 			}
+			if len(controlData.coverages) >= 5 && len(m.coverages) >= 5 {
+				as.PCoverage = stats.WelchTTest(controlData.coverages, m.coverages)
+				as.EffectCoverage = stats.CohensD(m.coverages, controlData.coverages)
+			}
+			if len(controlData.toolCalls) >= 5 && len(m.toolCalls) >= 5 {
+				as.PToolCalls = stats.WelchTTest(controlData.toolCalls, m.toolCalls)
+				as.PFailedToolCalls = stats.WelchTTest(controlData.failedToolCallsVec, m.failedToolCallsVec)
+			}
+
+			// Fisher's Exact Test uses total counts, so totalRuns is appropriate here
 			if controlData.totalRuns >= 5 && m.totalRuns >= 5 {
 				as.PSuccess = stats.FisherExactTest(controlData.successes, controlData.totalRuns-controlData.successes, m.successes, m.totalRuns-m.successes)
 				as.PTimeout = stats.FisherExactTest(controlData.timeouts, controlData.totalRuns-controlData.timeouts, m.timeouts, m.totalRuns-m.timeouts)
+
+				// Failure Reasons Analysis
+				// Union of all failure reasons seen in both control and this alternative
+				allReasons := make(map[string]bool)
+				for r := range controlData.failureReasons {
+					allReasons[r] = true
+				}
+				for r := range m.failureReasons {
+					allReasons[r] = true
+				}
+
+				for r := range allReasons {
+					ctrlCount := controlData.failureReasons[r]
+					altCount := m.failureReasons[r]
+					// Yes, No
+					// No = TotalRuns - Yes
+					as.PFailureReasons[r] = stats.FisherExactTest(ctrlCount, controlData.totalRuns-ctrlCount, altCount, m.totalRuns-altCount)
+				}
 			}
 			summary.Alternatives[name] = as
 		}
@@ -430,7 +497,7 @@ func analyzeTools(results []Result, toolCounts map[int64]map[string]int) []model
 		// 1. Success vs Fail
 		s := toolCountsSucc[t]
 		f := toolCountsFail[t]
-		if len(s) >= 2 && len(f) >= 2 {
+		if len(s) >= 5 && len(f) >= 5 {
 			row.SuccFailPValue = stats.MannWhitneyU(s, f)
 		}
 

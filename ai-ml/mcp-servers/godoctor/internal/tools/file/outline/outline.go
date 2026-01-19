@@ -22,9 +22,9 @@ import (
 
 // Register registers the code_outline tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["file.outline"]
+	def := toolnames.Registry["file_outline"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.ExternalName,
+		Name:        def.Name,
 		Title:       def.Title,
 		Description: def.Description,
 	}, Handler)

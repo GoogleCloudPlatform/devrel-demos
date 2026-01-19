@@ -52,7 +52,7 @@ func WelchTTest(data1, data2 []float64) float64 {
 	se := math.Sqrt(se1 + se2)
 
 	if se == 0 {
-		if m1 == m2 {
+		if math.Abs(m1-m2) < 1e-9 {
 			return 1.0
 		}
 		return 0.0
@@ -63,6 +63,38 @@ func WelchTTest(data1, data2 []float64) float64 {
 
 	// Approximate p-value from t and df
 	return StudentTPValue(t, df)
+}
+
+// CohensD calculates the effect size (standardized mean difference) between two samples.
+// d = (M1 - M2) / Pooled_SD
+func CohensD(data1, data2 []float64) float64 {
+	n1 := float64(len(data1))
+	n2 := float64(len(data2))
+	if n1 < 2 || n2 < 2 {
+		return 0 // Not enough data
+	}
+
+	m1 := Mean(data1)
+	m2 := Mean(data2)
+	v1 := Variance(data1)
+	v2 := Variance(data2)
+
+	// Pooled Standard Deviation
+	// s_pooled = sqrt( ((n1-1)s1^2 + (n2-1)s2^2) / (n1+n2-2) )
+	numerator := (n1-1)*v1 + (n2-1)*v2
+	denominator := n1 + n2 - 2
+	pooledSD := math.Sqrt(numerator / denominator)
+
+	if pooledSD == 0 {
+		if m1 == m2 {
+			return 0
+		}
+		// If variance is 0 but means differ, effect size is technically infinite.
+		// Return 0 or a cap to avoid breaking UI?
+		return 0
+	}
+
+	return (m1 - m2) / pooledSD
 }
 
 func MathPow(a, b float64) float64 {

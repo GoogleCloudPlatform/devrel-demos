@@ -78,7 +78,7 @@ type GeminiStats struct {
 	TotalTokens  int `json:"total_tokens"`
 	InputTokens  int `json:"input_tokens"`
 	OutputTokens int `json:"output_tokens"`
-	CachedTokens int `json:"cached_tokens"`
+	CachedTokens int `json:"cached"`
 }
 
 // ParseEvents reads a jsonl file and extracts metrics.
@@ -224,7 +224,7 @@ func ParseLine(line string, metrics *AgentMetrics, pendingTools map[string]*Tool
 		// Check for termination token in the content
 		// Check for termination token in the content
 		// Only check if it comes from the model/assistant, to avoid self-triggering on echoed prompts.
-		if (evt.Role == "model" || evt.Role == "assistant") && strings.Contains(evt.Content, "<<TENKAI_DONE>>") {
+		if (evt.Role == "model" || evt.Role == "assistant") && strings.Contains(evt.Content, "<<TASK_DONE>>") {
 			return &evt, ErrTerminationRequested
 		}
 	}
