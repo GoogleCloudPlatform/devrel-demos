@@ -15,7 +15,7 @@
     "express": "^5.1.0",
     "firebase": "^10.8.0",
     "node-localstorage": "^3.0.5",
-    "node-poweredup": "^8.0.5",
+    "node-poweredup": "^10.1.0",
     "serialport": "^12.0.0"
   },
   "devDependencies": {
