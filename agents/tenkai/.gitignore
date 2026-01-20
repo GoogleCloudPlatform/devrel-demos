@@ -1,13 +1,49 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+coverage.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# GoDoctor & MCP artifacts
+.mcp-logs/
+
+# Frontend (Next.js)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.env*.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
 # Databases
 *.db
 *.sqlite
 *.sqlite3
 
-# Brain / Artifacts
+# Brain / Artifacts (Antigravity/Agentic mode)
 .gemini/
+.agent/
+task.md
+implementation_plan.md
+walkthrough.md
 experiments/.runs/*
 /tenkai
-
-# Run logs
-*.jsonl
-gemini_output.jsonl
+*.db-shm
+*.db-wal
