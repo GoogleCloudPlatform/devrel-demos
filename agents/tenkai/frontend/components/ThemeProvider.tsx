@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = "dark" | "light" | "happy" | "beach" | "dracula" | "pacman" | "system";
+type Theme = "dark" | "light" | "happy" | "beach" | "dracula" | "pacman" | "system" | "tropical";
 
 type ThemeProviderProps = {
     children: React.ReactNode;

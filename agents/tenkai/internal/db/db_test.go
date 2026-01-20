@@ -175,7 +175,7 @@ func TestGetToolStats(t *testing.T) {
 	// Wait, GetToolStats implementation in experiments.go queries `run_events` where type='tool'.
 	// It groups by JSON_EXTRACT(payload, '$.tool_name').
 
-	stats, err := database.GetToolStats(expID)
+	stats, err := database.GetToolStats(expID, "all")
 	if err != nil {
 		t.Fatalf("Failed to get tool stats: %v", err)
 	}

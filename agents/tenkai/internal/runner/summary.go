@@ -10,6 +10,14 @@ import (
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/stats"
 )
 
+type SummaryFilter string
+
+const (
+	FilterAll        SummaryFilter = "all"
+	FilterCompleted  SummaryFilter = "completed"
+	FilterSuccessful SummaryFilter = "successful"
+)
+
 // ExperimentSummary holds the aggregated results for the entire experiment.
 type ExperimentSummary struct {
 	TotalRuns      int                                    `json:"total_runs"`
@@ -21,7 +29,7 @@ type ExperimentSummary struct {
 	Alternatives   map[string]models.ExperimentSummaryRow `json:"alternatives"`
 }
 
-func CalculateSummary(results []Result, controlAlt string, allAlts []string, toolCounts map[int64]map[string]int) *ExperimentSummary {
+func CalculateSummary(results []Result, controlAlt string, allAlts []string, toolCounts map[int64]map[string]int, filter SummaryFilter) *ExperimentSummary {
 	summary := &ExperimentSummary{
 		TotalRuns:    0,
 		Alternatives: make(map[string]models.ExperimentSummaryRow),
@@ -93,6 +101,28 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 		if strings.ToUpper(res.Reason) == "ABORTED" {
 			continue
 		}
+
+		// Filtering Logic
+		// "all": Include everything that is COMPLETED (and not ABORTED)
+		// "completed": Include Success OR Validation Failures (exclude timeouts, loops, errors)
+		// "successful": Include Success only
+
+		if filter == FilterSuccessful && !res.IsSuccess {
+			continue
+		}
+		if filter == FilterCompleted {
+			// "Completed Only" (User Def): Success + Validation Failures.
+			// Exclude Timeout, Loop, Error.
+			// IsSuccess true -> Keep
+			// IsSuccess false -> Check Reason.
+			if !res.IsSuccess {
+				r := strings.ToUpper(res.Reason)
+				if r != db.ReasonFailedValidation {
+					continue
+				}
+			}
+		}
+		// FilterAll implicitly accepts everything reaching here
 
 		validResults = append(validResults, res)
 		summary.TotalRuns++

@@ -18,7 +18,7 @@ alternatives:
       - stream-json
       - '-m'
       - gemini-3-pro-preview
-  - name: godoctor-advanced
+  - name: godoctor
     description: All core tools enabled
     command: gemini
     args:
@@ -30,10 +30,9 @@ alternatives:
     settings:
       mcpServers:
         godoctor:
-          args:
-            - '--profile=advanced'
+          args: []
           command: godoctor
-  - name: godoctor-advanced-no-core
+  - name: godoctor-no-core
     description: No core tools enabled
     command: gemini
     args:
@@ -45,26 +44,7 @@ alternatives:
     settings:
       mcpServers:
         godoctor:
-          args:
-            - '--profile=advanced'
-          command: godoctor
-      tools:
-        core: []
-  - name: godoctor-advanced-no-core-safe-shell-v2
-    description: No core. Uses safe_shell v2
-    command: gemini
-    args:
-      - '-y'
-      - '-o'
-      - stream-json
-      - '-m'
-      - gemini-3-pro-preview
-    settings:
-      mcpServers:
-        godoctor:
-          args:
-            - '--profile=advanced'
-            - '--safe-shell-v2'
+          args: []
           command: godoctor
       tools:
         core: []

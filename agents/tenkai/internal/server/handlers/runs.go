@@ -29,10 +29,11 @@ func (api *API) GetSummaries(r *http.Request) (any, error) {
 	}
 
 	// 2b. Get Tool Usage Counts for correlation analysis
-	toolCounts, err := api.DB.GetExperimentToolCounts(id)
-	if err != nil {
-		log.Printf("Warning: failed to fetch tool counts for summary: %v", err)
-	}
+	// MOVED below filter calculation
+	// toolCounts, err := api.DB.GetExperimentToolCounts(id)
+	// if err != nil {
+	// 	log.Printf("Warning: failed to fetch tool counts for summary: %v", err)
+	// }
 
 	// 3. Convert
 	var results []runner.Result
@@ -50,7 +51,21 @@ func (api *API) GetSummaries(r *http.Request) (any, error) {
 		allAlts = append(allAlts, k)
 	}
 
-	summary := runner.CalculateSummary(results, exp.ExperimentControl, allAlts, toolCounts)
+	filterParam := r.URL.Query().Get("filter")
+	filter := runner.FilterAll
+	dbFilter := "all"
+	if filterParam == "completed" {
+		filter = runner.FilterCompleted
+		dbFilter = "completed"
+	} else if filterParam == "successful" {
+		filter = runner.FilterSuccessful
+		dbFilter = "successful"
+	}
+
+	// 2b. Get Tool Usage Counts for correlation analysis
+	toolCounts, err := api.DB.GetExperimentToolCounts(id, dbFilter)
+
+	summary := runner.CalculateSummary(results, exp.ExperimentControl, allAlts, toolCounts, filter)
 
 	// 5. Flatten to list
 	var rows []models.ExperimentSummaryRow
@@ -86,7 +101,8 @@ func (api *API) GetToolStats(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, NewAPIError(http.StatusBadRequest, "Invalid ID")
 	}
-	res, err := api.DB.GetToolStats(id)
+	filter := r.URL.Query().Get("filter")
+	res, err := api.DB.GetToolStats(id, filter)
 	if err != nil {
 		return nil, err
 	}

@@ -157,8 +157,9 @@ export async function getSimplifiedMetrics(id: number | string) {
     };
 }
 
-export async function getExperimentSummaries(id: number | string): Promise<ExperimentSummaryRecord[]> {
-    return fetchAPI<ExperimentSummaryRecord[]>(`/experiments/${id}/summaries`);
+export async function getExperimentSummaries(id: number | string, filter?: string): Promise<ExperimentSummaryRecord[]> {
+    const query = filter ? `?filter=${filter}` : '';
+    return fetchAPI<ExperimentSummaryRecord[]>(`/experiments/${id}/summaries${query}`);
 }
 
 export async function getRunResults(experimentId: string | number, page: number = 1, limit: number = 1000): Promise<RunResultRecord[]> {
@@ -238,8 +239,9 @@ export interface ToolStatRow {
     avg_calls: number;
 }
 
-export async function getToolStats(experimentId: number): Promise<ToolStatRow[]> {
-    return fetchAPI<ToolStatRow[]>(`/experiments/${experimentId}/tool-stats`);
+export async function getToolStats(experimentId: number, filter?: string): Promise<ToolStatRow[]> {
+    const query = filter ? `?filter=${filter}` : '';
+    return fetchAPI<ToolStatRow[]>(`/experiments/${experimentId}/tool-stats${query}`);
 }
 
 export async function reValidateRun(runId: number): Promise<JobResponse> {

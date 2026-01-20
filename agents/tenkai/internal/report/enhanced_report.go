@@ -72,7 +72,7 @@ func (r *EnhancedMarkdownGenerator) calculateStats() {
 			allAlts = append(allAlts, alt.Name)
 		}
 	}
-	r.summary = runner.CalculateSummary(r.Results, control, allAlts, r.ToolCounts)
+	r.summary = runner.CalculateSummary(r.Results, control, allAlts, r.ToolCounts, runner.FilterAll)
 }
 
 func (r *EnhancedMarkdownGenerator) writeHeader() {

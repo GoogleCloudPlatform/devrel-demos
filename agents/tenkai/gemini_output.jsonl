@@ -1,4 +1,0 @@
-{"type":"init","timestamp":"2026-01-18T07:10:00.064Z","session_id":"b2a6dfb4-8481-4eea-8f96-32813c272e3e","model":"auto-gemini-3"}
-{"type":"message","timestamp":"2026-01-18T07:10:00.064Z","role":"user","content":"what is 2+2?"}
-{"type":"message","timestamp":"2026-01-18T07:10:02.768Z","role":"assistant","content":"2+2 is 4.","delta":true}
-{"type":"result","timestamp":"2026-01-18T07:10:02.771Z","status":"success","stats":{"total_tokens":24225,"input_tokens":24110,"output_tokens":56,"cached":0,"input":24110,"duration_ms":2708,"tool_calls":0}}

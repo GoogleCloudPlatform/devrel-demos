@@ -491,14 +491,22 @@ func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
 	return metrics, nil
 }
 
-func (db *DB) GetExperimentToolCounts(experimentID int64) (map[int64]map[string]int, error) {
-	query := `
+func (db *DB) GetExperimentToolCounts(experimentID int64, filter string) (map[int64]map[string]int, error) {
+	// Filter logic
+	filterCond := "AND r.status = 'COMPLETED'" // Default for 'all'
+	if filter == "completed" {
+		filterCond = "AND r.status = 'COMPLETED' AND (r.is_success = 1 OR r.reason = 'FAILED (VALIDATION)')"
+	} else if filter == "successful" {
+		filterCond = "AND r.status = 'COMPLETED' AND r.is_success = 1"
+	}
+
+	query := fmt.Sprintf(`
 	SELECT 
 		t.run_id, t.name, COUNT(*)
 	FROM tool_usage t
 	JOIN run_results r ON t.run_id = r.id
-	WHERE r.experiment_id = ?
-	GROUP BY t.run_id, t.name`
+	WHERE r.experiment_id = ? %s
+	GROUP BY t.run_id, t.name`, filterCond)
 
 	rows, err := db.conn.Query(query, experimentID)
 	if err != nil {

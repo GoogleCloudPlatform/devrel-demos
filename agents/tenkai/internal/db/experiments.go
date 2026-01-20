@@ -338,10 +338,30 @@ func (db *DB) GetGlobalStats() (map[string]interface{}, error) {
 	return stats, nil
 }
 
-func (db *DB) GetToolStats(experimentID int64) ([]models.ToolStatRow, error) {
+func (db *DB) GetToolStats(experimentID int64, filter string) ([]models.ToolStatRow, error) {
+	// Filter logic
+	// USE TABLE ALIASES FOR JOINS (runsQuery assumes distinct table/no join, but later queries join)
+	// runsQuery operates on run_results directly, so aliases are fine or implicit if no join.
+	// But later queries JOIN tool_usage and run_events.
+	// We should define separate condition fragments or fully qualified ones.
+
+	// For simple single-table query:
+	runsFilter := "AND status = 'COMPLETED'"
+	// For joined queries (alias r for run_results):
+	joinFilter := "AND r.status = 'COMPLETED'"
+
+	if filter == "completed" {
+		runsFilter = "AND status = 'COMPLETED' AND (is_success = 1 OR reason = 'FAILED (VALIDATION)')"
+		joinFilter = "AND r.status = 'COMPLETED' AND (r.is_success = 1 OR r.reason = 'FAILED (VALIDATION)')"
+	} else if filter == "successful" {
+		runsFilter = "AND status = 'COMPLETED' AND is_success = 1"
+		joinFilter = "AND r.status = 'COMPLETED' AND r.is_success = 1"
+	}
+
 	// We need total runs per alternative to calculate average
 	// 1. Get total completed runs per alternative
-	runsQuery := `SELECT alternative, count(*) FROM run_results WHERE experiment_id = ? AND status = 'COMPLETED' GROUP BY alternative`
+	runsQuery := fmt.Sprintf(`SELECT alternative, count(*) FROM run_results WHERE experiment_id = ? %s GROUP BY alternative`, runsFilter)
+
 	rows, err := db.conn.Query(runsQuery, experimentID)
 	if err != nil {
 		return nil, err
@@ -373,7 +393,7 @@ func (db *DB) GetToolStats(experimentID int64) ([]models.ToolStatRow, error) {
 	}
 
 	// 2. Aggregate tool usage from standard 'tool_usage' view
-	query := `
+	query := fmt.Sprintf(`
 	SELECT 
 		r.alternative,
 		t.name,
@@ -381,8 +401,8 @@ func (db *DB) GetToolStats(experimentID int64) ([]models.ToolStatRow, error) {
 		SUM(CASE WHEN t.status != 'success' THEN 1 ELSE 0 END) as failed
 	FROM tool_usage t
 	JOIN run_results r ON t.run_id = r.id
-	WHERE r.experiment_id = ?
-	GROUP BY r.alternative, t.name`
+	WHERE r.experiment_id = ? %s
+	GROUP BY r.alternative, t.name`, joinFilter)
 
 	rows2, err := db.conn.Query(query, experimentID)
 	if err != nil {
@@ -402,15 +422,15 @@ func (db *DB) GetToolStats(experimentID int64) ([]models.ToolStatRow, error) {
 
 	// 3. Aggregate tool failures from 'error' events (STDERR fallback)
 	// Matches pattern: "Error executing tool {TOOL_NAME}:"
-	queryErr := `
+	queryErr := fmt.Sprintf(`
     SELECT 
         r.alternative,
         json_extract(payload, '$.message')
     FROM run_events e
     JOIN run_results r ON e.run_id = r.id
-    WHERE r.experiment_id = ? 
+    WHERE r.experiment_id = ? %s
       AND e.type = 'error' 
-      AND json_extract(payload, '$.message') LIKE 'Error executing tool %'`
+      AND json_extract(payload, '$.message') LIKE 'Error executing tool %%'`, joinFilter)
 
 	rows3, err := db.conn.Query(queryErr, experimentID)
 	if err != nil {

@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function RootLayout({
   children,
@@ -30,8 +31,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} ${robotoMono.variable} bg-background text-foreground antialiased`}>
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body
+        className={cn(inter.variable, robotoMono.variable, "bg-background text-foreground antialiased")}
+        suppressHydrationWarning
+      >
         <ThemeProvider defaultTheme="dark">
           <SidebarProvider>
             <TooltipProvider>

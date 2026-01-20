@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/parser"
 )
 
@@ -61,7 +62,7 @@ func TestCalculateSummary(t *testing.T) {
 	// Aborted runs (should be ignored)
 	results = append(results, Result{Alternative: control, Status: "COMPLETED", Reason: "ABORTED"})
 
-	summary := CalculateSummary(results, control, allAlts, nil)
+	summary := CalculateSummary(results, control, allAlts, nil, FilterAll)
 
 	if summary.TotalRuns != 11 { // 5 + 5 + 1 (Aborted ignored)
 		t.Errorf("Expected 11 total runs, got %d", summary.TotalRuns)
@@ -121,5 +122,44 @@ func TestCalculateSummary(t *testing.T) {
 	}
 	if a3Stats.PDuration != -1.0 {
 		t.Errorf("Expected PDuration -1.0 for N=0, got %f", a3Stats.PDuration)
+	}
+}
+
+func TestCalculateSummaryFiltering(t *testing.T) {
+	control := "Control"
+	allAlts := []string{control}
+	results := []Result{}
+
+	// 1. Success
+	results = append(results, Result{Alternative: control, IsSuccess: true, Status: "COMPLETED", Reason: db.ReasonSuccess})
+	// 2. Validation Failure
+	results = append(results, Result{Alternative: control, IsSuccess: false, Status: "COMPLETED", Reason: db.ReasonFailedValidation})
+	// 3. Timeout
+	results = append(results, Result{Alternative: control, IsSuccess: false, Status: "COMPLETED", Reason: db.ReasonFailedTimeout})
+	// 4. Loop
+	results = append(results, Result{Alternative: control, IsSuccess: false, Status: "COMPLETED", Reason: db.ReasonFailedLoop})
+
+	// Case 1: FilterAll
+	sAll := CalculateSummary(results, control, allAlts, nil, FilterAll)
+	if sAll.TotalRuns != 4 {
+		t.Errorf("FilterAll: Expected 4 runs, got %d", sAll.TotalRuns)
+	}
+
+	// Case 2: FilterCompleted (Validation + Success)
+	sComp := CalculateSummary(results, control, allAlts, nil, FilterCompleted)
+	if sComp.TotalRuns != 2 {
+		t.Errorf("FilterCompleted: Expected 2 runs (Success + ValFail), got %d", sComp.TotalRuns)
+	}
+	if sComp.Alternatives[control].FailureReasons["Timeout"] > 0 {
+		t.Errorf("FilterCompleted: Expected 0 timeouts")
+	}
+
+	// Case 3: FilterSuccessful
+	sSucc := CalculateSummary(results, control, allAlts, nil, FilterSuccessful)
+	if sSucc.TotalRuns != 1 {
+		t.Errorf("FilterSuccessful: Expected 1 run, got %d", sSucc.TotalRuns)
+	}
+	if sSucc.SuccessfulRuns != 1 {
+		t.Errorf("FilterSuccessful: Expected 1 successful run")
 	}
 }

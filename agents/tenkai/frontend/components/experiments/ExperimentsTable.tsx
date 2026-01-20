@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,16 @@ import { useRouter } from "next/navigation";
 
 interface ExperimentsTableProps {
     experiments: ExperimentRecord[];
+}
+
+function ClientOnlyDate({ date }: { date: string | number | Date }) {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) return <span className="opacity-0">Loading...</span>;
+    return <>{new Date(date).toLocaleString()}</>;
 }
 
 export default function ExperimentsTable({ experiments }: ExperimentsTableProps) {
@@ -106,7 +117,7 @@ export default function ExperimentsTable({ experiments }: ExperimentsTableProps)
                                 />
                             </TableCell>
                             <TableCell className="text-right font-mono text-muted-foreground text-xs whitespace-nowrap">
-                                {new Date(exp.timestamp).toLocaleString()}
+                                <ClientOnlyDate date={exp.timestamp} />
                             </TableCell>
                         </TableRow>
                     ))}

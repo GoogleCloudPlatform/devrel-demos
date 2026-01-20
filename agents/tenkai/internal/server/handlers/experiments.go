@@ -12,6 +12,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/workspace"
 )
 
 type ControlRequest struct {
@@ -34,10 +37,32 @@ func (api *API) ListExperiments(r *http.Request) (any, error) {
 }
 
 func (api *API) DeleteAllExperiments(r *http.Request) (any, error) {
-	if err := api.DB.DeleteAllExperiments(); err != nil {
+	// 1. Fetch all experiments to iterate
+	exps, err := api.DB.GetExperiments()
+	if err != nil {
 		return nil, err
 	}
-	return map[string]string{"message": "All experiments deleted"}, nil
+
+	deletedCount := 0
+	for _, e := range exps {
+		if e.IsLocked {
+			continue // Skip locked experiments
+		}
+
+		// Re-fetch full experiment details to ensure we have timestamp/name for directory resolution
+		// (GetExperiments returns summary, but usually has enough, but let's be safe if GetExperiments changes)
+		// Actually GetExperiments struct has Name and Timestamp, so we can use `e` directly if it matches models.Experiment.
+		// However, let's use the helper which expects *models.Experiment.
+
+		if err := api.deleteExperiment(&e); err != nil {
+			log.Printf("Failed to delete experiment %d: %v", e.ID, err)
+			// Continue deleting others
+		} else {
+			deletedCount++
+		}
+	}
+
+	return map[string]string{"message": fmt.Sprintf("Deleted %d unlocked experiments", deletedCount)}, nil
 }
 
 func (api *API) GetExperiment(r *http.Request) (any, error) {
@@ -53,10 +78,44 @@ func (api *API) DeleteExperiment(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, NewAPIError(http.StatusBadRequest, "Invalid ID")
 	}
-	if err := api.DB.DeleteExperiment(id); err != nil {
+
+	// 1. Get experiment details
+	exp, err := api.DB.GetExperimentByID(id)
+	if err != nil {
 		return nil, err
 	}
+
+	// 2. Check Lock
+	if exp.IsLocked {
+		return nil, NewAPIError(http.StatusBadRequest, "Experiment is locked and cannot be deleted")
+	}
+
+	// 3. Perform Deletion
+	if err := api.deleteExperiment(exp); err != nil {
+		return nil, err
+	}
+
 	return map[string]string{"message": "Experiment deleted"}, nil
+}
+
+// deleteExperiment performs the actual file and DB deletion for a single experiment
+func (api *API) deleteExperiment(exp *models.Experiment) error {
+	// 1. Delete files on disk
+	cwd, _ := os.Getwd()
+	dir, err := workspace.FindExperimentDir(cwd, exp.Timestamp, exp.Name)
+	if err == nil && dir != "" {
+		if err := os.RemoveAll(dir); err != nil {
+			log.Printf("Failed to remove experiment directory %s: %v", dir, err)
+		} else {
+			log.Printf("Deleted experiment directory: %s", dir)
+		}
+	} else {
+		// Just log context, if it didn't exist that's fine
+		log.Printf("Experiment directory check for %s (ID %d): %v", exp.Name, exp.ID, err)
+	}
+
+	// 2. Delete from DB
+	return api.DB.DeleteExperiment(exp.ID)
 }
 
 func (api *API) StartExperiment(r *http.Request) (any, error) {

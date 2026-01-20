@@ -8,7 +8,7 @@ interface RunHistoryProps {
     selectedRunId: number | null;
     onSelectRun: (run: RunResultRecord) => void;
     onLoadMore: () => void;
-    onLoadMore: () => void;
+
     hasMore: boolean;
     loading: boolean;
     filterAlternative?: string | null;

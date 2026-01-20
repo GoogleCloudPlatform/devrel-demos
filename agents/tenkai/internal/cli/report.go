@@ -48,7 +48,7 @@ func handleReportOnly(database *db.DB, expID int64) {
 	}
 
 	// Fetch tool counts
-	toolCounts, err := database.GetExperimentToolCounts(exp.ID)
+	toolCounts, err := database.GetExperimentToolCounts(exp.ID, "all")
 	if err != nil {
 		log.Printf("Warning: failed to fetch tool counts: %v", err)
 	}
@@ -82,7 +82,7 @@ func handleReportOnly(database *db.DB, expID int64) {
 	for _, a := range cfg.Alternatives {
 		allAlts = append(allAlts, a.Name)
 	}
-	runner.CalculateSummary(results, cfg.Control, allAlts, toolCounts)
+	runner.CalculateSummary(results, cfg.Control, allAlts, toolCounts, runner.FilterAll)
 
 	fmt.Printf("Database analytics for Experiment %d are now computed on-demand.\n", exp.ID)
 }

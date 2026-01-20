@@ -4,8 +4,14 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ExperimentRecord, Checkpoint, RunResultRecord, getRunResults, reValidateExperiment } from "@/app/api/api";
-import { Loader2, RefreshCw } from "lucide-react";
+import { ExperimentRecord, Checkpoint, RunResultRecord, getRunResults, reValidateExperiment, getExperimentSummaries, ExperimentSummaryRecord } from "@/app/api/api";
+import { Loader2, RefreshCw, BarChart3 } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import MetricsOverview from "./experiments/MetricsOverview";
 import PerformanceTable from "./experiments/PerformanceTable";
 import RunHistory from "./experiments/RunHistory";
@@ -167,6 +173,33 @@ export default function ReportViewer({
     const [configModalContent, setConfigModalContent] = useState<{ title: string, content: string } | null>(null);
     const [isRevalidating, setIsRevalidating] = useState(false);
     const [filterAlternative, setFilterAlternative] = useState<string | null>(null);
+    const [filterMode, setFilterMode] = useState<string>("all");
+    const [viewStats, setViewStats] = useState<any>(stats);
+
+    // Sync stats when prop changes or filter changes
+    useEffect(() => {
+        // Initial sync from props
+        if (filterMode === 'all' && stats && Object.keys(stats).length > 0) {
+            setViewStats(stats);
+        }
+    }, [stats]);
+
+    const handleFilterChange = async (val: string) => {
+        if (!val) return;
+        setFilterMode(val);
+        // Fetch new summaries
+        try {
+            const newSummaries = await getExperimentSummaries(experiment.id, val);
+            const statObj: any = {};
+            newSummaries.forEach((row: ExperimentSummaryRecord) => {
+                statObj[row.alternative] = { ...row, alternative: row.alternative, count: row.total_runs };
+            });
+            setViewStats(statObj);
+        } catch (e) {
+            console.error("Failed to fetch filtered stats", e);
+            toast.error("Failed to update statistics");
+        }
+    };
 
     const isRunning = experiment.status?.toUpperCase() === 'RUNNING';
 
@@ -351,9 +384,57 @@ export default function ReportViewer({
                                     <MetricsOverview metrics={initialMetrics} />
                                 </div>
                                 <div className="lg:col-span-12">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="font-bold uppercase tracking-widest text-muted-foreground text-sm flex items-center gap-2">
+                                            <BarChart3 className="w-4 h-4" /> Performance Analysis
+                                        </h3>
+                                        <ToggleGroup type="single" value={filterMode} onValueChange={handleFilterChange} className="bg-muted/30 p-1 rounded-lg border border-white/5">
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div>
+                                                        <ToggleGroupItem value="all" aria-label="All Runs" className="text-xs data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm transition-all h-7 px-3">
+                                                            <RefreshCw className="mr-1 h-3 w-3" />
+                                                            All Runs
+                                                        </ToggleGroupItem>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Includes all completed runs, timeouts, and system errors.</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div>
+                                                        <ToggleGroupItem value="completed" aria-label="Completed Only" className="text-xs data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm transition-all h-7 px-3">
+                                                            <BarChart3 className="mr-1 h-3 w-3" />
+                                                            Completed Only
+                                                        </ToggleGroupItem>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Excludes timeouts and crashes. Only Success + Validation Failures.</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div>
+                                                        <ToggleGroupItem value="successful" aria-label="Successful Only" className="text-xs data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm transition-all h-7 px-3">
+                                                            <span className="mr-1">✨</span>
+                                                            Successful Only
+                                                        </ToggleGroupItem>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Strictly excludes all failures.</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </ToggleGroup>
+                                    </div>
                                     <PerformanceTable
                                         runResults={runResults}
-                                        stats={stats}
+                                        stats={viewStats}
                                         controlBaseline={experiment.experiment_control}
                                         alternatives={config?.alternatives?.map((a: any) => a.name)}
                                         onAlternativeClick={handleAlternativeClick}
@@ -369,6 +450,7 @@ export default function ReportViewer({
                                     <ToolUsageTable
                                         experimentId={experiment.id}
                                         alternatives={config?.alternatives?.map((a: any) => a.name) || Object.keys(stats).sort()}
+                                        filter={filterMode}
                                     />
 
                                 </div>
