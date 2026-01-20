@@ -81,7 +81,7 @@ func runExperiment(database *db.DB, cwd string, cfg *config.Configuration, overr
 	}
 
 	// Fetch tool counts for report
-	toolCounts, err := database.GetExperimentToolCounts(expID)
+	toolCounts, err := database.GetExperimentToolCounts(expID, "all")
 	if err != nil {
 		log.Printf("Warning: failed to fetch tool counts: %v", err)
 	}

@@ -86,57 +86,132 @@
 }
 
 [data-theme='happy'] {
-  --background: hsl(265 48% 12%);
-  --foreground: hsl(265 10% 98%);
-  --card: hsl(265 40% 15%);
-  --card-foreground: hsl(265 10% 98%);
-  --popover: hsl(265 40% 15%);
-  --popover-foreground: hsl(265 10% 98%);
-  --primary: hsl(325 90% 65%);
+  --background: hsl(0 0% 100%);
+  /* White Background */
+  --foreground: hsl(280 50% 10%);
+  /* Dark Purple Text */
+  --card: hsl(280 30% 96%);
+  /* Very Light Purple Card */
+  --card-foreground: hsl(280 50% 10%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(280 50% 10%);
+  --primary: hsl(328 100% 60%);
+  /* Hot Pink */
   --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(190 85% 55%);
-  /* Brighter cyan for better reach */
-  --secondary-foreground: hsl(200 60% 5%);
-  /* Near black blue for maximum contrast */
-  --muted: hsl(265 30% 25%);
-  --muted-foreground: hsl(265 20% 75%);
-  --accent: hsl(300 60% 50%);
-  --accent-foreground: hsl(0 0% 100%);
-  --destructive: hsl(0 80% 60%);
-  --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(265 30% 30%);
-  --input: hsl(265 30% 30%);
-  --ring: hsl(325 90% 65%);
-}
-
-[data-theme='beach'] {
-  --background: hsl(42 45% 92%);
-  /* Warm Sand */
-  --foreground: hsl(200 70% 12%);
-  /* Deep Nautical Blue */
-  --card: hsl(42 40% 95%);
-  --card-foreground: hsl(200 70% 12%);
-  --popover: hsl(42 40% 95%);
-  --popover-foreground: hsl(200 70% 12%);
-  --primary: hsl(188 85% 32%);
-  /* Ocean Teal */
-  --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(15 90% 65%);
-  /* Sunset Orange */
+  --secondary: hsl(175 100% 45%);
+  /* Teal */
   --secondary-foreground: hsl(0 0% 100%);
-  --muted: hsl(195 30% 88%);
-  /* Sea Foam */
-  --muted-foreground: hsl(200 50% 35%);
-  --accent: hsl(48 95% 55%);
-  /* Bright Sun */
-  --accent-foreground: hsl(200 70% 12%);
-  --destructive: hsl(0 80% 50%);
+  --muted: hsl(280 20% 90%);
+  --muted-foreground: hsl(280 10% 40%);
+  --accent: hsl(55 100% 50%);
+  /* Yellow Accent */
+  --accent-foreground: hsl(280 50% 10%);
+  --destructive: hsl(0 90% 60%);
   --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(40 30% 82%);
-  --input: hsl(40 30% 82%);
-  --ring: hsl(188 85% 40%);
+  --border: hsl(280 20% 85%);
+  --input: hsl(280 20% 90%);
+  --ring: hsl(328 100% 60%);
 }
 
+[data-theme='tropical'] {
+  --background: hsl(190 60% 98%);
+  /* Crystal Clear Water Mist */
+  --foreground: hsl(160 100% 15%);
+  /* Deep Jungle Text */
+  --card: hsl(190 50% 94%);
+  /* Foam White/Cyan Card */
+  --card-foreground: hsl(160 100% 15%);
+  --popover: hsl(190 50% 94%);
+  --popover-foreground: hsl(160 100% 15%);
+  --primary: hsl(150 100% 35%);
+  /* Foliage: Vivid Jungle Green */
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(195 90% 45%);
+  /* Water: Tropical Turquoise */
+  --secondary-foreground: hsl(0 0% 100%);
+  --muted: hsl(45 50% 90%);
+  /* Sandy Muted backgrounds */
+  --muted-foreground: hsl(160 60% 30%);
+  --accent: hsl(45 100% 50%);
+  /* SUN: Golden Sunshine Yellow */
+  --accent-foreground: hsl(0 0% 100%);
+  --destructive: hsl(15 90% 55%);
+  /* Tropical Flower Red/Orange */
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(170 40% 80%);
+  --input: hsl(170 40% 85%);
+  --ring: hsl(45 100% 50%);
+  /* Sun-colored Focus Ring */
+}
+
+[data-theme='dracula'] {
+  --background: hsl(0 0% 5%);
+  /* #0d0d0d Material Dark */
+  --foreground: hsl(0 100% 92%);
+  /* "Pale Blood" - Explicitly Red-tinted White */
+  --card: hsl(0 0% 10%);
+  /* #1a1a1a Surface */
+  --card-foreground: hsl(0 100% 92%);
+  --popover: hsl(0 0% 10%);
+  --popover-foreground: hsl(0 100% 92%);
+  --primary: hsl(0 95% 45%);
+  /* Deep Blood Red - Darker for White Text Contrast */
+  --primary-foreground: hsl(0 0% 100%);
+  /* Pure White on Blood Red = High Contrast */
+  --secondary: hsl(0 30% 20%);
+  /* Dark Clotted Blood */
+  --secondary-foreground: hsl(0 100% 92%);
+  --muted: hsl(0 20% 15%);
+  --muted-foreground: hsl(0 40% 70%);
+  /* Muted Red Gray */
+  --accent: hsl(0 100% 60%);
+  /* Fresh Blood Highlight */
+  --accent-foreground: hsl(0 0% 100%);
+  --destructive: hsl(0 100% 40%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(0 30% 25%);
+  --input: hsl(0 30% 25%);
+  --ring: hsl(0 100% 50%);
+
+  /* High Contrast Selection - Safe & Standard */
+  /* Using Dark Grey BG + White Text ensures no color vibration issues */
+  *::selection {
+    background-color: hsl(0 0% 30%);
+    /* Charcoal Highlight */
+    color: hsl(0 0% 100%);
+    /* White Text */
+  }
+}
+
+[data-theme='pacman'] {
+  --background: hsl(48 100% 98%);
+  /* Warm White / Very Pale Yellow */
+  --foreground: hsl(0 0% 10%);
+  /* Soft Black */
+  --card: hsl(48 100% 95%);
+  /* Pale Yellow Card */
+  --card-foreground: hsl(0 0% 10%);
+  --popover: hsl(48 100% 95%);
+  --popover-foreground: hsl(0 0% 10%);
+  --primary: hsl(48 100% 50%);
+  /* Golden Yellow (Pacman) */
+  --primary-foreground: hsl(0 0% 10%);
+  --secondary: hsl(30 100% 55%);
+  /* Orange (Clyde) - Analogous */
+  --secondary-foreground: hsl(0 0% 100%);
+  --muted: hsl(45 50% 90%);
+  --muted-foreground: hsl(45 20% 40%);
+  --accent: hsl(48 100% 80%);
+  /* Light Yellow Highlight */
+  --accent-foreground: hsl(0 0% 10%);
+  --destructive: hsl(0 85% 60%);
+  /* Blinky Red (Complementary-ish but kept for alerts) */
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(48 80% 70%);
+  /* Darker Yellow Border */
+  --input: hsl(45 50% 90%);
+  --ring: hsl(48 100% 50%);
+}
 
 body {
   background-color: var(--color-background);

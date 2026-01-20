@@ -68,7 +68,7 @@ func NewUser(name string) *User {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			res, _, err := Handler(ctx, nil, Params{File: filePath, Symbol: tt.symbol})
+			res, _, err := Handler(ctx, nil, Params{Filename: filePath, SymbolName: tt.symbol})
 			if err != nil {
 				t.Fatalf("Handler failed: %v", err)
 			}
@@ -88,7 +88,7 @@ func NewUser(name string) *User {
 
 func TestDescribe_External(t *testing.T) {
 	ctx := context.Background()
-	res, _, err := Handler(ctx, nil, Params{Package: "fmt", Symbol: "Println"})
+	res, _, err := Handler(ctx, nil, Params{ImportPath: "fmt", SymbolName: "Println"})
 	if err != nil {
 		t.Fatal(err)
 	}

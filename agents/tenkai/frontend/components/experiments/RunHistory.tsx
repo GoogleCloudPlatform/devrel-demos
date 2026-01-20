@@ -8,11 +8,14 @@ interface RunHistoryProps {
     selectedRunId: number | null;
     onSelectRun: (run: RunResultRecord) => void;
     onLoadMore: () => void;
+
     hasMore: boolean;
     loading: boolean;
+    filterAlternative?: string | null;
+    onClearFilter?: () => void;
 }
 
-export default function RunHistory({ runs, selectedRunId, onSelectRun, onLoadMore, hasMore, loading }: RunHistoryProps) {
+export default function RunHistory({ runs, selectedRunId, onSelectRun, onLoadMore, hasMore, loading, filterAlternative, onClearFilter }: RunHistoryProps) {
     const [filter, setFilter] = useState("ALL");
 
     // Group by alternative
@@ -27,9 +30,9 @@ export default function RunHistory({ runs, selectedRunId, onSelectRun, onLoadMor
 
     return (
         <div className="flex flex-col h-full text-body">
-            <div className="p-4 border-b border-[#27272a] bg-[#161618] flex flex-col gap-3">
+            <div className="p-4 border-b border-border bg-muted flex flex-col gap-3">
                 <div className="flex justify-between items-center">
-                    <h3 className="font-bold uppercase tracking-widest text-[#52525b]">Experiment Runs ({runs.length})</h3>
+                    <h3 className="font-bold uppercase tracking-widest text-muted-foreground">Experiment Runs ({runs.length})</h3>
                 </div>
                 <select
                     className="w-full bg-black/20 border border-white/10 rounded px-2 py-1 text-xs text-zinc-400 focus:outline-none focus:border-blue-500"
@@ -43,16 +46,33 @@ export default function RunHistory({ runs, selectedRunId, onSelectRun, onLoadMor
                     <option value="FAILED (TIMEOUT)">Timeouts</option>
                     <option value="FAILED (LOOP)">Loop Detection</option>
                     <option value="FAILED (ERROR)">System Errors</option>
+                    <option value="RUNNING">Running</option>
                 </select>
             </div>
+            {filterAlternative && (
+                <div className="bg-primary/10 px-4 py-2 border-b border-primary/20 flex justify-between items-center transition-all animate-in slide-in-from-top-2">
+                    <span className="text-xs uppercase font-bold tracking-wider text-primary">
+                        Filtered by: <span className="text-foreground">{filterAlternative}</span>
+                    </span>
+                    <button
+                        onClick={onClearFilter}
+                        className="text-primary hover:text-white transition-colors"
+                        title="Clear Filter"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
             <div className="flex-1 overflow-y-auto">
                 {alternatives.map(alt => {
+                    if (filterAlternative && alt !== filterAlternative) return null;
+
                     const altRuns = runs
                         .filter(r => r.alternative === alt)
                         .filter(r => {
                             if (filter === "ALL") return true;
                             if (filter === "SUCCESS") return r.is_success;
-                            if (filter === "FAILED") return !r.is_success;
+                            if (filter === "FAILED") return !r.is_success && r.status !== "QUEUED" && r.status !== "RUNNING";
                             return r.reason === filter || r.status === filter; // Loose match for exact reasons
                         })
                         .sort((a, b) => a.id - b.id); // Chronological
@@ -60,16 +80,16 @@ export default function RunHistory({ runs, selectedRunId, onSelectRun, onLoadMor
                     if (altRuns.length === 0) return null;
 
                     return (
-                        <div key={alt} className="border-b border-[#27272a]">
-                            <div className="px-4 py-2 bg-black/20 text-[#71717a] font-bold uppercase tracking-tighter">
+                        <div key={alt} className="border-b border-border">
+                            <div className="px-4 py-2 bg-black/20 text-muted-foreground font-bold uppercase tracking-tighter">
                                 {alt}
                             </div>
-                            <div className="divide-y divide-[#27272a]/50">
+                            <div className="divide-y divide-border">
                                 {altRuns.map(run => (
                                     <button
                                         key={run.id}
                                         onClick={() => onSelectRun(run)}
-                                        className={`w-full text-left p-4 hover:bg-white/5 transition-all flex flex-col gap-2 ${selectedRunId === run.id ? 'bg-[#6366f1]/10 border-l-4 border-l-[#6366f1]' : 'border-l-4 border-l-transparent'}`}
+                                        className={`w-full text-left p-4 hover:bg-white/5 transition-all flex flex-col gap-2 ${selectedRunId === run.id ? 'bg-primary/10 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'}`}
                                     >
                                         <div className="flex justify-between items-start">
 
@@ -101,11 +121,11 @@ export default function RunHistory({ runs, selectedRunId, onSelectRun, onLoadMor
                 })}
             </div>
             {hasMore && (
-                <div className="p-4 border-t border-[#27272a] bg-[#161618]">
+                <div className="p-4 border-t border-border bg-muted">
                     <button
                         onClick={onLoadMore}
                         disabled={loading}
-                        className="w-full py-2 px-4 bg-[#27272a] hover:bg-[#3f3f46] text-zinc-300 font-bold uppercase tracking-widest text-xs rounded transition-colors disabled:opacity-50"
+                        className="w-full py-2 px-4 bg-muted hover:bg-accent text-foreground font-bold uppercase tracking-widest text-xs rounded transition-colors disabled:opacity-50"
                     >
                         {loading ? 'Loading...' : 'Load More Results'}
                     </button>

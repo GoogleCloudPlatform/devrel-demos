@@ -32,39 +32,39 @@ func TestToolHandler(t *testing.T) {
 	}{
 		{
 			name:        "Standard Library Function (Markdown Check)",
-			params:      Params{PackagePath: "fmt", SymbolName: "Println"},
+			params:      Params{ImportPath: "fmt", SymbolName: "Println"},
 			wantErr:     false,
 			wantContent: "```go\nfunc Println", // Verifies Markdown code block start
 		},
 		{
 			name:        "Fuzzy Match Symbol",
-			params:      Params{PackagePath: "fmt", SymbolName: "Pritln"}, // Typo
+			params:      Params{ImportPath: "fmt", SymbolName: "Pritln"}, // Typo
 			wantErr:     true,
 			wantContent: "Println", // Expect the correct suggestion to appear in the error
 		},
 		{
 			name:        "Package-Level Documentation",
-			params:      Params{PackagePath: "os"},
+			params:      Params{ImportPath: "os"},
 			wantErr:     false,
 			wantContent: "# os", // Markdown header
 		},
 		{
 			name:        "Symbol Not Found",
-			params:      Params{PackagePath: "fmt", SymbolName: "NonExistentSymbol"},
+			params:      Params{ImportPath: "fmt", SymbolName: "NonExistentSymbol"},
 			wantErr:     true,
 			wantContent: "symbol \"NonExistentSymbol\" not found in package fmt",
 		},
 		{
 			name:        "Package Not Found",
-			params:      Params{PackagePath: "non/existent/package"},
+			params:      Params{ImportPath: "non/existent/package"},
 			wantErr:     true,
 			wantContent: "failed to download package",
 		},
 		{
 			name:        "Empty Package Path",
-			params:      Params{PackagePath: ""},
+			params:      Params{ImportPath: ""},
 			wantErr:     true,
-			wantContent: "package_path cannot be empty",
+			wantContent: "import_path cannot be empty",
 		},
 	}
 

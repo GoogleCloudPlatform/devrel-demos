@@ -4,8 +4,14 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ExperimentRecord, Checkpoint, RunResultRecord, getRunResults, reValidateExperiment } from "@/app/api/api";
-import { Loader2, RefreshCw } from "lucide-react";
+import { ExperimentRecord, Checkpoint, RunResultRecord, getRunResults, reValidateExperiment, getExperimentSummaries, ExperimentSummaryRecord } from "@/app/api/api";
+import { Loader2, RefreshCw, BarChart3 } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import MetricsOverview from "./experiments/MetricsOverview";
 import PerformanceTable from "./experiments/PerformanceTable";
 import RunHistory from "./experiments/RunHistory";
@@ -142,6 +148,8 @@ function RevalidateExperimentButton({ experimentId, isExperimentRunning, onState
     );
 }
 
+
+
 export default function ReportViewer({
     experiment,
     initialContent,
@@ -164,6 +172,34 @@ export default function ReportViewer({
     const [inspectedValidation, setInspectedValidation] = useState<any>(null);
     const [configModalContent, setConfigModalContent] = useState<{ title: string, content: string } | null>(null);
     const [isRevalidating, setIsRevalidating] = useState(false);
+    const [filterAlternative, setFilterAlternative] = useState<string | null>(null);
+    const [filterMode, setFilterMode] = useState<string>("all");
+    const [viewStats, setViewStats] = useState<any>(stats);
+
+    // Sync stats when prop changes or filter changes
+    useEffect(() => {
+        // Initial sync from props
+        if (filterMode === 'all' && stats && Object.keys(stats).length > 0) {
+            setViewStats(stats);
+        }
+    }, [stats]);
+
+    const handleFilterChange = async (val: string) => {
+        if (!val) return;
+        setFilterMode(val);
+        // Fetch new summaries
+        try {
+            const newSummaries = await getExperimentSummaries(experiment.id, val);
+            const statObj: any = {};
+            newSummaries.forEach((row: ExperimentSummaryRecord) => {
+                statObj[row.alternative] = { ...row, alternative: row.alternative, count: row.total_runs };
+            });
+            setViewStats(statObj);
+        } catch (e) {
+            console.error("Failed to fetch filtered stats", e);
+            toast.error("Failed to update statistics");
+        }
+    };
 
     const isRunning = experiment.status?.toUpperCase() === 'RUNNING';
 
@@ -178,8 +214,8 @@ export default function ReportViewer({
         setLoadingRuns(true);
         try {
             const nextPage = page + 1;
-            const newRuns = await getRunResults(experiment.id, nextPage, 100); // Limit 100 matches backend default
-            if (newRuns.length < 100) {
+            const newRuns = await getRunResults(experiment.id, nextPage, 5000);
+            if (newRuns.length < 5000) {
                 setHasMore(false);
             }
             if (newRuns.length > 0) {
@@ -198,7 +234,9 @@ export default function ReportViewer({
         if (runResults.length < 100) {
             setHasMore(false);
         }
-    }, []);
+        // Sync local state if prop updates (e.g. from polling in parent)
+        setRuns(runResults);
+    }, [runResults]);
 
     // Sync selectedRun with runId in URL
     useEffect(() => {
@@ -234,6 +272,11 @@ export default function ReportViewer({
 
     const handleSelectRun = (run: RunResultRecord) => {
         updateUrl({ tab: 'investigate', runId: run.id });
+    };
+
+    const handleAlternativeClick = (alt: string) => {
+        setFilterAlternative(alt);
+        handleTabChange('investigate');
     };
 
     // Fetch run details when a run is selected
@@ -286,9 +329,9 @@ export default function ReportViewer({
     }, [selectedRun]);
 
     return (
-        <div className="flex flex-col h-full bg-[#0c0c0e] text-body">
+        <div className="flex flex-col h-full bg-background text-body">
             {/* Workbench Tab Bar */}
-            <div className="flex justify-between items-center px-4 h-[56px] border-b border-[#27272a] bg-[#09090b]">
+            <div className="flex justify-between items-center px-4 h-[56px] border-b border-border bg-card">
                 <div className="flex h-full">
                     {[
                         { id: 'overview', label: 'Overview' },
@@ -299,8 +342,8 @@ export default function ReportViewer({
                             key={tab.id}
                             onClick={() => handleTabChange(tab.id as any)}
                             className={`px-6 h-full font-bold uppercase tracking-widest transition-all border-b-2 ${activeTab === tab.id
-                                ? "border-[#6366f1] text-[#f4f4f5]"
-                                : "border-transparent text-[#52525b] hover:text-[#a1a1aa]"
+                                ? "border-primary text-foreground"
+                                : "border-transparent text-muted-foreground hover:text-foreground"
                                 }`}
                         >
                             {tab.label}
@@ -321,6 +364,7 @@ export default function ReportViewer({
                             <span className="mr-2">📄</span> Export MD
                         </Button>
                     </Link>
+
                     <RelaunchButton experimentId={experiment.id} disabled={isRunning} />
                     <KillExperimentButton experimentId={experiment.id} disabled={!isRunning} />
                 </div>
@@ -333,28 +377,67 @@ export default function ReportViewer({
                 <div className="p-6">
                     {activeTab === 'overview' && (
                         <div className="space-y-8 animate-in fade-in duration-500">
-                            {experiment.ai_analysis && (
-                                <div className="panel p-8 bg-indigo-600/[0.03] border-indigo-500/10">
-                                    <div className="flex items-center gap-2 mb-6">
-                                        <span className="text-header">✨</span>
-                                        <h3 className="text-header font-black uppercase tracking-tighter text-indigo-400">Executive Summary</h3>
-                                    </div>
-                                    <div className="prose prose-invert prose-lg max-w-none prose-headings:text-indigo-300">
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{experiment.ai_analysis}</ReactMarkdown>
-                                    </div>
-                                </div>
-                            )}
+
 
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                                 <div className="lg:col-span-12">
                                     <MetricsOverview metrics={initialMetrics} />
                                 </div>
                                 <div className="lg:col-span-12">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="font-bold uppercase tracking-widest text-muted-foreground text-sm flex items-center gap-2">
+                                            <BarChart3 className="w-4 h-4" /> Performance Analysis
+                                        </h3>
+                                        <ToggleGroup type="single" value={filterMode} onValueChange={handleFilterChange} className="bg-muted/30 p-1 rounded-lg border border-white/5">
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div>
+                                                        <ToggleGroupItem value="all" aria-label="All Runs" className="text-xs data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm transition-all h-7 px-3">
+                                                            <RefreshCw className="mr-1 h-3 w-3" />
+                                                            All Runs
+                                                        </ToggleGroupItem>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Includes all completed runs, timeouts, and system errors.</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div>
+                                                        <ToggleGroupItem value="completed" aria-label="Completed Only" className="text-xs data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm transition-all h-7 px-3">
+                                                            <BarChart3 className="mr-1 h-3 w-3" />
+                                                            Completed Only
+                                                        </ToggleGroupItem>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Excludes timeouts and crashes. Only Success + Validation Failures.</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div>
+                                                        <ToggleGroupItem value="successful" aria-label="Successful Only" className="text-xs data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm transition-all h-7 px-3">
+                                                            <span className="mr-1">✨</span>
+                                                            Successful Only
+                                                        </ToggleGroupItem>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Strictly excludes all failures.</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </ToggleGroup>
+                                    </div>
                                     <PerformanceTable
                                         runResults={runResults}
-                                        stats={stats}
+                                        stats={viewStats}
                                         controlBaseline={experiment.experiment_control}
                                         alternatives={config?.alternatives?.map((a: any) => a.name)}
+                                        onAlternativeClick={handleAlternativeClick}
                                     />
 
                                     <ToolImpactTable
@@ -362,11 +445,12 @@ export default function ReportViewer({
                                         alternatives={[...(config?.alternatives?.map((a: any) => a.name) || Object.keys(stats).sort()), "Combined"]}
                                     />
 
-                                    <FailureAnalysis runs={runResults} />
+                                    <FailureAnalysis runs={runResults} stats={stats} />
 
                                     <ToolUsageTable
                                         experimentId={experiment.id}
                                         alternatives={config?.alternatives?.map((a: any) => a.name) || Object.keys(stats).sort()}
+                                        filter={filterMode}
                                     />
 
                                 </div>
@@ -376,7 +460,7 @@ export default function ReportViewer({
 
                     {activeTab === 'investigate' && (
                         <div className="flex h-[calc(100vh-200px)] gap-6 animate-in fade-in duration-500">
-                            <div className="w-[350px] flex-shrink-0 panel bg-[#09090b]">
+                            <div className="w-[350px] flex-shrink-0 panel bg-card">
                                 <RunHistory
                                     runs={runs}
                                     selectedRunId={selectedRun?.id || null}
@@ -384,9 +468,11 @@ export default function ReportViewer({
                                     onLoadMore={loadMoreRuns}
                                     hasMore={hasMore}
                                     loading={loadingRuns}
+                                    filterAlternative={filterAlternative}
+                                    onClearFilter={() => setFilterAlternative(null)}
                                 />
                             </div>
-                            <div className="flex-1 overflow-y-auto panel bg-[#0c0c0e] p-6">
+                            <div className="flex-1 overflow-y-auto panel bg-card p-6">
                                 {selectedRun ? (
                                     loadingDetails ? (
                                         <div className="flex items-center justify-center h-full animate-pulse">
@@ -449,7 +535,7 @@ export default function ReportViewer({
                                             <div className="p-6 space-y-6 flex-1 bg-transparent">
                                                 {/* Command */}
                                                 <div className="space-y-2">
-                                                    <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">Execution Command</p>
+                                                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Execution Command</p>
                                                     <div className="font-mono text-sm bg-black/40 p-3 rounded border border-white/5 text-zinc-300 break-all cursor-default">
                                                         <span className="text-emerald-400 font-bold">{alt.command}</span> {alt.args?.join(' ')} <span className="text-zinc-500 italic">&lt;PROMPT&gt;</span>
                                                     </div>
@@ -485,7 +571,7 @@ export default function ReportViewer({
                                                     </div>
 
                                                     <div className="space-y-2">
-                                                        <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">GEMINI.md (Context)</p>
+                                                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">GEMINI.md (Context)</p>
                                                         {alt.context_file_path ? (
                                                             <div
                                                                 className="flex items-center gap-2 text-emerald-400 font-mono text-sm cursor-pointer hover:underline"
@@ -514,7 +600,7 @@ export default function ReportViewer({
                                                     </div>
 
                                                     <div className="space-y-2">
-                                                        <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">Settings</p>
+                                                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Settings</p>
                                                         {alt.settings_path ? (
                                                             <div
                                                                 className="flex items-center gap-2 text-amber-400 font-mono text-sm cursor-pointer hover:underline"
@@ -558,12 +644,12 @@ export default function ReportViewer({
 
             {configModalContent && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setConfigModalContent(null)}>
-                    <div className="bg-[#161618] border border-[#27272a] rounded-lg shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center p-4 border-b border-[#27272a]">
-                            <h3 className="font-bold uppercase tracking-widest text-[#f4f4f5]">{configModalContent.title}</h3>
-                            <button onClick={() => setConfigModalContent(null)} className="text-zinc-500 hover:text-white transition-colors">✕</button>
+                    <div className="bg-popover border border-border rounded-lg shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center p-4 border-b border-border">
+                            <h3 className="font-bold uppercase tracking-widest text-foreground">{configModalContent.title}</h3>
+                            <button onClick={() => setConfigModalContent(null)} className="text-muted-foreground hover:text-foreground transition-colors">✕</button>
                         </div>
-                        <div className="p-6 overflow-auto font-mono text-sm text-zinc-300 whitespace-pre-wrap">
+                        <div className="p-6 overflow-auto font-mono text-sm text-muted-foreground whitespace-pre-wrap">
                             {configModalContent.content}
                         </div>
                     </div>

@@ -7,6 +7,8 @@ import TemplateForm from "@/components/TemplateForm";
 import { PageHeader } from "@/components/ui/page-header";
 import { Loader2 } from "lucide-react";
 import { ScenarioData, TemplateData } from "@/types/domain";
+import { toggleTemplateLock } from "@/app/api/api";
+import LockToggle from "@/components/LockToggle";
 
 function TemplateEditorContent({ name }: { name: string }) {
     const router = useRouter();
@@ -14,6 +16,7 @@ function TemplateEditorContent({ name }: { name: string }) {
     const [scenarios, setScenarios] = useState<ScenarioData[]>([]);
     const [initialData, setInitialData] = useState<TemplateData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isLocked, setIsLocked] = useState(false);
 
     useEffect(() => {
         if (!name) {
@@ -29,11 +32,13 @@ function TemplateEditorContent({ name }: { name: string }) {
                 ]);
 
                 setScenarios(scens);
+                setIsLocked(template.is_locked || false);
                 setInitialData({
                     id: name,
                     name: template.name || name,
                     yaml_content: template.content,
                     description: template.description || "",
+                    is_locked: template.is_locked || false,
                     config: template.config || {
                         reps: 1,
                         concurrent: 1,
@@ -63,16 +68,29 @@ function TemplateEditorContent({ name }: { name: string }) {
                 title="Edit Template"
                 description={`ID: ${initialData?.id}`}
                 backHref="/templates"
+                actions={
+                    <LockToggle
+                        locked={isLocked}
+                        onToggle={async (locked) => {
+                            const success = await toggleTemplateLock(name, locked);
+                            if (success) {
+                                setIsLocked(locked);
+                                return true;
+                            }
+                            return false;
+                        }}
+                    />
+                }
             />
 
-            <TemplateForm scenarios={scenarios} initialData={initialData} mode="edit" />
+            <TemplateForm scenarios={scenarios} initialData={initialData} mode="edit" isLocked={isLocked} />
         </div>
     );
 }
 
 export default function TemplateEditorPage({ params }: { params: Promise<{ name: string }> }) {
     const { name } = use(params);
-    
+
     return (
         <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>}>
             <TemplateEditorContent name={name} />

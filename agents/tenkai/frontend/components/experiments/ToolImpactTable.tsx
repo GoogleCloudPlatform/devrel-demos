@@ -46,18 +46,18 @@ export default function ToolImpactTable({ stats, alternatives }: ToolImpactTable
     if (impacts.length === 0) return null;
 
     return (
-        <div className="panel overflow-hidden mt-6 border-indigo-500/20 shadow-[0_0_15px_-10px_#6366f1]">
-            <div className="p-4 border-b border-indigo-500/20 bg-indigo-500/10 flex justify-between items-center">
+        <div className="panel overflow-hidden mt-6 border-primary/20 shadow-sm">
+            <div className="p-4 border-b border-primary/20 bg-primary/10 flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                    <h3 className="font-bold uppercase tracking-widest text-sm text-indigo-300">Success Determinants Analysis</h3>
-                    <Badge variant="outline" className="text-[10px] bg-indigo-500/10 border-indigo-500/30 text-indigo-300">Statistical Impact</Badge>
+                    <h3 className="font-bold uppercase tracking-widest text-sm text-primary">Success Determinants Analysis</h3>
+                    <Badge variant="outline" className="text-[10px] bg-primary/10 border-primary/30 text-primary">Statistical Impact</Badge>
                 </div>
-                <span className="text-xs text-indigo-400 font-mono font-bold tracking-tighter">Mann-Whitney U Test (Succ vs Fail)</span>
+                <span className="text-xs text-muted-foreground font-mono font-bold tracking-tighter">Mann-Whitney U Test (Succ vs Fail)</span>
             </div>
             <div className="overflow-x-auto">
                 <Table>
                     <TableHeader>
-                        <TableRow className="hover:bg-transparent text-zinc-500 uppercase text-[10px] font-bold tracking-widest border-white/5">
+                        <TableRow className="hover:bg-transparent text-muted-foreground uppercase text-[10px] font-bold tracking-widest border-white/5">
                             <TableHead className="w-[180px] px-6">Scope / Context</TableHead>
                             <TableHead className="w-[180px] px-6">Tool Identifier</TableHead>
                             <TableHead className="text-right px-6">Significance (P-Value)</TableHead>
@@ -70,34 +70,34 @@ export default function ToolImpactTable({ stats, alternatives }: ToolImpactTable
                             if (imp.p < 0.01) sig = "***";
                             else if (imp.p < 0.05) sig = "**";
                             else if (imp.p < 0.1) sig = "*";
-                            
+
                             const isSignificant = imp.p < 0.1;
-                            const rowBg = imp.isGlobal ? "bg-indigo-500/[0.03]" : "";
+                            const rowBg = imp.isGlobal ? "bg-primary/[0.03]" : "";
 
                             return (
-                                <TableRow key={i} className={`hover:bg-indigo-500/10 transition-colors border-white/5 ${rowBg}`}>
+                                <TableRow key={i} className={`hover:bg-primary/10 transition-colors border-white/5 ${rowBg}`}>
                                     <TableCell className="px-6 font-mono text-[11px]">
                                         {imp.isGlobal ? (
-                                            <span className="text-indigo-400 font-bold tracking-tighter uppercase">✨ Global (Combined)</span>
+                                            <span className="text-primary font-bold tracking-tighter uppercase">✨ Global (Combined)</span>
                                         ) : (
-                                            <span className="text-zinc-500">{imp.alt}</span>
+                                            <span className="text-muted-foreground">{imp.alt}</span>
                                         )}
                                     </TableCell>
-                                    <TableCell className={`px-6 font-mono font-bold ${isSignificant ? 'text-indigo-200' : 'text-zinc-400'}`}>
+                                    <TableCell className={`px-6 font-mono font-bold ${isSignificant ? 'text-primary' : 'text-muted-foreground'}`}>
                                         {imp.tool}
                                     </TableCell>
                                     <TableCell className="px-6 text-right font-mono">
                                         <div className="flex items-center justify-end gap-2">
-                                            <span className={isSignificant ? "text-white font-bold" : "text-zinc-500"}>
+                                            <span className={isSignificant ? "text-foreground font-bold" : "text-muted-foreground"}>
                                                 {imp.p.toFixed(4)}
                                             </span>
-                                            <span className="w-8 text-left text-indigo-400 font-black">{sig}</span>
+                                            <span className="w-8 text-left text-primary font-black">{sig}</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell className={`px-6 text-right font-mono ${Math.abs(imp.corr_dur) > 0.5 ? 'text-amber-400' : 'text-zinc-600'}`}>
+                                    <TableCell className={`px-6 text-right font-mono ${Math.abs(imp.corr_dur) > 0.5 ? 'text-yellow-500' : 'text-muted-foreground'}`}>
                                         <div className="flex items-center justify-end gap-1">
-                                             {imp.corr_dur > 0.2 ? "🐢 " : (imp.corr_dur < -0.2 ? "⚡ " : "")}
-                                             {imp.corr_dur.toFixed(2)}
+                                            {imp.corr_dur > 0.2 ? "🐢 " : (imp.corr_dur < -0.2 ? "⚡ " : "")}
+                                            {imp.corr_dur.toFixed(2)}
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -106,7 +106,7 @@ export default function ToolImpactTable({ stats, alternatives }: ToolImpactTable
                     </TableBody>
                 </Table>
             </div>
-            <div className="p-3 bg-indigo-500/5 text-[10px] text-zinc-500 italic flex gap-6 px-6">
+            <div className="p-3 bg-primary/5 text-[10px] text-muted-foreground italic flex gap-6 px-6">
                 <span>**P-Value**: Probability that tool usage frequency is independent of run success.</span>
                 <span>**Rho**: Spearman correlation with duration (positive = slower).</span>
             </div>

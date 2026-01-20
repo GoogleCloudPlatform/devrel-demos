@@ -1,29 +1,22 @@
-Your task is to create a Model Context Protocol (MCP) server to expose a “hello_world” tool. For the MCP implementation, you should use the official Go SDK for MCP and use the stdio transport. When called, this tool should return the string "Hello from Tenkai!"
+Your task is to create a Model Context Protocol (MCP) server to expose a “hello_world” tool. For the MCP implementation, you should use the official Go SDK for MCP and use the stdio transport. When called, this tool should return the string "Hello, MCP World!"
 
 Read these references to understand the protocol and the desired module layout:
 - https://modelcontexprotocol.io
 - https://go.dev/doc/modules/layout
 
-To test the server, you can use shell commands like these:
-```sh
-(
-  echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}';
-  echo '{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}';
-  echo '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}';
-  sleep 1;
-) | ./hello
-```
 TODO:
-- Get package github.com/modelcontextprotocol/go-sdk/mcp to create the mcp server (official SDK)
-- Read the package documentation to discover the API (it is not trivial)
+- Get package github.com/modelcontextprotocol/go-sdk/mcp (official SDK)
+- Read the package documentation to discover the API
 - Create the server with stdio transport
-- Create one tool "hello_world" that returns the message "Hello from Tenkai!"
+- Create one tool "hello_world" that returns the message "Hello, MCP World!"
+- Compile the binary as "./hello" in the ROOT of the project, otherwise it will fail validation
 
-Acceptance Criteria:
-- Less than 5 lint issues when running golangci-lint run ./... (use default configuration)
-- Test coverage >= 50%
-- `go build -o hello .` is successful
-- hello responds to method tools/list request successfully
-- hello responds to method tools/call request for the hello_world tool returning the phrase "Hello from Tenkai!"
-
-The task accepts some level of ambiguity, but it will fail if the acceptance criteria above is not met even if the software works.
+## Acceptance Criteria
+- Linter `./...` must pass with max 5 issues.
+- Unit tests for `./...` must pass with min 50% coverage.
+- Command `./hello` with stdin `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}
+{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}
+{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}` must succeed (must have: stdout containing `hello_world`).
+- Command `./hello` with stdin `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}
+{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"hello_world","arguments":{}}}` must succeed (must have: stdout containing `Hello, MCP World!`).

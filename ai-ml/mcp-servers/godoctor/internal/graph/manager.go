@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/danicat/godoctor/internal/roots"
 	"golang.org/x/mod/modfile"
 	"golang.org/x/tools/go/packages"
 )
@@ -23,11 +24,10 @@ type PackageState struct {
 
 // Manager manages the graph of loaded packages (the Knowledge Graph).
 type Manager struct {
-	mu         sync.RWMutex
-	Packages   map[string]*PackageState // Key: Import Path
-	Root       string                   // Project root for indexing
-	ModuleName string                   // Module name from go.mod
-	watcher    *Watcher                 // File watcher
+	mu          sync.RWMutex
+	Packages    map[string]*PackageState // Key: Import Path
+	RootModules map[string]string        // Mapping from Root to ModuleName
+	watcher     *Watcher                 // File watcher
 }
 
 // Global is the singleton instance.
@@ -36,77 +36,119 @@ var Global = NewManager()
 // NewManager creates a new graph manager.
 func NewManager() *Manager {
 	return &Manager{
-		Packages: make(map[string]*PackageState),
+		Packages:    make(map[string]*PackageState),
+		RootModules: make(map[string]string),
 	}
 }
 
-// Initialize sets the project root and starts background indexing.
+// Close stops the background watcher and cleans up resources.
+func (m *Manager) Close() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.watcher != nil {
+		return m.watcher.Close()
+	}
+	return nil
+}
+
+// Initialize sets a project root and starts background indexing.
 func (m *Manager) Initialize(root string) {
 	absRoot, err := filepath.Abs(root)
 	if err != nil {
 		absRoot = root // Fallback
 	}
 
-	m.mu.Lock()
-	m.Root = absRoot
-	m.mu.Unlock()
+	// Register with roots package
+	roots.Global.Add(absRoot)
 
 	// Try to parse go.mod to get ModuleName
 	//nolint:gosec // G304: File path from internal logic/user input is expected.
 	if gomod, err := os.ReadFile(filepath.Join(absRoot, "go.mod")); err == nil {
 		if f, err := modfile.Parse("go.mod", gomod, nil); err == nil {
 			m.mu.Lock()
-			m.ModuleName = f.Module.Mod.Path
+			m.RootModules[absRoot] = f.Module.Mod.Path
 			m.mu.Unlock()
 		}
 	}
 
-	// Initialize and start watcher
-	w, err := NewWatcher(m)
-	if err == nil {
-		m.watcher = w
-		if err := w.Start(absRoot); err != nil {
-			fmt.Printf("Failed to start watcher: %v\n", err)
+	// Initialize and start watcher if not already started
+	m.mu.Lock()
+	w := m.watcher
+	m.mu.Unlock()
+
+	if w == nil {
+		nw, err := NewWatcher(m)
+		if err == nil {
+			m.mu.Lock()
+			m.watcher = nw
+			m.mu.Unlock()
+			w = nw
+		} else {
+			fmt.Fprintf(os.Stderr, "Failed to create watcher: %v\n", err)
 		}
-	} else {
-		fmt.Printf("Failed to create watcher: %v\n", err)
 	}
 
-	go m.crawl(absRoot)
+	if w != nil {
+		go func() {
+			if err := w.Start(absRoot); err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to start watcher for %s: %v\n", absRoot, err)
+			}
+		}()
+	}
 }
 
-func (m *Manager) crawl(root string) {
-	// Walk the root directory and load all Go packages
-	if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+// Scan performs a lightweight scan of all registered project roots.
+func (m *Manager) Scan() error {
+	rts := roots.Global.Get()
+
+	for _, root := range rts {
+		cfg := &packages.Config{
+			Mode: packages.NeedName | packages.NeedFiles | packages.NeedImports,
+			Dir:  root,
+		}
+
+		pkgs, err := packages.Load(cfg, "./...")
 		if err != nil {
-			fmt.Printf("Warning: error accessing path %q during crawl: %v\n", path, err)
-			return nil // Continue walk
-		}
-		if !info.IsDir() {
-			return nil
-		}
-		// Skip hidden dirs and vendor
-		name := info.Name()
-		if name != "." && (strings.HasPrefix(name, ".") || name == "vendor") {
-			return filepath.SkipDir
+			fmt.Fprintf(os.Stderr, "Warning: scan failed for root %s: %v\n", root, err)
+			continue
 		}
 
-		// Check if it contains Go files
-		hasGo := false
-		files, _ := os.ReadDir(path)
-		for _, f := range files {
-			if !f.IsDir() && strings.HasSuffix(f.Name(), ".go") {
-				hasGo = true
-				break
-			}
+		m.mu.Lock()
+		for _, p := range pkgs {
+			m.cachePackage(p)
 		}
+		m.mu.Unlock()
+	}
+	return nil
+}
 
-		if hasGo {
-			_, _ = m.Load(path)
+func (m *Manager) cachePackage(p *packages.Package) {
+	// Heuristic: If package name is empty, it might be a failed load.
+	// Try to infer it from PkgPath if possible.
+	if p.Name == "" && p.PkgPath != "" && p.PkgPath != "command-line-arguments" {
+		parts := strings.Split(p.PkgPath, "/")
+		p.Name = parts[len(parts)-1]
+	}
+
+	// If existing package is "better" (has types), keep it unless p also has types (refresh)
+	if existing, exists := m.Packages[p.PkgPath]; exists {
+		// If we already have a loaded package with types, keep it to ensure
+		// type identity consistency across the graph.
+		if existing.Pkg.TypesInfo != nil {
+			return
 		}
-		return nil
-	}); err != nil {
-		fmt.Printf("Warning: crawl failed: %v\n", err)
+		// If both are "light" (no types), we already have it, so stop recursion (fixes A->B->A loop)
+		if p.TypesInfo == nil {
+			return
+		}
+	}
+
+	m.Packages[p.PkgPath] = &PackageState{
+		Pkg:        p,
+		LastLoaded: time.Now(),
+	}
+	for _, imp := range p.Imports {
+		m.cachePackage(imp)
 	}
 }
 
@@ -125,37 +167,43 @@ func (m *Manager) Load(dirOrFile string) (*packages.Package, error) {
 		pattern = "."
 	} else {
 		// Assume it's an import path or pattern
-		// Optimization: Check if it matches our ModuleName and resolve to local path
+		// Optimization: Check if it matches our RootModules and resolve to local path
 		m.mu.RLock()
-		modName := m.ModuleName
-		root := m.Root
+		rootMods := make(map[string]string)
+		for k, v := range m.RootModules {
+			rootMods[k] = v
+		}
 		m.mu.RUnlock()
 
-		if modName != "" && strings.HasPrefix(dirOrFile, modName) {
-			rel := strings.TrimPrefix(dirOrFile, modName)
-			// Handle case where import path is exactly module name
-			if rel == "" {
-				rel = "."
-			}
-			localPath := filepath.Join(root, rel)
-			if info, err := os.Stat(localPath); err == nil && info.IsDir() {
-				dir = localPath
-				pattern = "."
-			} else {
-				// Fallback to standard behavior if not found locally
-				dir = root
-				if dir == "" {
-					dir = "."
+		rts := roots.Global.Get()
+
+		for _, root := range rts {
+			modName := rootMods[root]
+			if modName != "" && strings.HasPrefix(dirOrFile, modName) {
+				rel := strings.TrimPrefix(dirOrFile, modName)
+				// Handle case where import path is exactly module name
+				if rel == "" {
+					rel = "."
 				}
-				pattern = dirOrFile
+				localPath := filepath.Join(root, rel)
+				if info, err := os.Stat(localPath); err == nil && info.IsDir() {
+					dir = localPath
+					pattern = "."
+					goto Found
+				}
 			}
-		} else {
-			dir = root
-			if dir == "" {
+		}
+
+		// Fallback to standard behavior if not found locally
+		if dir == "" {
+			if len(rts) > 0 {
+				dir = rts[0]
+			} else {
 				dir = "."
 			}
 			pattern = dirOrFile
 		}
+	Found:
 	}
 
 	// 2. Run packages.Load
@@ -170,7 +218,7 @@ func (m *Manager) Load(dirOrFile string) (*packages.Package, error) {
 
 	// Retry with wildcard if direct load fails (Discovery Mode)
 	if (err != nil || len(pkgs) == 0) && !strings.HasSuffix(pattern, "...") && !strings.HasSuffix(pattern, ".go") && !strings.HasPrefix(pattern, ".") {
-		fmt.Printf("Direct load failed for %s, trying wildcard discovery...\n", pattern)
+		fmt.Fprintf(os.Stderr, "Direct load failed for %s, trying wildcard discovery...\n", pattern)
 		wildcardPattern := strings.TrimSuffix(pattern, "/") + "/..."
 		pkgsWild, errWild := packages.Load(cfg, wildcardPattern)
 		if errWild == nil && len(pkgsWild) > 0 {
@@ -192,28 +240,12 @@ func (m *Manager) Load(dirOrFile string) (*packages.Package, error) {
 
 	var retPkg *packages.Package
 
-	// Helper to recursively cache
-	var cacheFunc func(*packages.Package)
-	cacheFunc = func(p *packages.Package) {
-		if _, exists := m.Packages[p.PkgPath]; exists {
-			return
-		}
-		m.Packages[p.PkgPath] = &PackageState{
-			Pkg:        p,
-			LastLoaded: time.Now(),
-		}
-		for _, imp := range p.Imports {
-			cacheFunc(imp)
-		}
-	}
-
 	for _, pkg := range pkgs {
-		cacheFunc(pkg)
+		m.cachePackage(pkg)
 
 		// Heuristic: The package in the requested directory is likely the one we want to return.
 		if retPkg == nil {
 			// Return the canonical (cached) package instance to ensure type identity consistency.
-			// cacheFunc has guaranteed it exists in the map.
 			retPkg = m.Packages[pkg.PkgPath].Pkg
 		}
 	}
@@ -460,4 +492,3 @@ func (m *Manager) FindSymbolLocation(pkg *packages.Package, obj types.Object) (s
 
 // Parent is a hacky way to find parent node during Inspect if not provided by AST.
 // Better: Use a custom inspector or pre-computed parent map if needed.
-

@@ -6,12 +6,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
@@ -35,6 +38,11 @@ type ValidationItem struct {
 	Description string  `json:"description"`
 	Details     string  `json:"details,omitempty"`
 	Coverage    float64 `json:"coverage,omitempty"`
+	Command     string  `json:"command,omitempty"`
+	Input       string  `json:"input,omitempty"`
+	Output      string  `json:"output"`
+	Error       string  `json:"error"`
+	Definition  string  `json:"definition,omitempty"`
 }
 
 func (r *Runner) Validate(ctx context.Context,
@@ -121,12 +129,31 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 		}, 0, 0, nil
 	}
 
-	cmd := exec.CommandContext(ctx, "go", "test", "-json", "-cover", target)
+	// Create temp file for coverage profile
+	covFile, err := os.CreateTemp(wsPath, "coverage-*.out")
+	if err != nil {
+		return nil, ValidationItem{
+			Type:    "test",
+			Status:  "FAIL",
+			Details: fmt.Sprintf("Error creating coverage profile file: %v", err),
+		}, 0, 0, nil
+	}
+	covPath := covFile.Name()
+	covFile.Close()
+	defer os.Remove(covPath)
+
+	// Add -coverprofile and -coverpkg=./... to get project-wide total
+	relCovPath := filepath.Base(covPath) // relative path within workspace
+	cmd := exec.CommandContext(ctx, "go", "test", "-json", "-cover", fmt.Sprintf("-coverprofile=%s", relCovPath), "-coverpkg=./...", target)
 	cmd.Dir = wsPath // Run in workspace
 	var out bytes.Buffer
+	var preErr bytes.Buffer // stderr for build failures etc
 	cmd.Stdout = &out
+	cmd.Stderr = &preErr
 	// Ignore exit code error, we parse JSON
 	_ = cmd.Run()
+
+	fullCmd := fmt.Sprintf("go test -json -cover -coverprofile=%s -coverpkg=./... %s", relCovPath, target)
 
 	scanner := bufio.NewScanner(strings.NewReader(out.String()))
 	testsFound := false
@@ -171,23 +198,36 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 				if entry.Test != "" {
 					failedCount++
 					detailsBuilder.WriteString(fmt.Sprintf("FAIL: %s\n", entry.Test))
-				} else {
-					packageFailed = true
 				}
 			}
-			// Only capture coverage from output lines associated with the package result (Test == ""),
-			// avoiding noise from individual test logs if they happen to contain the string.
-			if entry.Action == "output" && entry.Test == "" && strings.Contains(entry.Output, "coverage:") {
-				parts := strings.Split(entry.Output, " ")
-				for i, p := range parts {
-					if p == "coverage:" && i+1 < len(parts) {
-						covStr := strings.TrimRight(parts[i+1], "%")
-						if val, err := strconv.ParseFloat(covStr, 64); err == nil {
+		}
+	}
+
+	// Calculate total coverage if tests were run
+	if testsFound {
+		covCmd := exec.CommandContext(ctx, "go", "tool", "cover", fmt.Sprintf("-func=%s", relCovPath))
+		covCmd.Dir = wsPath
+		var covOut, covErr bytes.Buffer
+		covCmd.Stdout = &covOut
+		covCmd.Stderr = &covErr
+		if err := covCmd.Run(); err == nil {
+			// Parse: "total:\t\t\t(statements)\t100.0%"
+			lines := strings.Split(strings.TrimSpace(covOut.String()), "\n")
+			if len(lines) > 0 {
+				lastLine := lines[len(lines)-1]
+				if strings.HasPrefix(lastLine, "total:") {
+					parts := strings.Fields(lastLine)
+					if len(parts) > 0 {
+						pctStr := strings.TrimRight(parts[len(parts)-1], "%")
+						if val, err := strconv.ParseFloat(pctStr, 64); err == nil {
 							coverage = val
 						}
 					}
 				}
 			}
+		} else {
+			// If coverage tool fails, append error to details for debugging
+			detailsBuilder.WriteString(fmt.Sprintf("\nWARNING: Failed to calculate total coverage: %v\nStderr: %s\n", err, covErr.String()))
 		}
 	}
 
@@ -200,6 +240,13 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 		covDesc = fmt.Sprintf(" (Cov: %.1f%%)", coverage)
 	}
 	item.Description = fmt.Sprintf("Run tests on %s%s", target, covDesc)
+	item.Command = fullCmd
+	item.Output = out.String()
+	item.Error = preErr.String()
+	// Serialize rule definition
+	if defBytes, err := json.Marshal(rule); err == nil {
+		item.Definition = string(defBytes)
+	}
 
 	// Determine success
 	item.Status = "PASS"
@@ -245,9 +292,12 @@ func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.Va
 	// golangci-lint run --out-format json ./...
 	cmd := exec.CommandContext(ctx, "golangci-lint", "run", "--out-format", "json", target)
 	cmd.Dir = wsPath
-	var out bytes.Buffer
+	var out, stderr bytes.Buffer
 	cmd.Stdout = &out
+	cmd.Stderr = &stderr
 	_ = cmd.Run() // It exits non-zero on issues
+
+	fullCmd := fmt.Sprintf("golangci-lint run --out-format json %s", target)
 
 	// Intermediate structs for golangci-lint JSON output
 	type glPos struct {
@@ -305,6 +355,14 @@ func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.Va
 	item := ValidationItem{
 		Type:        "lint",
 		Description: fmt.Sprintf("Lint check on %s (Max: %d)", target, rule.MaxIssues),
+		Command:     fullCmd,
+		Output:      out.String(),
+		Error:       stderr.String(),
+	}
+
+	// Serialize rule definition
+	if defBytes, err := json.Marshal(rule); err == nil {
+		item.Definition = string(defBytes)
 	}
 
 	if finalIssuesCount <= rule.MaxIssues {
@@ -330,6 +388,40 @@ func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config
 	}
 	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", fullCmd)
 	cmd.Dir = wsPath
+
+	if rule.Stdin != "" {
+		stdinPipe, err := cmd.StdinPipe()
+		if err != nil {
+			return ValidationItem{}, fmt.Errorf("failed to create stdin pipe: %w", err)
+		}
+
+		// Parse delay if present
+		var delay time.Duration
+		if rule.StdinDelay != "" {
+			delay, err = time.ParseDuration(rule.StdinDelay)
+			if err != nil {
+				return ValidationItem{}, fmt.Errorf("invalid stdin_delay: %w", err)
+			}
+		}
+
+		go func() {
+			defer stdinPipe.Close()
+			io.WriteString(stdinPipe, rule.Stdin)
+			if delay > 0 {
+				time.Sleep(delay)
+			}
+		}()
+	} else {
+		// If no stdin provided, keep it open (do not send EOF immediately) to support
+		// workflows where a server might terminate on EOF.
+		// We create a pipe and just defer its closure until after the command exits.
+		stdinPipe, err := cmd.StdinPipe()
+		if err != nil {
+			return ValidationItem{}, fmt.Errorf("failed to create stdin pipe: %w", err)
+		}
+		defer stdinPipe.Close()
+	}
+
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -348,14 +440,69 @@ func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config
 	item := ValidationItem{
 		Type:        "command",
 		Description: fmt.Sprintf("Run custom command: %s", rule.Command),
+		Status:      "PASS", // Default to PASS, then check failures
+		Command:     fullCmd,
+		Input:       rule.Stdin,
+		Output:      stdout.String(),
+		Error:       stderr.String(),
 	}
 
-	if exitCode == rule.ExpectExitCode {
-		item.Status = "PASS"
-		item.Details = fmt.Sprintf("Exit code %d matched expected", exitCode)
-	} else {
+	// Serialize rule definition
+	if defBytes, err := json.Marshal(rule); err == nil {
+		item.Definition = string(defBytes)
+	}
+
+	var failures []string
+
+	// 1. Check Exit Code (if provided)
+	if rule.ExpectExitCode != nil {
+		if exitCode != *rule.ExpectExitCode {
+			failures = append(failures, fmt.Sprintf("Expected exit code %d, got %d", *rule.ExpectExitCode, exitCode))
+		}
+	}
+
+	// 2. Check Output (substring)
+	if rule.ExpectOutput != "" {
+		if !strings.Contains(stdout.String(), rule.ExpectOutput) {
+			failures = append(failures, fmt.Sprintf("Output does not contain expected substring: %q", rule.ExpectOutput))
+		}
+	}
+
+	// 3. Check Regex
+	if rule.ExpectOutputRegex != "" {
+		re, err := regexp.Compile(rule.ExpectOutputRegex)
+		if err != nil {
+			return ValidationItem{}, fmt.Errorf("invalid regex %q: %w", rule.ExpectOutputRegex, err)
+		}
+		if !re.MatchString(stdout.String()) {
+			failures = append(failures, fmt.Sprintf("Output does not match regex: %q", rule.ExpectOutputRegex))
+		}
+	}
+
+	if len(failures) > 0 {
 		item.Status = "FAIL"
-		item.Details = fmt.Sprintf("Exit code %d (expected %d). Stderr: %s", exitCode, rule.ExpectExitCode, stderr.String())
+		details := strings.Join(failures, "\n")
+		item.Details = details
+	} else {
+		var confirmations []string
+		if rule.ExpectExitCode != nil {
+			confirmations = append(confirmations, fmt.Sprintf("✓ Exit code %d matched.", exitCode))
+		}
+		if rule.ExpectOutput != "" {
+			confirmations = append(confirmations, fmt.Sprintf("✓ Output contains substring: %q", rule.ExpectOutput))
+		}
+		if rule.ExpectOutputRegex != "" {
+			confirmations = append(confirmations, fmt.Sprintf("✓ Output matches regex: %q", rule.ExpectOutputRegex))
+		}
+		if rule.Stdin != "" {
+			confirmations = append(confirmations, "✓ Command received provided stdin.")
+		}
+
+		if len(confirmations) > 0 {
+			item.Details = strings.Join(confirmations, "\n")
+		} else {
+			item.Details = "✓ Command executed successfully."
+		}
 	}
 
 	return item, nil
@@ -371,6 +518,12 @@ func (r *Runner) validateModel(ctx context.Context, wsPath string, rule config.V
 			Details:     "No validation prompt provided",
 		}, nil
 	}
+	// Serialize rule definition
+	ruleDef := ""
+	if defBytes, err := json.Marshal(rule); err == nil {
+		ruleDef = string(defBytes)
+	}
+
 	promptText := rule.Prompt
 
 	contextContent := ""
@@ -402,6 +555,10 @@ func (r *Runner) validateModel(ctx context.Context, wsPath string, rule config.V
 			Status:      "FAIL",
 			Description: "Model validation",
 			Details:     fmt.Sprintf("Gemini invocation failed: %v", err),
+			Command:     "gemini --output-format text",
+			Input:       fullPrompt,
+			Output:      out.String(),
+			Definition:  ruleDef,
 		}, nil
 	}
 
@@ -422,5 +579,9 @@ func (r *Runner) validateModel(ctx context.Context, wsPath string, rule config.V
 		Status:      status,
 		Description: "Model validation (LLM Grader)",
 		Details:     modelOut,
+		Command:     "gemini --output-format text",
+		Input:       fullPrompt,
+		Output:      out.String(),
+		Definition:  ruleDef,
 	}, nil
 }

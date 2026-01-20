@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -11,6 +12,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/workspace"
 )
 
 type ControlRequest struct {
@@ -33,10 +37,32 @@ func (api *API) ListExperiments(r *http.Request) (any, error) {
 }
 
 func (api *API) DeleteAllExperiments(r *http.Request) (any, error) {
-	if err := api.DB.DeleteAllExperiments(); err != nil {
+	// 1. Fetch all experiments to iterate
+	exps, err := api.DB.GetExperiments()
+	if err != nil {
 		return nil, err
 	}
-	return map[string]string{"message": "All experiments deleted"}, nil
+
+	deletedCount := 0
+	for _, e := range exps {
+		if e.IsLocked {
+			continue // Skip locked experiments
+		}
+
+		// Re-fetch full experiment details to ensure we have timestamp/name for directory resolution
+		// (GetExperiments returns summary, but usually has enough, but let's be safe if GetExperiments changes)
+		// Actually GetExperiments struct has Name and Timestamp, so we can use `e` directly if it matches models.Experiment.
+		// However, let's use the helper which expects *models.Experiment.
+
+		if err := api.deleteExperiment(&e); err != nil {
+			log.Printf("Failed to delete experiment %d: %v", e.ID, err)
+			// Continue deleting others
+		} else {
+			deletedCount++
+		}
+	}
+
+	return map[string]string{"message": fmt.Sprintf("Deleted %d unlocked experiments", deletedCount)}, nil
 }
 
 func (api *API) GetExperiment(r *http.Request) (any, error) {
@@ -52,10 +78,44 @@ func (api *API) DeleteExperiment(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, NewAPIError(http.StatusBadRequest, "Invalid ID")
 	}
-	if err := api.DB.DeleteExperiment(id); err != nil {
+
+	// 1. Get experiment details
+	exp, err := api.DB.GetExperimentByID(id)
+	if err != nil {
 		return nil, err
 	}
+
+	// 2. Check Lock
+	if exp.IsLocked {
+		return nil, NewAPIError(http.StatusBadRequest, "Experiment is locked and cannot be deleted")
+	}
+
+	// 3. Perform Deletion
+	if err := api.deleteExperiment(exp); err != nil {
+		return nil, err
+	}
+
 	return map[string]string{"message": "Experiment deleted"}, nil
+}
+
+// deleteExperiment performs the actual file and DB deletion for a single experiment
+func (api *API) deleteExperiment(exp *models.Experiment) error {
+	// 1. Delete files on disk
+	cwd, _ := os.Getwd()
+	dir, err := workspace.FindExperimentDir(cwd, exp.Timestamp, exp.Name)
+	if err == nil && dir != "" {
+		if err := os.RemoveAll(dir); err != nil {
+			log.Printf("Failed to remove experiment directory %s: %v", dir, err)
+		} else {
+			log.Printf("Deleted experiment directory: %s", dir)
+		}
+	} else {
+		// Just log context, if it didn't exist that's fine
+		log.Printf("Experiment directory check for %s (ID %d): %v", exp.Name, exp.ID, err)
+	}
+
+	// 2. Delete from DB
+	return api.DB.DeleteExperiment(exp.ID)
 }
 
 func (api *API) StartExperiment(r *http.Request) (any, error) {
@@ -184,6 +244,27 @@ func (api *API) SaveAIAnalysis(r *http.Request) (any, error) {
 	return map[string]string{"status": "saved"}, nil
 }
 
+func (api *API) SaveExperimentAnnotations(r *http.Request) (any, error) {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return nil, NewAPIError(http.StatusBadRequest, "Invalid ID")
+	}
+
+	var req struct {
+		Annotations string `json:"annotations"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, NewAPIError(http.StatusBadRequest, err.Error())
+	}
+
+	if err := api.DB.UpdateExperimentAnnotations(id, req.Annotations); err != nil {
+		return nil, err
+	}
+
+	return map[string]string{"status": "saved"}, nil
+}
+
 func spawnRunner(args []string) (int, error) {
 	log.Printf("[Server] Spawning tenkai: %v", args)
 
@@ -194,29 +275,52 @@ func spawnRunner(args []string) (int, error) {
 	cwd, _ := os.Getwd()
 	cmd := exec.Command(exe, args...)
 	cmd.Dir = cwd
-	cmd.Env = os.Environ()
 
-	// Capture stdout/stderr for debugging runner failures
-	// Note: We're creating buffers but they live in the goroutine closure if referenced there?
-	// Actually capturing to local buffers specific to this function call context
-	// We need to manage lifecycle. Simple logging goroutine is fine.
-	// But `bytes.Buffer` is not thread safe if we were reading it elsewhere. Here we just print it at the end.
+	// Open tenkai.log for appending runner logs
+	logPath := filepath.Join(cwd, "tenkai.log")
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Printf("[Server] Failed to open tenkai.log at %s: %v", logPath, err)
+	}
 
-	// To capture logs properly, we should stream them to the main log or a file, but for now logging to server log on exit is what was there.
-	// We'll replicate the existing behavior safely.
+	var multiOut, multiErr io.Writer
 	var runnerOut, runnerErr bytes.Buffer
-	cmd.Stdout = &runnerOut
-	cmd.Stderr = &runnerErr
+
+	// We pipe to:
+	// 1. In-memory buffer (for final exit log)
+	// 2. tenkai.log file (for UI)
+	// 3. os.Stdout/Stderr (for real-time terminal output, as requested)
+
+	writersOut := []io.Writer{&runnerOut, os.Stdout}
+	writersErr := []io.Writer{&runnerErr, os.Stderr}
+
+	if f != nil {
+		writersOut = append(writersOut, f)
+		writersErr = append(writersErr, f)
+	}
+
+	multiOut = io.MultiWriter(writersOut...)
+	multiErr = io.MultiWriter(writersErr...)
+
+	cmd.Stdout = multiOut
+	cmd.Stderr = multiErr
 
 	if err := cmd.Start(); err != nil {
+		if f != nil {
+			f.Close()
+		}
 		return 0, err
 	}
 
 	go func() {
+		if f != nil {
+			defer f.Close()
+		}
 		if err := cmd.Wait(); err != nil {
 			log.Printf("[Server] Runner process %d exited with error: %v", cmd.Process.Pid, err)
+			// We already streamed to log file, so maybe don't need to dump big blobs to server log?
+			// But let's keep it for now as it goes to stdout of this process.
 			log.Printf("[Server] Runner Stderr: %s", runnerErr.String())
-			log.Printf("[Server] Runner Stdout: %s", runnerOut.String())
 		} else {
 			log.Printf("[Server] Runner process %d finished successfully", cmd.Process.Pid)
 		}

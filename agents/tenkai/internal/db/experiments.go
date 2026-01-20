@@ -18,7 +18,8 @@ func (db *DB) GetExperiments() ([]models.Experiment, error) {
 		e.id, e.name, e.timestamp, e.status, e.reps, e.total_jobs, e.description, e.concurrent, e.config_content, e.experiment_control,
 		COALESCE(AVG(CASE WHEN r.is_success THEN 1.0 ELSE 0.0 END) * 100, 0) as success_rate,
 		COALESCE(AVG(CASE WHEN r.is_success THEN r.duration ELSE NULL END) / 1000000000.0, 0) as avg_duration,
-		COALESCE(AVG(CASE WHEN r.is_success THEN r.total_tokens ELSE NULL END), 0) as avg_tokens
+		COALESCE(AVG(CASE WHEN r.is_success THEN r.total_tokens ELSE NULL END), 0) as avg_tokens,
+		e.is_locked
 	FROM experiments e
 	LEFT JOIN run_results r ON e.id = r.experiment_id
 	GROUP BY e.id
@@ -39,7 +40,7 @@ func (db *DB) GetExperiments() ([]models.Experiment, error) {
 
 		if err := rows.Scan(
 			&e.ID, &e.Name, &ts, &e.Status, &e.Reps, &e.TotalJobs, &desc, &e.Concurrent, &confContent, &expControl,
-			&sRate, &aDur, &aTok,
+			&sRate, &aDur, &aTok, &e.IsLocked,
 		); err != nil {
 			return nil, err
 		}
@@ -96,19 +97,19 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 	query := `SELECT 
 		e.id, e.name, e.timestamp, e.config_path, e.report_path, e.results_path, 
 		e.status, e.reps, e.concurrent, e.total_jobs,
-		e.description, e.duration, e.config_content, e.report_content, e.execution_control, e.experiment_control, e.error_message, e.ai_analysis, e.pid
+		e.description, e.duration, e.config_content, e.report_content, e.execution_control, e.experiment_control, e.error_message, e.ai_analysis, e.pid, e.is_locked, e.annotations
 		FROM experiments e WHERE e.id = ?`
 
 	row := db.conn.QueryRow(query, id)
 
 	var exp models.Experiment
 	var ts string
-	var desc, conf, rep, execCtrl, expCtrl, errMsg, aiAn sql.NullString
+	var desc, conf, rep, execCtrl, expCtrl, errMsg, aiAn, ann sql.NullString
 
 	err := row.Scan(
 		&exp.ID, &exp.Name, &ts, &exp.ConfigPath, &exp.ReportPath, &exp.ResultsPath,
 		&exp.Status, &exp.Reps, &exp.Concurrent, &exp.TotalJobs,
-		&desc, &exp.Duration, &conf, &rep, &execCtrl, &expCtrl, &errMsg, &aiAn, &exp.PID,
+		&desc, &exp.Duration, &conf, &rep, &execCtrl, &expCtrl, &errMsg, &aiAn, &exp.PID, &exp.IsLocked, &ann,
 	)
 	if err != nil {
 		return nil, err
@@ -121,6 +122,7 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 	exp.ExperimentControl = expCtrl.String
 	exp.ErrorMessage = errMsg.String
 	exp.AIAnalysis = aiAn.String
+	exp.Annotations = ann.String
 
 	// Aggregation Query (Real-time)
 	aggQuery := `
@@ -185,8 +187,8 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 }
 
 func (db *DB) CreateExperiment(exp *models.Experiment) (int64, error) {
-	query := `INSERT INTO experiments (name, timestamp, config_path, report_path, results_path, status, reps, concurrent, total_jobs, pid, description, config_content, experiment_control) 
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO experiments (name, timestamp, config_path, report_path, results_path, status, reps, concurrent, total_jobs, pid, description, config_content, experiment_control, is_locked, annotations) 
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	res, err := db.conn.Exec(query,
 		exp.Name,
@@ -202,6 +204,8 @@ func (db *DB) CreateExperiment(exp *models.Experiment) (int64, error) {
 		exp.Description,
 		exp.ConfigContent,
 		exp.ExperimentControl,
+		exp.IsLocked,
+		exp.Annotations,
 	)
 	if err != nil {
 		return 0, err
@@ -211,6 +215,11 @@ func (db *DB) CreateExperiment(exp *models.Experiment) (int64, error) {
 
 func (db *DB) UpdateExperimentStatus(id int64, status string) error {
 	_, err := db.conn.Exec("UPDATE experiments SET status = ? WHERE id = ?", status, id)
+	return err
+}
+
+func (db *DB) ToggleExperimentLock(id int64, locked bool) error {
+	_, err := db.conn.Exec("UPDATE experiments SET is_locked = ? WHERE id = ?", locked, id)
 	return err
 }
 
@@ -329,10 +338,30 @@ func (db *DB) GetGlobalStats() (map[string]interface{}, error) {
 	return stats, nil
 }
 
-func (db *DB) GetToolStats(experimentID int64) ([]models.ToolStatRow, error) {
+func (db *DB) GetToolStats(experimentID int64, filter string) ([]models.ToolStatRow, error) {
+	// Filter logic
+	// USE TABLE ALIASES FOR JOINS (runsQuery assumes distinct table/no join, but later queries join)
+	// runsQuery operates on run_results directly, so aliases are fine or implicit if no join.
+	// But later queries JOIN tool_usage and run_events.
+	// We should define separate condition fragments or fully qualified ones.
+
+	// For simple single-table query:
+	runsFilter := "AND status = 'COMPLETED'"
+	// For joined queries (alias r for run_results):
+	joinFilter := "AND r.status = 'COMPLETED'"
+
+	if filter == "completed" {
+		runsFilter = "AND status = 'COMPLETED' AND (is_success = 1 OR reason = 'FAILED (VALIDATION)')"
+		joinFilter = "AND r.status = 'COMPLETED' AND (r.is_success = 1 OR r.reason = 'FAILED (VALIDATION)')"
+	} else if filter == "successful" {
+		runsFilter = "AND status = 'COMPLETED' AND is_success = 1"
+		joinFilter = "AND r.status = 'COMPLETED' AND r.is_success = 1"
+	}
+
 	// We need total runs per alternative to calculate average
 	// 1. Get total completed runs per alternative
-	runsQuery := `SELECT alternative, count(*) FROM run_results WHERE experiment_id = ? AND status = 'COMPLETED' GROUP BY alternative`
+	runsQuery := fmt.Sprintf(`SELECT alternative, count(*) FROM run_results WHERE experiment_id = ? %s GROUP BY alternative`, runsFilter)
+
 	rows, err := db.conn.Query(runsQuery, experimentID)
 	if err != nil {
 		return nil, err
@@ -364,7 +393,7 @@ func (db *DB) GetToolStats(experimentID int64) ([]models.ToolStatRow, error) {
 	}
 
 	// 2. Aggregate tool usage from standard 'tool_usage' view
-	query := `
+	query := fmt.Sprintf(`
 	SELECT 
 		r.alternative,
 		t.name,
@@ -372,8 +401,8 @@ func (db *DB) GetToolStats(experimentID int64) ([]models.ToolStatRow, error) {
 		SUM(CASE WHEN t.status != 'success' THEN 1 ELSE 0 END) as failed
 	FROM tool_usage t
 	JOIN run_results r ON t.run_id = r.id
-	WHERE r.experiment_id = ?
-	GROUP BY r.alternative, t.name`
+	WHERE r.experiment_id = ? %s
+	GROUP BY r.alternative, t.name`, joinFilter)
 
 	rows2, err := db.conn.Query(query, experimentID)
 	if err != nil {
@@ -393,15 +422,15 @@ func (db *DB) GetToolStats(experimentID int64) ([]models.ToolStatRow, error) {
 
 	// 3. Aggregate tool failures from 'error' events (STDERR fallback)
 	// Matches pattern: "Error executing tool {TOOL_NAME}:"
-	queryErr := `
+	queryErr := fmt.Sprintf(`
     SELECT 
         r.alternative,
         json_extract(payload, '$.message')
     FROM run_events e
     JOIN run_results r ON e.run_id = r.id
-    WHERE r.experiment_id = ? 
+    WHERE r.experiment_id = ? %s
       AND e.type = 'error' 
-      AND json_extract(payload, '$.message') LIKE 'Error executing tool %'`
+      AND json_extract(payload, '$.message') LIKE 'Error executing tool %%'`, joinFilter)
 
 	rows3, err := db.conn.Query(queryErr, experimentID)
 	if err != nil {
@@ -458,5 +487,11 @@ func (db *DB) UpdateExperimentReport(experimentID int64, reportContent string) e
 	// Also update report_path to indicate it's stored in DB/virtual
 	reportPath := fmt.Sprintf("db://experiments/%d/report.md", experimentID)
 	_, err := db.conn.Exec(query, reportContent, reportPath, experimentID)
+	return err
+}
+
+func (db *DB) UpdateExperimentAnnotations(experimentID int64, annotations string) error {
+	query := `UPDATE experiments SET annotations = ? WHERE id = ?`
+	_, err := db.conn.Exec(query, annotations, experimentID)
 	return err
 }

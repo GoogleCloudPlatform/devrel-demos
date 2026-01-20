@@ -17,8 +17,8 @@ type Configuration struct {
 	Timeout       string        `yaml:"timeout,omitempty" json:"timeout,omitempty"`                       // e.g. "5m", "10m"
 	Control       string        `yaml:"experiment_control,omitempty" json:"experiment_control,omitempty"` // Name of the control alternative
 	Alternatives  []Alternative `yaml:"alternatives" json:"alternatives"`
-	// Alternatives is already defined above
-	Scenarios []string `yaml:"scenarios" json:"scenarios"`
+	Scenarios     []string      `yaml:"scenarios" json:"scenarios"`
+	IsLocked      bool          `yaml:"is_locked,omitempty" json:"is_locked,omitempty"`
 }
 
 // Alternative represents a specific agent configuration.
@@ -48,17 +48,20 @@ type Asset struct {
 
 // ValidationRule defines a success criterion for the scenario.
 type ValidationRule struct {
-	Type           string   `yaml:"type" json:"type"`
-	Target         string   `yaml:"target,omitempty" json:"target,omitempty"`
-	MinCoverage    float64  `yaml:"min_coverage,omitempty" json:"min_coverage,omitempty"`
-	MaxIssues      int      `yaml:"max_issues,omitempty" json:"max_issues,omitempty"`
-	Exclude        []string `yaml:"exclude,omitempty" json:"exclude,omitempty"`
-	Prompt         string   `yaml:"prompt,omitempty" json:"prompt,omitempty"`
-	Context        []string `yaml:"context,omitempty" json:"context,omitempty"`
-	Command        string   `yaml:"command,omitempty" json:"command,omitempty"`
-	Args           []string `yaml:"args,omitempty" json:"args,omitempty"`
-	ExpectExitCode int      `yaml:"expect_exit_code,omitempty" json:"expected_exit_code,omitempty"` // Frontend expects expected_exit_code
-	ExpectOutput   string   `yaml:"expect_output,omitempty" json:"expect_output,omitempty"`
+	Type              string   `yaml:"type" json:"type"`
+	Target            string   `yaml:"target,omitempty" json:"target,omitempty"`
+	MinCoverage       float64  `yaml:"min_coverage,omitempty" json:"min_coverage,omitempty"`
+	MaxIssues         int      `yaml:"max_issues,omitempty" json:"max_issues,omitempty"`
+	Exclude           []string `yaml:"exclude,omitempty" json:"exclude,omitempty"`
+	Prompt            string   `yaml:"prompt,omitempty" json:"prompt,omitempty"`
+	Context           []string `yaml:"context,omitempty" json:"context,omitempty"`
+	Command           string   `yaml:"command,omitempty" json:"command,omitempty"`
+	Args              []string `yaml:"args,omitempty" json:"args,omitempty"`
+	Stdin             string   `yaml:"stdin,omitempty" json:"stdin,omitempty"`
+	StdinDelay        string   `yaml:"stdin_delay,omitempty" json:"stdin_delay,omitempty"` // e.g. "500ms", "1s"
+	ExpectExitCode    *int     `yaml:"expect_exit_code,omitempty" json:"expect_exit_code,omitempty"`
+	ExpectOutput      string   `yaml:"expect_output,omitempty" json:"expect_output,omitempty"`
+	ExpectOutputRegex string   `yaml:"expect_output_regex,omitempty" json:"expect_output_regex,omitempty"`
 }
 
 // ScenarioConfig represents the content of a scenario.yaml file.
@@ -69,6 +72,7 @@ type ScenarioConfig struct {
 	GithubIssue string           `yaml:"github_issue,omitempty" json:"github_issue,omitempty"`
 	Assets      []Asset          `yaml:"assets" json:"assets"`
 	Validation  []ValidationRule `yaml:"validation" json:"validation"`
+	IsLocked    bool             `yaml:"is_locked,omitempty" json:"is_locked,omitempty"`
 }
 
 // Load reads the configuration from the specified file path.

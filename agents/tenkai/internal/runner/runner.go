@@ -244,6 +244,7 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 			runRes.ToolCallsCount = dbMetrics.TotalToolCallsCount
 			runRes.FailedToolCalls = dbMetrics.FailedToolCalls
 			runRes.LoopDetected = dbMetrics.LoopDetected
+			runRes.CachedTokens = dbMetrics.CachedTokens
 
 			// Build Telemetry for Final Save
 			telemetry := &db.RunTelemetry{
@@ -547,6 +548,7 @@ func (r *Runner) FromDBRunResult(dr *models.RunResult) Result {
 		IsSuccess:        dr.IsSuccess,
 		ValidationReport: dr.ValidationReport,
 		Status:           dr.Status,
+		Reason:           dr.Reason,
 	}
 	if dr.Error != "" {
 		res.Error = fmt.Errorf("%s", dr.Error)
@@ -562,8 +564,10 @@ func (r *Runner) FromDBRunResult(dr *models.RunResult) Result {
 		TotalTokens:         dr.TotalTokens,
 		InputTokens:         dr.InputTokens,
 		OutputTokens:        dr.OutputTokens,
+		CachedTokens:        dr.CachedTokens,
 		FailedToolCalls:     dr.FailedToolCalls,
 		TotalToolCallsCount: dr.ToolCallsCount,
+		LoopDetected:        dr.LoopDetected,
 	}
 	return res
 }

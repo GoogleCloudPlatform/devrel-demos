@@ -418,16 +418,19 @@ func TestGetSummaries(t *testing.T) {
 		t.Fatalf("Failed to decode JSON: %v", err)
 	}
 
-	if len(summaries) != 2 {
-		t.Errorf("Expected 2 summaries (vanilla, other), got %d", len(summaries))
+	// Expect 3 summaries: "vanilla", "other", and "Combined"
+	if len(summaries) != 3 {
+		t.Errorf("Expected 3 summaries (vanilla, other, Combined), got %d", len(summaries))
 	}
 
-	var vanilla, other models.ExperimentSummaryRow
+	var vanilla, other, combined models.ExperimentSummaryRow
 	for _, s := range summaries {
 		if s.Alternative == "vanilla" {
 			vanilla = s
 		} else if s.Alternative == "other" {
 			other = s
+		} else if s.Alternative == "Combined" {
+			combined = s
 		}
 	}
 
@@ -442,5 +445,8 @@ func TestGetSummaries(t *testing.T) {
 	}
 	if other.SuccessRate != 100.0 {
 		t.Errorf("Expected 100%% success rate for other, got %f", other.SuccessRate)
+	}
+	if combined.TotalRuns != 3 {
+		t.Errorf("Expected 3 combined runs, got %d", combined.TotalRuns)
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/danicat/godoctor/internal/graph"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -41,36 +40,23 @@ func TestEdit_ImpactAnalysis(t *testing.T) {
 	os.WriteFile(bFile, []byte("package b\n\nimport \"example.com/impact/pkg/a\"\n\nfunc Use() {\n\ta.Hello()\n}\n"), 0644)
 
 	// 2. Initialize Graph
-	// We reset Global for test isolation (though it's a singleton, so be careful running parallel tests)
+	// We reset Global for test isolation
+	if graph.Global != nil {
+		_ = graph.Global.Close()
+	}
 	graph.Global = graph.NewManager()
+	defer func() { _ = graph.Global.Close() }()
 	graph.Global.Initialize(tmpDir)
 
-	// Poll until packages are loaded
-	// We need 'example.com/impact/pkg/b' to be loaded to know it imports 'a'
-	deadline := time.Now().Add(10 * time.Second)
-	loaded := false
-	for time.Now().Before(deadline) {
-		pkgs := graph.Global.ListPackages()
-		count := 0
-		for _, p := range pkgs {
-			if strings.Contains(p.PkgPath, "example.com/impact/pkg") {
-				count++
-			}
-		}
-		if count >= 2 {
-			loaded = true
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	if !loaded {
-		t.Fatal("Timeout waiting for packages to load")
+	// Scan explicitly to load packages
+	if err := graph.Global.Scan(); err != nil {
+		t.Fatalf("Scan failed: %v", err)
 	}
 
 	// 3. Perform Breaking Edit on A
 	// Change Hello() to Hello(name string)
 	res, _, err := toolHandler(context.TODO(), nil, Params{
-		File:          aFile,
+		Filename:      aFile,
 		SearchContext: "func Hello() {}",
 		Replacement:   "func Hello(name string) {}",
 	})

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 
@@ -84,7 +85,7 @@ func (api *API) GetScenario(r *http.Request) (any, error) {
 
 func (api *API) UpdateScenario(r *http.Request) (any, error) {
 	id := r.PathValue("id")
-	
+
 	var name, desc, task string
 	var validation []config.ValidationRule
 	var assets []config.Asset
@@ -103,8 +104,15 @@ func (api *API) UpdateScenario(r *http.Request) (any, error) {
 
 		valJSON := r.FormValue("validation")
 		if valJSON != "" {
+			log.Printf("[DEBUG] UpdateScenario validation JSON: %s", valJSON)
 			if err := json.Unmarshal([]byte(valJSON), &validation); err != nil {
 				return nil, NewAPIError(http.StatusBadRequest, fmt.Sprintf("Invalid validation JSON: %v", err))
+			}
+			log.Printf("[DEBUG] UpdateScenario parsed validation: %+v", validation)
+			for i, v := range validation {
+				if v.Type == "command" {
+					log.Printf("[DEBUG] Rule %d (command): StdinDelay=%q", i, v.StdinDelay)
+				}
 			}
 		}
 

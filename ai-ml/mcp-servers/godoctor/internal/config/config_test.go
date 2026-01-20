@@ -6,20 +6,13 @@ import (
 
 func TestLoad(t *testing.T) {
 	tests := []struct {
-		name             string
-		args             []string
-		wantExperimental bool
-		wantDisabled     []string
+		name         string
+		args         []string
+		wantDisabled []string
 	}{
 		{
-			name:             "default",
-			args:             []string{},
-			wantExperimental: false,
-		},
-		{
-			name:             "experimental true",
-			args:             []string{"--experimental"},
-			wantExperimental: true,
+			name: "default",
+			args: []string{},
 		},
 		{
 			name:         "disable single tool",
@@ -43,9 +36,6 @@ func TestLoad(t *testing.T) {
 			cfg, err := Load(tt.args)
 			if err != nil {
 				t.Fatalf("Load() error = %v", err)
-			}
-			if cfg.EnableExperimentalFeatures() != tt.wantExperimental {
-				t.Errorf("Load().EnableExperimentalFeatures() = %v, want %v", cfg.EnableExperimentalFeatures(), tt.wantExperimental)
 			}
 
 			if len(tt.wantDisabled) != len(cfg.DisabledTools) {

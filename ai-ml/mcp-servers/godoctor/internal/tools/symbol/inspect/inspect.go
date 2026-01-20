@@ -16,9 +16,9 @@ import (
 
 // Register registers the inspect_symbol tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["symbol.inspect"]
+	def := toolnames.Registry["symbol_inspect"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.ExternalName,
+		Name:        def.Name,
 		Title:       def.Title,
 		Description: def.Description,
 	}, Handler)
@@ -26,17 +26,17 @@ func Register(server *mcp.Server) {
 
 // Params defines the input parameters.
 type Params struct {
-	File    string `json:"file,omitempty" jsonschema:"File context for local lookup"`
-	Package string `json:"package,omitempty" jsonschema:"Package path (if not local or explicit external lookup)"`
-	Symbol  string `json:"symbol" jsonschema:"Symbol name to inspect"`
+	Filename   string `json:"filename,omitempty" jsonschema:"File context for local lookup"`
+	ImportPath string `json:"import_path,omitempty" jsonschema:"Package path (if not local or explicit external lookup)"`
+	SymbolName string `json:"symbol_name" jsonschema:"Symbol name to inspect"`
 }
 
 func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
-	if args.Package == "" && args.File == "" {
-		return errorResult("at least package or file must be specified"), nil, nil
+	if args.ImportPath == "" && args.Filename == "" {
+		return errorResult("at least import_path or filename must be specified"), nil, nil
 	}
 
-	desc, err := Describe(ctx, args.Package, args.Symbol, args.File)
+	desc, err := Describe(ctx, args.ImportPath, args.SymbolName, args.Filename)
 
 	if err != nil {
 		return errorResult(err.Error()), nil, nil
@@ -69,7 +69,7 @@ func Describe(ctx context.Context, pkgName, symName, fileName string) (string, e
 	return "", fmt.Errorf("could not find description for symbol %q in %s", symName, pkgName)
 }
 
-func resolveLocal(ctx context.Context, pkgName, symName, fileName string) *godoc.StructuredDoc {
+func resolveLocal(ctx context.Context, pkgName, symName, fileName string) *godoc.Doc {
 	target := fileName
 	if target == "" {
 		target = pkgName
@@ -80,7 +80,7 @@ func resolveLocal(ctx context.Context, pkgName, symName, fileName string) *godoc
 		return nil
 	}
 
-	doc := &godoc.StructuredDoc{
+	doc := &godoc.Doc{
 		ImportPath:  pkg.PkgPath,
 		Package:     pkg.Name,
 		PkgGoDevURL: fmt.Sprintf("https://pkg.go.dev/%s", pkg.PkgPath),

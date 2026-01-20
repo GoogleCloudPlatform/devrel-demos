@@ -46,11 +46,11 @@ export default function ExperimentForm({ templates, scenarios }: { templates: an
             // Fetch experiments to determine the next number
             const experiments = await getExperiments();
             const baseName = toSnakeCase(data.name);
-            
+
             let maxNum = 0;
             // Pattern matches baseName_XXX where XXX is a number
             const pattern = new RegExp(`^${baseName}_(\\d+)$`);
-            
+
             experiments.forEach(exp => {
                 const match = exp.name.match(pattern);
                 if (match) {
@@ -152,6 +152,15 @@ export default function ExperimentForm({ templates, scenarios }: { templates: an
                                 options={templates.map(t => ({ value: t.id, label: t.name }))}
                             />
                             <Input label="Experiment Name" value={name} onChange={(e) => setName(e.target.value)} required />
+                            <Select
+                                label="Control Alternative"
+                                value={controlAlt}
+                                onChange={(e) => setControlAlt(e.target.value)}
+                                options={[
+                                    { value: "", label: "No Control (None)" },
+                                    ...(templateDetails?.config.alternatives.map((a: any) => ({ value: a.name, label: a.name })) || [])
+                                ]}
+                            />
                             <TextArea label="Context / Objectives" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
                         </CardContent>
                     </Card>

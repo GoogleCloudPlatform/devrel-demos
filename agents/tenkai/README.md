@@ -2,6 +2,8 @@
 
 Tenkai is a Go-based experimentation framework designed to evaluate and test different configurations of coding agents with statistical rigor. It provides a structured environment for A/B testing system prompts, tool availability, and agent configurations across a variety of standardized coding scenarios.
 
+![Tenkai Dashboard](assets/readme/dashboard.png)
+
 ## Core Architecture
 Tenkai operates on a **Single Source of Truth** principle using a persistent SQLite database (`experiments/tenkai.db`). All execution events are streamed in real-time from the runner to the database, ensuring that the web dashboard and analysis tools always reflect the exact state of the agent execution.
 
@@ -37,55 +39,27 @@ Tenkai operates on a **Single Source of Truth** principle using a persistent SQL
 ### 1. Creating a Scenario
 A **Scenario** represents a standardized coding task. To add a new one:
 
-1.  Create a new directory in `scenarios/` (e.g., `scenarios/api-refactor`).
-2.  Create a `scenario.yaml` file inside that directory:
+1.  Navigate to the **Scenarios** page in the sidebar.
+2.  Click **Create Scenario**.
+3.  Define the scenario details, task instructions, and validation rules (lint, test, or coverage).
 
-```yaml
-name: "API Refactor"
-description: "Refactor a monolithic handler into clean architecture."
-task: |
-  Refactor the code in main.go.
-  Create a separate package for the business logic.
-assets:
-  - type: "file"
-    source: "initial_code.go"
-    target: "main.go"
-validation:
-  - type: "lint"
-    max_issues: 0
-  - type: "test"
-    target: "./..."
-```
+![Create Scenario](assets/readme/new_scenario.png)
 
 ### 2. Creating an Experiment Template
 A **Template** defines *what* you want to test (Alternatives) against *which* tasks (Scenarios).
 
-1.  Create a new directory in `experiments/templates/` (e.g., `experiments/templates/prompt-test`).
-2.  Create a `config.yaml` file:
+1.  Navigate to the **Templates** page in the sidebar.
+2.  Click **Create Template**.
+3.  Select the scenarios you want to include and define the **Alternatives** (different models, prompts, or settings) to test against the control.
 
-```yaml
-name: "System Prompt A/B Test"
-repetitions: 5
-max_concurrent: 4
-timeout: "5m"
-control: "baseline"
-scenarios:
-  - "api-refactor"
-alternatives:
-  - name: "baseline"
-    command: "gemini"
-    args: ["-y", "", "-o", "stream-json"]
-  - name: "strict-mode"
-    command: "gemini"
-    args: ["-y", "", "-o", "stream-json"]
-    system_prompt_file: "strict_prompt.md"
-```
+![Design Template](assets/readme/new_template.png)
 
 ### 3. Running an Experiment
-1.  Navigate to the **New Experiment** page in the Web UI.
-2.  Select your **Template** from the dropdown.
-3.  (Optional) Override the number of repetitions or concurrency.
-4.  Click **Launch**.
+1.  Navigate to the **Dashboard** or **Experiments** page.
+2.  Click **New Experiment**.
+3.  Select your **Base Template**, name your experiment, and click **Launch**.
+
+![Launch Experiment](assets/readme/new_experiment.png)
 
 The dashboard will update in real-time as agents pick up tasks. You can click on individual runs to inspect the live event stream, tool usage, and error logs.
 

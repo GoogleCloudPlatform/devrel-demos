@@ -131,6 +131,16 @@ export async function saveAIAnalysis(id: number | string, analysis: string) {
     });
 }
 
+export async function saveExperimentAnnotations(id: number | string, annotations: string) {
+    const res = await fetchAPI(`/experiments/${id}/annotations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ annotations })
+    });
+    if (!res) throw new Error("Failed to save annotations: Endpoint not found");
+    return res;
+}
+
 export async function getSimplifiedMetrics(id: number | string) {
     // Derived from getExperiment
     const exp = await getExperimentById(id);
@@ -147,12 +157,13 @@ export async function getSimplifiedMetrics(id: number | string) {
     };
 }
 
-export async function getExperimentSummaries(id: number | string): Promise<ExperimentSummaryRecord[]> {
-    return fetchAPI<ExperimentSummaryRecord[]>(`/experiments/${id}/summaries`);
+export async function getExperimentSummaries(id: number | string, filter?: string): Promise<ExperimentSummaryRecord[]> {
+    const query = filter ? `?filter=${filter}` : '';
+    return fetchAPI<ExperimentSummaryRecord[]>(`/experiments/${id}/summaries${query}`);
 }
 
-export async function getRunResults(experimentId: number | string, page = 1, limit = 100): Promise<RunResultRecord[]> {
-    return fetchAPI<RunResultRecord[]>(`/experiments/${experimentId}/runs?page=${page}&limit=${limit}`);
+export async function getRunResults(experimentId: string | number, page: number = 1, limit: number = 1000): Promise<RunResultRecord[]> {
+    return (await fetchAPI<RunResultRecord[]>(`/experiments/${experimentId}/runs?page=${page}&limit=${limit}`)) || [];
 }
 export async function getToolUsage(runId: number): Promise<ToolUsageRecord[]> {
     const res = await fetchAPI<ToolUsageRecord[]>(`/runs/${runId}/tools`);
@@ -228,8 +239,9 @@ export interface ToolStatRow {
     avg_calls: number;
 }
 
-export async function getToolStats(experimentId: number): Promise<ToolStatRow[]> {
-    return fetchAPI<ToolStatRow[]>(`/experiments/${experimentId}/tool-stats`);
+export async function getToolStats(experimentId: number, filter?: string): Promise<ToolStatRow[]> {
+    const query = filter ? `?filter=${filter}` : '';
+    return fetchAPI<ToolStatRow[]>(`/experiments/${experimentId}/tool-stats${query}`);
 }
 
 export async function reValidateRun(runId: number): Promise<JobResponse> {
@@ -244,16 +256,26 @@ export async function reValidateExperiment(experimentId: number): Promise<JobRes
     });
 }
 
-export async function toggleLock(experimentId: number, locked: boolean): Promise<boolean> {
-    try {
-        await fetchAPI(`/experiments/${experimentId}/lock`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ locked })
-        });
-        return true;
-    } catch (e) {
-        console.error("Failed to toggle lock:", e);
-        return false;
-    }
+export async function toggleLock(experimentId: number, locked: boolean): Promise<any> {
+    return fetchAPI(`/experiments/${experimentId}/lock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locked }),
+    });
+}
+
+export async function toggleScenarioLock(scenarioId: string, locked: boolean): Promise<any> {
+    return fetchAPI(`/scenarios/${scenarioId}/lock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locked }),
+    });
+}
+
+export async function toggleTemplateLock(templateId: string, locked: boolean): Promise<any> {
+    return fetchAPI(`/templates/${templateId}/lock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locked }),
+    });
 }

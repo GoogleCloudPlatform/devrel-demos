@@ -72,7 +72,7 @@ func (r *Runner) streamPromptContents(promptPath string, stdinPipe io.WriteClose
 		return
 	}
 
-	instruction := "\n\nSYSTEM: Perform the requested task above. When you have FULLY completed the user request (including all verification steps), you MUST output the token '<<TENKAI_DONE>>' to signal completion. Do not output this token before the work is done.\n"
+	instruction := "\n\nSYSTEM: To signal the completion of the task, just respond with the token <<TASK_DONE>> with no additional thoughts and comments. Once you emit <<TASK_DONE>>, stop all tool calls immediately. Do not use echo or shell tools to verify your own completion. No further action is necessary after emitting this token.\n"
 	if _, err := io.WriteString(stdinPipe, instruction); err != nil {
 		log.Printf("Warning: failed to write termination instruction to stdin: %v", err)
 	}

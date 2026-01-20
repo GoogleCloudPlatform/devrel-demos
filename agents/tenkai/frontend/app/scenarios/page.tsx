@@ -6,16 +6,18 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, FlaskConical } from 'lucide-react';
+import { Trash2, Plus, FlaskConical, Lock } from 'lucide-react';
+import LockToggle from '@/components/LockToggle';
+import { toggleScenarioLock } from '@/app/api/api';
 
 interface Scenario {
-
     id: string;
     name: string;
     description: string;
     task?: string;
     github_issue?: string;
     validation?: any[];
+    is_locked?: boolean;
 }
 
 export default function ScenariosPage() {
@@ -55,6 +57,93 @@ export default function ScenariosPage() {
         }
     };
 
+    const handleDuplicate = async (e: React.MouseEvent, id: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        setLoading(true); // Show global loading state briefly or use local state
+
+        try {
+            // 1. Fetch original
+            const res = await fetch(`/api/scenarios/${id}`);
+            if (!res.ok) throw new Error("Failed to fetch original");
+            const original = await res.json();
+
+            // 2. Prepare Payload (remove ID, update Name)
+            // Note: We need to match the Shape expected by POST /api/scenarios
+            // The API expects FormData for file uploads, which makes strict cloning hard if files are involved.
+            // Ideally backend supports duplication, but here is a best-effort frontend duplication.
+
+            const formData = new FormData();
+            formData.append('name', `Copy of ${original.name}`);
+            formData.append('description', original.description || "");
+
+            if (original.validation) {
+                formData.append('validation', JSON.stringify(original.validation));
+            }
+            if (original.env) {
+                formData.append('env', JSON.stringify(original.env));
+            }
+            if (original.task) {
+                formData.append('prompt', original.task); // API expects 'prompt' or 'task' depending on update logic, create uses 'prompt'
+            }
+            if (original.github_issue) {
+                formData.append('github_issue', original.github_issue);
+            }
+
+            // Assets: This is tricky. 
+            // If it's Git, we can copy. 
+            // If it's local files, we can't easily re-upload them without re-downloading blobs.
+            // For now, let's support Git and "Create" (file content) assets. 
+            // Existing folder assets might fail to copy correctly without backend support.
+
+            if (original.assets && original.assets.length > 0) {
+                const asset = original.assets[0];
+                if (asset.type === 'git') {
+                    formData.append('asset_type', 'git');
+                    formData.append('git_url', asset.source);
+                    formData.append('git_ref', asset.ref || "");
+                } else if (asset.type === 'file' && asset.content) {
+                    formData.append('asset_type', 'create');
+                    formData.append('file_name', asset.destination);
+                    formData.append('file_content', asset.content);
+                } else {
+                    // Fallback/Warning for unsupported asset duplication
+                    // We submit 'none' to avoid errors, user must re-upload.
+                    formData.append('asset_type', 'none');
+                    toast.warning("Asset copying not fully supported for this type. Please re-upload assets.");
+                }
+            } else {
+                formData.append('asset_type', 'none');
+            }
+
+            // 3. Create Copy
+            const createRes = await fetch('/api/scenarios', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (createRes.ok) {
+                toast.success("Scenario duplicated!");
+                // Refresh list
+                const newScenario = await createRes.json();
+                // If API returns the object, add it. If not, re-fetch all.
+                // Assuming re-fetch for safety:
+                const listRes = await fetch('/api/scenarios');
+                const listData = await listRes.json();
+                setScenarios(listData);
+            } else {
+                toast.error("Failed to duplicate scenario");
+            }
+
+        } catch (e) {
+            console.error(e);
+            toast.error("Error duplicating scenario");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleDeleteAll = async () => {
         if (!confirm("⚠️ WARNING: This will delete ALL scenarios. This action cannot be undone.")) return;
         if (!confirm("Are you really sure?")) return;
@@ -78,7 +167,7 @@ export default function ScenariosPage() {
 
     return (
         <div className="p-6 space-y-6">
-            <header className="flex justify-between items-center pb-6 border-b border-[#27272a]">
+            <header className="flex justify-between items-center pb-6 border-b border-border">
                 <div>
                     <h1 className="text-title">Scenarios</h1>
                     <p className="text-body mt-1 font-medium">Standardized coding tasks.</p>
@@ -98,50 +187,73 @@ export default function ScenariosPage() {
             {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
                     {[1, 2, 3, 4].map(i => (
-                        <div key={i} className="h-48 bg-[#121214] rounded-md border border-[#27272a]"></div>
+                        <div key={i} className="h-48 bg-card rounded-md border border-border"></div>
                     ))}
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {scenarios.map((scenario) => (
                         <Link href={`/scenarios/${scenario.id}`} key={scenario.id} className="block group">
-                            <Card className="h-full p-6 hover:border-[#3f3f46] transition-colors border border-[#27272a] flex flex-col justify-between">
+                            <Card className={`h-full p-6 hover:border-muted transition-colors flex flex-col justify-between ${scenario.is_locked ? 'border-2 border-amber-500' : 'border border-border'}`}>
                                 <div>
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-lg bg-[#27272a] flex items-center justify-center text-title text-[#a1a1aa] group-hover:text-[#f4f4f5] transition-colors">
+                                            <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center text-title text-muted-foreground group-hover:text-foreground transition-colors">
                                                 🧪
                                             </div>
                                             <div>
-                                                <h3 className="text-header capitalize group-hover:text-[#6366f1] transition-colors">
+                                                <h3 className="text-header capitalize group-hover:text-primary transition-colors">
                                                     {scenario.name}
                                                 </h3>
                                                 <p className="text-body font-mono opacity-50 mt-1">ID: {scenario.id}</p>
                                             </div>
                                         </div>
-                                        <button
-                                            onClick={(e) => handleDelete(e, scenario.id)}
-                                            className="p-2 text-body text-[#52525b] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            title="Delete"
-                                        >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                        </button>
+                                        <div className="flex gap-1 items-center">
+                                            <LockToggle
+                                                locked={scenario.is_locked || false}
+                                                onToggle={async (locked) => {
+                                                    try {
+                                                        await toggleScenarioLock(scenario.id, locked);
+                                                        setScenarios(prev => prev.map(s => s.id === scenario.id ? { ...s, is_locked: locked } : s));
+                                                        return true;
+                                                    } catch (err) {
+                                                        console.error(err);
+                                                        return false;
+                                                    }
+                                                }}
+                                            />
+                                            <button
+                                                onClick={(e) => handleDuplicate(e, scenario.id)}
+                                                className="p-2 text-body text-muted-foreground hover:text-primary transition-colors"
+                                                title="Duplicate"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+                                            </button>
+                                            <button
+                                                onClick={(e) => handleDelete(e, scenario.id)}
+                                                disabled={scenario.is_locked}
+                                                className={`p-2 text-body text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity ${scenario.is_locked ? "cursor-not-allowed opacity-30" : ""}`}
+                                                title={scenario.is_locked ? "Locked" : "Delete"}
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                            </button>
+                                        </div>
                                     </div>
 
-                                    <p className="text-body text-[#a1a1aa] line-clamp-2 mb-4 h-11">
+                                    <p className="text-body text-muted-foreground line-clamp-2 mb-4 h-11">
                                         {scenario.description || "No description provided."}
                                     </p>
 
                                     <div className="mb-6 space-y-2 flex-1">
                                         {scenario.github_issue ? (
                                             <div className="text-body font-mono truncate">
-                                                <span className="font-bold text-[#52525b] mr-2">GITHUB:</span>
-                                                <span className="text-[#6366f1]">{scenario.github_issue}</span>
+                                                <span className="font-bold text-muted-foreground mr-2">GITHUB:</span>
+                                                <span className="text-primary">{scenario.github_issue}</span>
                                             </div>
                                         ) : (
                                             <div className="text-body font-mono">
-                                                <span className="font-bold text-[#52525b] mr-2 block mb-1">PROMPT:</span>
-                                                <span className="text-[#f4f4f5] opacity-70 line-clamp-4 leading-relaxed">
+                                                <span className="font-bold text-muted-foreground mr-2 block mb-1">PROMPT:</span>
+                                                <span className="text-foreground opacity-70 line-clamp-4 leading-relaxed">
                                                     {scenario.task || "No prompt defined"}
                                                 </span>
                                             </div>
@@ -169,8 +281,8 @@ export default function ScenariosPage() {
                         </Link>
                     ))}
                     {scenarios.length === 0 && (
-                        <div className="col-span-2 text-center py-12 text-body opacity-50 italic border border-dashed border-[#27272a] rounded">
-                            No scenarios found. <Link href="/scenarios/new" className="text-[#6366f1] hover:underline font-bold not-italic">Create one</Link>.
+                        <div className="col-span-2 text-center py-12 text-body opacity-50 italic border border-dashed border-border rounded">
+                            No scenarios found. <Link href="/scenarios/new" className="text-primary hover:underline font-bold not-italic">Create one</Link>.
                         </div>
                     )}
                 </div>

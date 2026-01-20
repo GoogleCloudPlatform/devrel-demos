@@ -7,15 +7,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 interface ToolUsageTableProps {
     experimentId: string | number;
     alternatives: string[];
+    filter?: string; // Added filter prop
 }
 
-export default function ToolUsageTable({ experimentId, alternatives }: ToolUsageTableProps) {
+export default function ToolUsageTable({ experimentId, alternatives, filter }: ToolUsageTableProps) {
     const [stats, setStats] = useState<ToolStatRow[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (!experimentId) return;
-        fetch(`/api/experiments/${experimentId}/tool-stats`)
+        setLoading(true);
+        const query = filter ? `?filter=${filter}` : '';
+        fetch(`/api/experiments/${experimentId}/tool-stats${query}`)
             .then(res => {
                 if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
                 return res.json();

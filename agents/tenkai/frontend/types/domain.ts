@@ -51,6 +51,9 @@ export interface ExperimentSummaryRow {
     success_rate: number;
     avg_duration: number;
     avg_tokens: number;
+    avg_input_tokens?: number;
+    avg_output_tokens?: number;
+    avg_cached_tokens?: number;
     avg_lint: number;
     avg_tests_passed: number;
     avg_tests_failed: number;
@@ -60,11 +63,15 @@ export interface ExperimentSummaryRow {
     p_success?: number;
     p_duration?: number;
     p_tokens?: number;
+    p_input_tokens?: number;
+    p_output_tokens?: number;
+    p_cached_tokens?: number;
     p_lint?: number;
     p_tests_passed?: number;
     p_tests_failed?: number;
     p_timeout?: number;
     p_tool_calls?: number;
+    tool_analysis?: any[];
 }
 
 export interface Alternative {
@@ -92,6 +99,7 @@ export interface RunResult {
     total_tokens: number;
     input_tokens: number;
     output_tokens: number;
+    cached_tokens: number;
     tool_calls_count: number;
     loop_detected: boolean;
     stdout?: string;
@@ -103,13 +111,18 @@ export interface RunResult {
 }
 
 export interface ValidationRule {
-    type: string;
+    type: "test" | "lint" | "command" | "model" | "manual";
     target?: string;
+    include_in_prompt?: boolean;
     command?: string;
+    stdin?: string;
+    stdin_delay?: string;
     prompt?: string;
     min_coverage?: number;
     max_issues?: number;
-    expected_exit_code?: number;
+    expect_exit_code?: number;
+    expect_output?: string;
+    expect_output_regex?: string;
     context?: string[];
 }
 
@@ -122,7 +135,7 @@ export interface ScenarioAsset {
 }
 
 export interface ScenarioData {
-    id?: string;
+    id: string;
     name: string;
     description: string;
     task?: string;
@@ -130,6 +143,7 @@ export interface ScenarioData {
     assets?: ScenarioAsset[];
     validation?: ValidationRule[];
     env?: Record<string, string>;
+    is_locked?: boolean;
 }
 
 export interface TemplateData {
@@ -145,5 +159,6 @@ export interface TemplateData {
         alternatives: Alternative[];
     };
     yaml_content: string;
+    is_locked?: boolean;
 }
 

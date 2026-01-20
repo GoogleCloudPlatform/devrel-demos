@@ -12,7 +12,6 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// Watcher monitors the filesystem for changes and triggers invalidation.
 type Watcher struct {
 	watcher *fsnotify.Watcher
 	done    chan struct{}
@@ -22,6 +21,8 @@ type Watcher struct {
 	// Debounce buffer
 	eventsMu sync.Mutex
 	events   map[string]time.Time // path -> lastEventTime
+	watched  map[string]bool      // dir -> watched
+	once     sync.Once
 }
 
 // NewWatcher creates a new watcher for the given manager.
@@ -35,11 +36,13 @@ func NewWatcher(m *Manager) (*Watcher, error) {
 		done:    make(chan struct{}),
 		manager: m,
 		events:  make(map[string]time.Time),
+		watched: make(map[string]bool),
 	}, nil
 }
 
 // Start begins watching the root directory recursively.
 func (w *Watcher) Start(root string) error {
+	w.eventsMu.Lock()
 	// Add root and all subdirectories
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -52,16 +55,23 @@ func (w *Watcher) Start(root string) error {
 			if name != "." && (strings.HasPrefix(name, ".") || name == "vendor") {
 				return filepath.SkipDir
 			}
-			return w.watcher.Add(path)
+			if !w.watched[path] {
+				if err := w.watcher.Add(path); err == nil {
+					w.watched[path] = true
+				}
+			}
 		}
 		return nil
 	})
+	w.eventsMu.Unlock()
 	if err != nil {
 		return err
 	}
 
-	w.wg.Add(1)
-	go w.eventLoop()
+	w.once.Do(func() {
+		w.wg.Add(1)
+		go w.eventLoop()
+	})
 	return nil
 }
 

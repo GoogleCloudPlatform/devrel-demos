@@ -14,9 +14,9 @@ import (
 
 // Register registers the read_docs tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["go.docs"]
+	def := toolnames.Registry["go_docs"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.ExternalName,
+		Name:        def.Name,
 		Title:       def.Title,
 		Description: def.Description,
 	}, Handler)
@@ -24,18 +24,18 @@ func Register(server *mcp.Server) {
 
 // Params defines the input parameters for the read_docs tool.
 type Params struct {
-	PackagePath string `json:"package_path" jsonschema:"Import path of the package (e.g. 'fmt')"`
-	SymbolName  string `json:"symbol_name,omitempty" jsonschema:"Optional symbol name to lookup"`
-	Format      string `json:"format,omitempty" jsonschema:"Output format: 'markdown' (default) or 'json'"`
+	ImportPath string `json:"import_path" jsonschema:"Import path of the package (e.g. 'fmt')"`
+	SymbolName string `json:"symbol_name,omitempty" jsonschema:"Optional symbol name to lookup"`
+	Format     string `json:"format,omitempty" jsonschema:"Output format: 'markdown' (default) or 'json'"`
 }
 
 // Handler handles the read_docs tool execution.
 func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
-	if args.PackagePath == "" {
+	if args.ImportPath == "" {
 		return &mcp.CallToolResult{
 			IsError: true,
 			Content: []mcp.Content{
-				&mcp.TextContent{Text: "package_path cannot be empty"},
+				&mcp.TextContent{Text: "import_path cannot be empty"},
 			},
 		}, nil, nil
 	}
@@ -54,8 +54,8 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 		}, nil, nil
 	}
 
-	// Use GetStructuredDoc for flexibility
-	doc, err := godoc.GetStructuredDoc(ctx, args.PackagePath, args.SymbolName)
+	// Use Load for flexibility
+	doc, err := godoc.Load(ctx, args.ImportPath, args.SymbolName)
 	if err != nil {
 		return &mcp.CallToolResult{
 			IsError: true,

@@ -7,3 +7,4 @@ bin/
 gha-creds-*.json
 runs/
 .env
+godoctor

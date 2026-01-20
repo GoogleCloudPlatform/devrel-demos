@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/danicat/godoctor/internal/graph"
+	"github.com/danicat/godoctor/internal/roots"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/tools/go/packages"
 )
@@ -38,15 +39,19 @@ func ResourceHandler(_ context.Context, req *mcp.ReadResourceRequest) (*mcp.Read
 	var localPkgs []*packages.Package
 	var externalPkgs []*packages.Package
 
-	// Let's use filepath.Rel to check if files are under graph.Global.Root
-	root := graph.Global.Root
+	rts := roots.Global.Get()
 
 	for _, pkg := range pkgs {
 		isLocal := false
 		for _, f := range pkg.GoFiles {
-			rel, err := filepath.Rel(root, f)
-			if err == nil && !strings.HasPrefix(rel, "..") {
-				isLocal = true
+			for _, root := range rts {
+				rel, err := filepath.Rel(root, f)
+				if err == nil && !strings.HasPrefix(rel, "..") {
+					isLocal = true
+					break
+				}
+			}
+			if isLocal {
 				break
 			}
 		}
@@ -63,17 +68,17 @@ func ResourceHandler(_ context.Context, req *mcp.ReadResourceRequest) (*mcp.Read
 		len(pkgs), len(localPkgs), len(externalPkgs)))
 
 	sb.WriteString("## 🏠 Local Packages\n\n")
-	renderPackageList(&sb, localPkgs, root)
+	renderPackageList(&sb, localPkgs, rts)
 
 	if len(externalPkgs) > 0 {
 		sb.WriteString("\n## 📦 External Dependencies & Stdlib\n\n")
 		// Limit external packages to avoid token bloat
 		if len(externalPkgs) > 20 {
 			sb.WriteString(fmt.Sprintf("<details><summary>Show %d external packages</summary>\n\n", len(externalPkgs)))
-			renderPackageList(&sb, externalPkgs, "")
+			renderPackageList(&sb, externalPkgs, nil)
 			sb.WriteString("\n</details>\n")
 		} else {
-			renderPackageList(&sb, externalPkgs, "")
+			renderPackageList(&sb, externalPkgs, nil)
 		}
 	}
 
@@ -88,7 +93,7 @@ func ResourceHandler(_ context.Context, req *mcp.ReadResourceRequest) (*mcp.Read
 	}, nil
 }
 
-func renderPackageList(sb *strings.Builder, pkgs []*packages.Package, root string) {
+func renderPackageList(sb *strings.Builder, pkgs []*packages.Package, rts []string) {
 	for _, pkg := range pkgs {
 		fmt.Fprintf(sb, "- **%s**\n", pkg.PkgPath)
 		files := make([]string, 0, len(pkg.GoFiles))
@@ -98,11 +103,14 @@ func renderPackageList(sb *strings.Builder, pkgs []*packages.Package, root strin
 		for _, f := range files {
 			display := f
 			uri := "code://" + f
-			if root != "" {
-				rel, err := filepath.Rel(root, f)
-				if err == nil && !strings.HasPrefix(rel, "..") {
-					display = rel
-					uri = "code://" + rel
+			if len(rts) > 0 {
+				for _, root := range rts {
+					rel, err := filepath.Rel(root, f)
+					if err == nil && !strings.HasPrefix(rel, "..") {
+						display = rel
+						uri = "code://" + rel
+						break
+					}
 				}
 			}
 

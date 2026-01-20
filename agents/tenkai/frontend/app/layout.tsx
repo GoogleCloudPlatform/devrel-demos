@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Inter, Roboto_Mono } from "next/font/google";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { SidebarProvider } from "@/components/layout/SidebarContext";
+import { MainLayoutWrapper } from "@/components/layout/MainLayoutWrapper";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 const inter = Inter({
@@ -20,6 +23,7 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function RootLayout({
   children,
@@ -27,13 +31,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} ${robotoMono.variable} bg-[#09090b] text-[#f4f4f5] antialiased`}>
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body
+        className={cn(inter.variable, robotoMono.variable, "bg-background text-foreground antialiased")}
+        suppressHydrationWarning
+      >
         <ThemeProvider defaultTheme="dark">
-          <Sidebar />
-          <main className="ml-[240px] min-h-screen bg-[#09090b]">
-            {children}
-          </main>
+          <SidebarProvider>
+            <TooltipProvider>
+              <MainLayoutWrapper>{children}</MainLayoutWrapper>
+            </TooltipProvider>
+          </SidebarProvider>
           <Toaster position="bottom-right" theme="dark" closeButton richColors />
         </ThemeProvider>
       </body>

@@ -21,9 +21,10 @@ interface TemplateFormProps {
     scenarios: Scenario[];
     initialData?: any;
     mode?: 'create' | 'edit';
+    isLocked?: boolean;
 }
 
-export default function TemplateForm({ scenarios, initialData, mode = 'create' }: TemplateFormProps) {
+export default function TemplateForm({ scenarios, initialData, mode = 'create', isLocked = false }: TemplateFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -100,6 +101,20 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
 
     const removeAlternative = (index: number) => {
         setAlternatives(alternatives.filter((_, i) => i !== index));
+    };
+
+    const duplicateAlternative = (index: number) => {
+        if (alternatives.length >= 10) return;
+        const altToCopy = alternatives[index];
+        const newAlt = {
+            ...altToCopy,
+            name: `${altToCopy.name}-copy`, // Simple rename to avoid exact dup keys if used elsewhere
+            description: `Copy of ${altToCopy.description}`
+        };
+        // Insert after current index
+        const newAlts = [...alternatives];
+        newAlts.splice(index + 1, 0, newAlt);
+        setAlternatives(newAlts);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -182,7 +197,7 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
             <div className="flex justify-end items-center bg-[#09090b] border border-[#27272a] p-2 rounded-md">
                 <div className="flex items-center gap-4 px-2">
                     {error && <span className="text-red-500 font-bold uppercase tracking-tighter">{error}</span>}
-                    <Button type="submit" variant="default" size="lg" isLoading={loading}>
+                    <Button type="submit" variant="default" size="lg" isLoading={loading} disabled={isLocked}>
                         Save Template
                     </Button>
                 </div>
@@ -213,16 +228,18 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
                 </div>
 
                 <div className="md:col-span-8 space-y-8">
-                    <ScenarioSelector
-                        scenarios={scenarios}
-                        selectedIds={selectedScenarios}
-                        onToggle={handleScenarioToggle}
-                    />
+                    <div className={isLocked ? "pointer-events-none opacity-60" : ""}>
+                        <ScenarioSelector
+                            scenarios={scenarios}
+                            selectedIds={selectedScenarios}
+                            onToggle={handleScenarioToggle}
+                        />
+                    </div>
 
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle>Alternatives</CardTitle>
-                            <Button type="button" variant="ghost" size="sm" onClick={addAlternative} className="text-primary font-bold uppercase hover:text-foreground transition-colors">+ Add Alt</Button>
+                            <Button type="button" variant="ghost" size="sm" onClick={addAlternative} disabled={isLocked} className="text-primary font-bold uppercase hover:text-foreground transition-colors">+ Add Alt</Button>
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
                             {alternatives.map((alt, idx) => {
@@ -255,10 +272,20 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
                                             <button
                                                 type="button"
                                                 onClick={() => removeAlternative(idx)}
-                                                className="absolute top-4 right-4 text-zinc-500 hover:text-red-400 transition-colors p-1 hover:bg-white/5 rounded"
+                                                disabled={isLocked}
+                                                className={`absolute top-4 right-4 text-zinc-500 hover:text-red-400 transition-colors p-1 hover:bg-white/5 rounded ${isLocked ? "cursor-not-allowed opacity-30" : ""}`}
                                                 title="Remove Alternative"
                                             >
                                                 ✕
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => duplicateAlternative(idx)}
+                                                disabled={isLocked}
+                                                className={`absolute top-4 right-12 text-zinc-500 hover:text-indigo-400 transition-colors p-1 hover:bg-white/5 rounded ${isLocked ? "cursor-not-allowed opacity-30" : ""}`}
+                                                title="Duplicate Alternative"
+                                            >
+                                                📋
                                             </button>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
                                                 <Input label="Identifier" value={alt.name || ""} onChange={(e) => updateAlternative(idx, 'name', e.target.value)} placeholder="e.g. gemini-1.5-flash" />
@@ -266,7 +293,7 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create' }
 
                                                 <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     <Input label="Command" placeholder="gemini" value={alt.command || ""} onChange={(e) => updateAlternative(idx, 'command', e.target.value)} />
-                                                    <Input label="Arguments" placeholder="-y" value={Array.isArray(alt.args) ? alt.args.join(" ") : (alt.args || "")} onChange={(e) => updateAlternative(idx, 'args', e.target.value.split(" "))} />
+                                                    <Input label="Arguments" value={Array.isArray(alt.args) ? alt.args.join(" ") : (alt.args || "")} onChange={(e) => updateAlternative(idx, 'args', e.target.value.split(" "))} />
                                                 </div>
 
                                                 <div className="md:col-span-2">

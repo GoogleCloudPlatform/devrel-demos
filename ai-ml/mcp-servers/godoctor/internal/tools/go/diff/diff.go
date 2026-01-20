@@ -12,9 +12,9 @@ import (
 
 // Register registers the tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["go.diff"]
+	def := toolnames.Registry["go_diff"]
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        def.ExternalName,
+		Name:        def.Name,
 		Title:       def.Title,
 		Description: def.Description,
 	}, toolHandler)

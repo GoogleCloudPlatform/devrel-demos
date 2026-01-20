@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -59,7 +60,9 @@ func (db *DB) migrate() error {
 			report_content TEXT,
 			execution_control TEXT,
 			experiment_control TEXT,
-			ai_analysis TEXT
+			ai_analysis TEXT,
+			is_locked BOOLEAN DEFAULT 0,
+			annotations TEXT
 		);`,
 		`CREATE TABLE IF NOT EXISTS run_results (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,6 +79,7 @@ func (db *DB) migrate() error {
             total_tokens INTEGER DEFAULT 0,
 			input_tokens INTEGER DEFAULT 0,
 			output_tokens INTEGER DEFAULT 0,
+			cached_tokens INTEGER DEFAULT 0,
 			tool_calls_count INTEGER DEFAULT 0,
 			failed_tool_calls INTEGER DEFAULT 0,
 			loop_detected BOOLEAN DEFAULT 0,
@@ -151,10 +155,16 @@ func (db *DB) migrate() error {
 		);`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_experiments_name_ts ON experiments(name, timestamp);`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_run_results_unique_run ON run_results(experiment_id, alternative, scenario, repetition);`,
+		// Migration for new columns (idempotency handled by ignoring errors in loop or just simple append)
+		`ALTER TABLE experiments ADD COLUMN annotations TEXT DEFAULT '';`,
 	}
 
 	for _, q := range queries {
 		if _, err := db.conn.Exec(q); err != nil {
+			// Ignore duplicate column errors for ADD COLUMN migrations
+			if strings.Contains(err.Error(), "duplicate column name") {
+				continue
+			}
 			return err
 		}
 	}

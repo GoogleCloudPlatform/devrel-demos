@@ -6,18 +6,20 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
+	"strings"
 
 	"github.com/danicat/godoctor/internal/config"
-	"github.com/danicat/godoctor/internal/graph"
 	"github.com/danicat/godoctor/internal/instructions"
 	"github.com/danicat/godoctor/internal/prompts"
 	"github.com/danicat/godoctor/internal/resources/code"
-	"github.com/danicat/godoctor/internal/resources/godoc"
-	"github.com/danicat/godoctor/internal/resources/project"
+	resgodoc "github.com/danicat/godoctor/internal/resources/godoc"
 	"github.com/danicat/godoctor/internal/resources/symbol"
+	"github.com/danicat/godoctor/internal/roots"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	// Tools
 	"github.com/danicat/godoctor/internal/tools/agent/review"
-	"github.com/danicat/godoctor/internal/tools/agent/specialist"
+	"github.com/danicat/godoctor/internal/tools/cmd/run"
 	"github.com/danicat/godoctor/internal/tools/file/create"
 	"github.com/danicat/godoctor/internal/tools/file/edit"
 	"github.com/danicat/godoctor/internal/tools/file/list"
@@ -27,15 +29,10 @@ import (
 	"github.com/danicat/godoctor/internal/tools/go/diff"
 	"github.com/danicat/godoctor/internal/tools/go/docs"
 	"github.com/danicat/godoctor/internal/tools/go/get"
-	"github.com/danicat/godoctor/internal/tools/go/install"
-	"github.com/danicat/godoctor/internal/tools/go/lint"
-	"github.com/danicat/godoctor/internal/tools/go/mod"
 	"github.com/danicat/godoctor/internal/tools/go/modernize"
 	"github.com/danicat/godoctor/internal/tools/go/test"
-	projectmap "github.com/danicat/godoctor/internal/tools/project/map"
 	"github.com/danicat/godoctor/internal/tools/symbol/inspect"
 	"github.com/danicat/godoctor/internal/tools/symbol/rename"
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // Server encapsulates the MCP server and its configuration.
@@ -52,7 +49,11 @@ func New(cfg *config.Config, version string) *Server {
 		Version: version,
 	}, &mcp.ServerOptions{
 		Instructions: instructions.Get(cfg),
+		RootsListChangedHandler: func(ctx context.Context, req *mcp.RootsListChangedRequest) {
+			roots.Global.Sync(ctx, req.Session)
+		},
 	})
+
 	return &Server{
 		mcpServer:       s,
 		cfg:             cfg,
@@ -60,92 +61,109 @@ func New(cfg *config.Config, version string) *Server {
 	}
 }
 
-// RegisterHandlers registers all available tools and prompts with the server.
-// It is idempotent and can be called multiple times to register newly enabled tools.
+// Run starts the MCP server using Stdio.
+func (s *Server) Run(ctx context.Context) error {
+	if err := s.RegisterHandlers(); err != nil {
+		return err
+	}
+	return s.mcpServer.Run(ctx, &mcp.StdioTransport{})
+}
+
+// ServeHTTP starts the server over HTTP using StreamableHTTP.
+func (s *Server) ServeHTTP(ctx context.Context, addr string) error {
+	if err := s.RegisterHandlers(); err != nil {
+		return err
+	}
+
+	handler := mcp.NewStreamableHTTPHandler(func(request *http.Request) *mcp.Server {
+		return s.mcpServer
+	}, nil)
+
+	log.Printf("MCP HTTP Server starting on %s", addr)
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: handler,
+	}
+
+	go func() {
+		<-ctx.Done()
+		srv.Shutdown(context.Background())
+	}()
+
+	return srv.ListenAndServe()
+}
+
+// RegisterHandlers wires all tools, resources, and prompts.
 func (s *Server) RegisterHandlers() error {
 	type toolDef struct {
-		name         string
-		experimental bool
-		register     func(*mcp.Server)
+		name     string
+		register func(*mcp.Server)
 	}
 
 	availableTools := []toolDef{
-		{name: "go.docs", experimental: false, register: docs.Register},
-		{name: "agent.review", experimental: true, register: func(srv *mcp.Server) {
+		{name: "go_docs", register: docs.Register},
+		{name: "safe_shell", register: func(srv *mcp.Server) {
+			run.Register(srv)
+		}},
+		{name: "code_review", register: func(srv *mcp.Server) {
 			review.Register(srv, s.cfg.DefaultModel)
 		}},
-		{name: "file.read", experimental: false, register: read.Register},
-		{name: "file.outline", experimental: false, register: outline.Register},
-		{name: "symbol.inspect", experimental: false, register: inspect.Register},
-		{name: "file.edit", experimental: false, register: edit.Register},
-		{name: "file.create", experimental: true, register: create.Register},
-		{name: "go.diff", experimental: true, register: diff.Register},
-		{name: "project.map", experimental: false, register: projectmap.Register},
-		{name: "go.modernize", experimental: true, register: modernize.Register},
-		{name: "file.list", experimental: false, register: list.Register},
-		{name: "go.build", experimental: false, register: build.Register},
-		{name: "go.install", experimental: false, register: install.Register},
-		{name: "go.get", experimental: true, register: get.Register},
-		{name: "go.mod", experimental: true, register: mod.Register},
-		{name: "go.lint", experimental: true, register: lint.Register},
-		{name: "go.test", experimental: false, register: test.Register},
-		{name: "symbol.rename", experimental: true, register: rename.Register},
-		{name: "agent.specialist", experimental: false, register: specialist.Register},
+		{name: "file_read", register: read.Register},
+		{name: "file_outline", register: outline.Register},
+		{name: "symbol_inspect", register: inspect.Register},
+		{name: "file_edit", register: edit.Register},
+		{name: "file_create", register: create.Register},
+		{name: "go_diff", register: diff.Register},
+		{name: "go_modernize", register: modernize.Register},
+		{name: "file_list", register: list.Register},
+		{name: "go_build", register: build.Register},
+		{name: "go_get", register: get.Register},
+		{name: "go_test", register: test.Register},
+		{name: "symbol_rename", register: rename.Register},
 	}
 
-	// Validate disabled tools (only check this once or if disabled tools logic didn't change)
-	for name := range s.cfg.DisabledTools {
-		found := false
-		for _, t := range availableTools {
-			if t.name == name {
-				found = true
-				break
+	validTools := make(map[string]bool)
+	for _, t := range availableTools {
+		validTools[t.name] = true
+		if s.cfg.IsToolEnabled(t.name) {
+			t.register(s.mcpServer)
+			s.registeredTools[t.name] = true
+
+			// Track domain groups
+			if strings.HasPrefix(t.name, "go_") {
+				s.registeredTools["go"] = true
+			}
+			if strings.HasPrefix(t.name, "file_") {
+				s.registeredTools["file"] = true
+			}
+			if strings.HasPrefix(t.name, "symbol_") {
+				s.registeredTools["symbol"] = true
 			}
 		}
-		if !found {
-			return fmt.Errorf("invalid tool name to disable: %s", name)
+	}
+
+	// Validate disabled tools
+	for name := range s.cfg.DisabledTools {
+		if !validTools[name] {
+			return fmt.Errorf("unknown tool disabled: %s", name)
 		}
 	}
 
-	// Register tools
-	for _, t := range availableTools {
-		if s.registeredTools[t.name] {
-			continue // Already registered
-		}
-
-		// Use the centralized config logic to check if a tool should be enabled
-		if !s.cfg.IsToolEnabled(t.name, t.experimental) {
-			continue
-		}
-		t.register(s.mcpServer)
-		s.registeredTools[t.name] = true
-	}
-
-	if s.cfg.EnableExperimentalFeatures() {
-		// Initialize the Knowledge Graph for the current project
-		// Only strictly need to do this once
-		if !s.registeredTools["graph_init"] {
-			graph.Global.Initialize(".")
-			s.registeredTools["graph_init"] = true
-		}
-
+	// Register extra resources based on enabled domains
+	if s.registeredTools["file"] || s.registeredTools["go"] {
 		if !s.registeredTools["code"] {
 			code.Register(s.mcpServer)
 			s.registeredTools["code"] = true
 		}
-		if !s.registeredTools["symbol"] {
-			symbol.Register(s.mcpServer)
-			s.registeredTools["symbol"] = true
-		}
-		if !s.registeredTools["project"] {
-			project.Register(s.mcpServer)
-			s.registeredTools["project"] = true
-		}
+	}
+	if s.registeredTools["symbol"] {
+		symbol.Register(s.mcpServer)
+		s.registeredTools["symbol"] = true
 	}
 
-	// Register resources (idempotent check)
+	// Register extra resources based on enabled domains
 	if !s.registeredTools["godoc"] {
-		godoc.Register(s.mcpServer)
+		resgodoc.Register(s.mcpServer)
 		s.registeredTools["godoc"] = true
 	}
 
@@ -155,34 +173,5 @@ func (s *Server) RegisterHandlers() error {
 		s.registeredTools["prompt_import_this"] = true
 	}
 
-	return nil
-}
-
-// Run starts the server, listening on either Stdio or HTTP based on configuration.
-func (s *Server) Run(ctx context.Context) error {
-	if s.cfg.ListenAddr != "" {
-		return s.runHTTP(ctx)
-	}
-	return s.mcpServer.Run(ctx, &mcp.StdioTransport{})
-}
-
-func (s *Server) runHTTP(ctx context.Context) error {
-	httpServer := &http.Server{
-		Addr:              s.cfg.ListenAddr,
-		Handler:           mcp.NewStreamableHTTPHandler(func(_ *http.Request) *mcp.Server { return s.mcpServer }, nil),
-		ReadHeaderTimeout: 10 * time.Second,
-	}
-
-	go func() {
-		<-ctx.Done()
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = httpServer.Shutdown(shutdownCtx)
-	}()
-
-	log.Printf("godoctor listening on %s", s.cfg.ListenAddr)
-	if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
-		return err
-	}
 	return nil
 }

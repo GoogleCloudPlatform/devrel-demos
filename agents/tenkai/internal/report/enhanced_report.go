@@ -48,6 +48,7 @@ func (r *EnhancedMarkdownGenerator) Generate() error {
 
 	r.writeHeader()
 	r.writeExecutiveSummary()
+	r.writeMetricsOverview()
 	r.writePerformanceComparison()
 	r.writeExperimentParameters()
 	r.writeNotes()
@@ -71,7 +72,7 @@ func (r *EnhancedMarkdownGenerator) calculateStats() {
 			allAlts = append(allAlts, alt.Name)
 		}
 	}
-	r.summary = runner.CalculateSummary(r.Results, control, allAlts, r.ToolCounts)
+	r.summary = runner.CalculateSummary(r.Results, control, allAlts, r.ToolCounts, runner.FilterAll)
 }
 
 func (r *EnhancedMarkdownGenerator) writeHeader() {
@@ -135,6 +136,24 @@ func (r *EnhancedMarkdownGenerator) writeNotes() {
 	fmt.Fprintln(r.w, "\n## 📝 Notes")
 	for _, note := range r.Notes {
 		fmt.Fprintf(r.w, "> %s\n\n", note)
+	}
+}
+
+func (r *EnhancedMarkdownGenerator) writeMetricsOverview() {
+	fmt.Fprintln(r.w, "\n## 📈 Metrics Overview")
+	fmt.Fprintln(r.w, "| Alternative | Avg Duration | Total Tokens | Avg Cost | Success Rate |")
+	fmt.Fprintln(r.w, "| :--- | :--- | :--- | :--- | :--- |")
+
+	for _, name := range r.getAltOrder() {
+		a, ok := r.summary.Alternatives[name]
+		if !ok {
+			continue
+		}
+
+		avgDur := time.Duration(a.AvgDuration * float64(time.Second)).Round(time.Millisecond).String()
+		cost := fmt.Sprintf("$%.4f", float64(a.AvgTokens)/1000000*0.15) // Approx cost pricing for flash/pro blend
+
+		fmt.Fprintf(r.w, "| %s | %s | %s | %s | %.0f%% |\n", name, avgDur, formatNumber(int(a.AvgTokens*float64(a.TotalRuns))), cost, a.SuccessRate)
 	}
 }
 
@@ -441,7 +460,10 @@ func (r *EnhancedMarkdownGenerator) writeToolUsage() {
 		})
 
 		for _, name := range toolNames {
-			fmt.Fprintf(r.w, "- `%s`: %d\n", name, u[name])
+			total := u[name]
+			// Detailed failure breakdown by tool is not currently available in the lightweight reporting struct.
+			// Showing total usage count.
+			fmt.Fprintf(r.w, "- `%s`: %d\n", name, total)
 		}
 
 		// 2. Statistical Impact

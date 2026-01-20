@@ -10,7 +10,6 @@ func TestServer_RegisterHandlers_DisableTools(t *testing.T) {
 	tests := []struct {
 		name          string
 		disabledTools map[string]bool
-		experimental  bool
 		wantErr       bool
 	}{
 		{
@@ -20,13 +19,12 @@ func TestServer_RegisterHandlers_DisableTools(t *testing.T) {
 		},
 		{
 			name:          "disable valid tool",
-			disabledTools: map[string]bool{"agent.review": true},
+			disabledTools: map[string]bool{"code_review": true},
 			wantErr:       false,
 		},
 		{
-			name:          "disable experimental tool when experimental enabled",
-			disabledTools: map[string]bool{"file.create": true},
-			experimental:  true,
+			name:          "disable previously experimental tool",
+			disabledTools: map[string]bool{"file_create": true},
 			wantErr:       false,
 		},
 		{
@@ -38,13 +36,8 @@ func TestServer_RegisterHandlers_DisableTools(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			profile := config.ProfileStandard
-			if tt.experimental {
-				profile = config.ProfileAdvanced
-			}
 			cfg := &config.Config{
 				DisabledTools: tt.disabledTools,
-				Profile:       profile,
 			}
 			s := New(cfg, "test")
 			err := s.RegisterHandlers()
