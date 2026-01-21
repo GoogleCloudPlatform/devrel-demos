@@ -8,9 +8,8 @@ The project is architected with a separation between **Internal Tool Logic** and
 
 ### Key Concepts
 
-*   **Profiles:** Presets that enable specific subsets of tools (`standard`, `advanced`).
-*   **Tool Registry:** A centralized definition file (`internal/toolnames/registry.go`) that maps stable internal IDs (e.g., `file.edit`) to external agent-facing names (e.g., `smart_edit`).
-*   **Smart Editing:** The editor (`smart_edit`) uses fuzzy matching and pre-verification (syntax checks, `goimports`) to ensure safe code modifications.
+*   **Tool Registry:** A centralized definition file (`internal/toolnames/registry.go`) that maps stable internal logic to agent-facing descriptions and instructions.
+*   **Safe Editing:** The editor (`file_edit`) uses fuzzy matching and pre-verification (syntax checks, `goimports`) to ensure safe code modifications.
 
 ## Building and Running
 
@@ -29,9 +28,9 @@ The project is architected with a separation between **Internal Tool Logic** and
     go run cmd/godoctor/main.go
     ```
 
-*   **List available tools for a profile:**
+*   **List all available tools:**
     ```bash
-    go run cmd/godoctor/main.go --list-tools --profile=standard
+    go run cmd/godoctor/main.go --list-tools
     ```
 
 *   **Run tests:**
@@ -51,22 +50,19 @@ The project follows a domain-driven package layout for tools:
 *   **`internal/tools/`**: Tool implementations grouped by domain.
     *   `file/` (`create`, `edit`, `read`, `list`, `outline`)
     *   `symbol/` (`inspect`, `rename`)
-    *   `go/` (`build`, `test`, `install`, `modernize`, `diff`, `docs`, `lint`, `get`, `mod`)
+    *   `go/` (`build`, `test`, `get`, `modernize`, `diff`, `docs`)
     *   `agent/` (`review`)
 
 ### Adding a New Tool
 
 1.  **Implement:** Create a new package in `internal/tools/<domain>/<toolname>/`.
-2.  **Define:** Add the tool definition to `internal/toolnames/registry.go` with a unique `InternalName`.
+2.  **Define:** Add the tool definition to `internal/toolnames/registry.go`.
 3.  **Register:** Add the registration logic to `internal/server/server.go`.
-4.  **Enable:** Add the tool's internal name to the `ProfileStandard` whitelist in `internal/config/config.go` (if applicable).
 
 ### Tool Naming Convention
 
-*   **Internal Name:** `domain.verb` (e.g., `file.create`, `go.build`). Stable, used in code.
-*   **External Name:** `verb_noun` (e.g., `write`, `go_build`). Flexible, used by agents. Configurable via `registry.go`.
+Tools follow a `domain_verb` naming convention (e.g., `file_create`, `go_build`). These names are stable and used by the agent to invoke functionality.
 
 ### Documentation
 
-*   **`PROFILES.md`**: detailed matrix of which tools are available in each profile.
 *   **`EVOLUTION.md`**: History of tool changes and architectural shifts.
