@@ -1,36 +1,33 @@
 # GoDoctor
 
-**GoDoctor** is an intelligent, AI-powered Model Context Protocol (MCP) server designed to assist Go developers. It integrates context-aware code analysis, smart editing, and on-demand documentation into AI-powered IDEs and agentic workflows.
+**GoDoctor** is an intelligent, AI-powered Model Context Protocol (MCP) server designed to assist Go developers. It provides a comprehensive suite of tools for navigating, editing, analyzing, and modernizing Go codebases.
 
 ## Features
 
-GoDoctor organizes its capabilities into **Profiles** to suit different workflow needs, from safe, standard editing to full-blown autonomous modernization.
+GoDoctor organizes its capabilities into domain-specific tools to streamline development workflows.
 
-### 🚀 Core Capabilities (Standard Profile)
+### 🔍 Navigation & Discovery
+*   **`file_list`**: Explore the project hierarchy recursively to understand the architecture.
+*   **`file_outline`**: View file structure (imports, types, signatures) with minimal token usage.
+*   **`file_read`**: Read source code with added context about external symbols (signatures and docs).
+*   **`symbol_inspect`**: Retrieve "Ground Truth" for any symbol—its definition, source code, and related types.
 
-*   **🔍 Smart Navigation**:
-    *   `code_outline`: View file structure (imports, types, signatures) with minimal token usage. Supersedes reading entire files.
-    *   `inspect_symbol`: Retrieve "Ground Truth" for any symbol—its definition, source code, and related types—to ensure edits feature 100% correct context.
-    *   `list_files`: Explore the file system.
+### ✏️ Smart Editing
+*   **`file_create`**: Initialize a new source file with proper boilerplate and import organization.
+*   **`file_edit`**: Perform targeted code modifications using fuzzy-matching. Automatically handles formatting and verifies compilation before finalizing.
+*   **`symbol_rename`**: Safely execute semantic renames of identifiers across the entire project.
 
-*   **✏️ Smart Editing**:
-    *   `smart_edit`: The gold standard for code modification. It performs **Pre-Verification** (syntax check + `goimports`) *before* saving to disk, ensuring you never break the build. It also handles fuzzy matching and auto-fixes typos in search blocks.
+### 🛠️ Go Toolchain Integration
+*   **`go_build`**: Compile the project to verify changes.
+*   **`go_test`**: Execute tests with support for regex filtering.
+*   **`go_get`**: Manage module dependencies and update `go.mod`.
+*   **`go_docs`**: Query documentation for any package or symbol in the Go ecosystem.
+*   **`go_modernize`**: Automatically upgrade legacy Go patterns to modern standards.
+*   **`go_diff`**: Detect breaking API changes between versions.
 
-*   **🛠️ Utilities**:
-    *   `go_build`: Compile the project to verify changes.
-    *   `go_test`: Run specific tests to validate logic.
-    *   `read_docs`: internal documentation retrieval.
-
-### ⚡ Advanced Modernization (Advanced Profile)
-
-Includes all Standard tools, plus:
-*   **♻️ Modernize**:
-    *   `mo*   **♻️ Modernize**:
-    *   `modernize`: Automatically upgrades legacy patterns (e.g., `interface{}` → `any`, manual loops → slices).
-*   **📦 Dependency Analysis**:
-    *   `analyze_dependency_updates`: Assess breaking changes and risks *before* upgrading dependencies.
-*   **🧹 Linting**:
-    *   `go_lint`: Runs `golangci-lint` to catch style issues and bugs. Auto-installs if missing.
+### 🤖 Expert Assistance & Safety
+*   **`code_review`**: Submit code for expert AI analysis focusing on correctness and idiomatic style.
+*   **`safe_shell`**: Execute CLI commands safely with output capping and timeout management.
 
 ## Installation
 
@@ -80,30 +77,26 @@ export GOOGLE_CLOUD_LOCATION="us-central1"
 
 | Flag | Description | Default |
 | :--- | :--- | :--- |
-| `--profile` | Server profile: `standard`, `advanced`. | `standard` |
 | `--model` | Default Gemini model to use for AI tasks. | `gemini-2.5-pro` |
-| `--allow` | Comma-separated list of tools to explicitly **enable** (overrides profile defaults). | `""` |
+| `--allow` | Comma-separated list of tools to explicitly **enable** (whitelist mode). | `""` |
 | `--disable` | Comma-separated list of tools to explicitly **disable**. | `""` |
-| `--listen` | Address to listen on for HTTP transport (e.g., `:8080`). If empty, uses Stdio. | `""` (Stdio) |
-| `--agents` | Print LLM agent instructions for the current profile and exit. | `false` |
+| `--listen` | Address to listen on for HTTP transport (e.g., `:8080`). | `""` (Stdio) |
+| `--list-tools`| List all available tools and their descriptions, then exit. | `false` |
+| `--agents` | Print LLM agent instructions and exit. | `false` |
 | `--version` | Print version and exit. | `false` |
-
-### Legacy Tools
-The following tools are still available for backward compatibility but are superseded by the "Smart" suite:
-*   `edit_code` (Superseded by `smart_edit`)
-*   `read_code`
-*   `review_code`
 
 ## Agent Integration
 
-To get the optimal system prompt for your AI agent based on your chosen profile:
+To get the optimal system prompt for your AI agent:
 
 ```bash
-# Get instructions for the standard profile
-godoctor --agents --profile=standard
+godoctor --agents
+```
 
-# Get instructions for the advanced profile with modernization tools
-godoctor --agents --profile=advanced
+To see which tools are currently active:
+
+```bash
+godoctor --list-tools
 ```
 
 ## License

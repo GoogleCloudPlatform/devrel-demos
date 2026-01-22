@@ -14,21 +14,22 @@ This document traces the history and architectural shifts of the GoDoctor projec
 | **Exploration** | Web crawling capabilities (short-lived). | `godoc`, `code_review`, `scribble`, `scalpel`, `endoscope` |
 | **Renaming** | Major semantic renaming for clarity. | `get_documentation`, `review_code`, `write_code`, `edit_code`, `fetch_webpage` |
 | **Focus** | Dropping web tools to focus on Code. | `get_docs`, `code_review` |
-| **Modern Era** | The "Agentic" Shift. Massive expansion. | **18+ Tools** including `ask_the_master_gopher`, `ask_specialist`, `smart_edit` |
+| **Modern Era** | The "Agentic" Shift. Massive expansion. | **15+ Tools** including `file_edit`, `symbol_inspect`, `go_docs` |
 
 ## 2. Architectural Shifts
 
 ### From Surgical to Intelligent
-Early versions of the tool used "Surgical" metaphors (`scalpel`, `scribble`) and relied on exact string matching. The project evolved toward **Intelligence** with tools like `smart_edit` (fuzzy matching) and `modernize` (AST-aware refactoring).
+Early versions of the tool used "Surgical" metaphors (`scalpel`, `scribble`) and relied on exact string matching. The project evolved toward **Intelligence** with tools like `file_edit` (fuzzy matching) and `go_modernize` (AST-aware refactoring).
 
 ### The Identity of Documentation
-The project's core feature—documentation retrieval—went through five major renames to optimize LLM performance:
-`getDoc` → `go-doc` → `godoc` → `get_docs` → `read_godoc` → **`read_docs`**.
+The project's core feature—documentation retrieval—went through six major renames to optimize LLM performance:
+`getDoc` → `go-doc` → `godoc` → `get_docs` → `read_godoc` → `read_docs` → **`go_docs`**.
 
 ### The "Agentic" Turn
-The most significant shift was the introduction of the **Meta-Layer**. Instead of providing a flat list of tools, GoDoctor now features:
-*   **`ask_the_master_gopher`**: A dynamic gateway that unlocks other tools based on user intent.
-*   **`ask_specialist`**: An autonomous investigator.
+The most significant shift was the introduction of the **Semantic Toolset**. Instead of providing a flat list of tools, GoDoctor now features specialized domain groups:
+*   **`file_*`**: Core file operations and surgical editing.
+*   **`go_*`**: Toolchain integration.
+*   **`symbol_*`**: Deep semantic inspection and refactoring.
 
 ---
 
@@ -67,13 +68,14 @@ The most significant shift was the introduction of the **Meta-Layer**. Instead o
 ### COMMIT: 1263cdc (File Inspection)
 - **inspect_file**: code-aware registration of symbols.
 
-### COMMIT: 9961068 (Modern Era / Restore)
-- **ask_the_master_gopher**: Meta-agent gateway.
-- **smart_edit**: Fuzzy matching editor.
-- **read_docs**: High-level module mapping.
-- **modernize**: AST-based refactoring.
-- **inspect_symbol**: Deep semantic inspection.
-- **analyze_dependency_updates**: API breaking change detection.
-- **go_build / go_test / go_install**: Toolchain integration.
-- **ask_specialist**: Investigative agent.
-- **list_files / open / read_code / code_outline**: Navigation suite.
+### COMMIT: 9961068 (Modern Era / Semantic Alignment)
+- **file_edit**: Fuzzy matching editor (formerly smart_edit).
+- **go_docs**: Documentation retrieval (formerly read_docs).
+- **go_modernize**: AST-based refactoring (formerly modernize).
+- **symbol_inspect**: Deep semantic inspection (formerly inspect_symbol).
+- **go_diff**: API breaking change detection (formerly analyze_dependency_updates).
+- **file_list / file_outline / file_read**: Navigation suite.
+- **go_build / go_test / go_get**: Toolchain integration.
+- **symbol_rename**: Semantic refactoring.
+- **safe_shell**: Secure command execution.
+- **code_review**: Expert analysis.
