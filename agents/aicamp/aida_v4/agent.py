@@ -5,6 +5,7 @@ from datetime import datetime
 from google.adk.agents.llm_agent import Agent
 from google.adk.agents.sequential_agent import SequentialAgent
 from google.adk.tools import AgentTool, google_search, ToolContext
+from google.adk.agents.callback_context import CallbackContext
 
 # Import RAG tools from the local package
 from .queries_rag import search_query_library
@@ -69,7 +70,14 @@ def run_osquery(query: str) -> str:
             "details": str(e)
         })
 
-current_os = platform.system().lower()
+# --- Callbacks ---
+
+def inject_os_callback(context: CallbackContext):
+    """Automatically injects the Host OS into the session state for ADK compatibility."""
+    if "app:host_os" not in context.state:
+        context.state["app:host_os"] = platform.system().lower()
+
+# --- Tools ---
 
 # Define a dedicated google search agent and tool
 google_search_agent = Agent(
@@ -217,4 +225,5 @@ Last Investigation Plan: {temp:investigation_plan?}
 Last Diagnostic Report: {temp:final_report?}
 """,
     sub_agents=[diagnostic_pipeline],
+    before_agent_callbacks=[inject_os_callback],
 )

@@ -5,6 +5,7 @@ from datetime import datetime
 from google.adk.agents.llm_agent import Agent
 from google.adk.agents.sequential_agent import SequentialAgent
 from google.adk.tools import AgentTool, google_search, ToolContext
+from google.adk.agents.callback_context import CallbackContext
 
 # Import RAG tools from the local package
 from .queries_rag import search_query_library
@@ -69,7 +70,14 @@ def run_osquery(query: str) -> str:
             "details": str(e)
         })
 
-current_os = platform.system().lower()
+# --- Callbacks ---
+
+def inject_os_callback(context: CallbackContext):
+    """Automatically injects the Host OS into the session state for ADK compatibility."""
+    if "app:host_os" not in context.state:
+        context.state["app:host_os"] = platform.system().lower()
+
+# --- Tools ---
 
 # Define a dedicated google search agent and tool
 google_search_agent = Agent(
@@ -129,13 +137,15 @@ You handle "Level 2" diagnostics and above (Level 3, 4, 5, etc.).
 
 [DIAGNOSTIC LEVELS RULE]
 1.  **Level Specified:** If user says "Level [N]", set Topic Limit = N, Query Limit = N * 5.
-2.  **Level NOT Specified (Estimation):**
+2.  **Level NOT Specified (Auto-Scaling):**
     *   **Simple/Targeted** (e.g., "check cpu", "battery status") -> Treat as **Level 1**.
     *   **Complex/Vague** (e.g., "system slow", "random crashes") -> Treat as **Level 2**.
     *   **Critical/Emergency** -> Treat as **Level 3**.
 3.  **Planner Constraint:** Enforce the Topic Limit (N) derived above.
-4.  **Determine Scope:** Focus on the target/symptom if provided; otherwise Health Check.
-5.  **Enforce Limits:** Explicitly state the Topic Limit (N) and Query Limit (N * 5) for the Investigator.
+4.  **Determine Scope:**
+    - If a specific **Target Subsystem** or **Symptom** is provided (e.g., "Level 2 disk latency"), focus strictly on that.
+    - If NO specific target is provided, assume a comprehensive **System Health Check**.
+5.  **Enforce Limits:** Explicitly state the Topic Limit (N) and the Query Limit (N * 5) for the Investigator.
 
 [ANALYSIS FRAMEWORK]
 1. **Analyze Symptoms:** Categorize the issue (Performance, Error, Security).
@@ -162,10 +172,12 @@ You are a Lead Digital Forensic Investigator. Your job is to execute the **Inves
 - Provide brief status updates (e.g., "Scanning for unauthorized logins...").
 
 [OPERATIONAL PROTOCOL]
-1. **Consult Library:** Use `search_query_library` first.
-2. **Execute:** Run queries using `run_osquery`.
+1. **Analyze Plan Complexity:**
+   - If the plan is **Simple/Trivial** (e.g., "Check system_info table"): **SKIP search and schema discovery.** Run the obvious query immediately (e.g., `select * from system_info`).
+2. **Consult Library:** For complex or unknown topics, use `search_query_library`.
+3. **Execute:** Run queries using `run_osquery`.
    - **CONSTRAINT:** Observe the Query Limit set by the Planner (Level N * 5).
-3. **Validate:** Use `google_search_tool` to validate significant findings.
+4. **Validate:** Use `google_search_tool` only if significant anomalies are found.
 
 [INPUT CONTEXT]
 Host OS: {app:host_os}
@@ -243,8 +255,11 @@ You are the **Coordinator**. Your job is to intelligently route the user's reque
 
 [CONTEXT]
 Host OS: {app:host_os}
+Last Investigation Plan: {temp:investigation_plan?}
+Last Diagnostic Report: {temp:final_report?}
 """,
     # AIDA has both a sub-agent (pipeline) AND a tool (fast agent)
     sub_agents=[diagnostic_pipeline],
     tools=[fast_diagnostics_tool],
+    before_agent_callbacks=[inject_os_callback],
 )
