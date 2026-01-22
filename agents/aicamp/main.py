@@ -34,7 +34,7 @@ runner = Runner(app_name=APP_NAME, agent=root_agent, session_service=session_ser
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handles startup and shutdown events."""
-    print("AIDA AGENT (v4) READY.")
+    print("AIDA AGENT READY.")
     yield
     print("--- AIDA SHUTDOWN SEQUENCE ---")
 
@@ -100,66 +100,6 @@ async def get_chat_ui():
 
 
 # --- API Endpoint for Chat Logic ---
-def get_current_models_dict():
-    """Helper to get the MODELS registry from the currently active agent module."""
-    import sys
-    # Find which aida_vX module the root_agent belongs to
-    for module_name, module in sys.modules.items():
-        if module_name.startswith("aida_v") and hasattr(module, "agent") and module.agent.root_agent == root_agent:
-            return getattr(module.agent, "MODELS", {})
-    return {}
-
-
-def update_agent_model(agent, model):
-    """Recursively update the model for an agent and all its sub-agents."""
-    agent.model = model
-    if hasattr(agent, "sub_agents") and agent.sub_agents:
-        for sub in agent.sub_agents:
-            update_agent_model(sub, model)
-
-
-@app.get("/config/model")
-async def get_model():
-    current_model = root_agent.model
-    model_id = "gemini3" # Default
-
-    models_registry = get_current_models_dict()
-
-    for mid, m_obj in models_registry.items():
-        if m_obj == current_model:
-            model_id = mid
-            break
-        if isinstance(current_model, str) and current_model == m_obj:
-            model_id = mid
-            break
-        if hasattr(m_obj, "model_name") and hasattr(current_model, "model_name"):
-            if m_obj.model_name == current_model.model_name:
-                model_id = mid
-                break
-
-    return {"model_id": model_id}
-
-
-@app.post("/config/model")
-async def set_model(request: Request):
-    body = await request.json()
-    model_id = body.get("model_id")
-
-    models_registry = get_current_models_dict()
-
-    if model_id in models_registry:
-        target_model = models_registry[model_id]
-        # Update the entire tree
-        update_agent_model(root_agent, target_model)
-        print(f"SWITCHED ALL AGENTS TO MODEL: {target_model}")
-    else:
-        return {
-            "error": f"Invalid model ID. Available: {', '.join(models_registry.keys())}"
-        }
-
-    return {"status": "ok", "current_model": str(root_agent.model)}
-
-
 @app.get("/config/version")
 async def get_version():
     """Helper to determine current version based on module name."""

@@ -53,25 +53,10 @@ async function updateContextMeter() {
     }
 }
 
-async function fetchCurrentModel() {
-    try {
-        const response = await fetch('/config/model');
-        const data = await response.json();
-        if (data.model_id) {
-            if (debugMode) {
-                logActivity(`DEBUG: Initial model set to ${data.model_id}`);
-            }
-        }
-    } catch (e) {
-        console.error("Failed to fetch current model:", e);
-    }
-}
-
 // Boot sequence: Immediate ready state
 async function bootSequence() {
     logActivity("AIDA AGENT READY.");
     updateContextMeter();
-    fetchCurrentModel();
 }
 
 // Start boot sequence
