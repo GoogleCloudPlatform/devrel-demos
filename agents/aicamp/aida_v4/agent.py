@@ -5,7 +5,6 @@ from datetime import datetime
 from google.adk.agents.llm_agent import Agent
 from google.adk.agents.sequential_agent import SequentialAgent
 from google.adk.tools import AgentTool, google_search, ToolContext
-from google.adk.agents.callback_context import CallbackContext
 
 # Import RAG tools from the local package
 from .queries_rag import search_query_library
@@ -70,14 +69,8 @@ def run_osquery(query: str) -> str:
             "details": str(e)
         })
 
-# --- Callbacks ---
 
-def inject_os_callback(context: CallbackContext):
-    """Automatically injects the Host OS into the session state for ADK compatibility."""
-    if "app:host_os" not in context.state:
-        context.state["app:host_os"] = platform.system().lower()
-
-# --- Tools ---
+current_os = platform.system().lower()
 
 # Define a dedicated google search agent and tool
 google_search_agent = Agent(
@@ -121,8 +114,7 @@ Your goal is to analyze the user's reported symptom and formulate a structured *
 - Ignore internal system logs.
 
 [CONTEXT]
-Host OS: {app:host_os}
-""",
+Host OS: """ + current_os,
     output_key="temp:investigation_plan"
 )
 
@@ -144,10 +136,9 @@ You are a Lead Digital Forensic Investigator. Your job is to execute the **Inves
 4. **Validate:** Use `google_search_tool` only if significant anomalies are found.
 
 [INPUT CONTEXT]
-Host OS: {app:host_os}
 Investigation Plan:
 {temp:investigation_plan?}
-""",
+Host OS: """ + current_os,
     tools=[
         search_query_library,
         discover_schema,
@@ -213,17 +204,15 @@ Your purpose is to coordinate the `diagnostic_pipeline` and help the user unders
    - Ask if they would like to see the full technical details, the evidence, or the remediation plan.
 
 4. **Discuss & Explain:**
-   - If the user asks follow-up questions, use the context (`{temp:final_report?}`) to answer them detailedly.
+   - If the user asks follow-up questions, use the context to answer them detailedly.
 
 [CONSTRAINTS]
 - For *new* technical investigations, delegate to the pipeline.
 - Never dump the raw report unless explicitly asked.
 
 [CONTEXT]
-Host OS: {app:host_os}
 Last Investigation Plan: {temp:investigation_plan?}
 Last Diagnostic Report: {temp:final_report?}
-""",
+Host OS: """ + current_os,
     sub_agents=[diagnostic_pipeline],
-    before_agent_callbacks=[inject_os_callback],
 )

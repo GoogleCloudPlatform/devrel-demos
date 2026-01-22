@@ -5,7 +5,6 @@ from datetime import datetime
 from google.adk.agents.llm_agent import Agent
 from google.adk.agents.sequential_agent import SequentialAgent
 from google.adk.tools import AgentTool, google_search, ToolContext
-from google.adk.agents.callback_context import CallbackContext
 
 # Import RAG tools from the local package
 from .queries_rag import search_query_library
@@ -70,12 +69,7 @@ def run_osquery(query: str) -> str:
             "details": str(e)
         })
 
-# --- Callbacks ---
-
-def inject_os_callback(context: CallbackContext):
-    """Automatically injects the Host OS into the session state for ADK compatibility."""
-    if "app:host_os" not in context.state:
-        context.state["app:host_os"] = platform.system().lower()
+current_os = platform.system().lower()
 
 # --- Tools ---
 
@@ -111,8 +105,7 @@ You are NOT here for deep analysis or long investigations.
 3.  **Report:** Return the raw data or a one-sentence summary of the finding.
 
 [CONTEXT]
-Host OS: {app:host_os}
-""",
+Host OS: """ + current_os,
     tools=[
         search_query_library,
         run_osquery
@@ -157,8 +150,7 @@ You handle "Level 2" diagnostics and above (Level 3, 4, 5, etc.).
 - Ignore any internal system logs about agent transfers.
 
 [CONTEXT]
-Host OS: {app:host_os}
-""",
+Host OS: """ + current_os,
     output_key="temp:investigation_plan"
 )
 
@@ -172,18 +164,15 @@ You are a Lead Digital Forensic Investigator. Your job is to execute the **Inves
 - Provide brief status updates (e.g., "Scanning for unauthorized logins...").
 
 [OPERATIONAL PROTOCOL]
-1. **Analyze Plan Complexity:**
-   - If the plan is **Simple/Trivial** (e.g., "Check system_info table"): **SKIP search and schema discovery.** Run the obvious query immediately (e.g., `select * from system_info`).
-2. **Consult Library:** For complex or unknown topics, use `search_query_library`.
-3. **Execute:** Run queries using `run_osquery`.
+1. **Consult Library:** Use `search_query_library` first.
+2. **Execute:** Run queries using `run_osquery`.
    - **CONSTRAINT:** Observe the Query Limit set by the Planner (Level N * 5).
-4. **Validate:** Use `google_search_tool` only if significant anomalies are found.
+3. **Validate:** Use `google_search_tool` to validate significant findings.
 
 [INPUT CONTEXT]
-Host OS: {app:host_os}
 Investigation Plan:
 {temp:investigation_plan?}
-""",
+Host OS: """ + current_os,
     tools=[
         search_query_library,
         discover_schema,
@@ -254,12 +243,10 @@ You are the **Coordinator**. Your job is to intelligently route the user's reque
 - Do NOT try to plan deep investigations yourself. Delegate to the pipeline.
 
 [CONTEXT]
-Host OS: {app:host_os}
 Last Investigation Plan: {temp:investigation_plan?}
 Last Diagnostic Report: {temp:final_report?}
-""",
+Host OS: """ + current_os,
     # AIDA has both a sub-agent (pipeline) AND a tool (fast agent)
     sub_agents=[diagnostic_pipeline],
     tools=[fast_diagnostics_tool],
-    before_agent_callbacks=[inject_os_callback],
 )
