@@ -93,19 +93,24 @@ async def get_chat_ui():
 @app.get("/config/model")
 async def get_model():
     current_model = root_agent.model
-    model_id = "gemini" # Default
+    model_id = "gemini"  # Default
 
-    if isinstance(current_model, str):
-        if "gemini" in current_model:
-            model_id = "gemini"
-    elif hasattr(current_model, "model_name"):
-        if "gemini" in current_model.model_name:
-             model_id = "gemini"
-        elif "qwen" in current_model.model_name:
-            model_id = "qwen"
-        elif "gpt-oss" in current_model.model_name:
-            model_id = "gpt-oss"
-            
+    from aida.agent import MODELS
+
+    for mid, m_obj in MODELS.items():
+        if m_obj == current_model:
+            model_id = mid
+            break
+        # Handle cases where current_model might be a string but stored as string in MODELS
+        if isinstance(current_model, str) and current_model == m_obj:
+            model_id = mid
+            break
+        # Handle LiteLlm objects
+        if hasattr(m_obj, "model_name") and hasattr(current_model, "model_name"):
+            if m_obj.model_name == current_model.model_name:
+                model_id = mid
+                break
+
     return {"model_id": model_id}
 
 
@@ -114,14 +119,14 @@ async def set_model(request: Request):
     body = await request.json()
     model_id = body.get("model_id")
 
-    if model_id == "gemini":
-        root_agent.model = "gemini-2.5-flash"
-    elif model_id == "qwen":
-        root_agent.model = LiteLlm(model="ollama_chat/qwen2.5")
-    elif model_id == "gptoss" or model_id == "gpt-oss":
-        root_agent.model = LiteLlm(model="ollama_chat/gpt-oss")
+    from aida.agent import MODELS
+
+    if model_id in MODELS:
+        root_agent.model = MODELS[model_id]
     else:
-        return {"error": "Invalid model ID. Use 'gemini', 'qwen' or 'gpt-oss'."}
+        return {
+            "error": f"Invalid model ID. Available: {', '.join(MODELS.keys())}"
+        }
 
     return {"status": "ok", "current_model": str(root_agent.model)}
 
@@ -143,13 +148,13 @@ async def get_session_usage():
 
     # Determine max tokens based on current model
     current_model = root_agent.model
-    
+
     is_gemini = False
     if isinstance(current_model, str) and "gemini" in current_model:
         is_gemini = True
     elif hasattr(current_model, "model_name") and "gemini" in current_model.model_name:
         is_gemini = True
-        
+
     if is_gemini:
         usage["max_tokens"] = 1000000
     else:

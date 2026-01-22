@@ -1,22 +1,10 @@
-from google.adk.agents.llm_agent import Agent
-from google.adk.models.lite_llm import LiteLlm
-from .queries_rag import search_query_library
-from .schema_rag import discover_schema
-
 import subprocess
 import platform
 import json
+from google.adk.agents.llm_agent import Agent
 
-# --- Model Registry ---
-MODELS = {
-    "gemini": "gemini-2.5-flash",
-    "qwen": LiteLlm(model="ollama_chat/qwen2.5"),
-    "gpt-oss": LiteLlm(model="ollama_chat/gpt-oss"),
-}
-
-DEFAULT_MODEL_ID = "gemini"
-# --- End Model Registry ---
-
+# Hardcoded Model
+MODEL = "gemini-3-flash-preview"
 
 def run_osquery(query: str) -> str:
     """Runs a query using osquery.
@@ -39,7 +27,7 @@ def run_osquery(query: str) -> str:
             return json.dumps({
                 "error": "Query failed",
                 "details": error_msg,
-                "suggestion": "Check table names and syntax using discover_schema."
+                "suggestion": "Check table names and syntax."
             })
 
         output = result.stdout.strip()
@@ -79,7 +67,7 @@ def run_osquery(query: str) -> str:
 current_os = platform.system().lower()
 
 root_agent = Agent(
-    model=MODELS[DEFAULT_MODEL_ID],
+    model=MODEL,
     name="aida",
     description="The emergency diagnostic agent",
     instruction=f"""
@@ -94,17 +82,12 @@ Your mission is to help the user identify and resolve system issues efficiently.
 
 [ENVIRONMENT]
 - Host OS: {current_os}
-- Tools: search_query_library, discover_schema, run_osquery
+- Tools: run_osquery
 
 [OPERATIONAL WORKFLOW]
-Follow this sequence for most investigations to ensure efficiency and accuracy:
-1. SEARCH: For all tasks, FIRST use `search_query_library` to find query candidates.
-2. DISCOVER: If no suitable query is found using SEARCH, you MUST use `discover_schema` and build a custom query
-3. EXECUTE: Use `run_osquery` to execute the query.
+1. EXECUTE: Use `run_osquery` to execute the query.
     """,
     tools=[
-        search_query_library,
-        discover_schema,
         run_osquery,
     ],
 )

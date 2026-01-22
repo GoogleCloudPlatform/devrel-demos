@@ -1,22 +1,15 @@
-from google.adk.agents.llm_agent import Agent
-from google.adk.models.lite_llm import LiteLlm
-from .queries_rag import search_query_library
-from .schema_rag import discover_schema
-
 import subprocess
 import platform
 import json
+from google.adk.agents.llm_agent import Agent
+from google.adk.tools import AgentTool, google_search
 
-# --- Model Registry ---
-MODELS = {
-    "gemini": "gemini-2.5-flash",
-    "qwen": LiteLlm(model="ollama_chat/qwen2.5"),
-    "gpt-oss": LiteLlm(model="ollama_chat/gpt-oss"),
-}
+# Import RAG tools from the local package
+from .queries_rag import search_query_library
+from .schema_rag import discover_schema
 
-DEFAULT_MODEL_ID = "gemini"
-# --- End Model Registry ---
-
+# Hardcoded Model
+MODEL = "gemini-3-flash-preview"
 
 def run_osquery(query: str) -> str:
     """Runs a query using osquery.
@@ -78,8 +71,20 @@ def run_osquery(query: str) -> str:
 
 current_os = platform.system().lower()
 
+# Define a dedicated google search agent and tool
+google_search_agent = Agent(
+    name="google_search",
+    instruction="You are a google search agent. Use the available tools to find information on the web.",
+    tools=[google_search],
+    model=MODEL,
+)
+
+google_search_tool = AgentTool(
+    agent=google_search_agent
+)
+
 root_agent = Agent(
-    model=MODELS[DEFAULT_MODEL_ID],
+    model=MODEL,
     name="aida",
     description="The emergency diagnostic agent",
     instruction=f"""
@@ -94,17 +99,19 @@ Your mission is to help the user identify and resolve system issues efficiently.
 
 [ENVIRONMENT]
 - Host OS: {current_os}
-- Tools: search_query_library, discover_schema, run_osquery
+- Tools: search_query_library, discover_schema, run_osquery, google_search_tool
 
 [OPERATIONAL WORKFLOW]
 Follow this sequence for most investigations to ensure efficiency and accuracy:
 1. SEARCH: For all tasks, FIRST use `search_query_library` to find query candidates.
 2. DISCOVER: If no suitable query is found using SEARCH, you MUST use `discover_schema` and build a custom query
 3. EXECUTE: Use `run_osquery` to execute the query.
+4. EXTERNAL: If you need information about a specific error message, software version, or known issue that isn't in your local library, use `google_search_tool`.
     """,
     tools=[
         search_query_library,
         discover_schema,
         run_osquery,
+        google_search_tool,
     ],
 )
