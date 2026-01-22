@@ -3,7 +3,6 @@ from sqlite_rag import SQLiteRag
 from sqlite_rag.models.document_result import DocumentResult
 
 # Calculate PROJECT_ROOT relative to this file
-# This file is in aida_v2/, so ".." is the project root (aicamp/)
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 PACKS_DB_PATH = os.path.join(PROJECT_ROOT, "packs.db")
 

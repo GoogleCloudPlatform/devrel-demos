@@ -1,11 +1,4 @@
 import os
-import sys
-from unittest.mock import MagicMock
-
-# Hack: Mock markitdown to bypass dependency issues on Python 3.14 if present, 
-# though standard python usage might not need it. Keeping for safety.
-sys.modules["markitdown"] = MagicMock()
-
 from sqlite_rag import SQLiteRag  # noqa: E402
 from sqlite_rag.models.document_result import DocumentResult  # noqa: E402
 

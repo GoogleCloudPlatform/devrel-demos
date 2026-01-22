@@ -266,6 +266,9 @@ async def chat_handler(request: Request):
     session = await session_service.get_session(
         app_name=APP_NAME, user_id=user_id, session_id=session_id
     )
+    if session:
+        print(f"DEBUG: Session State: {session.state}")
+    
     if not session:
         import platform
         session = await session_service.create_session(
