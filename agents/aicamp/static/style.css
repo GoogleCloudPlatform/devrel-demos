@@ -163,18 +163,18 @@ body {
     padding-left: 10px;
 }
 
-.debug-message.incident_commander {
+.debug-message.planner {
     color: var(--pc98-amber);
     border-color: var(--pc98-amber);
 }
 
-.debug-message.forensic_investigator {
+.debug-message.investigator {
     color: var(--pc98-cyan);
     border-color: var(--pc98-cyan);
 }
 
-.debug-message.root_cause_analyst {
-    color: #ff77ff; /* Magenta-ish for final analysis */
+.debug-message.fast_diagnostic_agent {
+    color: #ff77ff; /* Magenta-ish */
     border-color: #ff77ff;
 }
 

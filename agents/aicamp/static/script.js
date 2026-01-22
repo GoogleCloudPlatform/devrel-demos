@@ -293,13 +293,7 @@ async function sendMessage(event) {
                             const data = JSON.parse(line);
                             if (data.type === 'log') {
                                 logActivity(data.content);
-                                if (debugMode) {
-                                    const debugMsgDiv = document.createElement('div');
-                                    debugMsgDiv.className = 'debug-message';
-                                    debugMsgDiv.textContent = data.content;
-                                    messagesDiv.appendChild(debugMsgDiv);
-                                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                                }
+                                // We never show tool calls/logs in the chat window, even in debug mode.
                             } else if (data.type === 'task_switch') {
                                 taskStatusContent.textContent = data.task;
                             } else if (data.type === 'tool_output') {
@@ -331,7 +325,7 @@ async function sendMessage(event) {
                                 // 2. Chat Window Internal/Debug Streaming
                                 // We show the Commander and Investigator by default to give a "live" feel.
                                 // The Root Cause Analyst (full report) is still hidden unless in debugMode.
-                                const isVisibleByDefault = ["INCIDENT_COMMANDER", "FORENSIC_INVESTIGATOR", "ROOT_CAUSE_ANALYST"].includes(author);
+                                const isVisibleByDefault = ["PLANNER", "INVESTIGATOR", "FAST_DIAGNOSTIC_AGENT"].includes(author);
                                 
                                 if (debugMode || isVisibleByDefault) {
                                     if (!currentDebugDiv || currentDebugDiv.dataset.author !== author) {
