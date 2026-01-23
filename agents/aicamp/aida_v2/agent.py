@@ -1,22 +1,14 @@
-from google.adk.agents.llm_agent import Agent
-from google.adk.models.lite_llm import LiteLlm
-from .queries_rag import search_query_library
-from .schema_rag import discover_schema
-
 import subprocess
 import platform
 import json
+from google.adk.agents.llm_agent import Agent
 
-# --- Model Registry ---
-MODELS = {
-    "gemini": "gemini-2.5-flash",
-    "qwen": LiteLlm(model="ollama_chat/qwen2.5"),
-    "gpt-oss": LiteLlm(model="ollama_chat/gpt-oss"),
-}
+# Import RAG tools from the local package
+from .queries_rag import search_query_library
+from .schema_rag import discover_schema
 
-DEFAULT_MODEL_ID = "gemini"
-# --- End Model Registry ---
-
+# Hardcoded Model
+MODEL = "gemini-3-flash-preview"
 
 def run_osquery(query: str) -> str:
     """Runs a query using osquery.
@@ -79,7 +71,7 @@ def run_osquery(query: str) -> str:
 current_os = platform.system().lower()
 
 root_agent = Agent(
-    model=MODELS[DEFAULT_MODEL_ID],
+    model=MODEL,
     name="aida",
     description="The emergency diagnostic agent",
     instruction=f"""
