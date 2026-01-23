@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 from google.adk.agents.llm_agent import Agent
 from google.adk.agents.sequential_agent import SequentialAgent
-from google.adk.tools import AgentTool, google_search, ToolContext
+from google.adk.tools import AgentTool, google_search
 
 # Import RAG tools from the local package
 from .queries_rag import search_query_library
@@ -91,26 +91,24 @@ planner = Agent(
     model=MODEL,
     instruction="""
 You are a Senior Site Reliability Engineer (SRE).
-Your goal is to analyze the user's reported symptom and formulate a structured **Investigation Plan**.
+Your goal is to formulate a **Minimal Viable Investigation Plan** for speed.
 
 [DIAGNOSTIC LEVELS RULE]
 1.  **Level Specified:** If user says "Level [N]", set Topic Limit = N, Query Limit = N * 5.
-2.  **Level NOT Specified (Auto-Scaling):**
-    *   **Trivial/Fact Retrieval** (e.g., "system info", "uptime", "os version") -> **Assign Level 0 (Max 1 Topic, 1 Query)**.
-    *   **Simple/Targeted** (e.g., "check cpu", "battery status") -> **Assign Level 1 (Max 1 Topic, 5 Queries)**.
-    *   **Complex/Vague** (e.g., "system slow", "random crashes") -> **Assign Level 2 (Max 2 Topics, 10 Queries)**.
-    *   **Critical/Emergency** -> **Assign Level 3**.
+2.  **Level NOT Specified (Speed Mode):**
+    *   **Always default to Level 1** (1 Topic, 5 Queries) unless the user screams "EMERGENCY".
+    *   Keep it simple. One symptom = One table check.
 3.  **Planner Constraint:** Enforce the Topic Limit (N) derived above.
 4.  **Determine Scope:** Focus on the target/symptom if provided; otherwise Health Check.
 5.  **Enforce Limits:** Explicitly state the Topic Limit (N) and Query Limit (N * 5) for the Investigator.
 
 [ANALYSIS FRAMEWORK]
-1. **Analyze Symptoms:** Categorize the issue (Performance, Error, Security).
-2. **Formulate Plan:** Create a prioritized list of specific **OS concepts** to check.
+1. **Analyze Symptoms:** Pick the SINGLE most likely cause.
+2. **Formulate Plan:** List 1-2 specific **OS concepts** to check.
    - **CONSTRAINT:** Do NOT mention specific tools or commands.
 
 [OUTPUT INSTRUCTION]
-- Produce a clear, bulleted **Investigation Plan**.
+- Produce a short, bulleted **Investigation Plan**.
 - Ignore internal system logs.
 
 [CONTEXT]
@@ -122,7 +120,7 @@ investigator = Agent(
     name="investigator",
     model=MODEL,
     instruction="""
-You are a Lead Digital Forensic Investigator. Your job is to execute the **Investigation Plan**.
+You are a Lead Digital Forensic Investigator. Your job is to execute the **Investigation Plan** QUICKLY.
 
 [COMMUNICATION PROTOCOL]
 - Provide brief status updates (e.g., "Scanning for unauthorized logins...").
@@ -130,10 +128,11 @@ You are a Lead Digital Forensic Investigator. Your job is to execute the **Inves
 [OPERATIONAL PROTOCOL]
 1. **Analyze Plan Complexity:**
    - If the plan is **Simple/Trivial** (e.g., "Check system_info table"): **SKIP search and schema discovery.** Run the obvious query immediately (e.g., `select * from system_info`).
-2. **Consult Library:** For complex or unknown topics, use `search_query_library`.
+2. **Consult Library:** For complex topics, use `search_query_library`.
 3. **Execute:** Run queries using `run_osquery`.
+   - **SPEED HINT:** Run the most promising query FIRST. If it returns data, **STOP and report**. Do not run 5 more queries just to be sure.
    - **CONSTRAINT:** Observe the Query Limit set by the Planner (Level N * 5).
-4. **Validate:** Use `google_search_tool` only if significant anomalies are found.
+4. **Validate:** SKIP validation unless the data is confusing or contradictory.
 
 [INPUT CONTEXT]
 Investigation Plan:
