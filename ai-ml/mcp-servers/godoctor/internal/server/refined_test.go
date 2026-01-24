@@ -8,7 +8,6 @@ import (
 
 	"github.com/danicat/godoctor/internal/tools/file/list"
 	docs "github.com/danicat/godoctor/internal/tools/go/docs"
-	"github.com/danicat/godoctor/internal/tools/symbol/inspect"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -58,9 +57,8 @@ func TestRefinedTools(t *testing.T) {
 	t.Run("list_files_depth", func(t *testing.T) {
 		// Happy Path: Depth 1
 		res, _, err := list.Handler(ctx, nil, list.Params{
-			Path:      wd,
-			Recursive: true,
-			Depth:     1,
+			Path:  wd,
+			Depth: 1,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -74,24 +72,6 @@ func TestRefinedTools(t *testing.T) {
 		// Test running in internal/server package dir
 		if !strings.Contains(text, "server.go") {
 			t.Errorf("Missing server.go file. Output was:\n%s", text)
-		}
-	})
-
-	// 3. inspect_symbol: Edge Cases
-	t.Run("inspect_symbol_edge_cases", func(t *testing.T) {
-		// Sad Path: Missing args
-		res, _, _ := inspect.Handler(ctx, nil, inspect.Params{})
-		if !res.IsError {
-			t.Error("Expected error for missing args")
-		}
-
-		// Edge Case: Non-existent symbol
-		res, _, _ = inspect.Handler(ctx, nil, inspect.Params{
-			ImportPath: "fmt",
-			SymbolName: "Supercalifragilistic",
-		})
-		if !res.IsError {
-			t.Error("Expected error for non-existent symbol")
 		}
 	})
 }

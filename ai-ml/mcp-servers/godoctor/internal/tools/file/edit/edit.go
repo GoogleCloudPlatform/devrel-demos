@@ -4,11 +4,11 @@ package edit
 import (
 	"context"
 	"fmt"
+	"go/parser"
+	"go/token"
 	"os"
-	"path/filepath"
 	"strings"
 
-	"github.com/danicat/godoctor/internal/graph"
 	"github.com/danicat/godoctor/internal/roots"
 	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/danicat/godoctor/internal/tools/shared"
@@ -18,7 +18,7 @@ import (
 
 // Register registers the smart_edit tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["file_edit"]
+	def := toolnames.Registry["smart_edit"]
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        def.Name,
 		Title:       def.Title,
@@ -28,12 +28,12 @@ func Register(server *mcp.Server) {
 
 // Params defines the input parameters for the smart_edit tool.
 type Params struct {
-	Filename      string  `json:"filename" jsonschema:"The path to the file to edit"`
-	SearchContext string  `json:"search_context" jsonschema:"The block of code to find (ignores whitespace)"`
-	Replacement   string  `json:"replacement" jsonschema:"The new code to insert"`
-	Threshold     float64 `json:"threshold,omitempty" jsonschema:"Similarity threshold (0.0-1.0) for fuzzy matching, default 0.95"`
-	StartLine     int     `json:"start_line,omitempty" jsonschema:"Optional: restrict search to this line number and after"`
-	EndLine       int     `json:"end_line,omitempty" jsonschema:"Optional: restrict search to this line number and before"`
+	Filename   string  `json:"filename" jsonschema:"The path to the file to edit"`
+	OldContent string  `json:"old_content" jsonschema:"The block of code to find (ignores whitespace)"`
+	NewContent string  `json:"new_content" jsonschema:"The new code to insert"`
+	Threshold  float64 `json:"threshold,omitempty" jsonschema:"Similarity threshold (0.0-1.0) for fuzzy matching, default 0.95"`
+	StartLine  int     `json:"start_line,omitempty" jsonschema:"Optional: restrict search to this line number and after"`
+	EndLine    int     `json:"end_line,omitempty" jsonschema:"Optional: restrict search to this line number and before"`
 }
 
 func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
@@ -77,33 +77,33 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 		searchEnd = e
 	}
 
-	if args.SearchContext == "" {
+	if args.OldContent == "" {
 		// APPEND MODE
 		// Check if file ends with newline
 		if len(original) > 0 && !strings.HasSuffix(original, "\n") {
-			newContent = original + "\n" + args.Replacement
+			newContent = original + "\n" + args.NewContent
 		} else {
-			newContent = original + args.Replacement
+			newContent = original + args.NewContent
 		}
 	} else {
 		// EDIT MODE (Fuzzy Match)
 		// Restrict search to the specified window
 		searchArea := original[searchStart:searchEnd]
-		matchStart, matchEnd, score := findBestMatch(searchArea, args.SearchContext)
+		matchStart, matchEnd, score := findBestMatch(searchArea, args.OldContent)
 
 		if score < args.Threshold {
 			bestMatch := ""
 			if matchStart < matchEnd && matchEnd <= len(searchArea) {
 				bestMatch = searchArea[matchStart:matchEnd]
 			}
-			return errorResult(fmt.Sprintf("match not found with sufficient confidence (score: %.2f < %.2f).\n\nBest Match Found:\n```go\n%s\n```\n\nSuggestions: verify your search_context or lower threshold.", score, args.Threshold, bestMatch)), nil, nil
+			return errorResult(fmt.Sprintf("match not found with sufficient confidence (score: %.2f < %.2f).\n\nBest Match Found:\n```go\n%s\n```\n\nSuggestions: verify your old_content or lower threshold.", score, args.Threshold, bestMatch)), nil, nil
 		}
 
 		// Adjust local offsets to global offsets
 		matchStart += searchStart
 		matchEnd += searchStart
 
-		newContent = original[:matchStart] + args.Replacement + original[matchEnd:]
+		newContent = original[:matchStart] + args.NewContent + original[matchEnd:]
 	}
 
 	// 4. Auto-Format & Import check (GO ONLY)
@@ -115,7 +115,8 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 		formatted, err = imports.Process(args.Filename, []byte(newContent), nil)
 		if err != nil {
 			// Try to give a helpful error location
-			return errorResult(fmt.Sprintf("edit produced invalid Go code: %v\nHint: Ensure your Replacement is syntactically valid in context.", err)), nil, nil
+			snippet := shared.ExtractErrorSnippet(newContent, err)
+			return errorResult(fmt.Sprintf("edit produced invalid Go code: %v\n\nContext:\n```go\n%s\n```\nHint: Ensure your NewContent is syntactically valid in context.", err, snippet)), nil, nil
 		}
 	} else {
 		formatted = []byte(newContent)
@@ -127,61 +128,18 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 		return errorResult(fmt.Sprintf("failed to write file: %v", err)), nil, nil
 	}
 
-	// 6. Post-Check Verification (Type Check) (GO ONLY)
+	// 6. Post-Check Verification (Syntax Check) (GO ONLY)
 	var warning string
 
 	if isGo {
-		// We want to verify that the file compiles within its package
-		pkg, err := graph.Global.Load(args.Filename)
-
+		// We perform a final syntax check to ensure imports.Process didn't leave weirdness
+		fset := token.NewFileSet()
+		_, err := parser.ParseFile(fset, args.Filename, nil, parser.ParseComments)
 		if err != nil {
-			// Graph loading failed, maybe severe syntax error skipped by imports.Process?
-			warning = fmt.Sprintf("\n\n**WARNING:** Failed to reload package context: %v", err)
-		} else if len(pkg.Errors) > 0 {
-			warning = "\n\n**WARNING:** Edit successful but introduced compilation errors:\n"
-			for _, e := range pkg.Errors {
-				loc := ""
-				if e.Pos != "" {
-					loc = e.Pos + ": "
-				}
-				warning += fmt.Sprintf("- %s%s\n", loc, shared.CleanError(e.Msg))
-			}
-			                        warning += shared.GetDocHint(pkg.Errors)
-			                } else {
-			                        // 7. Impact Analysis (Reverse Dependencies)
-			                        // Only run if local compilation passed
-			                        // We limit this to avoiding massive scans in large repos, relying on the graph.
-			                        importers := graph.Global.FindImporters(pkg.PkgPath)
-			                        var impactWarnings []string
-			
-			                        for _, imp := range importers {
-			                                if len(imp.GoFiles) == 0 {
-			                                        continue
-			                                }
-			                                impDir := filepath.Dir(imp.GoFiles[0])
-			
-			                                // Force reload to check against new API
-			                                graph.Global.Invalidate(impDir)
-			
-			                                // Check for errors
-			                                reloadedImp, err := graph.Global.Load(impDir)
-			                                if err == nil && len(reloadedImp.Errors) > 0 {
-			                                        impactWarnings = append(impactWarnings, fmt.Sprintf("Package %s: %s", reloadedImp.PkgPath, reloadedImp.Errors[0].Msg))
-			                                }
-			                        }
-			
-			                        if len(impactWarnings) > 0 {
-			                                warning += "\n\n**IMPACT WARNING:** This edit broke the following dependent packages:\n"
-			                                for _, w := range impactWarnings {
-			                                        warning += fmt.Sprintf("- %s\n", w)
-			                                }
-			                                // Also check impact warnings for MCP hints if possible
-			                                // (impactWarnings are strings, so we use the output helper)
-			                                warning += shared.GetDocHintFromOutput(strings.Join(impactWarnings, "\n"))
-			                        }
-			                }
-			        }
-				return &mcp.CallToolResult{
+			warning = fmt.Sprintf("\n\n**WARNING:** Post-edit syntax check failed: %v", err)
+		}
+	}
+	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: fmt.Sprintf("Successfully edited %s%s", args.Filename, warning)},
 		},
@@ -190,14 +148,14 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 
 // findBestMatch locates the best match for 'search' within 'content' ignoring whitespace and newlines.
 // It returns the start and end byte offsets in the original content and a similarity score (0-1).
+// Implementation: Seeded Fuzzy Match (V2). significantly faster than sliding window.
 func findBestMatch(content, search string) (int, int, float64) {
-	// 1. Pre-process search string: remove all whitespace
 	normSearch := normalize(search)
-	if normSearch == "" {
-		return 0, 0, 0
-	}
-
-	// 2. Pre-process content: remove all whitespace and track original offsets
+		if normSearch == "" {
+			return 0, 0, 0
+		}
+	
+		// 1. Build File Map (Dense -> Original Offset)
 	type charMap struct {
 		char   rune
 		offset int
@@ -208,87 +166,115 @@ func findBestMatch(content, search string) (int, int, float64) {
 			mapped = append(mapped, charMap{char, offset})
 		}
 	}
-
-	// 3. Extract just the characters for searching
 	normContentRunes := make([]rune, len(mapped))
 	for i, cm := range mapped {
 		normContentRunes[i] = cm.char
 	}
 	normContent := string(normContentRunes)
 
-	// 4. Sliding window search on the normalized content
-	searchLen := len([]rune(normSearch))
+	// 2. Exact Match Check (Optimization)
+	if idx := strings.Index(normContent, normSearch); idx != -1 {
+		// strings.Index returns byte offset. We need rune index for 'mapped'.
+		// Count runes before the match to get the index into 'mapped'.
+		runeIdx := len([]rune(normContent[:idx]))
+
+		start := mapped[runeIdx].offset
+		end := mapped[runeIdx+len([]rune(normSearch))-1].offset + 1
+		return start, end, 1.0
+	}
+
+	// 3. Seeding Strategy
+	searchRunes := []rune(normSearch)
+	searchLen := len(searchRunes)
 	contentLen := len(normContentRunes)
 
 	if searchLen > contentLen {
-		// If search is longer than content, it definitely won't match perfectly,
-		// but let's at least return a score based on the whole file.
-		return 0, len(content), similarity(normSearch, normContent)
+		score := similarity(normSearch, normContent)
+		return 0, len(content), score
 	}
 
+	// Config
+	seedLen := 16
+	step := 8
+
+	// Use smaller seeds for smaller strings to ensure we can find matches around typos
+	if searchLen < 64 {
+		seedLen = 8
+		step = 4
+	}
+
+	// Fallback to simple scan for very short strings if seeds would be ineffective
+	if searchLen < seedLen {
+		seedLen = 4
+		step = 2
+	}
+
+	// Candidates map: projected_start_index -> votes
+	candidates := make(map[int]int)
+
+	// Helper to check a seed at specific offset
+	checkSeed := func(offset int) {
+		seed := string(searchRunes[offset : offset+seedLen])
+		startSearch := 0
+		for {
+			idx := strings.Index(normContent[startSearch:], seed)
+			if idx == -1 {
+				break
+			}
+			realIdx := startSearch + idx
+			projectedStart := realIdx - offset
+			if projectedStart >= 0 && projectedStart <= len(normContentRunes)-searchLen {
+				candidates[projectedStart]++
+			}
+			startSearch = realIdx + 1
+		}
+	}
+
+	// Scan with stride
+	for i := 0; i <= searchLen-seedLen; i += step {
+		// fmt.Printf("Checking seed i=%d: '%s'\n", i, string(searchRunes[i:i+seedLen]))
+		checkSeed(i)
+	}
+
+	// Ensure we check the tail (critical for short strings with typo at start)
+	if searchLen >= seedLen {
+		tailOffset := searchLen - seedLen
+		// Avoid double checking if tail aligns with step
+		if tailOffset%step != 0 {
+			// fmt.Printf("Checking tail seed i=%d: '%s'\n", tailOffset, string(searchRunes[tailOffset:tailOffset+seedLen]))
+			checkSeed(tailOffset)
+		}
+	}
+
+	// 4. Verification
 	bestScore := 0.0
 	bestStartIdx := 0
 	bestEndIdx := 0
 
-	// We use a small buffer around the search length to account for slight mismatches
-	// but a substring search is the primary goal.
-	// Optimization: check for exact substring match first
-	exactIdx := strings.Index(normContent, normSearch)
-	if exactIdx != -1 {
-		start := mapped[exactIdx].offset
-		endIdx := exactIdx + searchLen - 1
-		end := mapped[endIdx].offset + 1 // +1 to include the character itself
+	// If no candidates found (massive typo or very short string?), fallback to sliding window?
+	// But V1 fallback is O(N*M). Let's stick to candidates for now.
+	// If candidates is empty, we return 0 match.
 
-		// For Go, we want to include the rest of the line if it was just whitespace
-		// and we should check if we ended in the middle of a multi-byte char
-		// but mapped[].offset is already the byte index.
-		return start, end, 1.0
-	}
-
-	// Fuzzy matching with sliding window
-	// Check windows of varying lengths to account for insertions/deletions
-	// We check searchLen +/- 10%
-	delta := searchLen / 10
-	if delta < 2 {
-		delta = 2
-	}
-
-	for i := 0; i <= contentLen-searchLen; i++ {
-		// Optimization: heuristic filter? (e.g. first char match)
-		// normalized content first char check is cheap
-		if normContent[i] != normSearch[0] {
-			// Optimization: Skip if start char doesn't match?
-			// Levenshtein handles substitution of first char, so skipping might miss that.
-			// But for code matching, usually start aligns.
-			// Let's keep it safe and NOT skip yet.
+	for startIdx := range candidates {
+		// Define window
+		endIdx := startIdx + searchLen
+		if endIdx > len(normContentRunes) {
+			endIdx = len(normContentRunes)
 		}
 
-		for l := searchLen - delta; l <= searchLen+delta; l++ {
-			if l <= 0 {
-				continue
-			}
-			if i+l > contentLen {
-				break
-			}
-			window := normContent[i : i+l]
-			score := similarity(normSearch, window)
+		window := string(normContentRunes[startIdx:endIdx])
+		score := similarity(normSearch, window)
 
-			if score > bestScore {
-				bestScore = score
-				bestStartIdx = i
-				bestEndIdx = i + l - 1
-			}
-
-			if bestScore == 1.0 {
-				goto Found
-			}
+		if score > bestScore {
+			bestScore = score
+			bestStartIdx = startIdx
+			bestEndIdx = endIdx
 		}
 	}
-Found:
 
 	if bestScore > 0 {
 		start := mapped[bestStartIdx].offset
-		end := mapped[bestEndIdx].offset + 1
+		end := mapped[bestEndIdx-1].offset + 1
 		return start, end, bestScore
 	}
 

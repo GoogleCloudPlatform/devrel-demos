@@ -1,4 +1,7 @@
-// Package server implements the main MCP server logic.
+// Package server implements the Model Context Protocol (MCP) server for godoctor.
+// It orchestrates the tool registration, handles incoming client requests (via Stdio or HTTP),
+// and manages the lifecycle of the server. It connects the core logic (tools, graph)
+// to the external world.
 package server
 
 import (
@@ -11,19 +14,15 @@ import (
 	"github.com/danicat/godoctor/internal/config"
 	"github.com/danicat/godoctor/internal/instructions"
 	"github.com/danicat/godoctor/internal/prompts"
-	"github.com/danicat/godoctor/internal/resources/code"
 	resgodoc "github.com/danicat/godoctor/internal/resources/godoc"
-	"github.com/danicat/godoctor/internal/resources/symbol"
 	"github.com/danicat/godoctor/internal/roots"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	// Tools
 	"github.com/danicat/godoctor/internal/tools/agent/review"
-	"github.com/danicat/godoctor/internal/tools/cmd/run"
 	"github.com/danicat/godoctor/internal/tools/file/create"
 	"github.com/danicat/godoctor/internal/tools/file/edit"
 	"github.com/danicat/godoctor/internal/tools/file/list"
-	"github.com/danicat/godoctor/internal/tools/file/outline"
 	"github.com/danicat/godoctor/internal/tools/file/read"
 	"github.com/danicat/godoctor/internal/tools/go/build"
 	"github.com/danicat/godoctor/internal/tools/go/diff"
@@ -31,8 +30,6 @@ import (
 	"github.com/danicat/godoctor/internal/tools/go/get"
 	"github.com/danicat/godoctor/internal/tools/go/modernize"
 	"github.com/danicat/godoctor/internal/tools/go/test"
-	"github.com/danicat/godoctor/internal/tools/symbol/inspect"
-	"github.com/danicat/godoctor/internal/tools/symbol/rename"
 )
 
 // Server encapsulates the MCP server and its configuration.
@@ -101,25 +98,19 @@ func (s *Server) RegisterHandlers() error {
 	}
 
 	availableTools := []toolDef{
-		{name: "go_docs", register: docs.Register},
-		{name: "safe_shell", register: func(srv *mcp.Server) {
-			run.Register(srv)
-		}},
+		{name: "read_docs", register: docs.Register},
 		{name: "code_review", register: func(srv *mcp.Server) {
 			review.Register(srv, s.cfg.DefaultModel)
 		}},
-		{name: "file_read", register: read.Register},
-		{name: "file_outline", register: outline.Register},
-		{name: "symbol_inspect", register: inspect.Register},
-		{name: "file_edit", register: edit.Register},
+		{name: "smart_read", register: read.Register},
+		{name: "smart_edit", register: edit.Register},
 		{name: "file_create", register: create.Register},
-		{name: "go_diff", register: diff.Register},
-		{name: "go_modernize", register: modernize.Register},
-		{name: "file_list", register: list.Register},
-		{name: "go_build", register: build.Register},
-		{name: "go_get", register: get.Register},
-		{name: "go_test", register: test.Register},
-		{name: "symbol_rename", register: rename.Register},
+		{name: "check_api", register: diff.Register},
+		{name: "modernize_code", register: modernize.Register},
+		{name: "list_files", register: list.Register},
+		{name: "verify_build", register: build.Register},
+		{name: "add_dependency", register: get.Register},
+		{name: "verify_tests", register: test.Register},
 	}
 
 	validTools := make(map[string]bool)
@@ -147,18 +138,6 @@ func (s *Server) RegisterHandlers() error {
 		if !validTools[name] {
 			return fmt.Errorf("unknown tool disabled: %s", name)
 		}
-	}
-
-	// Register extra resources based on enabled domains
-	if s.registeredTools["file"] || s.registeredTools["go"] {
-		if !s.registeredTools["code"] {
-			code.Register(s.mcpServer)
-			s.registeredTools["code"] = true
-		}
-	}
-	if s.registeredTools["symbol"] {
-		symbol.Register(s.mcpServer)
-		s.registeredTools["symbol"] = true
 	}
 
 	// Register extra resources based on enabled domains

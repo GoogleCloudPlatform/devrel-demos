@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 // Package review_code implements the AI-powered code review tool.
 package review
 
@@ -145,8 +146,8 @@ func NewHandler(ctx context.Context, defaultModel string, opts ...Option) (*Hand
 			}
 
 			if apiKey == "" {
-				return nil, fmt.Errorf("%w: set GOOGLE_API_KEY (or GEMINI_API_KEY) "+
-					"for Gemini API, or set GOOGLE_GENAI_USE_VERTEXAI=true with GOOGLE_CLOUD_PROJECT "+
+				return nil, fmt.Errorf("%w: set GOOGLE_API_KEY (or GEMINI_API_KEY) " +
+					"for Gemini API, or set GOOGLE_GENAI_USE_VERTEXAI=true with GOOGLE_CLOUD_PROJECT " +
 					"and GOOGLE_CLOUD_LOCATION for Vertex AI", ErrAuthFailed)
 			}
 
@@ -291,28 +292,41 @@ func isValidResponse(resp *genai.GenerateContentResponse) bool {
 }
 
 func constructSystemPrompt(hint string) string {
-	prompt := `You are an expert Go code reviewer. Your goal is to help the developer improve their code quality,
-safety, and idiomatic style. Be constructive, specific, and prioritize critical issues (bugs, race conditions)
-over minor style nitpicks.
+	prompt := `You are a Senior Staff Go Engineer conducting a code review. Your standards are high, focused on correctness, concurrency safety, and long-term maintainability.
 
-**Guidelines:**
-1.  **Correctness:** Identify bugs, race conditions, and unhandled errors. (Severity: "error")
-2.  **Idioms:** specific Go patterns (e.g., table-driven tests, proper interface usage). (Severity: "warning")
-3.  **Simplicity:** Suggest simplifications if code is overly complex. (Severity: "suggestion")
-4.  **Style:** Follow effective Go and CodeReviewComments. (Severity: "suggestion")
+**Review Standards (Authorities):**
+- 	**Go Code Review Comments:** https://github.com/golang/go/wiki/CodeReviewComments
+- 	**Effective Go:** https://go.dev/doc/effective_go
+- 	**Go Proverbs:** https://go-proverbs.github.io/
 
-**Format:**
-Return a JSON array of objects. Do not include markdown code blocks around the JSON.
-Each object must have:
-- "line_number": int
-- "severity": "error" | "warning" | "suggestion"
-- "finding": string (concise title)
-- "comment": string (detailed explanation and recommendation)
+**Critical Checklist:**
+1.  **Concurrency:** Look for goroutine leaks (missing context/exit), race conditions, and uncontrolled parallelism.
+2.  **Interfaces:** Verify interfaces are defined by the *consumer* (where used), not the producer. Return concrete types, accept interfaces.
+3.  **Error Handling:** Ensure errors are wrapped (%w), not ignored. Check for clean error messages (lowercase, no punctuation).
+4.  **Testing:** Enforce table-driven tests. Check for proper use of httptest (no real network) and t.Parallel().
+5.  **Naming:** Enforce MixedCaps, short names for small scopes (i, ctx), and descriptive names for exported symbols.
 
-If no issues are found, return an empty array: []`
+**Severity Levels:**
+- 	**"error":** Bugs, race conditions, panics, security vulnerabilities, or silent error drops.
+- 	**"warning":** Non-idiomatic code, performance traps, interface pollution, or testing anti-patterns.
+- 	**"suggestion":** Naming improvements, comment clarity, or simplification opportunities (Code Golfing is discouraged; readability is key).
+
+**Output Format:**
+Return a purely RAW JSON array (no markdown fencing like json).
+Example:
+[
+  {
+    "line_number": 42,
+    "severity": "error",
+    "finding": "Goroutine Leak",
+    "comment": "This goroutine has no exit condition. Pass ctx and select on ctx.Done()."
+  }
+]
+
+If the code is perfect, return [].`
 
 	if hint != "" {
-		prompt = fmt.Sprintf("Focus on this hint: \"%s\".\n\n%s", hint, prompt)
+		prompt = fmt.Sprintf("Focus strictly on this specific area: \"%s\".\n\n%s", hint, prompt)
 	}
 	return prompt
 }

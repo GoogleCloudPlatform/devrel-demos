@@ -14,10 +14,8 @@ import (
 	"strings"
 
 	"github.com/danicat/godoctor/internal/godoc"
-	"github.com/danicat/godoctor/internal/graph"
 	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"golang.org/x/tools/go/packages"
 )
 
 // Register registers the code_outline tool with the server.
@@ -55,7 +53,7 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 	if len(errs) > 0 {
 		sb.WriteString("## Analysis (Problems)\n")
 		for _, e := range errs {
-			sb.WriteString(fmt.Sprintf("- ⚠️ %s\n", e.Msg))
+			sb.WriteString(fmt.Sprintf("- ⚠️ %v\n", e))
 		}
 		sb.WriteString("\n")
 	}
@@ -73,15 +71,14 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 			// Clean quotes
 			pkgPath := strings.Trim(imp, "\"")
 
-			// Skip standard lib for brevity? Spec says "external imports".
-			// Standard lib usually has no dot (except "net/http", "archive/zip").
-			// Heuristic: if no dot in first segment, it's std (usually).
-			// Example: "fmt", "net/http" (dot in path but not domain).
-			// "github.com/..." has domain.
-
-			// Let's rely on godoc resolution.
-			// We only want to burn tokens on non-std or meaningful deps.
-			// Let's show all for now but minimal summary.
+			// Skip standard library packages.
+			// Heuristic: Standard library packages generally do not have a dot in the first path segment
+			// (e.g., "fmt", "net/http", "os"), whereas external packages start with a domain name
+			// (e.g., "github.com/...", "golang.org/...").
+			parts := strings.SplitN(pkgPath, "/", 2)
+			if !strings.Contains(parts[0], ".") {
+				continue
+			}
 
 			doc, err := godoc.Load(ctx, pkgPath, "")
 
@@ -121,35 +118,22 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 }
 
 // GetOutline loads a file and returns its outline, list of imports, and build errors.
-func GetOutline(file string) (string, []string, []packages.Error, error) {
-	// 1. Load into Knowledge Graph
-	pkg, err := graph.Global.Load(file)
+func GetOutline(file string) (string, []string, []error, error) {
+	fset := token.NewFileSet()
+	//nolint:gosec // G304: File path provided by user is expected.
+	content, err := os.ReadFile(file)
 	if err != nil {
-		return "", nil, nil, fmt.Errorf("failed to load package context: %w", err)
+		return "", nil, nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
-	// 2. Find the specific file
-	var targetFile *ast.File
-	var fset *token.FileSet
-	for _, f := range pkg.Syntax {
-		if pkg.Fset.File(f.Pos()).Name() == file {
-			targetFile = f
-			fset = pkg.Fset
-			break
-		}
+	targetFile, err := parser.ParseFile(fset, file, content, parser.ParseComments)
+	var errs []error
+	if err != nil {
+		errs = append(errs, err)
 	}
 
 	if targetFile == nil {
-		//nolint:gosec // G304: File path provided by user is expected.
-		content, err := os.ReadFile(file)
-		if err != nil {
-			return "", nil, nil, fmt.Errorf("failed to read file: %w", err)
-		}
-		fset = token.NewFileSet()
-		targetFile, err = parser.ParseFile(fset, file, content, parser.ParseComments)
-		if err != nil {
-			return "", nil, nil, fmt.Errorf("failed to parse file: %w", err)
-		}
+		return "", nil, errs, fmt.Errorf("failed to parse file: %w", err)
 	}
 
 	// 3. Extract imports
@@ -167,7 +151,7 @@ func GetOutline(file string) (string, []string, []packages.Error, error) {
 	var buf bytes.Buffer
 	config := &printer.Config{Mode: printer.TabIndent | printer.UseSpaces, Tabwidth: 8}
 	if err := config.Fprint(&buf, fset, outline); err != nil {
-		return "", nil, nil, fmt.Errorf("failed to format outline: %w", err)
+		return "", nil, errs, fmt.Errorf("failed to format outline: %w", err)
 	}
 
 	formatted, err := format.Source(buf.Bytes())
@@ -175,7 +159,7 @@ func GetOutline(file string) (string, []string, []packages.Error, error) {
 		formatted = buf.Bytes()
 	}
 
-	return string(formatted), imports, pkg.Errors, nil
+	return string(formatted), imports, errs, nil
 }
 
 func outlinize(f *ast.File) *ast.File {

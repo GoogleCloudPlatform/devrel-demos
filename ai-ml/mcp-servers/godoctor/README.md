@@ -7,49 +7,43 @@
 GoDoctor organizes its capabilities into domain-specific tools to streamline development workflows.
 
 ### 🔍 Navigation & Discovery
-*   **`file_list`**: Explore the project hierarchy recursively to understand the architecture.
-*   **`file_outline`**: View file structure (imports, types, signatures) with minimal token usage.
-*   **`file_read`**: Read source code with added context about external symbols (signatures and docs).
-*   **`symbol_inspect`**: Retrieve "Ground Truth" for any symbol—its definition, source code, and related types.
+*   **`list_files`**: Explore the project hierarchy recursively to understand the architecture.
+*   **`smart_read`**: **The Universal Reader.** Inspects file content, structure (outline), or specific snippets. Includes documentation for imported packages.
 
 ### ✏️ Smart Editing
 *   **`file_create`**: Initialize a new source file with proper boilerplate and import organization.
-*   **`file_edit`**: Perform targeted code modifications using fuzzy-matching. Automatically handles formatting and verifies compilation before finalizing.
-*   **`symbol_rename`**: Safely execute semantic renames of identifiers across the entire project.
+*   **`smart_edit`**: Perform targeted code modifications using Levenshtein distance matching. Automatically handles formatting and checks syntax before finalizing.
 
 ### 🛠️ Go Toolchain Integration
-*   **`go_build`**: Compile the project to verify changes.
-*   **`go_test`**: Execute tests with support for regex filtering.
-*   **`go_get`**: Manage module dependencies and update `go.mod`.
-*   **`go_docs`**: Query documentation for any package or symbol in the Go ecosystem.
-*   **`go_modernize`**: Automatically upgrade legacy Go patterns to modern standards.
-*   **`go_diff`**: Detect breaking API changes between versions.
+*   **`verify_build`**: Compile the project to verify changes and get actionable error hints.
+*   **`verify_tests`**: Execute tests with **Smart Reporting** (Summary tables, Failure isolation, Coverage %).
+*   **`add_dependency`**: Manage module dependencies and immediately fetch documentation for the new package.
+*   **`read_docs`**: Query documentation for any package or symbol in the Go ecosystem.
+*   **`modernize_code`**: Automatically upgrade legacy Go patterns to modern standards.
+*   **`check_api`**: Detect breaking API changes between versions.
 
-### 🤖 Expert Assistance & Safety
+### 🤖 Expert Assistance
 *   **`code_review`**: Submit code for expert AI analysis focusing on correctness and idiomatic style.
-*   **`safe_shell`**: Execute CLI commands safely with output capping and timeout management.
+
 
 ## Installation
 
-### Prerequisites
-*   Go 1.24 or later
-*   Make
+### For Gemini CLI Users (Recommended)
 
-### Quick Install
+If you use the [Gemini CLI](https://github.com/google/gemini-cli), you can install GoDoctor as an extension. This is the easiest way for most Go developers to use it.
 
-```bash
-make install
-# Installs to $GOPATH/bin/godoctor
-```
+1.  **Install the binary:**
+    ```bash
+    go install github.com/danicat/godoctor@latest
+    ```
+2.  **Install the extension:**
+    ```bash
+    gemini extensions install https://github.com/danicat/godoctor
+    ```
 
-### Build from Source
+### For GoDoctor Developers
+... (rest of the existing installation)
 
-```bash
-git clone https://github.com/danicat/godoctor.git
-cd godoctor
-make build
-# Binary will be in bin/godoctor
-```
 
 ## Configuration
 

@@ -12,9 +12,9 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// Register registers the read_docs tool with the server.
+// Register registers the tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["go_docs"]
+	def := toolnames.Registry["read_docs"]
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        def.Name,
 		Title:       def.Title,

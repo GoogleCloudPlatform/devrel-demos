@@ -57,37 +57,25 @@ func main() {
 		t.Fatal("no content returned")
 	}
 
-	textContent, ok := res.Content[0].(*mcp.TextContent)
-	if !ok {
-		t.Fatal("content is not text")
-	}
-	text := textContent.Text
-
-	// Check for line numbers
-	if !strings.Contains(text, "   1 | package main") {
-		t.Errorf("expected line numbers (e.g. '   1 | package main'), got: %s", text)
+	output := res.Content[0].(*mcp.TextContent).Text
+	if !strings.Contains(output, "## Imported Packages") {
+		t.Errorf("expected Imported Packages section, got: %s", output)
 	}
 
-	// Check that Symbols are GONE
-	if strings.Contains(text, "## Symbols") {
-		t.Error("Output should NOT contain ## Symbols section anymore")
+	if !strings.Contains(output, "fmt") {
+		t.Errorf("expected fmt in imported packages, got: %s", output)
 	}
 
-	// Check for Analysis
-	if !strings.Contains(text, "## Analysis (Problems)") {
-		t.Errorf("expected Analysis section, got: %s", text)
+	// 2. Syntax Error Check
+	srcBroken := `package main
+func main() { this is invalid }`
+	if err := os.WriteFile(srcFile, []byte(srcBroken), 0644); err != nil {
+		t.Fatal(err)
 	}
-	if !strings.Contains(text, "undefined: undefinedFunc") {
-		t.Errorf("expected undefinedFunc error in analysis, got: %s", text)
-	}
-
-	// Check for Referenced Symbols
-	// Note: We used "fmt" in the test code, so it should appear
-	if !strings.Contains(text, "## Referenced Symbols") {
-		t.Errorf("expected Referenced Symbols section, got: %s", text)
-	}
-	if !strings.Contains(text, "- `fmt.Println`") {
-		t.Errorf("expected fmt.Println in dependencies, got: %s", text)
+	res2, _, _ := readCodeHandler(context.Background(), nil, Params{Filename: srcFile})
+	output2 := res2.Content[0].(*mcp.TextContent).Text
+	if !strings.Contains(output2, "## Analysis (Problems)") {
+		t.Errorf("expected Analysis section for broken syntax, got: %s", output2)
 	}
 }
 

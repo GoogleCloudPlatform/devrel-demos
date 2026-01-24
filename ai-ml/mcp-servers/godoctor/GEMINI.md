@@ -9,7 +9,7 @@ The project is architected with a separation between **Internal Tool Logic** and
 ### Key Concepts
 
 *   **Tool Registry:** A centralized definition file (`internal/toolnames/registry.go`) that maps stable internal logic to agent-facing descriptions and instructions.
-*   **Safe Editing:** The editor (`file_edit`) uses fuzzy matching and pre-verification (syntax checks, `goimports`) to ensure safe code modifications.
+*   **Safe Editing:** The editor (`smart_edit`) uses Levenshtein distance matching and pre-verification (syntax checks, `goimports`) to ensure safe code modifications. Use `start_line` and `end_line` for precise targeting.
 
 ## Building and Running
 
@@ -42,27 +42,28 @@ The project is architected with a separation between **Internal Tool Logic** and
 
 ### Project Structure
 
-The project follows a domain-driven package layout for tools:
+The project follows a modular package layout:
 
 *   **`cmd/godoctor/`**: Main entry point.
-*   **`internal/server/`**: MCP server implementation and tool wiring.
-*   **`internal/toolnames/`**: **CRITICAL**. Contains `registry.go`, which defines the Name, Title, Description, and Instructions for *all* tools. Modify this file to change how agents perceive tools.
-*   **`internal/tools/`**: Tool implementations grouped by domain.
-    *   `file/` (`create`, `edit`, `read`, `list`, `outline`)
-    *   `symbol/` (`inspect`, `rename`)
-    *   `go/` (`build`, `test`, `get`, `modernize`, `diff`, `docs`)
-    *   `agent/` (`review`)
+*   **`internal/server/`**: MCP server implementation and tool orchestration.
+*   **`internal/toolnames/`**: **CRITICAL**. Centralized tool registry. Modify this file to change tool names, descriptions, or instructions.
+*   **`internal/tools/`**: Tool implementations grouped by functional domain (`file/`, `go/`, `agent/`).
 
 ### Adding a New Tool
 
 1.  **Implement:** Create a new package in `internal/tools/<domain>/<toolname>/`.
-2.  **Define:** Add the tool definition to `internal/toolnames/registry.go`.
+2.  **Define:** Add the tool metadata to `internal/toolnames/registry.go`.
 3.  **Register:** Add the registration logic to `internal/server/server.go`.
 
 ### Tool Naming Convention
 
-Tools follow a `domain_verb` naming convention (e.g., `file_create`, `go_build`). These names are stable and used by the agent to invoke functionality.
+Tools follow an **Intent-Driven** naming convention (e.g., `smart_read`, `smart_edit`, `verify_tests`). These names are chosen to map directly to the LLM's goal, reducing cognitive load and improving selection accuracy.
+
+
+
 
 ### Documentation
+
+
 
 *   **`EVOLUTION.md`**: History of tool changes and architectural shifts.

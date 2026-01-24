@@ -1,4 +1,6 @@
-// Package config handles configuration loading for the application.
+// Package config handles the loading and management of the application's configuration.
+// It parses command-line arguments and defines the runtime settings for the godoctor server,
+// including server address, model selection, and tool enablement/disablement policies.
 package config
 
 import (

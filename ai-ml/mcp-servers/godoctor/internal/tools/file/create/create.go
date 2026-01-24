@@ -4,13 +4,13 @@ package create
 import (
 	"context"
 	"fmt"
+	"go/parser"
+	"go/token"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/danicat/godoctor/internal/graph"
 	"github.com/danicat/godoctor/internal/toolnames"
-	"github.com/danicat/godoctor/internal/tools/shared"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/tools/imports"
 )
@@ -62,19 +62,12 @@ func toolHandler(_ context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.C
 
 	// 4. Post-Check Verification (GO ONLY)
 	if strings.HasSuffix(args.Filename, ".go") {
-		pkg, err := graph.Global.Load(args.Filename)
-		if err == nil && len(pkg.Errors) > 0 {
-			warning = "\n\n**WARNING:** Write successful but introduced errors:\n"
-			for _, e := range pkg.Errors {
-				loc := ""
-				if e.Pos != "" {
-					loc = e.Pos + ": "
-				}
-				                                        warning += fmt.Sprintf("- %s%s\n", loc, shared.CleanError(e.Msg))
-				                        }
-				                        warning += shared.GetDocHint(pkg.Errors)
-				                }
-				        }
+		fset := token.NewFileSet()
+		_, err := parser.ParseFile(fset, args.Filename, nil, parser.ParseComments)
+		if err != nil {
+			warning = fmt.Sprintf("\n\n**WARNING:** Post-write syntax check failed: %v", err)
+		}
+	}
 					return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: fmt.Sprintf("Successfully wrote %s%s", args.Filename, warning)},
