@@ -50,21 +50,17 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 	// Run in current directory
 	output, err := cmd.CombinedOutput()
 
-	result := string(output)
+	var sb strings.Builder
+	isError := false
+
 	if err != nil {
-		return &mcp.CallToolResult{
-			IsError: true,
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: fmt.Sprintf("go get failed: %v\nOutput:\n%s", err, result)},
-			},
-		}, nil, nil
+		isError = true
+		sb.WriteString(fmt.Sprintf("go get failed: %v\nOutput:\n%s\n", err, string(output)))
+	} else {
+		sb.WriteString(fmt.Sprintf("Successfully ran 'go get %s'\n", strings.Join(args.Packages, " ")))
 	}
 
-	// Build success message
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Successfully ran 'go get %s'\n", strings.Join(args.Packages, " ")))
-
-	// Auto-fetch documentation for each package
+	// Auto-fetch documentation for each package (even on failure, to provide context)
 	for _, pkg := range args.Packages {
 		// Strip version suffix if present (e.g., @latest, @v1.2.3)
 		pkgPath := strings.Split(pkg, "@")[0]
@@ -76,6 +72,7 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 	}
 
 	return &mcp.CallToolResult{
+		IsError: isError,
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: sb.String()},
 		},

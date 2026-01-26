@@ -60,13 +60,18 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 	if len(args.Dependencies) > 0 {
 		sb.WriteString("- Dependencies:\n")
 		for _, dep := range args.Dependencies {
+			pkgPath := strings.Split(dep, "@")[0]
 			if out, err := runCommand(ctx, absPath, "go", "get", dep); err != nil {
 				sb.WriteString(fmt.Sprintf("  - ⚠️ Failed to get `%s`: %v\n", dep, out))
+				// Try to fetch docs anyway to help the user debug
+				if docContent := godoc.GetDocumentationWithFallback(ctx, pkgPath); docContent != "" {
+					sb.WriteString("\n")
+					sb.WriteString(docContent)
+				}
 			} else {
 				sb.WriteString(fmt.Sprintf("  - ✅ `%s` installed\n", dep))
 				
 				// Fetch docs
-				pkgPath := strings.Split(dep, "@")[0]
 				if docContent := godoc.GetDocumentationWithFallback(ctx, pkgPath); docContent != "" {
 					sb.WriteString("\n")
 					sb.WriteString(docContent)
