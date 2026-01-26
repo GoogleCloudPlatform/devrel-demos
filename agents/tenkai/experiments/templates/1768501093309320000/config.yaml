@@ -1,13 +1,10 @@
-name: godoctor mcp server
-description: >-
-  Compare the effectiveness of using different configurations of godoctor in
-  Gemini CLI for development of Go programs
+name: godoctor MCP server
+description: Test the efficacy of the godoctor MCP against the base configuration.
 reps: 1
-concurrent: 5
-timeout: ''
+concurrent: 1
+timeout: 30m
 experiment_control: default
-scenarios:
-  - scenarios/1
+scenarios: []
 alternatives:
   - name: default
     description: Base Gemini CLI
@@ -16,35 +13,55 @@ alternatives:
       - '-y'
       - '-o'
       - stream-json
-      - '-m'
-      - gemini-3-pro-preview
-  - name: godoctor
-    description: All core tools enabled
+    settings_blocks: []
+    extensions: []
+    skills: []
+    mcp_servers: []
+    settings: {}
+  - name: godoctor-mcp
+    description: godoctor configured as mcp server
     command: gemini
     args:
       - '-y'
       - '-o'
       - stream-json
-      - '-m'
-      - gemini-3-pro-preview
-    settings:
-      mcpServers:
-        godoctor:
-          args: []
-          command: godoctor
-  - name: godoctor-no-core
-    description: No core tools enabled
+    settings_blocks: []
+    extensions: []
+    skills: []
+    mcp_servers:
+      - _ui_name: Godoctor
+        args: []
+        command: godoctor
+    settings: {}
+  - name: godoctor-extension
+    description: godoctor configured via extension
     command: gemini
     args:
       - '-y'
       - '-o'
       - stream-json
-      - '-m'
-      - gemini-3-pro-preview
-    settings:
-      mcpServers:
-        godoctor:
-          args: []
-          command: godoctor
-      tools:
-        core: []
+    settings_blocks: []
+    extensions:
+      - _ui_name: Godoctor
+        mode: link
+        source: /Users/petruzalek/projects/godoctor
+    skills: []
+    mcp_servers: []
+    settings: {}
+  - name: godoctor-extension-skills
+    description: godoctor configured via extension with skills enabled
+    command: gemini
+    args:
+      - '-y'
+      - '-o'
+      - stream-json
+    settings_blocks:
+      - _ui_name: Enable Skills (Experimental)
+        experimental.skills: true
+    extensions:
+      - _ui_name: Godoctor
+        mode: link
+        source: /Users/petruzalek/projects/godoctor
+    skills: []
+    mcp_servers: []
+    settings: {}

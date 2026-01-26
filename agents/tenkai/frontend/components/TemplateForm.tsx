@@ -6,64 +6,111 @@ import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input, TextArea } from "./ui/input";
-import { Select } from "./ui/select";
-import { ScenarioSelector } from "./ScenarioSelector";
-
+import { ConfigBlock, ConfigBlockType } from "@/types/domain";
 import yaml from "js-yaml";
-
-interface Scenario {
-    id: string;
-    name: string;
-    description: string;
-}
+import { Trash2, Copy, Plus, X, Search, Check } from "lucide-react";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command"
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 interface TemplateFormProps {
-    scenarios: Scenario[];
+    blocks: ConfigBlock[];
     initialData?: any;
     mode?: 'create' | 'edit';
     isLocked?: boolean;
 }
 
-export default function TemplateForm({ scenarios, initialData, mode = 'create', isLocked = false }: TemplateFormProps) {
+export default function TemplateForm({ blocks, initialData, mode = 'create', isLocked = false }: TemplateFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Filtered blocks helper
+    const getBlocksByType = (type: ConfigBlockType) => blocks.filter(b => b.type === type);
+
     // State for Visual Editor
     const [name, setName] = useState(initialData?.name || initialData?.config?.name || "");
     const [description, setDescription] = useState(initialData?.description || initialData?.config?.description || "");
-    const [reps, setReps] = useState(initialData?.config?.reps || 1);
-    const [concurrent, setConcurrent] = useState(initialData?.config?.concurrent || 1);
-    const [timeout, setTimeoutVal] = useState(initialData?.config?.timeout || "");
-    const [selectedScenarios, setSelectedScenarios] = useState<string[]>(
-        Array.from(new Set(initialData?.config?.scenarios?.map((s: string | any) => {
-            // Handle both legacy object {id: ...} and new string "scenarios/id"
-            if (typeof s === 'string') return s.split('/').pop() || s;
-            return String(s.id);
-        }) || []))
-    );
-    const [alternatives, setAlternatives] = useState<any[]>(
-        initialData?.config?.alternatives || [
-            { name: "", description: "", system_prompt: "", settings: {} }
-        ]
-    );
-    const [experimentControl, setExperimentControl] = useState(initialData?.config?.experiment_control || "");
-    const [fileUploads, setFileUploads] = useState<Record<string, string>>({});
+    // Runtime Config removed from Template Editor (defaults used)
+    // const [reps, setReps] = useState(initialData?.config?.reps || 1);
+    // const [concurrent, setConcurrent] = useState(initialData?.config?.concurrent || 1);
+    // const [timeout, setTimeoutVal] = useState(initialData?.config?.timeout || "");
 
-    const handleScenarioToggle = (id: string | number) => {
-        const strId = String(id);
-        setSelectedScenarios(prev => {
-            const normalizedPrev = prev.map(String);
-            if (normalizedPrev.includes(strId)) {
-                return normalizedPrev.filter(s => s !== strId);
-            }
-            return [...normalizedPrev, strId];
-        });
+
+    // Robust ID generator
+    const safeUUID = () => {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+        return `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     };
+
+    // Alternatives State
+    // We add a temporary _ui_id to track items stably in the UI even if names change or are dupes
+    const [alternatives, setAlternatives] = useState<any[]>(
+        (initialData?.config?.alternatives || [
+            { name: "default", description: "", command: "", args: [], settings: {} }
+        ]).map((a: any) => ({ ...a, _ui_id: safeUUID() }))
+    );
+
+    // Effect: Auto-populate first agent for default/existing alternatives if command is empty
+    // Only runs once on mount if blocks are available
+    useState(() => {
+        if (blocks.length > 0) {
+            const firstAgent = blocks.find(b => b.type === 'agent');
+            if (firstAgent) {
+                try {
+                    const c = JSON.parse(firstAgent.content);
+                    setAlternatives(prev => prev.map(a => {
+                        if (!a.command) {
+                            return { ...a, command: c.command, args: c.args };
+                        }
+                        return a;
+                    }));
+                } catch (e) { }
+            }
+        }
+    });
+    const [experimentControl, setExperimentControl] = useState(initialData?.config?.experiment_control || "");
 
     const addAlternative = () => {
         if (alternatives.length >= 10) return;
-        setAlternatives([...alternatives, { name: "", description: "", system_prompt: "", command: "gemini", args: ["-y"], settings: {} }]);
+
+        // Auto-populate with first agent
+        let defaultAgent = { command: "", args: [] as string[] };
+        const firstAgentBlock = blocks.find(b => b.type === 'agent');
+        if (firstAgentBlock) {
+            try {
+                const c = JSON.parse(firstAgentBlock.content);
+                defaultAgent.command = c.command;
+                defaultAgent.args = c.args;
+            } catch (e) {
+                console.error("Failed to parse default agent block", e);
+            }
+        }
+
+        setAlternatives([...alternatives, {
+            _ui_id: safeUUID(),
+            name: `alt-${alternatives.length + 1}`,
+            description: "",
+            command: defaultAgent.command,
+            args: defaultAgent.args,
+            // Initialize optional lists
+            extensions: [],
+            skills: [],
+            mcp_servers: [],
+            settings_blocks: []
+        }]);
     };
 
     const updateAlternative = (index: number, field: string, value: any) => {
@@ -72,34 +119,8 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create', 
         setAlternatives(newAlts);
     };
 
-    const handleFileRead = (file: File, callback: (content: string) => void) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            if (e.target?.result) callback(e.target.result as string);
-        };
-        reader.readAsText(file);
-    };
-
-    const handleAltFileUpload = (index: number, type: 'system_prompt' | 'context' | 'settings', file: File) => {
-        handleFileRead(file, (content) => {
-            const filename = file.name;
-            setFileUploads(prev => ({ ...prev, [filename]: content }));
-
-            // Update alternative config to reference the file path
-            if (type === 'system_prompt') {
-                updateAlternative(index, 'system_prompt_file', `./${filename}`);
-                updateAlternative(index, 'system_prompt', ''); // Clear inline
-            } else if (type === 'context') {
-                updateAlternative(index, 'context_file_path', `./${filename}`);
-                updateAlternative(index, 'context', ''); // Clear inline
-            } else if (type === 'settings') {
-                updateAlternative(index, 'settings_path', `./${filename}`);
-                updateAlternative(index, 'settings', {}); // Clear inline
-            }
-        });
-    };
-
     const removeAlternative = (index: number) => {
+        if (alternatives.length <= 1) return; // Prevent deleting last one
         setAlternatives(alternatives.filter((_, i) => i !== index));
     };
 
@@ -108,43 +129,98 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create', 
         const altToCopy = alternatives[index];
         const newAlt = {
             ...altToCopy,
-            name: `${altToCopy.name}-copy`, // Simple rename to avoid exact dup keys if used elsewhere
+            _ui_id: safeUUID(),
+            name: `${altToCopy.name}-copy`,
             description: `Copy of ${altToCopy.description}`
         };
-        // Insert after current index
         const newAlts = [...alternatives];
         newAlts.splice(index + 1, 0, newAlt);
         setAlternatives(newAlts);
     };
+
+    // Helper to get selected block ID/Name for dropdowns
+    const getSelectedBlockName = (type: ConfigBlockType, content: any) => {
+        if (!content) return "(none selected)";
+        // Content might be a string (system prompt) or object (agent).
+        const contentStr = typeof content === 'string' ? content : JSON.stringify(content);
+
+        const match = blocks.find(b => {
+            if (b.type !== type) return false;
+            // Compare parsed if JSON, raw if text
+            if (type === 'system_prompt' || type === 'context') {
+                return b.content.trim() === contentStr.trim();
+            }
+            try {
+                const bContent = JSON.parse(b.content);
+                const cContent = typeof content === 'string' ? JSON.parse(content) : content;
+                return JSON.stringify(bContent) === JSON.stringify(cContent);
+            } catch {
+                return b.content === contentStr;
+            }
+        });
+        return match ? match.name : (content ? "Custom/Manual" : "(none selected)");
+    };
+
+    // For Agent specifically, we check command/args match
+    const getAgentBlockName = (alt: any) => {
+        if (!alt.command) return "(Select Agent)";
+        const match = blocks.find(b => {
+            if (b.type !== 'agent') return false;
+            try {
+                const c = JSON.parse(b.content);
+                // Compare command and args
+                // args might be string or array
+                const bArgs = Array.isArray(c.args) ? c.args.join(" ") : (c.args || "");
+                const altArgs = Array.isArray(alt.args) ? alt.args.join(" ") : (alt.args || "");
+                return c.command === alt.command && bArgs === altArgs;
+            } catch { return false; }
+        });
+        return match ? match.name : `${alt.command} (Custom)`;
+    };
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
 
-        if (selectedScenarios.length === 0) {
-            setError("At least one scenario must be selected.");
+        // Validate: Every alternative must have a command (Agent)
+        const invalidAlt = alternatives.find(a => !a.command);
+        if (invalidAlt) {
+            setError(`Alternative "${invalidAlt.name}" is missing an Agent.`);
             setLoading(false);
             return;
         }
 
         const finalConfig = {
-            reps,
-            concurrent,
-            timeout,
+            reps: 1, // Default (overridden at runtime)
+            concurrent: 1, // Default (overridden at runtime)
+            timeout: "30m", // Default
             experiment_control: experimentControl,
-            scenarios: selectedScenarios.map(id => `scenarios/${id}`),
+            scenarios: [], // Decoupled: Scenarios selected at runtime
             alternatives: alternatives.map(a => ({
                 name: a.name,
                 description: a.description,
+
+                // Agent
+                command: a.command,
+                args: Array.isArray(a.args) ? a.args : (typeof a.args === 'string' ? a.args.split(" ") : []),
+
+                // Optional Single Blocks
                 system_prompt: a.system_prompt,
-                system_prompt_file: a.system_prompt_file,
                 context: a.context,
-                context_file_path: a.context_file_path,
-                settings_path: a.settings_path,
-                command: a.command || "gemini",
-                args: (Array.isArray(a.args) && a.args.length > 0) ? a.args : (typeof a.args === 'string' && a.args.trim().length > 0 ? a.args.split(' ').filter(Boolean) : ["-y"]),
-                settings: typeof a.settings === 'string' ? JSON.parse(a.settings) : a.settings
+
+                // Optional Lists
+                settings_blocks: a.settings_blocks || [],
+                extensions: a.extensions || [],
+                skills: a.skills || [],
+                mcp_servers: a.mcp_servers || [],
+
+                // Clean up legacy fields just in case
+                system_prompt_file: undefined,
+                context_file_path: undefined,
+                settings_path: undefined,
+                settings: {} // Empty inline settings, use blocks
             }))
         };
 
@@ -159,7 +235,7 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create', 
             description,
             config: finalConfig,
             yaml_content: finalYaml,
-            files: fileUploads
+            files: {}
         };
 
         const url = mode === 'create' ? '/api/templates' : `/api/templates/${initialData.id}/config`;
@@ -192,154 +268,435 @@ export default function TemplateForm({ scenarios, initialData, mode = 'create', 
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-8 text-body max-w-6xl mx-auto">
-            {/* Header / Actions */}
-            <div className="flex justify-end items-center bg-[#09090b] border border-[#27272a] p-2 rounded-md">
-                <div className="flex items-center gap-4 px-2">
-                    {error && <span className="text-red-500 font-bold uppercase tracking-tighter">{error}</span>}
-                    <Button type="submit" variant="default" size="lg" isLoading={loading} disabled={isLocked}>
+        <form onSubmit={handleSubmit} className="space-y-6 max-w-6xl mx-auto pb-20">
+            {/* Top Bar - Buttons Only */}
+            <div className="flex justify-end items-center pb-4 border-b border-border">
+                <div className="flex gap-4 items-center">
+                    {error && <span className="text-red-500 font-bold text-sm tracking-tight bg-red-500/10 px-2 py-1 rounded">{error}</span>}
+                    <Button type="submit" variant="default" isLoading={loading} disabled={isLocked}>
                         Save Template
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={() => router.back()}>
+                        Close
                     </Button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                <div className="md:col-span-4 space-y-8">
-                    <Card title="General">
-                        <div className="space-y-6">
-                            <Input label="Template Name" value={name} onChange={(e) => setName(e.target.value)} required placeholder="experiment-name" />
-                            <TextArea label="Description" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Experiment description..." />
-                        </div>
-                    </Card>
+            {/* General & Runtime Config Grid */}
+            <div className="md:col-span-3 border border-border rounded-xl p-6 bg-card space-y-4">
+                <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-4">General Info</h3>
+                <div className="grid gap-4">
+                    <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required placeholder="My Experiment" className="font-bold text-lg" />
+                    <TextArea label="Description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="(Optional) Describe the purpose of this experiment..." />
+                </div>
+            </div>
 
-                    <Card title="Execution">
-                        <div className="space-y-4">
-                            <Input label="Repetitions" type="number" value={reps} onChange={(e) => setReps(Number(e.target.value))} />
-                            <Input label="Max Concurrent" type="number" value={concurrent} onChange={(e) => setConcurrent(Number(e.target.value))} />
-                            <Input label="Exec Timeout" value={timeout} onChange={(e) => setTimeoutVal(e.target.value)} placeholder="10m" />
-                            <Select
-                                label="Control"
-                                value={experimentControl}
-                                onChange={(e) => setExperimentControl(e.target.value)}
-                                options={Array.from(new Set(alternatives.map(a => a.name).filter(n => n && n.trim() !== ""))).map(name => ({ label: name, value: name }))}
-                            />
-                        </div>
-                    </Card>
+            {/* Alternatives Section */}
+            <div className="border border-border rounded-xl p-6 bg-muted/5">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-bold">Alternatives</h3>
                 </div>
 
-                <div className="md:col-span-8 space-y-8">
-                    <div className={isLocked ? "pointer-events-none opacity-60" : ""}>
-                        <ScenarioSelector
-                            scenarios={scenarios}
-                            selectedIds={selectedScenarios}
-                            onToggle={handleScenarioToggle}
+                <div className="space-y-6">
+                    {alternatives.map((alt, idx) => (
+                        <AlternativeCard
+                            key={alt._ui_id || idx}
+                            alt={alt}
+                            index={idx}
+                            blocks={blocks}
+                            isControl={experimentControl === alt.name}
+                            onUpdate={(field: string, val: any) => updateAlternative(idx, field, val)}
+                            onSetControl={() => setExperimentControl(experimentControl === alt.name ? "" : alt.name)}
+                            onDelete={() => removeAlternative(idx)}
+                            onDuplicate={() => duplicateAlternative(idx)}
+                            getAgentName={() => getAgentBlockName(alt)}
+                            getBlockName={(t, c) => getSelectedBlockName(t, c)}
+                            isLocked={isLocked}
                         />
-                    </div>
+                    ))}
 
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle>Alternatives</CardTitle>
-                            <Button type="button" variant="ghost" size="sm" onClick={addAlternative} disabled={isLocked} className="text-primary font-bold uppercase hover:text-foreground transition-colors">+ Add Alt</Button>
-                        </CardHeader>
-                        <CardContent className="space-y-6 pt-6">
-                            {alternatives.map((alt, idx) => {
-                                const colorClass = [
-                                    "border-indigo-500/30 bg-indigo-500/5",
-                                    "border-emerald-500/30 bg-emerald-500/5",
-                                    "border-amber-500/30 bg-amber-500/5",
-                                    "border-rose-500/30 bg-rose-500/5",
-                                    "border-cyan-500/30 bg-cyan-500/5",
-                                    "border-violet-500/30 bg-violet-500/5",
-                                    "border-orange-500/30 bg-orange-500/5",
-                                    "border-lime-500/30 bg-lime-500/5",
-                                    "border-fuchsia-500/30 bg-fuchsia-500/5",
-                                    "border-sky-500/30 bg-sky-500/5",
-                                ][idx % 10];
-
-                                return (
-                                    <div key={idx}>
-                                        {idx > 0 && (
-                                            <div className="py-6 flex items-center gap-4 text-zinc-700">
-                                                <div className="h-px bg-border flex-1 border-t border-dashed" />
-                                                <span className="text-xs font-mono uppercase font-bold tracking-widest">Alternative {idx + 1}</span>
-                                                <div className="h-px bg-border flex-1 border-t border-dashed" />
-                                            </div>
-                                        )}
-                                        <div className={`panel p-5 relative border rounded-xl hover:border-zinc-700 transition-colors ${colorClass}`}>
-                                            <div className="absolute -left-3 -top-3 w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs text-zinc-400 font-mono shadow-sm">
-                                                {idx + 1}
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => removeAlternative(idx)}
-                                                disabled={isLocked}
-                                                className={`absolute top-4 right-4 text-zinc-500 hover:text-red-400 transition-colors p-1 hover:bg-white/5 rounded ${isLocked ? "cursor-not-allowed opacity-30" : ""}`}
-                                                title="Remove Alternative"
-                                            >
-                                                ✕
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => duplicateAlternative(idx)}
-                                                disabled={isLocked}
-                                                className={`absolute top-4 right-12 text-zinc-500 hover:text-indigo-400 transition-colors p-1 hover:bg-white/5 rounded ${isLocked ? "cursor-not-allowed opacity-30" : ""}`}
-                                                title="Duplicate Alternative"
-                                            >
-                                                📋
-                                            </button>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
-                                                <Input label="Identifier" value={alt.name || ""} onChange={(e) => updateAlternative(idx, 'name', e.target.value)} placeholder="e.g. gemini-1.5-flash" />
-                                                <Input label="Short Desc" value={alt.description || ""} onChange={(e) => updateAlternative(idx, 'description', e.target.value)} placeholder="Brief description..." />
-
-                                                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                    <Input label="Command" placeholder="gemini" value={alt.command || ""} onChange={(e) => updateAlternative(idx, 'command', e.target.value)} />
-                                                    <Input label="Arguments" value={Array.isArray(alt.args) ? alt.args.join(" ") : (alt.args || "")} onChange={(e) => updateAlternative(idx, 'args', e.target.value.split(" "))} />
-                                                </div>
-
-                                                <div className="md:col-span-2">
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">System Prompt Override</label>
-                                                        <div className="relative">
-                                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files && handleAltFileUpload(idx, 'system_prompt', e.target.files[0])} />
-                                                            <span className="text-[10px] uppercase font-bold text-indigo-400 cursor-pointer hover:underline">Upload File</span>
-                                                        </div>
-                                                    </div>
-                                                    {alt.system_prompt_file && <div className="text-xs font-mono text-emerald-400 mb-1">File: {alt.system_prompt_file}</div>}
-                                                    <TextArea value={alt.system_prompt || ""} onChange={(e) => updateAlternative(idx, 'system_prompt', e.target.value)} rows={3} className="font-mono text-sm" placeholder="Inline system prompt..." />
-                                                </div>
-
-                                                <div className="md:col-span-2">
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">GEMINI.md Content (Context)</label>
-                                                        <div className="relative">
-                                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files && handleAltFileUpload(idx, 'context', e.target.files[0])} />
-                                                            <span className="text-[10px] uppercase font-bold text-indigo-400 cursor-pointer hover:underline">Upload File</span>
-                                                        </div>
-                                                    </div>
-                                                    {alt.context_file_path && <div className="text-xs font-mono text-emerald-400 mb-1">File: {alt.context_file_path}</div>}
-                                                    <TextArea value={alt.context || ""} onChange={(e) => updateAlternative(idx, 'context', e.target.value)} rows={3} className="font-mono text-sm" placeholder="# Context Information..." />
-                                                </div>
-
-                                                <div className="md:col-span-2">
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Settings JSON Override</label>
-                                                        <div className="relative">
-                                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files && handleAltFileUpload(idx, 'settings', e.target.files[0])} />
-                                                            <span className="text-[10px] uppercase font-bold text-indigo-400 cursor-pointer hover:underline">Upload File</span>
-                                                        </div>
-                                                    </div>
-                                                    {alt.settings_path && <div className="text-xs font-mono text-emerald-400 mb-1">File: {alt.settings_path}</div>}
-                                                    <TextArea value={typeof alt.settings === 'string' ? alt.settings : JSON.stringify(alt.settings || {}, null, 2)} onChange={(e) => updateAlternative(idx, 'settings', e.target.value)} rows={3} className="font-mono text-sm" placeholder="{}" />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </CardContent>
-                    </Card>
+                    <Button type="button" variant="outline" onClick={addAlternative} disabled={isLocked} className="w-full py-8 border-dashed border-2 hover:border-primary hover:bg-primary/5 transition-all">
+                        <Plus className="mr-2" /> Add Alternative
+                    </Button>
                 </div>
             </div>
         </form>
     );
+}
+
+// ------------------------------------------------------------------
+// Sub-components (could receive their own files but kept here for now)
+// ------------------------------------------------------------------
+
+interface AlternativeCardProps {
+    alt: any;
+    index: number;
+    blocks: ConfigBlock[];
+    isControl: boolean;
+    onUpdate: (field: string, value: any) => void;
+    onSetControl: () => void;
+    onDelete: () => void;
+    onDuplicate: () => void;
+    getAgentName: (alt: any) => string;
+    getBlockName: (type: ConfigBlockType, content: any) => string;
+    isLocked: boolean;
+}
+
+function AlternativeCard({
+    alt, index, blocks, isControl, onUpdate, onSetControl, onDelete, onDuplicate,
+    getAgentName, getBlockName, isLocked
+}: AlternativeCardProps) {
+    return (
+        <div className="bg-card border border-border rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            {/* Header Row */}
+            <div className="flex items-center gap-4 mb-4">
+                <Input
+                    value={alt.name}
+                    onChange={(e) => onUpdate('name', e.target.value)}
+                    className="font-bold flex-1"
+                    placeholder="Alternative Name"
+                    disabled={isLocked}
+                />
+
+                <div
+                    className={cn(
+                        "flex items-center gap-2 cursor-pointer px-3 py-2 rounded-md border transition-colors select-none",
+                        isControl ? "bg-primary/10 border-primary text-primary" : "bg-muted hover:bg-muted/80 border-transparent text-muted-foreground"
+                    )}
+                    onClick={!isLocked ? onSetControl : undefined}
+                >
+                    <div className={cn("w-4 h-4 border rounded flex items-center justify-center", isControl ? "bg-primary border-primary" : "border-muted-foreground")}>
+                        {isControl && <Check size={12} className="text-white" />}
+                    </div>
+                    <span className="text-sm font-bold uppercase tracking-wider">Control</span>
+                </div>
+
+                <div className="flex gap-1 ml-2">
+                    <Button type="button" variant="ghost" size="icon" onClick={onDuplicate} disabled={isLocked} title="Duplicate">
+                        <Copy size={16} className="text-muted-foreground" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon" onClick={onDelete} disabled={isLocked} title="Delete">
+                        <X size={16} className="text-muted-foreground hover:text-red-500" />
+                    </Button>
+                </div>
+            </div>
+
+            {/* Description Row */}
+            <div className="mb-6">
+                <Input
+                    value={alt.description || ""}
+                    onChange={(e) => onUpdate('description', e.target.value)}
+                    placeholder="(Optional) Description"
+                    className="text-muted-foreground text-sm"
+                    disabled={isLocked}
+                />
+            </div>
+
+            {/* Selectors Grid */}
+            <div className="space-y-4 mb-6">
+                {/* Agent (Required) */}
+                <div className="grid grid-cols-12 gap-4 items-center">
+                    <label className="col-span-3 font-medium text-sm text-muted-foreground">Agent</label>
+                    <div className="col-span-9">
+                        <BlockCombobox
+                            type="agent"
+                            blocks={blocks}
+                            valueContent={null} // We rely on displayValue
+                            displayValue={getAgentName(alt)}
+                            onSelect={(b) => {
+                                try {
+                                    const c = JSON.parse(b.content);
+                                    onUpdate('command', c.command);
+                                    onUpdate('args', c.args);
+                                } catch (e) { toast.error("Invalid Agent Block"); }
+                            }}
+                            required
+                            disabled={isLocked}
+                        />
+                    </div>
+                </div>
+
+                {/* System Prompt (Optional) */}
+                <div className="grid grid-cols-12 gap-4 items-center">
+                    <label className="col-span-3 font-medium text-sm text-muted-foreground">System Prompt</label>
+                    <div className="col-span-9">
+                        <BlockCombobox
+                            type="system_prompt"
+                            blocks={blocks}
+                            valueContent={alt.system_prompt}
+                            displayValue={getBlockName('system_prompt', alt.system_prompt)}
+                            onSelect={(b) => onUpdate('system_prompt', b.content)}
+                            onClear={() => onUpdate('system_prompt', "")}
+                            disabled={isLocked}
+                        />
+                    </div>
+                </div>
+
+                {/* Context (Optional) */}
+                <div className="grid grid-cols-12 gap-4 items-center">
+                    <label className="col-span-3 font-medium text-sm text-muted-foreground">Context File</label>
+                    <div className="col-span-9">
+                        <BlockCombobox
+                            type="context"
+                            blocks={blocks}
+                            valueContent={alt.context}
+                            displayValue={getBlockName('context', alt.context)}
+                            onSelect={(b) => onUpdate('context', b.content)}
+                            onClear={() => onUpdate('context', "")}
+                            disabled={isLocked}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Options Tags */}
+            <div className="grid grid-cols-12 gap-4 items-start">
+                <label className="col-span-3 font-medium text-sm text-muted-foreground pt-2">Options</label>
+                <div className="col-span-9 flex flex-wrap gap-2 items-center">
+                    {/* Render existing options */}
+                    {/* Skills */}
+                    {(alt.skills || []).map((s: any, i: number) => (
+                        <OptionChip key={`skill-${i}`} type="skill" name={s.name || s.name} onRemove={() => {
+                            const n = [...alt.skills]; n.splice(i, 1); onUpdate('skills', n);
+                        }} disabled={isLocked} />
+                    ))}
+                    {/* Extensions */}
+                    {(alt.extensions || []).map((s: any, i: number) => (
+                        <OptionChip key={`ext-${i}`} type="extension" name={s.name || s.name} onRemove={() => {
+                            const n = [...alt.extensions]; n.splice(i, 1); onUpdate('extensions', n);
+                        }} disabled={isLocked} />
+                    ))}
+                    {/* MCP */}
+                    {(alt.mcp_servers || []).map((s: any, i: number) => (
+                        <OptionChip key={`mcp-${i}`} type="mcp_server" name={s.name || s.name} onRemove={() => {
+                            const n = [...alt.mcp_servers]; n.splice(i, 1); onUpdate('mcp_servers', n);
+                        }} disabled={isLocked} />
+                    ))}
+                    {/* Settings */}
+                    {(alt.settings_blocks || []).map((s: any, i: number) => (
+                        <OptionChip key={`set-${i}`} type="settings" name={s.name || "Settings"} onRemove={() => {
+                            const n = [...alt.settings_blocks]; n.splice(i, 1); onUpdate('settings_blocks', n);
+                        }} disabled={isLocked} />
+                    ))}
+
+                    {/* Add Button */}
+                    <AddOptionPopover blocks={blocks} onAdd={(type: ConfigBlockType, block: ConfigBlock) => {
+                        try {
+                            const content = JSON.parse(block.content);
+                            // Use block.name as the configuration 'name' if not present, or overwrite it?
+                            // User requested "it's just name", suggesting the block name should be the identifier.
+                            const blockData = { ...content, name: block.name };
+                            // Add based on type
+                            if (type === 'skill') {
+                                // Avoid dupes
+                                if (!alt.skills?.find((x: any) => x.name === block.name)) {
+                                    onUpdate('skills', [...(alt.skills || []), blockData]);
+                                }
+                            } else if (type === 'extension') {
+                                if (!alt.extensions?.find((x: any) => x.name === block.name)) {
+                                    onUpdate('extensions', [...(alt.extensions || []), blockData]);
+                                }
+                            } else if (type === 'mcp_server') {
+                                if (!alt.mcp_servers?.find((x: any) => x.name === block.name)) {
+                                    onUpdate('mcp_servers', [...(alt.mcp_servers || []), blockData]);
+                                }
+                            } else if (type === 'settings') {
+                                // Settings can be dupliated? Maybe. But let's allow it.
+                                onUpdate('settings_blocks', [...(alt.settings_blocks || []), blockData]);
+                            }
+                        } catch (e) { toast.error("Invalid block content"); }
+                    }} disabled={isLocked} />
+                </div>
+            </div>
+
+        </div>
+    );
+}
+
+interface OptionChipProps {
+    type: 'skill' | 'extension' | 'mcp_server' | 'settings';
+    name: string;
+    onRemove: () => void;
+    disabled: boolean;
+}
+
+function OptionChip({ type, name, onRemove, disabled }: OptionChipProps) {
+    const styles: any = {
+        skill: "bg-sky-500/10 text-sky-600 border-sky-200",
+        extension: "bg-indigo-500/10 text-indigo-600 border-indigo-200",
+        mcp_server: "bg-orange-500/10 text-orange-600 border-orange-200",
+        settings: "bg-slate-500/10 text-slate-600 border-slate-200"
+    }
+    const labels: any = {
+        skill: "Skill", extension: "Extension", mcp_server: "MCP", settings: "Settings"
+    }
+
+    return (
+        <Badge variant="outline" className={cn("pl-2 pr-1 py-1 flex items-center gap-1 font-normal", styles[type])}>
+            {name}
+            <span className="font-bold opacity-70 ml-1 text-[10px] uppercase tracking-wider">[{labels[type]}]</span>
+            {!disabled && (
+                <button type="button" onClick={onRemove} className="ml-1 hover:bg-black/10 rounded-full p-0.5 transition-colors">
+                    <X size={12} />
+                </button>
+            )}
+        </Badge>
+    )
+}
+
+interface BlockComboboxProps {
+    type: ConfigBlockType;
+    blocks: ConfigBlock[];
+    valueContent: any;
+    displayValue: string;
+    onSelect: (block: ConfigBlock) => void;
+    onClear?: () => void;
+    required?: boolean;
+    disabled: boolean;
+}
+
+function BlockCombobox({ type, blocks, valueContent, displayValue, onSelect, onClear, required, disabled }: BlockComboboxProps) {
+    const [open, setOpen] = useState(false)
+    const filtered = blocks.filter((b: ConfigBlock) => b.type === type);
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className="w-full justify-between font-normal"
+                    disabled={disabled}
+                >
+                    <span className={cn(!valueContent && !required ? "text-muted-foreground italic" : "")}>
+                        {displayValue}
+                    </span>
+                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[400px] p-0" align="start">
+                <Command>
+                    <CommandInput placeholder={`Search ${type}...`} />
+                    <CommandList>
+                        <CommandEmpty>No blocks found.</CommandEmpty>
+                        <CommandGroup>
+                            {!required && (
+                                <CommandItem onSelect={() => { onClear?.(); setOpen(false); }}>
+                                    <span className="italic text-muted-foreground">(none selected)</span>
+                                </CommandItem>
+                            )}
+                            {filtered.map((block: any) => (
+                                <CommandItem
+                                    key={block.id}
+                                    value={block.name}
+                                    onSelect={() => {
+                                        onSelect(block)
+                                        setOpen(false)
+                                    }}
+                                >
+                                    <Check
+                                        className={cn(
+                                            "mr-2 h-4 w-4",
+                                            displayValue === block.name ? "opacity-100" : "opacity-0"
+                                        )}
+                                    />
+                                    {block.name}
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    )
+}
+
+interface AddOptionPopoverProps {
+    blocks: ConfigBlock[];
+    onAdd: (type: ConfigBlockType, block: ConfigBlock) => void;
+    disabled: boolean;
+}
+
+function AddOptionPopover({ blocks, onAdd, disabled }: AddOptionPopoverProps) {
+    const [open, setOpen] = useState(false);
+    const [step, setStep] = useState<'type' | 'block'>('type');
+    const [selectedType, setSelectedType] = useState<ConfigBlockType | null>(null);
+
+    const typeOptions = [
+        { type: "skill", label: "Skills", desc: "Agent capabilities" },
+        { type: "extension", label: "Extensions", desc: "Workspace tools" },
+        { type: "mcp_server", label: "MCP Server", desc: "Context servers" },
+        { type: "settings", label: "Settings", desc: "Shared config" },
+    ];
+
+    const reset = () => {
+        setStep('type');
+        setSelectedType(null);
+        setOpen(false);
+    };
+
+    return (
+        <Popover open={open} onOpenChange={(o) => { if (!o) reset(); else setOpen(true); }}>
+            <PopoverTrigger asChild>
+                <Button type="button" variant="outline" size="sm" className="h-7 w-7 p-0 rounded-full bg-muted hover:bg-primary hover:text-white transition-colors border-dashed border-zinc-400" disabled={disabled}>
+                    <Plus size={14} />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[300px] p-0" align="start">
+                {step === 'type' ? (
+                    <Command>
+                        <CommandInput placeholder="Select option type..." />
+                        <CommandList>
+                            <CommandGroup heading="Option Type">
+                                {typeOptions.map((opt) => (
+                                    <CommandItem key={opt.type} onSelect={() => { setSelectedType(opt.type as any); setStep('block'); }}>
+                                        <div className="flex flex-col">
+                                            <span className="font-bold">{opt.label}</span>
+                                            <span className="text-xs text-muted-foreground">{opt.desc}</span>
+                                        </div>
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                ) : (
+                    <Command>
+                        <CommandInput placeholder={`Select ${selectedType}...`} />
+                        <CommandList>
+                            <CommandEmpty>No blocks found.</CommandEmpty>
+                            <CommandGroup heading={selectedType?.toUpperCase()}>
+                                {blocks.filter((b: ConfigBlock) => b.type === selectedType).map((b: ConfigBlock) => {
+                                    let desc = "";
+                                    try {
+                                        const c = JSON.parse(b.content);
+                                        // Try to find a description or relevant detail
+                                        desc = c.description || c.desc || (typeof c === 'string' ? c : "");
+                                        if (!desc && selectedType === 'extension') desc = c.source || c.ref;
+                                        if (!desc && selectedType === 'mcp_server') desc = c.command;
+                                    } catch {
+                                        desc = b.content.length > 50 ? b.content.substring(0, 50) + "..." : b.content;
+                                    }
+
+                                    return (
+                                        <CommandItem key={b.id} value={b.name} onSelect={() => {
+                                            onAdd(selectedType as ConfigBlockType, b);
+                                            reset();
+                                        }}>
+                                            <div className="flex flex-col">
+                                                <span>{b.name}</span>
+                                                {desc && <span className="text-xs text-muted-foreground line-clamp-1">{desc}</span>}
+                                            </div>
+                                        </CommandItem>
+                                    );
+                                })}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                )}
+            </PopoverContent>
+        </Popover>
+    );
+
 }

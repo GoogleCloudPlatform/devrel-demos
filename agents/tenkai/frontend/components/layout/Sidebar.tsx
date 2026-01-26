@@ -15,6 +15,7 @@ export function Sidebar() {
         { icon: "📈", label: "Experiments", href: "/experiments" },
         { icon: "📝", label: "Templates", href: "/templates" },
         { icon: "🧪", label: "Scenarios", href: "/scenarios" },
+        { icon: "🧩", label: "Library", href: "/library" },
     ];
 
     // During SSR/Hydration, render default (expanded) width to match server

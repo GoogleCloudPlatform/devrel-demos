@@ -162,3 +162,12 @@ export interface TemplateData {
     is_locked?: boolean;
 }
 
+
+export type ConfigBlockType = "agent" | "system_prompt" | "context" | "settings" | "mcp_server" | "extension" | "skill";
+
+export interface ConfigBlock {
+    id: number;
+    name: string;
+    type: ConfigBlockType;
+    content: string;
+}

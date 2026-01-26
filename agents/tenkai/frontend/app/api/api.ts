@@ -3,7 +3,8 @@ import {
     ExperimentRecord,
     Checkpoint,
     ExperimentSummaryRow as ExperimentSummaryRecord,
-    RunResult
+    RunResult,
+    ConfigBlock
 } from '@/types/domain';
 
 export type { ExperimentRecord, ExperimentSummaryRecord, Checkpoint };
@@ -278,4 +279,12 @@ export async function toggleTemplateLock(templateId: string, locked: boolean): P
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ locked }),
     });
+}
+export async function getBlocks(): Promise<ConfigBlock[]> {
+    try {
+        return (await fetchAPI<ConfigBlock[]>('/blocks')) || [];
+    } catch (e) {
+        console.error("Failed to fetch blocks:", e);
+        return [];
+    }
 }

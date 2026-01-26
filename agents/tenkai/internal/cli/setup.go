@@ -101,21 +101,16 @@ func applyFilters(cfg *config.Configuration, flags Flags, notes *[]string) {
 
 	if *flags.Scens != "" {
 		scens := strings.Split(*flags.Scens, ",")
-		var filtered []string
+		var finalScenarios []string
 		for _, name := range scens {
 			name = strings.TrimSpace(name)
-			for _, s := range cfg.Scenarios {
-				if s == name || filepath.Base(s) == name {
-					filtered = append(filtered, s)
-					break
-				}
+			if name != "" {
+				finalScenarios = append(finalScenarios, name)
 			}
 		}
-		if len(filtered) > 0 {
-			if len(filtered) < len(cfg.Scenarios) {
-				*notes = append(*notes, fmt.Sprintf("🎯 Scenarios filtered to: %s", *flags.Scens))
-			}
-			cfg.Scenarios = filtered
+		if len(finalScenarios) > 0 {
+			cfg.Scenarios = finalScenarios
+			*notes = append(*notes, fmt.Sprintf("🎯 Scenarios set to: %s", *flags.Scens))
 		}
 	}
 }

@@ -1,13 +1,34 @@
 name: Hello World
 description: Use this to test the framework is working!
+reps: 1
+concurrent: 1
+timeout: 30m
 experiment_control: default
+scenarios: []
 alternatives:
-    - name: default
-      description: Base Gemini CLI
-      command: gemini
-      args:
-        - -y
-        - -o
-        - stream-json
-scenarios:
-    - scenarios/2
+  - name: default
+    description: Base Gemini CLI
+    command: gemini
+    args:
+      - '-y'
+      - '-o'
+      - stream-json
+    settings_blocks: []
+    extensions: []
+    skills: []
+    mcp_servers: []
+    settings: {}
+  - name: gemini-3-flash
+    description: ''
+    command: gemini
+    args:
+      - '-y'
+      - '-o'
+      - stream-json
+      - '-m'
+      - gemini-3-flash-preview
+    settings_blocks: []
+    extensions: []
+    skills: []
+    mcp_servers: []
+    settings: {}

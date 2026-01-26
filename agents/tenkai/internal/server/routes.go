@@ -57,4 +57,11 @@ func (s *Server) registerRoutes() {
 	s.router.HandleFunc("PUT /api/templates/{id}/config", s.api.Wrap(s.api.UpdateTemplate)) // Idiomatic PUT
 	s.router.HandleFunc("DELETE /api/templates/{id}", s.api.Wrap(s.api.DeleteTemplate))
 	s.router.HandleFunc("POST /api/templates/{id}/lock", s.api.Wrap(s.api.HandleTemplateLock))
+
+	// Config Blocks
+	s.router.HandleFunc("GET /api/blocks", s.api.Wrap(s.api.ListBlocks))
+	s.router.HandleFunc("POST /api/blocks", s.api.Wrap(s.api.CreateBlock))
+	s.router.HandleFunc("GET /api/blocks/{id}", s.api.Wrap(s.api.GetBlock))
+	s.router.HandleFunc("PUT /api/blocks/{id}", s.api.Wrap(s.api.UpdateBlock))
+	s.router.HandleFunc("DELETE /api/blocks/{id}", s.api.Wrap(s.api.DeleteBlock))
 }

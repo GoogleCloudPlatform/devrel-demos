@@ -54,7 +54,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
 
 
     const statObj: any = {};
-    summaries.forEach(row => {
+    (summaries || []).forEach(row => {
         statObj[row.alternative] = { ...row, alternative: row.alternative, count: row.total_runs };
     });
     const stats = statObj;

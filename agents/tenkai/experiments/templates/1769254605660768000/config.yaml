@@ -1,0 +1,79 @@
+name: godoctor MCP server with Gemini 3 Flash
+description: >-
+  Test the efficacy of the godoctor MCP against the base configuration. Forces
+  use of Gemini 3 Flash
+reps: 1
+concurrent: 1
+timeout: 30m
+experiment_control: default
+scenarios: []
+alternatives:
+  - name: default
+    description: Base Gemini CLI
+    command: gemini
+    args:
+      - '-y'
+      - '-o'
+      - stream-json
+      - '-m'
+      - gemini-3-flash-preview
+    settings_blocks: []
+    extensions: []
+    skills: []
+    mcp_servers: []
+    settings: {}
+  - name: godoctor-mcp
+    description: godoctor configured as mcp server
+    command: gemini
+    args: &ref_0
+      - '-y'
+      - '-o'
+      - stream-json
+      - '-m'
+      - gemini-3-flash-preview
+    settings_blocks: &ref_1 []
+    extensions: &ref_2 []
+    skills: &ref_3 []
+    mcp_servers: &ref_4
+      - _ui_name: Godoctor
+        args: []
+        command: godoctor
+    settings: {}
+  - name: godoctor-mcp-with-context
+    description: Copy of godoctor configured as mcp server
+    command: gemini
+    args: *ref_0
+    context: >-
+      You have a full set of internal tools, like read_file, write_file, replace
+      and run_shell_command that are optimised for general tasks, but often fail
+      in more specialised processes. If you see a more specialised tool
+      available ALWAYS prefer to use it, as there are often benefits of doing
+      so, including saving tokens, avoiding to redo tasks due to hallucinations,
+      getting more tasks completed in one turn, and getting hints about
+      potential blind spots that wouldn't be naturally considered in your
+      original line of thought. The same way software engineers use more
+      advanced tools to be more efficient at their jobs, you should use more
+      advanced tools to be more efficient at yours, EVEN if the task is
+      initially deemed trivial.
+    settings_blocks: *ref_1
+    extensions: *ref_2
+    skills: *ref_3
+    mcp_servers: *ref_4
+    settings: {}
+  - name: godoctor-extension
+    description: godoctor configured via extension
+    command: gemini
+    args:
+      - '-y'
+      - '-o'
+      - stream-json
+      - '-m'
+      - gemini-3-flash-preview
+    settings_blocks: []
+    extensions:
+      - _ui_name: Godoctor
+        mode: link
+        source: /Users/petruzalek/projects/godoctor
+    skills: []
+    mcp_servers: []
+    settings: {}

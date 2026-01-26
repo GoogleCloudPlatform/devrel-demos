@@ -165,7 +165,7 @@ export default function TemplatesPage() {
                                                 📝
                                             </div>
                                             <div>
-                                                <h3 className="text-header capitalize group-hover:text-primary transition-colors">
+                                                <h3 className="text-header group-hover:text-primary transition-colors">
                                                     {template.name}
                                                 </h3>
                                                 <p className="text-body font-mono opacity-50 mt-1">ID: {template.id}</p>
@@ -216,18 +216,6 @@ export default function TemplatesPage() {
                                         </div>
                                     </div>
                                 </div>
-
-                                <div className="flex flex-wrap gap-2 mt-4 pt-0">
-                                    <span className="px-3 py-1 rounded-full text-mono font-bold text-xs uppercase tracking-wider border bg-blue-500/10 text-blue-400 border-blue-500/20">
-                                        {template.alt_count} Alternatives
-                                    </span>
-                                    <span className="px-3 py-1 rounded-full text-mono font-bold text-xs uppercase tracking-wider border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-                                        {template.scen_count} Scenarios
-                                    </span>
-                                    <span className="px-3 py-1 rounded-full text-mono font-bold text-xs uppercase tracking-wider border bg-amber-500/10 text-amber-400 border-amber-500/20">
-                                        {template.reps} Repetitions
-                                    </span>
-                                </div>
                             </Card>
                         </Link>
                     ))}
@@ -237,7 +225,8 @@ export default function TemplatesPage() {
                         </div>
                     )}
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 }

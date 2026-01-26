@@ -7,13 +7,14 @@ import TemplateForm from "@/components/TemplateForm";
 import { PageHeader } from "@/components/ui/page-header";
 import { Loader2 } from "lucide-react";
 import { ScenarioData, TemplateData } from "@/types/domain";
-import { toggleTemplateLock } from "@/app/api/api";
+import { getBlocks, toggleTemplateLock } from "@/app/api/api";
 import LockToggle from "@/components/LockToggle";
+import { ConfigBlock } from "@/types/domain";
 
 function TemplateEditorContent({ name }: { name: string }) {
     const router = useRouter();
 
-    const [scenarios, setScenarios] = useState<ScenarioData[]>([]);
+    const [blocks, setBlocks] = useState<ConfigBlock[]>([]);
     const [initialData, setInitialData] = useState<TemplateData | null>(null);
     const [loading, setLoading] = useState(true);
     const [isLocked, setIsLocked] = useState(false);
@@ -26,12 +27,12 @@ function TemplateEditorContent({ name }: { name: string }) {
 
         const loadData = async () => {
             try {
-                const [scens, template] = await Promise.all([
-                    fetch('/api/scenarios').then(res => res.json()),
+                const [blocksData, template] = await Promise.all([
+                    fetch('/api/blocks').then(res => res.json()),
                     fetch(`/api/templates/${name}/config`).then(res => res.json())
                 ]);
 
-                setScenarios(scens);
+                setBlocks(blocksData);
                 setIsLocked(template.is_locked || false);
                 setInitialData({
                     id: name,
@@ -83,7 +84,7 @@ function TemplateEditorContent({ name }: { name: string }) {
                 }
             />
 
-            <TemplateForm scenarios={scenarios} initialData={initialData} mode="edit" isLocked={isLocked} />
+            <TemplateForm blocks={blocks} initialData={initialData} mode="edit" isLocked={isLocked} />
         </div>
     );
 }

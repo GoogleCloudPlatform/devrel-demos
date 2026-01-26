@@ -15,14 +15,15 @@ func (db *DB) GetRunByID(runID int64) (*models.RunResult, error) {
 		FROM run_results WHERE id = ?`
 
 	var r models.RunResult
-	var valRep, errStr, reason, status sql.NullString
-	var dur, tPass, tFail, lint, tTok, iTok, oTok, tCalls, fCalls sql.NullInt64
+	var valRep, errStr, reason, status, model, sessionID sql.NullString
+	var dur, tPass, tFail, lint, tTok, iTok, oTok, tCalls, fCalls, modelDur sql.NullInt64
 	var loop, success sql.NullBool
 
 	err := db.conn.QueryRow(query, runID).Scan(
 		&r.ID, &r.ExperimentID, &r.Alternative, &r.Scenario, &r.Repetition, &dur, &errStr,
 		&tPass, &tFail, &lint, &tTok, &iTok, &oTok,
 		&tCalls, &fCalls, &loop, &success, &valRep, &status, &reason,
+		&model, &sessionID, &modelDur,
 	)
 	if err != nil {
 		return nil, err
@@ -43,7 +44,12 @@ func (db *DB) GetRunByID(runID int64) (*models.RunResult, error) {
 	r.ToolCallsCount = int(tCalls.Int64)
 	r.FailedToolCalls = int(fCalls.Int64)
 	r.LoopDetected = loop.Bool
+	r.LoopDetected = loop.Bool
 	r.IsSuccess = success.Bool
+
+	r.Model = model.String
+	r.SessionID = sessionID.String
+	r.ModelDuration = modelDur.Int64
 
 	return &r, nil
 }

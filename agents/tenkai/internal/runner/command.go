@@ -26,6 +26,29 @@ func (r *Runner) createCommand(ctx context.Context, alt config.Alternative, wsIn
 	cmdArgs := make([]string, len(alt.Args))
 	copy(cmdArgs, alt.Args)
 
+	// Enforce required flags for Headless Mode
+	hasJSONFormat := false
+	hasYolo := false
+
+	for _, arg := range cmdArgs {
+		if strings.Contains(arg, "stream-json") {
+			hasJSONFormat = true
+		}
+		if arg == "-y" || arg == "--yolo" {
+			hasYolo = true
+		}
+	}
+
+	if !hasJSONFormat {
+		log.Printf("[Runner] Warning: --output-format=stream-json not found in args for %s. Forcing it.", alt.Name)
+		cmdArgs = append(cmdArgs, "--output-format=stream-json")
+	}
+
+	if !hasYolo {
+		log.Printf("[Runner] Warning: --yolo/-y not found in args for %s. Forcing it to ensure non-interactive mode.", alt.Name)
+		cmdArgs = append(cmdArgs, "--yolo")
+	}
+
 	cmd := exec.CommandContext(execCtx, cmdName, cmdArgs...)
 	cmd.Dir = wsInfo.Project
 
@@ -62,7 +85,7 @@ func (r *Runner) createCommand(ctx context.Context, alt config.Alternative, wsIn
 
 	// Share Go caches
 	goEnv := make(map[string]string)
-	
+
 	// Try to get them from go env if not in current env
 	goEnvCmd := exec.Command("go", "env", "GOCACHE", "GOMODCACHE")
 	goEnvOut, err := goEnvCmd.Output()
