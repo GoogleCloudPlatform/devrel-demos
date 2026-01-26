@@ -72,6 +72,14 @@ func (r *Runner) createCommand(ctx context.Context, alt config.Alternative, wsIn
 		"HOME": wsInfo.Home,
 	})
 
+	// Prepend project/bin to PATH to allow using locally installed tools (like golangci-lint)
+	projectBin := filepath.Join(wsInfo.Project, "bin")
+	currentPath := os.Getenv("PATH")
+	newPath := fmt.Sprintf("%s%c%s", projectBin, os.PathListSeparator, currentPath)
+	cmd.Env = mergeEnv(cmd.Env, map[string]string{
+		"PATH": newPath,
+	})
+
 	// Add alt.Env
 	cmd.Env = mergeEnv(cmd.Env, alt.Env)
 
