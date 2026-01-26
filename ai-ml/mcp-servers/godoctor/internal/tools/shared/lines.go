@@ -91,3 +91,11 @@ func ExtractErrorSnippet(content string, err error) string {
 
 	return GetSnippet(content, lineNum)
 }
+
+// GetLineFromOffset calculates the 1-based line number for a given byte offset.
+func GetLineFromOffset(content string, offset int) int {
+	if offset < 0 || offset > len(content) {
+		return 0
+	}
+	return strings.Count(content[:offset], "\n") + 1
+}

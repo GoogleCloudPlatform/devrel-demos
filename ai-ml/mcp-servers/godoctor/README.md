@@ -15,12 +15,12 @@ GoDoctor organizes its capabilities into domain-specific tools to streamline dev
 *   **`smart_edit`**: Perform targeted code modifications using Levenshtein distance matching. Automatically handles formatting and checks syntax before finalizing.
 
 ### 🛠️ Go Toolchain Integration
-*   **`verify_build`**: Compile the project to verify changes and get actionable error hints.
-*   **`verify_tests`**: Execute tests with **Smart Reporting** (Summary tables, Failure isolation, Coverage %).
+*   **`smart_build`**: **The Universal Quality Gate.** Compiles the project, runs tests, and checks for linting issues in a single atomic step. Automatically runs `go mod tidy` and `gofmt`.
 *   **`add_dependency`**: Manage module dependencies and immediately fetch documentation for the new package.
 *   **`read_docs`**: Query documentation for any package or symbol in the Go ecosystem.
 *   **`modernize_code`**: Automatically upgrade legacy Go patterns to modern standards.
 *   **`check_api`**: Detect breaking API changes between versions.
+
 
 ### 🤖 Expert Assistance
 *   **`code_review`**: Submit code for expert AI analysis focusing on correctness and idiomatic style.

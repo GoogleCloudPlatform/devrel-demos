@@ -29,15 +29,18 @@ func Register(server *mcp.Server) {
 // Params defines the input parameters for the smart_edit tool.
 type Params struct {
 	Filename   string  `json:"filename" jsonschema:"The path to the file to edit"`
-	OldContent string  `json:"old_content" jsonschema:"The block of code to find (ignores whitespace)"`
+	OldContent string  `json:"old_content,omitempty" jsonschema:"Optional: The block of code to find (ignores whitespace). Required if append is false."`
 	NewContent string  `json:"new_content" jsonschema:"The new code to insert"`
 	Threshold  float64 `json:"threshold,omitempty" jsonschema:"Similarity threshold (0.0-1.0) for fuzzy matching, default 0.95"`
-	StartLine  int     `json:"start_line,omitempty" jsonschema:"Optional: restrict search to this line number and after"`
-	EndLine    int     `json:"end_line,omitempty" jsonschema:"Optional: restrict search to this line number and before"`
+
+	StartLine int  `json:"start_line,omitempty" jsonschema:"Optional: restrict search to this line number and after"`
+	EndLine   int  `json:"end_line,omitempty" jsonschema:"Optional: restrict search to this line number and before"`
+	Append    bool `json:"append,omitempty" jsonschema:"If true, append new_content to the end of the file (ignores old_content)"`
 }
 
 func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
 	absPath, err := roots.Global.Validate(args.Filename)
+
 	if err != nil {
 		return errorResult(err.Error()), nil, nil
 	}
@@ -77,7 +80,7 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 		searchEnd = e
 	}
 
-	if args.OldContent == "" {
+	if args.Append || args.OldContent == "" {
 		// APPEND MODE
 		// Check if file ends with newline
 		if len(original) > 0 && !strings.HasSuffix(original, "\n") {
@@ -96,7 +99,20 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 			if matchStart < matchEnd && matchEnd <= len(searchArea) {
 				bestMatch = searchArea[matchStart:matchEnd]
 			}
-			return errorResult(fmt.Sprintf("match not found with sufficient confidence (score: %.2f < %.2f).\n\nBest Match Found:\n```go\n%s\n```\n\nSuggestions: verify your old_content or lower threshold.", score, args.Threshold, bestMatch)), nil, nil
+
+			// Get line numbers for the best match attempt (relative to the search area if using offsets,
+			// but bestMatch logic operates on searchArea).
+			// We need to map matchStart/matchEnd back to original file line numbers.
+			// matchStart is byte offset in searchArea.
+			// Global offset = searchStart + matchStart
+
+			globalMatchStart := searchStart + matchStart
+			globalMatchEnd := searchStart + matchEnd
+
+			bestStartLine := shared.GetLineFromOffset(original, globalMatchStart)
+			bestEndLine := shared.GetLineFromOffset(original, globalMatchEnd)
+
+			return errorResult(fmt.Sprintf("match not found with sufficient confidence (score: %.2f < %.2f).\n\nBest Match Found (Lines %d-%d):\n```go\n%s\n```\n\nSuggestions: verify your old_content or lower threshold.", score, args.Threshold, bestStartLine, bestEndLine, bestMatch)), nil, nil
 		}
 
 		// Adjust local offsets to global offsets
@@ -151,11 +167,11 @@ func toolHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp
 // Implementation: Seeded Fuzzy Match (V2). significantly faster than sliding window.
 func findBestMatch(content, search string) (int, int, float64) {
 	normSearch := normalize(search)
-		if normSearch == "" {
-			return 0, 0, 0
-		}
-	
-		// 1. Build File Map (Dense -> Original Offset)
+	if normSearch == "" {
+		return 0, 0, 0
+	}
+
+	// 1. Build File Map (Dense -> Original Offset)
 	type charMap struct {
 		char   rune
 		offset int

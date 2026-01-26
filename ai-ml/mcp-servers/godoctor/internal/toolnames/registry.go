@@ -48,17 +48,11 @@ var Registry = map[string]ToolDef{
 	},
 
 	// --- GO TOOLCHAIN ---
-	"verify_build": {
-		Name:        "verify_build",
-		Title:       "Verify Build",
-		Description: "Compiles packages and dependencies to identify syntax and type-checking errors. Provides structured diagnostic reports with embedded source context for efficient error resolution.",
-		Instruction: "*   **`verify_build`**: Validate compilation integrity.\n    *   **Usage:** `verify_build(packages=[\"./...\"])`\n    *   **Outcome:** Build status report with precise error diagnostics.",
-	},
-	"verify_tests": {
-		Name:        "verify_tests",
-		Title:       "Run Tests",
-		Description: "Executes the package test suite and generates a structured summary of results. Includes per-package coverage analysis to help identify untested logic paths.",
-		Instruction: "*   **`verify_tests`**: Verify logical correctness and code coverage.\n    *   **Usage:** `verify_tests(packages=[\"./pkg/...\"], run=\"TestAuth\")`\n    *   **Outcome:** Structured test results (PASS/FAIL/SKIP) and coverage data.",
+	"smart_build": {
+		Name:        "smart_build",
+		Title:       "Smart Build",
+		Description: "The primary build tool. Enforces a quality gate pipeline: Tidy -> Format -> Build -> Test -> Lint. Ensures code is production-ready.",
+		Instruction: "*   **`smart_build`**: Compile and verify code.\n    *   **Usage:** `smart_build(packages=\"./...\", auto_fix=true)`\n    *   **Outcome:** A comprehensive report on build status, test results, and lint issues.",
 	},
 	"add_dependency": {
 		Name:        "add_dependency",
@@ -66,7 +60,14 @@ var Registry = map[string]ToolDef{
 		Description: "Manages Go module installation and manifest updates. Consolidates the workflow by immediately returning the public API documentation for the installed packages.",
 		Instruction: "*   **`add_dependency`**: Install dependencies and fetch documentation.\n    *   **Usage:** `add_dependency(packages=[\"github.com/gin-gonic/gin@latest\"])`\n    *   **Outcome:** Dependency added to go.mod and API documentation returned.",
 	},
+	"project_init": {
+		Name:        "project_init",
+		Title:       "Initialize Project",
+		Description: "Bootstraps a new Go project by creating the directory, initializing the Go module, and installing essential dependencies. Reduces boilerplate and ensures a standard project structure.",
+		Instruction: "*   **`project_init`**: Bootstrap a new Go project.\n    *   **Usage:** `project_init(path=\"my-app\", module_path=\"github.com/user/my-app\", dependencies=[\"github.com/go-chi/chi/v5\"])`\n    *   **Outcome:** A valid Go module with requested dependencies and a skeleton structure.",
+	},
 	"modernize_code": {
+
 		Name:        "modernize_code",
 		Title:       "Modernize Code",
 		Description: "Analyzes the codebase for outdated Go patterns and automatically refactors them to modern standards. Improves maintainability and performance by applying idiomatic upgrades.",
