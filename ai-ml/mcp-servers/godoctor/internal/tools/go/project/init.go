@@ -31,6 +31,22 @@ type Params struct {
 	Dependencies []string `json:"dependencies,omitempty" jsonschema:"Initial dependencies to install"`
 }
 
+// Runner defines the interface for running commands.
+type Runner interface {
+	Run(ctx context.Context, dir, name string, args ...string) (string, error)
+}
+
+type stdRunner struct{}
+
+func (r *stdRunner) Run(ctx context.Context, dir, name string, args ...string) (string, error) {
+	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	return string(out), err
+}
+
+var CommandRunner Runner = &stdRunner{}
+
 func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
 	// 1. Create Directory
 	if err := os.MkdirAll(args.Path, 0755); err != nil {
@@ -48,7 +64,7 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 		return errorResult("project already initialized (go.mod exists)"), nil, nil
 	}
 
-	if out, err := runCommand(ctx, absPath, "go", "mod", "init", args.ModulePath); err != nil {
+	if out, err := CommandRunner.Run(ctx, absPath, "go", "mod", "init", args.ModulePath); err != nil {
 		return errorResult(fmt.Sprintf("failed to init module: %v\nOutput: %s", err, out)), nil, nil
 	}
 
@@ -59,36 +75,39 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 	// 3. Install dependencies
 	if len(args.Dependencies) > 0 {
 		sb.WriteString("- Dependencies:\n")
+		
+		docsNeeded := make(map[string]bool)
+		
 		for _, dep := range args.Dependencies {
 			pkgPath := strings.Split(dep, "@")[0]
-			if out, err := runCommand(ctx, absPath, "go", "get", dep); err != nil {
+			
+			if out, err := CommandRunner.Run(ctx, absPath, "go", "get", dep); err != nil {
 				sb.WriteString(fmt.Sprintf("  - ⚠️ Failed to get `%s`: %v\n", dep, out))
-				// Try to fetch docs anyway to help the user debug
-				if docContent := godoc.GetDocumentationWithFallback(ctx, pkgPath); docContent != "" {
-					sb.WriteString("\n")
-					sb.WriteString(docContent)
+				
+				// Deduplicate by guessing module root
+				parts := strings.Split(pkgPath, "/")
+				if len(parts) >= 3 && strings.Contains(parts[0], ".") {
+					// e.g. github.com/user/repo
+					root := strings.Join(parts[:3], "/")
+					docsNeeded[root] = true
+				} else {
+					// Fallback for standard lib or short paths
+					docsNeeded[pkgPath] = true
 				}
 			} else {
 				sb.WriteString(fmt.Sprintf("  - ✅ `%s` installed\n", dep))
-				
-				// Fetch docs
-				if docContent := godoc.GetDocumentationWithFallback(ctx, pkgPath); docContent != "" {
-					sb.WriteString("\n")
-					sb.WriteString(docContent)
-				}
+				docsNeeded[pkgPath] = true
 			}
 		}
 		// Final tidy
-		runCommand(ctx, absPath, "go", "mod", "tidy")
-	}
+		CommandRunner.Run(ctx, absPath, "go", "mod", "tidy")
 
-	// 4. Create skeleton main.go if requested or by default?
-	// Let's create a minimal main.go to ensure it's a valid buildable project.
-	mainContent := fmt.Sprintf("package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"Hello, %s!\")\n}\n", filepath.Base(args.Path))
-	mainPath := filepath.Join(absPath, "main.go")
-	if _, err := os.Stat(mainPath); os.IsNotExist(err) {
-		if err := os.WriteFile(mainPath, []byte(mainContent), 0644); err == nil {
-			sb.WriteString("- Created `main.go` (skeleton)\n")
+		// Process docs (deduplicated)
+		for pkgPath := range docsNeeded {
+			if docContent := godoc.GetDocumentationWithFallback(ctx, pkgPath); docContent != "" {
+				sb.WriteString("\n")
+				sb.WriteString(docContent)
+			}
 		}
 	}
 
@@ -97,13 +116,6 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 			&mcp.TextContent{Text: sb.String()},
 		},
 	}, nil, nil
-}
-
-func runCommand(ctx context.Context, dir, name string, args ...string) (string, error) {
-	cmd := exec.CommandContext(ctx, name, args...)
-	cmd.Dir = dir
-	out, err := cmd.CombinedOutput()
-	return string(out), err
 }
 
 func errorResult(msg string) *mcp.CallToolResult {
