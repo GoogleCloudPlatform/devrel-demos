@@ -110,14 +110,71 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 	// 3. Tests
 	if runTests {
 		sb.WriteString("### 🧪 Tests: ")
-		// -v for verbose to see which tests run
-		testOut, testErr := CommandRunner.RunWithOutput(ctx, dir, "go", "test", "-v", pkgs)
+		
+		// Create a temporary file for coverage
+		covFile := "coverage.out"
+		defer func() {
+			// Best effort cleanup, ignoring errors
+			_ = CommandRunner.Run(ctx, dir, "rm", covFile)
+		}()
+
+		// -v for verbose, -coverprofile for coverage
+		testArgs := []string{"test", "-v", "-coverprofile=" + covFile, pkgs}
+		testOut, testErr := CommandRunner.RunWithOutput(ctx, dir, "go", testArgs...)
+
 		if testErr != nil {
 			sb.WriteString("❌ FAILED\n\n")
 			sb.WriteString(formatOutput(testOut))
 			return result(sb.String(), true), nil, nil
 		}
 		sb.WriteString("✅ PASS\n\n")
+
+		// Process coverage
+		sb.WriteString("#### Coverage\n")
+		
+		// 1. Get Total Coverage from go tool cover -func
+		funcOut, funcErr := CommandRunner.RunWithOutput(ctx, dir, "go", "tool", "cover", "-func="+covFile)
+		if funcErr == nil {
+			lines := strings.Split(strings.TrimSpace(funcOut), "\n")
+			if len(lines) > 0 {
+				lastLine := lines[len(lines)-1]
+				if strings.HasPrefix(lastLine, "total:") {
+					// Format: "total: (statements) 80.0%"
+					parts := strings.Fields(lastLine)
+					if len(parts) >= 3 {
+						sb.WriteString(fmt.Sprintf("- **Total Project Coverage**: %s\n", parts[len(parts)-1]))
+					}
+				}
+			}
+		}
+
+		// 2. Parse per-package coverage from test output
+		// Format: "ok  \tgithub.com/org/repo/pkg\t0.123s\tcoverage: 50.0% of statements"
+		// or "?   \tgithub.com/org/repo/pkg\t[no test files]"
+		lines := strings.Split(testOut, "\n")
+		hasCoverage := false
+		for _, line := range lines {
+			if strings.Contains(line, "\tcoverage: ") {
+				// Extract package and coverage
+				parts := strings.Fields(line)
+				// parts usually: [ok, pkgname, time, coverage:, 50.0%, of, statements]
+				if len(parts) >= 5 {
+					pkg := parts[1]
+					covStr := parts[4] // "50.0%"
+					
+					// Omit 0.0% coverage? User said "Omit packages with 0% coverage"
+					// Usually it says "coverage: [no statements]" if 0? No, it says "0.0% of statements"
+					if covStr != "0.0%" && covStr != "[no" {
+						if !hasCoverage {
+							sb.WriteString("- **Packages**:\n")
+							hasCoverage = true
+						}
+						sb.WriteString(fmt.Sprintf("  - `%s`: %s\n", pkg, covStr))
+					}
+				}
+			}
+		}
+		sb.WriteString("\n")
 	}
 
 	// 4. Lint

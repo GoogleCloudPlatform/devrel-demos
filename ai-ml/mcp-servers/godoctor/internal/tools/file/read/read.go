@@ -125,6 +125,12 @@ func readCodeHandler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (
 					break
 				}
 				pkgPath := strings.Trim(imp.Path.Value, "\"")
+
+				// Skip standard library packages (heuristically: no dot in first path component)
+				if parts := strings.Split(pkgPath, "/"); len(parts) > 0 && !strings.Contains(parts[0], ".") {
+					continue
+				}
+
 				if d, err := godoc.Load(ctx, pkgPath, ""); err == nil {
 					summary := strings.ReplaceAll(d.Description, "\n", " ")
 					if len(summary) > 200 {

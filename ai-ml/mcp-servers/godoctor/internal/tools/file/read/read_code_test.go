@@ -23,7 +23,10 @@ func TestReadCodeTool(t *testing.T) {
 	srcFile := filepath.Join(tmpDir, "main.go")
 	src := `package main
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+)
 
 type MyStruct struct {
 	Name string
@@ -35,6 +38,7 @@ func (s *MyStruct) Greet() string {
 
 func main() {
 	fmt.Println("Hello")
+	var _ mcp.Tool
 	undefinedFunc() // This should trigger an analysis error
 }
 `
@@ -58,12 +62,20 @@ func main() {
 	}
 
 	output := res.Content[0].(*mcp.TextContent).Text
+	
+	// Check for Imported Packages section
 	if !strings.Contains(output, "## Imported Packages") {
 		t.Errorf("expected Imported Packages section, got: %s", output)
 	}
 
-	if !strings.Contains(output, "fmt") {
-		t.Errorf("expected fmt in imported packages, got: %s", output)
+	// Verify filtering: fmt should NOT be present (stdlib)
+	if strings.Contains(output, "- **fmt**:") {
+		t.Errorf("expected fmt to be filtered out (stdlib), got: %s", output)
+	}
+
+	// Verify detection: github.com/modelcontextprotocol/go-sdk/mcp SHOULD be present
+	if !strings.Contains(output, "github.com/modelcontextprotocol/go-sdk/mcp") {
+		t.Errorf("expected github.com/modelcontextprotocol/go-sdk/mcp in imported packages, got: %s", output)
 	}
 
 	// 2. Syntax Error Check

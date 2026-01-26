@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/danicat/godoctor/internal/godoc"
 	"github.com/danicat/godoctor/internal/toolnames"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -63,6 +64,13 @@ func Handler(ctx context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.Cal
 				sb.WriteString(fmt.Sprintf("  - ⚠️ Failed to get `%s`: %v\n", dep, out))
 			} else {
 				sb.WriteString(fmt.Sprintf("  - ✅ `%s` installed\n", dep))
+				
+				// Fetch docs
+				pkgPath := strings.Split(dep, "@")[0]
+				if docContent := godoc.GetDocumentationWithFallback(ctx, pkgPath); docContent != "" {
+					sb.WriteString("\n")
+					sb.WriteString(docContent)
+				}
 			}
 		}
 		// Final tidy
