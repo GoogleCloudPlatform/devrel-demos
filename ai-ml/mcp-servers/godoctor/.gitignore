@@ -3,8 +3,6 @@
 
 # Binaries
 bin/
+/godoctor
 .gemini/
-gha-creds-*.json
-runs/
-.env
-godoctor
+

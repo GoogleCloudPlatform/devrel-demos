@@ -10,7 +10,8 @@ echo "Using Region: $REGION"
 
 # Enable APIs
 echo "Enabling APIs..."
-gcloud services enable run.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com cloudbuild.googleapis.com
+
 
 
 # Create Artifact Registry

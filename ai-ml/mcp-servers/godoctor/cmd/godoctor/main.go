@@ -98,5 +98,9 @@ func run(ctx context.Context, args []string) error {
 		return err
 	}
 
+	if cfg.ListenAddr != "" {
+		return srv.ServeHTTP(ctx, cfg.ListenAddr)
+	}
+
 	return srv.Run(ctx)
 }
