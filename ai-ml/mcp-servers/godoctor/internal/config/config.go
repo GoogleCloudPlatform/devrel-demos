@@ -25,7 +25,8 @@ func Load(args []string) (*Config, error) {
 	versionFlag := fs.Bool("version", false, "print the version and exit")
 	agentsFlag := fs.Bool("agents", false, "print LLM agent instructions and exit")
 	listToolsFlag := fs.Bool("list-tools", false, "list available tools and exit")
-	listenAddr := fs.String("listen", "", "listen address for HTTP transport (e.g., :8080)")
+	listenAddr := fs.String("listen", "", "listen address for HTTP transport (e.g., 127.0.0.1:8080)")
+
 	defaultModel := fs.String("model", "gemini-2.5-pro", "default Gemini model to use")
 	allowFlag := fs.String("allow", "", "comma-separated list of tools to explicitly allow")
 	disableFlag := fs.String("disable", "", "comma-separated list of tools to disable")
