@@ -129,8 +129,12 @@ GoDoctor can be deployed as a containerized service on **Google Cloud Run**. Thi
 Run the setup script once to enable required APIs (Cloud Run, Artifact Registry, Secret Manager) and create the Docker repository.
 
 ```bash
+# Optional: Set region (defaults to us-central1)
+export GOOGLE_CLOUD_LOCATION="europe-west1"
+
 ./deploy/setup.sh
 ```
+
 
 ### 2. Deploy to Cloud Run
 
