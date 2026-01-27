@@ -172,6 +172,7 @@ Uses your project's default Vertex AI quota.
 After deployment, the script outputs the **Service URL**. You can connect your MCP client to this URL (e.g., using Streamable HTTP transport).
 
 ```bash
-MCP Endpoint (Streamable HTTP): https://godoctor-xyz.a.run.app/sse
+MCP Endpoint (Streamable HTTP): https://godoctor-xyz.a.run.app
 ```
+
 
