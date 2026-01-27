@@ -79,4 +79,5 @@ echo "Running deployment..."
 echo "Deployment complete."
 SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" --format 'value(status.url)')
 echo "Service URL: $SERVICE_URL"
-echo "SSE Endpoint: $SERVICE_URL/sse"
+echo "MCP Endpoint (Streamable HTTP): $SERVICE_URL/sse"
+
