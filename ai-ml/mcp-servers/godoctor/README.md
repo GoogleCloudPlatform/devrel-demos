@@ -42,7 +42,20 @@ If you use the [Gemini CLI](https://github.com/google/gemini-cli), you can insta
     ```
 
 ### For GoDoctor Developers
-... (rest of the existing installation)
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/danicat/godoctor.git
+    cd godoctor
+    ```
+2.  **Build the project:**
+    ```bash
+    make build
+    ```
+3.  **Run the server (Stdio mode):**
+    ```bash
+    ./bin/godoctor
+    ```
 
 
 ## Configuration
