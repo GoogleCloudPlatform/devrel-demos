@@ -76,3 +76,11 @@ func (c *Config) IsToolEnabled(name string) bool {
 	// 3. Default: All enabled
 	return true
 }
+
+// DisableTool explicitly disables a tool at runtime.
+func (c *Config) DisableTool(name string) {
+	if c.DisabledTools == nil {
+		c.DisabledTools = make(map[string]bool)
+	}
+	c.DisabledTools[name] = true
+}

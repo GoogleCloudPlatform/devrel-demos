@@ -55,7 +55,15 @@ func run(ctx context.Context, args []string) error {
 		return err
 	}
 
+	// Check for AI credentials and disable code_review if missing
+	if os.Getenv("GOOGLE_API_KEY") == "" && os.Getenv("GEMINI_API_KEY") == "" &&
+		os.Getenv("GOOGLE_GENAI_USE_VERTEXAI") == "" {
+		// No API keys found, disable the review tool so it doesn't appear in instructions
+		cfg.DisableTool("code_review")
+	}
+
 	if cfg.Version {
+
 		fmt.Println(version)
 		return nil
 	}
