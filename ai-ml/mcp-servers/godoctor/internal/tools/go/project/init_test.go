@@ -49,7 +49,7 @@ func TestProjectInit(t *testing.T) {
 
 	mock := &mockRunner{
 		outputs: map[string]string{
-			"go mod init": "go: creating new go.mod: module example.com/test",
+			"go mod init":                  "go: creating new go.mod: module example.com/test",
 			"go get github.com/user/valid": "go: downloading github.com/user/valid v1.0.0",
 		},
 		errors: map[string]error{
@@ -85,12 +85,12 @@ func TestProjectInit(t *testing.T) {
 		t.Errorf("Target directory not created")
 	}
 
-	// Verify go.mod check logic (we can't easily check go.mod content since we mocked the command, 
-	// but the handler checks for existence before running. wait, the handler creates the dir, 
-	// but 'go mod init' command is what creates go.mod usually. 
+	// Verify go.mod check logic (we can't easily check go.mod content since we mocked the command,
+	// but the handler checks for existence before running. wait, the handler creates the dir,
+	// but 'go mod init' command is what creates go.mod usually.
 	// Since we mocked 'go mod init', no go.mod file is actually created by the command on disk.
 	// But the Handler doesn't check for go.mod existence *after* running command, only before.
-	
+
 	// Verify Output strings
 	expectedStrings := []string{
 		"Successfully initialized Go project",

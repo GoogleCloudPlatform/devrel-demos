@@ -102,7 +102,7 @@ func TestLevenshtein(t *testing.T) {
 }
 
 func TestFindFuzzyMatches(t *testing.T) {
-	candidates := []string{"Println", "Printf", "Sprintf", "Stringer", "Scan"}
+	candidates := []string{"Println", "Printf", "Sprintf", "Stringer", "Scan", "fmt"}
 	
 	tests := []struct {
 		query string
@@ -111,6 +111,7 @@ func TestFindFuzzyMatches(t *testing.T) {
 		{"Prntln", []string{"Println"}},                     // Typo
 		{"printf", []string{"Println", "Printf", "Sprintf"}}, // Case insensitivity + close matches
 		{"sprint", []string{"Printf", "Sprintf"}},            // Partial/Close
+		{"ftm", []string{"fmt"}},                             // Package typo
 		{"Xyz", nil},                                         // No match
 	}
 
