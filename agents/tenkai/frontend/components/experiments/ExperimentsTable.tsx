@@ -57,7 +57,7 @@ export default function ExperimentsTable({ experiments }: ExperimentsTableProps)
                 </TableHeader>
                 <TableBody>
                     {experiments.map((exp) => (
-                        <TableRow key={exp.id} className={exp.is_locked ? "border-l-2 border-l-amber-500" : ""}>
+                        <TableRow key={exp.id} className={exp.is_locked ? "border-l-2 border-l-warning" : ""}>
                             <TableCell className="font-mono text-muted-foreground font-bold flex items-center gap-2">
                                 <span>#{exp.id}</span>
                                 <LockToggle
@@ -71,10 +71,10 @@ export default function ExperimentsTable({ experiments }: ExperimentsTableProps)
                                         exp.status?.toUpperCase() === 'FAILED' ? 'destructive' : 'outline'
                                 } className={cn(
                                     "uppercase font-bold tracking-wider text-[10px]",
-                                    exp.status?.toUpperCase() === 'COMPLETED' && "border-emerald-500/50 text-emerald-500 bg-emerald-500/10",
-                                    exp.status?.toUpperCase() === 'RUNNING' && "border-indigo-500/50 text-indigo-400 bg-indigo-500/10 animate-pulse",
-                                    exp.status?.toUpperCase() === 'ABORTED' && "border-zinc-500/50 text-zinc-400 bg-zinc-500/10",
-                                    exp.status?.toUpperCase() === 'QUEUED' && "border-blue-500/50 text-blue-400 bg-blue-500/10"
+                                    exp.status?.toUpperCase() === 'COMPLETED' && "border-success/50 text-success bg-success/10",
+                                    exp.status?.toUpperCase() === 'RUNNING' && "border-primary/50 text-primary bg-primary/10 animate-pulse",
+                                    exp.status?.toUpperCase() === 'ABORTED' && "border-muted-foreground/50 text-muted-foreground bg-muted",
+                                    exp.status?.toUpperCase() === 'QUEUED' && "border-info/50 text-info bg-info/10"
                                 )}>
                                     {exp.status}
                                 </Badge>

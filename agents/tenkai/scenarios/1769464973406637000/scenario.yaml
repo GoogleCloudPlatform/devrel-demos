@@ -1,0 +1,21 @@
+name: Photo Restoration with Nano Banana Pro
+description: Creates a command line application for photo restorations using gemini-3-pro-image-preview
+task: "Create a photo restoration command line application in Go, using Google's GenAI SDK for Go (https://github.com/googleapis/go-genai) and the model gemini-3-pro-image-preview (aka Nano Banana Pro).\r\n\r\nTODO:\r\n- create a binary called `restore` to perform restoration of old photos\r\n- `restore` should take one picture as input `image.jpeg` and produce one picture as output `image_restored.jpg`\r\n- the tool should remove defects, warps and deteriorations typically associated with age in physical photos\r\n- `restore` will also upscale the photo to have resolution compatible with modern standards\r\n- use Gemini API key authentication\r\n- support JPEG format as input and output\r\n\r\nNOT TO DO:\r\n- `restore` should not add, remove or change elements in the picture: it's objective is purely restoring the image to its best possible form\r\n- do not support other image formats besides JPEG\r\n\r\n## Acceptance Criteria\r\n- Unit tests must pass. You must verify that the *total* project coverage is at least 30% by running: `go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out`\r\n- Linter `./...` must pass with max 5 issues.\r\n- Command `./restore elvira.jpeg` must succeed.\r\n"
+assets:
+    - type: file
+      source: elvira.jpeg
+      target: elvira.jpeg
+validation:
+    - type: test
+      target: ./...
+      min_coverage: 30
+    - type: lint
+      target: ./...
+      max_issues: 5
+    - type: command
+      command: ./restore elvira.jpeg
+    - type: model
+      prompt: |-
+        evaluate the file @elvira_restored.jpeg, and compare to @elvira.jpeg - output a single token <<PASS>> if the restoration was successful, or <<FAIL>> if it wasn't.
+
+        Note: the restoration should not introduce elements not originally present in the picture, and conversely, not remove elements from the original picture that are not defects due to deterioration.

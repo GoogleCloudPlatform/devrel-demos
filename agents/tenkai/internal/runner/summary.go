@@ -441,7 +441,7 @@ func GetFailureReasons(res Result) []string {
 }
 
 func analyzeTools(results []Result, toolCounts map[int64]map[string]int) []models.ToolAnalysis {
-	if len(results) < 5 {
+	if len(results) < 3 {
 		return nil
 	}
 
@@ -527,7 +527,7 @@ func analyzeTools(results []Result, toolCounts map[int64]map[string]int) []model
 		// 1. Success vs Fail
 		s := toolCountsSucc[t]
 		f := toolCountsFail[t]
-		if len(s) >= 5 && len(f) >= 5 {
+		if len(s) >= 2 && len(f) >= 2 {
 			row.SuccFailPValue = stats.MannWhitneyU(s, f)
 		}
 

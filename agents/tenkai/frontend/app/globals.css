@@ -33,184 +33,110 @@
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
 
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
 }
 
 :root {
+  /* Dark Mode Default (Aligned with previous "Dark" theme) */
   --background: hsl(240 10% 3.9%);
-  --foreground: hsl(240 10% 98%);
-  --card: hsl(240 10% 3.9%);
-  --card-foreground: hsl(240 10% 98%);
-  --popover: hsl(240 10% 3.9%);
-  --popover-foreground: hsl(240 10% 98%);
+  --foreground: hsl(0 0% 98%);
+
+  --card: hsl(240 10% 4.5%);
+  /* Slightly lighter than bg */
+  --card-foreground: hsl(0 0% 98%);
+
+  --popover: hsl(240 10% 4.5%);
+  --popover-foreground: hsl(0 0% 98%);
+
   --primary: hsl(243.4 75.4% 58.6%);
-  /* HSL for #6366f1 (Indigo-500) */
+  /* Indigo-500 */
   --primary-foreground: hsl(0 0% 98%);
+
   --secondary: hsl(240 3.7% 15.9%);
   --secondary-foreground: hsl(0 0% 98%);
+
   --muted: hsl(240 3.7% 15.9%);
   --muted-foreground: hsl(240 5% 64.9%);
+
   --accent: hsl(240 3.7% 15.9%);
   --accent-foreground: hsl(0 0% 98%);
+
   --destructive: hsl(0 62.8% 30.6%);
   --destructive-foreground: hsl(0 0% 98%);
+
+  /* Semantic Additions */
+  --success: hsl(142 70% 45%);
+  /* Emerald-500 equivalent */
+  --success-foreground: hsl(0 0% 98%);
+
+  --warning: hsl(38 92% 50%);
+  /* Amber-500 equivalent */
+  --warning-foreground: hsl(48 96% 89%);
+
+  --info: hsl(217 91% 60%);
+  /* Blue-500 equivalent */
+  --info-foreground: hsl(0 0% 98%);
+
   --border: hsl(240 3.7% 15.9%);
   --input: hsl(240 3.7% 15.9%);
   --ring: hsl(240 4.9% 83.9%);
+
   --radius: 0.5rem;
 }
 
 [data-theme='light'] {
   --background: hsl(0 0% 100%);
   --foreground: hsl(240 10% 3.9%);
+
   --card: hsl(0 0% 100%);
   --card-foreground: hsl(240 10% 3.9%);
+
   --popover: hsl(0 0% 100%);
   --popover-foreground: hsl(240 10% 3.9%);
+
   --primary: hsl(243.4 75.4% 58.6%);
-  /* Indigo-600 */
+  /* Indigo-500 */
   --primary-foreground: hsl(0 0% 98%);
+
   --secondary: hsl(240 4.8% 95.9%);
   --secondary-foreground: hsl(240 5.9% 10%);
+
   --muted: hsl(240 4.8% 95.9%);
   --muted-foreground: hsl(240 3.8% 46.1%);
+
   --accent: hsl(240 4.8% 95.9%);
   --accent-foreground: hsl(240 5.9% 10%);
+
   --destructive: hsl(0 84.2% 60.2%);
   --destructive-foreground: hsl(0 0% 98%);
+
+  /* Semantic Additions (Light Mode) */
+  --success: hsl(142 76% 36%);
+  /* Emerald-600 */
+  --success-foreground: hsl(355 100% 97%);
+
+  --warning: hsl(38 92% 50%);
+  /* Amber-500 */
+  --warning-foreground: hsl(48 96% 89%);
+
+  --info: hsl(221 83% 53%);
+  /* Blue-600 */
+  --info-foreground: hsl(210 40% 98%);
+
   --border: hsl(240 5.9% 90%);
   --input: hsl(240 5.9% 90%);
   --ring: hsl(240 5.9% 10%);
-}
-
-[data-theme='happy'] {
-  --background: hsl(0 0% 100%);
-  /* White Background */
-  --foreground: hsl(280 50% 10%);
-  /* Dark Purple Text */
-  --card: hsl(280 30% 96%);
-  /* Very Light Purple Card */
-  --card-foreground: hsl(280 50% 10%);
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(280 50% 10%);
-  --primary: hsl(328 100% 60%);
-  /* Hot Pink */
-  --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(175 100% 45%);
-  /* Teal */
-  --secondary-foreground: hsl(0 0% 100%);
-  --muted: hsl(280 20% 90%);
-  --muted-foreground: hsl(280 10% 40%);
-  --accent: hsl(55 100% 50%);
-  /* Yellow Accent */
-  --accent-foreground: hsl(280 50% 10%);
-  --destructive: hsl(0 90% 60%);
-  --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(280 20% 85%);
-  --input: hsl(280 20% 90%);
-  --ring: hsl(328 100% 60%);
-}
-
-[data-theme='tropical'] {
-  --background: hsl(190 60% 98%);
-  /* Crystal Clear Water Mist */
-  --foreground: hsl(160 100% 15%);
-  /* Deep Jungle Text */
-  --card: hsl(190 50% 94%);
-  /* Foam White/Cyan Card */
-  --card-foreground: hsl(160 100% 15%);
-  --popover: hsl(190 50% 94%);
-  --popover-foreground: hsl(160 100% 15%);
-  --primary: hsl(150 100% 35%);
-  /* Foliage: Vivid Jungle Green */
-  --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(195 90% 45%);
-  /* Water: Tropical Turquoise */
-  --secondary-foreground: hsl(0 0% 100%);
-  --muted: hsl(45 50% 90%);
-  /* Sandy Muted backgrounds */
-  --muted-foreground: hsl(160 60% 30%);
-  --accent: hsl(45 100% 50%);
-  /* SUN: Golden Sunshine Yellow */
-  --accent-foreground: hsl(0 0% 100%);
-  --destructive: hsl(15 90% 55%);
-  /* Tropical Flower Red/Orange */
-  --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(170 40% 80%);
-  --input: hsl(170 40% 85%);
-  --ring: hsl(45 100% 50%);
-  /* Sun-colored Focus Ring */
-}
-
-[data-theme='dracula'] {
-  --background: hsl(0 0% 5%);
-  /* #0d0d0d Material Dark */
-  --foreground: hsl(0 100% 92%);
-  /* "Pale Blood" - Explicitly Red-tinted White */
-  --card: hsl(0 0% 10%);
-  /* #1a1a1a Surface */
-  --card-foreground: hsl(0 100% 92%);
-  --popover: hsl(0 0% 10%);
-  --popover-foreground: hsl(0 100% 92%);
-  --primary: hsl(0 95% 45%);
-  /* Deep Blood Red - Darker for White Text Contrast */
-  --primary-foreground: hsl(0 0% 100%);
-  /* Pure White on Blood Red = High Contrast */
-  --secondary: hsl(0 30% 20%);
-  /* Dark Clotted Blood */
-  --secondary-foreground: hsl(0 100% 92%);
-  --muted: hsl(0 20% 15%);
-  --muted-foreground: hsl(0 40% 70%);
-  /* Muted Red Gray */
-  --accent: hsl(0 100% 60%);
-  /* Fresh Blood Highlight */
-  --accent-foreground: hsl(0 0% 100%);
-  --destructive: hsl(0 100% 40%);
-  --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(0 30% 25%);
-  --input: hsl(0 30% 25%);
-  --ring: hsl(0 100% 50%);
-
-  /* High Contrast Selection - Safe & Standard */
-  /* Using Dark Grey BG + White Text ensures no color vibration issues */
-  *::selection {
-    background-color: hsl(0 0% 30%);
-    /* Charcoal Highlight */
-    color: hsl(0 0% 100%);
-    /* White Text */
-  }
-}
-
-[data-theme='pacman'] {
-  --background: hsl(48 100% 98%);
-  /* Warm White / Very Pale Yellow */
-  --foreground: hsl(0 0% 10%);
-  /* Soft Black */
-  --card: hsl(48 100% 95%);
-  /* Pale Yellow Card */
-  --card-foreground: hsl(0 0% 10%);
-  --popover: hsl(48 100% 95%);
-  --popover-foreground: hsl(0 0% 10%);
-  --primary: hsl(48 100% 50%);
-  /* Golden Yellow (Pacman) */
-  --primary-foreground: hsl(0 0% 10%);
-  --secondary: hsl(30 100% 55%);
-  /* Orange (Clyde) - Analogous */
-  --secondary-foreground: hsl(0 0% 100%);
-  --muted: hsl(45 50% 90%);
-  --muted-foreground: hsl(45 20% 40%);
-  --accent: hsl(48 100% 80%);
-  /* Light Yellow Highlight */
-  --accent-foreground: hsl(0 0% 10%);
-  --destructive: hsl(0 85% 60%);
-  /* Blinky Red (Complementary-ish but kept for alerts) */
-  --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(48 80% 70%);
-  /* Darker Yellow Border */
-  --input: hsl(45 50% 90%);
-  --ring: hsl(48 100% 50%);
 }
 
 body {
@@ -241,10 +167,8 @@ body {
   .text-body {
     @apply text-sm font-normal text-muted-foreground;
   }
-}
 
-@layer components {
   .panel {
-    @apply rounded-lg border bg-card text-card-foreground shadow-sm;
+    @apply rounded-lg border border-border bg-card text-card-foreground shadow-sm;
   }
 }

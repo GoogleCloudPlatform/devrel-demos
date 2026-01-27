@@ -40,6 +40,12 @@ func (db *DB) Close() error {
 }
 
 func (db *DB) migrate() error {
+	// Specialized migration: Ensure tool_usage is a view, not a table.
+	// We do this before running standard migrations to clear the path for the CREATE VIEW query.
+	if err := db.dropToolUsageObject(); err != nil {
+		return fmt.Errorf("failed to drop tool_usage object: %w", err)
+	}
+
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS experiments (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,6 +108,8 @@ func (db *DB) migrate() error {
 			payload TEXT, -- JSON content
 			FOREIGN KEY(run_id) REFERENCES run_results(id)
 		);`,
+		// Force recreation of tool_usage view to handle migration from table -> view
+		// Handled by specialized migration dropToolUsageObject()
 		`CREATE VIEW IF NOT EXISTS tool_usage AS 
 			SELECT 
 				id, 
@@ -184,11 +192,30 @@ func (db *DB) migrate() error {
 	}
 
 	// 2. Specialized migrations
+
 	if err := db.migrateConfigBlocksSchema(); err != nil {
 		return fmt.Errorf("failed to migrate config_blocks schema: %w", err)
 	}
 
 	return nil
+}
+
+func (db *DB) dropToolUsageObject() error {
+	var typeStr string
+	err := db.conn.QueryRow(`SELECT type FROM sqlite_master WHERE name='tool_usage'`).Scan(&typeStr)
+	if err == sql.ErrNoRows {
+		return nil // Doesn't exist, nothing to do
+	}
+	if err != nil {
+		return err
+	}
+
+	if typeStr == "view" {
+		_, err = db.conn.Exec(`DROP VIEW tool_usage`)
+	} else if typeStr == "table" {
+		_, err = db.conn.Exec(`DROP TABLE tool_usage`)
+	}
+	return err
 }
 
 func (db *DB) migrateConfigBlocksSchema() error {

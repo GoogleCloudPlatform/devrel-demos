@@ -37,7 +37,7 @@ export default function ToolUsageTable({ experimentId, alternatives, filter }: T
                 setStats([]);
                 setLoading(false);
             });
-    }, [experimentId]);
+    }, [experimentId, filter]);
 
     if (loading) return <div className="p-4 text-center text-zinc-500 animate-pulse">Loading tool stats...</div>;
     if (!stats || stats.length === 0) return null;

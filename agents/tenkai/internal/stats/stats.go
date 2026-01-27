@@ -3,6 +3,12 @@ package stats
 import (
 	"math"
 	"sort"
+	"sync"
+)
+
+var (
+	factorialCache []float64
+	factorialMutex sync.Mutex
 )
 
 // Mean calculates the average of a slice of float64.
@@ -164,8 +170,6 @@ func logBinomial(n, k int) float64 {
 	return logFactorial(n) - logFactorial(k) - logFactorial(n-k)
 }
 
-var factorialCache []float64
-
 func logFactorial(n int) float64 {
 	if n < 0 {
 		return -1e100
@@ -173,6 +177,10 @@ func logFactorial(n int) float64 {
 	if n <= 1 {
 		return 0
 	}
+
+	factorialMutex.Lock()
+	defer factorialMutex.Unlock()
+
 	if len(factorialCache) > n && factorialCache[n] != 0 {
 		return factorialCache[n]
 	}
@@ -259,8 +267,27 @@ func MannWhitneyU(sample1, sample2 []float64) float64 {
 
 	// Tie correction for standard deviation
 	// sigma = sqrt( (n1*n2/12) * ( (N^3 - N - sum(t^3 - t)) / (N*(N-1)) ) )
-	// Simplified without tie correction for now:
-	sigma := math.Sqrt(n1 * n2 * (n1 + n2 + 1) / 12.0)
+	// Calculate sigma with tie correction
+	sort.Float64s(all)
+	tSum := 0.0
+	for i := 0; i < len(all); {
+		j := i + 1
+		for j < len(all) && all[j] == all[i] {
+			j++
+		}
+		t := float64(j - i)
+		if t > 1 {
+			tSum += t*t*t - t
+		}
+		i = j
+	}
+
+	N := n1 + n2
+	// Standard deviation formula with ties:
+	// sigma = sqrt( (n1*n2/12) * ( (N^3 - N - sum(t^3 - t)) / (N*(N-1)) ) )
+	term1 := n1 * n2 / 12.0
+	term2 := (math.Pow(N, 3) - N - tSum) / (N * (N - 1))
+	sigma := math.Sqrt(term1 * term2)
 
 	if sigma == 0 {
 		return 1.0

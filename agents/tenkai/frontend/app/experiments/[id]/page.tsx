@@ -1,5 +1,5 @@
 import yaml from "js-yaml";
-import { getSimplifiedMetrics, getCheckpoint, getRunResults, getExperimentSummaries, getExperiment } from "@/app/api/api";
+import { getSimplifiedMetrics, getCheckpoint, getRunResults, getExperimentSummaries, getExperiment, getBlocks } from "@/app/api/api";
 import ReportViewer from "@/components/ReportViewer";
 import RefreshOnInterval from "@/components/RefreshOnInterval";
 import ExperimentLockToggle from "@/components/experiments/ExperimentLockToggle";
@@ -33,13 +33,14 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
             </div>
         );
     }
-    let metrics, checkpoint, runResults, summaries;
+    let metrics, checkpoint, runResults, summaries, blocks;
     try {
-        [metrics, checkpoint, runResults, summaries] = await Promise.all([
+        [metrics, checkpoint, runResults, summaries, blocks] = await Promise.all([
             getSimplifiedMetrics(experiment.id),
             getCheckpoint(String(experiment.id)),
             getRunResults(String(experiment.id), 1, 5000),
-            getExperimentSummaries(experiment.id)
+            getExperimentSummaries(experiment.id),
+            getBlocks()
         ]);
     } catch (e) {
         return (
@@ -69,7 +70,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
             <ExperimentSidebar experiment={experiment} />
 
             {/* Main Content Area */}
-            <main className="flex-1 h-full overflow-hidden flex flex-col bg-background">
+            <section className="flex-1 h-full overflow-hidden flex flex-col bg-background">
                 <Suspense fallback={<div className="p-10 text-center opacity-50">Loading Report...</div>}>
                     <ReportViewer
                         experiment={experiment}
@@ -80,9 +81,10 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
                         stats={stats}
                         config={configYaml}
                         configContent={experiment.config_content || ""}
+                        blocks={blocks || []}
                     />
                 </Suspense>
-            </main>
+            </section>
         </div>
     );
 }
