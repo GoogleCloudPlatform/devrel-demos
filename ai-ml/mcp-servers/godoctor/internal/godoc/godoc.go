@@ -104,6 +104,35 @@ func GetDocumentation(ctx context.Context, pkgPath, symbolName string) (string, 
 	return Render(doc), nil
 }
 
+// GetDocumentationWithFallback attempts to retrieve documentation for a package.
+// If the specific package documentation is not found, it attempts to find documentation
+// for parent paths (module roots) and returns it with a hint.
+func GetDocumentationWithFallback(ctx context.Context, pkgPath string) string {
+	// 1. Try exact match
+	doc, err := Load(ctx, pkgPath, "")
+	if err == nil && doc.Package != "" {
+		return Render(doc)
+	}
+
+	// 2. Fallback: Walk up the path
+	parts := strings.Split(pkgPath, "/")
+	// Heuristic: For domain-based packages (github.com/...), keep at least 3 parts.
+	minParts := 1
+	if strings.Contains(parts[0], ".") {
+		minParts = 3
+	}
+
+	for i := len(parts) - 1; i >= minParts; i-- {
+		parentPath := strings.Join(parts[:i], "/")
+		doc, err := Load(ctx, parentPath, "")
+		if err == nil && doc.Package != "" {
+			return fmt.Sprintf("> ℹ️ Could not find docs for `%s`. Showing docs for module root `%s` instead.\n\n%s", pkgPath, parentPath, Render(doc))
+		}
+	}
+
+	return ""
+}
+
 // Example represents a code example extracted from documentation.
 type Example struct {
 	Name   string `json:"name"`

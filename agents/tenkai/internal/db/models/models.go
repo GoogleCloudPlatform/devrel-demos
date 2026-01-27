@@ -118,6 +118,9 @@ type RunResult struct {
 	ToolCallsCount  int    `json:"tool_calls_count"`
 	FailedToolCalls int    `json:"failed_tool_calls"`
 	LoopDetected    bool   `json:"loop_detected"`
+	Model           string `json:"model"`
+	SessionID       string `json:"session_id"`
+	ModelDuration   int64  `json:"model_duration"` // ms
 	Status          string `json:"status"`
 	Reason          string `json:"reason"` // SUCCESS, FAILED, TIMEOUT, ABORTED
 	Stdout          string `json:"stdout"`

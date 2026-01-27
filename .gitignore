@@ -189,3 +189,5 @@ Thumbs.db
 
 # Audio files 
 *.mp3
+# Gemini CLI
+.gemini/

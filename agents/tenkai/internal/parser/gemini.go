@@ -28,6 +28,9 @@ type AgentMetrics struct {
 	Errors              []ErrorEvent   `json:"errors"`
 	Messages            []MessageEvent `json:"messages"`
 	LoopDetected        bool           `json:"loop_detected"`
+	SessionID           string         `json:"session_id"`
+	ModelName           string         `json:"model_name"`
+	ModelDuration       int64          `json:"model_duration"`
 }
 
 // ToolCall represents a single tool execution attempt.
@@ -72,13 +75,16 @@ type GeminiEvent struct {
 	Role      string                 `json:"role,omitempty"`       // For message events
 	Content   string                 `json:"content,omitempty"`    // For message events
 	Delta     bool                   `json:"delta,omitempty"`      // For message events
+	SessionID string                 `json:"session_id,omitempty"` // For init event
+	Model     string                 `json:"model,omitempty"`      // For init event
 }
 
 type GeminiStats struct {
-	TotalTokens  int `json:"total_tokens"`
-	InputTokens  int `json:"input_tokens"`
-	OutputTokens int `json:"output_tokens"`
-	CachedTokens int `json:"cached"`
+	TotalTokens  int   `json:"total_tokens"`
+	InputTokens  int   `json:"input_tokens"`
+	OutputTokens int   `json:"output_tokens"`
+	CachedTokens int   `json:"cached"`
+	DurationMs   int64 `json:"duration_ms"`
 }
 
 // ParseEvents reads a jsonl file and extracts metrics.
@@ -127,6 +133,10 @@ func ParseLine(line string, metrics *AgentMetrics, pendingTools map[string]*Tool
 	ts, _ := time.Parse(time.RFC3339, evt.Timestamp)
 
 	switch evt.Type {
+	case "init":
+		metrics.SessionID = evt.SessionID
+		metrics.ModelName = evt.Model
+
 	case "tool_use":
 		argsBytes, _ := json.Marshal(evt.Params)
 		tc := &ToolCall{
@@ -155,8 +165,15 @@ func ParseLine(line string, metrics *AgentMetrics, pendingTools map[string]*Tool
 		if tc, ok := pendingTools[evt.ToolID]; ok {
 			tc.Status = evt.Status
 			tc.Output = evt.Output
+			// Handle error status specifically as requested
 			if evt.Status != "success" {
-				tc.Error = evt.Output
+				// If status is not success, capture output as error if present,
+				// or keep existing output field but count as failure.
+				if evt.Error != "" {
+					tc.Error = evt.Error
+				} else {
+					tc.Error = evt.Output
+				}
 				metrics.FailedToolCalls++
 			}
 			tc.Duration = ts.Sub(tc.Timestamp)
@@ -186,6 +203,7 @@ func ParseLine(line string, metrics *AgentMetrics, pendingTools map[string]*Tool
 			metrics.OutputTokens = evt.Stats.OutputTokens
 			metrics.TotalTokens = evt.Stats.TotalTokens
 			metrics.CachedTokens = evt.Stats.CachedTokens
+			metrics.ModelDuration = evt.Stats.DurationMs
 		}
 
 	case "error":
@@ -197,6 +215,10 @@ func ParseLine(line string, metrics *AgentMetrics, pendingTools map[string]*Tool
 		// Check for loop detection
 		if strings.Contains(evt.Message, "Loop detected") {
 			metrics.LoopDetected = true
+		}
+		// Check for tool execution errors that might come as generic error events
+		if strings.Contains(evt.Message, "Error executing tool") {
+			metrics.FailedToolCalls++
 		}
 
 	case "message":

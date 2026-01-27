@@ -81,6 +81,12 @@ export default function ExperimentForm({ templates, scenarios }: { templates: an
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (selectedScenarios.length === 0) {
+            toast.error("Please select at least one scenario to launch.");
+            return;
+        }
+
         setLoading(true);
 
         const payload = {
@@ -209,23 +215,7 @@ export default function ExperimentForm({ templates, scenarios }: { templates: an
                     </Card>
 
                     <ScenarioSelector
-                        scenarios={templateDetails?.config.scenarios.map((scenCfg: any) => {
-                            // Handle both string format "scenarios/ID" and object format {id: ID}
-                            let id = "";
-                            if (typeof scenCfg === 'string') {
-                                const partes = scenCfg.split('/');
-                                id = partes[partes.length - 1];
-                            } else {
-                                id = String(scenCfg.id);
-                            }
-
-                            const fullScen = scenarios.find(s => String(s.id) === id);
-                            return {
-                                id: id,
-                                name: fullScen ? fullScen.name : `Scenario ${id}`,
-                                description: fullScen ? fullScen.description : (typeof scenCfg === 'string' ? scenCfg : "")
-                            };
-                        }) || []}
+                        scenarios={scenarios || []}
                         selectedIds={selectedScenarios}
                         onToggle={(id) => {
                             if (selectedScenarios.includes(id)) {
@@ -272,8 +262,8 @@ export default function ExperimentForm({ templates, scenarios }: { templates: an
                     )}
 
                     <div className="space-y-4">
-                        <Button type="submit" variant="default" size="lg" className="w-full" isLoading={loading}>
-                            Launch
+                        <Button type="submit" variant="default" size="lg" className="w-full" isLoading={loading} disabled={selectedScenarios.length === 0}>
+                            {selectedScenarios.length === 0 ? "Select a Scenario" : "Launch"}
                         </Button>
                         <Link href="/experiments" className="block w-full">
                             <Button variant="ghost" className="w-full">

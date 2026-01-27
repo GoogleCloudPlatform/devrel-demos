@@ -2,6 +2,7 @@ package stats
 
 import (
 	"math"
+	"sync"
 	"testing"
 )
 
@@ -153,6 +154,16 @@ func TestMannWhitneyU(t *testing.T) {
 			wantP:  1.0,
 			minTol: 0.1,
 		},
+		{
+			name: "Tied Ranks (Correction Check)",
+			d1:   []float64{1, 1, 1, 1, 1},
+			d2:   []float64{2, 2, 2, 2, 2},
+			// Z with correction approx -3.00 -> p ~ 0.0026
+			// Z without correction approx -2.61 -> p ~ 0.009
+			// We want to ensure we are closer to the corrected value.
+			wantP:  0.0027,
+			minTol: 0.001,
+		},
 	}
 
 	for _, tt := range tests {
@@ -165,4 +176,18 @@ func TestMannWhitneyU(t *testing.T) {
 			assertClose(t, got, tt.wantP, tt.minTol, tt.name)
 		})
 	}
+}
+
+func TestFisherConcurrency(t *testing.T) {
+	// This test triggers the data race in logFactorial if the mutex is missing.
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// Use values that trigger logFactorial calls
+			FisherExactTest(10, 10, 10, 10)
+		}()
+	}
+	wg.Wait()
 }

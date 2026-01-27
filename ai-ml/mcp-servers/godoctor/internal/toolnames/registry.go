@@ -1,3 +1,6 @@
+// Package toolnames defines the registry of available tools for the godoctor server.
+// It serves as a centralized catalog containing metadata (Name, Title, Description, Instructions)
+// for each tool, which is used to advertise capabilities to the MCP client and guide the LLM.
 package toolnames
 
 // ToolDef defines the textual representation of a tool.
@@ -13,101 +16,75 @@ var Registry = map[string]ToolDef{
 	// --- FILE OPERATIONS ---
 	"file_create": {
 		Name:        "file_create",
-		Title:       "Initialize File",
-		Description: "Create a new source file from scratch. Automatically handles directory creation, package boilerplate, and import organization.",
-		Instruction: "*   **`file_create`**: Initialize a new file. Essential for adding new modules or entry points.\n    *   **Usage:** `file_create(filename=\"cmd/main.go\", content=\"package main\\n...\")`\n    *   **Outcome:** File is created and formatted to standard.",
+		Title:       "Create File",
+		Description: "Initializes a new source file, automatically creating parent directories and applying standard Go formatting. Ensures new files are immediately compliant with project style guides.",
+		Instruction: "*   **`file_create`**: Initialize a new source file.\n    *   **Usage:** `file_create(filename=\"cmd/main.go\", content=\"package main\n...\")`\n    *   **Outcome:** A correctly formatted, directory-synced file is created.",
 	},
-	"file_edit": {
-		Name:        "file_edit",
-		Title:       "Patch File",
-		Description: "Perform a targeted code modification. Uses fuzzy-matching to locate and patch specific logic blocks. For Go files, it auto-formats and verifies compilation before finalizing.",
-		Instruction: "*   **`file_edit`**: Modify or extend existing logic. The primary tool for bug fixes and refactoring.\n    *   **Modify:** `file_edit(filename=\"main.go\", search_context=\"func old() {\\n}\", replacement=\"func new() {\\n}\")`\n    *   **Append:** `file_edit(filename=\"main.go\", replacement=\"func newFunc() {\\n}\")` (Leave `search_context` empty)\n    *   **Note:** Ensure `search_context` is unique and matches the target distinctively.\n    *   **Outcome:** Code is updated. Go code is verified for compilation errors.",
+	"smart_edit": {
+		Name:        "smart_edit",
+		Title:       "Smart Edit",
+		Description: "An intelligent file editor providing robust block matching and safety guarantees. Automatically handles formatting (gofmt), import optimization, and syntax verification to ensure edits do not break the build.",
+		Instruction: "*   **`smart_edit`**: The primary tool for safe code modification.\n    *   **Capabilities:** Validates syntax and auto-formats (gofmt/goimports) *before* committing changes to disk.\n    *   **Robustness:** Uses fuzzy matching to locate target blocks despite minor whitespace or indentation variances.\n    *   **Usage:** `smart_edit(filename=\"...\", old_content=\"...\", new_content=\"...\")`.\n    *   **Append Mode:** Leave `old_content` empty to append to the end of the file.\n    *   **Outcome:** A syntactically valid, properly formatted file update.",
 	},
-	"file_outline": {
-		Name:        "file_outline",
-		Title:       "Scan Structure",
-		Description: "Examine the structural layout of a file. Returns imports, types, and function signatures. Use this to orient yourself without consuming large amounts of context.",
-		Instruction: "*   **`file_outline`**: Perform a quick structural scan. Perfect for assessing a file's responsibilities.\n    *   **Usage:** `file_outline(filename=\"pkg/service.go\")`\n    *   **Outcome:** Lightweight structural map of the file.",
+	"smart_read": {
+		Name:        "smart_read",
+		Title:       "Read File",
+		Description: "A structure-aware file reader that optimizes for context density. Supports returning full content, structural outlines (signatures only), or specific line ranges to minimize token consumption.",
+		Instruction: "*   **`smart_read`**: Inspect file content and structure.\n    *   **Read All:** `smart_read(filename=\"pkg/utils.go\")`\n    *   **Outline:** `smart_read(filename=\"pkg/utils.go\", outline=true)` (Retrieve types and function signatures only).\n    *   **Snippet:** `smart_read(filename=\"pkg/utils.go\", start_line=10, end_line=50)` (Targeted range reading).\n    *   **Outcome:** Targeted source content or structural map.",
 	},
-	"file_read": {
-		Name:        "file_read",
-		Title:       "Examine Content",
-		Description: "Read file content with added context. Returns source code and a list of referenced external symbols with their signatures and documentation (similar to IDE hover).",
-		Instruction: "*   **`file_read`**: Read file content with context. Supports partial reading.\n    *   **Usage:** `file_read(filename=\"pkg/utils.go\")` or `file_read(filename=\"pkg/utils.go\", start_line=10, end_line=50)`\n    *   **Outcome:** Source code and external symbol context (signatures/docs).",
-	},
-	"file_list": {
-		Name:        "file_list",
-		Title:       "Survey Directory",
-		Description: "Explore the project hierarchy recursively. Use this to locate modules, understand the architecture, and find relevant source files.",
-		Instruction: "*   **`file_list`**: Map the project territory.\n    *   **Usage:** `file_list(path=\".\", depth=2)`\n    *   **Outcome:** Hierarchical list of files and directories.",
-	},
-	// --- SHELL OPERATIONS ---
-	"safe_shell": {
-		Name:        "safe_shell",
-		Title:       "Safe Execution",
-		Description: "Execute a specific binary with arguments. Supports long-running tasks up to 5 minutes. Output is capped.",
-		Instruction: "*   **`safe_shell`**: Run a CLI command safely. Output is capped. Supports long-running tasks up to 5 minutes.\n    *   **Usage:** `safe_shell(command=\"go\", args=[\"test\", \"./...\"], timeout_seconds=300)`\n    *   **Note:** Use `args` for command arguments (e.g., `echo \"hello\"` -> `args: [\"hello\"]`). Use `stdin` ONLY for piping input to commands that read from stdin (e.g., `cat`).\n    *   **Outcome:** Command stdout/stderr (truncated if large).",
-	},
-
-	// --- SYMBOL OPERATIONS ---
-	"symbol_inspect": {
-		Name:        "symbol_inspect",
-		Title:       "Diagnose Symbol",
-		Description: "Perform a deep-dive analysis of a specific symbol. Resolves its exact definition, documentation, and references using the project knowledge graph. Essential for assessing usage and impact.",
-		Instruction: "*   **`symbol_inspect`**: Get the ground truth for a symbol.\n    *   **Usage:** `symbol_inspect(import_path=\"fmt\", symbol_name=\"Println\")` or `symbol_inspect(filename=\"main.go\", symbol_name=\"MyFunc\")`\n    *   **Outcome:** Source definition and comprehensive metadata for the symbol.",
-	},
-	"symbol_rename": {
-		Name:        "symbol_rename",
-		Title:       "Refactor Symbol",
-		Description: "Execute a safe, semantic rename of a Go identifier. Updates all call sites and references throughout the codebase to maintain structural integrity.",
-		Instruction: "*   **`symbol_rename`**: Safely update a symbol's identity across the entire project.\n    *   **Usage:** `symbol_rename(filename=\"pkg/user.go\", line=10, column=5, new_name=\"Customer\")`\n    *   **Outcome:** Semantic renaming preserving structural integrity.",
+	"list_files": {
+		Name:        "list_files",
+		Title:       "List Files",
+		Description: "Recursively lists files and directories while filtering out build artifacts and version control data (e.g., .git, node_modules). Provides an accurate view of the source code hierarchy.",
+		Instruction: "*   **`list_files`**: Explore the project structure.\n    *   **Usage:** `list_files(path=\".\", depth=2)`\n    *   **Outcome:** A hierarchical list of source files and directories.",
 	},
 
 	// --- DOCS ---
-	"go_docs": {
-		Name:        "go_docs",
-		Title:       "Consult Docs",
-		Description: "Query Go documentation for any package or symbol in the ecosystem. Supports standard library and third-party modules. Essential for learning API usage.",
-		Instruction: "*   **`go_docs`**: Consult the documentation library.\n    *   **Usage:** `go_docs(import_path=\"net/http\")`\n    *   **Outcome:** API reference and usage guidance.",
+	"read_docs": {
+		Name:        "read_docs",
+		Title:       "Get Documentation",
+		Description: "Retrieves authoritative Go documentation for any package or symbol. Streamlines development by providing API signatures and usage examples directly within the workflow.",
+		Instruction: "*   **`read_docs`**: Access API documentation.\n    *   **Usage:** `read_docs(import_path=\"net/http\")`\n    *   **Outcome:** API reference and usage guidance.",
 	},
 
 	// --- GO TOOLCHAIN ---
-	"go_build": {
-		Name:        "go_build",
-		Title:       "Go Build",
-		Description: "Compiles the packages named by the import paths, along with their dependencies. Generates an executable binary if `main` package is targeted.",
-		Instruction: "*   **`go_build`**: Compile the project to check for errors.\n    *   **Usage:** `go_build(packages=[\"./...\"])`\n    *   **Outcome:** Build status report (Success or Error Log).",
+	"smart_build": {
+		Name:        "smart_build",
+		Title:       "Smart Build",
+		Description: "The primary build tool. Enforces a quality gate pipeline: Tidy -> Format -> Build -> Test -> Lint. Ensures code is production-ready.",
+		Instruction: "*   **`smart_build`**: Compile and verify code.\n    *   **Usage:** `smart_build(packages=\"./...\", auto_fix=true)`\n    *   **Outcome:** A comprehensive report on build status, test results, and lint issues.",
 	},
-	"go_test": {
-		Name:        "go_test",
-		Title:       "Run Tests",
-		Description: "Execute the test suite to verify logical correctness. Supports package-level testing and regex filtering for specific test cases.",
-		Instruction: "*   **`go_test`**: Verify logic and prevent regressions.\n    *   **Usage:** `go_test(packages=[\"./pkg/...\"], run=\"TestAuth\")`\n    *   **Outcome:** Test execution report (PASS/FAIL).",
+	"add_dependency": {
+		Name:        "add_dependency",
+		Title:       "Add Dependency",
+		Description: "Manages Go module installation and manifest updates. Consolidates the workflow by immediately returning the public API documentation for the installed packages.",
+		Instruction: "*   **`add_dependency`**: Install dependencies and fetch documentation.\n    *   **Usage:** `add_dependency(packages=[\"github.com/gin-gonic/gin@latest\"])`\n    *   **Outcome:** Dependency added to go.mod and API documentation returned.",
 	},
-	"go_get": {
-		Name:        "go_get",
-		Title:       "Go Get",
-		Description: "Downloads and installs the packages named by the import paths, along with their dependencies. Updates `go.mod`.",
-		Instruction: "*   **`go_get`**: Add a new dependency to the module.\n    *   **Usage:** `go_get(packages=[\"github.com/gin-gonic/gin@latest\"])`\n    *   **Outcome:** Module added to go.mod and downloaded.",
+	"project_init": {
+		Name:        "project_init",
+		Title:       "Initialize Project",
+		Description: "Bootstraps a new Go project by creating the directory, initializing the Go module, and installing essential dependencies. Reduces boilerplate and ensures a standard project structure.",
+		Instruction: "*   **`project_init`**: Bootstrap a new Go project.\n    *   **Usage:** `project_init(path=\"my-app\", module_path=\"github.com/user/my-app\", dependencies=[\"github.com/go-chi/chi/v5\"])`\n    *   **Outcome:** A valid Go module with requested dependencies and a skeleton structure.",
 	},
-	"go_modernize": {
-		Name:        "go_modernize",
+	"modernize_code": {
+
+		Name:        "modernize_code",
 		Title:       "Modernize Code",
-		Description: "Analyze and automatically upgrade legacy Go patterns to modern standards. Replaces outdated constructs with performant, modern equivalents.",
-		Instruction: "*   **`go_modernize`**: Proactively upgrade legacy patterns.\n    *   **Usage:** `go_modernize(dir=\".\", fix=true)`\n    *   **Outcome:** Clean, modern Go source code.",
+		Description: "Analyzes the codebase for outdated Go patterns and automatically refactors them to modern standards. Improves maintainability and performance by applying idiomatic upgrades.",
+		Instruction: "*   **`modernize_code`**: Automatically upgrade legacy patterns.\n    *   **Usage:** `modernize_code(dir=\".\", fix=true)`\n    *   **Outcome:** Source code refactored to modern Go standards.",
 	},
-	"go_diff": {
-		Name:        "go_diff",
-		Title:       "Assess API Risk",
-		Description: "Compare the public API of two versions of a package. Detects breaking changes and incompatible updates using `apidiff`.",
-		Instruction: "*   **`go_diff`**: Perform a risk assessment for updates.\n    *   **Usage:** `go_diff(old=\"v1.0.0\", new=\".\")`\n    *   **Outcome:** Report on incompatible API changes.",
+	"check_api": {
+		Name:        "check_api",
+		Title:       "Check API Compatibility",
+		Description: "Compares the public API of two package versions to detect breaking changes. Essential for maintaining backward compatibility and adhering to semantic versioning.",
+		Instruction: "*   **`check_api`**: Identify breaking changes in the public API.\n    *   **Usage:** `check_api(old=\"v1.0.0\", new=\".\")`\n    *   **Outcome:** Report on incompatible API changes.",
 	},
 
 	// --- AGENTS ---
 	"code_review": {
 		Name:        "code_review",
-		Title:       "Request Review",
-		Description: "Submit code for expert analysis. Returns a structured Markdown report focusing on correctness, idiomatic style, and potential edge cases.",
-		Instruction: "*   **`code_review`**: Get an expert peer review.\n    *   **Usage:** `code_review(file_content=\"...\")`\n    *   **Outcome:** Markdown report with actionable suggestions and bug findings.",
+		Title:       "Code Review",
+		Description: "Provides an automated architectural and idiomatic review of source code. Identifies potential defects in concurrency, error handling, and performance before code is committed.",
+		Instruction: "*   **`code_review`**: Perform an automated expert review.\n    *   **Usage:** `code_review(file_content=\"...\")`\n    *   **Outcome:** A structured critique identifying potential bugs and optimization opportunities.",
 	},
 }

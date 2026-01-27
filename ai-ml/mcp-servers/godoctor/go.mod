@@ -3,9 +3,7 @@ module github.com/danicat/godoctor
 go 1.24.2
 
 require (
-	github.com/fsnotify/fsnotify v1.9.0
 	github.com/modelcontextprotocol/go-sdk v1.1.0
-	golang.org/x/mod v0.30.0
 	golang.org/x/tools v0.39.0
 	google.golang.org/genai v1.35.0
 )
@@ -30,6 +28,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/mod v0.30.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/oauth2 v0.33.0 // indirect
 	golang.org/x/sync v0.18.0 // indirect

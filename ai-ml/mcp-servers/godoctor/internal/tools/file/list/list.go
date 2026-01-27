@@ -16,7 +16,7 @@ import (
 
 // Register registers the tool with the server.
 func Register(server *mcp.Server) {
-	def := toolnames.Registry["file_list"]
+	def := toolnames.Registry["list_files"]
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        def.Name,
 		Title:       def.Title,
@@ -26,9 +26,8 @@ func Register(server *mcp.Server) {
 
 // Params defines the input parameters.
 type Params struct {
-	Path      string `json:"path" jsonschema:"The root path to list (default: .)"`
-	Recursive bool   `json:"recursive,omitempty" jsonschema:"Whether to list recursively (default: true)"`
-	Depth     int    `json:"depth,omitempty" jsonschema:"Maximum recursion depth (0 for no limit, default: 5 to prevent overload)"`
+	Path  string `json:"path" jsonschema:"The root path to list (default: .)"`
+	Depth int    `json:"depth,omitempty" jsonschema:"Maximum recursion depth (0 for default of 5, 1 for non-recursive)"`
 }
 
 func Handler(_ context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallToolResult, any, error) {
@@ -40,9 +39,6 @@ func Handler(_ context.Context, _ *mcp.CallToolRequest, args Params) (*mcp.CallT
 	maxDepth := args.Depth
 	if maxDepth == 0 {
 		maxDepth = 5
-	}
-	if !args.Recursive {
-		maxDepth = 1
 	}
 
 	var sb strings.Builder

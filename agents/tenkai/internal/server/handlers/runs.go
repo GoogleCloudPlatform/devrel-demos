@@ -29,11 +29,7 @@ func (api *API) GetSummaries(r *http.Request) (any, error) {
 	}
 
 	// 2b. Get Tool Usage Counts for correlation analysis
-	// MOVED below filter calculation
-	// toolCounts, err := api.DB.GetExperimentToolCounts(id)
-	// if err != nil {
-	// 	log.Printf("Warning: failed to fetch tool counts for summary: %v", err)
-	// }
+	// moved to below filter block
 
 	// 3. Convert
 	var results []runner.Result

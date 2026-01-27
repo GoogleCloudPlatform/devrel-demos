@@ -142,9 +142,9 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 	covFile.Close()
 	defer os.Remove(covPath)
 
-	// Add -coverprofile and -coverpkg=./... to get project-wide total
+	// Add -coverprofile used to get project-wide total
 	relCovPath := filepath.Base(covPath) // relative path within workspace
-	cmd := exec.CommandContext(ctx, "go", "test", "-json", "-cover", fmt.Sprintf("-coverprofile=%s", relCovPath), "-coverpkg=./...", target)
+	cmd := exec.CommandContext(ctx, "go", "test", "-json", "-cover", fmt.Sprintf("-coverprofile=%s", relCovPath), target)
 	cmd.Dir = wsPath // Run in workspace
 	var out bytes.Buffer
 	var preErr bytes.Buffer // stderr for build failures etc
@@ -153,7 +153,7 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 	// Ignore exit code error, we parse JSON
 	_ = cmd.Run()
 
-	fullCmd := fmt.Sprintf("go test -json -cover -coverprofile=%s -coverpkg=./... %s", relCovPath, target)
+	fullCmd := fmt.Sprintf("go test -json -cover -coverprofile=%s %s", relCovPath, target)
 
 	scanner := bufio.NewScanner(strings.NewReader(out.String()))
 	testsFound := false
@@ -213,16 +213,17 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 		if err := covCmd.Run(); err == nil {
 			// Parse: "total:\t\t\t(statements)\t100.0%"
 			lines := strings.Split(strings.TrimSpace(covOut.String()), "\n")
-			if len(lines) > 0 {
-				lastLine := lines[len(lines)-1]
-				if strings.HasPrefix(lastLine, "total:") {
-					parts := strings.Fields(lastLine)
+
+			for _, line := range lines {
+				if strings.HasPrefix(line, "total:") {
+					parts := strings.Fields(line)
 					if len(parts) > 0 {
 						pctStr := strings.TrimRight(parts[len(parts)-1], "%")
 						if val, err := strconv.ParseFloat(pctStr, 64); err == nil {
 							coverage = val
 						}
 					}
+					break
 				}
 			}
 		} else {

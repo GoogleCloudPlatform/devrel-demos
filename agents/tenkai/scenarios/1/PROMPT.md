@@ -6,17 +6,16 @@ Read these references to understand the protocol and the desired module layout:
 
 TODO:
 - Get package github.com/modelcontextprotocol/go-sdk/mcp (official SDK)
-- Read the package documentation to discover the API
 - Create the server with stdio transport
 - Create one tool "hello_world" that returns the message "Hello, MCP World!"
-- Compile the binary as "./hello" in the ROOT of the project, otherwise it will fail validation
+- Build the server as "./bin/server"
+- Create a client that connects with the server over stdio
+- The client should have a flag --list-tools to list all available tools in the server
+- The client should have a flag --call-tool to call a tool by name
+- Build the client as "./bin/client"
 
 ## Acceptance Criteria
 - Linter `./...` must pass with max 5 issues.
-- Unit tests for `./...` must pass with min 50% coverage.
-- Command `./hello` with stdin `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}
-{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}
-{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}` must succeed (must have: stdout containing `hello_world`).
-- Command `./hello` with stdin `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}
-{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}
-{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"hello_world","arguments":{}}}` must succeed (must have: stdout containing `Hello, MCP World!`).
+- Unit tests must pass. You must verify that the *total* project coverage is at least 50% by running: `go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out`
+- Command `./bin/client --list-tools` must succeed (must have: stdout containing `hello_world`).
+- Command `./bin/client --call-tool hello_world` must succeed (must have: stdout containing `Hello, MCP World!`).

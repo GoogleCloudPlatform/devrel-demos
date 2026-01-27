@@ -246,6 +246,11 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 			runRes.LoopDetected = dbMetrics.LoopDetected
 			runRes.CachedTokens = dbMetrics.CachedTokens
 
+			// New fields persistence
+			runRes.SessionID = dbMetrics.SessionID
+			runRes.Model = dbMetrics.ModelName
+			runRes.ModelDuration = dbMetrics.ModelDuration
+
 			// Build Telemetry for Final Save
 			telemetry := &db.RunTelemetry{
 				Result: runRes,

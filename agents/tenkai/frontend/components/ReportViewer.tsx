@@ -5,6 +5,7 @@ import Link from "next/link";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ExperimentRecord, Checkpoint, RunResultRecord, getRunResults, reValidateExperiment, getExperimentSummaries, ExperimentSummaryRecord } from "@/app/api/api";
+import { ConfigBlock, ConfigBlockType } from "@/types/domain";
 import { Loader2, RefreshCw, BarChart3 } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 import {
@@ -28,6 +29,7 @@ import KillExperimentButton from "./KillExperimentButton";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import ProgressBar from "./ui/progress-bar";
+import AlternativeCard from "./AlternativeCard";
 
 interface ReportViewerProps {
     experiment: ExperimentRecord;
@@ -38,6 +40,7 @@ interface ReportViewerProps {
     stats: any;
     config: any;
     configContent: string;
+    blocks: ConfigBlock[];
 }
 
 function RevalidateExperimentButton({ experimentId, isExperimentRunning, onStateChange }: { experimentId: number, isExperimentRunning: boolean, onStateChange?: (revalidating: boolean) => void }) {
@@ -158,7 +161,8 @@ export default function ReportViewer({
     runResults,
     stats,
     config,
-    configContent
+    configContent,
+    blocks
 }: ReportViewerProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -328,6 +332,48 @@ export default function ReportViewer({
         };
     }, [selectedRun]);
 
+
+    // Helper to get selected block ID/Name for dropdowns
+    const getSelectedBlockName = (type: ConfigBlockType, content: any) => {
+        if (!content) return "(none selected)";
+        // Content might be a string (system prompt) or object (agent).
+        const contentStr = typeof content === 'string' ? content : JSON.stringify(content);
+
+        const match = blocks.find(b => {
+            if (b.type !== type) return false;
+            // Compare parsed if JSON, raw if text
+            if (type === 'system_prompt' || type === 'context') {
+                return b.content.trim() === contentStr.trim();
+            }
+            try {
+                const bContent = JSON.parse(b.content);
+                const cContent = typeof content === 'string' ? JSON.parse(content) : content;
+                return JSON.stringify(bContent) === JSON.stringify(cContent);
+            } catch {
+                return b.content === contentStr;
+            }
+        });
+        return match ? match.name : (content ? "Custom/Manual" : "(none selected)");
+    };
+
+    // For Agent specifically, we check command/args match
+    const getAgentBlockName = (alt: any) => {
+        if (!alt.command) return "(Select Agent)";
+        const match = blocks.find(b => {
+            if (b.type !== 'agent') return false;
+            try {
+                const c = JSON.parse(b.content);
+                // Compare command and args
+                // args might be string or array
+                const bArgs = Array.isArray(c.args) ? c.args.join(" ") : (c.args || "");
+                const altArgs = Array.isArray(alt.args) ? alt.args.join(" ") : (alt.args || "");
+                return c.command === alt.command && bArgs === altArgs;
+            } catch { return false; }
+        });
+        return match ? match.name : `${alt.command} (Custom)`;
+    };
+
+
     return (
         <div className="flex flex-col h-full bg-background text-body">
             {/* Workbench Tab Bar */}
@@ -441,11 +487,11 @@ export default function ReportViewer({
                                     />
 
                                     <ToolImpactTable
-                                        stats={stats}
+                                        stats={viewStats}
                                         alternatives={[...(config?.alternatives?.map((a: any) => a.name) || Object.keys(stats).sort()), "Combined"]}
                                     />
 
-                                    <FailureAnalysis runs={runResults} stats={stats} />
+                                    <FailureAnalysis runs={runResults} stats={viewStats} />
 
                                     <ToolUsageTable
                                         experimentId={experiment.id}
@@ -501,135 +547,21 @@ export default function ReportViewer({
                         <div className="animate-in fade-in duration-500">
                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                                 {config?.alternatives?.map((alt: any, i: number) => {
-                                    const isControl = alt.name === config.experiment_control;
-                                    const altColors = [
-                                        "border-indigo-500/30 bg-indigo-500/5",
-                                        "border-emerald-500/30 bg-emerald-500/5",
-                                        "border-amber-500/30 bg-amber-500/5",
-                                        "border-rose-500/30 bg-rose-500/5",
-                                        "border-cyan-500/30 bg-cyan-500/5",
-                                        "border-violet-500/30 bg-violet-500/5",
-                                        "border-orange-500/30 bg-orange-500/5",
-                                        "border-lime-500/30 bg-lime-500/5",
-                                        "border-fuchsia-500/30 bg-fuchsia-500/5",
-                                        "border-sky-500/30 bg-sky-500/5",
-                                    ];
-                                    const containerClass = isControl
-                                        ? 'border-indigo-500/50 shadow-[0_0_20px_-10px_#6366f1] bg-indigo-900/10'
-                                        : altColors[i % altColors.length];
-
                                     return (
-                                        <div key={i} className={`panel overflow-hidden flex flex-col ${containerClass}`}>
-                                            <div className={`p-4 border-b flex justify-between items-center ${isControl ? 'border-indigo-500/20 bg-indigo-500/10' : 'border-white/5 bg-white/[0.02]'}`}>
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-lg ${isControl ? 'bg-indigo-500 text-white' : 'bg-zinc-800 text-zinc-400'}`}>
-                                                        {i + 1}
-                                                    </div>
-                                                    <div>
-                                                        <h3 className={`font-bold text-lg ${isControl ? 'text-indigo-400' : 'text-white'}`}>{alt.name}</h3>
-                                                        {isControl && <span className="text-xs uppercase font-bold tracking-widest text-indigo-300 opacity-70">Control Baseline</span>}
-                                                    </div>
-                                                </div>
-                                                {alt.description && <span className="text-zinc-500 text-sm italic" title={alt.description}>{alt.description}</span>}
-                                            </div>
-                                            <div className="p-6 space-y-6 flex-1 bg-transparent">
-                                                {/* Command */}
-                                                <div className="space-y-2">
-                                                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Execution Command</p>
-                                                    <div className="font-mono text-sm bg-black/40 p-3 rounded border border-white/5 text-zinc-300 break-all cursor-default">
-                                                        <span className="text-emerald-400 font-bold">{alt.command}</span> {alt.args?.join(' ')} <span className="text-zinc-500 italic">&lt;PROMPT&gt;</span>
-                                                    </div>
-                                                </div>
-
-                                                {/* Settings / Prompt / Context */}
-
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="space-y-2">
-                                                        <p className="text-xs font-bold uppercase tracking-widest text-[#52525b]">System Prompt</p>
-                                                        {alt.system_prompt_file ? (
-                                                            <div
-                                                                className="flex items-center gap-2 text-indigo-400 font-mono text-sm cursor-pointer hover:underline"
-                                                                onClick={() => setConfigModalContent({
-                                                                    title: `System Prompt Path: ${alt.name}`,
-                                                                    content: `Loaded from: ${alt.system_prompt_file}`
-                                                                })}
-                                                            >
-                                                                <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                                                                {alt.system_prompt_file.split('/').pop()}
-                                                            </div>
-                                                        ) : (
-                                                            <div
-                                                                className={`text-sm ${alt.system_prompt ? 'text-indigo-400 cursor-pointer hover:underline' : 'text-zinc-600 italic'}`}
-                                                                onClick={() => alt.system_prompt && setConfigModalContent({
-                                                                    title: `System Prompt: ${alt.name}`,
-                                                                    content: alt.system_prompt
-                                                                })}
-                                                            >
-                                                                {alt.system_prompt ? "Inline Prompt" : "Default (No override)"}
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="space-y-2">
-                                                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">GEMINI.md (Context)</p>
-                                                        {alt.context_file_path ? (
-                                                            <div
-                                                                className="flex items-center gap-2 text-emerald-400 font-mono text-sm cursor-pointer hover:underline"
-                                                                onClick={() => setConfigModalContent({
-                                                                    title: `Context Path: ${alt.name}`,
-                                                                    content: `Loaded from: ${alt.context_file_path}`
-                                                                })}
-                                                            >
-                                                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                                                {alt.context_file_path.split('/').pop()}
-                                                            </div>
-                                                        ) : alt.context ? (
-                                                            <div
-                                                                className="flex items-center gap-2 text-emerald-400 font-mono text-sm cursor-pointer hover:underline"
-                                                                onClick={() => setConfigModalContent({
-                                                                    title: `Context Content: ${alt.name}`,
-                                                                    content: alt.context
-                                                                })}
-                                                            >
-                                                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                                                Custom Context
-                                                            </div>
-                                                        ) : (
-                                                            <div className="text-zinc-600 italic text-sm">None</div>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="space-y-2">
-                                                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Settings</p>
-                                                        {alt.settings_path ? (
-                                                            <div
-                                                                className="flex items-center gap-2 text-amber-400 font-mono text-sm cursor-pointer hover:underline"
-                                                                onClick={() => setConfigModalContent({
-                                                                    title: `Settings Path: ${alt.name}`,
-                                                                    content: `Loaded from: ${alt.settings_path}`
-                                                                })}
-                                                            >
-                                                                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                                                                {alt.settings_path.split('/').pop()}
-                                                            </div>
-                                                        ) : alt.settings && Object.keys(alt.settings).length > 0 ? (
-                                                            <div
-                                                                className="flex items-center gap-2 text-amber-400 font-mono text-sm cursor-pointer hover:underline"
-                                                                onClick={() => setConfigModalContent({
-                                                                    title: `Settings: ${alt.name}`,
-                                                                    content: JSON.stringify(alt.settings, null, 2)
-                                                                })}
-                                                            >
-                                                                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                                                                Custom Profile
-                                                            </div>
-                                                        ) : (
-                                                            <div className="text-zinc-600 italic text-sm">Standard Profile</div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <AlternativeCard
+                                            key={i}
+                                            alt={alt}
+                                            index={i}
+                                            blocks={blocks}
+                                            isControl={alt.name === config.experiment_control}
+                                            onUpdate={() => { }} // Read-only
+                                            onSetControl={() => { }} // Read-only
+                                            onDelete={() => { }} // Read-only
+                                            onDuplicate={() => { }} // Read-only
+                                            getAgentName={() => getAgentBlockName(alt)}
+                                            getBlockName={(t, c) => getSelectedBlockName(t, c)}
+                                            isLocked={true}
+                                        />
                                     );
                                 })}
                             </div>
@@ -658,3 +590,4 @@ export default function ReportViewer({
         </div >
     );
 }
+

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/danicat/godoctor/internal/graph"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -22,7 +21,6 @@ func TestWrite(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module write-test\n\ngo 1.24\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	graph.Global = graph.NewManager()
 
 	filePath := filepath.Join(tmpDir, "lib.go")
 
@@ -63,8 +61,21 @@ func TestWrite_Validation(t *testing.T) {
 
 	output := res.Content[0].(*mcp.TextContent).Text
 	// imports.Process should have added "fmt"
-	// but graph.Load should report "undefined: NonExistent"
-	if !strings.Contains(output, "**WARNING:**") || !strings.Contains(output, "undefined: NonExistent") {
-		t.Errorf("expected warning about NonExistent, got: %s", output)
+	// and parser.ParseFile should report success (syntax is ok, but type is not)
+	// Wait, fmt.Println(NonExistent) is VALID syntax.
+	if strings.Contains(output, "WARNING") {
+		t.Errorf("unexpected warning for valid syntax: %s", output)
+	}
+
+	// Now try invalid syntax
+	// imports.Process will catch this first!
+	resErr, _, _ := toolHandler(context.TODO(), nil, Params{
+		Filename: filePath,
+		Content:  "package main\n\nfunc main() { this is invalid syntax }",
+	})
+	outputErr := resErr.Content[0].(*mcp.TextContent).Text
+	// It returns errorResult, so it should be in the text content but marked as IsError.
+	if !strings.Contains(outputErr, "write produced invalid Go code") {
+		t.Errorf("expected syntax check warning, got: %s", outputErr)
 	}
 }

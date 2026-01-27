@@ -12,13 +12,18 @@ import (
 
 func (r *Runner) prepareWorkspaceForRun(experimentDir string, alt config.Alternative, scenarioID string, rep int) (*workspace.WorkspaceInfo, error) {
 	opts := workspace.WorkspaceOptions{
+		Command:          alt.Command,
 		SettingsPath:     alt.SettingsPath,
 		Settings:         alt.Settings,
+		SettingsBlocks:   alt.SettingsBlocks,
 		ContextPath:      alt.ContextFilePath,
 		Context:          alt.Context,
 		SystemPromptPath: alt.SystemPromptFile,
 		SystemPrompt:     alt.SystemPrompt,
 		PolicyFiles:      alt.PolicyFiles,
+		Extensions:       alt.Extensions,
+		Skills:           alt.Skills,
+		MCPServers:       alt.MCPServers,
 	}
 
 	if opts.SettingsPath != "" {

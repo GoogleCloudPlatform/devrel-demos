@@ -1,0 +1,12 @@
+{
+  "name": "godoctor",
+  "version": "0.9.0",
+  "description": "AI-powered Go development assistant. Requires 'godoctor' to be installed via 'go install github.com/danicat/godoctor@latest'.",
+  "contextFileName": "GODOCTOR.md",
+  "mcpServers": {
+    "godoctor": {
+      "command": "godoctor",
+      "args": []
+    }
+  }
+}

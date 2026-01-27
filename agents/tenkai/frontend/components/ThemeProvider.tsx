@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = "dark" | "light" | "happy" | "beach" | "dracula" | "pacman" | "system" | "tropical";
+type Theme = "dark" | "light" | "system";
 
 type ThemeProviderProps = {
     children: React.ReactNode;
@@ -46,7 +46,7 @@ export function ThemeProvider({
         root.setAttribute('data-theme', theme);
 
         // Determine if it's a light theme
-        const isLight = ['light', 'beach'].includes(theme);
+        const isLight = theme === 'light';
 
         if (isLight) {
             root.classList.add('light');

@@ -15,6 +15,7 @@ This document traces the history and architectural shifts of the GoDoctor projec
 | **Renaming** | Major semantic renaming for clarity. | `get_documentation`, `review_code`, `write_code`, `edit_code`, `fetch_webpage` |
 | **Focus** | Dropping web tools to focus on Code. | `get_docs`, `code_review` |
 | **Modern Era** | The "Agentic" Shift. Massive expansion. | **15+ Tools** including `file_edit`, `symbol_inspect`, `go_docs` |
+| **Extension** | Native Gemini CLI integration & Specialist Skills. | `go-architect`, `go-test-expert`, `go-backend-dev`, `go-reviewer` |
 
 ## 2. Architectural Shifts
 
@@ -30,6 +31,9 @@ The most significant shift was the introduction of the **Semantic Toolset**. Ins
 *   **`file_*`**: Core file operations and surgical editing.
 *   **`go_*`**: Toolchain integration.
 *   **`symbol_*`**: Deep semantic inspection and refactoring.
+
+### The Skill Layer
+With the introduction of the Gemini CLI Extension, GoDoctor moved beyond tools to providing **Expertise**. The `skills/` directory allows the agent to adopt specific personas (`go-architect`, `go-test-expert`) with deep, curated knowledge about the SDLC, preventing hallucinations and enforcing best practices like ADRs and quality gates.
 
 ---
 

@@ -1,6 +1,6 @@
 name: Create MCP server with official Go SDK for MCP
 description: Creates an MCP server to read Go documentation using the go doc shell command.
-task: "Your task is to create a Model Context Protocol (MCP) server to expose a “hello_world” tool. For the MCP implementation, you should use the official Go SDK for MCP and use the stdio transport. When called, this tool should return the string \"Hello, MCP World!\"\r\n\r\nRead these references to understand the protocol and the desired module layout:\r\n- https://modelcontexprotocol.io\r\n- https://go.dev/doc/modules/layout\r\n\r\nTODO:\r\n- Get package github.com/modelcontextprotocol/go-sdk/mcp (official SDK)\r\n- Read the package documentation to discover the API\r\n- Create the server with stdio transport\r\n- Create one tool \"hello_world\" that returns the message \"Hello, MCP World!\"\r\n- Compile the binary as \"./hello\" in the ROOT of the project, otherwise it will fail validation\r\n\r\n## Acceptance Criteria\r\n- Linter `./...` must pass with max 5 issues.\r\n- Unit tests for `./...` must pass with min 50% coverage.\r\n- Command `./hello` with stdin `{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\"}}\r\n{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\",\"params\":{}}\r\n{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}` must succeed (must have: stdout containing `hello_world`).\r\n- Command `./hello` with stdin `{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\"}}\r\n{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\",\"params\":{}}\r\n{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"hello_world\",\"arguments\":{}}}` must succeed (must have: stdout containing `Hello, MCP World!`).\r\n"
+task: "Your task is to create a Model Context Protocol (MCP) server to expose a “hello_world” tool. For the MCP implementation, you should use the official Go SDK for MCP and use the stdio transport. When called, this tool should return the string \"Hello, MCP World!\"\r\n\r\nRead these references to understand the protocol and the desired module layout:\r\n- https://modelcontexprotocol.io\r\n- https://go.dev/doc/modules/layout\r\n\r\nTODO:\r\n- Get package github.com/modelcontextprotocol/go-sdk/mcp (official SDK)\r\n- Create the server with stdio transport\r\n- Create one tool \"hello_world\" that returns the message \"Hello, MCP World!\"\r\n- Build the server as \"./bin/server\"\r\n- Create a client that connects with the server over stdio\r\n- The client should have a flag --list-tools to list all available tools in the server\r\n- The client should have a flag --call-tool to call a tool by name\r\n- Build the client as \"./bin/client\"\r\n\r\n## Acceptance Criteria\r\n- Linter `./...` must pass with max 5 issues.\r\n- Unit tests must pass. You must verify that the *total* project coverage is at least 50% by running: `go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out`\r\n- Command `./bin/client --list-tools` must succeed (must have: stdout containing `hello_world`).\r\n- Command `./bin/client --call-tool hello_world` must succeed (must have: stdout containing `Hello, MCP World!`).\r\n"
 assets: []
 validation:
     - type: lint
@@ -10,18 +10,10 @@ validation:
       target: ./...
       min_coverage: 50
     - type: command
-      command: ./hello
-      stdin: |-
-        {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}
-        {"jsonrpc":"2.0","method":"notifications/initialized","params":{}}
-        {"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}
+      command: ./bin/client --list-tools
       stdin_delay: 1000ms
       expect_output: hello_world
     - type: command
-      command: ./hello
-      stdin: |-
-        {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}
-        {"jsonrpc":"2.0","method":"notifications/initialized","params":{}}
-        {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"hello_world","arguments":{}}}
+      command: ./bin/client --call-tool hello_world
       stdin_delay: 1000ms
       expect_output: Hello, MCP World!

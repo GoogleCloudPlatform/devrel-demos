@@ -23,18 +23,53 @@ type Configuration struct {
 
 // Alternative represents a specific agent configuration.
 type Alternative struct {
-	Name             string                 `yaml:"name" json:"name"`
-	Description      string                 `yaml:"description,omitempty" json:"description,omitempty"`
-	Command          string                 `yaml:"command" json:"command"`
-	Args             []string               `yaml:"args" json:"args"`
-	Env              map[string]string      `yaml:"env,omitempty" json:"env,omitempty"`
-	SettingsPath     string                 `yaml:"settings_path,omitempty" json:"settings_path,omitempty"` // Path to settings.json
-	Settings         map[string]interface{} `yaml:"settings,omitempty" json:"settings,omitempty"`           // Inline settings object
-	SystemPromptFile string                 `yaml:"system_prompt_file,omitempty" json:"system_prompt_file,omitempty"`
-	SystemPrompt     string                 `yaml:"system_prompt,omitempty" json:"system_prompt,omitempty"`         // Inline system prompt content
-	ContextFilePath  string                 `yaml:"context_file_path,omitempty" json:"context_file_path,omitempty"` // Path to file to copy as GEMINI.md
-	Context          string                 `yaml:"context,omitempty" json:"context,omitempty"`                     // Inline GEMINI.md content
-	PolicyFiles      []string               `yaml:"policy_files,omitempty" json:"policy_files,omitempty"`           // Paths to files to copy to .gemini/policies/
+	Name             string                   `yaml:"name" json:"name"`
+	Description      string                   `yaml:"description,omitempty" json:"description,omitempty"`
+	Command          string                   `yaml:"command" json:"command"`
+	Args             []string                 `yaml:"args" json:"args"`
+	Env              map[string]string        `yaml:"env,omitempty" json:"env,omitempty"`
+	SettingsPath     string                   `yaml:"settings_path,omitempty" json:"settings_path,omitempty"`     // Path to settings.json
+	Settings         map[string]interface{}   `yaml:"settings,omitempty" json:"settings,omitempty"`               // Inline settings object (Final Override)
+	SettingsBlocks   []map[string]interface{} `yaml:"settings_blocks,omitempty" json:"settings_blocks,omitempty"` // List of settings blocks to merge
+	SystemPromptFile string                   `yaml:"system_prompt_file,omitempty" json:"system_prompt_file,omitempty"`
+	SystemPrompt     string                   `yaml:"system_prompt,omitempty" json:"system_prompt,omitempty"`         // Inline system prompt content
+	ContextFilePath  string                   `yaml:"context_file_path,omitempty" json:"context_file_path,omitempty"` // Path to file to copy as GEMINI.md
+	Context          string                   `yaml:"context,omitempty" json:"context,omitempty"`                     // Inline GEMINI.md content
+	PolicyFiles      []string                 `yaml:"policy_files,omitempty" json:"policy_files,omitempty"`           // Paths to files to copy to .gemini/policies/
+	Extensions       []ExtensionConfig        `yaml:"extensions,omitempty" json:"extensions,omitempty"`
+	Skills           []SkillConfig            `yaml:"skills,omitempty" json:"skills,omitempty"`
+	MCPServers       []MCPConfig              `yaml:"mcp_servers,omitempty" json:"mcp_servers,omitempty"`
+}
+
+// MCPConfig defines a Model Context Protocol server configuration block.
+// This is typically a raw map that gets merged into "settings.mcpServers".
+type MCPConfig struct {
+	Name    string                 `yaml:"name" json:"name"`
+	Command string                 `yaml:"command,omitempty" json:"command,omitempty"`
+	Url     string                 `yaml:"url,omitempty" json:"url,omitempty"`
+	HttpUrl string                 `yaml:"httpUrl,omitempty" json:"httpUrl,omitempty"`
+	Args    []string               `yaml:"args,omitempty" json:"args,omitempty"`
+	Env     map[string]string      `yaml:"env,omitempty" json:"env,omitempty"`
+	Content map[string]interface{} `yaml:"content,omitempty" json:"content,omitempty"` // For advanced config (trust, includeTools, etc)
+}
+
+// ExtensionConfig defines an extension to be installed in the workspace.
+type ExtensionConfig struct {
+	Name       string `yaml:"name" json:"name"`
+	Source     string `yaml:"source" json:"source"`                 // URL or Local Path
+	Ref        string `yaml:"ref,omitempty" json:"ref,omitempty"`   // Git Ref
+	Mode       string `yaml:"mode,omitempty" json:"mode,omitempty"` // "install" (default) or "link"
+	AutoUpdate bool   `yaml:"auto_update,omitempty" json:"auto_update,omitempty"`
+	PreRelease bool   `yaml:"pre_release,omitempty" json:"pre_release,omitempty"`
+	Consent    bool   `yaml:"consent,omitempty" json:"consent,omitempty"`
+}
+
+// SkillConfig defines an agent skill to be installed.
+type SkillConfig struct {
+	Name   string `yaml:"name" json:"name"`
+	Source string `yaml:"source" json:"source"`                   // URL, Local Path, or Zip file
+	Path   string `yaml:"path,omitempty" json:"path,omitempty"`   // Optional subpath (for --path)
+	Scope  string `yaml:"scope,omitempty" json:"scope,omitempty"` // "user" or "workspace"
 }
 
 // Asset represents a file or directory to be set up in the workspace.

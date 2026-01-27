@@ -17,7 +17,8 @@ func (db *DB) GetRunResults(expID int64, limit, offset int) ([]models.RunResult,
 	query := `SELECT 
 		id, experiment_id, alternative, scenario, repetition, duration, error, 
 		tests_passed, tests_failed, lint_issues, total_tokens, input_tokens, output_tokens, cached_tokens,
-		tool_calls_count, failed_tool_calls, loop_detected, is_success, validation_report, status, reason
+		tool_calls_count, failed_tool_calls, loop_detected, is_success, validation_report, status, reason,
+		model, session_id, model_duration
 		FROM run_results WHERE experiment_id = ? ORDER BY id DESC LIMIT ? OFFSET ?`
 
 	rows, err := db.conn.Query(query, expID, limit, offset)
@@ -29,14 +30,15 @@ func (db *DB) GetRunResults(expID int64, limit, offset int) ([]models.RunResult,
 	var results []models.RunResult
 	for rows.Next() {
 		var r models.RunResult
-		var valRep, errStr, reason, status sql.NullString
-		var dur, tPass, tFail, lint, tTok, iTok, oTok, cTok, tCalls, fCalls sql.NullInt64
+		var valRep, errStr, reason, status, model, sessionID sql.NullString
+		var dur, tPass, tFail, lint, tTok, iTok, oTok, cTok, tCalls, fCalls, modelDur sql.NullInt64
 		var loop, success sql.NullBool
 
 		err := rows.Scan(
 			&r.ID, &r.ExperimentID, &r.Alternative, &r.Scenario, &r.Repetition, &dur, &errStr,
 			&tPass, &tFail, &lint, &tTok, &iTok, &oTok, &cTok,
 			&tCalls, &fCalls, &loop, &success, &valRep, &status, &reason,
+			&model, &sessionID, &modelDur,
 		)
 		if err != nil {
 			return nil, err
@@ -58,6 +60,10 @@ func (db *DB) GetRunResults(expID int64, limit, offset int) ([]models.RunResult,
 		r.FailedToolCalls = int(fCalls.Int64)
 		r.LoopDetected = loop.Bool
 		r.IsSuccess = success.Bool
+
+		r.Model = model.String
+		r.SessionID = sessionID.String
+		r.ModelDuration = modelDur.Int64
 
 		results = append(results, r)
 	}
@@ -119,13 +125,15 @@ func (db *DB) SaveRunTelemetry(t *RunTelemetry) error {
                                 duration=?, error=?, tests_passed=?, tests_failed=?, lint_issues=?, 
                                 total_tokens=?, input_tokens=?, output_tokens=?, cached_tokens=?,
                                 tool_calls_count=?, failed_tool_calls=?, loop_detected=?, stdout=?, stderr=?, 
-                                is_success=?, validation_report=?, status=?, reason=?
+                                is_success=?, validation_report=?, status=?, reason=?,
+                                model=?, session_id=?, model_duration=?
                                 WHERE id=?`
 			_, err := tx.Exec(query,
 				t.Result.Duration, t.Result.Error, t.Result.TestsPassed, t.Result.TestsFailed, t.Result.LintIssues,
 				t.Result.TotalTokens, t.Result.InputTokens, t.Result.OutputTokens, t.Result.CachedTokens,
 				t.Result.ToolCallsCount, t.Result.FailedToolCalls, t.Result.LoopDetected, t.Result.Stdout, t.Result.Stderr,
 				t.Result.IsSuccess, t.Result.ValidationReport, t.Result.Status, t.Result.Reason,
+				t.Result.Model, t.Result.SessionID, t.Result.ModelDuration,
 				t.Result.ID)
 			if err != nil {
 				return fmt.Errorf("failed to update run result (ID %d): %w", t.Result.ID, err)

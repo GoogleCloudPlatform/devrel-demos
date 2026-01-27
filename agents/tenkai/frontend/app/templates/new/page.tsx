@@ -1,20 +1,20 @@
-import { getScenarios } from "@/app/api/api";
+import { getBlocks } from "@/app/api/api";
 import TemplateForm from "@/components/TemplateForm";
 import { PageHeader } from "@/components/ui/page-header";
 
 export default async function NewTemplatePage() {
-    const scenarios = await getScenarios();
+    const blocks = await getBlocks();
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8 animate-enter text-body">
-            <PageHeader 
-                title="Design Template" 
+            <PageHeader
+                title="Design Template"
                 description="Configure a new benchmarking template."
                 backHref="/templates"
                 backLabel="Templates"
             />
 
-            <TemplateForm scenarios={scenarios} />
+            <TemplateForm blocks={blocks} />
         </div>
     );
 }

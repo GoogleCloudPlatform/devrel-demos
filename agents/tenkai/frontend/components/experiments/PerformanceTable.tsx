@@ -138,6 +138,8 @@ export default function PerformanceTable({ runResults, stats, controlBaseline, a
                 <TableBody>
                     {alternatives.map((alt) => {
                         const s = stats[alt]; // Backend summary stats
+                        if (!s) return null; // Handle missing data
+
 
                         // Helper: Prefer backend P-values (Fisher/Welch) over client Z-test
                         const getSigLevel = (backendP: number | undefined, effectD: number | undefined) => {

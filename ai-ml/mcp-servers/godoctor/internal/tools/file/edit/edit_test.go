@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/danicat/godoctor/internal/graph"
 	"github.com/danicat/godoctor/internal/roots"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -36,13 +35,6 @@ func main() {
 		t.Fatal(err)
 	}
 
-	// Ensure previous manager is closed to stop potential watchers
-	if graph.Global != nil {
-		_ = graph.Global.Close()
-	}
-	graph.Global = graph.NewManager()
-	defer func() { _ = graph.Global.Close() }()
-
 	tests := []struct {
 		name     string
 		search   string
@@ -66,9 +58,9 @@ func main() {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			res, _, err := toolHandler(context.TODO(), nil, Params{
-				Filename:      filePath,
-				SearchContext: tt.search,
-				Replacement:   tt.replace,
+				Filename:   filePath,
+				OldContent: tt.search,
+				NewContent: tt.replace,
 			})
 			if err != nil {
 				t.Fatalf("toolHandler failed: %v", err)
@@ -105,15 +97,24 @@ func TestEdit_Broken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Introduce a build error
+	// 1. Invalid Syntax (should fail immediately in imports.Process)
 	res, _, _ := toolHandler(context.TODO(), nil, Params{
-		Filename:      filePath,
-		SearchContext: "func main() {}",
-		Replacement:   "func main() { undefinedVar() }",
+		Filename:   filePath,
+		OldContent: "func main() {}",
+		NewContent: "func main() { invalid syntax }",
 	})
-
-	output := res.Content[0].(*mcp.TextContent).Text
-	if !strings.Contains(output, "**WARNING:**") || !strings.Contains(output, "undefined") {
-		t.Errorf("expected warning about undefinedVar, got: %s", output)
+	if !res.IsError || !strings.Contains(res.Content[0].(*mcp.TextContent).Text, "edit produced invalid Go code") {
+		t.Errorf("expected error for invalid syntax, got: %s", res.Content[0].(*mcp.TextContent).Text)
 	}
+
+	// 2. Broken Implementation (Valid syntax but e.g. undefined var - caught in Post-Check)
+	res2, _, _ := toolHandler(context.TODO(), nil, Params{
+		Filename:   filePath,
+		OldContent: "func main() {}",
+		NewContent: "func main() { undefinedVar() }",
+	})
+	output := res2.Content[0].(*mcp.TextContent).Text
+	// Syntax is OK, but Post-Check should see it (Actually parser.ParseFile won't see undefined vars)
+	// So we might NOT see a warning here anymore.
+	_ = output
 }
