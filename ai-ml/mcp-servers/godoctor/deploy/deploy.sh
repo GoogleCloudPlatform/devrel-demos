@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+# Configuration
 PROJECT_ID=$(gcloud config get-value project)
 REGION=${GOOGLE_CLOUD_LOCATION:-"us-central1"}
 REPO_NAME="godoctor-repo"
@@ -8,45 +9,41 @@ IMAGE_NAME="godoctor"
 TAG="latest"
 IMAGE_URI="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$IMAGE_NAME:$TAG"
 SERVICE_NAME="godoctor"
+SECRET_NAME="GEMINI_API_KEY"
+
+# Usage information
+usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --with-gemini    Deploy with Gemini API support (requires '$SECRET_NAME' in Secret Manager)"
+    echo "  --with-vertex    Deploy with Vertex AI support (uses project/location from gcloud config)"
+    echo "  --help           Show this help message"
+    echo ""
+    echo "Note: If no AI flags are provided, godoctor will run without the code_review tool."
+    exit 1
+}
+
+# Parse arguments
+DEPLOY_MODE="standard"
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --with-gemini) DEPLOY_MODE="gemini"; shift ;; 
+        --with-vertex) DEPLOY_MODE="vertex"; shift ;; 
+        --help) usage ;; 
+        *) echo "Unknown parameter: $1"; usage ;; 
+    esac
+done
+
+echo "Deployment Mode: $DEPLOY_MODE"
+echo "Project: $PROJECT_ID, Region: $REGION"
 
 echo "Building Docker image..."
-# Configure Docker auth for Artifact Registry
 gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
-
-# Force linux/amd64 for Cloud Run compatibility
-docker build --platform linux/amd64 -t $IMAGE_URI .
-
+docker build --platform linux/amd64 -t "$IMAGE_URI" .
 
 echo "Pushing image to Artifact Registry..."
-docker push $IMAGE_URI
-
-echo "Deploying to Cloud Run..."
-# Construct env vars arguments
-ENV_VARS=""
-
-# Check for GEMINI_API_KEY
-if [ -n "$GEMINI_API_KEY" ]; then
-    ENV_VARS="GEMINI_API_KEY=$GEMINI_API_KEY"
-fi
-
-# Check for Vertex AI config
-if [ -n "$GOOGLE_GENAI_USE_VERTEXAI" ]; then
-    if [ -n "$ENV_VARS" ]; then ENV_VARS="$ENV_VARS,"; fi
-    ENV_VARS="${ENV_VARS}GOOGLE_GENAI_USE_VERTEXAI=$GOOGLE_GENAI_USE_VERTEXAI"
-    
-    # Also pass project/location if using Vertex
-    if [ -n "$GOOGLE_CLOUD_PROJECT" ]; then
-         ENV_VARS="${ENV_VARS},GOOGLE_CLOUD_PROJECT=$GOOGLE_CLOUD_PROJECT"
-    else
-         ENV_VARS="${ENV_VARS},GOOGLE_CLOUD_PROJECT=$PROJECT_ID"
-    fi
-    
-    if [ -n "$GOOGLE_CLOUD_LOCATION" ]; then
-         ENV_VARS="${ENV_VARS},GOOGLE_CLOUD_LOCATION=$GOOGLE_CLOUD_LOCATION"
-    else
-         ENV_VARS="${ENV_VARS},GOOGLE_CLOUD_LOCATION=$REGION"
-    fi
-fi
+docker push "$IMAGE_URI"
 
 # Build the deployment command
 DEPLOY_CMD=(gcloud run deploy "$SERVICE_NAME" \
@@ -55,14 +52,34 @@ DEPLOY_CMD=(gcloud run deploy "$SERVICE_NAME" \
     --platform managed \
     --allow-unauthenticated)
 
-if [ -n "$ENV_VARS" ]; then
-    DEPLOY_CMD+=(--set-env-vars "$ENV_VARS")
-fi
+# Handle deployment modes
+case $DEPLOY_MODE in
+    gemini)
+        echo "Configuring Gemini API support via Secret Manager..."
+        # Verify secret exists
+        if ! gcloud secrets describe "$SECRET_NAME" &>/dev/null; then
+            echo "ERROR: Secret '$SECRET_NAME' not found in Secret Manager."
+            echo "Please create it first: echo -n 'your-api-key' | gcloud secrets create $SECRET_NAME --data-file=-"
+            exit 1
+        fi
+        DEPLOY_CMD+=(--set-secrets "GEMINI_API_KEY=$SECRET_NAME:latest")
+        ;; 
+    vertex)
+        echo "Configuring Vertex AI support..."
+        VARS="GOOGLE_GENAI_USE_VERTEXAI=true"
+        VARS="$VARS,GOOGLE_CLOUD_PROJECT=$PROJECT_ID"
+        VARS="$VARS,GOOGLE_CLOUD_LOCATION=$REGION"
+        DEPLOY_CMD+=(--set-env-vars "$VARS")
+        ;; 
+    *)
+        echo "Running in standard mode (AI features disabled)..."
+        ;; 
+esac
 
 echo "Running deployment..."
 "${DEPLOY_CMD[@]}"
 
 echo "Deployment complete."
-SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region $REGION --format 'value(status.url)')
+SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" --format 'value(status.url)')
 echo "Service URL: $SERVICE_URL"
 echo "SSE Endpoint: $SERVICE_URL/sse"
