@@ -12,7 +12,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/workspace"
 )
@@ -130,10 +132,33 @@ func (api *API) StartExperiment(r *http.Request) (any, error) {
 		return nil, NewAPIError(http.StatusNotFound, fmt.Sprintf("Template config not found at %s", configPath))
 	}
 
+	// Create Experiment Record synchronously to ensure visibility in UI
+	configContent, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	expRecord := &models.Experiment{
+		Timestamp:         time.Now(),
+		Name:              req.Name,
+		ConfigPath:        configPath,                 // Could vary if RunExperiment relocates it
+		Status:            db.ExperimentStatusRunning, // Mark as Running (or Starting)
+		Reps:              req.Reps,
+		Concurrent:        req.Concurrent,
+		ConfigContent:     string(configContent),
+		ExperimentControl: req.Control,
+	}
+
+	id, err := api.DB.CreateExperiment(expRecord)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create experiment record: %w", err)
+	}
+
 	args := []string{
 		"-config", configPath,
 		"-reps", strconv.Itoa(req.Reps),
 		"-concurrent", strconv.Itoa(req.Concurrent),
+		"-start-experiment-id", strconv.FormatInt(id, 10),
 	}
 	if req.Name != "" {
 		args = append(args, "-name", req.Name)
@@ -153,10 +178,14 @@ func (api *API) StartExperiment(r *http.Request) (any, error) {
 
 	pid, err := spawnRunner(args)
 	if err != nil {
+		api.DB.UpdateExperimentStatus(id, db.ExperimentStatusAborted)
+		api.DB.UpdateExperimentError(id, fmt.Sprintf("Failed to spawn runner: %v", err))
 		return nil, fmt.Errorf("failed to spawn runner: %w", err)
 	}
 
-	return map[string]string{"message": "Experiment started", "pid": strconv.Itoa(pid)}, nil
+	// Update PID in DB if possible, or leave it.
+	// Return ID so frontend can redirect immediately
+	return map[string]string{"message": "Experiment started", "pid": strconv.Itoa(pid), "id": strconv.FormatInt(id, 10)}, nil
 }
 
 func (api *API) ControlExperiment(r *http.Request) (any, error) {
@@ -278,6 +307,10 @@ func spawnRunner(args []string) (int, error) {
 
 	// Open tenkai.log for appending runner logs
 	logPath := filepath.Join(cwd, "tenkai.log")
+	if os.Getenv("K_SERVICE") != "" {
+		logPath = "/tmp/tenkai.log"
+	}
+
 	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Printf("[Server] Failed to open tenkai.log at %s: %v", logPath, err)
@@ -327,4 +360,11 @@ func spawnRunner(args []string) (int, error) {
 	}()
 
 	return cmd.Process.Pid, nil
+}
+
+func (api *API) FixDB(r *http.Request) (any, error) {
+	if err := api.DB.FixSequences(); err != nil {
+		return nil, err
+	}
+	return map[string]string{"status": "fixed sequences"}, nil
 }
