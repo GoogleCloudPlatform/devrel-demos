@@ -10,13 +10,11 @@ RUN npm run build
 FROM golang:1.25.6-alpine AS server-builder
 WORKDIR /app
 COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
-# Copy scenarios for re-validation/context
-COPY scenarios ./scenarios
-COPY experiments/templates ./experiments/templates
-RUN rm -f go.sum
-RUN go mod tidy
 RUN go build -o tenkai-server cmd/server/main.go
+
+
 
 # 3. Runtime Stage
 FROM alpine:3.19

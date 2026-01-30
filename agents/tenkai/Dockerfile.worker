@@ -2,11 +2,8 @@
 FROM golang:1.25.6-alpine AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
-# Explicitly copy scenarios for context
-COPY scenarios ./scenarios
-RUN rm -f go.sum
-RUN go mod tidy
 RUN go build -o tenkai-worker cmd/worker/main.go
 
 # Runtime Stage (Must include Go for agents)
@@ -15,6 +12,7 @@ WORKDIR /app
 COPY --from=builder /app/tenkai-worker .
 # Copy scenarios to runtime as well
 COPY --from=builder /app/scenarios ./scenarios
+
 
 # Install Dependencies required by agents
 # git: for checking out repos
