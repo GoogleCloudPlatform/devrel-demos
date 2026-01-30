@@ -17,13 +17,13 @@ func (api *API) HandleGlobalStats(r *http.Request) (any, error) {
 }
 
 func (api *API) HandleLogs(r *http.Request) (any, error) {
-	// HandleLogs returns the contents of tenkai.log
-	// Implementation note: we ensure we look at the exact same file path as spawnRunner
+	// Determine log path based on environment
 	cwd, _ := os.Getwd()
 	logPath := filepath.Join(cwd, "tenkai.log")
 
-	// Add debug log to verify path (will show in server stdout)
-	// fmt.Printf("DEBUG: HandleLogs reading from: %s\n", logPath)
+	if os.Getenv("K_SERVICE") != "" {
+		logPath = "/tmp/tenkai.log"
+	}
 
 	if _, err := os.Stat(logPath); os.IsNotExist(err) {
 		return map[string]string{"logs": fmt.Sprintf("(No logs found at %s)", logPath)}, nil

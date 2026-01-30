@@ -29,7 +29,7 @@ func setupTestServer(t *testing.T) (*Server, string) {
 
 	// Initialize DB
 	dbPath := filepath.Join(tmpDir, "test.db")
-	database, err := db.Open(dbPath)
+	database, err := db.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open DB: %v", err)
 	}

@@ -7,10 +7,11 @@ import (
 	"os"
 
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/report"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/runner"
 )
 
 func Execute() {
-	flags := parseFlags()
+	flags := ParseFlags()
 
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -18,9 +19,9 @@ func Execute() {
 		os.Exit(1)
 	}
 
-	setupLogging(cwd)
+	SetupLogging(cwd)
 
-	database, err := initDB(cwd)
+	database, err := InitDB(cwd)
 	if err != nil {
 		log.Printf("Failed to open database: %v", err)
 		os.Exit(1)
@@ -29,7 +30,17 @@ func Execute() {
 	cleanupOrphanExperiments(database)
 
 	if *flags.Serve {
-		runServer(database, cwd, *flags.Port, *flags.Concurrent)
+		// Legacy local serve (ModeLocal)
+		RunServer(database, cwd, *flags.Port, *flags.Concurrent, runner.ModeLocal)
+		return
+	}
+
+	if *flags.Worker {
+		concurrency := 1
+		if *flags.Concurrent > 0 {
+			concurrency = *flags.Concurrent
+		}
+		RunWorker(database, cwd, concurrency, *flags.Port, *flags.GCSBucket)
 		return
 	}
 
@@ -60,11 +71,11 @@ func Execute() {
 		os.Exit(1)
 	}
 
-	cfg, overrideNotes, err := loadAndOverrideConfig(flags)
+	cfg, overrideNotes, err := LoadAndOverrideConfig(flags)
 	if err != nil {
 		log.Printf("Failed to load config: %v", err)
 		os.Exit(1)
 	}
 
-	runExperiment(database, cwd, cfg, overrideNotes)
+	RunExperiment(database, cwd, cfg, overrideNotes, runner.ModeLocal, flags)
 }

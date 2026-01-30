@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
+	run "cloud.google.com/go/run/apiv2"
+	runpb "cloud.google.com/go/run/apiv2/runpb"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
@@ -80,7 +83,67 @@ func (r *Runner) dispatchJob(rc *runContext, alt config.Alternative, scenPath st
 		}
 	}
 
+	// If Server mode, we trigger Cloud Run Job execution
+	jobID := fmt.Sprintf("[%s|%s|#%d]", alt.Name, scenID, rep)
+	if r.Mode == ModeServer {
+		rc.Wg.Add(1)
+		go func(alt config.Alternative, sID string, path string, rep int, dbRunID int64) {
+			defer rc.Wg.Done()
+
+			// Acquire semaphore to limit Cloud Run concurrency
+			select {
+			case rc.Sem <- struct{}{}:
+				defer func() { <-rc.Sem }()
+			case <-rc.Ctx.Done():
+				return
+			}
+
+			log.Printf("Triggering Cloud Run Job for %s (RunID: %d)", jobID, runID)
+			if err := r.triggerCloudRunJob(rc.Ctx, runID); err != nil {
+				log.Printf("Error triggering Cloud Run Job for run %d: %v", runID, err)
+				r.db.UpdateRunStatusAndReason(runID, db.RunStatusCompleted, db.ReasonFailedError)
+				// Send failure result
+				rc.ResultsChan <- Result{
+					RunID:       runID,
+					Alternative: alt.Name,
+					Scenario:    sID,
+					Repetition:  rep,
+					Status:      db.RunStatusCompleted,
+					Reason:      db.ReasonFailedError,
+					ErrorStr:    fmt.Sprintf("Failed to trigger Cloud Run Job: %v", err),
+				}
+				return
+			}
+
+			// Wait for completion (Polling DB)
+			ticker := time.NewTicker(2 * time.Second)
+			defer ticker.Stop()
+
+			for {
+				select {
+				case <-rc.Ctx.Done():
+					return
+				case <-ticker.C:
+					runRes, err := r.db.GetRunResultByID(runID)
+					if err != nil {
+						log.Printf("Warning: failed to poll run %d: %v", runID, err)
+						continue
+					}
+					if runRes.Status == db.RunStatusCompleted || runRes.Status == db.RunStatusAborted {
+						log.Printf("Cloud Run Job %s completed (Status: %s)", jobID, runRes.Reason)
+						// Convert to Result and send to channel
+						res := r.FromDBRunResult(runRes)
+						rc.ResultsChan <- res
+						return
+					}
+				}
+			}
+		}(alt, scenID, scenPath, rep, runID)
+		return
+	}
+
 	rc.Wg.Add(1)
+
 	go func(alt config.Alternative, sID string, path string, rep int, dbRunID int64) {
 		defer rc.Wg.Done()
 		// Check for stop BEFORE acquiring semaphore
@@ -113,4 +176,55 @@ func (r *Runner) dispatchJob(rc *runContext, alt config.Alternative, scenPath st
 		res := r.runSingle(rc.Ctx, alt, sID, rep, rc.ExperimentDir, rc.Timeout, dbRunID)
 		rc.ResultsChan <- res
 	}(alt, scenID, scenPath, rep, runID)
+}
+
+func (r *Runner) triggerCloudRunJob(ctx context.Context, runID int64) error {
+	project := os.Getenv("PROJECT_ID")
+	region := os.Getenv("REGION")
+	jobName := os.Getenv("TENKAI_JOB_NAME")
+	if jobName == "" {
+		jobName = "tenkai-runner-template"
+	}
+
+	if project == "" || region == "" {
+		return fmt.Errorf("missing env vars for Cloud Run dispatch: PROJECT_ID, REGION")
+	}
+
+	// Create client
+	client, err := run.NewJobsClient(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to create run client: %w", err)
+	}
+	defer client.Close()
+
+	// Full resource name: projects/{project}/locations/{location}/jobs/{job}
+	name := fmt.Sprintf("projects/%s/locations/%s/jobs/%s", project, region, jobName)
+
+	req := &runpb.RunJobRequest{
+		Name: name,
+		Overrides: &runpb.RunJobRequest_Overrides{
+			ContainerOverrides: []*runpb.RunJobRequest_Overrides_ContainerOverride{
+				{
+					Env: []*runpb.EnvVar{
+						{
+							Name: "RUN_ID",
+							Values: &runpb.EnvVar_Value{
+								Value: fmt.Sprintf("%d", runID),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// We return the Operation, but we don't wait for it to complete.
+	// The Worker updates the DB, and the Runner Loop polls the DB.
+	op, err := client.RunJob(ctx, req)
+	if err != nil {
+		return fmt.Errorf("failed to call RunJob: %w", err)
+	}
+
+	log.Printf("Cloud Run Job triggered: %s (Operation: %s)", name, op.Name())
+	return nil
 }

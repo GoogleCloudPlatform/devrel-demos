@@ -1,0 +1,98 @@
+"use client";
+
+import React, { Suspense, useState, useEffect, use } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import TemplateForm from "@/components/TemplateForm";
+import { PageHeader } from "@/components/ui/page-header";
+import { Loader2 } from "lucide-react";
+import { ScenarioData, TemplateData } from "@/types/domain";
+import { getBlocks, toggleTemplateLock } from "@/lib/api";
+import LockToggle from "@/components/LockToggle";
+import { ConfigBlock } from "@/types/domain";
+
+function TemplateEditorContent({ name }: { name: string }) {
+    const router = useRouter();
+
+    const [blocks, setBlocks] = useState<ConfigBlock[]>([]);
+    const [initialData, setInitialData] = useState<TemplateData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [isLocked, setIsLocked] = useState(false);
+
+    useEffect(() => {
+        if (!name) {
+            setLoading(false);
+            return;
+        }
+
+        const loadData = async () => {
+            try {
+                const [blocksData, template] = await Promise.all([
+                    fetch('/api/blocks').then(res => res.json()),
+                    fetch(`/api/templates/${name}/config`).then(res => res.json())
+                ]);
+
+                setBlocks(blocksData);
+                setIsLocked(template.is_locked || false);
+                setInitialData({
+                    id: name,
+                    name: template.name || name,
+                    yaml_content: template.content,
+                    description: template.description || "",
+                    is_locked: template.is_locked || false,
+                    config: template.config || {
+                        reps: 1,
+                        concurrent: 1,
+                        timeout: "",
+                        experiment_control: "",
+                        scenarios: [],
+                        alternatives: []
+                    }
+                });
+
+            } catch (e) {
+                console.error(e);
+                toast.error("Failed to load template editor");
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadData();
+    }, [name]);
+
+    if (!name) return <div className="p-20 text-center text-red-500">Missing Template Name/ID</div>;
+    if (loading) return <div className="p-20 text-center animate-pulse text-body">Loading Environment...</div>;
+
+    return (
+        <div className="p-8 max-w-7xl mx-auto space-y-8 animate-enter text-body">
+            <PageHeader
+                title="Edit Template"
+                description={`ID: ${initialData?.id}`}
+                backHref="/templates"
+                actions={
+                    <LockToggle
+                        locked={isLocked}
+                        onToggle={async (locked) => {
+                            const success = await toggleTemplateLock(name, locked);
+                            if (success) {
+                                setIsLocked(locked);
+                                return true;
+                            }
+                            return false;
+                        }}
+                    />
+                }
+            />
+
+            <TemplateForm blocks={blocks} initialData={initialData} mode="edit" isLocked={isLocked} />
+        </div>
+    );
+}
+
+export default function ClientTemplateEditor({ name }: { name: string }) {
+    return (
+        <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>}>
+            <TemplateEditorContent name={name} />
+        </Suspense>
+    );
+}

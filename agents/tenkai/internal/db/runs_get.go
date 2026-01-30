@@ -19,7 +19,7 @@ func (db *DB) GetRunByID(runID int64) (*models.RunResult, error) {
 	var dur, tPass, tFail, lint, tTok, iTok, oTok, tCalls, fCalls, modelDur sql.NullInt64
 	var loop, success sql.NullBool
 
-	err := db.conn.QueryRow(query, runID).Scan(
+	err := db.conn.QueryRow(db.Rebind(query), runID).Scan(
 		&r.ID, &r.ExperimentID, &r.Alternative, &r.Scenario, &r.Repetition, &dur, &errStr,
 		&tPass, &tFail, &lint, &tTok, &iTok, &oTok,
 		&tCalls, &fCalls, &loop, &success, &valRep, &status, &reason,

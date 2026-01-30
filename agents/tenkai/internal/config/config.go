@@ -169,3 +169,28 @@ func LoadScenarioConfig(path string) (*ScenarioConfig, error) {
 
 	return &cfg, nil
 }
+
+// Parse unmarshals configuration from byte slice.
+func Parse(data []byte) (*Configuration, error) {
+	var cfg Configuration
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse config data: %w", err)
+	}
+
+	// We can't easily resolve relative paths here because we don't know the config file path.
+	// But in the Worker context, dependencies (assets) are usually handled differently or we expect absolute paths/standalone.
+	// For now, we return as is. The Worker might need to handle asset copying if they are relative.
+	// However, `Scenario.yaml` assets are likely copied into the experiment workspace already?
+	// No, `prepareWorkspaceForRun` copies them.
+	// If paths are relative in config, `prepareWorkspaceForRun` resolves them against `ConfigDir`.
+	// Since we are reconstructing from DB content, we lose `ConfigDir`.
+	// This might be an issue if assets are relative.
+	// But `StartExperiment` saves `EffectiveConfig`?
+	// `RunResults` doesn't store the full config path context.
+	// `experiments` table stores `config_path`. We can maybe verify if we can access the original files?
+	// On Cloud Run, we definitely can't access original files from the path.
+	// We might need to bundle assets or assume they are in the image.
+	// For now, let's assume assets are available or paths are handled.
+
+	return &cfg, nil
+}

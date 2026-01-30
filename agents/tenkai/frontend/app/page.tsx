@@ -1,16 +1,40 @@
+"use client";
+
 import Link from "next/link";
-import { getExperiments } from "@/app/api/api";
+import { useEffect, useState } from "react";
+import { getExperiments } from "@/lib/api";
 import RefreshOnInterval from "@/components/RefreshOnInterval";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/utils/cn";
-import { Plus, Terminal } from "lucide-react";
+import { Plus, Terminal, Loader2 } from "lucide-react";
 import ProgressBar from "@/components/ui/progress-bar";
 import ExperimentsTable from "@/components/experiments/ExperimentsTable";
 
-export default async function Home() {
-    const experiments = await getExperiments();
+export default function Home() {
+    const [experiments, setExperiments] = useState<any[] | null>(null);
+
+    useEffect(() => {
+        getExperiments().then(data => {
+            setExperiments(data);
+        });
+    }, []);
+
+    if (!experiments) {
+        return (
+            <div className="p-6 space-y-8">
+                <header className="flex justify-between items-center pb-6 border-b">
+                    <div>
+                        <h1 className="text-3xl font-extrabold tracking-tight">Dashboard</h1>
+                    </div>
+                </header>
+                <div className="flex justify-center py-20 opacity-50">
+                    <Loader2 className="animate-spin mr-2" /> Loading dashboard...
+                </div>
+            </div>
+        );
+    }
 
     const sortedExperiments = [...experiments].sort((a, b) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -53,7 +77,7 @@ export default async function Home() {
                     <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Active Processes</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {activeExperiments.map(exp => (
-                            <Link href={`/experiments/${exp.id}`} key={exp.id}>
+                            <Link href={`/experiments/view?id=${exp.id}`} key={exp.id}>
                                 <Card className="hover:border-primary/50 transition-colors group">
                                     <CardHeader className="pb-2">
                                         <div className="flex justify-between items-start">

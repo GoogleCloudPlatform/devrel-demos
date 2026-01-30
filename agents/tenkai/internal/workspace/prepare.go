@@ -378,25 +378,7 @@ func (m *Manager) PrepareWorkspace(experimentDir, alternative, scenario string, 
 		}
 	}
 
-	// Install golangci-lint into the workspace
-	binDir := filepath.Join(info.Project, "bin")
-	if err := os.MkdirAll(binDir, 0755); err != nil {
-		return info, fmt.Errorf("failed to create bin directory: %w", err)
-	}
-
-	log.Printf("[Workspace] Installing golangci-lint to %s...", binDir)
-	installCmd := exec.Command("go", "install", "github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.4")
-	installCmd.Env = os.Environ()
-	installCmd.Env = append(installCmd.Env, fmt.Sprintf("GOBIN=%s", binDir))
-	installCmd.Dir = info.Project // Not strictly necessary for go install but good practice
-
-	if out, err := installCmd.CombinedOutput(); err != nil {
-		// Log warning instead of failing? No, user explicitly requested it.
-		// But if internet is down, maybe fail.
-		return info, fmt.Errorf("failed to install golangci-lint: %v\nOutput: %s", err, string(out))
-	}
-	log.Printf("[Workspace] golangci-lint installed successfully.")
-
+	// golangci-lint is pre-installed in the Docker image, so we rely on PATH.
 	return info, nil
 }
 

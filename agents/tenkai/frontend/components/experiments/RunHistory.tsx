@@ -1,6 +1,6 @@
 "use client";
 
-import { RunResultRecord } from "@/app/api/api";
+import { RunResultRecord } from "@/lib/api";
 import { useState } from "react";
 
 interface RunHistoryProps {

@@ -14,7 +14,7 @@ import (
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/workspace"
 )
 
-func runServer(database *db.DB, cwd string, port int, concurrent int) {
+func RunServer(database *db.DB, cwd string, port int, concurrent int, mode runner.RunnerMode) {
 	scenariosDir := filepath.Join(cwd, "scenarios")
 	wsMgr := workspace.New(cwd, scenariosDir, scenariosDir)
 
@@ -23,6 +23,7 @@ func runServer(database *db.DB, cwd string, port int, concurrent int) {
 	}
 
 	r := runner.New(wsMgr, concurrent)
+	r.SetMode(mode)
 	r.SetDB(database)
 
 	srv := server.New(database, r, wsMgr)

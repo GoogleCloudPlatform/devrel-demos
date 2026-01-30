@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/utils/cn";
 import ProgressBar from "@/components/ui/progress-bar";
 import { ExperimentRecord } from "@/types/domain";
-import { toggleLock } from "@/app/api/api";
+import { toggleLock } from "@/lib/api";
 import LockToggle from "@/components/LockToggle";
 import { useRouter } from "next/navigation";
 
@@ -80,7 +80,7 @@ export default function ExperimentsTable({ experiments }: ExperimentsTableProps)
                                 </Badge>
                             </TableCell>
                             <TableCell>
-                                <Link href={`/experiments/${exp.id}`} className="hover:text-primary font-bold text-base transition-colors truncate block max-w-[350px]" title={exp.name}>
+                                <Link href={`/experiments/view?id=${exp.id}`} className="hover:text-primary font-bold text-base transition-colors truncate block max-w-[350px]" title={exp.name}>
                                     {exp.name || "Unnamed Experiment"}
                                 </Link>
                             </TableCell>

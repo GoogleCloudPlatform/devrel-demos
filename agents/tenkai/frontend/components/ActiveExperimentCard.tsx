@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { ExperimentRecord } from '@/app/api/api';
+import { ExperimentRecord } from '@/lib/api';
 import { useExperimentControl, ExperimentStatus } from '@/hooks/useExperimentControl';
 import { Card } from './ui/card';
 
@@ -18,7 +18,7 @@ export default function ActiveExperimentCard({ exp, index }: { exp: ExperimentRe
     if (status === 'ABORTED' || status === 'completed') return null;
 
     return (
-        <Link href={`/experiments/${exp.id}`}>
+        <Link href={`/experiments/view?id=${exp.id}`}>
             <Card className="hover:border-primary/30 bg-card/40 cursor-pointer group transition-all duration-300 border-border">
                 <div className="flex justify-between items-start mb-6">
                     <div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { Checkpoint } from "@/app/api/api";
+import { Checkpoint } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import KillExperimentButton from "../KillExperimentButton";

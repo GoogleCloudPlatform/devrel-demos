@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { ChevronRight, ChevronDown, ArrowDown, Loader2, RefreshCw } from 'lucide-react';
-import { RunResultRecord, ToolUsageRecord, MessageRecord, TestResultRecord, LintResultRecord, reValidateRun } from '@/app/api/api';
+import { RunResultRecord, ToolUsageRecord, MessageRecord, TestResultRecord, LintResultRecord, reValidateRun } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import ProgressBar from '@/components/ui/progress-bar';

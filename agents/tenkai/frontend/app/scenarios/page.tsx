@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Plus, FlaskConical, Lock } from 'lucide-react';
 import LockToggle from '@/components/LockToggle';
-import { toggleScenarioLock } from '@/app/api/api';
+import { toggleScenarioLock } from '@/lib/api';
 
 interface Scenario {
     id: string;
@@ -193,7 +193,7 @@ export default function ScenariosPage() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {scenarios.map((scenario) => (
-                        <Link href={`/scenarios/${scenario.id}`} key={scenario.id} className="block group">
+                        <Link href={`/scenarios/edit?id=${scenario.id}`} key={scenario.id} className="block group">
                             <Card className={`h-full p-6 hover:border-muted transition-colors flex flex-col justify-between ${scenario.is_locked ? 'border-2 border-amber-500' : 'border border-border'}`}>
                                 <div>
                                     <div className="flex justify-between items-start mb-4">

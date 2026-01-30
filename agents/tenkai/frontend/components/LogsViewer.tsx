@@ -29,7 +29,7 @@ export function LogsViewer() {
 
     useEffect(() => {
         fetchLogs();
-        const interval = setInterval(fetchLogs, 1000);
+        const interval = setInterval(fetchLogs, 5000);
         return () => clearInterval(interval);
     }, []);
 

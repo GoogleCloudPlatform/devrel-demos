@@ -1,6 +1,6 @@
 "use client";
 
-import { ExperimentSummaryRecord } from "@/app/api/api";
+import { ExperimentSummaryRecord } from "@/lib/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 

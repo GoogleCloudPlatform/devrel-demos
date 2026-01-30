@@ -5,7 +5,7 @@ Tenkai is a Go-based experimentation framework designed to evaluate and test dif
 ![Tenkai Dashboard](assets/readme/dashboard.png)
 
 ## Core Architecture
-Tenkai operates on a **Single Source of Truth** principle using a persistent SQLite database (`experiments/tenkai.db`). All execution events are streamed in real-time from the runner to the database, ensuring that the web dashboard and analysis tools always reflect the exact state of the agent execution.
+Tenkai operates on a **Single Source of Truth** principle using a persistent database (**SQLite** for local, **PostgreSQL** for cloud). All execution events are streamed in real-time from the runner to the database, ensuring that the web dashboard and analysis tools always reflect the exact state of the agent execution. Artifacts are stored in **run_files** (DB) or **Google Cloud Storage** (GCS).
 
 ---
 
@@ -31,6 +31,33 @@ Tenkai operates on a **Single Source of Truth** principle using a persistent SQL
 
 3.  **Access the Dashboard:**
     Open your browser to [http://localhost:3000](http://localhost:3000).
+
+---
+
+## ☁️ Cloud Architecture & Deployment (Google Cloud)
+
+Tenkai is designed to run on Google Cloud Platform using Cloud Run and Cloud SQL.
+
+### Architecture
+- **Server**: Runs on Cloud Run (Service). Hosts the API and Orchestrator.
+- **Worker**: Runs on Cloud Run (Service/Job). Dedicated runner for executing agent tasks asynchronously.
+- **Database**: Cloud SQL (PostgreSQL). Shared persistent state.
+- **Artifacts**: Google Cloud Storage (GCS). Stores run logs and generated code.
+
+### Deployment Service
+We provide scripts to automate the deployment process.
+
+1.  **Setup Infrastructure** (Run once):
+    Creates Cloud SQL instance, GCS Bucket, and Artifact Registry.
+    ```bash
+    ./deploy/setup.sh
+    ```
+
+2.  **Deploy Application**:
+    Builds Docker images and deploys Server (with embedded Frontend + Templates) and Worker to Cloud Run.
+    ```bash
+    ./deploy/deploy.sh
+    ```
 
 ---
 
@@ -61,7 +88,7 @@ A **Template** defines *what* you want to test (Alternatives) against *which* ta
 
 ![Launch Experiment](assets/readme/new_experiment.png)
 
-The dashboard will update in real-time as agents pick up tasks. You can click on individual runs to inspect the live event stream, tool usage, and error logs.
+The dashboard will update in real-time. In **Cloud Mode**, jobs are queued and picked up by the **Worker** service.
 
 ---
 
@@ -85,11 +112,11 @@ Used for **Success Rates**.
 ## 📂 Project Structure
 
 - `cmd/tenkai`: Main entryway (binary).
-- `internal/runner`: Core execution engine. Handles process groups, timeouts, and log streaming.
-- `internal/workspace`: Manages file system isolation and asset injection.
-- `internal/db`: SQLite access layer. Stores `run_results` and `run_events`.
+- `internal/runner`: Core execution engine. Supports `Local` and `Worker` modes.
+- `internal/workspace`: Manages file system isolation.
+- `internal/storage`: Abstraction for artifact storage (DB or GCS).
+- `internal/db`: Database access layer (SQLite & PostgreSQL).
 - `scenarios/`: Global library of available coding tasks.
-- `experiments/`:
-    - `runs/`: Output directory for generated artifacts and logs.
-    - `templates/`: Configuration templates for experiments.
+- `experiments/templates/`: Configuration templates.
 - `frontend/`: Next.js web dashboard.
+- `deploy/`: Cloud deployment scripts.

@@ -1,6 +1,6 @@
 'use client';
 
-import { ToolUsageRecord } from "@/app/api/api";
+import { ToolUsageRecord } from "@/lib/api";
 
 export default function ToolInspectionModal({ tool, onClose }: { tool: ToolUsageRecord | null, onClose: () => void }) {
     if (!tool) return null;

@@ -21,7 +21,7 @@ func setupAPI(t *testing.T) (*API, string) {
 
 	// Initialize DB
 	dbPath := filepath.Join(tmpDir, "test.db")
-	database, err := db.Open(dbPath)
+	database, err := db.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open DB: %v", err)
 	}

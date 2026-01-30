@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { ExperimentRecord } from '@/app/api/api';
+import { ExperimentRecord } from '@/lib/api';
 
 export default function ExperimentFeedItem({ exp }: { exp: ExperimentRecord }) {
     const statusColor =
@@ -9,7 +9,7 @@ export default function ExperimentFeedItem({ exp }: { exp: ExperimentRecord }) {
                 'bg-warning';
 
     return (
-        <Link href={`/experiments/${exp.id}`} className="block group">
+        <Link href={`/experiments/view?id=${exp.id}`} className="block group">
             <div className="relative pl-8 py-6 border-l-2 border-border hover:border-primary/50 transition-colors">
                 {/* Timeline Dot */}
                 <div className={`absolute left-[-5px] top-8 w-2.5 h-2.5 rounded-full ${statusColor} ring-4 ring-background group-hover:scale-125 transition-transform duration-300`} />

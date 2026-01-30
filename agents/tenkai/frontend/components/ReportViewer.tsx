@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ExperimentRecord, Checkpoint, RunResultRecord, getRunResults, reValidateExperiment, getExperimentSummaries, ExperimentSummaryRecord } from "@/app/api/api";
+import { ExperimentRecord, Checkpoint, RunResultRecord, getRunResults, reValidateExperiment, getExperimentSummaries, ExperimentSummaryRecord } from "@/lib/api";
 import { ConfigBlock, ConfigBlockType } from "@/types/domain";
 import { Loader2, RefreshCw, BarChart3 } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";

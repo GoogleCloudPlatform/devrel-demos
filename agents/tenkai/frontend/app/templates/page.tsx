@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Plus, FileText, Lock } from 'lucide-react';
 import LockToggle from '@/components/LockToggle';
-import { toggleTemplateLock } from '@/app/api/api';
+import { toggleTemplateLock } from '@/lib/api';
 
 interface Template {
     id: string;
@@ -156,7 +156,7 @@ export default function TemplatesPage() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {templates.map((template) => (
-                        <Link href={`/templates/${template.id}`} key={template.id} className="block group">
+                        <Link href={`/templates/edit?name=${template.id}`} key={template.id} className="block group">
                             <Card className={`h-full p-6 hover:border-muted transition-colors flex flex-col justify-between ${template.is_locked ? 'border-2 border-amber-500' : 'border border-border'}`}>
                                 <div>
                                     <div className="flex justify-between items-start mb-4">

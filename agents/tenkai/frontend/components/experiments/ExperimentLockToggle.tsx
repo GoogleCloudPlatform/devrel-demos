@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { toggleLock } from '@/app/api/api';
+import { toggleLock } from '@/lib/api';
 import LockToggle from '@/components/LockToggle';
 
 interface ExperimentLockToggleProps {

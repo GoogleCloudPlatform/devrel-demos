@@ -113,12 +113,38 @@ func (r *Runner) reEvalInternal(run *models.RunResult, expDir, templatesDir stri
 
 	wsPath := filepath.Join(expDir, run.Alternative, run.Scenario, fmt.Sprintf("rep-%d", run.Repetition))
 	if _, err := os.Stat(wsPath); os.IsNotExist(err) {
-		// Try relaunch logic?
-		// For now, strict check.
-		log.Printf("Warning: Workspace path not found: %s", wsPath)
-		return fmt.Errorf("workspace not found")
+		// Workspace missing (common in Cloud Run / Distributed mode)
+		// Try to restore from Storage to a temporary directory
+		if r.Storage != nil {
+			tempDir, err := os.MkdirTemp("", fmt.Sprintf("tenkai-reval-%d-*", run.ID))
+			if err != nil {
+				return fmt.Errorf("creating temp dir for restoration: %w", err)
+			}
+			// Ideally we defer removal, but for debugging maybe keep?
+			// defer os.RemoveAll(tempDir)
+			// Let's remove it to save space on Cloud Run
+			defer os.RemoveAll(tempDir)
+
+			log.Printf("Restoring artifacts for Run %d to %s...", run.ID, tempDir)
+			if err := r.Storage.DownloadRunArtifacts(context.Background(), run.ID, tempDir); err != nil {
+				log.Printf("Warning: failed to restore artifacts: %v. Validation may fail.", err)
+			}
+
+			// Use the temp dir as the workspace path
+			wsPath = tempDir
+		} else {
+			log.Printf("Warning: Workspace path not found and no Storage configured: %s", wsPath)
+			// Return error or assume validation that relies on files will fail?
+			// Let's create an empty dir so at least regex validation runs?
+			// No, better to fail early if we can't find context.
+			return fmt.Errorf("workspace not found")
+		}
 	}
 	projectPath := filepath.Join(wsPath, "project")
+	// If projectPath doesn't exist (e.g. restoration was partial or empty), create it
+	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
+		os.MkdirAll(projectPath, 0755)
+	}
 
 	// Load Scenario Config
 	scenTemplatePath := filepath.Join(templatesDir, run.Scenario, "scenario.yaml")

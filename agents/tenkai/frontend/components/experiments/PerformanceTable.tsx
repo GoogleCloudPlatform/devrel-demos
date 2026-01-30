@@ -1,4 +1,4 @@
-import { RunResultRecord } from "@/app/api/api";
+import { RunResultRecord } from "@/lib/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
     Tooltip,

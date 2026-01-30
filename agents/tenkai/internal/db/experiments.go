@@ -25,7 +25,8 @@ func (db *DB) GetExperiments() ([]models.Experiment, error) {
 	GROUP BY e.id
 	ORDER BY e.id DESC`
 
-	rows, err := db.conn.Query(query)
+	// Note: Main query has no args, but keeping rebind good practice if we add WHERE
+	rows, err := db.conn.Query(db.Rebind(query))
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +45,7 @@ func (db *DB) GetExperiments() ([]models.Experiment, error) {
 		); err != nil {
 			return nil, err
 		}
-		e.Timestamp, _ = time.Parse(time.RFC3339, ts)
+		e.Timestamp, _ = ParseDBTime(ts)
 		e.Description = desc.String
 		e.ConfigContent = confContent.String
 		e.ExperimentControl = expControl.String
@@ -55,11 +56,13 @@ func (db *DB) GetExperiments() ([]models.Experiment, error) {
 		// Aggregation for Progress (Real-time from run_results)
 		var completedActual, aborted int
 		// Use COALESCE to ensure 0 is returned instead of NULL if no runs exist
-		err := db.conn.QueryRow(`
+		querySummary := `
 			SELECT 
 				COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END), 0),
 				COALESCE(SUM(CASE WHEN status = 'ABORTED' THEN 1 ELSE 0 END), 0)
-			FROM run_results WHERE experiment_id = ?`, e.ID).Scan(&completedActual, &aborted)
+			FROM run_results WHERE experiment_id = ?`
+
+		err := db.conn.QueryRow(db.Rebind(querySummary), e.ID).Scan(&completedActual, &aborted)
 
 		if err == nil {
 			e.CompletedJobs = completedActual + aborted
@@ -100,7 +103,7 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 		e.description, e.duration, e.config_content, e.report_content, e.execution_control, e.experiment_control, e.error_message, e.ai_analysis, e.pid, e.is_locked, e.annotations
 		FROM experiments e WHERE e.id = ?`
 
-	row := db.conn.QueryRow(query, id)
+	row := db.conn.QueryRow(db.Rebind(query), id)
 
 	var exp models.Experiment
 	var ts string
@@ -114,7 +117,7 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 	if err != nil {
 		return nil, err
 	}
-	exp.Timestamp, _ = time.Parse(time.RFC3339, ts)
+	exp.Timestamp, _ = ParseDBTime(ts)
 	exp.Description = desc.String
 	exp.ConfigContent = conf.String
 	exp.ReportContent = rep.String
@@ -143,7 +146,7 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 	var sRate, aDur, aTok sql.NullFloat64
 	var tLint, sRuns sql.NullInt64
 
-	err = db.conn.QueryRow(aggQuery, id).Scan(
+	err = db.conn.QueryRow(db.Rebind(aggQuery), id).Scan(
 		&totalActual, &completedActual, &running, &queued, &aborted,
 		&sRate, &aDur, &aTok, &tLint, &sRuns,
 	)
@@ -190,7 +193,7 @@ func (db *DB) CreateExperiment(exp *models.Experiment) (int64, error) {
 	query := `INSERT INTO experiments (name, timestamp, config_path, report_path, results_path, status, reps, concurrent, total_jobs, pid, description, config_content, experiment_control, is_locked, annotations) 
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	res, err := db.conn.Exec(query,
+	return db.InsertReturningID(query,
 		exp.Name,
 		exp.Timestamp.Format(time.RFC3339),
 		exp.ConfigPath,
@@ -207,34 +210,30 @@ func (db *DB) CreateExperiment(exp *models.Experiment) (int64, error) {
 		exp.IsLocked,
 		exp.Annotations,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return res.LastInsertId()
 }
 
 func (db *DB) UpdateExperimentStatus(id int64, status string) error {
-	_, err := db.conn.Exec("UPDATE experiments SET status = ? WHERE id = ?", status, id)
+	_, err := db.conn.Exec(db.Rebind("UPDATE experiments SET status = ? WHERE id = ?"), status, id)
 	return err
 }
 
 func (db *DB) ToggleExperimentLock(id int64, locked bool) error {
-	_, err := db.conn.Exec("UPDATE experiments SET is_locked = ? WHERE id = ?", locked, id)
+	_, err := db.conn.Exec(db.Rebind("UPDATE experiments SET is_locked = ? WHERE id = ?"), locked, id)
 	return err
 }
 
 func (db *DB) UpdateExperimentAIAnalysis(id int64, analysis string) error {
-	_, err := db.conn.Exec("UPDATE experiments SET ai_analysis = ? WHERE id = ?", analysis, id)
+	_, err := db.conn.Exec(db.Rebind("UPDATE experiments SET ai_analysis = ? WHERE id = ?"), analysis, id)
 	return err
 }
 
 func (db *DB) UpdateExperimentProgress(id int64, completed, total int) error {
-	_, err := db.conn.Exec("UPDATE experiments SET total_jobs = ? WHERE id = ?", total, id)
+	_, err := db.conn.Exec(db.Rebind("UPDATE experiments SET total_jobs = ? WHERE id = ?"), total, id)
 	return err
 }
 
 func (db *DB) UpdateExecutionControl(expID int64, control string) error {
-	_, err := db.conn.Exec("UPDATE experiments SET execution_control = ? WHERE id = ?", control, expID)
+	_, err := db.conn.Exec(db.Rebind("UPDATE experiments SET execution_control = ? WHERE id = ?"), control, expID)
 	return err
 }
 
@@ -246,28 +245,28 @@ func (db *DB) DeleteExperiment(id int64) error {
 	defer tx.Rollback()
 
 	// Subquery delete for grandchildren
-	_, err = tx.Exec("DELETE FROM run_events WHERE run_id IN (SELECT id FROM run_results WHERE experiment_id = ?)", id)
+	_, err = tx.Exec(db.Rebind("DELETE FROM run_events WHERE run_id IN (SELECT id FROM run_results WHERE experiment_id = ?)"), id)
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec("DELETE FROM test_results WHERE run_id IN (SELECT id FROM run_results WHERE experiment_id = ?)", id)
+	_, err = tx.Exec(db.Rebind("DELETE FROM test_results WHERE run_id IN (SELECT id FROM run_results WHERE experiment_id = ?)"), id)
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec("DELETE FROM lint_results WHERE run_id IN (SELECT id FROM run_results WHERE experiment_id = ?)", id)
+	_, err = tx.Exec(db.Rebind("DELETE FROM lint_results WHERE run_id IN (SELECT id FROM run_results WHERE experiment_id = ?)"), id)
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec("DELETE FROM run_files WHERE run_id IN (SELECT id FROM run_results WHERE experiment_id = ?)", id)
+	_, err = tx.Exec(db.Rebind("DELETE FROM run_files WHERE run_id IN (SELECT id FROM run_results WHERE experiment_id = ?)"), id)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec("DELETE FROM run_results WHERE experiment_id = ?", id)
+	_, err = tx.Exec(db.Rebind("DELETE FROM run_results WHERE experiment_id = ?"), id)
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec("DELETE FROM experiments WHERE id = ?", id)
+	_, err = tx.Exec(db.Rebind("DELETE FROM experiments WHERE id = ?"), id)
 	if err != nil {
 		return err
 	}
@@ -362,7 +361,7 @@ func (db *DB) GetToolStats(experimentID int64, filter string) ([]models.ToolStat
 	// 1. Get total completed runs per alternative
 	runsQuery := fmt.Sprintf(`SELECT alternative, count(*) FROM run_results WHERE experiment_id = ? %s GROUP BY alternative`, runsFilter)
 
-	rows, err := db.conn.Query(runsQuery, experimentID)
+	rows, err := db.conn.Query(db.Rebind(runsQuery), experimentID)
 	if err != nil {
 		return nil, err
 	}
@@ -404,7 +403,7 @@ func (db *DB) GetToolStats(experimentID int64, filter string) ([]models.ToolStat
 	WHERE r.experiment_id = ? %s
 	GROUP BY r.alternative, t.name`, joinFilter)
 
-	rows2, err := db.conn.Query(query, experimentID)
+	rows2, err := db.conn.Query(db.Rebind(query), experimentID)
 	if err != nil {
 		return nil, err
 	}
@@ -425,14 +424,19 @@ func (db *DB) GetToolStats(experimentID int64, filter string) ([]models.ToolStat
 	queryErr := fmt.Sprintf(`
     SELECT 
         r.alternative,
-        json_extract(payload, '$.message')
+        %s
     FROM run_events e
     JOIN run_results r ON e.run_id = r.id
-    WHERE r.experiment_id = ? %s
+    WHERE r.experiment_id = ? %%s
       AND e.type = 'error' 
-      AND json_extract(payload, '$.message') LIKE 'Error executing tool %%'`, joinFilter)
+      AND %s LIKE 'Error executing tool %%%%'`,
+		db.JSONExtract("payload", "$.message"),
+		db.JSONExtract("payload", "$.message"))
 
-	rows3, err := db.conn.Query(queryErr, experimentID)
+	// Inject filter manually since we used Sprintf for fields
+	queryErr = fmt.Sprintf(queryErr, joinFilter)
+
+	rows3, err := db.conn.Query(db.Rebind(queryErr), experimentID)
 	if err != nil {
 		return nil, err
 	}
@@ -472,13 +476,13 @@ func (db *DB) GetToolStats(experimentID int64, filter string) ([]models.ToolStat
 
 func (db *DB) UpdateExperimentError(experimentID int64, errMsg string) error {
 	query := `UPDATE experiments SET error_message = ? WHERE id = ?`
-	_, err := db.conn.Exec(query, errMsg, experimentID)
+	_, err := db.conn.Exec(db.Rebind(query), errMsg, experimentID)
 	return err
 }
 
 func (db *DB) UpdateExperimentDuration(experimentID int64, duration int64) error {
 	query := `UPDATE experiments SET duration = ? WHERE id = ?`
-	_, err := db.conn.Exec(query, duration, experimentID)
+	_, err := db.conn.Exec(db.Rebind(query), duration, experimentID)
 	return err
 }
 
@@ -486,12 +490,12 @@ func (db *DB) UpdateExperimentReport(experimentID int64, reportContent string) e
 	query := `UPDATE experiments SET report_content = ?, report_path = ? WHERE id = ?`
 	// Also update report_path to indicate it's stored in DB/virtual
 	reportPath := fmt.Sprintf("db://experiments/%d/report.md", experimentID)
-	_, err := db.conn.Exec(query, reportContent, reportPath, experimentID)
+	_, err := db.conn.Exec(db.Rebind(query), reportContent, reportPath, experimentID)
 	return err
 }
 
 func (db *DB) UpdateExperimentAnnotations(experimentID int64, annotations string) error {
 	query := `UPDATE experiments SET annotations = ? WHERE id = ?`
-	_, err := db.conn.Exec(query, annotations, experimentID)
+	_, err := db.conn.Exec(db.Rebind(query), annotations, experimentID)
 	return err
 }

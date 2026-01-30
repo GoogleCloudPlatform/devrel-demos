@@ -11,7 +11,7 @@ import { Badge } from "./ui/badge";
 import { cn } from "@/utils/cn";
 import { ScenarioSelector } from "./ScenarioSelector";
 import { toSnakeCase } from "@/utils/ui";
-import { getExperiments } from "@/app/api/api";
+import { getExperiments } from "@/lib/api";
 
 export default function ExperimentForm({ templates, scenarios }: { templates: any[], scenarios: any[] }) {
     const router = useRouter();
@@ -108,9 +108,14 @@ export default function ExperimentForm({ templates, scenarios }: { templates: an
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
+                const data = await res.json();
                 toast.success("Experiment launched successfully!");
                 router.refresh();
-                router.push('/experiments');
+                if (data.id) {
+                    router.push(`/experiments/${data.id}`);
+                } else {
+                    router.push('/experiments');
+                }
             } else {
                 toast.error("Failed to launch experiment");
             }

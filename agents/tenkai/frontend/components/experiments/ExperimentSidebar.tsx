@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { saveExperimentAnnotations } from "@/app/api/api";
+import { saveExperimentAnnotations } from "@/lib/api";
 import { toast } from "sonner";
 
 function AnnotationEditor({ experimentId, initialAnnotations }: { experimentId: number, initialAnnotations: string }) {

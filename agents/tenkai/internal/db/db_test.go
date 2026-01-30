@@ -14,7 +14,7 @@ func TestMessagesView(t *testing.T) {
 	tmpDir, _ := os.MkdirTemp("", "tenkai-db-test")
 	defer os.RemoveAll(tmpDir)
 	dbPath := filepath.Join(tmpDir, "test.db")
-	database, err := Open(dbPath)
+	database, err := Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open DB: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestGetMessages_Aggregation(t *testing.T) {
 	tmpDir, _ := os.MkdirTemp("", "tenkai-db-test-agg")
 	defer os.RemoveAll(tmpDir)
 	dbPath := filepath.Join(tmpDir, "test.db")
-	database, err := Open(dbPath)
+	database, err := Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open DB: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestGetToolStats(t *testing.T) {
 	tmpDir, _ := os.MkdirTemp("", "tenkai-db-test-stats")
 	defer os.RemoveAll(tmpDir)
 	dbPath := filepath.Join(tmpDir, "test.db")
-	database, err := Open(dbPath)
+	database, err := Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open DB: %v", err)
 	}

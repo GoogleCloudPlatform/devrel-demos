@@ -1,14 +1,27 @@
 package server
 
+import (
+	"net/http"
+	"os"
+	"path/filepath"
+)
+
 func (s *Server) registerRoutes() {
 	// Health
 	s.router.HandleFunc("GET /api/health", s.api.Wrap(s.api.HandleHealth))
+	// ... (omitting middle for brevity if I could, but replace needs context)
+	// Actually I can use multiple replacements or just one big one if I view the whole file.
+	// Let's do imports first, then the handler end.
+	// Be careful with replacing the whole file if I didn't verify middle lines.
+	// I'll do two chunks.
+
 	s.router.HandleFunc("GET /api/stats", s.api.Wrap(s.api.HandleGlobalStats))
 
 	// Experiments
 	s.router.HandleFunc("GET /api/experiments", s.api.Wrap(s.api.ListExperiments))
 	s.router.HandleFunc("DELETE /api/experiments", s.api.Wrap(s.api.DeleteAllExperiments))
-	s.router.HandleFunc("POST /api/experiments/run", s.api.Wrap(s.api.StartExperiment))
+	s.router.HandleFunc("POST /api/experiments", s.api.Wrap(s.api.StartExperiment))
+	s.router.HandleFunc("POST /api/fix-db", s.api.Wrap(s.api.FixDB))
 
 	s.router.HandleFunc("GET /api/experiments/{id}", s.api.Wrap(s.api.GetExperiment))
 	s.router.HandleFunc("POST /api/experiments/{id}/analysis", s.api.Wrap(s.api.SaveAIAnalysis))
@@ -16,6 +29,7 @@ func (s *Server) registerRoutes() {
 	s.router.HandleFunc("DELETE /api/experiments/{id}", s.api.Wrap(s.api.DeleteExperiment))
 
 	s.router.HandleFunc("GET /api/experiments/{id}/summaries", s.api.Wrap(s.api.GetSummaries))
+	s.router.HandleFunc("GET /api/experiments/{id}/stats", s.api.Wrap(s.api.GetSummaries)) // Alias used by frontend
 	s.router.HandleFunc("GET /api/experiments/{id}/runs", s.api.Wrap(s.api.GetExperimentRuns))
 	s.router.HandleFunc("GET /api/experiments/{id}/tool-stats", s.api.Wrap(s.api.GetToolStats))
 	s.router.HandleFunc("POST /api/experiments/{id}/control", s.api.Wrap(s.api.ControlExperiment))
@@ -64,4 +78,37 @@ func (s *Server) registerRoutes() {
 	s.router.HandleFunc("GET /api/blocks/{id}", s.api.Wrap(s.api.GetBlock))
 	s.router.HandleFunc("PUT /api/blocks/{id}", s.api.Wrap(s.api.UpdateBlock))
 	s.router.HandleFunc("DELETE /api/blocks/{id}", s.api.Wrap(s.api.DeleteBlock))
+
+	// Static Files & SPA (Frontend)
+	fs := http.FileServer(http.Dir("./static"))
+
+	// We register "/" as a catch-all.
+	// Note: in Go 1.22, "GET /" matches only root if using strict matching, or need "GET /..."
+	// But s.router is *http.ServeMux.
+	// If we use `s.router.HandleFunc("/", ...)` it matches everything not matched by others.
+	// Since we used method-specific patterns above (e.g. "GET /api/..."), those take precedence.
+	s.router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Secure path construction
+		path := filepath.Join("./static", r.URL.Path)
+
+		// Check if file/dir exists
+		info, err := os.Stat(path)
+		if os.IsNotExist(err) {
+			// File not found -> Serve custom 404
+			http.ServeFile(w, r, "./static/404.html")
+			return
+		}
+
+		// If it's a directory, prevent listing by ensuring index.html exists
+		if info.IsDir() {
+			indexPath := filepath.Join(path, "index.html")
+			if _, err := os.Stat(indexPath); os.IsNotExist(err) {
+				// Directory exists but no index.html -> 404 to hide listing
+				http.ServeFile(w, r, "./static/404.html")
+				return
+			}
+		}
+
+		fs.ServeHTTP(w, r)
+	})
 }

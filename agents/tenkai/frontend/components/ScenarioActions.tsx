@@ -34,7 +34,7 @@ export default function ScenarioActions({ id }: { id: string }) {
     return (
         <>
             <>
-                <Link href={`/scenarios/${id}/edit`}>
+                <Link href={`/scenarios/edit?id=${id}`}>
                     <Button variant="outline" size="sm">
                         Edit
                     </Button>
