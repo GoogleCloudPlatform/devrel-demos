@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/parser"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/workspace"
 )
 
@@ -79,7 +80,7 @@ validation:
 
 	// Setup Test DB
 	dbPath := filepath.Join(tmpDir, "tenkai.db")
-	testDB, err := db.Open(dbPath)
+	testDB, err := db.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("Failed to open test DB: %v", err)
 	}
@@ -142,5 +143,71 @@ validation:
 	}
 	if res.Status != "COMPLETED" { // db.RunStatusCompleted
 		t.Errorf("Expected status COMPLETED, got %s", res.Status)
+	}
+}
+
+func TestDetermineRunStatus(t *testing.T) {
+	r := &Runner{} // No dependencies needed for this method
+
+	tests := []struct {
+		name           string
+		res            Result
+		expectedReason string
+		expectedStatus string
+	}{
+		{
+			name: "Success",
+			res: Result{
+				IsSuccess: true,
+			},
+			expectedReason: db.ReasonSuccess,
+			expectedStatus: db.RunStatusCompleted,
+		},
+		{
+			name: "Loop Detected",
+			res: Result{
+				AgentMetrics: &parser.AgentMetrics{LoopDetected: true},
+			},
+			expectedReason: db.ReasonFailedLoop,
+			expectedStatus: db.RunStatusCompleted,
+		},
+		{
+			name: "Timeout",
+			res: Result{
+				ErrorStr: "context deadline exceeded",
+				Error:    fmt.Errorf("context deadline exceeded"),
+			},
+			expectedReason: db.ReasonFailedTimeout,
+			expectedStatus: db.RunStatusCompleted,
+		},
+		{
+			name: "Validation Failed",
+			res: Result{
+				ValidationReport: "failed validation",
+			},
+			expectedReason: db.ReasonFailedValidation,
+			expectedStatus: db.RunStatusCompleted,
+		},
+		{
+			name: "Generic Error",
+			res: Result{
+				ErrorStr: "some error",
+				Error:    fmt.Errorf("some error"),
+			},
+			expectedReason: db.ReasonFailedError,
+			expectedStatus: db.RunStatusCompleted,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			status, reason := r.DetermineRunStatus(&tt.res)
+			if status != tt.expectedStatus {
+				t.Errorf("expected status %s, got %s", tt.expectedStatus, status)
+			}
+			if reason != tt.expectedReason {
+				t.Errorf("expected reason %s, got %s", tt.expectedReason, reason)
+			}
+		})
 	}
 }
