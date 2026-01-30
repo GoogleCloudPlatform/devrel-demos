@@ -17,14 +17,14 @@ import (
 )
 
 type runContext struct {
-	Ctx             context.Context
-	ExperimentDir   string
-	Timeout         time.Duration
-	Timestamp       time.Time
-	ExperiementName string
-	ResultsChan     chan<- Result
-	Wg              *sync.WaitGroup
-	Sem             chan struct{}
+	Ctx            context.Context
+	ExperimentDir  string
+	Timeout        time.Duration
+	Timestamp      time.Time
+	ExperimentName string
+	ResultsChan    chan<- Result
+	Wg             *sync.WaitGroup
+	Sem            chan struct{}
 }
 
 // DispatchAll schedules all jobs for the experiment using an interleaved strategy.
@@ -87,7 +87,7 @@ func (r *Runner) dispatchJob(rc *runContext, alt config.Alternative, scenPath st
 	jobID := fmt.Sprintf("[%s|%s|#%d]", alt.Name, scenID, rep)
 	if r.Mode == ModeServer {
 		rc.Wg.Add(1)
-		go func(alt config.Alternative, sID string, path string, rep int, dbRunID int64) {
+		go func(alt config.Alternative, sID string, path string, rep int, dbRunID int64, jobID string) {
 			defer rc.Wg.Done()
 
 			// Acquire semaphore to limit Cloud Run concurrency
@@ -98,13 +98,15 @@ func (r *Runner) dispatchJob(rc *runContext, alt config.Alternative, scenPath st
 				return
 			}
 
-			log.Printf("Triggering Cloud Run Job for %s (RunID: %d)", jobID, runID)
-			if err := r.triggerCloudRunJob(rc.Ctx, runID); err != nil {
-				log.Printf("Error triggering Cloud Run Job for run %d: %v", runID, err)
-				r.db.UpdateRunStatusAndReason(runID, db.RunStatusCompleted, db.ReasonFailedError)
+			log.Printf("Triggering Cloud Run Job for %s (RunID: %d)", jobID, dbRunID)
+			if err := r.triggerCloudRunJob(rc.Ctx, dbRunID); err != nil {
+				log.Printf("Error triggering Cloud Run Job for run %d: %v", dbRunID, err)
+				if r.db != nil {
+					r.db.UpdateRunStatusAndReason(dbRunID, db.RunStatusCompleted, db.ReasonFailedError)
+				}
 				// Send failure result
 				rc.ResultsChan <- Result{
-					RunID:       runID,
+					RunID:       dbRunID,
 					Alternative: alt.Name,
 					Scenario:    sID,
 					Repetition:  rep,
@@ -124,9 +126,13 @@ func (r *Runner) dispatchJob(rc *runContext, alt config.Alternative, scenPath st
 				case <-rc.Ctx.Done():
 					return
 				case <-ticker.C:
-					runRes, err := r.db.GetRunResultByID(runID)
+					if r.db == nil {
+						log.Printf("Warning: DB is nil, cannot poll run %d", dbRunID)
+						return
+					}
+					runRes, err := r.db.GetRunResultByID(dbRunID)
 					if err != nil {
-						log.Printf("Warning: failed to poll run %d: %v", runID, err)
+						log.Printf("Warning: failed to poll run %d: %v", dbRunID, err)
 						continue
 					}
 					if runRes.Status == db.RunStatusCompleted || runRes.Status == db.RunStatusAborted {
@@ -138,7 +144,7 @@ func (r *Runner) dispatchJob(rc *runContext, alt config.Alternative, scenPath st
 					}
 				}
 			}
-		}(alt, scenID, scenPath, rep, runID)
+		}(alt, scenID, scenPath, rep, runID, jobID)
 		return
 	}
 
@@ -187,7 +193,19 @@ func (r *Runner) triggerCloudRunJob(ctx context.Context, runID int64) error {
 	}
 
 	if project == "" || region == "" {
-		return fmt.Errorf("missing env vars for Cloud Run dispatch: PROJECT_ID, REGION")
+		// Fallback to standard GCP env vars if custom ones are missing
+		if project == "" {
+			project = os.Getenv("GOOGLE_CLOUD_PROJECT")
+		}
+		if region == "" {
+			// Region is harder to find automatically, but sometimes set
+			region = "us-central1" // Default for this project
+			log.Printf("Warning: REGION env var missing, defaulting to %s", region)
+		}
+	}
+
+	if project == "" {
+		return fmt.Errorf("missing env vars for Cloud Run dispatch: PROJECT_ID or GOOGLE_CLOUD_PROJECT")
 	}
 
 	// Create client

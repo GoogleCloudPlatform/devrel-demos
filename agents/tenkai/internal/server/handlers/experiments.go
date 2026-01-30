@@ -126,14 +126,19 @@ func (api *API) StartExperiment(r *http.Request) (any, error) {
 		return nil, NewAPIError(http.StatusBadRequest, err.Error())
 	}
 
+	log.Printf("[Server] Starting experiment %s from template %s", req.Name, req.TemplateID)
+
 	cwd, _ := os.Getwd()
 	configPath := filepath.Join(cwd, "experiments", "templates", req.TemplateID, "config.yaml")
+	log.Printf("[Server] Looking for template config at: %s", configPath)
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		log.Printf("[Server] Template config NOT found at %s", configPath)
 		return nil, NewAPIError(http.StatusNotFound, fmt.Sprintf("Template config not found at %s", configPath))
 	}
 
 	// Create Experiment Record synchronously to ensure visibility in UI
 	configContent, err := os.ReadFile(configPath)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
