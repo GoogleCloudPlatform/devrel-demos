@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/parser"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/storage"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/workspace"
 )
 
@@ -57,12 +59,22 @@ func IsTimeoutErr(err error) bool {
 	return strings.Contains(msg, "timeout") || strings.Contains(msg, "deadline exceeded")
 }
 
+type RunnerMode string
+
+const (
+	ModeServer RunnerMode = "server" // Orchestrates, queues jobs, but runs nothing locally (unless forced)
+	ModeWorker RunnerMode = "worker" // Polls and executes jobs
+	ModeLocal  RunnerMode = "local"  // Orchestrates AND runs locally (Backward compatibility)
+)
+
 // Runner handles the execution of experiments.
 type Runner struct {
 	WorkspaceMgr  *workspace.Manager
 	MaxConcurrent int
 	db            *db.DB
 	experimentID  int64
+	Storage       storage.ArtifactStorage
+	Mode          RunnerMode
 }
 
 // New creates a new Runner.
@@ -80,6 +92,7 @@ func New(wsMgr *workspace.Manager, maxConcurrent int) *Runner {
 	return &Runner{
 		WorkspaceMgr:  wsMgr,
 		MaxConcurrent: maxConcurrent,
+		Mode:          ModeLocal, // Default
 	}
 }
 
@@ -91,6 +104,13 @@ func (r *Runner) SetExperimentID(id int64) {
 	r.experimentID = id
 }
 
+func (r *Runner) SetStorage(s storage.ArtifactStorage) {
+	r.Storage = s
+}
+func (r *Runner) SetMode(m RunnerMode) {
+	r.Mode = m
+}
+
 // Checkpoint represents the current progress of an experiment.
 type Checkpoint struct {
 	TotalJobs     int     `json:"total_jobs"`
@@ -100,23 +120,42 @@ type Checkpoint struct {
 	Status        string  `json:"status"`
 }
 
+// DetermineRunStatus calculates the final Status and Reason for a result.
+func (r *Runner) DetermineRunStatus(res *Result) (string, string) {
+	status := db.RunStatusCompleted
+	var reason string
+
+	switch {
+	case res.IsSuccess:
+		reason = db.ReasonSuccess
+	case res.AgentMetrics != nil && res.AgentMetrics.LoopDetected:
+		reason = db.ReasonFailedLoop
+	case res.ErrorStr != "" && IsTimeoutErr(res.Error):
+		reason = db.ReasonFailedTimeout
+	case res.ValidationReport != "":
+		reason = db.ReasonFailedValidation
+	default:
+		reason = db.ReasonFailedError
+	}
+	return status, reason
+}
+
 // Run executes the experiments defined in the configuration.
+
 func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp time.Time, experimentDir string) ([]Result, error) {
+	// If in Server mode, we only queue jobs and wait for completion (polling DB status).
+	// If in Local mode, we queue assignments and execute them.
+
 	var results []Result
 	resultsLimit := cfg.Repetitions * len(cfg.Alternatives) * len(cfg.Scenarios)
 	resultsChan := make(chan Result, resultsLimit)
-
-	var allAlts []string
-	for _, a := range cfg.Alternatives {
-		allAlts = append(allAlts, a.Name)
-	}
 
 	// 0. Initial checkpoint
 	if r.db == nil || r.experimentID == 0 {
 		return nil, fmt.Errorf("runner requires valid DB and experiment ID")
 	}
 
-	// Ensure logs directory exists
+	// Ensure logs directory exists (for local orchestrator logs)
 	logsDir := filepath.Join(experimentDir, "logs")
 	if err := os.MkdirAll(logsDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create logs dir: %w", err)
@@ -153,10 +192,19 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 
 	r.DispatchAll(rc, cfg)
 
-	go func() {
-		wg.Wait()
-		close(resultsChan)
-	}()
+	if r.Mode == ModeServer {
+		// Server Mode: Poll DB for completion instead of waiting for local goroutines
+		go func() {
+			r.pollDatabaseForCompletion(ctx, resultsLimit, resultsChan)
+			close(resultsChan)
+		}()
+	} else {
+		// Local Mode: Wait for goroutines
+		go func() {
+			wg.Wait()
+			close(resultsChan)
+		}()
+	}
 
 	completed := 0
 	for {
@@ -175,22 +223,7 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 			completed++
 
 			// Refine Reason and Status before appending to results slice
-			// Spec: Status must be COMPLETED for finished runs.
-			// Reasons: SUCCESS, VALIDATION, LOOP, ERROR, TIMEOUT.
-			res.Status = db.RunStatusCompleted
-
-			switch {
-			case res.IsSuccess:
-				res.Reason = db.ReasonSuccess
-			case res.AgentMetrics != nil && res.AgentMetrics.LoopDetected:
-				res.Reason = db.ReasonFailedLoop
-			case res.ErrorStr != "" && IsTimeoutErr(res.Error):
-				res.Reason = db.ReasonFailedTimeout
-			case res.ValidationReport != "":
-				res.Reason = db.ReasonFailedValidation
-			default:
-				res.Reason = db.ReasonFailedError
-			}
+			res.Status, res.Reason = r.DetermineRunStatus(&res)
 
 			percentage := float64(completed) / float64(resultsLimit) * 100
 			log.Printf("Progress: %d/%d jobs completed (%.1f%%)", completed, resultsLimit, percentage)
@@ -217,39 +250,20 @@ func (r *Runner) Run(ctx context.Context, cfg *config.Configuration, timestamp t
 				runRes.TestsFailed = res.EvaluationMetrics.TestsFailed
 				runRes.LintIssues = res.EvaluationMetrics.LintIssues
 			}
-			// 4. Fetch authoritative metrics from DB (Single Source of Truth)
-			var dbMetrics *parser.AgentMetrics
-			var fetchErr error
 
-			// Retry fetching metrics to handle transient DB issues or read-after-write delays
-			for attempt := 0; attempt < 5; attempt++ {
-				dbMetrics, fetchErr = r.db.GetRunMetrics(res.RunID)
-				if fetchErr == nil {
-					break
-				}
-				time.Sleep(100 * time.Millisecond * time.Duration(1<<attempt))
+			// Use in-memory metrics directly (avoiding DB read-after-write race)
+			if res.AgentMetrics != nil {
+				runRes.TotalTokens = res.AgentMetrics.TotalTokens
+				runRes.InputTokens = res.AgentMetrics.InputTokens
+				runRes.OutputTokens = res.AgentMetrics.OutputTokens
+				runRes.ToolCallsCount = res.AgentMetrics.TotalToolCallsCount
+				runRes.FailedToolCalls = res.AgentMetrics.FailedToolCalls
+				runRes.LoopDetected = res.AgentMetrics.LoopDetected
+				runRes.CachedTokens = res.AgentMetrics.CachedTokens
+				runRes.SessionID = res.AgentMetrics.SessionID
+				runRes.Model = res.AgentMetrics.ModelName
+				runRes.ModelDuration = res.AgentMetrics.ModelDuration
 			}
-
-			if fetchErr != nil {
-				return results, fmt.Errorf("failed to fetch authoritative metrics for run %d after retries: %w", res.RunID, fetchErr)
-			}
-
-			// Update the Result object so that CalculateSummary (which uses res.AgentMetrics) is correct
-			res.AgentMetrics = dbMetrics
-
-			// Sync to runRes for DB persistence in run_results table
-			runRes.TotalTokens = dbMetrics.TotalTokens
-			runRes.InputTokens = dbMetrics.InputTokens
-			runRes.OutputTokens = dbMetrics.OutputTokens
-			runRes.ToolCallsCount = dbMetrics.TotalToolCallsCount
-			runRes.FailedToolCalls = dbMetrics.FailedToolCalls
-			runRes.LoopDetected = dbMetrics.LoopDetected
-			runRes.CachedTokens = dbMetrics.CachedTokens
-
-			// New fields persistence
-			runRes.SessionID = dbMetrics.SessionID
-			runRes.Model = dbMetrics.ModelName
-			runRes.ModelDuration = dbMetrics.ModelDuration
 
 			// Build Telemetry for Final Save
 			telemetry := &db.RunTelemetry{
@@ -320,6 +334,133 @@ func (r *Runner) checkAction() string {
 		log.Printf("[Runner] checkAction: ID=%d, Control=%s", r.experimentID, exp.ExecutionControl)
 	}
 	return exp.ExecutionControl
+}
+
+// RunJob executes a single job (Run) fetched from the DB.
+// This is used by the Worker.
+func (r *Runner) RunJob(ctx context.Context, runID int64) error {
+	// 1. Fetch Run Details
+	run, err := r.db.GetRunResultByID(runID) // We need this method in DB
+	if err != nil {
+		return fmt.Errorf("failed to fetch run %d: %w", runID, err)
+	}
+
+	// 2. Fetch Experiment Config
+	exp, err := r.db.GetExperimentByID(run.ExperimentID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch experiment %d: %w", run.ExperimentID, err)
+	}
+
+	// 3. Reconstruct Config/Alternative provided in the run
+	// This is tricky because `runSingle` expects `config.Alternative` and `Scenario`.
+	// The RunResult has the names. We need to look them up in the Experiment Config.
+	// We stored ConfigContent in valid experiments.
+	cfg, err := config.Parse([]byte(exp.ConfigContent))
+	if err != nil {
+		return fmt.Errorf("failed to parse experiment config: %w", err)
+	}
+
+	var alt config.Alternative
+	found := false
+	for _, a := range cfg.Alternatives {
+		if a.Name == run.Alternative {
+			alt = a
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("alternative %s not found in config", run.Alternative)
+	}
+
+	// 4. Update Status to RUNNING (handled inside RunJob logic or before?)
+	// Worker should do it.
+
+	// 5. Execute
+	// We use runSingle but we need to adapt arguments.
+	// existing runSingle signature:
+	// func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenarioID string, rep int, experimentDir string, timeout time.Duration, runID int64) Result
+
+	// ExperimentDir: we might need to recreate it or use a temp dir for Worker.
+	// Workers rely on ephemeral workspace.
+	// We need actual absolute path.
+	cwd, _ := os.Getwd()
+	baseDir := cwd
+	if os.Getenv("MODE") == "worker" || os.Getenv("K_SERVICE") != "" || os.Getenv("CLOUD_RUN_JOB") != "" {
+		baseDir = os.TempDir()
+	}
+	workerExpDir := filepath.Join(baseDir, "worker_runs", fmt.Sprintf("%d", run.ID))
+	if err := os.MkdirAll(workerExpDir, 0755); err != nil {
+		return fmt.Errorf("failed to create worker run dir %s: %w", workerExpDir, err)
+	}
+
+	timeout := 10 * time.Minute
+	if cfg.Timeout != "" {
+		if d, err := time.ParseDuration(cfg.Timeout); err == nil {
+			timeout = d
+		}
+	}
+
+	res := r.runSingle(ctx, alt, run.Scenario, run.Repetition, workerExpDir, timeout, runID)
+
+	// Persist Result to DB (Critical for Worker Mode)
+	// Mirroring logic from Run() loop
+	res.Status, res.Reason = r.DetermineRunStatus(&res)
+
+	// Prepare RunResult for persistence
+	runRes := &models.RunResult{
+		ID:               res.RunID,
+		ExperimentID:     run.ExperimentID, // Use original experiment ID
+		Alternative:      res.Alternative,
+		Scenario:         res.Scenario,
+		Repetition:       res.Repetition,
+		Duration:         int64(res.Duration),
+		Error:            res.ErrorStr,
+		Stdout:           res.Stdout,
+		Stderr:           res.Stderr,
+		Status:           res.Status,
+		Reason:           res.Reason,
+		IsSuccess:        res.IsSuccess,
+		ValidationReport: res.ValidationReport,
+	}
+
+	if res.EvaluationMetrics != nil {
+		runRes.TestsPassed = res.EvaluationMetrics.TestsPassed
+		runRes.TestsFailed = res.EvaluationMetrics.TestsFailed
+		runRes.LintIssues = res.EvaluationMetrics.LintIssues
+	}
+
+	// Use in-memory metrics directly
+	if res.AgentMetrics != nil {
+		runRes.TotalTokens = res.AgentMetrics.TotalTokens
+		runRes.InputTokens = res.AgentMetrics.InputTokens
+		runRes.OutputTokens = res.AgentMetrics.OutputTokens
+		runRes.ToolCallsCount = res.AgentMetrics.TotalToolCallsCount
+		runRes.FailedToolCalls = res.AgentMetrics.FailedToolCalls
+		runRes.LoopDetected = res.AgentMetrics.LoopDetected
+		runRes.CachedTokens = res.AgentMetrics.CachedTokens
+		runRes.SessionID = res.AgentMetrics.SessionID
+		runRes.Model = res.AgentMetrics.ModelName
+		runRes.ModelDuration = res.AgentMetrics.ModelDuration
+	}
+
+	telemetry := &db.RunTelemetry{
+		Result: runRes,
+	}
+
+	if res.EvaluationMetrics != nil {
+		telemetry.TestResults = res.EvaluationMetrics.Tests
+		telemetry.LintResults = res.EvaluationMetrics.Lints
+	}
+
+	if err := r.db.SaveRunTelemetry(telemetry); err != nil {
+		return fmt.Errorf("failed to save run telemetry: %w", err)
+	}
+
+	if res.ErrorStr != "" {
+		return fmt.Errorf("job failed: %s", res.ErrorStr)
+	}
+	return nil
 }
 
 func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenarioID string, rep int, experimentDir string, timeout time.Duration, runID int64) Result {
@@ -427,6 +568,9 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 	// STDERR STREAMER
 	go r.streamStderr(stderrPipe, stderrFile, ss)
 
+	// RESET TIMER: Exclude workspace setup and asset download time
+	start = time.Now()
+
 	if err := cmd.Start(); err != nil {
 		res.Error = fmt.Errorf("execution failed to start: %w", err)
 		res.ErrorStr = res.Error.Error()
@@ -502,6 +646,14 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 		}
 	}
 
+	// 6. Archive Workspace Artifacts
+	if r.Storage != nil && res.RunID != 0 {
+		if err := r.archiveArtifacts(ctx, res.RunID, wsInfo.Project); err != nil {
+			log.Printf("Warning: failed to archive artifacts for run %d: %v", res.RunID, err)
+			// Don't fail the run for this
+		}
+	}
+
 	// Finalize IsSuccess using centralized logic
 	if res.Error != nil {
 		res.IsSuccess = false
@@ -515,6 +667,39 @@ func (r *Runner) runSingle(ctx context.Context, alt config.Alternative, scenario
 
 	// Result will be saved to DB in the main Run loop
 	return res
+}
+
+func (r *Runner) archiveArtifacts(ctx context.Context, runID int64, wsPath string) error {
+	return filepath.WalkDir(wsPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if d.Name() == ".git" || d.Name() == "node_modules" || d.Name() == ".gemini" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		relPath, err := filepath.Rel(wsPath, path)
+		if err != nil {
+			return err
+		}
+		if relPath == "." || relPath == "PROMPT.md" || relPath == "GEMINI.md" || relPath == "settings.json" || relPath == "system_prompt.md" {
+			// Skip config files (but maybe we want to keep them for reproducibility? User said artifacts generated by agents)
+			// Let's keep everything except the ignored dirs.
+		}
+
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		if _, err := r.Storage.Upload(ctx, runID, relPath, content); err != nil {
+			log.Printf("Failed to upload artifact %s: %v", relPath, err)
+		}
+		return nil
+	})
 }
 
 func (r *Runner) evaluateCode(ctx context.Context, wsPath string, scenConfig *config.ScenarioConfig, stdout string) (*models.EvaluationMetrics, *ValidationReport, error) {
@@ -575,4 +760,46 @@ func (r *Runner) FromDBRunResult(dr *models.RunResult) Result {
 		LoopDetected:        dr.LoopDetected,
 	}
 	return res
+}
+
+func (r *Runner) pollDatabaseForCompletion(ctx context.Context, totalJobs int, resultsChan chan<- Result) {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	completedIDs := make(map[int64]bool)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			// Query DB for completed runs in this experiment
+			runs, err := r.db.GetCompletedRuns(r.experimentID)
+			if err != nil {
+				log.Printf("Warning: failed to poll completed runs: %v", err)
+				continue
+			}
+
+			for _, run := range runs {
+				if !completedIDs[run.ID] {
+					completedIDs[run.ID] = true
+					// Check if this run actually belongs to us? Filtering by experimentID should differ enough.
+					// Convert model struct to Result struct
+					res := r.FromDBRunResult(&run)
+					resultsChan <- res
+				}
+			}
+
+			if len(completedIDs) >= totalJobs {
+				return
+			}
+
+			// Also check if experiment was aborted elsewhere?
+			exp, err := r.db.GetExperimentByID(r.experimentID)
+			if err == nil && (exp.Status == db.ExperimentStatusAborted || exp.Status == db.ExperimentStatusCompleted) && len(completedIDs) < totalJobs {
+				// Aborted or marked completed externally
+				return
+			}
+		}
+	}
 }
