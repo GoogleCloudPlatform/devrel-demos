@@ -73,10 +73,12 @@ gcloud run deploy tenkai-server \
     --add-cloudsql-instances "$DB_CONNECTION_NAME" \
     --set-env-vars "DB_DRIVER=pgx" \
     --set-env-vars "DB_DSN=postgres://tenkai:$DB_PASS@/$DB_NAME?host=/cloudsql/$DB_CONNECTION_NAME" \
-    --set-env-vars "GCS_BUCKET=$BUCKET_NAME" \
+        --set-env-vars "GCS_BUCKET=$BUCKET_NAME" \
     --set-env-vars "RUNNER_IMAGE=$WORKER_IMAGE" \
+    --set-env-vars "TENKAI_JOB_NAME=tenkai-runner-template" \
     --set-env-vars "PROJECT_ID=$PROJECT_ID" \
     --set-env-vars "REGION=$REGION" \
+
     --service-account "tenkai-sa@$PROJECT_ID.iam.gserviceaccount.com"
 
 # Get API URL

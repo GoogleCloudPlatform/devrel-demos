@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -81,12 +80,6 @@ type Runner struct {
 func New(wsMgr *workspace.Manager, maxConcurrent int) *Runner {
 	if maxConcurrent < 1 {
 		maxConcurrent = 1
-	}
-	// Hard limit concurrency to GOMAXPROCS to avoid overloading system
-	numCPU := runtime.GOMAXPROCS(0)
-	if maxConcurrent > numCPU {
-		log.Printf("Capping concurrency from %d to GOMAXPROCS (%d)", maxConcurrent, numCPU)
-		maxConcurrent = numCPU
 	}
 
 	return &Runner{

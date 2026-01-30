@@ -73,14 +73,10 @@ func (w *Worker) Start(ctx context.Context) error {
 	}
 
 	// 2. Execute the Job
-	// RunJob handles fetching config, prep, execution, and saving results.
-	err = w.Runner.RunJob(ctx, runID)
-
-	// 3. Handle Completion/Failure reporting (if RunJob didn't)
-	if err != nil {
-		log.Printf("Job %d execution error: %v", runID, err)
-		// Ensure DB reflects failure if not already
-		w.DB.UpdateRunStatusAndReason(runID, db.RunStatusCompleted, db.ReasonFailedError)
+	// RunJob handles fetching config, prep, execution, and saving results (Telemetry).
+	if err := w.Runner.RunJob(ctx, runID); err != nil {
+		log.Printf("Job %d finished with execution error (details saved in telemetry): %v", runID, err)
+		// We don't update DB here because RunJob already saved the result/error to the run_results table.
 		return err
 	}
 
