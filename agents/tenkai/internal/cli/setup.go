@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,27 +17,66 @@ import (
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/workspace"
 )
 
-func setupLogging(cwd string) {
-	logFilePath := filepath.Join(cwd, "tenkai.log")
-	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err == nil {
-		mw := io.MultiWriter(os.Stdout, logFile)
-		log.SetOutput(mw)
-	} else {
-		fmt.Printf("Warning: failed to create tenkai.log: %v\n", err)
+func SetupLogging(cwd string) {
+	logPath := filepath.Join(cwd, "tenkai.log")
+
+	// Cloud Run Environment
+	inCloud := os.Getenv("K_SERVICE") != ""
+	if inCloud {
+		logPath = "/tmp/tenkai.log"
 	}
+
+	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		fmt.Printf("Warning: failed to create log file at %s: %v\n", logPath, err)
+		return
+	}
+
+	var mw io.Writer
+	if inCloud {
+		// Cloud: Stderr (for GCP) + File (for UI)
+		mw = io.MultiWriter(os.Stderr, logFile)
+
+		// Use JSON for Cloud structured logging, but it will also go to the file.
+		// Use TextHandler if we prefer readability in UI, but JSON is better for Cloud Logging.
+		// Let's stick to Text for now to ensure the UI is readable as requested.
+		// Actually, let's use JSON handler because Cloud Logging really prefers it for severity.
+		// The UI will show JSON lines, which is acceptable.
+		logger := slog.New(slog.NewJSONHandler(mw, nil))
+		slog.SetDefault(logger)
+	} else {
+		// Local: Stdout + File
+		mw = io.MultiWriter(os.Stdout, logFile)
+	}
+
+	// Capture standard log output as well
+	log.SetOutput(mw)
 }
 
-func initDB(cwd string) (*db.DB, error) {
-	dbPath := filepath.Join(cwd, "experiments", "tenkai.db")
-	database, err := db.Open(dbPath)
+func InitDB(cwd string) (*db.DB, error) {
+	// Check for Env Vars for Cloud SQL / Postgres
+	driver := os.Getenv("DB_DRIVER")
+	dsn := os.Getenv("DB_DSN")
+
+	if driver == "" {
+		driver = "sqlite"
+		dsn = filepath.Join(cwd, "experiments", "tenkai.db")
+		// In Cloud Run, the app directory is read-only.
+		// If using SQLite (default), we must use /tmp.
+		if os.Getenv("K_SERVICE") != "" {
+			dsn = "/tmp/tenkai.db"
+			fmt.Printf("Notice: Running in Cloud Run with SQLite. Using ephemeral DB at %s\n", dsn)
+		}
+	}
+
+	database, err := db.Open(driver, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 	return database, nil
 }
 
-func loadAndOverrideConfig(flags Flags) (*config.Configuration, []string, error) {
+func LoadAndOverrideConfig(flags Flags) (*config.Configuration, []string, error) {
 	if *flags.ConfigPath == "" {
 		return nil, nil, fmt.Errorf("config path is empty")
 	}
