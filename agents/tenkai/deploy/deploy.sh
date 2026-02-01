@@ -9,8 +9,8 @@ cd "$DIR/.."
 echo "Working directory: $(pwd)"
 
 # Configuration
-PROJECT_ID=${PROJECT_ID:-"daniela-genai-sandbox"}
-REGION=${REGION:-"us-central1"}
+PROJECT_ID=${PROJECT_ID}
+REGION=${REGION}
 REPO_NAME="tenkai-repo"
 IMAGE_TAG=${IMAGE_TAG:-"latest"}
 DB_INSTANCE_NAME="tenkai-db" # Cloud SQL Instance Name

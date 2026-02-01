@@ -7,7 +7,8 @@ cd "$DIR/.."
 echo "Working directory: $(pwd)"
 
 # Configuration
-PROJECT_ID=${PROJECT_ID:-"daniela-genai-sandbox"}
+PROJECT_ID=${PROJECT_ID}
+REGION=${REGION}
 
 BUCKET_NAME="tenkai-artifacts-${PROJECT_ID}"
 
@@ -16,7 +17,7 @@ echo "Target Bucket: gs://$BUCKET_NAME"
 # Verify bucket exists, if not create (idempotent-ish)
 if ! gsutil ls -b "gs://$BUCKET_NAME" > /dev/null 2>&1; then
     echo "Creating bucket gs://$BUCKET_NAME..."
-    gsutil mb -p "$PROJECT_ID" -l "us-central1" "gs://$BUCKET_NAME"
+    gsutil mb -p "$PROJECT_ID" -l "$REGION" "gs://$BUCKET_NAME"
 fi
 
 echo "Uploading Scenarios..."

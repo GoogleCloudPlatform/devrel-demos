@@ -4,7 +4,10 @@
 # SQLite -> Cloud SQL (PostgreSQL 18)
 
 # Configuration
-INSTANCE_CONNECTION_NAME="daniela-genai-sandbox:us-central1:tenkai-db"
+PROJECT_ID=${PROJECT_ID}
+REGION=${REGION}
+DB_INSTANCE_NAME=${DB_INSTANCE_NAME:-"tenkai-db"}
+INSTANCE_CONNECTION_NAME="${PROJECT_ID}:${REGION}:${DB_INSTANCE_NAME}"
 DB_NAME="tenkai"
 DB_PASS_POSTGRES="TenkaiPostgres2026!"
 DB_PASS_MIGRATION="TenkaiMigration2026!"

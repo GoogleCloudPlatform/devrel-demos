@@ -2,8 +2,8 @@
 set -e
 
 # Configuration
-PROJECT_ID=${PROJECT_ID:-"daniela-genai-sandbox"}
-REGION=${REGION:-"us-central1"}
+PROJECT_ID=${PROJECT_ID}
+REGION=${REGION}
 DB_INSTANCE="tenkai-db"
 DB_NAME="tenkai"
 DB_USER="tenkai"

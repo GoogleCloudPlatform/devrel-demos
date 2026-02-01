@@ -47,3 +47,4 @@ experiments/.runs/*
 /tenkai
 *.db-shm
 *.db-wal
+bin/
