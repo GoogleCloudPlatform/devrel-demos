@@ -57,18 +57,14 @@ export default function Home() {
                         </span>
                     </div>
                 </div>
-                <div className="flex gap-3">
-                    <Link href="/logs">
-                        <Button variant="outline" size="sm">
-                            <Terminal className="mr-2 h-4 w-4" /> Server Logs
-                        </Button>
-                    </Link>
+                                <div className="flex gap-3">
                     <Link href="/experiments/new">
                         <Button size="sm">
                             <Plus className="mr-2 h-4 w-4" /> New Experiment
                         </Button>
                     </Link>
                 </div>
+
             </header>
 
             {/* Active Runs Panel */}

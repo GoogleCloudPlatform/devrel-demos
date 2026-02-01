@@ -4,10 +4,10 @@ import React, { Suspense, useState, useEffect } from "react";
 import yaml from "js-yaml";
 import { getSimplifiedMetrics, getCheckpoint, getRunResults, getExperimentSummaries, getExperiment, getBlocks } from "@/lib/api";
 import ReportViewer from "@/components/ReportViewer";
-import RefreshOnInterval from "@/components/RefreshOnInterval";
 import Link from "next/link";
 import ExperimentSidebar from "@/components/experiments/ExperimentSidebar";
 import { Loader2 } from "lucide-react";
+
 
 function ReportPageContent({ id }: { id: string }) {
     const [loading, setLoading] = useState(true);
@@ -96,33 +96,42 @@ function ReportPageContent({ id }: { id: string }) {
         );
     }
 
-    const { experiment, metrics, checkpoint, runResults, summaries, blocks } = data;
+        const { experiment, metrics, checkpoint, runResults, summaries, blocks } = data;
 
     const statObj: any = {};
-    (summaries || []).forEach((row: any) => {
-        statObj[row.alternative] = { ...row, alternative: row.alternative, count: row.total_runs };
-    });
+    if (Array.isArray(summaries)) {
+        summaries.forEach((row: any) => {
+            statObj[row.alternative] = { ...row, alternative: row.alternative, count: row.total_runs };
+        });
+    }
     const stats = statObj;
 
     let configYaml: any = null;
-    try { if (experiment.config_content) configYaml = yaml.load(experiment.config_content); } catch (e) { }
+    try { 
+        if (experiment.config_content) {
+            const parsed = yaml.load(experiment.config_content);
+            if (typeof parsed === 'object' && parsed !== null) {
+                configYaml = parsed;
+            }
+        }
+    } catch (e) { }
 
-    return (
+        return (
         <div id="report-page-root" className="flex h-screen overflow-hidden">
-            <RefreshOnInterval active={experiment.status === 'running' || experiment.status === 'RUNNING'} />
             {/* Context Sidebar (Left Pane) */}
             <ExperimentSidebar experiment={experiment} />
 
             {/* Main Content Area */}
+
             <section className="flex-1 h-full overflow-hidden flex flex-col bg-background">
                 <ReportViewer
                     experiment={experiment}
                     initialContent={experiment.report_content || ""}
-                    initialMetrics={metrics}
+                    initialMetrics={metrics || {}}
                     initialCheckpoint={checkpoint}
-                    runResults={runResults}
+                    runResults={Array.isArray(runResults) ? runResults : []}
                     stats={stats}
-                    config={configYaml}
+                    config={configYaml || {}}
                     configContent={experiment.config_content || ""}
                     blocks={blocks || []}
                 />
@@ -130,6 +139,7 @@ function ReportPageContent({ id }: { id: string }) {
         </div>
     );
 }
+
 
 export default function ClientReportPage({ id }: { id: string }) {
     return (

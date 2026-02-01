@@ -30,8 +30,13 @@ func (m *Manager) ListTemplates() []Template {
 	var templates []Template
 
 	// Assume standard location relative to BasePath
-	templatesBase := filepath.Join(m.BasePath, "experiments", "templates")
+	templatesBase := m.ExperimentTemplatesDir
+	if templatesBase == "" {
+		templatesBase = filepath.Join(m.BasePath, "templates")
+	}
+
 	entries, err := os.ReadDir(templatesBase)
+
 	if err != nil {
 		// It's okay if it doesn't exist yet
 		return templates
@@ -53,8 +58,8 @@ func (m *Manager) ListTemplates() []Template {
 		// Parse config to get details
 		cfg, err := config.Load(configPath)
 		if err != nil {
-			log.Printf("Warning: failed to load template config %s: %v", configPath, err)
-			continue
+			// CRITICAL: If a template in the repo is broken, we should know immediately.
+			log.Fatalf("CRITICAL: failed to load template config %s: %v. Aborting startup.", configPath, err)
 		}
 
 		contentBytes, _ := os.ReadFile(configPath)
@@ -81,8 +86,12 @@ func (m *Manager) ListTemplates() []Template {
 
 // GetTemplate returns the details of a specific template by ID.
 func (m *Manager) GetTemplate(id string) (*Template, error) {
-	templatesBase := filepath.Join(m.BasePath, "experiments", "templates")
+	templatesBase := m.ExperimentTemplatesDir
+	if templatesBase == "" {
+		templatesBase = filepath.Join(m.BasePath, "templates")
+	}
 	path := filepath.Join(templatesBase, id)
+
 	configPath := filepath.Join(path, "config.yaml")
 
 	if info, err := os.Stat(path); err == nil && info.IsDir() {
@@ -161,8 +170,12 @@ func (m *Manager) normalizeConfig(content string) (string, error) {
 
 // CreateTemplate creates a new template directory and config file.
 func (m *Manager) CreateTemplate(name, description, configContent string, files map[string]string) (string, error) {
-	templatesBase := filepath.Join(m.BasePath, "experiments", "templates")
+	templatesBase := m.ExperimentTemplatesDir
+	if templatesBase == "" {
+		templatesBase = filepath.Join(m.BasePath, "templates")
+	}
 	if err := os.MkdirAll(templatesBase, 0755); err != nil {
+
 		return "", err
 	}
 
@@ -184,8 +197,7 @@ func (m *Manager) CreateTemplate(name, description, configContent string, files 
 	// Normalize config content
 	normConfig, err := m.normalizeConfig(configContent)
 	if err != nil {
-		log.Printf("Warning: failed to normalize config: %v", err)
-		normConfig = configContent
+		return "", fmt.Errorf("failed to normalize config: %w", err)
 	}
 
 	// Write config.yaml
@@ -208,8 +220,12 @@ func (m *Manager) CreateTemplate(name, description, configContent string, files 
 
 // UpdateTemplate updates an existing template configuration.
 func (m *Manager) UpdateTemplate(id, configContent string, files map[string]string) error {
-	templatesBase := filepath.Join(m.BasePath, "experiments", "templates")
+	templatesBase := m.ExperimentTemplatesDir
+	if templatesBase == "" {
+		templatesBase = filepath.Join(m.BasePath, "templates")
+	}
 	tmplDir := filepath.Join(templatesBase, id)
+
 	configPath := filepath.Join(tmplDir, "config.yaml")
 
 	if _, err := os.Stat(tmplDir); os.IsNotExist(err) {
@@ -219,8 +235,7 @@ func (m *Manager) UpdateTemplate(id, configContent string, files map[string]stri
 	// Normalize config content
 	normConfig, err := m.normalizeConfig(configContent)
 	if err != nil {
-		log.Printf("Warning: failed to normalize config: %v", err)
-		normConfig = configContent
+		return fmt.Errorf("failed to normalize config: %w", err)
 	}
 
 	// Write config.yaml
@@ -240,9 +255,14 @@ func (m *Manager) UpdateTemplate(id, configContent string, files map[string]stri
 
 // DeleteTemplate deletes a template directory.
 func (m *Manager) DeleteTemplate(id string) error {
-	templatesBase := filepath.Join(m.BasePath, "experiments", "templates")
+	templatesBase := m.ExperimentTemplatesDir
+	if templatesBase == "" {
+		templatesBase = filepath.Join(m.BasePath, "templates")
+	}
 	path := filepath.Join(templatesBase, id)
+
 	if _, err := os.Stat(path); err == nil {
+
 		return os.RemoveAll(path)
 	}
 	return fmt.Errorf("template %q not found", id)
@@ -250,8 +270,12 @@ func (m *Manager) DeleteTemplate(id string) error {
 
 // DeleteAllTemplates deletes all templates.
 func (m *Manager) DeleteAllTemplates() error {
-	templatesBase := filepath.Join(m.BasePath, "experiments", "templates")
+	templatesBase := m.ExperimentTemplatesDir
+	if templatesBase == "" {
+		templatesBase = filepath.Join(m.BasePath, "templates")
+	}
 	entries, err := os.ReadDir(templatesBase)
+
 	if err != nil {
 		return nil // Ignore if dir doesn't exist
 	}

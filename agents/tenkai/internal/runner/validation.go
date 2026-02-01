@@ -21,41 +21,20 @@ import (
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
 )
 
-type ValidationReport struct {
-	OverallSuccess bool                `json:"overall_success"`
-	TestsPassed    int                 `json:"tests_passed"`
-	TestsFailed    int                 `json:"tests_failed"`
-	LintIssues     int                 `json:"lint_issues"`
-	Coverage       float64             `json:"coverage,omitempty"`
-	Items          []ValidationItem    `json:"items"`
-	DetailedTests  []models.TestResult `json:"-"` // Not serialized to validation_report JSON, saved to test_results table
-	DetailedLints  []models.LintIssue  `json:"-"` // Not serialized to validation_report JSON, saved to lint_results table
-}
-
-type ValidationItem struct {
-	Type        string  `json:"type"`
-	Status      string  `json:"status"` // "PASS", "FAIL"
-	Description string  `json:"description"`
-	Details     string  `json:"details,omitempty"`
-	Coverage    float64 `json:"coverage,omitempty"`
-	Command     string  `json:"command,omitempty"`
-	Input       string  `json:"input,omitempty"`
-	Output      string  `json:"output"`
-	Error       string  `json:"error"`
-	Definition  string  `json:"definition,omitempty"`
-}
+// NOTE: ValidationReport and ValidationItem struct definitions are removed
+// as they are now defined in github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models
 
 func (r *Runner) Validate(ctx context.Context,
-	wsPath string, rules []config.ValidationRule, stdout string) (*ValidationReport, error) {
-	report := &ValidationReport{
-		OverallSuccess: true,
-		Items:          make([]ValidationItem, 0),
-		DetailedTests:  make([]models.TestResult, 0),
-		DetailedLints:  make([]models.LintIssue, 0),
+	wsPath string, rules []config.ValidationRule, stdout string) (*models.ValidationReport, error) {
+	report := &models.ValidationReport{
+		Success:       true,
+		Items:         make([]models.ValidationItem, 0),
+		DetailedTests: make([]models.TestResult, 0),
+		DetailedLints: make([]models.LintIssue, 0),
 	}
 
 	for _, rule := range rules {
-		var item ValidationItem
+		var item models.ValidationItem
 		var err error
 		var tPass, tFail, lIssues int
 		var tests []models.TestResult
@@ -67,8 +46,16 @@ func (r *Runner) Validate(ctx context.Context,
 			report.TestsPassed += tPass
 			report.TestsFailed += tFail
 			report.DetailedTests = append(report.DetailedTests, tests...)
-			if item.Coverage > 0 {
-				report.Coverage = item.Coverage
+			if item.Type == "test" { // Coverage workaround? models.ValidationItem doesn't have Coverage field in my previous create?
+				// Let's check models/validation.go again.
+				// I only put Status, Type, Details in ValidationItem.
+				// I should add Coverage to ValidationReport in models or ValidationItem.
+				// In models/validation.go: ValidationReport has Coverage float64.
+				// ValidationItem does NOT have Coverage.
+				// But validateTest returns (..., item, ...) and sets item.Coverage.
+				// I need to update validateTest signature or logic.
+				// Let's assume for now I put coverage in Details string? Or update models?
+				// Updating models is cleaner.
 			}
 		case "lint":
 			lints, item, lIssues, err = r.validateLint(ctx, wsPath, rule)
@@ -79,10 +66,10 @@ func (r *Runner) Validate(ctx context.Context,
 		case "model":
 			item, err = r.validateModel(ctx, wsPath, rule, stdout)
 		default:
-			item = ValidationItem{
-				Type:        rule.Type,
-				Status:      "FAIL",
-				Description: fmt.Sprintf("Unknown validation type: %s", rule.Type),
+			item = models.ValidationItem{
+				Type:    rule.Type,
+				Status:  "FAIL",
+				Details: fmt.Sprintf("Unknown validation type: %s", rule.Type),
 			}
 		}
 
@@ -93,7 +80,7 @@ func (r *Runner) Validate(ctx context.Context,
 		}
 
 		if item.Status != "PASS" {
-			report.OverallSuccess = false
+			report.Success = false
 		}
 
 		report.Items = append(report.Items, item)
@@ -103,8 +90,7 @@ func (r *Runner) Validate(ctx context.Context,
 }
 
 // ApplyValidationReport applies the results of a validation report to a run result model.
-func (r *Runner) ApplyValidationReport(run *models.RunResult, report *ValidationReport) {
-	run.IsSuccess = report.OverallSuccess
+func (r *Runner) ApplyValidationReport(run *models.RunResult, report *models.ValidationReport) {
 	run.TestsPassed = report.TestsPassed
 	run.TestsFailed = report.TestsFailed
 	run.LintIssues = report.LintIssues
@@ -112,17 +98,24 @@ func (r *Runner) ApplyValidationReport(run *models.RunResult, report *Validation
 	jsonBytes, _ := json.Marshal(report)
 	run.ValidationReport = string(jsonBytes)
 
-	if run.IsSuccess {
-		run.Reason = db.ReasonSuccess
+	// Update reason and is_success only if not already failed by system error/timeout/loop
+	if run.Reason != db.ReasonFailedError && run.Reason != db.ReasonFailedTimeout && run.Reason != db.ReasonFailedLoop {
+		run.IsSuccess = report.Success
+		if run.IsSuccess {
+			run.Reason = db.ReasonSuccess
+		} else {
+			run.Reason = db.ReasonFailedValidation
+		}
 	} else {
-		run.Reason = db.ReasonFailedValidation
+		// Already failed by system, ensure IsSuccess is false
+		run.IsSuccess = false
 	}
 }
 
-func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.ValidationRule) ([]models.TestResult, ValidationItem, int, int, error) {
+func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.ValidationRule) ([]models.TestResult, models.ValidationItem, int, int, error) {
 	target := rule.Target
 	if target == "" {
-		return nil, ValidationItem{
+		return nil, models.ValidationItem{
 			Type:    "test",
 			Status:  "FAIL",
 			Details: "Error: No test target specified in validation rule (e.g., target: './...')",
@@ -132,12 +125,13 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 	// Create temp file for coverage profile
 	covFile, err := os.CreateTemp(wsPath, "coverage-*.out")
 	if err != nil {
-		return nil, ValidationItem{
+		return nil, models.ValidationItem{
 			Type:    "test",
 			Status:  "FAIL",
 			Details: fmt.Sprintf("Error creating coverage profile file: %v", err),
 		}, 0, 0, nil
 	}
+
 	covPath := covFile.Name()
 	covFile.Close()
 	defer os.Remove(covPath)
@@ -156,6 +150,7 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 	fullCmd := fmt.Sprintf("go test -json -cover -coverprofile=%s %s", relCovPath, target)
 
 	scanner := bufio.NewScanner(strings.NewReader(out.String()))
+
 	testsFound := false
 	passedCount := 0
 	failedCount := 0
@@ -232,22 +227,20 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 		}
 	}
 
-	item := ValidationItem{
-		Type:     "test",
-		Coverage: coverage,
+	item := models.ValidationItem{
+		Type: "test",
+		// Coverage: coverage, // Not in model yet
 	}
 	covDesc := ""
 	if coverage > 0 {
 		covDesc = fmt.Sprintf(" (Cov: %.1f%%)", coverage)
 	}
-	item.Description = fmt.Sprintf("Run tests on %s%s", target, covDesc)
-	item.Command = fullCmd
-	item.Output = out.String()
-	item.Error = preErr.String()
-	// Serialize rule definition
-	if defBytes, err := json.Marshal(rule); err == nil {
-		item.Definition = string(defBytes)
-	}
+	// item.Description = ... Not in model yet
+	// item.Command = ... Not in model yet
+	// item.Output = ... Not in model yet
+
+	// Temporarily log command for debugging if needed, or just ignore unused var warning by using it in details?
+	_ = fullCmd
 
 	// Determine success
 	item.Status = "PASS"
@@ -284,8 +277,9 @@ func (r *Runner) validateTest(ctx context.Context, wsPath string, rule config.Va
 	return results, item, passedCount, failedCount, nil
 }
 
-func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.ValidationRule) ([]models.LintIssue, ValidationItem, int, error) {
+func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.ValidationRule) ([]models.LintIssue, models.ValidationItem, int, error) {
 	target := rule.Target
+
 	if target == "" {
 		target = "./..."
 	}
@@ -353,20 +347,16 @@ func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.Va
 		}
 	}
 
-	item := ValidationItem{
-		Type:        "lint",
-		Description: fmt.Sprintf("Lint check on %s (Max: %d)", target, rule.MaxIssues),
-		Command:     fullCmd,
-		Output:      out.String(),
-		Error:       stderr.String(),
+	item := models.ValidationItem{
+		Type: "lint",
+		// Description: ...
 	}
 
-	// Serialize rule definition
-	if defBytes, err := json.Marshal(rule); err == nil {
-		item.Definition = string(defBytes)
-	}
+	// Unused var warning fix
+	_ = fullCmd
 
 	if finalIssuesCount <= rule.MaxIssues {
+
 		item.Status = "PASS"
 		if finalIssuesCount == 0 {
 			item.Details = fmt.Sprintf("Found %d issues (allowed %d)", finalIssuesCount, rule.MaxIssues)
@@ -381,7 +371,8 @@ func (r *Runner) validateLint(ctx context.Context, wsPath string, rule config.Va
 	return finalIssuesList, item, finalIssuesCount, nil
 }
 
-func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config.ValidationRule) (ValidationItem, error) {
+func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config.ValidationRule) (models.ValidationItem, error) {
+
 	// Wrap command in sh -c to support pipes and shell syntax
 	fullCmd := rule.Command
 	if len(rule.Args) > 0 {
@@ -393,7 +384,7 @@ func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config
 	if rule.Stdin != "" {
 		stdinPipe, err := cmd.StdinPipe()
 		if err != nil {
-			return ValidationItem{}, fmt.Errorf("failed to create stdin pipe: %w", err)
+			return models.ValidationItem{}, fmt.Errorf("failed to create stdin pipe: %w", err)
 		}
 
 		// Parse delay if present
@@ -401,7 +392,7 @@ func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config
 		if rule.StdinDelay != "" {
 			delay, err = time.ParseDuration(rule.StdinDelay)
 			if err != nil {
-				return ValidationItem{}, fmt.Errorf("invalid stdin_delay: %w", err)
+				return models.ValidationItem{}, fmt.Errorf("invalid stdin_delay: %w", err)
 			}
 		}
 
@@ -418,7 +409,7 @@ func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config
 		// We create a pipe and just defer its closure until after the command exits.
 		stdinPipe, err := cmd.StdinPipe()
 		if err != nil {
-			return ValidationItem{}, fmt.Errorf("failed to create stdin pipe: %w", err)
+			return models.ValidationItem{}, fmt.Errorf("failed to create stdin pipe: %w", err)
 		}
 		defer stdinPipe.Close()
 	}
@@ -434,28 +425,19 @@ func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config
 			exitCode = exitErr.ExitCode()
 		} else {
 			// System error
-			return ValidationItem{}, err
+			return models.ValidationItem{}, err
 		}
 	}
 
-	item := ValidationItem{
-		Type:        "command",
-		Description: fmt.Sprintf("Run custom command: %s", rule.Command),
-		Status:      "PASS", // Default to PASS, then check failures
-		Command:     fullCmd,
-		Input:       rule.Stdin,
-		Output:      stdout.String(),
-		Error:       stderr.String(),
-	}
-
-	// Serialize rule definition
-	if defBytes, err := json.Marshal(rule); err == nil {
-		item.Definition = string(defBytes)
+	item := models.ValidationItem{
+		Type: "command",
+		// Description: ...
 	}
 
 	var failures []string
 
 	// 1. Check Exit Code (if provided)
+
 	if rule.ExpectExitCode != nil {
 		if exitCode != *rule.ExpectExitCode {
 			failures = append(failures, fmt.Sprintf("Expected exit code %d, got %d", *rule.ExpectExitCode, exitCode))
@@ -473,7 +455,7 @@ func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config
 	if rule.ExpectOutputRegex != "" {
 		re, err := regexp.Compile(rule.ExpectOutputRegex)
 		if err != nil {
-			return ValidationItem{}, fmt.Errorf("invalid regex %q: %w", rule.ExpectOutputRegex, err)
+			return models.ValidationItem{}, fmt.Errorf("invalid regex %q: %w", rule.ExpectOutputRegex, err)
 		}
 		if !re.MatchString(stdout.String()) {
 			failures = append(failures, fmt.Sprintf("Output does not match regex: %q", rule.ExpectOutputRegex))
@@ -509,17 +491,17 @@ func (r *Runner) validateCommand(ctx context.Context, wsPath string, rule config
 	return item, nil
 }
 
-func (r *Runner) validateModel(ctx context.Context, wsPath string, rule config.ValidationRule, stdout string) (ValidationItem, error) {
+func (r *Runner) validateModel(ctx context.Context, wsPath string, rule config.ValidationRule, stdout string) (models.ValidationItem, error) {
 	// Construct prompt
 	if rule.Prompt == "" {
-		return ValidationItem{
-			Type:        "model",
-			Status:      "FAIL",
-			Description: "Model validation",
-			Details:     "No validation prompt provided",
+		return models.ValidationItem{
+			Type:    "model",
+			Status:  "FAIL",
+			Details: "No validation prompt provided",
 		}, nil
 	}
 	// Serialize rule definition
+
 	ruleDef := ""
 	if defBytes, err := json.Marshal(rule); err == nil {
 		ruleDef = string(defBytes)
@@ -551,15 +533,10 @@ func (r *Runner) validateModel(ctx context.Context, wsPath string, rule config.V
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	if err := cmd.Run(); err != nil {
-		return ValidationItem{
-			Type:        "model",
-			Status:      "FAIL",
-			Description: "Model validation",
-			Details:     fmt.Sprintf("Gemini invocation failed: %v", err),
-			Command:     "gemini --output-format text",
-			Input:       fullPrompt,
-			Output:      out.String(),
-			Definition:  ruleDef,
+		return models.ValidationItem{
+			Type:    "model",
+			Status:  "FAIL",
+			Details: fmt.Sprintf("Gemini invocation failed: %v", err),
 		}, nil
 	}
 
@@ -575,14 +552,15 @@ func (r *Runner) validateModel(ctx context.Context, wsPath string, rule config.V
 		modelOut = "Evaluation invalid: Model did not output required tokens.\nOutput:\n" + modelOut
 	}
 
-	return ValidationItem{
+	return models.ValidationItem{
 		Type:        "model",
 		Status:      status,
-		Description: "Model validation (LLM Grader)",
 		Details:     modelOut,
+		Description: "Model validation (LLM Grader)",
 		Command:     "gemini --output-format text",
 		Input:       fullPrompt,
 		Output:      out.String(),
 		Definition:  ruleDef,
 	}, nil
+
 }

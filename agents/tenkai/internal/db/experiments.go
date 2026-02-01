@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -26,11 +27,11 @@ func (db *DB) GetExperiments() ([]models.Experiment, error) {
 	ORDER BY e.id DESC`
 
 	// Note: Main query has no args, but keeping rebind good practice if we add WHERE
-	rows, err := db.conn.Query(db.Rebind(query))
+	rows, err := db.conn.QueryContext(context.Background(), db.Rebind(query))
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var exps []models.Experiment
 	for rows.Next() {
@@ -62,7 +63,7 @@ func (db *DB) GetExperiments() ([]models.Experiment, error) {
 				COALESCE(SUM(CASE WHEN status = 'ABORTED' THEN 1 ELSE 0 END), 0)
 			FROM run_results WHERE experiment_id = ?`
 
-		err := db.conn.QueryRow(db.Rebind(querySummary), e.ID).Scan(&completedActual, &aborted)
+		err := db.conn.QueryRowContext(context.Background(), db.Rebind(querySummary), e.ID).Scan(&completedActual, &aborted)
 
 		if err == nil {
 			e.CompletedJobs = completedActual + aborted
@@ -103,7 +104,7 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 		e.description, e.duration, e.config_content, e.report_content, e.execution_control, e.experiment_control, e.error_message, e.ai_analysis, e.pid, e.is_locked, e.annotations
 		FROM experiments e WHERE e.id = ?`
 
-	row := db.conn.QueryRow(db.Rebind(query), id)
+	row := db.conn.QueryRowContext(context.Background(), db.Rebind(query), id)
 
 	var exp models.Experiment
 	var ts string
@@ -146,7 +147,7 @@ func (db *DB) GetExperimentByID(id int64) (*models.Experiment, error) {
 	var sRate, aDur, aTok sql.NullFloat64
 	var tLint, sRuns sql.NullInt64
 
-	err = db.conn.QueryRow(db.Rebind(aggQuery), id).Scan(
+	err = db.conn.QueryRowContext(context.Background(), db.Rebind(aggQuery), id).Scan(
 		&totalActual, &completedActual, &running, &queued, &aborted,
 		&sRate, &aDur, &aTok, &tLint, &sRuns,
 	)
@@ -193,7 +194,7 @@ func (db *DB) CreateExperiment(exp *models.Experiment) (int64, error) {
 	query := `INSERT INTO experiments (name, timestamp, config_path, report_path, results_path, status, reps, concurrent, total_jobs, pid, description, config_content, experiment_control, is_locked, annotations) 
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	return db.InsertReturningID(query,
+	return db.InsertReturningID(context.Background(), query,
 		exp.Name,
 		exp.Timestamp.Format(time.RFC3339),
 		exp.ConfigPath,
@@ -242,7 +243,7 @@ func (db *DB) DeleteExperiment(id int64) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Subquery delete for grandchildren
 	_, err = tx.Exec(db.Rebind("DELETE FROM run_events WHERE run_id IN (SELECT id FROM run_results WHERE experiment_id = ?)"), id)
@@ -281,7 +282,7 @@ func (db *DB) DeleteAllExperiments() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Clear child tables (using generic delete for safety, could truncate if sqlite supported it well)
 	if _, err := tx.Exec("DELETE FROM run_events"); err != nil {
@@ -365,7 +366,7 @@ func (db *DB) GetToolStats(experimentID int64, filter string) ([]models.ToolStat
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	runCounts := make(map[string]int)
 	for rows.Next() {
@@ -407,7 +408,7 @@ func (db *DB) GetToolStats(experimentID int64, filter string) ([]models.ToolStat
 	if err != nil {
 		return nil, err
 	}
-	defer rows2.Close()
+	defer func() { _ = rows2.Close() }()
 
 	for rows2.Next() {
 		var alt, name string
@@ -440,7 +441,7 @@ func (db *DB) GetToolStats(experimentID int64, filter string) ([]models.ToolStat
 	if err != nil {
 		return nil, err
 	}
-	defer rows3.Close()
+	defer func() { _ = rows3.Close() }()
 
 	for rows3.Next() {
 		var alt, msg string

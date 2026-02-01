@@ -168,13 +168,14 @@ func CalculateSummary(results []Result, controlAlt string, allAlts []string, too
 
 				// Extract Coverage from ValidationReport
 				if res.ValidationReport != "" {
-					var report ValidationReport
+					var report models.ValidationReport
 					if err := json.Unmarshal([]byte(res.ValidationReport), &report); err == nil {
 						// Include coverage even if 0 to avoid bias
 						m.totalCoverage += report.Coverage
 						m.coverages = append(m.coverages, report.Coverage)
 					}
 				}
+
 			}
 		} else {
 			// Failure Handling
@@ -386,7 +387,7 @@ func GetFailureReasons(res Result) []string {
 			return reasons
 		}
 
-		var report ValidationReport
+		var report models.ValidationReport
 		if err := json.Unmarshal([]byte(res.ValidationReport), &report); err != nil {
 			reasons = append(reasons, "Corrupt Validation Report")
 			return reasons

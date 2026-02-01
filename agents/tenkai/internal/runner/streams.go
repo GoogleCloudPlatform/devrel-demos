@@ -59,22 +59,20 @@ func (s *StreamState) IsResultFound() bool {
 }
 
 func (r *Runner) streamPromptContents(promptPath string, stdinPipe io.WriteCloser) {
-	defer stdinPipe.Close()
+	defer func() { _ = stdinPipe.Close() }()
 	promptFile, err := os.Open(promptPath)
 	if err != nil {
-		log.Printf("Warning: failed to open PROMPT.md for streaming: %v", err)
-		return
+		log.Fatalf("CRITICAL: failed to open PROMPT.md for streaming: %v", err)
 	}
-	defer promptFile.Close()
+	defer func() { _ = promptFile.Close() }()
 
 	if _, err := io.Copy(stdinPipe, promptFile); err != nil {
-		log.Printf("Warning: failed to copy prompt to stdin: %v", err)
-		return
+		log.Fatalf("CRITICAL: failed to copy prompt to stdin: %v", err)
 	}
 
 	instruction := "\n\nSYSTEM: To signal the completion of the task, just respond with the token <<TASK_DONE>> with no additional thoughts and comments. Once you emit <<TASK_DONE>>, stop all tool calls immediately. Do not use echo or shell tools to verify your own completion. No further action is necessary after emitting this token.\n"
 	if _, err := io.WriteString(stdinPipe, instruction); err != nil {
-		log.Printf("Warning: failed to write termination instruction to stdin: %v", err)
+		log.Fatalf("CRITICAL: failed to write termination instruction to stdin: %v", err)
 	}
 }
 
@@ -95,7 +93,7 @@ func (r *Runner) streamStdout(stdoutPipe io.ReadCloser, logFile io.Writer, s *St
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		fmt.Fprintln(logFile, line)
+		_, _ = fmt.Fprintln(logFile, line)
 
 		s.StdoutMu.Lock()
 		s.CurrentStdout.WriteString(line + "\n")
@@ -139,7 +137,7 @@ func (r *Runner) streamStdout(stdoutPipe io.ReadCloser, logFile io.Writer, s *St
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		log.Printf("[Runner] Error scanning stdout for %s: %v", s.JobID, err)
+		log.Fatalf("[Runner] CRITICAL: Error scanning stdout for %s: %v", s.JobID, err)
 	}
 }
 
@@ -151,7 +149,7 @@ func (r *Runner) streamStderr(stderrPipe io.ReadCloser, stderrFile io.Writer, s 
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		fmt.Fprintln(stderrFile, line)
+		_, _ = fmt.Fprintln(stderrFile, line)
 
 		s.StderrMu.Lock()
 		s.CurrentStderr.WriteString(line + "\n")
@@ -171,7 +169,7 @@ func (r *Runner) streamStderr(stderrPipe io.ReadCloser, stderrFile io.Writer, s 
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		log.Printf("[Runner] Error scanning stderr: %v", err)
+		log.Fatalf("[Runner] CRITICAL: Error scanning stderr: %v", err)
 	}
 }
 
@@ -189,7 +187,7 @@ func (r *Runner) syncLogs(ctx context.Context, res *Result, stdoutMu *sync.Mutex
 			stderrMu.Lock()
 			errStr := currentStderr.String()
 			stderrMu.Unlock()
-			r.db.UpdateRunLogs(res.RunID, out, errStr)
+			_ = r.db.UpdateRunLogs(res.RunID, out, errStr)
 		}
 	}
 }

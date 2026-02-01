@@ -40,7 +40,7 @@ func (api *API) GetTemplateConfig(r *http.Request) (any, error) {
 
 	var cfgMap map[string]interface{}
 	if err := yaml.Unmarshal([]byte(tmpl.ConfigContent), &cfgMap); err != nil {
-		log.Printf("Warning: failed to parse config YAML: %v", err)
+		log.Printf("Error: failed to parse config YAML: %v", err)
 	}
 
 	return map[string]interface{}{

@@ -11,12 +11,14 @@ type EvaluationMetrics struct {
 	Lints       []LintIssue  `json:"lints,omitempty"`
 }
 
+// ExperimentProgress tracks the execution progress of an experiment.
 type ExperimentProgress struct {
 	Completed  int     `json:"completed"`
 	Total      int     `json:"total"`
 	Percentage float64 `json:"percentage"`
 }
 
+// Experiment represents a full agent evaluation experiment.
 type Experiment struct {
 	ID                int64     `json:"id"`
 	Name              string    `json:"name"`
@@ -52,6 +54,7 @@ type Experiment struct {
 	Progress        *ExperimentProgress `json:"progress,omitempty"`
 }
 
+// ExperimentSummaryRow contains aggregated statistics for an alternative in an experiment.
 type ExperimentSummaryRow struct {
 	ID              int64   `json:"id"` // Dummy ID for frontend compatibility
 	ExperimentID    int64   `json:"experiment_id"`
@@ -99,6 +102,7 @@ type ExperimentSummaryRow struct {
 	PFailureReasons map[string]float64 `json:"p_failure_reasons"`
 }
 
+// RunResult contains the outcome of a single agent run.
 type RunResult struct {
 	ID              int64  `json:"id"`
 	ExperimentID    int64  `json:"experiment_id"`
@@ -152,6 +156,7 @@ type LintIssue struct {
 	RuleID   string `json:"rule_id"`
 }
 
+// ToolUsage represents a single tool call event.
 type ToolUsage struct {
 	ID        int64     `json:"id"`
 	RunID     int64     `json:"run_id"`
@@ -164,6 +169,7 @@ type ToolUsage struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// Message represents a message exchanged during a run.
 type Message struct {
 	ID        int64     `json:"id"`
 	RunID     int64     `json:"run_id"`
@@ -172,6 +178,7 @@ type Message struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// RunFile represents a file generated or used during a run.
 type RunFile struct {
 	ID          int64  `json:"id"`
 	RunID       int64  `json:"run_id"`
@@ -189,6 +196,7 @@ type ToolAnalysis struct {
 	CachedTokensCorr float64 `json:"cached_tokens_corr"`
 }
 
+// ToolStatRow contains aggregated stats for a specific tool.
 type ToolStatRow struct {
 	Alternative string  `json:"alternative"`
 	ToolName    string  `json:"tool_name"`

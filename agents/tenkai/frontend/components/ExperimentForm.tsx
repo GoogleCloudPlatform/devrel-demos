@@ -107,23 +107,26 @@ export default function ExperimentForm({ templates, scenarios }: { templates: an
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            if (res.ok) {
+                                    if (res.ok) {
                 const data = await res.json();
                 toast.success("Experiment launched successfully!");
                 router.refresh();
                 if (data.id) {
-                    router.push(`/experiments/${data.id}`);
+                    router.push(`/experiments/view?id=${data.id}`);
                 } else {
                     router.push('/experiments');
                 }
+
             } else {
-                toast.error("Failed to launch experiment");
+                const errData = await res.json();
+                toast.error(`Failed to launch experiment: ${errData.error || res.statusText}`);
             }
         } catch (e) {
             toast.error("Error launching experiment");
         } finally {
             setLoading(false);
         }
+
     };
 
     const totalJobs = selectedScenarios.length * selectedAlternatives.length * reps;

@@ -19,8 +19,20 @@ func GetExperimentFolderName(timestamp time.Time, name string) string {
 
 // FindExperimentDir locates the physical directory for an experiment.
 // It tries an exact match for the expected folder name first, then falls back to prefix matching.
-func FindExperimentDir(cwd string, timestamp time.Time, name string) (string, error) {
-	base := filepath.Join(cwd, "experiments", ".runs")
+func (m *Manager) FindExperimentDir(timestamp time.Time, name string) (string, error) {
+	base := m.RunsDir
+	if base == "" {
+		// Fallback for compatibility if not initialized
+		cwd, _ := os.Getwd()
+		base = filepath.Join(cwd, "_runs")
+	}
+
+	if _, err := os.Stat(base); os.IsNotExist(err) {
+		if err := os.MkdirAll(base, 0755); err != nil {
+			return "", fmt.Errorf("failed to create runs directory: %w", err)
+		}
+	}
+
 	entries, err := os.ReadDir(base)
 	if err != nil {
 		return "", err

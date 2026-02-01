@@ -323,7 +323,7 @@ function RunStatusBanner({ run }: { run: RunResultRecord }) {
     let statusText = run.status || "UNKNOWN";
     let reasonText = "";
 
-    if (run.status === 'COMPLETED' || run.status === 'completed') {
+        if (run.status === 'COMPLETED' || run.status === 'completed') {
         if (run.is_success) {
             statusColor = "bg-emerald-500/20 border-emerald-500/30 text-emerald-400";
             icon = "✅";
@@ -342,20 +342,26 @@ function RunStatusBanner({ run }: { run: RunResultRecord }) {
 
     return (
         <div className={`p-4 border rounded-md mb-6 flex items-center justify-between ${statusColor}`}>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 w-full">
                 <span className="text-2xl">{icon}</span>
-                <div>
+                <div className="flex-1 overflow-hidden">
                     <h3 className="font-black uppercase tracking-widest text-lg leading-none">{statusText}</h3>
                     {reasonText && <p className="text-xs font-mono opacity-80 mt-1 uppercase">{reasonText}</p>}
+                    {run.error && (
+                        <div className="mt-2 p-2 bg-black/20 rounded border border-black/10 text-xs font-mono whitespace-pre-wrap break-all text-red-300">
+                            {run.error}
+                        </div>
+                    )}
                 </div>
             </div>
-            <div className="text-right">
+            <div className="text-right flex-shrink-0 ml-4">
                 <p className="text-xs font-bold uppercase tracking-widest opacity-60">Run ID</p>
                 <p className="font-mono font-bold text-lg leading-none">{run.id}</p>
             </div>
         </div>
     );
 }
+
 
 export default function RunDetails({
     run,

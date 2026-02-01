@@ -1,22 +1,19 @@
 package handlers
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/config"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db/models"
-	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/workspace"
+	"gopkg.in/yaml.v3"
 )
 
 type ControlRequest struct {
@@ -103,8 +100,7 @@ func (api *API) DeleteExperiment(r *http.Request) (any, error) {
 // deleteExperiment performs the actual file and DB deletion for a single experiment
 func (api *API) deleteExperiment(exp *models.Experiment) error {
 	// 1. Delete files on disk
-	cwd, _ := os.Getwd()
-	dir, err := workspace.FindExperimentDir(cwd, exp.Timestamp, exp.Name)
+	dir, err := api.WSMgr.FindExperimentDir(exp.Timestamp, exp.Name)
 	if err == nil && dir != "" {
 		if err := os.RemoveAll(dir); err != nil {
 			log.Printf("Failed to remove experiment directory %s: %v", dir, err)
@@ -128,20 +124,14 @@ func (api *API) StartExperiment(r *http.Request) (any, error) {
 
 	log.Printf("[Server] Starting experiment %s from template %s", req.Name, req.TemplateID)
 
-	cwd, _ := os.Getwd()
-	configPath := filepath.Join(cwd, "experiments", "templates", req.TemplateID, "config.yaml")
-	log.Printf("[Server] Looking for template config at: %s", configPath)
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		log.Printf("[Server] Template config NOT found at %s", configPath)
-		return nil, NewAPIError(http.StatusNotFound, fmt.Sprintf("Template config not found at %s", configPath))
-	}
-
-	// Create Experiment Record synchronously to ensure visibility in UI
-	configContent, err := os.ReadFile(configPath)
-
+	tmpl, err := api.WSMgr.GetTemplate(req.TemplateID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
+		log.Printf("[Server] Template config NOT found for ID %s: %v", req.TemplateID, err)
+		return nil, NewAPIError(http.StatusNotFound, fmt.Sprintf("Template config not found: %v", err))
 	}
+
+	configContent := tmpl.ConfigContent
+	configPath := tmpl.Path
 
 	expRecord := &models.Experiment{
 		Timestamp:         time.Now(),
@@ -150,7 +140,7 @@ func (api *API) StartExperiment(r *http.Request) (any, error) {
 		Status:            db.ExperimentStatusRunning, // Mark as Running (or Starting)
 		Reps:              req.Reps,
 		Concurrent:        req.Concurrent,
-		ConfigContent:     string(configContent),
+		ConfigContent:     configContent,
 		ExperimentControl: req.Control,
 	}
 
@@ -159,38 +149,53 @@ func (api *API) StartExperiment(r *http.Request) (any, error) {
 		return nil, fmt.Errorf("failed to create experiment record: %w", err)
 	}
 
-	args := []string{
-		"-config", configPath,
-		"-reps", strconv.Itoa(req.Reps),
-		"-concurrent", strconv.Itoa(req.Concurrent),
-		"-start-experiment-id", strconv.FormatInt(id, 10),
+	// Load Configuration for Runner
+	var cfg config.Configuration
+	if err := yaml.Unmarshal([]byte(configContent), &cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
-	if req.Name != "" {
-		args = append(args, "-name", req.Name)
-	}
-	if req.Control != "" {
-		args = append(args, "-control", req.Control)
-	}
-	if req.Timeout != "" {
-		args = append(args, "-timeout", req.Timeout)
-	}
+
+	// Apply overrides from request
+	cfg.Name = req.Name
+	cfg.Repetitions = req.Reps
+	cfg.MaxConcurrent = req.Concurrent
+	cfg.Control = req.Control
+	cfg.Timeout = req.Timeout
 	if len(req.Alternatives) > 0 {
-		args = append(args, "-alternatives", strings.Join(req.Alternatives, ","))
+
+		var filteredAlts []config.Alternative
+		for _, name := range req.Alternatives {
+			for _, a := range cfg.Alternatives {
+				if a.Name == name {
+					filteredAlts = append(filteredAlts, a)
+					break
+				}
+			}
+		}
+		cfg.Alternatives = filteredAlts
 	}
 	if len(req.Scenarios) > 0 {
-		args = append(args, "-scenarios", strings.Join(req.Scenarios, ","))
+		cfg.Scenarios = req.Scenarios
 	}
 
-	pid, err := spawnRunner(args)
-	if err != nil {
-		api.DB.UpdateExperimentStatus(id, db.ExperimentStatusAborted)
-		api.DB.UpdateExperimentError(id, fmt.Sprintf("Failed to spawn runner: %v", err))
-		return nil, fmt.Errorf("failed to spawn runner: %w", err)
-	}
+	// Trigger Orchestration in background
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("[Server] CRITICAL PANIC in experiment orchestration (ID %d): %v", id, r)
+				api.DB.UpdateExperimentStatus(id, db.ExperimentStatusAborted)
+				api.DB.UpdateExperimentError(id, fmt.Sprintf("Server panic: %v", r))
+			}
+		}()
+		if err := api.Runner.RunExperiment(context.Background(), &cfg, id); err != nil {
+			log.Printf("[Server] Orchestration failed for experiment %d: %v", id, err)
+			api.DB.UpdateExperimentStatus(id, db.ExperimentStatusAborted)
+			api.DB.UpdateExperimentError(id, err.Error())
+		}
+	}()
 
-	// Update PID in DB if possible, or leave it.
 	// Return ID so frontend can redirect immediately
-	return map[string]string{"message": "Experiment started", "pid": strconv.Itoa(pid), "id": strconv.FormatInt(id, 10)}, nil
+	return map[string]string{"message": "Experiment started", "id": strconv.FormatInt(id, 10)}, nil
 }
 
 func (api *API) ControlExperiment(r *http.Request) (any, error) {
@@ -220,22 +225,51 @@ func (api *API) RelaunchExperiment(r *http.Request) (any, error) {
 		return nil, err
 	}
 
-	if exp.ConfigPath == "" {
-		return nil, NewAPIError(http.StatusBadRequest, "Experiment has no config path and cannot be relaunched")
+	if exp.ConfigContent == "" {
+		return nil, NewAPIError(http.StatusBadRequest, "Experiment has no config content and cannot be relaunched")
 	}
 
-	// Spawning a new tenkai process with the original config
-	args := []string{"-config", exp.ConfigPath}
-	if exp.Name != "" {
-		args = append(args, "-name", exp.Name+" (Relaunch)")
+	// Parse Configuration for Runner
+	var cfg config.Configuration
+	if err := yaml.Unmarshal([]byte(exp.ConfigContent), &cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse experiment config: %w", err)
+	}
+	cfg.Name = exp.Name + " (Relaunch)"
+
+	// Create NEW Experiment record for relaunch
+	newExp := &models.Experiment{
+		Timestamp:         time.Now(),
+		Name:              exp.Name + " (Relaunch)",
+		ConfigPath:        exp.ConfigPath,
+		Status:            db.ExperimentStatusRunning,
+		Reps:              cfg.Repetitions, // Use original config value
+		Concurrent:        cfg.MaxConcurrent,
+		ConfigContent:     exp.ConfigContent,
+		ExperimentControl: exp.ExperimentControl,
 	}
 
-	pid, err := spawnRunner(args)
+	newID, err := api.DB.CreateExperiment(newExp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to relaunch runner: %w", err)
+		return nil, fmt.Errorf("failed to create experiment record: %w", err)
 	}
 
-	return map[string]string{"message": "Experiment relaunched", "pid": strconv.Itoa(pid)}, nil
+	// Trigger Orchestration in background with NEW ID
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("[Server] CRITICAL PANIC in experiment orchestration (ID %d): %v", newID, r)
+				api.DB.UpdateExperimentStatus(newID, db.ExperimentStatusAborted)
+				api.DB.UpdateExperimentError(newID, fmt.Sprintf("Server panic: %v", r))
+			}
+		}()
+		if err := api.Runner.RunExperiment(context.Background(), &cfg, newID); err != nil {
+			log.Printf("[Server] Orchestration failed for relaunch experiment %d: %v", newID, err)
+			api.DB.UpdateExperimentStatus(newID, db.ExperimentStatusAborted)
+			api.DB.UpdateExperimentError(newID, err.Error())
+		}
+	}()
+
+	return map[string]string{"message": "Experiment relaunched", "id": strconv.FormatInt(newID, 10)}, nil
 }
 
 func (api *API) HandleExportReport(w http.ResponseWriter, r *http.Request) {
@@ -299,75 +333,8 @@ func (api *API) SaveExperimentAnnotations(r *http.Request) (any, error) {
 	return map[string]string{"status": "saved"}, nil
 }
 
-func spawnRunner(args []string) (int, error) {
-	log.Printf("[Server] Spawning tenkai: %v", args)
-
-	exe, err := os.Executable()
-	if err != nil {
-		exe = "tenkai"
-	}
-	cwd, _ := os.Getwd()
-	cmd := exec.Command(exe, args...)
-	cmd.Dir = cwd
-
-	// Open tenkai.log for appending runner logs
-	logPath := filepath.Join(cwd, "tenkai.log")
-	if os.Getenv("K_SERVICE") != "" {
-		logPath = "/tmp/tenkai.log"
-	}
-
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Printf("[Server] Failed to open tenkai.log at %s: %v", logPath, err)
-	}
-
-	var multiOut, multiErr io.Writer
-	var runnerOut, runnerErr bytes.Buffer
-
-	// We pipe to:
-	// 1. In-memory buffer (for final exit log)
-	// 2. tenkai.log file (for UI)
-	// 3. os.Stdout/Stderr (for real-time terminal output, as requested)
-
-	writersOut := []io.Writer{&runnerOut, os.Stdout}
-	writersErr := []io.Writer{&runnerErr, os.Stderr}
-
-	if f != nil {
-		writersOut = append(writersOut, f)
-		writersErr = append(writersErr, f)
-	}
-
-	multiOut = io.MultiWriter(writersOut...)
-	multiErr = io.MultiWriter(writersErr...)
-
-	cmd.Stdout = multiOut
-	cmd.Stderr = multiErr
-
-	if err := cmd.Start(); err != nil {
-		if f != nil {
-			f.Close()
-		}
-		return 0, err
-	}
-
-	go func() {
-		if f != nil {
-			defer f.Close()
-		}
-		if err := cmd.Wait(); err != nil {
-			log.Printf("[Server] Runner process %d exited with error: %v", cmd.Process.Pid, err)
-			// We already streamed to log file, so maybe don't need to dump big blobs to server log?
-			// But let's keep it for now as it goes to stdout of this process.
-			log.Printf("[Server] Runner Stderr: %s", runnerErr.String())
-		} else {
-			log.Printf("[Server] Runner process %d finished successfully", cmd.Process.Pid)
-		}
-	}()
-
-	return cmd.Process.Pid, nil
-}
-
 func (api *API) FixDB(r *http.Request) (any, error) {
+
 	if err := api.DB.FixSequences(); err != nil {
 		return nil, err
 	}

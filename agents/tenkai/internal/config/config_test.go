@@ -47,7 +47,7 @@ func TestLoad(t *testing.T) {
 
 	// Create dummy related files
 	settingsPath := filepath.Join(tmpDir, "settings.json")
-	os.WriteFile(settingsPath, []byte("{}"), 0644)
+	_ = os.WriteFile(settingsPath, []byte("{}"), 0644)
 
 	configPath := filepath.Join(tmpDir, "config.yaml")
 	configContent := fmt.Sprintf(`

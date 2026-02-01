@@ -12,18 +12,17 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go build -o tenkai-server cmd/server/main.go
+RUN go build -o server cmd/server/main.go
 
 
 
 # 3. Runtime Stage
 FROM alpine:3.19
 WORKDIR /app
-COPY --from=server-builder /app/tenkai-server .
-COPY --from=server-builder /app/scenarios ./scenarios
-COPY --from=server-builder /app/experiments/templates ./experiments/templates
+COPY --from=server-builder /app/server .
 # Copy static frontend files
 COPY --from=frontend-builder /app/frontend/out ./static
+
 
 # Install basic deps that might be needed (e.g. ca-certificates)
 RUN apk add --no-cache ca-certificates
@@ -34,4 +33,5 @@ ENV DB_DRIVER=pgx
 
 EXPOSE 8080
 
-CMD ["./tenkai-server", "--serve"]
+CMD ["./server"]
+

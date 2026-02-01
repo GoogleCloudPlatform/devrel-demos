@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -23,10 +24,11 @@ type WorkspaceInfo struct {
 
 // WorkspaceOptions defines the configuration for a workspace.
 type WorkspaceOptions struct {
+	OverrideWSPath   string // If set, uses this exact path for the workspace
 	Command          string // Command to run 'gemini skills install' (e.g. "gemini")
 	SettingsPath     string
 	Settings         map[string]interface{}
-	SettingsBlocks   []map[string]interface{}
+	SettingsBlocks   []config.SettingsBlock
 	ContextPath      string
 	Context          string
 	SystemPromptPath string
@@ -37,27 +39,80 @@ type WorkspaceOptions struct {
 	MCPServers       []config.MCPConfig
 }
 
-// PrepareWorkspace creates an isolated workspace for a specific run.
+// Prepare creates an isolated workspace for a specific run.
 // Structure: <experimentDir>/<alternative>/<scenario>/<repetition>/{project,home,logs}
-func (m *Manager) PrepareWorkspace(experimentDir, alternative, scenario string, repetition int, opts WorkspaceOptions) (WorkspaceInfo, error) {
-	baseWSPath := filepath.Join(experimentDir, alternative, scenario, fmt.Sprintf("rep-%d", repetition))
-	wsPath := baseWSPath
-
-	// Checking for existing directory and finding a unique suffix
-	counter := 1
-	for {
-		if _, err := os.Stat(wsPath); os.IsNotExist(err) {
-			break
+func (m *Manager) Prepare(experimentDir, alternative, scenario string, repetition int, opts WorkspaceOptions) (WorkspaceInfo, error) {
+	wsPath := opts.OverrideWSPath
+	if wsPath == "" {
+		baseWSPath := filepath.Join(experimentDir, alternative, scenario, fmt.Sprintf("rep-%d", repetition))
+		if !filepath.IsAbs(baseWSPath) {
+			baseWSPath = filepath.Join(m.RunsDir, baseWSPath)
 		}
-		wsPath = fmt.Sprintf("%s_relaunch_%d", baseWSPath, counter)
-		counter++
+
+		wsPath = baseWSPath
+		// Checking for existing directory and finding a unique suffix
+		counter := 1
+		for {
+			if _, err := os.Stat(wsPath); os.IsNotExist(err) {
+				break
+			}
+			wsPath = fmt.Sprintf("%s_relaunch_%d", baseWSPath, counter)
+			counter++
+		}
+	}
+
+	// If running in Worker mode (active execution), use a local temporary directory
+	// instead of the persistent/mounted path to avoid GCS FUSE issues (e.g. mmap, locking).
+	// We will use the persistent path for "Logs" but "Project" and "Home" should be local ephemeral.
+	// However, Tenkai architecture passes `WorkspaceInfo` with paths.
+	// If we change Root, we change where the command runs.
+
+	// Check if we are in a GCS Fuse environment (heuristic: path starts with /app/assets and we are in Cloud Run)
+	// Or simpler: Just always use a temp dir for Project and Home if it's an execution run.
+	// The `OverrideWSPath` is typically set by the Runner for the Worker.
+	// If we are in the Runner, we want to build in /tmp/workspaces/<run_id>.
+
+	// NOTE: The Runner sets OverrideWSPath to `runsDir/<runID>` in `command.go`.
+	// We should intercept this and redirect Project/Home to local tmp,
+	// while keeping Logs or results wherever they need to be (or just copy them later).
+
+	// Let's create a local execution root.
+	execRoot := wsPath
+	useLocalExecution := false
+
+	// Detect if we are likely on a GCS Fuse mount (slow, no locking)
+	// This is true if wsPath is under /app/assets (the mount point in Dockerfile)
+	if strings.HasPrefix(wsPath, "/app/assets") {
+		useLocalExecution = true
+	}
+
+	if useLocalExecution {
+		// Use /tmp/tenkai-exec/<RunID_or_Basename>
+		// wsPath is like .../100067
+		runID := filepath.Base(wsPath)
+		execRoot = filepath.Join("/tmp/tenkai-exec", runID)
+		log.Printf("[Workspace] Using local execution root: %s (instead of %s)", execRoot, wsPath)
 	}
 
 	info := WorkspaceInfo{
-		Root:    wsPath,
-		Project: filepath.Join(wsPath, "project"),
-		Home:    filepath.Join(wsPath, "home"),
-		Logs:    filepath.Join(wsPath, "logs"),
+		Root:    execRoot,
+		Project: filepath.Join(execRoot, "project"),
+		Home:    filepath.Join(execRoot, "home"),
+		Logs:    filepath.Join(wsPath, "logs"), // Keep logs on persistent storage (GCS) if possible?
+		// Actually, if we redirect stdout/stderr to files in `logs`, GCS Fuse might still be slow/unreliable for appending?
+		// But `command.go` writes stdout/stderr.log to `wsPath`.
+		// Let's keep EVERYTHING local, and the runner can sync logs later if needed.
+		// The Runner's `command.go` uses `info.Root` to place stdout/stderr.
+	}
+
+	if useLocalExecution {
+		info.Logs = filepath.Join(execRoot, "logs")
+		// If we want logs to persist even if crash, we might want them on GCS.
+		// But `command.go` streams logs to DB `run_results`. File logs are secondary.
+		// So local logs are fine.
+	} else {
+		// Default behavior
+		info.Logs = filepath.Join(wsPath, "logs")
 	}
 
 	dirs := []string{info.Project, info.Home, info.Logs}
@@ -69,7 +124,7 @@ func (m *Manager) PrepareWorkspace(experimentDir, alternative, scenario string, 
 
 	// Copy template content to project dir
 	var tmplPath string
-	for _, dir := range m.TemplatesDirs {
+	for _, dir := range m.ScenariosDirs {
 		path := filepath.Join(dir, scenario)
 		if info, err := os.Stat(path); err == nil && info.IsDir() {
 			tmplPath = path
@@ -78,8 +133,9 @@ func (m *Manager) PrepareWorkspace(experimentDir, alternative, scenario string, 
 	}
 
 	if tmplPath == "" {
-		return info, fmt.Errorf("scenario template %q not found in any of: %v", scenario, m.TemplatesDirs)
+		return info, fmt.Errorf("scenario template %q not found in any of: %v", scenario, m.ScenariosDirs)
 	}
+
 	// Check for scenario.yaml
 	scenarioConfigPath := filepath.Join(tmplPath, "scenario.yaml")
 	if _, err := os.Stat(scenarioConfigPath); err == nil {
@@ -90,7 +146,7 @@ func (m *Manager) PrepareWorkspace(experimentDir, alternative, scenario string, 
 		info.Config = scenCfg
 
 		// Process Assets into project dir
-		if err := m.SyncAssets(scenCfg, tmplPath, info.Project); err != nil {
+		if err := m.SyncAssets(context.Background(), scenCfg, tmplPath, info.Project); err != nil {
 			return info, fmt.Errorf("failed to sync assets: %w", err)
 		}
 
@@ -126,8 +182,8 @@ func (m *Manager) PrepareWorkspace(experimentDir, alternative, scenario string, 
 	// 2. Merge SettingsBlocks sequentially (Order matters: later blocks override earlier ones)
 	finalSettings := make(map[string]interface{})
 	for _, block := range opts.SettingsBlocks {
-		if err := deepMerge(finalSettings, block); err != nil {
-			return info, fmt.Errorf("failed to merge settings block: %w", err)
+		if err := deepMerge(finalSettings, block.Content); err != nil {
+			return info, fmt.Errorf("failed to merge settings block '%s': %w", block.Name, err)
 		}
 	}
 
@@ -164,11 +220,11 @@ func (m *Manager) PrepareWorkspace(experimentDir, alternative, scenario string, 
 				if mcp.Command != "" {
 					serverConfig["command"] = mcp.Command
 				}
-				if mcp.Url != "" {
-					serverConfig["url"] = mcp.Url
+				if mcp.URL != "" {
+					serverConfig["url"] = mcp.URL
 				}
-				if mcp.HttpUrl != "" {
-					serverConfig["httpUrl"] = mcp.HttpUrl
+				if mcp.HTTPURL != "" {
+					serverConfig["httpUrl"] = mcp.HTTPURL
 				}
 				if len(mcp.Args) > 0 {
 					serverConfig["args"] = mcp.Args
@@ -197,22 +253,26 @@ func (m *Manager) PrepareWorkspace(experimentDir, alternative, scenario string, 
 
 	if opts.SettingsPath != "" || len(opts.Settings) > 0 {
 		if err := os.MkdirAll(geminiDir, 0755); err != nil {
+			log.Fatalf("[CRITICAL] Failed to create .gemini directory: %v", err)
 			return info, fmt.Errorf("failed to create .gemini directory: %w", err)
 		}
 		destSettings := filepath.Join(geminiDir, "settings.json")
 		if opts.SettingsPath != "" {
 			if err := copyFile(opts.SettingsPath, destSettings); err != nil {
+				log.Fatalf("[CRITICAL] Failed to copy settings file: %v", err)
 				return info, fmt.Errorf("failed to create settings file: %w", err)
 			}
 		} else {
 			f, err := os.Create(destSettings)
 			if err != nil {
+				log.Fatalf("[CRITICAL] Failed to create settings file %s: %v", destSettings, err)
 				return info, fmt.Errorf("failed to create settings file: %w", err)
 			}
 			enc := json.NewEncoder(f)
 			enc.SetIndent("", "  ")
 			if err := enc.Encode(opts.Settings); err != nil {
 				f.Close()
+				log.Fatalf("[CRITICAL] Failed to encode settings to JSON for run: %v\nSettings: %+v", err, opts.Settings)
 				return info, fmt.Errorf("failed to encode settings: %w", err)
 			}
 			f.Close()
@@ -397,18 +457,64 @@ func deepMerge(dst, src map[string]interface{}) error {
 		}
 
 		if dstVal, ok := dst[key]; ok {
-			// If both are maps, recurse
-			srcMap, srcIsMap := srcVal.(map[string]interface{})
-			dstMap, dstIsMap := dstVal.(map[string]interface{})
+			// Try to cast both to map[string]interface{}
+			srcMap, srcIsMap := asMap(srcVal)
+			dstMap, dstIsMap := asMap(dstVal)
+
 			if srcIsMap && dstIsMap {
+				// Recurse
 				if err := deepMerge(dstMap, srcMap); err != nil {
 					return err
 				}
+				dst[key] = dstMap
 				continue
 			}
 		}
-		// Otherwise, overwrite
-		dst[key] = srcVal
+		// Otherwise, overwrite and ensure JSON compatibility
+		dst[key] = sanitizeValue(srcVal)
 	}
 	return nil
+}
+
+// sanitizeValue recursively ensures a value is compatible with encoding/json
+// (converting map[interface{}]interface{} to map[string]interface{}).
+func sanitizeValue(v interface{}) interface{} {
+	switch t := v.(type) {
+	case map[string]interface{}:
+		newMap := make(map[string]interface{})
+		for k, val := range t {
+			newMap[k] = sanitizeValue(val)
+		}
+		return newMap
+	case map[interface{}]interface{}:
+		newMap := make(map[string]interface{})
+		for k, val := range t {
+			newMap[fmt.Sprint(k)] = sanitizeValue(val)
+		}
+		return newMap
+	case []interface{}:
+		newSlice := make([]interface{}, len(t))
+		for i, val := range t {
+			newSlice[i] = sanitizeValue(val)
+		}
+		return newSlice
+	default:
+		return v
+	}
+}
+
+// asMap attempts to convert a value to map[string]interface{}.
+// It handles map[string]interface{} and map[interface{}]interface{} (common from YAML).
+func asMap(v interface{}) (map[string]interface{}, bool) {
+	if m, ok := v.(map[string]interface{}); ok {
+		return m, true
+	}
+	if m, ok := v.(map[interface{}]interface{}); ok {
+		newMap := make(map[string]interface{})
+		for k, val := range m {
+			newMap[fmt.Sprint(k)] = val
+		}
+		return newMap, true
+	}
+	return nil, false
 }

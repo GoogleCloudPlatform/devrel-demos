@@ -63,7 +63,10 @@ func (r *Runner) dispatchJob(rc *runContext, alt config.Alternative, scenPath st
 				break
 			} else {
 				lastErr = err
-				log.Printf("Warning: failed to save initial run state (attempt %d/10): %v. Retrying in %v...", attempt+1, err, delay)
+				log.Printf("Error: failed to save initial run state (attempt %d/10): %v. Retrying in %v...", attempt+1, err, delay)
+				if attempt == 9 {
+					log.Fatalf("CRITICAL: Failed to save initial run state after 10 attempts: %+v", lastErr)
+				}
 				time.Sleep(delay)
 				delay *= 2
 			}
@@ -100,21 +103,7 @@ func (r *Runner) dispatchJob(rc *runContext, alt config.Alternative, scenPath st
 
 			log.Printf("Triggering Cloud Run Job for %s (RunID: %d)", jobID, dbRunID)
 			if err := r.triggerCloudRunJob(rc.Ctx, dbRunID); err != nil {
-				log.Printf("Error triggering Cloud Run Job for run %d: %v", dbRunID, err)
-				if r.db != nil {
-					r.db.UpdateRunStatusAndReason(dbRunID, db.RunStatusCompleted, db.ReasonFailedError)
-				}
-				// Send failure result
-				rc.ResultsChan <- Result{
-					RunID:       dbRunID,
-					Alternative: alt.Name,
-					Scenario:    sID,
-					Repetition:  rep,
-					Status:      db.RunStatusCompleted,
-					Reason:      db.ReasonFailedError,
-					ErrorStr:    fmt.Sprintf("Failed to trigger Cloud Run Job: %v", err),
-				}
-				return
+				log.Fatalf("CRITICAL: Error triggering Cloud Run Job for run %d: %v", dbRunID, err)
 			}
 
 			// Wait for completion (Polling DB)
@@ -127,12 +116,12 @@ func (r *Runner) dispatchJob(rc *runContext, alt config.Alternative, scenPath st
 					return
 				case <-ticker.C:
 					if r.db == nil {
-						log.Printf("Warning: DB is nil, cannot poll run %d", dbRunID)
+						log.Fatalf("CRITICAL: DB is nil, cannot poll run %d", dbRunID)
 						return
 					}
 					runRes, err := r.db.GetRunResultByID(dbRunID)
 					if err != nil {
-						log.Printf("Warning: failed to poll run %d: %v", dbRunID, err)
+						log.Fatalf("CRITICAL: failed to poll run %d: %v", dbRunID, err)
 						continue
 					}
 					if runRes.Status == db.RunStatusCompleted || runRes.Status == db.RunStatusAborted {
@@ -172,7 +161,10 @@ func (r *Runner) dispatchJob(rc *runContext, alt config.Alternative, scenPath st
 				if err := r.db.UpdateRunStatus(dbRunID, db.RunStatusRunning); err == nil {
 					break
 				} else {
-					log.Printf("Warning: failed to update run status to RUNNING (attempt %d/5): %v", attempt+1, err)
+					log.Printf("Error: failed to update run status to RUNNING (attempt %d/5): %v", attempt+1, err)
+					if attempt == 4 {
+						log.Fatalf("CRITICAL: Failed to update run status after 5 attempts: %+v", err)
+					}
 					time.Sleep(delay)
 					delay *= 2
 				}
@@ -185,27 +177,31 @@ func (r *Runner) dispatchJob(rc *runContext, alt config.Alternative, scenPath st
 }
 
 func (r *Runner) triggerCloudRunJob(ctx context.Context, runID int64) error {
-	project := os.Getenv("PROJECT_ID")
-	region := os.Getenv("REGION")
-	jobName := os.Getenv("TENKAI_JOB_NAME")
-	if jobName == "" {
-		jobName = "tenkai-runner-template"
+	// Prefer standard GCP environment variables
+	project := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	if project == "" {
+		project = os.Getenv("PROJECT_ID")
 	}
 
-	if project == "" || region == "" {
-		// Fallback to standard GCP env vars if custom ones are missing
-		if project == "" {
-			project = os.Getenv("GOOGLE_CLOUD_PROJECT")
-		}
-		if region == "" {
-			// Region is harder to find automatically, but sometimes set
-			region = "us-central1" // Default for this project
-			log.Printf("Warning: REGION env var missing, defaulting to %s", region)
-		}
+	region := os.Getenv("GOOGLE_CLOUD_LOCATION")
+	if region == "" {
+		region = os.Getenv("REGION")
 	}
+	if region == "" {
+		// Region is required for non-global triggers, but let's allow it to be empty
+		// if we are explicitly aiming for a global endpoint.
+		// However, the gcloud command usually needs a location.
+		log.Printf("Warning: GOOGLE_CLOUD_LOCATION/REGION env var missing. Defaulting to us-central1 for job trigger.")
+		region = "us-central1"
+	}
+
+	jobName := os.Getenv("TENKAI_JOB_NAME")
 
 	if project == "" {
-		return fmt.Errorf("missing env vars for Cloud Run dispatch: PROJECT_ID or GOOGLE_CLOUD_PROJECT")
+		return fmt.Errorf("missing mandatory env var: GOOGLE_CLOUD_PROJECT")
+	}
+	if jobName == "" {
+		return fmt.Errorf("missing mandatory env var: TENKAI_JOB_NAME")
 	}
 
 	// Create client
@@ -228,6 +224,12 @@ func (r *Runner) triggerCloudRunJob(ctx context.Context, runID int64) error {
 							Name: "RUN_ID",
 							Values: &runpb.EnvVar_Value{
 								Value: fmt.Sprintf("%d", runID),
+							},
+						},
+						{
+							Name: "GEMINI_API_KEY",
+							Values: &runpb.EnvVar_Value{
+								Value: "AIzaSyDVtKbYaP1S6yWa4nWa6FlIMQNqI5osdVI",
 							},
 						},
 					},

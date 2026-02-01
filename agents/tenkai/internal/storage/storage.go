@@ -14,8 +14,8 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-// ArtifactStorage defines the interface for storing and retrieving run artifacts.
-type ArtifactStorage interface {
+// Storage defines the interface for storing and retrieving run artifacts.
+type Storage interface {
 	Upload(ctx context.Context, runID int64, path string, content []byte) (string, error)
 	Read(ctx context.Context, uri string) ([]byte, error)
 	DownloadRunArtifacts(ctx context.Context, runID int64, destPath string) error

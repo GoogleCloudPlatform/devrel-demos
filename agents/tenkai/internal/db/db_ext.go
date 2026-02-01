@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -69,7 +70,7 @@ func (db *DB) FixSequences() error {
 
 	for _, table := range tables {
 		query := fmt.Sprintf("SELECT setval('%s_id_seq', COALESCE((SELECT MAX(id) FROM %s), 1));", table, table)
-		if _, err := db.conn.Exec(query); err != nil {
+		if _, err := db.conn.ExecContext(context.Background(), query); err != nil {
 			return fmt.Errorf("failed to reset sequence for %s: %w", table, err)
 		}
 	}

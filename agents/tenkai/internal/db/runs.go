@@ -1,10 +1,10 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -21,70 +21,81 @@ func (db *DB) GetRunResults(expID int64, limit, offset int) ([]models.RunResult,
 		model, session_id, model_duration
 		FROM run_results WHERE experiment_id = ? ORDER BY id DESC LIMIT ? OFFSET ?`
 
-	rows, err := db.conn.Query(db.Rebind(query), expID, limit, offset)
+	rows, err := db.conn.QueryContext(context.Background(), db.Rebind(query), expID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var results []models.RunResult
 	for rows.Next() {
-		var r models.RunResult
-		var valRep, errStr, reason, status, model, sessionID sql.NullString
-		var dur, tPass, tFail, lint, tTok, iTok, oTok, cTok, tCalls, fCalls, modelDur sql.NullInt64
-		var loop, success sql.NullBool
-
-		err := rows.Scan(
-			&r.ID, &r.ExperimentID, &r.Alternative, &r.Scenario, &r.Repetition, &dur, &errStr,
-			&tPass, &tFail, &lint, &tTok, &iTok, &oTok, &cTok,
-			&tCalls, &fCalls, &loop, &success, &valRep, &status, &reason,
-			&model, &sessionID, &modelDur,
-		)
+		r, err := db.scanRunResult(rows)
 		if err != nil {
 			return nil, err
 		}
-		r.Duration = dur.Int64
-		r.ValidationReport = valRep.String
-		r.Error = errStr.String
-		r.Status = status.String
-		r.Reason = reason.String
-
-		r.TestsPassed = int(tPass.Int64)
-		r.TestsFailed = int(tFail.Int64)
-		r.LintIssues = int(lint.Int64)
-		r.TotalTokens = int(tTok.Int64)
-		r.InputTokens = int(iTok.Int64)
-		r.OutputTokens = int(oTok.Int64)
-		r.CachedTokens = int(cTok.Int64)
-		r.ToolCallsCount = int(tCalls.Int64)
-		r.FailedToolCalls = int(fCalls.Int64)
-		r.LoopDetected = loop.Bool
-		r.IsSuccess = success.Bool
-
-		r.Model = model.String
-		r.SessionID = sessionID.String
-		r.ModelDuration = modelDur.Int64
-
 		results = append(results, r)
 	}
 	return results, nil
 }
 
+func (db *DB) scanRunResult(scanner interface {
+	Scan(dest ...any) error
+}) (models.RunResult, error) {
+	var r models.RunResult
+	var valRep, errStr, reason, status, model, sessionID sql.NullString
+	var dur, tPass, tFail, lint, tTok, iTok, oTok, cTok, tCalls, fCalls, modelDur sql.NullInt64
+	var loop, success sql.NullBool
+
+	err := scanner.Scan(
+		&r.ID, &r.ExperimentID, &r.Alternative, &r.Scenario, &r.Repetition, &dur, &errStr,
+		&tPass, &tFail, &lint, &tTok, &iTok, &oTok, &cTok,
+		&tCalls, &fCalls, &loop, &success, &valRep, &status, &reason,
+		&model, &sessionID, &modelDur,
+	)
+	if err != nil {
+		return models.RunResult{}, err
+	}
+
+	r.Duration = dur.Int64
+	r.ValidationReport = valRep.String
+	r.Error = errStr.String
+	r.Status = status.String
+	r.Reason = reason.String
+
+	r.TestsPassed = int(tPass.Int64)
+	r.TestsFailed = int(tFail.Int64)
+	r.LintIssues = int(lint.Int64)
+	r.TotalTokens = int(tTok.Int64)
+	r.InputTokens = int(iTok.Int64)
+	r.OutputTokens = int(oTok.Int64)
+	r.CachedTokens = int(cTok.Int64)
+	r.ToolCallsCount = int(tCalls.Int64)
+	r.FailedToolCalls = int(fCalls.Int64)
+	r.LoopDetected = loop.Bool
+	r.IsSuccess = success.Bool
+
+	r.Model = model.String
+	r.SessionID = sessionID.String
+	r.ModelDuration = modelDur.Int64
+
+	return r, nil
+}
+
 func (db *DB) SaveRunResult(r *models.RunResult) (int64, error) {
 	query := `INSERT INTO run_results (experiment_id, alternative, scenario, repetition, status, reason, error) 
 			VALUES (?, ?, ?, ?, ?, ?, ?)`
-	return db.InsertReturningID(query,
+	return db.InsertReturningID(context.Background(), query,
 		r.ExperimentID, r.Alternative, r.Scenario, r.Repetition, r.Status, r.Reason, r.Error)
 }
 
 func (db *DB) UpdateRunStatus(id int64, status string) error {
-	_, err := db.conn.Exec(db.Rebind("UPDATE run_results SET status = ? WHERE id = ?"), status, id)
+	_, err := db.conn.ExecContext(context.Background(), db.Rebind("UPDATE run_results SET status = ? WHERE id = ?"), status, id)
 	return err
 }
 
 func (db *DB) UpdateRunLogs(runID int64, stdout, stderr string) error {
 	query := `UPDATE run_results SET stdout = ?, stderr = ? WHERE id = ?`
-	_, err := db.conn.Exec(db.Rebind(query), stdout, stderr, runID)
+	_, err := db.conn.ExecContext(context.Background(), db.Rebind(query), stdout, stderr, runID)
 	return err
 }
 
@@ -99,7 +110,7 @@ type RunTelemetry struct {
 // SaveRunTelemetry saves final run status and test/lint results.
 // Note: Tools and Messages are now handled via run_events and views, so we don't save them here.
 func (db *DB) SaveRunTelemetry(t *RunTelemetry) error {
-	return db.WithTransaction(func(tx *sql.Tx) error {
+	return db.WithTransaction(context.Background(), func(tx *sql.Tx) error {
 		// 1. Update Run Result
 		if t.Result != nil {
 			query := `UPDATE run_results SET 
@@ -109,7 +120,7 @@ func (db *DB) SaveRunTelemetry(t *RunTelemetry) error {
                                 is_success=?, validation_report=?, status=?, reason=?,
                                 model=?, session_id=?, model_duration=?
                                 WHERE id=?`
-			_, err := tx.Exec(db.Rebind(query),
+			_, err := tx.ExecContext(context.Background(), db.Rebind(query),
 				t.Result.Duration, t.Result.Error, t.Result.TestsPassed, t.Result.TestsFailed, t.Result.LintIssues,
 				t.Result.TotalTokens, t.Result.InputTokens, t.Result.OutputTokens, t.Result.CachedTokens,
 				t.Result.ToolCallsCount, t.Result.FailedToolCalls, t.Result.LoopDetected, t.Result.Stdout, t.Result.Stderr,
@@ -125,12 +136,12 @@ func (db *DB) SaveRunTelemetry(t *RunTelemetry) error {
 
 		// 2. Test Results (Wipe & Replace still needed for structured results until we move them to events)
 		if len(t.TestResults) > 0 {
-			if _, err := tx.Exec(db.Rebind("DELETE FROM test_results WHERE run_id = ?"), runID); err != nil {
+			if _, err := tx.ExecContext(context.Background(), db.Rebind("DELETE FROM test_results WHERE run_id = ?"), runID); err != nil {
 				return err
 			}
 			for _, res := range t.TestResults {
 				query := `INSERT INTO test_results (run_id, name, status, duration_ns, output) VALUES (?, ?, ?, ?, ?)`
-				if _, err := tx.Exec(db.Rebind(query), runID, res.Name, res.Status, res.DurationNS, res.Output); err != nil {
+				if _, err := tx.ExecContext(context.Background(), db.Rebind(query), runID, res.Name, res.Status, res.DurationNS, res.Output); err != nil {
 					return err
 				}
 			}
@@ -138,12 +149,12 @@ func (db *DB) SaveRunTelemetry(t *RunTelemetry) error {
 
 		// 3. Lint Results (Wipe & Replace)
 		if len(t.LintResults) > 0 {
-			if _, err := tx.Exec(db.Rebind("DELETE FROM lint_results WHERE run_id = ?"), runID); err != nil {
+			if _, err := tx.ExecContext(context.Background(), db.Rebind("DELETE FROM lint_results WHERE run_id = ?"), runID); err != nil {
 				return err
 			}
 			for _, res := range t.LintResults {
 				query := `INSERT INTO lint_results (run_id, file, line, col, message, severity, rule_id) VALUES (?, ?, ?, ?, ?, ?, ?)`
-				if _, err := tx.Exec(db.Rebind(query), runID, res.File, res.Line, res.Col, res.Message, res.Severity, res.RuleID); err != nil {
+				if _, err := tx.ExecContext(context.Background(), db.Rebind(query), runID, res.File, res.Line, res.Col, res.Message, res.Severity, res.RuleID); err != nil {
 					return err
 				}
 			}
@@ -158,23 +169,23 @@ func (db *DB) SaveRunTelemetry(t *RunTelemetry) error {
 func (db *DB) SaveMessage(m *models.Message) error {
 	query := `INSERT INTO messages (run_id, role, content, timestamp) 
 	          VALUES (?, ?, ?, ?)`
-	_, err := db.conn.Exec(db.Rebind(query), m.RunID, m.Role, m.Content, m.Timestamp.Format(time.RFC3339))
+	_, err := db.conn.ExecContext(context.Background(), db.Rebind(query), m.RunID, m.Role, m.Content, m.Timestamp.Format(time.RFC3339))
 	return err
 }
 
 func (db *DB) DeleteToolUsage(runID int64) error {
-	_, err := db.conn.Exec(db.Rebind("DELETE FROM tool_usage WHERE run_id = ?"), runID)
+	_, err := db.conn.ExecContext(context.Background(), db.Rebind("DELETE FROM tool_usage WHERE run_id = ?"), runID)
 	return err
 }
 func (db *DB) DeleteMessages(runID int64) error {
-	_, err := db.conn.Exec(db.Rebind("DELETE FROM messages WHERE run_id = ?"), runID)
+	_, err := db.conn.ExecContext(context.Background(), db.Rebind("DELETE FROM messages WHERE run_id = ?"), runID)
 	return err
 }
 
 func (db *DB) SaveRunFile(f *models.RunFile) error {
 	query := `INSERT INTO run_files (run_id, path, content, is_generated) 
 	          VALUES (?, ?, ?, ?)`
-	_, err := db.conn.Exec(db.Rebind(query), f.RunID, f.Path, f.Content, f.IsGenerated)
+	_, err := db.conn.ExecContext(context.Background(), db.Rebind(query), f.RunID, f.Path, f.Content, f.IsGenerated)
 	return err
 }
 func (db *DB) SaveRunEvent(runID int64, evtType string, payload any) error {
@@ -186,7 +197,7 @@ func (db *DB) SaveRunEvent(runID int64, evtType string, payload any) error {
 
 	var lastErr error
 	for attempt := 0; attempt < 10; attempt++ {
-		_, err = db.conn.Exec(db.Rebind(query), runID, evtType, time.Now().UTC().Format(time.RFC3339), string(jsonBytes))
+		_, err = db.conn.ExecContext(context.Background(), db.Rebind(query), runID, evtType, time.Now().UTC().Format(time.RFC3339), string(jsonBytes))
 		if err == nil {
 			return nil
 		}
@@ -202,7 +213,7 @@ func (db *DB) SaveRunEvent(runID int64, evtType string, payload any) error {
 func (db *DB) SaveTestResults(results []models.TestResult) error {
 	query := `INSERT INTO test_results (run_id, name, status, duration_ns, output) VALUES (?, ?, ?, ?, ?)`
 	for _, res := range results {
-		_, err := db.conn.Exec(db.Rebind(query), res.RunID, res.Name, res.Status, res.DurationNS, res.Output)
+		_, err := db.conn.ExecContext(context.Background(), db.Rebind(query), res.RunID, res.Name, res.Status, res.DurationNS, res.Output)
 		if err != nil {
 			return err
 		}
@@ -213,7 +224,7 @@ func (db *DB) SaveTestResults(results []models.TestResult) error {
 func (db *DB) SaveLintResults(results []models.LintIssue) error {
 	query := `INSERT INTO lint_results (run_id, file, line, col, message, severity, rule_id) VALUES (?, ?, ?, ?, ?, ?, ?)`
 	for _, res := range results {
-		_, err := db.conn.Exec(db.Rebind(query), res.RunID, res.File, res.Line, res.Col, res.Message, res.Severity, res.RuleID)
+		_, err := db.conn.ExecContext(context.Background(), db.Rebind(query), res.RunID, res.File, res.Line, res.Col, res.Message, res.Severity, res.RuleID)
 		if err != nil {
 			return err
 		}
@@ -223,11 +234,11 @@ func (db *DB) SaveLintResults(results []models.LintIssue) error {
 
 func (db *DB) GetTestResults(runID int64) ([]models.TestResult, error) {
 	query := `SELECT id, run_id, name, status, duration_ns, output FROM test_results WHERE run_id = ?`
-	rows, err := db.conn.Query(db.Rebind(query), runID)
+	rows, err := db.conn.QueryContext(context.Background(), db.Rebind(query), runID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var results []models.TestResult = []models.TestResult{}
 	for rows.Next() {
@@ -242,11 +253,11 @@ func (db *DB) GetTestResults(runID int64) ([]models.TestResult, error) {
 
 func (db *DB) GetLintResults(runID int64) ([]models.LintIssue, error) {
 	query := `SELECT id, run_id, file, line, col, message, severity, rule_id FROM lint_results WHERE run_id = ?`
-	rows, err := db.conn.Query(db.Rebind(query), runID)
+	rows, err := db.conn.QueryContext(context.Background(), db.Rebind(query), runID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var results []models.LintIssue = []models.LintIssue{}
 	for rows.Next() {
@@ -261,11 +272,11 @@ func (db *DB) GetLintResults(runID int64) ([]models.LintIssue, error) {
 
 func (db *DB) GetRunFiles(runID int64) ([]*models.RunFile, error) {
 	query := `SELECT id, run_id, path, content, is_generated FROM run_files WHERE run_id = ?`
-	rows, err := db.conn.Query(db.Rebind(query), runID)
+	rows, err := db.conn.QueryContext(context.Background(), db.Rebind(query), runID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var files []*models.RunFile = []*models.RunFile{}
 	for rows.Next() {
@@ -279,11 +290,11 @@ func (db *DB) GetRunFiles(runID int64) ([]*models.RunFile, error) {
 }
 func (db *DB) GetToolUsage(runID int64) ([]models.ToolUsage, error) {
 	query := `SELECT id, run_id, name, args, status, output, error, duration, timestamp FROM tool_usage WHERE run_id = ? ORDER BY timestamp ASC`
-	rows, err := db.conn.Query(db.Rebind(query), runID)
+	rows, err := db.conn.QueryContext(context.Background(), db.Rebind(query), runID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var results []models.ToolUsage = []models.ToolUsage{}
 	for rows.Next() {
@@ -309,11 +320,11 @@ func (db *DB) GetMessages(runID int64, limit, offset int) ([]models.Message, err
 	ORDER BY id ASC
 	LIMIT ? OFFSET ?`
 
-	rows, err := db.conn.Query(db.Rebind(query), runID, limit, offset)
+	rows, err := db.conn.QueryContext(context.Background(), db.Rebind(query), runID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var results []models.Message
 	var currentMsg *models.Message
@@ -428,9 +439,9 @@ func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
 
 	var tTok, iTok, oTok, cTok sql.NullInt64
 	var resStatus sql.NullString
-	if err := db.conn.QueryRow(db.Rebind(queryResult), runID).Scan(&tTok, &iTok, &oTok, &cTok, &resStatus); err != nil {
+	if err := db.conn.QueryRowContext(context.Background(), db.Rebind(queryResult), runID).Scan(&tTok, &iTok, &oTok, &cTok, &resStatus); err != nil {
 		if err != sql.ErrNoRows {
-			log.Printf("[DB] Warning: failed to fetch tokens for run %d: %v", runID, err)
+			return nil, fmt.Errorf("failed to fetch tokens for run %d: %w", runID, err)
 		}
 	} else {
 		metrics.TotalTokens = int(tTok.Int64)
@@ -447,8 +458,8 @@ func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
 		WHERE run_id = ? AND type = 'error' AND %s LIKE '%%Loop detected%%'`,
 		db.JSONExtract("payload", "$.message"))
 	var loopCount int
-	if err := db.conn.QueryRow(db.Rebind(queryLoop), runID).Scan(&loopCount); err != nil {
-		log.Printf("[DB] Warning: failed to check loops for run %d: %v", runID, err)
+	if err := db.conn.QueryRowContext(context.Background(), db.Rebind(queryLoop), runID).Scan(&loopCount); err != nil {
+		return nil, fmt.Errorf("failed to check loops for run %d: %w", runID, err)
 	} else if loopCount > 0 {
 		metrics.LoopDetected = true
 	}
@@ -463,8 +474,8 @@ func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
 		db.JSONExtract("payload", "$.status"))
 
 	var totalStructured, failedStructured sql.NullInt64
-	if err := db.conn.QueryRow(db.Rebind(queryTools), runID).Scan(&totalStructured, &failedStructured); err != nil {
-		log.Printf("[DB] Warning: failed to count structured tool calls for run %d: %v", runID, err)
+	if err := db.conn.QueryRowContext(context.Background(), db.Rebind(queryTools), runID).Scan(&totalStructured, &failedStructured); err != nil {
+		return nil, fmt.Errorf("failed to count structured tool calls for run %d: %w", runID, err)
 	}
 
 	// 4. Count stderr tool errors
@@ -477,8 +488,8 @@ func (db *DB) GetRunMetrics(runID int64) (*parser.AgentMetrics, error) {
 		db.JSONExtract("payload", "$.message"))
 
 	var failedStderr int
-	if err := db.conn.QueryRow(db.Rebind(queryStderr), runID).Scan(&failedStderr); err != nil {
-		log.Printf("[DB] Warning: failed to count stderr tool errors for run %d: %v", runID, err)
+	if err := db.conn.QueryRowContext(context.Background(), db.Rebind(queryStderr), runID).Scan(&failedStderr); err != nil {
+		return nil, fmt.Errorf("failed to count stderr tool errors for run %d: %w", runID, err)
 	}
 
 	// Aggregate counts
@@ -505,11 +516,11 @@ func (db *DB) GetExperimentToolCounts(experimentID int64, filter string) (map[in
 	WHERE r.experiment_id = ? %s
 	GROUP BY t.run_id, t.name`, filterCond)
 
-	rows, err := db.conn.Query(db.Rebind(query), experimentID)
+	rows, err := db.conn.QueryContext(context.Background(), db.Rebind(query), experimentID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	// Map: RunID -> ToolName -> Count
 	counts := make(map[int64]map[string]int)
@@ -529,7 +540,7 @@ func (db *DB) GetExperimentToolCounts(experimentID int64, filter string) (map[in
 
 func (db *DB) UpdateRunStatusAndReason(runID int64, status string, reason string) error {
 	query := `UPDATE run_results SET status = ?, reason = ? WHERE id = ?`
-	_, err := db.conn.Exec(db.Rebind(query), status, reason, runID)
+	_, err := db.conn.ExecContext(context.Background(), db.Rebind(query), status, reason, runID)
 	return err
 }
 
@@ -542,50 +553,18 @@ func (db *DB) GetCompletedRuns(expID int64) ([]models.RunResult, error) {
 		model, session_id, model_duration
 		FROM run_results WHERE experiment_id = ? AND status = 'COMPLETED'`
 
-	rows, err := db.conn.Query(db.Rebind(query), expID)
+	rows, err := db.conn.QueryContext(context.Background(), db.Rebind(query), expID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var results []models.RunResult
 	for rows.Next() {
-		var r models.RunResult
-		var valRep, errStr, reason, status, model, sessionID sql.NullString
-		var dur, tPass, tFail, lint, tTok, iTok, oTok, cTok, tCalls, fCalls, modelDur sql.NullInt64
-		var loop, success sql.NullBool
-
-		err := rows.Scan(
-			&r.ID, &r.ExperimentID, &r.Alternative, &r.Scenario, &r.Repetition, &dur, &errStr,
-			&tPass, &tFail, &lint, &tTok, &iTok, &oTok, &cTok,
-			&tCalls, &fCalls, &loop, &success, &valRep, &status, &reason,
-			&model, &sessionID, &modelDur,
-		)
+		r, err := db.scanRunResult(rows)
 		if err != nil {
 			return nil, err
 		}
-		r.Duration = dur.Int64
-		r.ValidationReport = valRep.String
-		r.Error = errStr.String
-		r.Status = status.String
-		r.Reason = reason.String
-
-		r.TestsPassed = int(tPass.Int64)
-		r.TestsFailed = int(tFail.Int64)
-		r.LintIssues = int(lint.Int64)
-		r.TotalTokens = int(tTok.Int64)
-		r.InputTokens = int(iTok.Int64)
-		r.OutputTokens = int(oTok.Int64)
-		r.CachedTokens = int(cTok.Int64)
-		r.ToolCallsCount = int(tCalls.Int64)
-		r.FailedToolCalls = int(fCalls.Int64)
-		r.LoopDetected = loop.Bool
-		r.IsSuccess = success.Bool
-
-		r.Model = model.String
-		r.SessionID = sessionID.String
-		r.ModelDuration = modelDur.Int64
-
 		results = append(results, r)
 	}
 	return results, nil
@@ -599,40 +578,13 @@ func (db *DB) GetRunResultByID(id int64) (*models.RunResult, error) {
 		model, session_id, model_duration
 		FROM run_results WHERE id = ?`
 
-	var r models.RunResult
-	var valRep, errStr, reason, status, model, sessionID sql.NullString
-	var dur, tPass, tFail, lint, tTok, iTok, oTok, cTok, tCalls, fCalls, modelDur sql.NullInt64
-	var loop, success sql.NullBool
-
-	err := db.conn.QueryRow(db.Rebind(query), id).Scan(
-		&r.ID, &r.ExperimentID, &r.Alternative, &r.Scenario, &r.Repetition, &dur, &errStr,
-		&tPass, &tFail, &lint, &tTok, &iTok, &oTok, &cTok,
-		&tCalls, &fCalls, &loop, &success, &valRep, &status, &reason,
-		&model, &sessionID, &modelDur,
-	)
+	r, err := db.scanRunResult(db.conn.QueryRowContext(context.Background(), db.Rebind(query), id))
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
-	r.Duration = dur.Int64
-	r.ValidationReport = valRep.String
-	r.Error = errStr.String
-	r.Status = status.String
-	r.Reason = reason.String
-
-	r.TestsPassed = int(tPass.Int64)
-	r.TestsFailed = int(tFail.Int64)
-	r.LintIssues = int(lint.Int64)
-	r.TotalTokens = int(tTok.Int64)
-	r.InputTokens = int(iTok.Int64)
-	r.OutputTokens = int(oTok.Int64)
-	r.CachedTokens = int(cTok.Int64)
-	r.ToolCallsCount = int(tCalls.Int64)
-	r.FailedToolCalls = int(fCalls.Int64)
-	r.LoopDetected = loop.Bool
-	r.IsSuccess = success.Bool
-	r.Model = model.String
-	r.SessionID = sessionID.String
-	r.ModelDuration = modelDur.Int64
 
 	return &r, nil
 }
@@ -645,7 +597,7 @@ func (db *DB) ClaimNextJob(workerID string) (int64, error) {
 	// We use a transaction to avoid race conditions.
 
 	var runID int64
-	err := db.WithTransaction(func(tx *sql.Tx) error {
+	err := db.WithTransaction(context.Background(), func(tx *sql.Tx) error {
 		// Find oldest QUEUED job
 		// Use LIMIT 1
 		// SQLite doesn't support SELECT ... FOR UPDATE, so raw concurrency might be racey without tx.
@@ -659,7 +611,7 @@ func (db *DB) ClaimNextJob(workerID string) (int64, error) {
 		if db.driver == "sqlite" {
 			// SQLite: Locking handled by immediate transaction logic if possible
 			// (Go's sql driver serializes Writes if maxOpenConns=1 for writes? but WAL helps reads)
-			row := tx.QueryRow(db.Rebind("SELECT id FROM run_results WHERE status = 'QUEUED' ORDER BY id ASC LIMIT 1"))
+			row := tx.QueryRowContext(context.Background(), db.Rebind("SELECT id FROM run_results WHERE status = 'QUEUED' ORDER BY id ASC LIMIT 1"))
 			if err := row.Scan(&runID); err != nil {
 				if err == sql.ErrNoRows {
 					return nil // No jobs
@@ -668,19 +620,19 @@ func (db *DB) ClaimNextJob(workerID string) (int64, error) {
 			}
 
 			// Update
-			_, err := tx.Exec(db.Rebind("UPDATE run_results SET status = 'RUNNING', session_id = ? WHERE id = ?"), workerID, runID)
+			_, err := tx.ExecContext(context.Background(), db.Rebind("UPDATE run_results SET status = 'RUNNING', session_id = ? WHERE id = ?"), workerID, runID)
 			return err
 		} else {
 			// Postgres
 			// Use SKIP LOCKED for robustness
-			row := tx.QueryRow(db.Rebind("SELECT id FROM run_results WHERE status = 'QUEUED' ORDER BY id ASC FOR UPDATE SKIP LOCKED LIMIT 1"))
+			row := tx.QueryRowContext(context.Background(), db.Rebind("SELECT id FROM run_results WHERE status = 'QUEUED' ORDER BY id ASC FOR UPDATE SKIP LOCKED LIMIT 1"))
 			if err := row.Scan(&runID); err != nil {
 				if err == sql.ErrNoRows {
 					return nil
 				}
 				return err
 			}
-			_, err := tx.Exec(db.Rebind("UPDATE run_results SET status = 'RUNNING', session_id = ? WHERE id = ?"), workerID, runID)
+			_, err := tx.ExecContext(context.Background(), db.Rebind("UPDATE run_results SET status = 'RUNNING', session_id = ? WHERE id = ?"), workerID, runID)
 			return err
 		}
 	})

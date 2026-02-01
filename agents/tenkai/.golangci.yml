@@ -1,3 +1,5 @@
+version: "2"
+
 linters-settings:
   dupl:
     threshold: 100
@@ -25,7 +27,8 @@ linters-settings:
   goimports:
     local-prefixes: github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai
   govet:
-    check-shadowing: true
+    enable:
+      - shadow
     settings:
       printf:
         funcs:
@@ -53,11 +56,8 @@ linters:
     - goconst
     - gocritic
     - gocyclo
-    - gofmt
-    - goimports
     - goprintffuncname
     - gosec
-    - gosimple
     - govet
     - ineffassign
     - lll
@@ -67,8 +67,6 @@ linters:
     - nolintlint
     - revive
     - staticcheck
-    - stylecheck
-    - typecheck
     - unconvert
     - unparam
     - unused

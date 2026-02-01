@@ -21,24 +21,91 @@ type Configuration struct {
 	IsLocked      bool          `yaml:"is_locked,omitempty" json:"is_locked,omitempty"`
 }
 
+// SettingsBlock represents a configuration block that can be merged.
+// It supports both legacy (mixed metadata/content) and strict (content field) YAML formats.
+type SettingsBlock struct {
+	Name    string                 `yaml:"name,omitempty" json:"name,omitempty"`
+	Content map[string]interface{} `yaml:"content" json:"content"`
+}
+
+// UnmarshalYAML implements custom unmarshaling to support legacy mixed-mode YAML.
+func (sb *SettingsBlock) UnmarshalYAML(value *yaml.Node) error {
+	// 1. Decode into a raw map to inspect keys
+	var raw map[string]interface{}
+	if err := value.Decode(&raw); err != nil {
+		return err
+	}
+
+	// 2. Check for explicit "content" map (New Strict Format)
+	if c, ok := raw["content"]; ok {
+		// If "content" exists and is a map, we assume strict mode.
+		// We re-decode into the struct to leverage standard YAML type mapping for the map.
+		// (Or just use raw, but raw might have mixed map types if not careful, though Decode handles it).
+		// Let's just manually extract from raw to avoid re-parsing overhead.
+
+		if name, ok := raw["name"].(string); ok {
+			sb.Name = name
+		}
+
+		if contentMap, ok := c.(map[string]interface{}); ok {
+			sb.Content = contentMap
+		} else if _, ok := c.(map[interface{}]interface{}); ok {
+			// Convert if it came out as interface map (unlikely with Decode(&raw) but safe to handle)
+			// Actually Decode(&raw) where raw is map[string]interface{} forces string keys for top level.
+			// But values might be mixed. We assign it, deepMerge handles values.
+			// But we need map[string]interface{}.
+			// Let's rely on re-decoding to struct for safety if content is complex.
+			type strict struct {
+				Name    string                 `yaml:"name"`
+				Content map[string]interface{} `yaml:"content"`
+			}
+			var s strict
+			if err := value.Decode(&s); err != nil {
+				return err
+			}
+			sb.Name = s.Name
+			sb.Content = s.Content
+			return nil
+		} else {
+			// content is not a map? (e.g. null).
+			sb.Content = make(map[string]interface{})
+		}
+		return nil
+	}
+
+	// 3. Legacy Mixed Format (Metadata sibling to Content)
+	sb.Content = make(map[string]interface{})
+	for k, v := range raw {
+		if k == "name" {
+			if n, ok := v.(string); ok {
+				sb.Name = n
+				continue
+			}
+		}
+		// Treat everything else as content
+		sb.Content[k] = v
+	}
+	return nil
+}
+
 // Alternative represents a specific agent configuration.
 type Alternative struct {
-	Name             string                   `yaml:"name" json:"name"`
-	Description      string                   `yaml:"description,omitempty" json:"description,omitempty"`
-	Command          string                   `yaml:"command" json:"command"`
-	Args             []string                 `yaml:"args" json:"args"`
-	Env              map[string]string        `yaml:"env,omitempty" json:"env,omitempty"`
-	SettingsPath     string                   `yaml:"settings_path,omitempty" json:"settings_path,omitempty"`     // Path to settings.json
-	Settings         map[string]interface{}   `yaml:"settings,omitempty" json:"settings,omitempty"`               // Inline settings object (Final Override)
-	SettingsBlocks   []map[string]interface{} `yaml:"settings_blocks,omitempty" json:"settings_blocks,omitempty"` // List of settings blocks to merge
-	SystemPromptFile string                   `yaml:"system_prompt_file,omitempty" json:"system_prompt_file,omitempty"`
-	SystemPrompt     string                   `yaml:"system_prompt,omitempty" json:"system_prompt,omitempty"`         // Inline system prompt content
-	ContextFilePath  string                   `yaml:"context_file_path,omitempty" json:"context_file_path,omitempty"` // Path to file to copy as GEMINI.md
-	Context          string                   `yaml:"context,omitempty" json:"context,omitempty"`                     // Inline GEMINI.md content
-	PolicyFiles      []string                 `yaml:"policy_files,omitempty" json:"policy_files,omitempty"`           // Paths to files to copy to .gemini/policies/
-	Extensions       []ExtensionConfig        `yaml:"extensions,omitempty" json:"extensions,omitempty"`
-	Skills           []SkillConfig            `yaml:"skills,omitempty" json:"skills,omitempty"`
-	MCPServers       []MCPConfig              `yaml:"mcp_servers,omitempty" json:"mcp_servers,omitempty"`
+	Name             string                 `yaml:"name" json:"name"`
+	Description      string                 `yaml:"description,omitempty" json:"description,omitempty"`
+	Command          string                 `yaml:"command" json:"command"`
+	Args             []string               `yaml:"args" json:"args"`
+	Env              map[string]string      `yaml:"env,omitempty" json:"env,omitempty"`
+	SettingsPath     string                 `yaml:"settings_path,omitempty" json:"settings_path,omitempty"`     // Path to settings.json
+	Settings         map[string]interface{} `yaml:"settings,omitempty" json:"settings,omitempty"`               // Inline settings object (Final Override)
+	SettingsBlocks   []SettingsBlock        `yaml:"settings_blocks,omitempty" json:"settings_blocks,omitempty"` // List of settings blocks to merge
+	SystemPromptFile string                 `yaml:"system_prompt_file,omitempty" json:"system_prompt_file,omitempty"`
+	SystemPrompt     string                 `yaml:"system_prompt,omitempty" json:"system_prompt,omitempty"`         // Inline system prompt content
+	ContextFilePath  string                 `yaml:"context_file_path,omitempty" json:"context_file_path,omitempty"` // Path to file to copy as GEMINI.md
+	Context          string                 `yaml:"context,omitempty" json:"context,omitempty"`                     // Inline GEMINI.md content
+	PolicyFiles      []string               `yaml:"policy_files,omitempty" json:"policy_files,omitempty"`           // Paths to files to copy to .gemini/policies/
+	Extensions       []ExtensionConfig      `yaml:"extensions,omitempty" json:"extensions,omitempty"`
+	Skills           []SkillConfig          `yaml:"skills,omitempty" json:"skills,omitempty"`
+	MCPServers       []MCPConfig            `yaml:"mcp_servers,omitempty" json:"mcp_servers,omitempty"`
 }
 
 // MCPConfig defines a Model Context Protocol server configuration block.
@@ -46,8 +113,8 @@ type Alternative struct {
 type MCPConfig struct {
 	Name    string                 `yaml:"name" json:"name"`
 	Command string                 `yaml:"command,omitempty" json:"command,omitempty"`
-	Url     string                 `yaml:"url,omitempty" json:"url,omitempty"`
-	HttpUrl string                 `yaml:"httpUrl,omitempty" json:"httpUrl,omitempty"`
+	URL     string                 `yaml:"url,omitempty" json:"url,omitempty"`
+	HTTPURL string                 `yaml:"httpUrl,omitempty" json:"httpUrl,omitempty"`
 	Args    []string               `yaml:"args,omitempty" json:"args,omitempty"`
 	Env     map[string]string      `yaml:"env,omitempty" json:"env,omitempty"`
 	Content map[string]interface{} `yaml:"content,omitempty" json:"content,omitempty"` // For advanced config (trust, includeTools, etc)

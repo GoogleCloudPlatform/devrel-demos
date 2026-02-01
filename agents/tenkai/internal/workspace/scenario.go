@@ -29,10 +29,10 @@ func (m *Manager) ListScenarios() []Scenario {
 	var scenarios []Scenario
 	seen := make(map[string]bool)
 
-	for _, dir := range m.TemplatesDirs {
+	for _, dir := range m.ScenariosDirs {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
-			log.Printf("Warning: failed to read templates dir %s: %v", dir, err)
+			log.Fatalf("CRITICAL: failed to read templates dir %s: %v", dir, err)
 			continue
 		}
 
@@ -74,10 +74,11 @@ func (m *Manager) ListScenarios() []Scenario {
 
 // GetScenario returns the details of a specific scenario by ID.
 func (m *Manager) GetScenario(id string) (*Scenario, error) {
-	for _, dir := range m.TemplatesDirs {
+	for _, dir := range m.ScenariosDirs {
 		path := filepath.Join(dir, id)
 		if info, err := os.Stat(path); err == nil && info.IsDir() {
 			scen := &Scenario{
+
 				ID:   id,
 				Name: id,
 				Path: path,
@@ -103,10 +104,10 @@ func (m *Manager) GetScenario(id string) (*Scenario, error) {
 // CreateScenario creates a new scenario directory and assets.
 func (m *Manager) CreateScenario(name, description, task string, assets []config.Asset, validation []config.ValidationRule) (string, error) {
 	// Use the first templates dir for creation (usually scenarios/)
-	if len(m.TemplatesDirs) == 0 {
+	if len(m.ScenariosDirs) == 0 {
 		return "", fmt.Errorf("no templates directory configured")
 	}
-	baseDir := m.TemplatesDirs[0]
+	baseDir := m.ScenariosDirs[0]
 
 	id := fmt.Sprintf("%d", time.Now().UnixNano())
 
@@ -179,9 +180,10 @@ func (m *Manager) CreateScenario(name, description, task string, assets []config
 
 // UpdateScenario updates an existing scenario configuration.
 func (m *Manager) UpdateScenario(id, name, description, task string, validation []config.ValidationRule, assets []config.Asset) error {
-	for _, dir := range m.TemplatesDirs {
+	for _, dir := range m.ScenariosDirs {
 		path := filepath.Join(dir, id)
 		if info, err := os.Stat(path); err == nil && info.IsDir() {
+
 			// Update scenario.yaml
 			configPath := filepath.Join(path, "scenario.yaml")
 			var cfg config.ScenarioConfig
@@ -268,9 +270,10 @@ func (m *Manager) UpdateScenario(id, name, description, task string, validation 
 
 // DeleteScenario deletes a scenario directory.
 func (m *Manager) DeleteScenario(id string) error {
-	for _, dir := range m.TemplatesDirs {
+	for _, dir := range m.ScenariosDirs {
 		path := filepath.Join(dir, id)
 		if info, err := os.Stat(path); err == nil && info.IsDir() {
+
 			return os.RemoveAll(path)
 		}
 	}

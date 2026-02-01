@@ -37,11 +37,9 @@ func (s *Server) registerRoutes() {
 	s.router.HandleFunc("POST /api/experiments/{id}/lock", s.api.Wrap(s.api.HandleExperimentLock))
 	s.router.HandleFunc("GET /api/experiments/{id}/export", s.api.HandleExportReport) // No Wrap!
 
-	// Logs
-	s.router.HandleFunc("GET /api/logs", s.api.Wrap(s.api.HandleLogs))
-
 	// Runs (Sub-resources)
 	s.router.HandleFunc("GET /api/runs/{id}/files", s.api.Wrap(s.api.GetRunFiles))
+
 	s.router.HandleFunc("GET /api/runs/{id}/tests", s.api.Wrap(s.api.GetRunTests))
 	s.router.HandleFunc("GET /api/runs/{id}/lint", s.api.Wrap(s.api.GetRunLint))
 	s.router.HandleFunc("GET /api/runs/{id}/tools", s.api.Wrap(s.api.GetRunTools))

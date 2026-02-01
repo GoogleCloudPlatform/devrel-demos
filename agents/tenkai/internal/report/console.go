@@ -16,7 +16,7 @@ func (r *Reporter) GenerateConsoleReport() error {
 		isSuccess := res.IsSuccess
 		status := "✅"
 		if !isSuccess {
-			if res.Error != nil && strings.Contains(res.Error.Error(), "timeout") {
+			if res.ErrorStr != "" && strings.Contains(res.ErrorStr, "timeout") {
 				status = "⏱️ (Timeout)"
 			} else {
 				status = "❌ (Fail)"

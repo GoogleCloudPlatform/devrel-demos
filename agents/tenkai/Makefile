@@ -6,7 +6,8 @@ GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOINSTALL=$(GOCMD) install
-BINARY_NAME=tenkai
+BINARY_SERVER=bin/server
+BINARY_RUNNER=bin/runner
 
 # Version
 VERSION := 0.2.0
@@ -14,16 +15,22 @@ LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 
 all: build
 
-build:
-	$(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME) .
+build: server runner
+
+server:
+	$(GOBUILD) $(LDFLAGS) -o $(BINARY_SERVER) ./cmd/server
+
+runner:
+	$(GOBUILD) $(LDFLAGS) -o $(BINARY_RUNNER) ./cmd/runner
 
 install:
-	$(GOINSTALL) $(LDFLAGS) .
+	$(GOINSTALL) $(LDFLAGS) ./cmd/server
+	$(GOINSTALL) $(LDFLAGS) ./cmd/runner
 
 clean:
-	@rm -f $(BINARY_NAME)
+	@rm -rf bin/
 
 test:
 	$(GOTEST) -v ./...
 
-.PHONY: all build install clean test
+.PHONY: all build server runner install clean test

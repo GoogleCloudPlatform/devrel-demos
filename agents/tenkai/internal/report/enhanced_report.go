@@ -404,15 +404,15 @@ func (r *EnhancedMarkdownGenerator) writeEvaluationDetails() {
 	for _, res := range r.Results {
 		if !res.IsSuccess {
 			status := "FAIL"
-			if res.Error != nil && strings.Contains(res.Error.Error(), "timeout") {
+			if res.ErrorStr != "" && strings.Contains(res.ErrorStr, "timeout") {
 				status = "TIMEOUT"
 			}
 			fmt.Fprintf(r.w, "\n### ❌ %s: %s (Rep #%d) [%s]\n", res.Alternative, res.Scenario, res.Repetition, status)
-			if res.Error != nil {
-				fmt.Fprintf(r.w, "> **Error:** `%v`\n", res.Error)
+			if res.ErrorStr != "" {
+				fmt.Fprintf(r.w, "> **Error:** `%v`\n", res.ErrorStr)
 			}
 			if res.ValidationReport != "" {
-				var report runner.ValidationReport
+				var report models.ValidationReport
 				if err := json.Unmarshal([]byte(res.ValidationReport), &report); err == nil {
 					for _, item := range report.Items {
 						if item.Status == "FAIL" {
@@ -510,7 +510,7 @@ func (r *EnhancedMarkdownGenerator) writeFailureAnalysis() {
 
 	for _, res := range r.Results {
 		key := fmt.Sprintf("%s|%s|#%d", res.Alternative, res.Scenario, res.Repetition)
-		if res.Error != nil && strings.Contains(strings.ToLower(res.Error.Error()), "timeout") {
+		if res.ErrorStr != "" && strings.Contains(strings.ToLower(res.ErrorStr), "timeout") {
 			timeouts = append(timeouts, key)
 		} else if !res.IsSuccess {
 			failures = append(failures, key)
@@ -542,10 +542,10 @@ func (r *EnhancedMarkdownGenerator) writeFailureAnalysis() {
 				alts  map[string]bool
 			})
 			for _, res := range r.Results {
-				if !res.IsSuccess && (res.Error == nil || !strings.Contains(strings.ToLower(res.Error.Error()), "timeout")) {
+				if !res.IsSuccess && (res.ErrorStr == "" || !strings.Contains(strings.ToLower(res.ErrorStr), "timeout")) {
 					reason := "Validation Failure"
-					if res.Error != nil {
-						reason = res.Error.Error()
+					if res.ErrorStr != "" {
+						reason = res.ErrorStr
 					}
 					info := uniqueErrors[reason]
 					info.count++

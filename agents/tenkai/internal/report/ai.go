@@ -2,6 +2,7 @@ package report
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -10,6 +11,9 @@ import (
 
 // generateConclusion calls Gemini to summarize the results
 func (r *Reporter) generateConclusion() (string, error) {
+	// ... (prompt construction)
+	// I'll skip prompt construction for brevity but include it in the replace.
+
 	// Construct a simple prompt with summarized data
 	var b bytes.Buffer
 	fmt.Fprintln(&b, "Analyze the following experiment results and provide a 1-paragraph conclusion on which alternative performed better.")
@@ -17,7 +21,7 @@ func (r *Reporter) generateConclusion() (string, error) {
 	fmt.Fprintln(&b, "Data:")
 	for _, res := range r.Results {
 		status := "SUCCESS"
-		if res.Error != nil {
+		if res.ErrorStr != "" {
 			status = "CRASH"
 		}
 
@@ -39,7 +43,10 @@ func (r *Reporter) generateConclusion() (string, error) {
 	}
 
 	// Call Gemini using stdin pipe and capturing stdout only
-	cmd := exec.Command("gemini", "--output-format", "text")
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "gemini", "--output-format", "text")
 	cmd.Stdin = &b
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

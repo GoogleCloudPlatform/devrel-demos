@@ -3,54 +3,84 @@ package main
 import (
 	"log"
 	"os"
+	"strconv"
 
-	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/cli"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/db"
 	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/runner"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/server"
+	"github.com/GoogleCloudPlatform/devrel-demos/agents/tenkai/internal/workspace"
 )
 
 func main() {
-	cw, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("Failed to get current working directory: %v", err)
+	log.Println("Starting Tenkai Server (Orchestrator)...")
+
+	// Database Connection
+	dsn := os.Getenv("DB_DSN")
+	if dsn == "" {
+		log.Fatalf("DB_DSN environment variable is required")
 	}
 
-	cli.SetupLogging(cw)
-
-	database, err := cli.InitDB(cw)
+	// Open DB (pgx)
+	database, err := db.Open("pgx", dsn)
 	if err != nil {
-		log.Fatalf("Failed to open database: %v", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
+
 	defer database.Close()
 
-	flags := cli.ParseFlags()
+	// Initialize Workspace Manager
+	// Default paths (baked into image or local fallback)
+	scenariosDir := "/app/scenarios"
+	templatesDir := "/app/templates"
+	runsDir := "/tmp/tenkai-server/_runs"
 
-	// Dispatch based on flags.
-	// 1. If --config is present, we act as the Orchestrator (ModeServer).
-	if *flags.ConfigPath != "" {
-		cfg, overrideNotes, err := cli.LoadAndOverrideConfig(flags)
-		if err != nil {
-			log.Fatalf("Failed to load config: %v", err)
+	// Check for Cloud Run Volume Mount
+	assetsDir := "/app/assets"
+	if _, err := os.Stat(assetsDir); err == nil {
+		log.Printf("Detected assets volume mount at %s", assetsDir)
+		scenariosDir = assetsDir + "/scenarios"
+		templatesDir = assetsDir + "/templates"
+		runsDir = assetsDir + "/_runs"
+	} else {
+		// Fallback for local dev if /app/scenarios doesn't exist
+		if _, err := os.Stat(scenariosDir); os.IsNotExist(err) {
+			cwd, _ := os.Getwd()
+			scenariosDir = cwd + "/scenarios"
+			templatesDir = cwd + "/templates"
+			runsDir = cwd + "/_runs"
 		}
-
-		cli.RunExperiment(database, cw, cfg, overrideNotes, runner.ModeServer, flags)
-		return
 	}
 
-	// 2. Otherwise run Web Server
+	log.Printf("Using scenarios from: %s", scenariosDir)
+	log.Printf("Using templates from: %s", templatesDir)
+	log.Printf("Using runs directory: %s", runsDir)
+
+	// Server doesn't write code, but needs to read templates
+	wsMgr := workspace.New("/tmp/tenkai-server", templatesDir, runsDir, scenariosDir)
+
+	// Initialize Runner (Orchestrator Mode)
+	// Server doesn't run code itself, it dispatches jobs
+	concurrent := 100 // Limit for detached job dispatch
+	if c := os.Getenv("MAX_CONCURRENT"); c != "" {
+		if val, err := strconv.Atoi(c); err == nil {
+			concurrent = val
+		}
+	}
+
+	r := runner.New(wsMgr, concurrent)
+	r.SetMode(runner.ModeServer)
+	r.SetDB(database)
+
+	// Start Web Server
 	port := 8080
-	if *flags.Port > 0 {
-		port = *flags.Port
-	}
-	// Fallback to Env if flags not passed
-	if *flags.Port == 8080 && os.Getenv("PORT") != "" {
-		// parsedFlags already handles defaultPort from Env, so *flags.Port is correct.
+	if p := os.Getenv("PORT"); p != "" {
+		if val, err := strconv.Atoi(p); err == nil {
+			port = val
+		}
 	}
 
-	concurrent := 10
-	if *flags.Concurrent > 0 {
-		concurrent = *flags.Concurrent
+	srv := server.New(database, r, wsMgr)
+	if err := srv.Start(port); err != nil {
+		log.Fatalf("Server failed: %v", err)
 	}
-
-	log.Println("Starting Tenkai Server (Web UI)...")
-	cli.RunServer(database, cw, port, concurrent, runner.ModeServer)
 }

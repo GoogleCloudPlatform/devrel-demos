@@ -7,7 +7,7 @@ import { Trash2 } from 'lucide-react';
 
 import { toast } from 'sonner';
 
-export default function DeleteExperimentButton({ id, name }: { id: number, name: string }) {
+export default function DeleteExperimentButton({ id, name, compact = false }: { id: number, name: string, compact?: boolean }) {
     const router = useRouter();
     const [deleting, setDeleting] = useState(false);
 
@@ -19,7 +19,11 @@ export default function DeleteExperimentButton({ id, name }: { id: number, name:
             const res = await fetch(`/api/experiments/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 toast.success("Experiment deleted successfully");
-                router.push('/');
+                if (!compact) {
+                    router.push('/');
+                } else {
+                    router.refresh();
+                }
             } else {
                 toast.error("Failed to delete experiment");
             }
@@ -29,6 +33,22 @@ export default function DeleteExperimentButton({ id, name }: { id: number, name:
             setDeleting(false);
         }
     };
+
+    if (compact) {
+        return (
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                title="Delete Experiment"
+            >
+                <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Delete</span>
+            </Button>
+        );
+    }
 
     return (
         <Button

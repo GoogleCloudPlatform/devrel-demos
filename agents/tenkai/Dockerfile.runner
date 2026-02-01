@@ -1,0 +1,39 @@
+# Build Stage
+FROM golang:1.25.6-alpine AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN go build -o runner cmd/runner/main.go
+
+# Runtime Stage (Must include Go for agents)
+FROM golang:1.25.6-alpine
+WORKDIR /app
+COPY --from=builder /app/runner .
+# Install Dependencies required by agents
+
+# git: for checking out repos
+# make: for build scripts
+# gcc/musl-dev: for CGO if needed
+# bash: often used in scripts
+# curl: handy
+# nodejs/npm: for Gemini CLI
+RUN apk add --no-cache git make build-base bash curl nodejs npm
+
+# Install Gemini CLI (Global)
+RUN npm install -g @google/gemini-cli@latest
+
+# Definitive symlink to /go/bin which we know is in PATH
+RUN ln -sf $(npm config get prefix)/bin/gemini /go/bin/gemini
+
+# Install golangci-lint (Agent uses it)
+RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.63.4
+ENV PATH=$PATH:/go/bin
+
+ENV DB_DRIVER=pgx
+ENV DB_DSN=""
+ENV GCS_BUCKET=""
+
+# Default command (uses env vars)
+CMD ["./runner"]
+
