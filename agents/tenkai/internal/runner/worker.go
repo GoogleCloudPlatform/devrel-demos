@@ -75,7 +75,10 @@ func (w *Worker) Start(ctx context.Context) error {
 	// Ensure we sync artifacts back to storage even on crash/failure.
 	// This captures settings.json and logs from /tmp.
 	defer func() {
-		wsPath := filepath.Join(w.Runner.WorkspaceMgr.BasePath, fmt.Sprintf("%d", runID))
+		// NOTE: prepare.go creates the workspace at /tmp/tenkai-exec/<runID> when
+		// running on GCS Fuse (when wsPath starts with /app/assets).
+		// We must use the same path here that prepare.go uses.
+		wsPath := filepath.Join("/tmp/tenkai-exec", fmt.Sprintf("%d", runID))
 		targetPath := filepath.Join(w.Runner.WorkspaceMgr.RunsDir, fmt.Sprintf("%d", runID))
 		log.Printf("[Runner] Final artifact sync for Run %d: %s -> %s", runID, wsPath, targetPath)
 		if syncErr := w.Runner.syncDir(wsPath, targetPath); syncErr != nil {
