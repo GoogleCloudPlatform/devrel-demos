@@ -84,7 +84,7 @@ platformdirs==4.4.0
 pluggy==1.6.0
 
 proto-plus==1.26.1
-protobuf==6.32.0
+protobuf==6.33.5
 py==1.11.0
 pyasn1==0.6.2
 pyasn1_modules==0.4.2
