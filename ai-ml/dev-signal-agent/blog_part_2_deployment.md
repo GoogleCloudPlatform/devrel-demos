@@ -237,7 +237,21 @@ This make command performs two key steps:
 
 ## Step 4: Secure Access
 
-Access your private service securely via the **Cloud Run Proxy**:
+By default, our Cloud Run service is private. To access it, you need to use the **Cloud Run Proxy** and ensure your user has the correct permissions.
+
+### 1. Granting User Permissions
+Before you can invoke the service, you must grant your Google account the `roles/run.invoker` role for this specific service. Run the following command:
+
+```bash
+gcloud run services add-iam-policy-binding dev-signal-agent \
+  --member="user:your-email@example.com" \
+  --role="roles/run.invoker" \
+  --region=us-central1 \
+  --project=your-project-id
+```
+
+### 2. Launch the Proxy
+Now, access your private service securely via the proxy:
 
 ```bash
 gcloud run services proxy dev-signal-agent \
