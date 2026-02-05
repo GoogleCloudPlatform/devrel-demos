@@ -1,6 +1,6 @@
 # Dev Signal Agent
 
-**Dev Signal** is an autonomous multi-agent system designed to monitor technical trends, research solutions, and generate content. It demonstrates the power of the **Google Agent Development Kit (ADK)**, **Vertex AI**, and the **Model Context Protocol (MCP)**.
+**Dev Signal** is a multi-agent system with a human in the loop designed to monitor technical trends, research solutions, and generate content. It demonstrates the power of the **Google Agent Development Kit (ADK)**, **Vertex AI**, and the **Model Context Protocol (MCP)**.
 
 ## 🚀 Capabilities
 

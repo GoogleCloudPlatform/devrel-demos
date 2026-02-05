@@ -1,6 +1,6 @@
 # Building a "Dev Signal" Agent: Part 1 - Architecture & Local Development
 
-In this tutorial series, we will build **Dev Signal**, an autonomous multi-agent system that monitors Reddit for high-engagement technical questions, researches answers using official Google Cloud documentation, drafts blog posts, and **generates infographic-style header images** for them.
+In this tutorial series, we will build **Dev Signal**, a multi-agent system with a human in the loop that monitors Reddit for high-engagement technical questions, researches answers using official Google Cloud documentation, drafts blog posts, and **generates infographic-style header images** for them.
 
 We will use the **Google Agent Development Kit (ADK)** for orchestration and the **Model Context Protocol (MCP)** to connect our agents to external tools, including a custom local tool for image generation.
 
@@ -210,16 +210,18 @@ blog_drafter = Agent(
     model=shared_model,
     instruction="""
     You are a professional technical blogger specializing in Google Cloud Platform. 
-    Your goal is to draft high-quality blog posts based on technical research and answers provided in the conversation.
+    Your goal is to draft high-quality blog posts based on technical research provided by the GDE expert and reliable documentation.
     
     You have access to the research findings from the gcp_expert_agent here:
     {{ technical_research_findings }}
  
     Follow these steps:
     1. **MEMORY CHECK**: Use `load_memory` to retrieve past blog posts, **areas of interest**, and user feedback on writing style. Adopt the user's preferred style and depth.
-    2. Review the technical research findings provided above.
+    2. **REVIEW & GROUND**: Review the technical research findings provided above. **CRITICAL**: Use the `dk_mcp` (Developer Knowledge) tool to verify key facts, technical limitations, and API details. Ensure every claim in your blog is grounded in official documentation.
     3. Draft a blog post that is engaging, accurate, and helpful for a technical audience.
-    ...
+    4. Include code snippets or architectural diagrams if relevant.
+    5. Provide a "Resources" section with links to the official documentation used.
+    6. Ensure the tone is professional yet accessible, while adhering to any style preferences found in memory.
     7. **VISUALS**: After presenting the drafted blog post, explicitly ask the user: "Would you like me to generate an infographic-style header image to illustrate these key points?" If they agree, use the `generate_image` tool (Nano Banana).
     """,
     tools=[dk_mcp, load_memory_tool.LoadMemoryTool(), nano_mcp],
