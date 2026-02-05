@@ -1,84 +1,92 @@
-# dev-signal
+# Dev Signal Agent
 
-Simple ReAct agent
-Agent generated with [`googleCloudPlatform/agent-starter-pack`](https://github.com/GoogleCloudPlatform/agent-starter-pack) version `0.33.1`
+**Dev Signal** is an autonomous multi-agent system designed to monitor technical trends, research solutions, and generate content. It demonstrates the power of the **Google Agent Development Kit (ADK)**, **Vertex AI**, and the **Model Context Protocol (MCP)**.
 
-## Project Structure
+## 🚀 Capabilities
 
-```
+1.  **Trend Spotting**: Monitors Reddit (via MCP) for high-engagement technical questions (e.g., Cloud Run, AI Agents).
+2.  **Deep Research**: "Triangulates" answers using:
+    *   **Official Docs**: Via Google's Developer Knowledge MCP.
+    *   **Community Sentiment**: Via Reddit MCP.
+    *   **Web Context**: Via Google Search Tool.
+3.  **Content Creation**: Drafts professional technical blog posts based on the research.
+4.  **Visual Generation**: Generates custom infographic headers using a local **Nano Banana** MCP tool (powered by Gemini).
+5.  **Long-Term Memory**: Remembers user preferences (e.g., writing style, topics) across sessions using Vertex AI Agent Engine.
+
+## 📂 Project Structure
+
+```text
 dev-signal/
-├── app/         # Core agent code
-│   ├── agent.py               # Main agent logic
-│   ├── fast_api_app.py        # FastAPI Backend server
-│   └── app_utils/             # App utilities and helpers
-├── .cloudbuild/               # CI/CD pipeline configurations for Google Cloud Build
-├── deployment/                # Infrastructure and deployment scripts
-├── notebooks/                 # Jupyter notebooks for prototyping and evaluation
-├── tests/                     # Unit, integration, and load tests
-├── GEMINI.md                  # AI-assisted development guide
-├── Makefile                   # Development commands
-└── pyproject.toml             # Project dependencies
+├── dev_signal_agent/      # Main application package
+│   ├── agent.py           # Core agent logic & orchestration
+│   ├── fast_api_app.py    # FastAPI server for Cloud Run
+│   ├── tools/
+│   │   ├── mcp_config.py  # MCP Client configuration
+│   │   └── nano_banana_mcp/ # Local Image Generation MCP
+│   └── app_utils/         # Telemetry & Config
+├── deployment/
+│   └── terraform/         # Infrastructure as Code (Cloud Run, IAM, Secrets)
+├── blog_part_1_building.md   # Tutorial: Building the Agent
+├── blog_part_2_deployment.md # Tutorial: Deploying to Cloud Run
+├── blog_part_3_memory.md     # Tutorial: Adding Memory
+├── Makefile               # Shortcuts for dev & deploy
+└── test_memory_local.py   # Script to test long-term memory
 ```
 
-> 💡 **Tip:** Use [Gemini CLI](https://github.com/google-gemini/gemini-cli) for AI-assisted development - project context is pre-configured in `GEMINI.md`.
+## 🛠️ Prerequisites
 
-## Requirements
+*   **Python 3.12+** (Managed via `uv`)
+*   **Google Cloud Project** with Vertex AI enabled.
+*   **API Keys**:
+    *   Reddit App Credentials (Client ID/Secret)
+    *   Developer Knowledge API Key
 
-Before you begin, ensure you have:
-- **uv**: Python package manager (used for all dependency management in this project) - [Install](https://docs.astral.sh/uv/getting-started/installation/) ([add packages](https://docs.astral.sh/uv/concepts/dependencies/) with `uv add <package>`)
-- **Google Cloud SDK**: For GCP services - [Install](https://cloud.google.com/sdk/docs/install)
-- **Terraform**: For infrastructure deployment - [Install](https://developer.hashicorp.com/terraform/downloads)
-- **make**: Build automation tool - [Install](https://www.gnu.org/software/make/) (pre-installed on most Unix-based systems)
+## ⚡ Quick Start
 
+1.  **Install Dependencies**:
+    ```bash
+    make install
+    ```
 
-## Quick Start
+2.  **Configure Environment**:
+    Copy `.env.example` to `.env` and fill in your keys:
+    ```bash
+    cp .env.example .env
+    ```
 
-Install required packages and launch the local development environment:
+3.  **Run the Playground**:
+    Interact with the agent in a local web UI.
+    ```bash
+    make playground
+    ```
+    Visit: `http://localhost:8501`
 
-```bash
-make install && make playground
-```
+4.  **Test Memory**:
+    Verify persistent memory with the local test script.
+    ```bash
+    python test_memory_local.py
+    ```
 
-## Commands
+## ☁️ Deployment
 
-| Command              | Description                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------- |
-| `make install`       | Install dependencies using uv                                                               |
-| `make playground`    | Launch local development environment                                                        |
-| `make lint`          | Run code quality checks                                                                     |
-| `make test`          | Run unit and integration tests                                                              |
-| `make deploy`        | Deploy agent to Cloud Run                                                                   |
-| `make local-backend` | Launch local development server with hot-reload                                             |
-| `make setup-dev-env` | Set up development environment resources using Terraform                                   |
+We use **Terraform** for infrastructure and **Cloud Build** for the container.
 
-For full command options and usage, refer to the [Makefile](Makefile).
+1.  **Provision Infrastructure**:
+    ```bash
+    cd deployment/terraform
+    terraform init
+    terraform apply
+    ```
 
-## 🛠️ Project Management
+2.  **Deploy Application**:
+    ```bash
+    make docker-deploy
+    ```
 
-| Command | What It Does |
-|---------|--------------|
-| `uvx agent-starter-pack setup-cicd` | One-command setup of entire CI/CD pipeline + infrastructure |
-| `uvx agent-starter-pack upgrade` | Auto-upgrade to latest version while preserving customizations |
-| `uvx agent-starter-pack extract` | Extract minimal, shareable version of your agent |
+## 📚 Learn More
 
----
+Check out the detailed tutorial series included in this repo:
 
-## Development
-
-Edit your agent logic in `app/agent.py` and test with `make playground` - it auto-reloads on save.
-Use notebooks in `notebooks/` for prototyping and Vertex AI Evaluation.
-See the [development guide](https://googlecloudplatform.github.io/agent-starter-pack/guide/development-guide) for the full workflow.
-
-## Deployment
-
-```bash
-gcloud config set project <your-project-id>
-make deploy
-```
-To set up your production infrastructure, run `uvx agent-starter-pack setup-cicd`.
-See the [deployment guide](https://googlecloudplatform.github.io/agent-starter-pack/guide/deployment) for details.
-
-## Observability
-
-Built-in telemetry exports to Cloud Trace, BigQuery, and Cloud Logging.
-See the [observability guide](https://googlecloudplatform.github.io/agent-starter-pack/guide/observability) for queries and dashboards.
+*   [Part 1: Architecture & Building](blog_part_1_building.md)
+*   [Part 2: Production Deployment](blog_part_2_deployment.md)
+*   [Part 3: Long-Term Memory](blog_part_3_memory.md)
