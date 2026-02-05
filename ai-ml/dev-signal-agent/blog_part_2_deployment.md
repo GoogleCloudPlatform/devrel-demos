@@ -2,6 +2,15 @@
 
 In Part 1, we built the Dev Signal agent with Nano Banana image generation capabilities. Now, we will deploy it to a production-grade environment using **Google Cloud Run** and **Terraform**.
 
+## Why Terraform?
+
+While you can deploy to Google Cloud using the console or `gcloud` CLI, using **Terraform** (Infrastructure as Code) offers critical advantages for production AI systems:
+
+1.  **Reproducibility**: Your entire environment—from IAM roles to Secret Manager versions—is defined in code. You can tear down and rebuild the exact same setup in minutes.
+2.  **Security Compliance**: Terraform allows you to audit exactly *who* has access to *what*. In our agent's case, we strictly limit the Service Account's permissions to only what it needs (Vertex AI User, Logging Writer).
+3.  **Dependency Management**: Terraform handles the complex order of operations. It knows it must enable the `aiplatform` API *before* it tries to assign a Vertex AI IAM role.
+4.  **Drift Detection**: Terraform can detect if someone manually changed a configuration in the console and revert it to the declared state, ensuring your production environment remains stable.
+
 ## Prerequisites
 
 *   Google Cloud SDK (`gcloud`) installed and authenticated.
@@ -39,7 +48,11 @@ variable "secrets" {
 ```
 
 **File:** `deployment/terraform/main.tf`
-This configuration deploys Cloud Run, sets up IAM roles for Vertex AI and Logging, and securely handles secrets.
+
+We will build our infrastructure in logical blocks.
+
+### 1. Enable APIs
+First, we enable the necessary Google Cloud services. This ensures that even in a fresh project, all required APIs (like Vertex AI and Secret Manager) are active.
 
 ```hcl
 # 1. Enable Google Cloud APIs
@@ -55,7 +68,12 @@ resource "google_project_service" "services" {
   service            = each.key
   disable_on_destroy = false
 }
+```
 
+### 2. Artifact Registry
+We create a Docker repository to store our agent's container images. This gives us a private, secure place to push our builds.
+
+```hcl
 # 2. Artifact Registry Repository
 resource "google_artifact_registry_repository" "repo" {
   location      = var.region
@@ -64,7 +82,14 @@ resource "google_artifact_registry_repository" "repo" {
   format        = "DOCKER"
   depends_on    = [google_project_service.services]
 }
+```
 
+### 3. Identity (Service Account & IAM)
+**Security Best Practice**: We create a dedicated Service Account for the agent. Instead of giving it broad "Editor" permissions, we grant it *only* the specific roles it needs:
+*   `roles/aiplatform.user`: To call Vertex AI models.
+*   `roles/logging.logWriter`: To send telemetry and logs to Cloud Logging.
+
+```hcl
 # 3. Service Account for the Agent
 resource "google_service_account" "agent_sa" {
   account_id   = "${var.service_name}-sa"
@@ -83,7 +108,12 @@ resource "google_project_iam_member" "log_writer" {
   role    = "roles/logging.logWriter"
   member  = "serviceAccount:${google_service_account.agent_sa.email}"
 }
+```
 
+### 4. Secret Management
+We use Google Secret Manager to securely store API keys (like `DK_API_KEY` and Reddit credentials). This Terraform code iterates over your `secrets` variable, creates the secrets, and grants the agent's Service Account permission (`roles/secretmanager.secretAccessor`) to read them.
+
+```hcl
 # 5. Secret Manager for Sensitive Keys
 resource "google_secret_manager_secret" "agent_secrets" {
   for_each  = toset(keys(var.secrets))
@@ -107,7 +137,12 @@ resource "google_secret_manager_secret_iam_member" "secret_accessor" {
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.agent_sa.email}"
 }
+```
 
+### 5. Cloud Run Service
+Finally, we deploy the container. Notice how we inject the secrets as environment variables dynamically. We also override `GOOGLE_CLOUD_LOCATION` to `global` to ensure compatibility with Vertex AI Preview models.
+
+```hcl
 # 6. Cloud Run Service
 resource "google_cloud_run_v2_service" "default" {
   name     = var.service_name
