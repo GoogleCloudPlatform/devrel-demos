@@ -12,7 +12,7 @@ Using **Vertex AI Agent Engine**, our agent will be able to remember user prefer
 
 ## Step 1: Configure the App Server
 
-We need to tell our FastAPI app to use the **Agent Engine** for memory. Here is the full code for `fast_api_app.py` with the memory updates highlighted.
+We need to tell our FastAPI app to use the **Agent Engine** for memory. Here is the full code for `fast_api_app.py` followed by a breakdown of how the memory connection is established.
 
 **File:** `dev_signal_agent/fast_api_app.py`
 ```python
@@ -66,9 +66,15 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
 ```
 
+### Breakdown: Connecting to Agent Engine
+
+*   **`_get_agent_engine_uri()`**: This helper function searches for an existing Agent Engine instance in your GCP project. If it doesn't find one, it creates it. The resulting URI (formatted as `agentengine://...`) acts as the "address" for our long-term memory store.
+*   **`memory_service_uri`**: This is the most important parameter. By passing `MEMORY_URI` to `get_fast_api_app`, we tell the entire ADK framework where to store and search for memories. Without this, the agent tools wouldn't know which database to talk to.
+*   **`session_service_uri`**: Note that we use the same URI for both sessions and memory. This ensures that the context the agent creates during a live chat is seamlessly saved into the same persistent storage.
+
 ## Step 2: Equip the Agents
 
-Now we update the core logic in `agent.py`. We add the `LoadMemoryTool`, define a callback to save memories, and update the instructions.
+Now we update the core logic in `agent.py`. We add the `LoadMemoryTool`, define a callback to automate memory "ingestion", and update the agent instructions to handle retrieval.
 
 **File:** `dev_signal_agent/agent.py`
 ```python
@@ -222,6 +228,22 @@ root_agent = Agent(
 
 app = App(root_agent=root_agent, name="dev_signal_agent")
 ```
+
+### Breakdown: How Memory Ingestion and Retrieval Work
+
+#### 1. Automated Ingestion (The Callback)
+The `save_session_to_memory_callback` is the "ingestion" engine. 
+*   **What it does**: It takes the current session history (the user's questions and the agent's answers) and sends it to the `memory_service`.
+*   **How it's used**: We hook it into the `root_agent` using the `after_agent_callback` parameter. This means the agent doesn't have to manually "save" anything; the system handles it automatically after every turn.
+
+#### 2. Manual Retrieval (The `LoadMemoryTool`)
+We equip our specialists (like the `blog_drafter` and `reddit_scanner`) with the `LoadMemoryTool`.
+*   **Why**: This allows the agent to perform semantic searches over past sessions. If a user previously said "I love Kubernetes," the `reddit_scanner` can retrieve that fact and prioritize Kubernetes-related Reddit posts.
+
+#### 3. Proactive Personalization (Agent Logic)
+The **instructions** are modified to make the agent "memory-aware."
+*   **Memory Check**: We tell the agent to perform a `load_memory` search at the *start* of a task.
+*   **Capturing Preferences**: We instruct the `root_orchestrator` to actively listen for and acknowledge user preferences. Because the callback saves the session history, acknowledging a preference (e.g., "I've noted that you prefer rhyming poetry") ensures that specific text is stored and searchable for future sessions.
 
 ## Step 3: Re-deploy
 
