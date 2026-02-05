@@ -163,14 +163,13 @@ reddit_scanner = Agent(
     from the last 3 weeks on specific topics of interest, such as AI/agents on Cloud Run.
     
     Follow these steps:
-    1. **MEMORY CHECK**: Use `load_memory` to retrieve the user's **past areas of interest** and **preferred topics**. Calibrate your search to align with these interests.
-    2. Use the Reddit MCP tools to search for relevant subreddits and posts.
-    3. Filter results for posts created within the last 21 days (3 weeks).
-    4. Analyze "high-engagement" based on upvote counts and the number of comments.
-    5. Recommend the most important and relevant questions for a technical audience.
-    6. **CRITICAL**: For each recommended question, provide a direct link to the original thread and a concise summary of the discussion.
+    1. Use the Reddit MCP tools to search for relevant subreddits and posts.
+    2. Filter results for posts created within the last 21 days (3 weeks).
+    3. Analyze "high-engagement" based on upvote counts and the number of comments.
+    4. Recommend the most important and relevant questions for a technical audience.
+    5. **CRITICAL**: For each recommended question, provide a direct link to the original thread and a concise summary of the discussion.
     """,
-    tools=[reddit_mcp, load_memory_tool.LoadMemoryTool()],
+    tools=[reddit_mcp],
 )
 ```
 
@@ -216,37 +215,39 @@ blog_drafter = Agent(
     {{ technical_research_findings }}
  
     Follow these steps:
-    1. **MEMORY CHECK**: Use `load_memory` to retrieve past blog posts, **areas of interest**, and user feedback on writing style. Adopt the user's preferred style and depth.
-    2. **REVIEW & GROUND**: Review the technical research findings provided above. **CRITICAL**: Use the `dk_mcp` (Developer Knowledge) tool to verify key facts, technical limitations, and API details. Ensure every claim in your blog is grounded in official documentation.
-    3. Draft a blog post that is engaging, accurate, and helpful for a technical audience.
-    4. Include code snippets or architectural diagrams if relevant.
-    5. Provide a "Resources" section with links to the official documentation used.
-    6. Ensure the tone is professional yet accessible, while adhering to any style preferences found in memory.
-    7. **VISUALS**: After presenting the drafted blog post, explicitly ask the user: "Would you like me to generate an infographic-style header image to illustrate these key points?" If they agree, use the `generate_image` tool (Nano Banana).
+    1. **REVIEW & GROUND**: Review the technical research findings provided above. **CRITICAL**: Use the `dk_mcp` (Developer Knowledge) tool to verify key facts, technical limitations, and API details. Ensure every claim in your blog is grounded in official documentation.
+    2. Draft a blog post that is engaging, accurate, and helpful for a technical audience.
+    3. Include code snippets or architectural diagrams if relevant.
+    4. Provide a "Resources" section with links to the official documentation used.
+    5. Ensure the tone is professional yet accessible.
+    6. **VISUALS**: After presenting the drafted blog post, explicitly ask the user: "Would you like me to generate an infographic-style header image to illustrate these key points?" If they agree, use the `generate_image` tool (Nano Banana).
     """,
-    tools=[dk_mcp, load_memory_tool.LoadMemoryTool(), nano_mcp],
+    tools=[dk_mcp, nano_mcp],
 )
 ```
 
 ### 3. The Root Orchestrator
 **Role**: The Strategist.
-**Mechanism**: Orchestrates the workflow and handles user preferences (Memory).
+**Mechanism**: Orchestrates the workflow.
 ```python
 root_agent = Agent(
     name="root_orchestrator",
     model=shared_model,
     instruction="""
     You are a technical content strategist. You manage three specialists:
-    ...
+    1. reddit_scanner: Finds trending questions and high-engagement topics on Reddit.
+    2. gcp_expert: Provides technical answers based on official GCP documentation.
+    3. blog_drafter: Writes professional blog posts based on technical research.
+ 
     Your responsibilities:
-    - **MEMORY CHECK**: At the start of a conversation, use `load_memory` to check if the user has specific **areas of interest**, preferred topics, or past projects. Tailor your suggestions accordingly.
-    - **CAPTURE PREFERENCES**: Actively listen for user preferences, interests, or project details. Explicitly acknowledge them to ensure they are captured in the session history for future personalization.
     - If the user wants to find trending topics or questions from Reddit, delegate to reddit_scanner.
     - If the user has a technical question or wants to research a specific theme, delegate to gcp_expert.
-    ...
+    - **CRITICAL**: After the gcp_expert provides an answer, you MUST ask the user: 
+      "Would you like me to draft a technical blog post based on this answer?"
+    - If the user agrees or asks to write a blog, delegate to blog_drafter.
+    - Be proactive in helping the user navigate from discovery (Reddit) to research (Docs) to content creation (Blog).
     """,
-    tools=[load_memory_tool.LoadMemoryTool(), preload_memory_tool.PreloadMemoryTool()],
-    after_agent_callback=save_session_to_memory_callback,
+    tools=[],
     sub_agents=[reddit_scanner, gcp_expert, blog_drafter]
 )
 ```
