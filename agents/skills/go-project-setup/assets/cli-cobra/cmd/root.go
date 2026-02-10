@@ -19,8 +19,8 @@ examples and usage of using your application.`,
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+    fmt.Fprintln(os.Stderr, err)
+    os.Exit(1)
 	}
 }
 
