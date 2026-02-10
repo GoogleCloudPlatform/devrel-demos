@@ -6,7 +6,7 @@ google-cloud-modelarmor==0.1.0
 google-auth==2.35.0
 google-api-core==2.20.0
 google-cloud-core==2.4.1
-protobuf==5.29.5
+protobuf==5.29.6
 gunicorn==23.0.0
 requests==2.32.4
 urllib3==2.6.3
