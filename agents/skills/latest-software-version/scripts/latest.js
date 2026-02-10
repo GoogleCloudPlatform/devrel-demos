@@ -6,7 +6,7 @@
  * Fetches the latest stable version of a package from official registries.
  * Usage: node latest.js <ecosystem> <package_name>
  * 
- * Ecosystems: npm, pypi, go, maven, cargo, gem, docker
+ * Ecosystems: npm, pypi, go, cargo, gem
  */
 
 const https = require('https');
