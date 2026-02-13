@@ -1,6 +1,6 @@
-# Dev Signal - Production-Ready AI Agent
+# Dev Signal -  Multi-Agent System for Expert Content with Google ADK, MCP and Cloud Run
 
-Welcome to **Dev Signal**, an intelligent monitoring agent designed to filter noise and create value. This project demonstrates how to build, deploy, and train a sophisticated multi-agent system using the Google Agent Development Kit (ADK), Google Cloud Run, and Vertex AI memory bank.
+Welcome to **Dev Signal**, an intelligent monitoring agent designed to filter noise and create value. This project demonstrates how to build, deploy, and train a sophisticated multi-agent system using the Google Agent Development Kit (ADK), Google Cloud Run, MCP, and Vertex AI memory bank.
 
 ## 🚀 What is Dev Signal?
 
