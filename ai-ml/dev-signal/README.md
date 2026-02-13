@@ -104,6 +104,20 @@ You can test the full agent loop locally, including the connection to the cloud-
 
 We use **Terraform** for infrastructure and **Cloud Run** for hosting.
 
+### 0. Setup environment variables
+Paste this code in  deployment/terraform/terraform.tfvars and update it with your project details and secrets.
+
+project_id = "your-project-id"
+region     = "us-central1"
+service_name      = "dev-signal"
+ai_assets_bucket  = "your-bucket-name"
+secrets = {
+  REDDIT_CLIENT_ID     = "your_client_id"
+  REDDIT_CLIENT_SECRET = "your_client_secret"
+  REDDIT_USER_AGENT    = "your_user_agent"
+  DK_API_KEY           = "your_dk_api_key"
+}
+
 ### 1. Provision Infrastructure
 Initialize and apply the Terraform configuration to set up Cloud Run, Secret Manager, and permissions.
 
