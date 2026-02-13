@@ -1,11 +1,11 @@
-project_id   = "shir-training"
+project_id   = "your_project_id"
 region       = "us-central1"
-service_name      = "dev-signal-v2"
-ai_assets_bucket  = "shir-dev-signal-agent"
+service_name      = "dev-signal"
+ai_assets_bucket  = "your_bucket"
 
 secrets = {
-  REDDIT_CLIENT_ID     = "E7UbSWgdZCbSe9lBbu8inA"
-  REDDIT_CLIENT_SECRET = "n2slI8f4jMWXRG6D7xXe9coKkSXeUw"
-  REDDIT_USER_AGENT    = "TrendSpotterAgent/0.1 by u/DataPrincess"
-  DK_API_KEY           = "AIzaSyD-AtQ7Qjs8D4p_1fwhvdBpR8SOcvoysI0"
+  REDDIT_CLIENT_ID     = "your_reddit_client_id"
+  REDDIT_CLIENT_SECRET = "your_reddit_client_secert"
+  REDDIT_USER_AGENT    = "your_reddit_user_agent"
+  DK_API_KEY           = "your_dk_api_key"
 }
