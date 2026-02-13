@@ -1,0 +1,19 @@
+[project]
+name = "dev-signal"
+version = "0.1.0"
+description = "A multi-agent system for monitoring and content creation."
+readme = "README.md"
+requires-python = ">=3.12, <3.14"
+dependencies = [
+    "google-adk>=0.1.0",
+    "google-genai>=1.0.0",
+    "mcp>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.29.0",
+    "google-cloud-logging>=3.0.0",
+    "google-cloud-aiplatform>=1.38.0",
+    "fastmcp>=2.13.0",
+    "google-cloud-storage>=3.6.0",
+    "google-auth>=2.0.0"
+]

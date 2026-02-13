@@ -1,0 +1,211 @@
+google_project_service.services["logging.googleapis.com"]: Refreshing state... [id=shir-training/logging.googleapis.com]
+google_project_service.services["aiplatform.googleapis.com"]: Refreshing state... [id=shir-training/aiplatform.googleapis.com]
+google_project_service.services["artifactregistry.googleapis.com"]: Refreshing state... [id=shir-training/artifactregistry.googleapis.com]
+google_project_service.services["secretmanager.googleapis.com"]: Refreshing state... [id=shir-training/secretmanager.googleapis.com]
+google_project_service.services["run.googleapis.com"]: Refreshing state... [id=shir-training/run.googleapis.com]
+google_service_account.agent_sa: Refreshing state... [id=projects/shir-training/serviceAccounts/dev-signal-v2-sa@shir-training.iam.gserviceaccount.com]
+google_project_service.services["cloudbuild.googleapis.com"]: Refreshing state... [id=shir-training/cloudbuild.googleapis.com]
+google_artifact_registry_repository.repo: Refreshing state... [id=projects/shir-training/locations/us-central1/repositories/dev-signal-v2-repo]
+google_secret_manager_secret.agent_secrets["DK_API_KEY"]: Refreshing state... [id=projects/shir-training/secrets/dev-signal-v2-DK_API_KEY]
+google_secret_manager_secret.agent_secrets["REDDIT_CLIENT_SECRET"]: Refreshing state... [id=projects/shir-training/secrets/dev-signal-v2-REDDIT_CLIENT_SECRET]
+google_secret_manager_secret.agent_secrets["REDDIT_USER_AGENT"]: Refreshing state... [id=projects/shir-training/secrets/dev-signal-v2-REDDIT_USER_AGENT]
+google_secret_manager_secret.agent_secrets["REDDIT_CLIENT_ID"]: Refreshing state... [id=projects/shir-training/secrets/dev-signal-v2-REDDIT_CLIENT_ID]
+google_secret_manager_secret_version.agent_secrets_version["DK_API_KEY"]: Refreshing state... [id=projects/400520706792/secrets/dev-signal-v2-DK_API_KEY/versions/1]
+google_secret_manager_secret_version.agent_secrets_version["REDDIT_USER_AGENT"]: Refreshing state... [id=projects/400520706792/secrets/dev-signal-v2-REDDIT_USER_AGENT/versions/1]
+google_secret_manager_secret_version.agent_secrets_version["REDDIT_CLIENT_SECRET"]: Refreshing state... [id=projects/400520706792/secrets/dev-signal-v2-REDDIT_CLIENT_SECRET/versions/1]
+google_secret_manager_secret_version.agent_secrets_version["REDDIT_CLIENT_ID"]: Refreshing state... [id=projects/400520706792/secrets/dev-signal-v2-REDDIT_CLIENT_ID/versions/1]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # google_cloud_run_v2_service.default will be created
+  + resource "google_cloud_run_v2_service" "default" {
+      + conditions              = (known after apply)
+      + create_time             = (known after apply)
+      + creator                 = (known after apply)
+      + delete_time             = (known after apply)
+      + deletion_protection     = true
+      + effective_annotations   = (known after apply)
+      + effective_labels        = {
+          + "goog-terraform-provisioned" = "true"
+        }
+      + etag                    = (known after apply)
+      + expire_time             = (known after apply)
+      + generation              = (known after apply)
+      + id                      = (known after apply)
+      + ingress                 = "INGRESS_TRAFFIC_ALL"
+      + last_modifier           = (known after apply)
+      + latest_created_revision = (known after apply)
+      + latest_ready_revision   = (known after apply)
+      + launch_stage            = (known after apply)
+      + location                = "us-central1"
+      + name                    = "dev-signal-v2"
+      + observed_generation     = (known after apply)
+      + project                 = "shir-training"
+      + reconciling             = (known after apply)
+      + terminal_condition      = (known after apply)
+      + terraform_labels        = {
+          + "goog-terraform-provisioned" = "true"
+        }
+      + traffic_statuses        = (known after apply)
+      + uid                     = (known after apply)
+      + update_time             = (known after apply)
+      + uri                     = (known after apply)
+      + urls                    = (known after apply)
+
+      + scaling (known after apply)
+
+      + template {
+          + max_instance_request_concurrency = (known after apply)
+          + service_account                  = "dev-signal-v2-sa@shir-training.iam.gserviceaccount.com"
+          + timeout                          = (known after apply)
+
+          + containers {
+              + build_info = (known after apply)
+              + image      = "us-docker.pkg.dev/cloudrun/container/hello"
+
+              + env {
+                  + name  = "DK_API_KEY"
+                    # (1 unchanged attribute hidden)
+
+                  + value_source {
+                      + secret_key_ref {
+                          + secret  = "dev-signal-v2-DK_API_KEY"
+                          + version = "latest"
+                        }
+                    }
+                }
+              + env {
+                  + name  = "GOOGLE_CLOUD_LOCATION"
+                  + value = "global"
+                }
+              + env {
+                  + name  = "GOOGLE_CLOUD_PROJECT"
+                  + value = "shir-training"
+                }
+              + env {
+                  + name  = "GOOGLE_GENAI_USE_VERTEXAI"
+                  + value = "True"
+                }
+              + env {
+                  + name  = "REDDIT_CLIENT_ID"
+                    # (1 unchanged attribute hidden)
+
+                  + value_source {
+                      + secret_key_ref {
+                          + secret  = "dev-signal-v2-REDDIT_CLIENT_ID"
+                          + version = "latest"
+                        }
+                    }
+                }
+              + env {
+                  + name  = "REDDIT_CLIENT_SECRET"
+                    # (1 unchanged attribute hidden)
+
+                  + value_source {
+                      + secret_key_ref {
+                          + secret  = "dev-signal-v2-REDDIT_CLIENT_SECRET"
+                          + version = "latest"
+                        }
+                    }
+                }
+              + env {
+                  + name  = "REDDIT_USER_AGENT"
+                    # (1 unchanged attribute hidden)
+
+                  + value_source {
+                      + secret_key_ref {
+                          + secret  = "dev-signal-v2-REDDIT_USER_AGENT"
+                          + version = "latest"
+                        }
+                    }
+                }
+
+              + ports (known after apply)
+
+              + resources {
+                  + limits = {
+                      + "cpu"    = "1"
+                      + "memory" = "2Gi"
+                    }
+                }
+
+              + startup_probe (known after apply)
+            }
+
+          + scaling (known after apply)
+        }
+
+      + traffic {
+          + percent = 100
+          + type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
+        }
+    }
+
+  # google_project_iam_member.log_writer will be created
+  + resource "google_project_iam_member" "log_writer" {
+      + etag    = (known after apply)
+      + id      = (known after apply)
+      + member  = "serviceAccount:dev-signal-v2-sa@shir-training.iam.gserviceaccount.com"
+      + project = "shir-training"
+      + role    = "roles/logging.logWriter"
+    }
+
+  # google_project_iam_member.vertex_ai_user will be created
+  + resource "google_project_iam_member" "vertex_ai_user" {
+      + etag    = (known after apply)
+      + id      = (known after apply)
+      + member  = "serviceAccount:dev-signal-v2-sa@shir-training.iam.gserviceaccount.com"
+      + project = "shir-training"
+      + role    = "roles/aiplatform.user"
+    }
+
+  # google_secret_manager_secret_iam_member.secret_accessor["DK_API_KEY"] will be created
+  + resource "google_secret_manager_secret_iam_member" "secret_accessor" {
+      + etag      = (known after apply)
+      + id        = (known after apply)
+      + member    = "serviceAccount:dev-signal-v2-sa@shir-training.iam.gserviceaccount.com"
+      + project   = (known after apply)
+      + role      = "roles/secretmanager.secretAccessor"
+      + secret_id = "projects/shir-training/secrets/dev-signal-v2-DK_API_KEY"
+    }
+
+  # google_secret_manager_secret_iam_member.secret_accessor["REDDIT_CLIENT_ID"] will be created
+  + resource "google_secret_manager_secret_iam_member" "secret_accessor" {
+      + etag      = (known after apply)
+      + id        = (known after apply)
+      + member    = "serviceAccount:dev-signal-v2-sa@shir-training.iam.gserviceaccount.com"
+      + project   = (known after apply)
+      + role      = "roles/secretmanager.secretAccessor"
+      + secret_id = "projects/shir-training/secrets/dev-signal-v2-REDDIT_CLIENT_ID"
+    }
+
+  # google_secret_manager_secret_iam_member.secret_accessor["REDDIT_CLIENT_SECRET"] will be created
+  + resource "google_secret_manager_secret_iam_member" "secret_accessor" {
+      + etag      = (known after apply)
+      + id        = (known after apply)
+      + member    = "serviceAccount:dev-signal-v2-sa@shir-training.iam.gserviceaccount.com"
+      + project   = (known after apply)
+      + role      = "roles/secretmanager.secretAccessor"
+      + secret_id = "projects/shir-training/secrets/dev-signal-v2-REDDIT_CLIENT_SECRET"
+    }
+
+  # google_secret_manager_secret_iam_member.secret_accessor["REDDIT_USER_AGENT"] will be created
+  + resource "google_secret_manager_secret_iam_member" "secret_accessor" {
+      + etag      = (known after apply)
+      + id        = (known after apply)
+      + member    = "serviceAccount:dev-signal-v2-sa@shir-training.iam.gserviceaccount.com"
+      + project   = (known after apply)
+      + role      = "roles/secretmanager.secretAccessor"
+      + secret_id = "projects/shir-training/secrets/dev-signal-v2-REDDIT_USER_AGENT"
+    }
+
+Plan: 7 to add, 0 to change, 0 to destroy.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.

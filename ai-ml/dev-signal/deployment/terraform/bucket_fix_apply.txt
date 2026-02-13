@@ -1,0 +1,66 @@
+google_project_service.services["logging.googleapis.com"]: Refreshing state... [id=shir-training/logging.googleapis.com]
+google_project_service.services["run.googleapis.com"]: Refreshing state... [id=shir-training/run.googleapis.com]
+google_project_service.services["cloudbuild.googleapis.com"]: Refreshing state... [id=shir-training/cloudbuild.googleapis.com]
+google_project_service.services["artifactregistry.googleapis.com"]: Refreshing state... [id=shir-training/artifactregistry.googleapis.com]
+google_project_service.services["secretmanager.googleapis.com"]: Refreshing state... [id=shir-training/secretmanager.googleapis.com]
+google_service_account.agent_sa: Refreshing state... [id=projects/shir-training/serviceAccounts/dev-signal-v2-sa@shir-training.iam.gserviceaccount.com]
+google_project_service.services["aiplatform.googleapis.com"]: Refreshing state... [id=shir-training/aiplatform.googleapis.com]
+google_project_iam_member.log_writer: Refreshing state... [id=shir-training/roles/logging.logWriter/serviceAccount:dev-signal-v2-sa@shir-training.iam.gserviceaccount.com]
+google_project_iam_member.vertex_ai_user: Refreshing state... [id=shir-training/roles/aiplatform.user/serviceAccount:dev-signal-v2-sa@shir-training.iam.gserviceaccount.com]
+google_artifact_registry_repository.repo: Refreshing state... [id=projects/shir-training/locations/us-central1/repositories/dev-signal-v2-repo]
+google_secret_manager_secret.agent_secrets["REDDIT_CLIENT_ID"]: Refreshing state... [id=projects/shir-training/secrets/dev-signal-v2-REDDIT_CLIENT_ID]
+google_secret_manager_secret.agent_secrets["REDDIT_USER_AGENT"]: Refreshing state... [id=projects/shir-training/secrets/dev-signal-v2-REDDIT_USER_AGENT]
+google_secret_manager_secret.agent_secrets["REDDIT_CLIENT_SECRET"]: Refreshing state... [id=projects/shir-training/secrets/dev-signal-v2-REDDIT_CLIENT_SECRET]
+google_secret_manager_secret.agent_secrets["DK_API_KEY"]: Refreshing state... [id=projects/shir-training/secrets/dev-signal-v2-DK_API_KEY]
+google_secret_manager_secret_iam_member.secret_accessor["REDDIT_CLIENT_ID"]: Refreshing state... [id=projects/shir-training/secrets/dev-signal-v2-REDDIT_CLIENT_ID/roles/secretmanager.secretAccessor/serviceAccount:dev-signal-v2-sa@shir-training.iam.gserviceaccount.com]
+google_secret_manager_secret_iam_member.secret_accessor["REDDIT_USER_AGENT"]: Refreshing state... [id=projects/shir-training/secrets/dev-signal-v2-REDDIT_USER_AGENT/roles/secretmanager.secretAccessor/serviceAccount:dev-signal-v2-sa@shir-training.iam.gserviceaccount.com]
+google_secret_manager_secret_iam_member.secret_accessor["REDDIT_CLIENT_SECRET"]: Refreshing state... [id=projects/shir-training/secrets/dev-signal-v2-REDDIT_CLIENT_SECRET/roles/secretmanager.secretAccessor/serviceAccount:dev-signal-v2-sa@shir-training.iam.gserviceaccount.com]
+google_secret_manager_secret_version.agent_secrets_version["REDDIT_USER_AGENT"]: Refreshing state... [id=projects/400520706792/secrets/dev-signal-v2-REDDIT_USER_AGENT/versions/1]
+google_secret_manager_secret_version.agent_secrets_version["REDDIT_CLIENT_ID"]: Refreshing state... [id=projects/400520706792/secrets/dev-signal-v2-REDDIT_CLIENT_ID/versions/1]
+google_secret_manager_secret_iam_member.secret_accessor["DK_API_KEY"]: Refreshing state... [id=projects/shir-training/secrets/dev-signal-v2-DK_API_KEY/roles/secretmanager.secretAccessor/serviceAccount:dev-signal-v2-sa@shir-training.iam.gserviceaccount.com]
+google_secret_manager_secret_version.agent_secrets_version["DK_API_KEY"]: Refreshing state... [id=projects/400520706792/secrets/dev-signal-v2-DK_API_KEY/versions/1]
+google_secret_manager_secret_version.agent_secrets_version["REDDIT_CLIENT_SECRET"]: Refreshing state... [id=projects/400520706792/secrets/dev-signal-v2-REDDIT_CLIENT_SECRET/versions/1]
+google_cloud_run_v2_service.default: Refreshing state... [id=projects/shir-training/locations/us-central1/services/dev-signal-v2]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+
+Terraform will perform the following actions:
+
+  # google_cloud_run_v2_service.default will be updated in-place
+  ~ resource "google_cloud_run_v2_service" "default" {
+      - client                  = "gcloud" -> null
+      - client_version          = "555.0.0" -> null
+        id                      = "projects/shir-training/locations/us-central1/services/dev-signal-v2"
+        name                    = "dev-signal-v2"
+        # (32 unchanged attributes hidden)
+
+      ~ template {
+            # (11 unchanged attributes hidden)
+
+          ~ containers {
+              ~ image          = "us-central1-docker.pkg.dev/shir-training/dev-signal-v2-repo/agent:latest" -> "us-docker.pkg.dev/cloudrun/container/hello"
+                name           = null
+                # (6 unchanged attributes hidden)
+
+              + env {
+                  + name  = "AI_ASSETS_BUCKET"
+                  + value = "shir-dev-signal-agent"
+                }
+
+                # (10 unchanged blocks hidden)
+            }
+
+            # (1 unchanged block hidden)
+        }
+
+        # (2 unchanged blocks hidden)
+    }
+
+Plan: 0 to add, 1 to change, 0 to destroy.
+google_cloud_run_v2_service.default: Modifying... [id=projects/shir-training/locations/us-central1/services/dev-signal-v2]
+google_cloud_run_v2_service.default: Still modifying... [id=projects/shir-training/locations/us-central1/services/dev-signal-v2, 00m10s elapsed]
+google_cloud_run_v2_service.default: Modifications complete after 12s [id=projects/shir-training/locations/us-central1/services/dev-signal-v2]
+
+Apply complete! Resources: 0 added, 1 changed, 0 destroyed.
