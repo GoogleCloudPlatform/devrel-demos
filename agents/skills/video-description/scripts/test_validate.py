@@ -131,3 +131,39 @@ def test_video_description_generation(test_case) -> None:
     # 3. Check Semantic Expectations
     semantic_failures = check_semantic_expectations(output, expected_behavior)
     assert not semantic_failures, f"Semantic checks failed: {semantic_failures}"
+
+def test_validate_description_hashtags():
+    """Unit tests for hashtag validation logic in validate_description."""
+    # 1. Correct number of hashtags
+    errors, _ = validate_description("# Title\nContent with #one #two #three #four #five")
+    assert not any("hashtag" in e.lower() for e in errors)
+
+    # 2. Too few hashtags
+    errors, _ = validate_description("# Title\nContent with #one #two #three #four")
+    assert any("fewer than 5" in e.lower() for e in errors)
+
+    # 3. Too many hashtags
+    errors, _ = validate_description("# Title\nContent with #one #two #three #four #five #six")
+    assert any("too many" in e.lower() for e in errors)
+
+    # 4. No hashtags (should be an error)
+    errors, warnings = validate_description("# Title\nContent with no hashtags")
+    assert any("fewer than 5" in e.lower() for e in errors)
+    assert any("no hashtags found" in w.lower() for w in warnings)
+
+def test_validate_description_technical_rules():
+    """Unit tests for other technical validation rules."""
+    # 1. Missing title
+    _, warnings = validate_description("No title here\n\n#one #two #three #four #five")
+    assert any("does not start with a title" in w.lower() for w in warnings)
+
+    # 2. Detected 'we' (POV check)
+    _, warnings = validate_description("# Title\nWe are building this together.\n#one #two #three #four #five")
+    assert any("detected 'we/our/us'" in w.lower() for w in warnings)
+
+    # 3. Length checks
+    _, warnings = validate_description("# T\n" + "a" * 5001 + "\n#one #two #three #four #five")
+    assert any("very long" in w.lower() for w in warnings)
+
+    _, warnings = validate_description("# T\n#one #two #three #four #five")
+    assert any("very short" in w.lower() for w in warnings)

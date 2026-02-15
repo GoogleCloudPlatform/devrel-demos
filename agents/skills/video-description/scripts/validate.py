@@ -30,10 +30,11 @@ def validate_description(content):
     hashtags = re.findall(hashtag_pattern, content)
     if not hashtags:
         warnings.append("No hashtags found. Hashtags can improve searchability (exactly 5 recommended).")
+    
+    if len(hashtags) < 5:
+        errors.append(f"Fewer than 5 hashtags found ({len(hashtags)}). Please provide exactly 5 as per SKILL.md.")
     elif len(hashtags) > 5:
         errors.append(f"Too many hashtags: {len(hashtags)}. Please limit to exactly 5 most relevant ones.")
-    elif len(hashtags) < 5:
-        errors.append(f"Fewer than 5 hashtags found ({len(hashtags)}). Please provide exactly 5 as per SKILL.md.")
 
     # 5. Point of View Check (Heuristic)
     we_patterns = r"\b(we|our|ours|us)\b"
@@ -46,6 +47,7 @@ def validate_description(content):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <path_to_description_file>", file=sys.stderr)
         sys.exit(1)
 
     file_path = sys.argv[1]
@@ -53,8 +55,10 @@ if __name__ == "__main__":
         with open(file_path, encoding="utf-8") as f:
             description_content = f.read()
     except FileNotFoundError:
+        print(f"Error: File not found at '{file_path}'", file=sys.stderr)
         sys.exit(1)
-    except OSError:
+    except OSError as e:
+        print(f"Error: Could not read file at '{file_path}': {e}", file=sys.stderr)
         sys.exit(1)
 
     errs, warns = validate_description(description_content)
