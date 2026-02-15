@@ -1,0 +1,22 @@
+[
+  {
+    "query": "Create a video description for a technical deep dive about AI agents. I'll post this on LinkedIn and YouTube.",
+    "files": ["TEMPLATES.md"],
+    "expected_behavior": [
+      "Follows the workflow in SKILL.md",
+      "Uses first-person singular 'I' and 'my'",
+      "Includes exactly 5 hashtags",
+      "Drafts a version for LinkedIn and a version for YouTube (or a hybrid)",
+      "Passes validation by scripts/validate.py"
+    ]
+  },
+  {
+    "query": "Write a description for my vacation video on Vimeo.",
+    "files": ["SKILL.md"],
+    "expected_behavior": [
+      "Uses first-person POV",
+      "Provides a catchy title and summary",
+      "Includes 5 broad appeal hashtags"
+    ]
+  }
+]
