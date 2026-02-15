@@ -9,45 +9,54 @@ def validate_description(content):
     # 1. Length Check
     char_count = len(content)
     if char_count > 5000:
-        warnings.append(f"Description is very long ({char_count} chars). Be aware of platform-specific limits.")
+        warnings.append(
+            f"Description is very long ({char_count} chars). Be aware of platform-specific limits."
+        )
     elif char_count < 100:
-        warnings.append(f"Description is very short ({char_count} chars). Consider adding more detail.")
+        warnings.append(
+            f"Description is very short ({char_count} chars). Consider adding more detail."
+        )
 
     # 2. Timestamp Check
     timestamp_pattern = r"\b\d{1,2}:\d{2}\b"
     timestamps = re.findall(timestamp_pattern, content)
     if not timestamps:
-        warnings.append("No timestamps found. Timestamps help viewers navigate your video.")
+        warnings.append(
+            "No timestamps found. Timestamps help viewers navigate your video."
+        )
 
     # 3. Link Check
     link_pattern = r"https?://\S+"
     links = re.findall(link_pattern, content)
     if not links:
-        warnings.append("No links found. Consider adding calls to action or resource links.")
+        warnings.append(
+            "No links found. Consider adding calls to action or resource links."
+        )
 
     # 4. Hashtag Check
     hashtag_pattern = r"#\w+"
     hashtags = re.findall(hashtag_pattern, content)
-    if not hashtags:
-        warnings.append("No hashtags found. Hashtags can improve searchability (exactly 5 recommended).")
-    
-    if len(hashtags) < 5:
-        errors.append(f"Fewer than 5 hashtags found ({len(hashtags)}). Please provide exactly 5 as per SKILL.md.")
-    elif len(hashtags) > 5:
-        errors.append(f"Too many hashtags: {len(hashtags)}. Please limit to exactly 5 most relevant ones.")
+    if len(hashtags) != 5:
+        errors.append(
+            f"Expected exactly 5 hashtags, but found {len(hashtags)}. Please provide exactly 5 as per SKILL.md."
+        )
 
     # 5. Point of View Check (Heuristic)
     we_patterns = r"\b(we|our|ours|us)\b"
     if re.search(we_patterns, content, re.IGNORECASE):
-        warnings.append("Detected 'we/our/us'. User preference is for first-person singular 'I/my'.")
+        warnings.append(
+            "Detected 'we/our/us'. User preference is for first-person singular 'I/my'."
+        )
     if not content.startswith("#"):
-        warnings.append("Description does not start with a title (#). A clear title helps indexing.")
+        warnings.append(
+            "Description does not start with a title (#). A clear title helps indexing."
+        )
 
     return errors, warnings
 
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <path_to_description_file>", file=sys.stderr)
         sys.exit(1)
 
     file_path = sys.argv[1]
@@ -55,22 +64,17 @@ if __name__ == "__main__":
         with open(file_path, encoding="utf-8") as f:
             description_content = f.read()
     except FileNotFoundError:
-        print(f"Error: File not found at '{file_path}'", file=sys.stderr)
         sys.exit(1)
-    except OSError as e:
-        print(f"Error: Could not read file at '{file_path}': {e}", file=sys.stderr)
+    except OSError:
         sys.exit(1)
 
     errs, warns = validate_description(description_content)
 
     if warns:
-        print("Warnings:", file=sys.stderr)
         for _warn in warns:
-            print(f"- {_warn}", file=sys.stderr)
+            pass
 
     if errs:
-        print("Errors:", file=sys.stderr)
         for _err in errs:
-            print(f"- {_err}", file=sys.stderr)
+            pass
         sys.exit(1)
-
