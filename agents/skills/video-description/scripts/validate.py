@@ -33,7 +33,7 @@ def validate_description(content):
     elif len(hashtags) > 5:
         errors.append(f"Too many hashtags: {len(hashtags)}. Please limit to exactly 5 most relevant ones.")
     elif len(hashtags) < 5:
-        warnings.append(f"Fewer than 5 hashtags found ({len(hashtags)}). YouTube works best with 5 high-quality tags.")
+        errors.append(f"Fewer than 5 hashtags found ({len(hashtags)}). Please provide exactly 5 as per SKILL.md.")
 
     # 5. Point of View Check (Heuristic)
     we_patterns = r"\b(we|our|ours|us)\b"
@@ -45,27 +45,26 @@ def validate_description(content):
     return errors, warnings
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
+    if len(sys.argv) != 2:
         sys.exit(1)
 
     file_path = sys.argv[1]
     try:
-        with open(file_path) as f:
+        with open(file_path, encoding="utf-8") as f:
             description_content = f.read()
-    except Exception:
+    except FileNotFoundError:
+        sys.exit(1)
+    except OSError:
         sys.exit(1)
 
     errs, warns = validate_description(description_content)
 
-    if not errs and not warns:
-        pass
-    else:
-        if errs:
-            for _err in errs:
-                pass
-        if warns:
-            for _warn in warns:
-                pass
+    if warns:
+        for _warn in warns:
+            pass
 
     if errs:
+        for _err in errs:
+            pass
         sys.exit(1)
+
