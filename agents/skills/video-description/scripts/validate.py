@@ -57,6 +57,7 @@ def validate_description(content):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <path_to_description_file>", file=sys.stderr)
         sys.exit(1)
 
     file_path = sys.argv[1]
@@ -64,8 +65,10 @@ if __name__ == "__main__":
         with open(file_path, encoding="utf-8") as f:
             description_content = f.read()
     except FileNotFoundError:
+        print(f"Error: File not found: {file_path}", file=sys.stderr)
         sys.exit(1)
-    except OSError:
+    except OSError as e:
+        print(f"Error reading file {file_path}: {e}", file=sys.stderr)
         sys.exit(1)
 
     errs, warns = validate_description(description_content)
