@@ -60,11 +60,13 @@ if __name__ == "__main__":
     errs, warns = validate_description(description_content)
 
     if warns:
+        print("Warnings:", file=sys.stderr)
         for _warn in warns:
-            pass
+            print(f"- {_warn}", file=sys.stderr)
 
     if errs:
+        print("Errors:", file=sys.stderr)
         for _err in errs:
-            pass
+            print(f"- {_err}", file=sys.stderr)
         sys.exit(1)
 

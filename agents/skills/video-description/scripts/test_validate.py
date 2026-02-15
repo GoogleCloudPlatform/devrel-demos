@@ -90,8 +90,18 @@ def check_semantic_expectations(output, expected_behaviors):
         # 2. Check for "hashtags"
         if "hashtag" in behavior_lower:
             count = len(re.findall(r"#\w+", output))
-            if ("exactly 5" in behavior_lower and count != 5) or ("fewer than 5" in behavior_lower and count >= 5):
-                 failures.append(f"Hashtag count mismatch (found {count}): '{behavior}'")
+            # Extract number from behavior string (e.g., "exactly 5", "Includes 5", "5 broad appeal")
+            match = re.search(r"(\d+)", behavior_lower)
+            if match:
+                expected_count = int(match.group(1))
+                if ("exactly" in behavior_lower or "include" in behavior_lower or "broad appeal" in behavior_lower) and count != expected_count:
+                     failures.append(f"Hashtag count mismatch (found {count}, expected {expected_count}): '{behavior}'")
+                elif "fewer than" in behavior_lower and count >= expected_count:
+                     failures.append(f"Hashtag count mismatch (found {count}, expected fewer than {expected_count}): '{behavior}'")
+            else:
+                # Fallback if no specific number is found but hashtag behavior is expected
+                if count == 0:
+                    failures.append(f"Missing hashtags: '{behavior}'")
 
     return failures
 
@@ -116,7 +126,7 @@ def test_video_description_generation(test_case) -> None:
     # Optional: We can assert on warnings if we want strict compliance,
     # but for now we just print them for visibility in failed tests.
     if warnings:
-        pass
+        print(f"Validation warnings: {warnings}")
 
     # 3. Check Semantic Expectations
     semantic_failures = check_semantic_expectations(output, expected_behavior)
