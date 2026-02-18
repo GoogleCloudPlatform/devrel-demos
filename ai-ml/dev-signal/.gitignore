@@ -5,6 +5,9 @@ build/
 dist/
 wheels/
 *.egg-info
-
+*.tfstate 
+*.tfstate.backup 
+*.tfvars 
+.terraform/
 # Virtual environments
 .venv
