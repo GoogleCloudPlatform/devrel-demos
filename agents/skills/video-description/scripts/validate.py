@@ -47,7 +47,7 @@ def validate_description(content):
         warnings.append(
             "Detected 'we/our/us'. User preference is for first-person singular 'I/my'.",
         )
-    if not content.startswith("#"):
+    if not content.strip().startswith("#"):
         warnings.append(
             "Description does not start with a title (#). A clear title helps indexing.",
         )
@@ -64,17 +64,19 @@ if __name__ == "__main__":
         with open(file_path, encoding="utf-8") as f:
             description_content = f.read()
     except FileNotFoundError:
+        print(f"Error: File not found: {file_path}", file=sys.stderr)
         sys.exit(1)
-    except OSError:
+    except OSError as e:
+        print(f"Error reading file {file_path}: {e}", file=sys.stderr)
         sys.exit(1)
 
     errs, warns = validate_description(description_content)
 
-    if warns:
-        for _warn in warns:
-            pass
+    for warn in warns:
+        print(f"WARNING: {warn}", file=sys.stderr)
+
+    for err in errs:
+        print(f"ERROR: {err}", file=sys.stderr)
 
     if errs:
-        for _err in errs:
-            pass
         sys.exit(1)

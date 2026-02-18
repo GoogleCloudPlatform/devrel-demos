@@ -135,7 +135,8 @@ def test_video_description_generation(test_case) -> None:
     # Optional: We can assert on warnings if we want strict compliance,
     # but for now we just print them for visibility in failed tests.
     if warnings:
-        pass
+        for warning in warnings:
+            print(f"Validation Warning: {warning}")
 
     # 3. Check Semantic Expectations
     semantic_failures = check_semantic_expectations(output, expected_behavior)
