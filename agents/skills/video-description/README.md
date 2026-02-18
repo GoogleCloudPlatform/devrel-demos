@@ -5,9 +5,9 @@ This directory contains the "Video Description" skill, designed to help AI agent
 ## Contents
 
 - **[SKILL.md](SKILL.md)**: The main instruction file for the AI agent. It defines the workflow for analyzing transcripts and drafting descriptions.
-- **[TEMPLATES.md](TEMPLATES.md)**: A collection of standard templates for different video types (Technical, Entertainment, Product).
-- **[EXAMPLES.md](EXAMPLES.md)**: Few-shot examples to guide the agent's output style.
-- **[evaluations.json](evaluations.json)**: A set of test cases used to verify the skill's performance and regression testing.
+- **[references/TEMPLATES.md](references/TEMPLATES.md)**: A collection of standard templates for different video types (Technical, Entertainment, Product).
+- **[references/EXAMPLES.md](references/EXAMPLES.md)**: Few-shot examples to guide the agent's output style.
+- **[assets/evaluations.json](assets/evaluations.json)**: A set of test cases used to verify the skill's performance and regression testing.
 
 ## Scripts
 

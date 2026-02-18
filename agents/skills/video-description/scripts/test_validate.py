@@ -7,7 +7,7 @@ from validate import validate_description
 
 # Locate evaluations.json relative to this script
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-EVALS_PATH = os.path.join(BASE_DIR, "../evaluations.json")
+EVALS_PATH = os.path.join(BASE_DIR, "../assets/evaluations.json")
 
 
 def load_evaluations():
@@ -101,11 +101,11 @@ def check_semantic_expectations(output, expected_behaviors):
                     or "broad appeal" in behavior_lower
                 ) and count != expected_count:
                     failures.append(
-                        f"Hashtag count mismatch (found {count}, expected {expected_count}): '{behavior}'"
+                        f"Hashtag count mismatch (found {count}, expected {expected_count}): '{behavior}'",
                     )
                 elif "fewer than" in behavior_lower and count >= expected_count:
                     failures.append(
-                        f"Hashtag count mismatch (found {count}, expected fewer than {expected_count}): '{behavior}'"
+                        f"Hashtag count mismatch (found {count}, expected fewer than {expected_count}): '{behavior}'",
                     )
             # Fallback if no specific number is found but hashtag behavior is expected
             elif count == 0:
@@ -135,7 +135,7 @@ def test_video_description_generation(test_case) -> None:
     # Optional: We can assert on warnings if we want strict compliance,
     # but for now we just print them for visibility in failed tests.
     if warnings:
-        print(f"\nWarnings for query '{query}': {warnings}")
+        pass
 
     # 3. Check Semantic Expectations
     semantic_failures = check_semantic_expectations(output, expected_behavior)
@@ -146,7 +146,7 @@ def test_validate_description_hashtags() -> None:
     """Unit tests for hashtag validation logic in validate_description."""
     # 1. Correct number of hashtags
     errors, _ = validate_description(
-        "# Title\nContent with #one #two #three #four #five"
+        "# Title\nContent with #one #two #three #four #five",
     )
     assert not any("hashtag" in e.lower() for e in errors)
 
@@ -156,7 +156,7 @@ def test_validate_description_hashtags() -> None:
 
     # 3. Too many hashtags
     errors, _ = validate_description(
-        "# Title\nContent with #one #two #three #four #five #six"
+        "# Title\nContent with #one #two #three #four #five #six",
     )
     assert any("expected exactly 5 hashtags" in e.lower() for e in errors)
 
@@ -173,13 +173,13 @@ def test_validate_description_technical_rules() -> None:
 
     # 2. Detected 'we' (POV check)
     _, warnings = validate_description(
-        "# Title\nWe are building this together.\n#one #two #three #four #five"
+        "# Title\nWe are building this together.\n#one #two #three #four #five",
     )
     assert any("detected 'we/our/us'" in w.lower() for w in warnings)
 
     # 3. Length checks
     _, warnings = validate_description(
-        "# T\n" + "a" * 5001 + "\n#one #two #three #four #five"
+        "# T\n" + "a" * 5001 + "\n#one #two #three #four #five",
     )
     assert any("very long" in w.lower() for w in warnings)
 

@@ -11,7 +11,7 @@
     ]
   },
   {
-    "query": "Write a description for my vacation video on Vimeo.",
+    "query": "Write a description for my vacation video.",
     "files": ["SKILL.md"],
     "expected_behavior": [
       "Uses first-person POV",

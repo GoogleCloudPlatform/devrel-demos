@@ -13,7 +13,7 @@ Follow these steps to generate a high-quality description:
 
 1. **Analyze Source Material**: Read the video transcript and any supplementary documents. Identify key topics, keywords, and calls to action.
 2. **Determine Platform**: Identify the target platform (e.g., YouTube, Instagram, TikTok). If not specified, default to a general SEO-friendly format.
-3. **Select Template**: Choose an appropriate template from [TEMPLATES.md](TEMPLATES.md) based on the video type and platform.
+3. **Select Template**: Choose an appropriate template from [TEMPLATES.md](references/TEMPLATES.md) based on the video type and platform.
 4. **Draft Description**: Create the description using the selected template.
     - **Point of View**: Always use first-person singular ("I", "my") instead of "we" or "our".
     - **Relevance**: Ensure the first few lines contain the most critical information and keywords.
@@ -23,7 +23,7 @@ Follow these steps to generate a high-quality description:
 
 ## Reference Materials
 
-- **Templates**: See [TEMPLATES.md](TEMPLATES.md) for standard formats and platform variations.
-- **Examples**: See [EXAMPLES.md](EXAMPLES.md) for few-shot examples.
+- **Templates**: See [TEMPLATES.md](references/TEMPLATES.md) for standard formats and platform variations.
+- **Examples**: See [EXAMPLES.md](references/EXAMPLES.md) for few-shot examples.
 - **Validation**: Detailed rules in [scripts/validate.py](scripts/validate.py).
-- **Regression Testing**: Run `pytest scripts/test_validate.py` to check performance against [evaluations.json](evaluations.json).
+- **Regression Testing**: Run `pytest scripts/test_validate.py` to check performance against [assets/evaluations.json](assets/evaluations.json).
