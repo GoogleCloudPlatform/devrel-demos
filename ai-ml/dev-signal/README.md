@@ -1,6 +1,6 @@
-# Dev Signal -  Multi-Agent System for Expert Content with Google ADK, MCP and Cloud Run
+# Dev Signal - Production-Ready AI Agent
 
-Welcome to **Dev Signal**, an intelligent monitoring agent designed to filter noise and create value. This project demonstrates how to build, deploy, and train a sophisticated multi-agent system using the Google Agent Development Kit (ADK), Google Cloud Run, MCP, and Vertex AI memory bank.
+Welcome to **Dev Signal**, an intelligent monitoring agent designed to filter noise and create value. This project demonstrates how to build, deploy, and train a sophisticated multi-agent system using the Google Agent Development Kit (ADK), Google Cloud Run, and Vertex AI memory bank.
 
 ## 🚀 What is Dev Signal?
 
@@ -104,21 +104,6 @@ You can test the full agent loop locally, including the connection to the cloud-
 
 We use **Terraform** for infrastructure and **Cloud Run** for hosting.
 
-### 0. Setup environment variables
-Paste this code in  deployment/terraform/terraform.tfvars and update it with your project details and secrets.
-
-```project_id = "your-project-id"
-region     = "us-central1"
-service_name      = "dev-signal"
-ai_assets_bucket  = "your-bucket-name"
-secrets = {
-  REDDIT_CLIENT_ID     = "your_client_id"
-  REDDIT_CLIENT_SECRET = "your_client_secret"
-  REDDIT_USER_AGENT    = "your_user_agent"
-  DK_API_KEY           = "your_dk_api_key"
-}
-```
-
 ### 1. Provision Infrastructure
 Initialize and apply the Terraform configuration to set up Cloud Run, Secret Manager, and permissions.
 
@@ -145,17 +130,17 @@ The Cloud Run service is deployed privately by default. To access it:
 
 1.  **Grant Permission:**
     ```bash
-    gcloud run services add-iam-policy-binding dev-signal-agent \
-      --member="user:your-email@example.com" \
-      --role="roles/run.invoker" \
-      --region=us-central1 \
+    gcloud run services add-iam-policy-binding dev-signal-agent 
+      --member="user:your-email@example.com" 
+      --role="roles/run.invoker" 
+      --region=us-central1 
       --project=your-project-id
     ```
 
 2.  **Proxy via Localhost:**
     ```bash
-    gcloud run services proxy dev-signal-agent \
-      --region us-central1 \
+    gcloud run services proxy dev-signal-agent 
+      --region us-central1 
       --project your-project-id
     ```
 
@@ -166,16 +151,25 @@ The Cloud Run service is deployed privately by default. To access it:
 ```
 dev-signal/
 ├── dev_signal_agent/
-│   ├── agent.py            # The Brain: Agent logic & orchestration
-│   ├── fast_api_app.py     # The Body: Application server
-│   ├── app_utils/          # The Nervous System: Config & Telemetry
-│   └── tools/              # The Hands: External capabilities (MCP)
-│       ├── mcp_config.py
+│   ├── __init__.py
+│   ├── agent.py           # The brain: Agent logic & orchestration
+│   ├── fast_api_app.py    # The body: Application server & memory connection
+│   ├── app_utils/         # The nervous system: Env Config
+│   │   └── env.py
+│   └── tools/             # The hands: External capabilities
+│       ├── __init__.py
+│       ├── mcp_config.py  # Tool configuration (Reddit, Docs)
 │       └── nano_banana_mcp/# Custom local image generation tool
+│           ├── __init__.py
+│           ├── main.py
+│           ├── nano_banana_pro.py
+│           ├── media_models.py
+│           ├── storage_utils.py
+│           └── requirements.txt
 ├── deployment/
-│   └── terraform/          # Infrastructure as Code
-├── .env                    # Local secrets (not committed)
-├── Makefile                # Build/Deploy shortcuts
-├── Dockerfile              # Container definition
-└── pyproject.toml          # Dependencies
+│   └── terraform/         # Infrastructure as Code
+├── .env                   # Local secrets (API keys)
+├── Makefile               # Shortcuts for building/deploying
+├── Dockerfile             # Container definition
+└── pyproject.toml         # Dependencies
 ```

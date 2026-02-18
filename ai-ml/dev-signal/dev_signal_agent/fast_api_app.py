@@ -3,11 +3,8 @@ from fastapi import FastAPI
 from google.adk.cli.fast_api import get_fast_api_app
 from google.cloud import logging as cloud_logging
 from vertexai import agent_engines
-from dev_signal_agent.app_utils.telemetry import setup_telemetry
-from dev_signal_agent.app_utils.typing import Feedback
 from dev_signal_agent.app_utils.env import init_environment
 
-setup_telemetry()
 PROJECT_ID, MODEL_LOC, SERVICE_LOC = init_environment()
 logger = cloud_logging.Client().logger(__name__)
 
@@ -37,11 +34,6 @@ app: FastAPI = get_fast_api_app(
     memory_service_uri=MEMORY_URI, # <--- Connects the Memory Bank
     otel_to_cloud=True,
 )
-
-@app.post("/feedback")
-def collect_feedback(feedback: Feedback):
-    logger.log_struct(feedback.model_dump(), severity="INFO")
-    return {"status": "success"}
 
 if __name__ == "__main__":
     import uvicorn
