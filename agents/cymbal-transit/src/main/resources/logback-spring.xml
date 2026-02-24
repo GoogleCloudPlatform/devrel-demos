@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- We updated this path to point to the modern com.google.cloud logging library -->
+    <include resource="com/google/cloud/spring/logging/logback-json-appender.xml" />
+    
+    <root level="INFO">
+        <appender-ref ref="CONSOLE_JSON" />
+    </root>
+</configuration>
