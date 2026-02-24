@@ -1,0 +1,33 @@
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# Package Files #
+*.jar
+*.war
+*.ear
+
+# IntelliJ IDEA #
+.idea/
+*.iws
+*.iml
+*.ipr
+/out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Maven
+/target/
+
+# Gradle
+.gradle/
+/build/
+
+# OS generated files #
+.DS_Store
+Thumbs.db
