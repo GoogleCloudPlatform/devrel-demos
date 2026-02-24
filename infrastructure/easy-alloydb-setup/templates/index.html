@@ -1,0 +1,1052 @@
+<!--
+ Copyright 2025 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlloyDB Setup Manager</title>
+    <style>
+        :root {
+            --primary: #4285F4;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #202124;
+            --border: #dadce0;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: var(--card-bg);
+            width: 600px;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        /* Tabs */
+        .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+            color: #5f6368;
+        }
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Typography & Forms */
+        h2 { margin-top: 0; color: #1a73e8; }
+        p { color: #5f6368; font-size: 14px; margin-bottom: 20px; }
+        .disclaimer {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #d2e3fc;
+        }
+
+        label { display: block; font-weight: 500; margin-bottom: 6px; font-size: 13px; color: #3c4043; }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #3367d6; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        /* Billing Status Message */
+        .billing-msg {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            display: none;
+        }
+        .billing-msg.success { background-color: #e6f4ea; color: #137333; display: block; }
+        .billing-msg.error { background-color: #fce8e6; color: #c5221f; display: block; }
+        .billing-msg.running { background-color: #e8f0fe; color: #1a73e8; display: block; }
+
+        /* Console Log Panel */
+        #console-panel {
+            margin-top: 25px;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+            display: none;
+        }
+        
+        /* Console Tabs */
+        .console-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 0;
+            border-bottom: 1px solid #333;
+        }
+        .console-tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            color: #888;
+            background: #2d2d2d;
+            border: none;
+            border-radius: 4px 4px 0 0;
+            transition: all 0.2s;
+        }
+        .console-tab:hover { color: #ccc; }
+        .console-tab.active {
+            color: #fff;
+            background: #1e1e1e;
+        }
+        .console-content { display: none; }
+        .console-content.active { display: block; }
+        
+        .terminal {
+            background-color: #1e1e1e;
+            color: #4CAF50;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            padding: 15px;
+            border-radius: 0 0 6px 6px;
+            height: 350px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        /* Summary Panel */
+        .summary-panel {
+            background: #1e1e1e;
+            border-radius: 0 0 6px 6px;
+            padding: 20px;
+            height: 350px;
+            overflow-y: auto;
+            color: #e0e0e0;
+        }
+        .summary-section {
+            margin-bottom: 20px;
+        }
+        .summary-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #333;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 8px 16px;
+            font-size: 13px;
+        }
+        .summary-label {
+            color: #888;
+            font-weight: 500;
+        }
+        .summary-value {
+            color: #e0e0e0;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        
+        /* Expandable Command Sections */
+        .command-accordion {
+            margin-bottom: 8px;
+        }
+        .command-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: #2d2d2d;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .command-header:hover { background: #383838; }
+        .command-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .command-step {
+            width: 20px;
+            height: 20px;
+            background: #4285F4;
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .command-title {
+            font-size: 13px;
+            color: #e0e0e0;
+        }
+        .command-toggle {
+            color: #888;
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+        .command-header.expanded .command-toggle { transform: rotate(180deg); }
+        .command-body {
+            display: none;
+            padding: 12px;
+            background: #252525;
+            border-radius: 0 0 4px 4px;
+            margin-top: 1px;
+        }
+        .command-body.show { display: block; }
+        .command-description {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        .command-code {
+            background: #1a1a1a;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            color: #98FB98;
+            position: relative;
+            overflow-x: auto;
+            white-space: pre;
+        }
+        .copy-btn, .run-btn {
+            padding: 4px 8px;
+            font-size: 10px;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        .copy-btn { background: #4285F4; }
+        .run-btn { background: #34a853; }
+        .copy-btn:hover, .run-btn:hover { opacity: 1; }
+        .copy-btn.copied { background: #34a853; }
+        .run-btn:disabled { background: #666; cursor: not-allowed; }
+        .cmd-buttons {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 6px;
+        }
+        .command-result {
+            margin-top: 10px;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+        }
+        .command-result.success {
+            background: #1a2e1a;
+            border: 1px solid #34a853;
+            color: #81c995;
+        }
+        .command-result.error {
+            background: #2e1a1a;
+            border: 1px solid #ea4335;
+            color: #f28b82;
+        }
+        .command-result.loading {
+            background: #1a1a2e;
+            border: 1px solid #4285F4;
+            color: #8ab4f8;
+        }
+        .result-label {
+            font-size: 10px;
+            color: #888;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+        .result-value {
+            font-size: 14px;
+            font-weight: 500;
+            word-break: break-all;
+        }
+        .result-copy {
+            margin-top: 8px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        /* Quick Actions */
+        .quick-actions {
+            background: #252525;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .quick-actions-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .quick-actions-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+        .quick-actions-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .action-btn {
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 500;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .action-btn.primary {
+            background: #34a853;
+            color: #fff;
+        }
+        .action-btn.secondary {
+            background: #4285F4;
+            color: #fff;
+        }
+        .action-btn:hover { opacity: 0.9; }
+        .action-btn:disabled { background: #666; cursor: not-allowed; }
+        .quick-actions-hint {
+            font-size: 11px;
+            color: #888;
+            margin-top: 10px;
+            padding: 8px 10px;
+            background: #1e1e1e;
+            border-radius: 4px;
+            border-left: 2px solid #666;
+        }
+        .quick-actions-result {
+            margin-top: 12px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            float: right;
+        }
+        .status-running { background: #e8f0fe; color: #1a73e8; }
+        .status-success { background: #e6f4ea; color: #137333; }
+        .status-error { background: #fce8e6; color: #c5221f; }
+        .status-warning { background: #fef7e0; color: #b06000; }
+        
+        .region-loading {
+            font-style: italic;
+            color: #666;
+            font-size: 12px;
+            margin-left: 10px;
+            display: none;
+        }
+        
+        .fetch-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #34a853 0%, #1e8e3e 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(52, 168, 83, 0.3);
+            white-space: nowrap;
+            width: auto;
+            flex-shrink: 0;
+        }
+        .fetch-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(52, 168, 83, 0.4);
+        }
+        .fetch-btn:active {
+            transform: translateY(0);
+        }
+        .fetch-btn:disabled {
+            background: linear-gradient(135deg, #666 0%, #555 100%);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .fetch-btn-icon {
+            font-size: 16px;
+        }
+        
+        /* Button wrapper with tooltip */
+        .fetch-btn-wrapper {
+            position: relative;
+        }
+        .fetch-btn-tooltip {
+            position: absolute;
+            top: 50%;
+            left: calc(100% + 12px);
+            transform: translateY(-50%);
+            width: 260px;
+            padding: 12px 14px;
+            background: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 8px;
+            font-size: 11px;
+            line-height: 1.5;
+            color: #ccc;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            z-index: 100;
+        }
+        .fetch-btn-tooltip::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -8px;
+            transform: translateY(-50%);
+            border: 8px solid transparent;
+            border-right-color: #444;
+            border-left: none;
+        }
+        .fetch-btn-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -6px;
+            transform: translateY(-50%);
+            border: 6px solid transparent;
+            border-right-color: #2d2d2d;
+            border-left: none;
+        }
+        .fetch-btn-wrapper:hover .fetch-btn-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="disclaimer">
+        ℹ️ <b>Note:</b> This tool assumes you are authenticated in your environment (e.g., Cloud Shell or local <code>gcloud auth login</code>) with permissions for the project provided.
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('billing')">1. Billing Setup</div>
+        <div class="tab" onclick="switchTab('alloydb')">2. AlloyDB Setup</div>
+    </div>
+
+    <!-- TAB 1: BILLING -->
+    <div id="billing" class="tab-content active">
+        <h2>Link Project Billing</h2>
+        <p>Ensure your project is linked to an active billing account before creating resources.</p>
+        <form id="billingForm">
+            <label for="billing_project_id">Google Cloud Project ID</label>
+            <input type="text" id="billing_project_id" name="project_id" placeholder="e.g. my-gcp-project" required>
+
+            <label for="billing_account_name">Billing Account Name (Optional, Case-sensitive)</label>
+            <input type="text" id="billing_account_name" name="billing_account_name" placeholder="Leave empty for Trial Account">
+            <p style="font-size: 11px; margin-top: -10px; color: #666;">If empty, defaults to an open 'Google Cloud Platform Trial Billing Account'.</p>
+
+            <button type="submit" id="billingBtn">Link to Active Billing Account</button>
+            <div id="billing-msg" class="billing-msg"></div>
+        </form>
+    </div>
+
+    <!-- TAB 2: ALLOYDB -->
+    <div id="alloydb" class="tab-content">
+        <h2>Create AlloyDB Cluster</h2>
+        <p>Configure and deploy your AlloyDB environment.</p>
+        <form id="deployForm">
+            <label for="project_id">Google Cloud Project ID</label>
+            <input type="text" id="project_id" name="project_id" placeholder="e.g. my-gcp-project" required>
+
+            <label for="region">
+                Region 
+                <span id="region-loader" class="region-loading">Loading regions...</span>
+                <button type="button" onclick="loadRegions()" style="background:none; border:none; color:#4285F4; font-size:12px; cursor:pointer; padding:0; width:auto; margin-left:5px;">(Refresh List)</button>
+            </label>
+            <select id="region" name="region">
+                <!-- Fallback options if API fails -->
+                <option value="us-central1">us-central1 (Iowa)</option>
+                <option value="europe-west1">europe-west1 (Belgium)</option>
+                <option value="asia-southeast1">asia-southeast1 (Singapore)</option>
+            </select>
+
+            <div style="display: flex; gap: 15px;">
+                <div style="flex: 1;">
+                    <label for="cluster_id">Cluster Name</label>
+                    <input type="text" id="cluster_id" name="cluster_id" value="my-alloydb-cluster" required>
+                </div>
+                <div style="flex: 1;">
+                    <label for="instance_id">Instance Name</label>
+                    <input type="text" id="instance_id" name="instance_id" value="my-primary-inst" required>
+                </div>
+            </div>
+
+            <label for="password">Database Password</label>
+            <input type="password" id="password" name="password" required>
+
+            <button type="submit" id="deployBtn">Start Deployment</button>
+        </form>
+
+        <!-- LOGS PANEL (Now specifically inside AlloyDB Tab) -->
+        <div id="console-panel">
+            <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <b>Deployment</b>
+                    <span id="status-badge" class="status-badge status-running">Initializing...</span>
+                </div>
+                <div class="fetch-btn-wrapper" id="fetch-btn-wrapper" style="display: none;">
+                    <button class="fetch-btn" id="fetch-copy-btn-header" onclick="fetchAndCopyAll(this)" style="padding: 8px 14px; font-size: 12px;">
+                        <span class="fetch-btn-icon">🔑</span>
+                        <span>Reveal Private IP & Copy</span>
+                    </button>
+                    <div class="fetch-btn-tooltip">
+                        <strong>Copies to clipboard:</strong><br>
+                        Host (Private IP), Port, Database, User, Cluster, Instance, Region, Project, Network<br>
+                        <span style="color: #81c995;">→ Paste somewhere safe!</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Console Tabs -->
+            <div class="console-tabs">
+                <button class="console-tab active" onclick="switchConsoleTab('logs')">Logs</button>
+                <button class="console-tab" onclick="switchConsoleTab('summary')" id="summary-tab">Summary</button>
+            </div>
+            
+            <!-- Logs Content -->
+            <div id="logs-content" class="console-content active">
+                <div id="terminal" class="terminal">Waiting for commands...</div>
+            </div>
+            
+            <!-- Summary Content -->
+            <div id="summary-content" class="console-content">
+                <div class="summary-panel" id="summary-panel">
+                    <div style="color: #888; text-align: center; padding: 40px;">
+                        Summary will be available after deployment completes.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Tab Switching Logic
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Find index to set active tab class
+        const index = tabId === 'billing' ? 0 : 1;
+        document.querySelectorAll('.tab')[index].classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+        
+        // If switching to AlloyDB, check if we need to load regions (if list is short/default)
+        if (tabId === 'alloydb') {
+            const pid = document.getElementById('project_id').value;
+            if (pid && document.getElementById('region').options.length <= 3) {
+                 loadRegions();
+            }
+        }
+    }
+    
+    // Console Tab Switching
+    function switchConsoleTab(tabId) {
+        document.querySelectorAll('.console-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.console-content').forEach(c => c.classList.remove('active'));
+        
+        if (tabId === 'logs') {
+            document.querySelector('.console-tab:first-child').classList.add('active');
+            document.getElementById('logs-content').classList.add('active');
+        } else {
+            document.getElementById('summary-tab').classList.add('active');
+            document.getElementById('summary-content').classList.add('active');
+        }
+    }
+    
+    // Copy command to clipboard
+    function copyCommand(btn, text) {
+        navigator.clipboard.writeText(text).then(() => {
+            btn.textContent = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = 'Copy';
+                btn.classList.remove('copied');
+            }, 2000);
+        });
+    }
+    
+    // Store current deployment config for running commands
+    let currentDeployConfig = null;
+    
+    // Store fetched IP
+    let fetchedPrivateIP = null;
+    
+    // Fetch IP and Copy All - main action button
+    async function fetchAndCopyAll(btn) {
+        if (!currentDeployConfig) {
+            alert('No deployment configuration available');
+            return;
+        }
+        
+        btn.disabled = true;
+        btn.innerHTML = '<span class="fetch-btn-icon">⏳</span><span>Fetching...</span>';
+        
+        const resultArea = document.getElementById('fetch-result-area');
+        resultArea.innerHTML = `
+            <div class="command-result loading">
+                <div class="result-value">Getting your private IP...</div>
+            </div>
+        `;
+        
+        try {
+            const formData = new FormData();
+            formData.append('command_type', 'get_ip');
+            formData.append('project_id', currentDeployConfig.project_id);
+            formData.append('region', currentDeployConfig.region);
+            formData.append('cluster', currentDeployConfig.cluster_name);
+            formData.append('instance', currentDeployConfig.instance_name);
+            
+            const response = await fetch('/run-command', { method: 'POST', body: formData });
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                fetchedPrivateIP = data.output;
+                
+                // Build the details string
+                const details = `AlloyDB Connection Details
+========================
+Host: ${fetchedPrivateIP}
+Port: ${currentDeployConfig.database_port}
+Database: postgres
+User: ${currentDeployConfig.database_user}
+Password: <<your_set_password>>
+
+Cluster: ${currentDeployConfig.cluster_name}
+Instance: ${currentDeployConfig.instance_name}
+Region: ${currentDeployConfig.region}
+Project: ${currentDeployConfig.project_id}
+Network: ${currentDeployConfig.network}
+Subnet: ${currentDeployConfig.subnet}`;
+                
+                // Copy to clipboard
+                await navigator.clipboard.writeText(details);
+                
+                // Display nicely - warning style box with all copied details
+                resultArea.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #2d2a1e 0%, #1e1e1e 100%); border: 1px solid #5c5320; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <span style="font-size: 18px;">📋</span>
+                            <span style="color: #ffd54f; font-weight: 600; font-size: 13px;">Copied to clipboard — paste somewhere safe!</span>
+                        </div>
+                        <div style="background: #1a1a1a; border-radius: 6px; padding: 14px; font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; line-height: 1.8;">
+                            <div style="display: grid; grid-template-columns: 90px 1fr; gap: 4px 12px;">
+                                <span style="color: #888;">Host</span>
+                                <span style="color: #81c995; font-weight: 600;">${escapeHtml(fetchedPrivateIP)}</span>
+                                <span style="color: #888;">Port</span>
+                                <span style="color: #e0e0e0;">${escapeHtml(currentDeployConfig.database_port)}</span>
+                                <span style="color: #888;">Database</span>
+                                <span style="color: #e0e0e0;">postgres</span>
+                                <span style="color: #888;">User</span>
+                                <span style="color: #e0e0e0;">${escapeHtml(currentDeployConfig.database_user)}</span>
+                                <span style="color: #888;">Password</span>
+                                <span style="color: #666; font-style: italic;">(the one you set)</span>
+                            </div>
+                            <div style="border-top: 1px solid #333; margin-top: 10px; padding-top: 10px; display: grid; grid-template-columns: 90px 1fr; gap: 4px 12px;">
+                                <span style="color: #888;">Cluster</span>
+                                <span style="color: #aaa;">${escapeHtml(currentDeployConfig.cluster_name)}</span>
+                                <span style="color: #888;">Instance</span>
+                                <span style="color: #aaa;">${escapeHtml(currentDeployConfig.instance_name)}</span>
+                                <span style="color: #888;">Region</span>
+                                <span style="color: #aaa;">${escapeHtml(currentDeployConfig.region)}</span>
+                                <span style="color: #888;">Project</span>
+                                <span style="color: #aaa;">${escapeHtml(currentDeployConfig.project_id)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                btn.innerHTML = '<span class="fetch-btn-icon">✅</span><span>Copied!</span>';
+                btn.style.background = 'linear-gradient(135deg, #34a853 0%, #1e8e3e 100%)';
+                
+                setTimeout(() => {
+                    btn.innerHTML = '<span class="fetch-btn-icon">🔑</span><span>Reveal Private IP & Copy</span>';
+                    btn.style.background = '';
+                    btn.disabled = false;
+                }, 3000);
+                
+            } else {
+                resultArea.innerHTML = `
+                    <div class="command-result error">
+                        <div class="result-label">Error</div>
+                        <div class="result-value">${escapeHtml(data.message || 'Failed to fetch IP')}</div>
+                    </div>
+                `;
+                btn.innerHTML = '<span class="fetch-btn-icon">🔄</span><span>Retry</span>';
+                btn.disabled = false;
+            }
+        } catch (err) {
+            resultArea.innerHTML = `
+                <div class="command-result error">
+                    <div class="result-label">Error</div>
+                    <div class="result-value">${escapeHtml(err.toString())}</div>
+                </div>
+            `;
+            btn.innerHTML = '<span class="fetch-btn-icon">🔄</span><span>Retry</span>';
+            btn.disabled = false;
+        }
+    }
+    
+    // Render summary panel
+    function renderSummary(summary) {
+        if (!summary) return;
+        
+        const panel = document.getElementById('summary-panel');
+        const conn = summary.connection;
+        
+        // Store config for running commands later
+        currentDeployConfig = conn;
+        
+        // Show the header action button
+        document.getElementById('fetch-btn-wrapper').style.display = 'block';
+        
+        panel.innerHTML = `
+            <div class="summary-section">
+                <div class="summary-section-title">Basic Info</div>
+                <div class="summary-grid">
+                    <span class="summary-label">Cluster</span>
+                    <span class="summary-value">${escapeHtml(conn.cluster_name)}</span>
+                    <span class="summary-label">Instance</span>
+                    <span class="summary-value">${escapeHtml(conn.instance_name)}</span>
+                    <span class="summary-label">Region</span>
+                    <span class="summary-value">${escapeHtml(conn.region)}</span>
+                    <span class="summary-label">Project</span>
+                    <span class="summary-value">${escapeHtml(conn.project_id)}</span>
+                </div>
+            </div>
+            
+            <div class="summary-section" style="margin-top: 16px;">
+                <div class="summary-section-title">Network</div>
+                <div class="summary-grid">
+                    <span class="summary-label">VPC Network</span>
+                    <span class="summary-value">${escapeHtml(conn.network)}</span>
+                    <span class="summary-label">Subnet</span>
+                    <span class="summary-value">${escapeHtml(conn.subnet)}</span>
+                </div>
+            </div>
+            
+            <div id="fetch-result-area" style="margin-top: 16px;"></div>
+        `;
+    }
+
+    // Shared Project ID Logic (syncs inputs between tabs)
+    document.getElementById('billing_project_id').addEventListener('input', (e) => {
+        document.getElementById('project_id').value = e.target.value;
+    });
+    document.getElementById('project_id').addEventListener('input', (e) => {
+        document.getElementById('billing_project_id').value = e.target.value;
+    });
+
+    // Helper: Reset Console (Used only for AlloyDB now)
+    function startConsole(msg) {
+        const panel = document.getElementById('console-panel');
+        const terminal = document.getElementById('terminal');
+        const badge = document.getElementById('status-badge');
+        
+        panel.style.display = 'block';
+        terminal.innerText = msg + "\n";
+        badge.className = 'status-badge status-running';
+        badge.innerText = 'Running...';
+    }
+
+    // --- REGION LOADING ---
+    async function loadRegions() {
+        const pid = document.getElementById('project_id').value;
+        if (!pid) {
+            alert("Please enter a Google Cloud Project ID first.");
+            return;
+        }
+
+        const loader = document.getElementById('region-loader');
+        const select = document.getElementById('region');
+        
+        loader.style.display = 'inline';
+        
+        try {
+            // Encode the project ID for safety
+            const url = `/regions?project_id=${encodeURIComponent(pid)}`;
+
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            if (data.status === 'success' && data.regions && data.regions.length > 0) {
+                // Clear existing options
+                select.innerHTML = '';
+                
+                data.regions.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = r;
+                    opt.innerText = r;
+                    // Auto-select us-central1 if available
+                    if (r === 'us-central1') opt.selected = true;
+                    select.appendChild(opt);
+                });
+            } else {
+                console.warn("Could not fetch regions, keeping defaults. Msg:", data.message);
+                // Optionally alert the user if it was a manual click
+                if(data.message) alert("Failed to fetch regions: " + data.message);
+            }
+        } catch (e) {
+            console.error("Region fetch error", e);
+            alert("Network error fetching regions.");
+        } finally {
+            loader.style.display = 'none';
+        }
+    }
+
+    // --- BILLING SUBMISSION ---
+    document.getElementById('billingForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('billingBtn');
+        const msgDiv = document.getElementById('billing-msg');
+        
+        btn.disabled = true;
+        btn.innerText = "Linking...";
+        
+        // Show local status message instead of console
+        msgDiv.innerText = "Processing request...";
+        msgDiv.className = 'billing-msg running';
+
+        const formData = new FormData(e.target);
+        try {
+            const response = await fetch('/link-billing', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                msgDiv.innerText = data.message;
+                msgDiv.className = 'billing-msg success';
+                setTimeout(() => switchTab('alloydb'), 1500); // Auto switch to next tab
+            } else {
+                msgDiv.innerText = "Error: " + data.message;
+                msgDiv.className = 'billing-msg error';
+            }
+        } catch (err) {
+            msgDiv.innerText = "Network Error: " + err;
+            msgDiv.className = 'billing-msg error';
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Link to Active Billing Account";
+        }
+    });
+
+    // --- ALLOYDB DEPLOYMENT ---
+    let pollInterval;
+    document.getElementById('deployForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('deployBtn');
+        btn.disabled = true;
+        btn.innerText = "Deployment Started...";
+        
+        startConsole("Initializing AlloyDB Deployment Script...");
+
+        const formData = new FormData(e.target);
+        
+        try {
+            const response = await fetch('/deploy', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.deployment_id) {
+                // Start polling for logs
+                if (pollInterval) clearInterval(pollInterval);
+                pollInterval = setInterval(() => pollLogs(data.deployment_id), 2000);
+            } else {
+                const terminal = document.getElementById('terminal');
+                terminal.innerText += "Failed to start deployment: " + data.error + "\n";
+                btn.disabled = false;
+            }
+        } catch (err) {
+            const terminal = document.getElementById('terminal');
+            terminal.innerText += "Network Error: " + err + "\n";
+            btn.disabled = false;
+        }
+    });
+
+    function escapeHtml(text) {
+        if (!text) return text;
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    async function pollLogs(id) {
+        try {
+            const res = await fetch(`/logs/${id}`);
+            const data = await res.json();
+            
+            let hasRealError = false;
+
+            if (data.logs) {
+                const terminal = document.getElementById('terminal');
+                
+                // Process logs for coloring
+                const processedLogs = data.logs.map(line => {
+                    const cleanLine = escapeHtml(line);
+                    const lowerLine = line.toLowerCase();
+                    
+                    // Success messages
+                    if (line.includes('SUCCESS') || line.includes('Complete') || line.includes('done.')) {
+                        return `<span style="color: #4CAF50; font-weight: bold;">${cleanLine}</span>`;
+                    }
+                    // Warning messages
+                    if (line.includes('Note:') || line.includes('Warning')) {
+                        return `<span style="color: #FFA500;">${cleanLine}</span>`;
+                    }
+                    
+                    // Logic: If it is an error...
+                    if (line.includes("ERROR") || line.includes("EXCEPTION")) {
+                        // ...BUT it is a known "benign" error (resource exists), ignore the red color.
+                        if (lowerLine.includes("already exists") || 
+                            lowerLine.includes("alreadyexists") || 
+                            (line.includes("Could not fetch resource") && line.includes("gcloud.compute.networks.create"))) {
+                            
+                            // It is an error in log, but we treat it as Warning/Info visually
+                            return cleanLine; 
+                        }
+                        
+                        // Otherwise, it's a REAL error that blocks progress
+                        hasRealError = true;
+                        return `<span style="color: #ff6b6b;">${cleanLine}</span>`;
+                    }
+                    return cleanLine;
+                }).join('');
+
+                terminal.innerHTML = processedLogs;
+                terminal.scrollTop = terminal.scrollHeight;
+            }
+            
+            // Render summary if available
+            if (data.summary) {
+                renderSummary(data.summary);
+            }
+
+            const badge = document.getElementById('status-badge');
+            const btn = document.getElementById('deployBtn');
+
+            // --- STATUS HANDLING ---
+            // If the Backend says 'error' (exit code 1) BUT we found no "Red" errors in the logs,
+            // it means the script exited because resources already existed. Treat as Success.
+            if (data.status === 'error' && !hasRealError) {
+                clearInterval(pollInterval);
+                badge.className = 'status-badge status-success';
+                badge.innerText = 'Complete';
+                btn.innerText = "Deployment Complete";
+                btn.disabled = false;
+                // Auto-switch to summary tab if summary is available
+                if (data.summary) {
+                    setTimeout(() => switchConsoleTab('summary'), 500);
+                }
+            } 
+            // Normal Error Case
+            else if (data.status === 'error' && hasRealError) {
+                clearInterval(pollInterval);
+                badge.className = 'status-badge status-error';
+                badge.innerText = 'Error';
+                btn.disabled = false;
+                btn.innerText = "Retry";
+            }
+            // Normal Success Case
+            else if (data.status === 'done') {
+                clearInterval(pollInterval);
+                if (hasRealError) {
+                    badge.className = 'status-badge status-warning';
+                    badge.innerText = 'Completed with Warnings';
+                } else {
+                    badge.className = 'status-badge status-success';
+                    badge.innerText = 'Complete';
+                }
+                btn.innerText = "Deployment Complete";
+                // Auto-switch to summary tab
+                if (data.summary) {
+                    setTimeout(() => switchConsoleTab('summary'), 500);
+                }
+            }
+
+        } catch (e) {
+            console.error("Polling error", e);
+        }
+    }
+</script>
+
+</body>
+</html>
