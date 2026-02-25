@@ -11,7 +11,7 @@ import torch
 import gc
 from datasets import load_dataset, Dataset, Image as HFImage, Features, Value, Image, Sequence
 from peft import LoraConfig, PeftModel
-from transformers import AutoModelForImageTextToText, AutoProcessor
+from transformers import AutoModelForImageTextToText, AutoProcessor, BitsAndBytesConfig
 from trl import SFTTrainer, SFTConfig
 import evaluate
 from huggingface_hub import login
@@ -205,13 +205,20 @@ def load_model_and_processor(model_id, device, hf_token=None):
     logger.info(f"Loading Gemma 3 model: {model_id}")
     
     try:
+        quantization_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+        ) if device == 'cuda' else None
+
         model_kwargs = {
             "dtype": torch.bfloat16 if device == 'cuda' else torch.float32,
             "attn_implementation": "sdpa",
             "device_map": "auto" if device == 'cuda' else None,
             "token": hf_token,
             "low_cpu_mem_usage": True, # Optimize peak RAM usage
-            "load_in_4bit": True if device == 'cuda' else False, # Required for 27B on 48GB VRAM
+            "quantization_config": quantization_config,
         }
         
         model = AutoModelForImageTextToText.from_pretrained(model_id, **model_kwargs)
@@ -467,14 +474,20 @@ def main():
     # Train
     train_model(model, processor, formatted_train, formatted_eval, args)
     
-    # Reload and Merge (Simplified for Job)
     logger.info("Merging LoRA weights...")
+    quantization_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+    ) if args.device == 'cuda' else None
+
     base_model = AutoModelForImageTextToText.from_pretrained(
         args.model_id, 
         dtype=torch.bfloat16 if args.device == 'cuda' else torch.float32,
         device_map="auto" if args.device == 'cuda' else None,
         token=token,
-        load_in_4bit=True if args.device == 'cuda' else False
+        quantization_config=quantization_config
     )
     model = PeftModel.from_pretrained(base_model, args.output_dir)
     model = model.merge_and_unload()

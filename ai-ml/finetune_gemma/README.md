@@ -25,7 +25,7 @@ This repository contains the code and configuration for fine-tuning the **Gemma 
 export PROJECT_ID=[YOUR_PROJECT_ID]
 export REGION=europe-west4
 export HF_TOKEN=[YOUR_HF_TOKEN]
-export SERVICE_ACCOUNT="gemma3-finetuner-sa"
+export SERVICE_ACCOUNT="finetune-gemma-job-sa"
 export BUCKET_NAME=$PROJECT_ID-gemma3-finetuning-eu
 export AR_REPO=gemma3-finetuning-repo
 export SECRET_ID=HF_TOKEN
@@ -91,7 +91,7 @@ gcloud beta run jobs create $JOB_NAME \
   --add-volume-mount volume=model-volume,mount-path=/mnt/gcs \
   --network=default \
   --subnet=default \
-  --vpc-egress=all-traffic \
+  --vpc-egress=private-ranges-only \
   --args="--model-id","/mnt/gcs/google/gemma-3-27b-it/","--output-dir","/tmp/gemma3-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma3-finetuned"
 ```
 
