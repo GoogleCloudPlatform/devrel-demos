@@ -46,7 +46,7 @@ def get_nano_banana_mcp_toolset():
     This demonstrates how to wrap a local Python script as an MCP tool.
     """
     path = os.path.join("dev_signal_agent", "tools", "nano_banana_mcp", "main.py")
-    bucket = os.getenv("AI_ASSETS_BUCKET") or os.getenv("LOGS_BUCKET_NAME")
+    bucket = os.getenv("AI_ASSETS_BUCKET") 
     
     return McpToolset(
         connection_params=StdioConnectionParams(
@@ -55,6 +55,6 @@ def get_nano_banana_mcp_toolset():
                 args=["run", path], 
                 env={**os.environ, "AI_ASSETS_BUCKET": bucket}
             ),
-            timeout=600.0 # Image generation can be slow
+            timeout=600.0 # Image generation can take time
         )
     )

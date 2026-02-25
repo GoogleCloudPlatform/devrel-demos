@@ -14,7 +14,13 @@ Fine-tuning a 27B parameter model used to require complex orchestration. You’d
 4. Scale down manually to avoid burning costs.
 
 ### The Solution: Serverless Blackwell GPUs
-Cloud Run Jobs solves this by allowing you to package your training logic as a container. With support for **RTX 6000 Pro (Blackwell)** GPUs, you get 48GB of VRAM in a fully managed environment. You only pay for the minutes your model is training, and everything—from model weight mounting via GCS to multi-epoch training—is handled within a single container.
+Cloud Run Jobs solves this by allowing you to package your training logic as a container. With support for **NVIDIA RTX PRO 6000 Blackwell** GPUs, you get **96GB of GPU memory (VRAM)** in a fully managed environment. 
+
+This setup offers:
+*   **On-Demand Availability**: No reservations or cluster management required.
+*   **Rapid Scaling**: Instances start in approximately 5 seconds with drivers pre-installed.
+*   **Cost Efficiency**: Automatic scale-to-zero means you only pay for the exact minutes your model is training.
+*   **Seamless Storage**: Built-in GCS volume mounting for high-speed model weight access.
 
 In this guide, we walk through the process of fine-tuning the **Gemma 3 27B** model for **Pet Breed Classification** using the [Oxford-IIIT Pet Dataset](https://huggingface.co/datasets/timm/oxford-iiit-pet).
 
@@ -177,8 +183,9 @@ gcloud beta run jobs create $JOB_NAME \
 
 To ensure a stable and production-ready environment, we use several specialized flags:
 
-*   **`--gpu-type nvidia-rtx-pro-6000`**: Targets the NVIDIA RTX 6000 Pro (Blackwell Edition). With **48GB of VRAM**, it provides the massive overhead needed for multimodal fine-tuning.
-*   **`--memory 80Gi`**: We allocate high system RAM to handle the `low_cpu_mem_usage` model loading and our memory-efficient streaming data generator.
+*   **`--gpu-type nvidia-rtx-pro-6000`**: Targets the NVIDIA RTX PRO 6000 Blackwell GPU. With **96GB of GPU memory (VRAM)**, **1.6 TB/s bandwidth**, and support for **FP4/FP6 precision**, it provides the massive overhead and high-speed throughput needed for multimodal fine-tuning.
+*   **`--memory 80Gi`**: We allocate high system RAM (scalable up to 176GB) to handle the `low_cpu_mem_usage` model loading and our memory-efficient streaming data generator.
+*   **`--cpu 20.0`**: Cloud Run Jobs allows scaling up to **44 vCPUs** per instance, ensuring that preprocessing and data loading never become a bottleneck for the GPU.
 *   **`--add-volume` & `--add-volume-mount`**: This mounts your GCS bucket as a local directory at `/mnt/gcs`. **Note**: This requires the bucket and the job to be in the same region (`europe-west4`). It allows the script to read the base model weights at data-center speeds without copying them into the container's writable layer.
 *   **`--network` & `--subnet`**: Configures **Direct VPC Egress**, allowing the job to communicate securely with other resources in your VPC.
 *   **`--vpc-egress=all-traffic`**: Ensures all outgoing traffic—including requests to Hugging Face—is routed through your VPC for enhanced security and monitoring.
