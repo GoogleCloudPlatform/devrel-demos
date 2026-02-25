@@ -2,13 +2,13 @@
 
 Building state-of-the-art vision-language applications requires a powerful foundation. Imagine you are building a smart pet-care application. You need a model that can instantly identify the breed of a cat or dog from a simple photo to provide tailored nutrition advice or health alerts. 
 
-To achieve this, you need the world-class reasoning of **[Gemma 3 27B](https://huggingface.co/google/gemma-3-27b-it)**, but you don't want to manage massive Kubernetes clusters or maintain idle 24/7 dedicated instances. You need a setup that is **reproducible, cost-effective, and container-native**.
+To achieve this, you need the advanced reasoning of **[Gemma 3 27B](https://huggingface.co/google/gemma-3-27b-it)**, but you don't want to manage complex Kubernetes clusters or maintain idle 24/7 dedicated instances. You need a setup that is **reproducible, cost-effective, and container-native**.
 
 By combining the **[NVIDIA RTX PRO 6000 Blackwell Server Edition GPUs](https://cloud.google.com/blog/products/serverless/cloud-run-supports-nvidia-rtx-6000-pro-gpus-for-ai-workloads)** on Cloud Run with the **Gemma 3 27B** model and the **uv** package manager, you can transform a complex VLM fine-tuning process into a simple, scalable batch job.
 
 ### The Problem: Scaling Multimodal Classification
 Fine-tuning a 27B parameter model used to require complex orchestration. You’d have to:
-1. Provision a massive VM.
+1. Provision a high-capacity VM.
 2. Manually install CUDA drivers and dependencies.
 3. Manage data transfers between local storage and the GPU.
 4. Scale down manually to avoid burning costs.
@@ -183,12 +183,12 @@ gcloud beta run jobs create $JOB_NAME \
 
 To ensure a stable and production-ready environment, we use several specialized flags:
 
-*   **`--gpu-type nvidia-rtx-pro-6000`**: Targets the NVIDIA RTX PRO 6000 Blackwell GPU. With **96GB of GPU memory (VRAM)**, **1.6 TB/s bandwidth**, and support for **FP4/FP6 precision**, it provides the massive overhead and high-speed throughput needed for multimodal fine-tuning.
+*   **`--gpu-type nvidia-rtx-pro-6000`**: Targets the NVIDIA RTX PRO 6000 Blackwell GPU. With **96GB of GPU memory (VRAM)**, **1.6 TB/s bandwidth**, and support for **FP4/FP6 precision**, it provides the ample overhead and high-speed throughput needed for multimodal fine-tuning.
 *   **`--memory 80Gi`**: We allocate high system RAM (scalable up to 176GB) to handle the `low_cpu_mem_usage` model loading and our memory-efficient streaming data generator.
 *   **`--cpu 20.0`**: Cloud Run Jobs allows scaling up to **44 vCPUs** per instance, ensuring that preprocessing and data loading never become a bottleneck for the GPU.
 *   **`--add-volume` & `--add-volume-mount`**: This mounts your GCS bucket as a local directory at `/mnt/gcs`. **Note**: This requires the bucket and the job to be in the same region (`europe-west4`). It allows the script to read the base model weights at data-center speeds without copying them into the container's writable layer.
 *   **`--network` & `--subnet`**: Configures **Direct VPC Egress**, allowing the job to communicate securely with other resources in your VPC.
-*   **`--vpc-egress=all-traffic`**: Ensures all outgoing traffic—including requests to Hugging Face—is routed through your VPC for enhanced security and monitoring.
+*   **`--vpc-egress=all-traffic`**: Ensures all outgoing traffic, including requests to Hugging Face, is routed through your VPC for enhanced security and monitoring.
 *   **`--task-timeout 360m`**: ML training takes time! We set a 6-hour timeout to ensure the fine-tuning process isn't interrupted.
 
 > [!TIP]
@@ -210,6 +210,7 @@ By mapping the model"s text output to our set of 37 pet breeds (using the Oxford
 
 *   **Accuracy**: Provides a clear percentage of how often the model correctly identifies the breed.
 *   **Macro F1 Score**: Ensures that the model performs well across all breeds, not just the most common ones. This is critical for detecting if the model is biased toward specific popular breeds.
+*   **State-of-the-Art Context**: The current state-of-the-art (SOTA) accuracy on this dataset using specialized vision-transformers (typically **100M–300M parameters**) is ~94-96%. Large zero-shot foundation models (typically **300M–1B parameters**) achieve around 88%. This provides a rigorous benchmark to measure your fine-tuned Gemma 3 27B model against.
 *   **Label Mapping**: Our evaluation script includes robust text processing to find the correct breed name within the model"s generated response, even if it includes conversational filler.
 
 ## Step 6 - Check the results

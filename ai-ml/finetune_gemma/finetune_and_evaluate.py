@@ -99,11 +99,12 @@ def load_data(train_size, eval_size, hf_token=None):
     """Load and prepare a subset of the Oxford-IIIT Pet dataset."""
     try:
         logger.info(f"Loading Oxford-IIIT Pet dataset...")
-        # Load the dataset
-        raw_dataset = load_dataset("timm/oxford-iiit-pet", split="train", streaming=False)
+        # Load train and test splits
+        train_dataset_raw = load_dataset("timm/oxford-iiit-pet", split="train", streaming=False)
+        test_dataset_raw = load_dataset("timm/oxford-iiit-pet", split="test", streaming=False)
         
         # Get class names from features
-        class_names = raw_dataset.features["label"].names
+        class_names = train_dataset_raw.features["label"].names
 
         # Convert to list of dicts with string labels
         def process_pet_data(example):
@@ -112,12 +113,12 @@ def load_data(train_size, eval_size, hf_token=None):
                 "caption": class_names[example["label"]] # Using breed as 'caption' for format consistency
             }
 
-        dataset = raw_dataset.map(process_pet_data, remove_columns=raw_dataset.column_names)
+        train_dataset = train_dataset_raw.map(process_pet_data, remove_columns=train_dataset_raw.column_names)
+        test_dataset = test_dataset_raw.map(process_pet_data, remove_columns=test_dataset_raw.column_names)
         
-        # Shuffle and split
-        dataset = dataset.shuffle(seed=42)
-        train_data = dataset.select(range(min(train_size, len(dataset))))
-        eval_data = dataset.select(range(train_size, min(train_size + eval_size, len(dataset))))
+        # Shuffle and select subsets
+        train_data = train_dataset.shuffle(seed=42).select(range(min(train_size, len(train_dataset))))
+        eval_data = test_dataset.shuffle(seed=42).select(range(min(eval_size, len(test_dataset))))
 
         logger.info(f"✓ Dataset prepared (Train: {len(train_data)}, Eval: {len(eval_data)})")
         gc.collect()
@@ -197,6 +198,7 @@ def evaluate_model(model, processor, eval_data, prompt, class_names, batch_size=
     """Perform evaluation by comparing model output to ground truth labels."""
     logger.info("Evaluating model...")
     model.eval()
+    processor.tokenizer.padding_side = "left"
     
     # Load classification metrics
     acc_metric = evaluate.load("accuracy")
@@ -242,6 +244,12 @@ def evaluate_model(model, processor, eval_data, prompt, class_names, batch_size=
             
         for gen, ref in zip(generated_texts, references):
             results.append({"generated": gen.strip(), "reference": ref.strip()})
+            
+        # Free batch memory
+        del inputs
+        del generated_ids
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
             
     # Calculate Classification Metrics
     if results:
@@ -307,6 +315,7 @@ def evaluate_model(model, processor, eval_data, prompt, class_names, batch_size=
 def train_model(model, processor, train_data, eval_data, args):
     """Train Gemma 3 with LoRA."""
     logger.info("Configuring LoRA and Training...")
+    processor.tokenizer.padding_side = "right"
     
     peft_config = LoraConfig(
         r=args.lora_r,
@@ -316,6 +325,43 @@ def train_model(model, processor, train_data, eval_data, args):
         task_type="CAUSAL_LM",
     )
     
+    # Custom Data Collator for Vision-Language Models
+    def data_collator(examples):
+        texts = [ex["text"] for ex in examples]
+        # Wrap each image in a list as Gemma processor expects list of lists for batched inputs
+        images = [[ex["images"]] for ex in examples]
+        
+        batch = processor(
+            text=texts,
+            images=images,
+            return_tensors="pt",
+            padding=True
+        )
+        
+        labels = batch["input_ids"].clone()
+        labels[batch["attention_mask"] == 0] = -100
+        
+        # Mask out everything up to and including the start of the assistant's turn
+        # The assistant's turn starts after '<start_of_turn>model\n' which encodes to [105, 4368, 107]
+        target_seq = [105, 4368, 107]
+        target_len = len(target_seq)
+        
+        for i in range(labels.size(0)):
+            input_ids = batch["input_ids"][i].tolist()
+            # Search backwards to find the last occurrence
+            match_idx = -1
+            for j in range(len(input_ids) - target_len, -1, -1):
+                if input_ids[j:j+target_len] == target_seq:
+                    match_idx = j + target_len
+                    break
+            
+            if match_idx != -1:
+                # Mask everything before the model's response
+                labels[i, :match_idx] = -100
+                
+        batch["labels"] = labels
+        return batch
+
     training_args = SFTConfig(
         output_dir=args.output_dir,
         num_train_epochs=args.num_epochs,
@@ -324,13 +370,13 @@ def train_model(model, processor, train_data, eval_data, args):
         learning_rate=args.learning_rate,
         weight_decay=0.01,
         lr_scheduler_type="linear",
-        warmup_steps=50,
+        warmup_ratio=0.1, # Use ratio instead of fixed steps for local runs
         logging_steps=10,
         save_strategy="no",
         eval_strategy="no",
         bf16=torch.cuda.is_available(),
-        max_length=512, # Correct parameter name for trl SFTConfig
-        dataset_text_field="text", 
+        max_length=512,
+        dataset_kwargs={"skip_prepare_dataset": True}, # Tell SFTTrainer to use raw dataset via data_collator
         remove_unused_columns=False,
         report_to="none",
     )
@@ -340,6 +386,7 @@ def train_model(model, processor, train_data, eval_data, args):
         args=training_args,
         train_dataset=train_data,
         peft_config=peft_config,
+        data_collator=data_collator,
     )
     
     logger.info("Starting training...")
@@ -432,9 +479,19 @@ def main():
     logger.info("Baseline Evaluation...")
     baseline_results = evaluate_model(model, processor, eval_data, DEFAULT_PROMPT, class_names, args.eval_batch_size, hf_token=token)
     
+    # Free up memory before training
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    gc.collect()
+
     # Train
     model = train_model(model, processor, formatted_train, formatted_eval, args)
     
+    # Free up memory after training
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    gc.collect()
+
     # Final Evaluation (directly on the trained PeftModel)
     logger.info("Final Evaluation...")
     final_results = evaluate_model(model, processor, eval_data, DEFAULT_PROMPT, class_names, args.eval_batch_size, hf_token=token)
