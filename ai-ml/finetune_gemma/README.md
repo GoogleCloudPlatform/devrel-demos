@@ -69,7 +69,24 @@ gcloud artifacts repositories create $AR_REPO --repository-format=docker --locat
 gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT_ID/$AR_REPO/$IMAGE_NAME:latest .
 ```
 
-### 5. Create/Update Cloud Run Job
+### 5. Test locally (Optional)
+Before running the full job, you can verify the script runs correctly. We use parameters optimized for a quick local test to ensure the model learns the task format:
+
+```bash
+python3 finetune_and_evaluate.py \
+  --model-id google/gemma-3-4b-it \
+  --train-size 20 \
+  --eval-size 20 \
+  --gradient-accumulation-steps 2 \
+  --learning-rate 2e-4 \
+  --batch-size 1 \
+  --num-epochs 3
+```
+
+> [!NOTE]
+> This local test run should take approximately **30 minutes** to complete (benchmarked on an **Apple M4 Pro using CPU**, not GPU). It serves as a validation step to ensure your environment and script are correctly configured before launching the full training job on Cloud Run.
+
+### 6. Create/Update Cloud Run Job
 ```bash
 gcloud beta run jobs create $JOB_NAME \
   --region $REGION \
@@ -91,7 +108,7 @@ gcloud beta run jobs create $JOB_NAME \
   --args="--model-id","/mnt/gcs/google/gemma-3-27b-it/","--output-dir","/tmp/gemma3-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma3-finetuned","--train-size","1000","--eval-size","200","--learning-rate","5e-5"
 ```
 
-### 4. Execute Fine-tuning
+### 7. Execute Fine-tuning
 ```bash
 gcloud beta run jobs execute $JOB_NAME --region $REGION --async
 ```
