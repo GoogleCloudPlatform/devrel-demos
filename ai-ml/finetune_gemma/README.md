@@ -1,6 +1,6 @@
 # Fine-tuning Gemma 3 with Cloud Run Jobs (NVIDIA RTX 6000 Pro)
 
-This repository contains the code and configuration for fine-tuning the **Gemma 3 4B** model for Deep Image Captioning using **Cloud Run jobs** and the **NVIDIA RTX 6000 Pro (Blackwell)** GPU.
+This repository contains the code and configuration for fine-tuning the **Gemma 3 27B** model for Deep Image Captioning using **Cloud Run jobs** and the **NVIDIA RTX 6000 Pro (Blackwell)** GPU.
 
 ## Features
 - **Serverless Fine-tuning**: Fully managed execution on Cloud Run with high-performance GPUs.
@@ -92,7 +92,7 @@ gcloud beta run jobs create $JOB_NAME \
   --network=default \
   --subnet=default \
   --vpc-egress=private-ranges-only \
-  --args="--model-id","/mnt/gcs/google/gemma-3-27b-it/","--output-dir","/tmp/gemma3-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma3-finetuned"
+  --args="--model-id","/mnt/gcs/google/gemma-3-27b-it/","--output-dir","/tmp/gemma3-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma3-finetuned","--train-size","1000","--eval-size","200","--learning-rate","5e-5"
 ```
 
 ### 4. Execute Fine-tuning
@@ -101,4 +101,4 @@ gcloud beta run jobs execute $JOB_NAME --region $REGION --async
 ```
 
 ## Next Steps
-For production inference of your fine-tuned model, we recommend using **[`cr-infer`](https://github.com/oded996/cr-infer)** for automated deployments and smart GPU management.
+For production inference of your fine-tuned model, we recommend using **[`cr-infer`](https://github.com/oded996/cr-infer)** for automated deployments and smart GPU management. Check out the [cr-infer repo](https://github.com/oded996/cr-infer) for a complete developer workflow for serverless LLMs and VLMs.
