@@ -59,7 +59,7 @@ def parse_args():
                        help='LoRA dropout (default: 0.05)')
     
     # Model parameters
-    parser.add_argument('--model-id', type=str, default='google/gemma-3-4b-it',
+    parser.add_argument('--model-id', type=str, default='google/gemma-3-27b-it',
                        help='Model ID to fine-tune')
     parser.add_argument('--device', type=str, default='cuda',
                        choices=['cuda', 'cpu'],
@@ -211,6 +211,7 @@ def load_model_and_processor(model_id, device, hf_token=None):
             "device_map": "auto" if device == 'cuda' else None,
             "token": hf_token,
             "low_cpu_mem_usage": True, # Optimize peak RAM usage
+            "load_in_4bit": True if device == 'cuda' else False, # Required for 27B on 48GB VRAM
         }
         
         model = AutoModelForImageTextToText.from_pretrained(model_id, **model_kwargs)
@@ -472,7 +473,8 @@ def main():
         args.model_id, 
         dtype=torch.bfloat16 if args.device == 'cuda' else torch.float32,
         device_map="auto" if args.device == 'cuda' else None,
-        token=token
+        token=token,
+        load_in_4bit=True if args.device == 'cuda' else False
     )
     model = PeftModel.from_pretrained(base_model, args.output_dir)
     model = model.merge_and_unload()

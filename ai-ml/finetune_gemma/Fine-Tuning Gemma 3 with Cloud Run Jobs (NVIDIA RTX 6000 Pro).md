@@ -22,7 +22,10 @@ To get started, prepare your Google Cloud environment and get the code. We'll us
 
 ### Step 1.1 - Prepare your Google Cloud environment
 
-1. Set environment variables. We recommend using `europe-west4` as it supports the new RTX 6000 Pro GPUs.
+1. Set environment variables. 
+
+> [!IMPORTANT]
+> **Regional Alignment is Critical**: To use Cloud Storage volume mounting, your GCS bucket **must** be in the same region as your Cloud Run job. We recommend using `europe-west4` (Netherlands) as it supports the new RTX 6000 Pro GPUs and ensures zero-latency access to your model weights.
 
 ```shell
 export PROJECT_ID=[YOUR_PROJECT_ID]
@@ -83,27 +86,21 @@ gcloud secrets add-iam-policy-binding $SECRET_ID \
   --role='roles/secretmanager.secretAccessor'
 ```
 
-## Step 2 - Upload base model to Cloud Storage (Optional)
+## Step 2 - Staging the Model with `cr-infer` (Recommended)
 
-> [!NOTE]
-> **This step is optional**. While staging the model in Cloud Storage makes it load faster and avoids downloading it every time a task starts, you can skip this step and let the Cloud Run job pull the model directly from Hugging Face.
-
-To stage the weights at data-center speeds, run the transfer script using **Google Cloud Build**. This keeps the data entirely within the cloud network.
+To avoid downloading the model every time the job runs, we'll stage the **Gemma 3 27B** weights in Google Cloud Storage. We'll use **[`cr-infer`](https://github.com/oded996/cr-infer)**, which allows you to run model transfers directly via `uvx` without needing a local installation.
 
 ```shell
-gcloud builds submit --config - <<EOF
-steps:
-- name: 'ghcr.io/astral-sh/uv:latest'
-  entrypoint: 'sh'
-  args:
-  - '-c'
-  - 'uv run transfer_to_gcs.py --bucket \${_BUCKET_NAME}'
-substitutions:
-  _BUCKET_NAME: ${BUCKET_NAME}
-options:
-  logging: CLOUD_LOGGING_ONLY
-EOF
+# Download Gemma 3 27B to GCS using uvx
+uvx --from git+https://github.com/oded996/cr-infer.git cr-infer model download \
+  --source huggingface \
+  --model-id google/gemma-3-27b-it \
+  --bucket $BUCKET_NAME \
+  --token $HF_TOKEN
 ```
+
+> [!TIP]
+> This clones the model into `gs://$BUCKET_NAME/google/gemma-3-27b-it/`. This allows our Cloud Run job to mount the weights as a local volume, saving gigabytes of container startup time.
 
 ## Step 3 - Build and push the container image
 
@@ -171,7 +168,7 @@ gcloud beta run jobs create $JOB_NAME \
   --network=default \
   --subnet=default \
   --vpc-egress=all-traffic \
-  --args="--model-id","/mnt/gcs/base_model/","--output-dir","/tmp/gemma3-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma3-finetuned","--train-size","1000","--eval-size","200","--num-epochs","3"
+  --args="--model-id","/mnt/gcs/google/gemma-3-27b-it/","--output-dir","/tmp/gemma3-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma3-finetuned","--train-size","1000","--eval-size","200","--num-epochs","3"
 ```
 
 ### Understanding the Deployment Flags
@@ -180,7 +177,7 @@ To ensure a stable and production-ready environment, we use several specialized 
 
 *   **`--gpu-type nvidia-rtx-pro-6000`**: Targets the NVIDIA RTX 6000 Pro (Blackwell Edition). With **48GB of VRAM**, it provides the massive overhead needed for multimodal fine-tuning.
 *   **`--memory 80Gi`**: We allocate high system RAM to handle the `low_cpu_mem_usage` model loading and our memory-efficient streaming data generator.
-*   **`--add-volume` & `--add-volume-mount`**: This mounts your GCS bucket as a local directory at `/mnt/gcs`. It allows the script to read the base model weights at data-center speeds without copying them into the container's writable layer.
+*   **`--add-volume` & `--add-volume-mount`**: This mounts your GCS bucket as a local directory at `/mnt/gcs`. **Note**: This requires the bucket and the job to be in the same region (`europe-west4`). It allows the script to read the base model weights at data-center speeds without copying them into the container's writable layer.
 *   **`--network` & `--subnet`**: Configures **Direct VPC Egress**, allowing the job to communicate securely with other resources in your VPC.
 *   **`--vpc-egress=all-traffic`**: Ensures all outgoing traffic—including requests to Hugging Face—is routed through your VPC for enhanced security and monitoring.
 *   **`--task-timeout 360m`**: ML training takes time! We set a 6-hour timeout to ensure the fine-tuning process isn't interrupted.

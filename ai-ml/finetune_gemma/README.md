@@ -18,12 +18,15 @@ This repository contains the code and configuration for fine-tuning the **Gemma 
 ## Setup & Deployment
 
 ### 1. Environment Variables
+> [!IMPORTANT]
+> **Regional Alignment**: Ensure your `REGION` and `BUCKET_NAME` (storage) are in the same region (e.g., `europe-west4`) to enable GCS volume mounting.
+
 ```bash
 export PROJECT_ID=[YOUR_PROJECT_ID]
 export REGION=europe-west4
 export HF_TOKEN=[YOUR_HF_TOKEN]
 export SERVICE_ACCOUNT="gemma3-finetuner-sa"
-export BUCKET_NAME=$PROJECT_ID-gemma3-finetuning
+export BUCKET_NAME=$PROJECT_ID-gemma3-finetuning-eu
 export AR_REPO=gemma3-finetuning-repo
 export SECRET_ID=HF_TOKEN
 export IMAGE_NAME=gemma3-finetune
@@ -49,15 +52,29 @@ gcloud secrets add-iam-policy-binding $SECRET_ID \
   --role='roles/secretmanager.secretAccessor'
 ```
 
-### 3. Build & Deploy
+### 3. Staging the Model (Gemma 3 27B)
+We'll use **[`cr-infer`](https://github.com/oded996/cr-infer)** to stage the model weights. Instead of installing it, you can run it directly using `uvx`.
+
+```bash
+# Download Gemma 3 27B to GCS using uvx
+uvx --from git+https://github.com/oded996/cr-infer.git cr-infer model download \
+  --source huggingface \
+  --model-id google/gemma-3-27b-it \
+  --bucket $BUCKET_NAME \
+  --token $HF_TOKEN
+```
+
+### 4. Build Container (Cloud Build)
 ```bash
 # Register AR Repo
 gcloud artifacts repositories create $AR_REPO --repository-format=docker --location=$REGION
 
-# Build Container (Cloud Build)
+# Build
 gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT_ID/$AR_REPO/$IMAGE_NAME:latest .
+```
 
-# Create/Update Cloud Run Job
+### 5. Create/Update Cloud Run Job
+```bash
 gcloud beta run jobs create $JOB_NAME \
   --region $REGION \
   --image $REGION-docker.pkg.dev/$PROJECT_ID/$AR_REPO/$IMAGE_NAME:latest \
@@ -75,7 +92,7 @@ gcloud beta run jobs create $JOB_NAME \
   --network=default \
   --subnet=default \
   --vpc-egress=all-traffic \
-  --args="--model-id","google/gemma-3-4b-it","--output-dir","/tmp/gemma3-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma3-finetuned"
+  --args="--model-id","/mnt/gcs/google/gemma-3-27b-it/","--output-dir","/tmp/gemma3-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma3-finetuned"
 ```
 
 ### 4. Execute Fine-tuning
