@@ -1,4 +1,4 @@
-# Demo App for MCP Toolbox Java SDK 0.1.0 
+# Demo App for MCP Toolbox with Java SDK
 
 ### Cymbal Bus Agent
 
