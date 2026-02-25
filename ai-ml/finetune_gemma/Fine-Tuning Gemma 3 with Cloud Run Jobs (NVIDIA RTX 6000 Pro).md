@@ -2,9 +2,9 @@
 
 Building state-of-the-art vision-language applications requires a powerful foundation. Imagine you are building a smart pet-care application. You need a model that can instantly identify the breed of a cat or dog from a simple photo to provide tailored nutrition advice or health alerts. 
 
-To achieve this, you need the advanced reasoning of **[Gemma 3 27B](https://huggingface.co/google/gemma-3-27b-it)**, but you don't want to manage complex Kubernetes clusters or maintain idle 24/7 dedicated instances. You need a setup that is **reproducible, cost-effective, and container-native**.
+To achieve this, you need the advanced reasoning of **Gemma 3 27B**, but you don't want to manage complex Kubernetes clusters or maintain idle 24/7 dedicated instances. You need a setup that is **reproducible, cost-effective, and container-native**.
 
-By combining the **[NVIDIA RTX PRO 6000 Blackwell Server Edition GPUs](https://cloud.google.com/blog/products/serverless/cloud-run-supports-nvidia-rtx-6000-pro-gpus-for-ai-workloads)** on Cloud Run with the **Gemma 3 27B** model and the **uv** package manager, you can transform a complex VLM fine-tuning process into a simple, scalable batch job.
+By combining the **NVIDIA RTX PRO 6000 Blackwell Server Edition GPUs** on Cloud Run with the **Gemma 3 27B** model and the **uv** package manager, you can transform a complex VLM fine-tuning process into a simple, scalable batch job.
 
 ### The Problem: Scaling Multimodal Classification
 Fine-tuning a 27B parameter model used to require complex orchestration. You’d have to:
@@ -26,7 +26,7 @@ In this guide, we walk through the process of fine-tuning the **Gemma 3 27B** mo
 
 ## Step 1 - Setting the stage: Your environment
 
-To get started, prepare your Google Cloud environment and get the code. We'll use [uv](https://github.com/astral-sh/uv) to manage our local Python environment and speed up our Docker builds.
+To get started, prepare your Google Cloud environment and get the code. We'll use **uv** to manage our local Python environment and speed up our Docker builds.
 
 ### Step 1.1 - Prepare your Google Cloud environment
 
@@ -144,10 +144,20 @@ docker push $REGION-docker.pkg.dev/$PROJECT_ID/$AR_REPO/$IMAGE_NAME
 ```
 
 ### Step 3.1 - Test locally (Optional)
-Before building the container, you can verify the script runs correctly using `uv`:
+Before building the container, you can verify the script runs correctly. We use parameters optimized for a quick local test to ensure the model learns the task format:
+
 ```shell
-uv run --no-config finetune_and_evaluate.py --train-size 5 --eval-size 2 --device cpu
+python3 finetune_and_evaluate.py \
+  --model-id google/gemma-3-4b-it \
+  --train-size 20 \
+  --eval-size 20 \
+  --gradient-accumulation-steps 2 \
+  --learning-rate 2e-4 \
+  --batch-size 1 \
+  --num-epochs 3
 ```
+
+Note: This local test run should take approximately **30 minutes** to complete (benchmarked on an **Apple M4 Pro using CPU**, not GPU). It serves as a validation step to ensure your environment and script are correctly configured before launching the full training job on Cloud Run.
 
 ## Step 4 - Create and execute the Cloud Run job
 
@@ -180,10 +190,9 @@ gcloud beta run jobs create $JOB_NAME \
 ```
 
 ### Understanding the Deployment Flags
-
 To ensure a stable and production-ready environment, we use several specialized flags:
 
-*   **`--gpu-type nvidia-rtx-pro-6000`**: Targets the NVIDIA RTX PRO 6000 Blackwell GPU. With **96GB of GPU memory (VRAM)**, **1.6 TB/s bandwidth**, and support for **FP4/FP6 precision**, it provides the ample overhead and high-speed throughput needed for multimodal fine-tuning.
+*   **`--gpu-type nvidia-rtx-pro-6000`**: Targets the **NVIDIA RTX PRO 6000 Blackwell** GPU. With **96GB of GPU memory (VRAM)**, **1.6 TB/s bandwidth**, and support for **FP4/FP6 precision**, it provides the ample overhead and high-speed throughput needed for multimodal fine-tuning.
 *   **`--memory 80Gi`**: We allocate high system RAM (scalable up to 176GB) to handle the `low_cpu_mem_usage` model loading and our memory-efficient streaming data generator.
 *   **`--cpu 20.0`**: Cloud Run Jobs allows scaling up to **44 vCPUs** per instance, ensuring that preprocessing and data loading never become a bottleneck for the GPU.
 *   **`--add-volume` & `--add-volume-mount`**: This mounts your GCS bucket as a local directory at `/mnt/gcs`. **Note**: This requires the bucket and the job to be in the same region (`europe-west4`). It allows the script to read the base model weights at data-center speeds without copying them into the container's writable layer.
@@ -201,20 +210,19 @@ gcloud beta run jobs execute $JOB_NAME --region $REGION --async
 
 ## Step 5 - Evaluate with Classification Metrics: Accuracy & F1 Score
 
-For a precise task like pet breed classification, we need metrics that directly measure the model"s ability to categorize images into the correct breed labels. Unlike open-ended captioning, classification requires the model to produce a specific, recognizable class name.
+For a precise task like pet breed classification, we need metrics that directly measure the model's ability to categorize images into the correct breed labels. Unlike open-ended captioning, classification requires the model to produce a specific, recognizable class name.
 
-For this project, we"ve implemented **Accuracy** and **Macro F1 Score** as our primary evaluation metrics.
+For this project, we've implemented **Accuracy** and **Macro F1 Score** as our primary evaluation metrics.
 
 ### Why Accuracy and F1 Score?
-By mapping the model"s text output to our set of 37 pet breeds (using the Oxford-IIIT Pet dataset), we can rigorously quantify its performance.
+By mapping the model's text output to our set of 37 pet breeds (using the Oxford-IIIT Pet dataset), we can rigorously quantify its performance.
 
 *   **Accuracy**: Provides a clear percentage of how often the model correctly identifies the breed.
 *   **Macro F1 Score**: Ensures that the model performs well across all breeds, not just the most common ones. This is critical for detecting if the model is biased toward specific popular breeds.
-*   **State-of-the-Art Context**: The current state-of-the-art (SOTA) accuracy on this dataset using specialized vision-transformers (typically **100M–300M parameters**) is ~94-96%. Large zero-shot foundation models (typically **300M–1B parameters**) achieve around 88%. This provides a rigorous benchmark to measure your fine-tuned Gemma 3 27B model against.
-*   **Label Mapping**: Our evaluation script includes robust text processing to find the correct breed name within the model"s generated response, even if it includes conversational filler.
+*   **State-of-the-Art Context**: The current state-of-the-art (SOTA) accuracy on this dataset using specialized vision-transformers (typically **100M–300M parameters**) is ~94-96%. This provides a rigorous benchmark to measure the fine-tuned Gemma 3 27B model against.
+*   **Label Mapping**: Our evaluation script includes robust text processing to find the correct breed name within the model's generated response, even if it includes conversational filler.
 
 ## Step 6 - Check the results
-
 Once the job completes, you can view the detailed logs in the Google Cloud Console. The fine-tuned model will be automatically saved to your Cloud Storage bucket `gs://$BUCKET_NAME/gemma3-finetuned`.
 
 By leveraging the **RTX 6000 Pro** Blackwell GPUs on Cloud Run and a robust classification evaluation pipeline, you've transformed a complex VLM fine-tuning process into a scalable, repeatable, and cost-effective production workflow.
@@ -231,5 +239,3 @@ While Cloud Run standardizes the environment, `cr-infer` provides the "last mile
 ### Learn More
 *   Explore the **[cr-infer GitHub Repository](https://github.com/oded996/cr-infer)**.
 *   Check out the official **[Deploying Gemma on Cloud Run](https://cloud.google.com/run/docs/run-gemma-on-cloud-run)** guide for deep-dives into scaling configurations.
-
-
