@@ -3,6 +3,8 @@
 
 This repository contains an end-to-end solution for building and querying a **Manufacturing Knowledge Graph** using Google Cloud.
 
+For more details on these concepts, check out this blog post series: [BigQuery Graph Series](https://medium.com/google-cloud/bigquery-graph-series-part-1-from-dark-data-to-knowledge-graphs-5a37f052d043)
+
 ## Overview
 
 The solution consists of two main components:
