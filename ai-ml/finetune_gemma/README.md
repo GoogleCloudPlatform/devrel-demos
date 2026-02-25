@@ -1,4 +1,4 @@
-# Fine-tuning Gemma 3 for Pet Breed Classification (NVIDIA RTX 6000 Pro)
+# Fine-Tuning Gemma 3 with Cloud Run Jobs: Serverless GPUs (NVIDIA RTX 6000 Pro)
 
 This repository contains the code and configuration for fine-tuning the **Gemma 3 27B** model for- **Pet Breed Classification**: Specialized on the [Oxford-IIIT Pet Dataset](https://huggingface.co/datasets/timm/oxford-iiit-pet) (**3,680** training images / **3,669** test images).
 - **Memory Optimized**: Uses `Dataset.from_generator` and `low_cpu_mem_usage` for efficient streaming.

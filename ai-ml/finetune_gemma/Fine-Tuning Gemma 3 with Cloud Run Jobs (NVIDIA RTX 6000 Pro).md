@@ -1,4 +1,4 @@
-# Fine-tuning Gemma 3 for Pet Breed Classification (NVIDIA RTX 6000 Pro)
+# Fine-Tuning Gemma 3 with Cloud Run Jobs: Serverless GPUs (NVIDIA RTX 6000 Pro)
 
 Building state-of-the-art vision-language applications requires a powerful foundation. Imagine you are building a smart pet-care application. You need a model that can instantly identify the breed of a cat or dog from a simple photo to provide tailored nutrition advice or health alerts. 
 
