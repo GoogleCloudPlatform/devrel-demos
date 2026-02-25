@@ -1,0 +1,6 @@
+google-cloud-aiplatform[agent_engines,adk]==1.133.0
+google-adk==1.22.1
+google-genai==1.59.0
+google-cloud-bigquery
+google-auth
+python-dotenv
