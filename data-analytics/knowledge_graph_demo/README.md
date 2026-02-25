@@ -90,3 +90,7 @@ Here are some example questions you can ask the agent to explore the Knowledge G
 *   "Find the address of our Royal Soft Serve customer in BigQuery and then use the maps tools to find the closest recycling centre"
 *   "What parts are in the FroZone Zenith 5000?"
 *   "Find all materials used in the Arctic Swirl 5000."
+
+
+## License
+This project is licensed under the Apache License, Version 2.0. See the LICENSE file for details.
