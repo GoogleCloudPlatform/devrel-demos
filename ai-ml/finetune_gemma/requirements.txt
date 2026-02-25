@@ -1,0 +1,18 @@
+scikit-learn>=1.6.0
+torch>=2.7.0
+datasets>=3.0.0
+huggingface_hub>=0.23.0
+google-cloud-storage>=2.14.0
+pandas>=2.0.0
+pillow>=11.0.0
+
+transformers>=4.49.0
+accelerate>=1.0.0
+peft>=0.14.0
+trl>=0.13.0
+evaluate>=0.4.0
+bert-score>=0.3.13
+
+# Linux-only/GPU-specific packages
+triton; sys_platform == 'linux'
+bitsandbytes>=0.49.2; sys_platform == 'linux'
