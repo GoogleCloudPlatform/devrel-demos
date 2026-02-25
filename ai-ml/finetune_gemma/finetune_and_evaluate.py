@@ -50,6 +50,9 @@ def parse_args():
     parser.add_argument('--eval-batch-size', type=int, default=8,
                        help='Batch size for evaluation (default: 8)')
     
+    parser.add_argument('--dry-run', action='store_true',
+                       help='Run a dry test without loading the full model (local testing)')
+    
     # LoRA parameters
     parser.add_argument('--lora-r', type=int, default=16,
                        help='LoRA rank (default: 16)')
@@ -93,86 +96,32 @@ def authenticate_huggingface(hf_token=None):
         logger.warning(f"Failed to authenticate with HuggingFace: {e}")
 
 def load_data(train_size, eval_size, hf_token=None):
-    """Load and prepare a subset of the synthetic DALL-E 3 dataset."""
+    """Load and prepare a subset of the Oxford-IIIT Pet dataset."""
     try:
-        # Define the exact features to avoid schema mismatch errors (CastError)
-        # Specifically, long_caption2 and short_caption2 are lists, not strings.
-        features = Features({
-            "jpg": Image(),
-            "json": {
-                "long_caption": Value("string"),
-                "long_caption2": Sequence(Value("string")),
-                "short_caption": Value("string"),
-                "short_caption2": Sequence(Value("string")),
-                "image_name": Value("string"),
-                "md5_pil_hash": Value("string"),
-                "md5_file_hash": Value("string"),
-                "sha512_hash": Value("string"),
-                "resolution": Value("string"),
-                "url": Value("string"),
-                "width": Value("int64"),
-                "height": Value("int64"),
-                "source": Value("string"),
-                "original_prompt": Value("string"),
-            },
-            "jpeg": Image(),
-            "png": Image(),
-            "__key__": Value("string"),
-            "__url__": Value("string"),
-        })
-
-        # Load the synthetic DALL-E 3 dataset with explicit features
-        logger.info(f"Loading synthetic DALL-E 3 dataset from ProGamerGov...")
-        dataset = load_dataset(
-            "ProGamerGov/synthetic-dataset-1m-dalle3-high-quality-captions", 
-            split="train", 
-            streaming=True,
-            features=features,
-            token=hf_token
-        )
+        logger.info(f"Loading Oxford-IIIT Pet dataset...")
+        # Load the dataset
+        raw_dataset = load_dataset("timm/oxford-iiit-pet", split="train", streaming=False)
         
-        target_total = train_size + eval_size
-        logger.info(f"Streaming {target_total} examples...")
-        
-        def data_generator():
-            count = 0
-            for item in dataset:
-                try:
-                    # Extract image data
-                    image_data = item.get('jpg') or item.get('jpeg') or item.get('png')
-                    
-                    # Extract caption from json metadata
-                    caption = None
-                    if 'json' in item and isinstance(item['json'], dict):
-                        caption = item['json'].get('long_caption')
+        # Get class names from features
+        class_names = raw_dataset.features["label"].names
 
-                    if image_data and caption:
-                        yield {
-                            "images": image_data,
-                            "caption": caption
-                        }
-                        count += 1
-                        if count % 100 == 0:
-                            logger.info(f"  Processed {count}/{target_total}...")
-                        if count >= target_total:
-                            break
-                except Exception as e:
-                    logger.debug(f"Skipping malformed example: {e}")
-                    continue
+        # Convert to list of dicts with string labels
+        def process_pet_data(example):
+            return {
+                "images": example["image"],
+                "caption": class_names[example["label"]] # Using breed as 'caption' for format consistency
+            }
 
-        # Use from_generator to keep memory footprint low
-        full_dataset = Dataset.from_generator(data_generator).cast_column("images", HFImage())
+        dataset = raw_dataset.map(process_pet_data, remove_columns=raw_dataset.column_names)
         
         # Shuffle and split
-        full_dataset = full_dataset.shuffle(seed=42)
-        # Note: selecting from a shuffled dataset might still materialize some indices, 
-        # but is generally safer than holding the whole list.
-        train_data = full_dataset.select(range(train_size))
-        eval_data = full_dataset.select(range(train_size, target_total))
+        dataset = dataset.shuffle(seed=42)
+        train_data = dataset.select(range(min(train_size, len(dataset))))
+        eval_data = dataset.select(range(train_size, min(train_size + eval_size, len(dataset))))
 
         logger.info(f"✓ Dataset prepared (Train: {len(train_data)}, Eval: {len(eval_data)})")
-        gc.collect() # Force cleanup
-        return train_data, eval_data
+        gc.collect()
+        return train_data, eval_data, class_names
         
     except Exception as e:
         logger.error(f"Failed to load dataset: {e}")
@@ -200,48 +149,58 @@ def format_data(example, prompt, processor):
     example["text"] = processor.apply_chat_template(messages, tokenize=False)
     return example
 
-def load_model_and_processor(model_id, device, hf_token=None):
+def load_model_and_processor(model_id, device, hf_token=None, load_model=True):
     """Load Gemma 3 model and processor."""
-    logger.info(f"Loading Gemma 3 model: {model_id}")
-    
     try:
-        quantization_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.bfloat16,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_use_double_quant=True,
-        ) if device == 'cuda' else None
-
-        model_kwargs = {
-            "dtype": torch.bfloat16 if device == 'cuda' else torch.float32,
-            "attn_implementation": "sdpa",
-            "device_map": "auto" if device == 'cuda' else None,
-            "token": hf_token,
-            "low_cpu_mem_usage": True, # Optimize peak RAM usage
-            "quantization_config": quantization_config,
-        }
-        
-        model = AutoModelForImageTextToText.from_pretrained(model_id, **model_kwargs)
-        processor = AutoProcessor.from_pretrained(model_id, token=hf_token) # Pass HF token here
-        
-        # Ensure padding token is set
+        processor = AutoProcessor.from_pretrained(model_id, token=hf_token)
         if processor.tokenizer.pad_token is None:
             processor.tokenizer.pad_token = processor.tokenizer.eos_token
-            
-        logger.info(f"✓ Model loaded on {device}")
+        
+        if not load_model:
+            logger.info("✓ Processor loaded (Dry Run: skipping model)")
+            return None, processor
+
+        logger.info(f"Loading Gemma 3 model: {model_id}")
+        model_kwargs = {
+            "dtype": torch.bfloat16 if device == 'cuda' and torch.cuda.is_available() else torch.float32,
+            "attn_implementation": "sdpa",
+            "device_map": "auto" if device == 'cuda' and torch.cuda.is_available() else None,
+            "token": hf_token,
+            "low_cpu_mem_usage": True,
+        }
+
+        # Only use quantization if we are REALLY on a CUDA GPU
+        if device == 'cuda' and torch.cuda.is_available():
+            logger.info("  Configuring 4-bit quantization for CUDA...")
+            model_kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.bfloat16,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_use_double_quant=True,
+            )
+        else:
+            actual_dev = "cpu"
+            if device == "mps" or (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()):
+                actual_dev = "mps"
+            logger.info(f"  Configuring for {actual_dev} (Quantization disabled)...")
+
+        logger.debug(f"Model Loading Kwargs: {model_kwargs}")
+        
+        model = AutoModelForImageTextToText.from_pretrained(model_id, **model_kwargs)
+        logger.info(f"✓ Model loaded on {model.device}")
         return model, processor
     except Exception as e:
         logger.error(f"Failed to load model: {e}")
         sys.exit(1)
 
-def evaluate_model(model, processor, eval_data, prompt, batch_size=8, hf_token=None):
-    """Perform evaluation by comparing model output to ground truth captions."""
+def evaluate_model(model, processor, eval_data, prompt, class_names, batch_size=8, hf_token=None):
+    """Perform evaluation by comparing model output to ground truth labels."""
     logger.info("Evaluating model...")
     model.eval()
     
-    # Load semantic similarity metrics
-    logger.info("Loading BERTScore metric...")
-    bertscore = evaluate.load("bertscore", token=hf_token)
+    # Load classification metrics
+    acc_metric = evaluate.load("accuracy")
+    f1_metric = evaluate.load("f1")
     
     results = []
     
@@ -276,7 +235,7 @@ def evaluate_model(model, processor, eval_data, prompt, batch_size=8, hf_token=N
         ).to(model.device)
         
         with torch.no_grad():
-            generated_ids = model.generate(**inputs, max_new_tokens=64)
+            generated_ids = model.generate(**inputs, max_new_tokens=32)
             # Find the length of the prompt to slice out the generated part
             input_len = inputs.input_ids.shape[1]
             generated_texts = processor.batch_decode(generated_ids[:, input_len:], skip_special_tokens=True)
@@ -284,81 +243,64 @@ def evaluate_model(model, processor, eval_data, prompt, batch_size=8, hf_token=N
         for gen, ref in zip(generated_texts, references):
             results.append({"generated": gen.strip(), "reference": ref.strip()})
             
-    # Calculate strings
-    generated_texts_final = [r['generated'] for r in results]
-    reference_texts_final = [r['reference'] for r in results]
-    
-    # Calculate Semantic Similarity using BERTScore (F1)
-    if generated_texts_final:
-        logger.info(f"Computing BERTScore for {len(results)} samples...")
-        # We use 'roberta-common' or 'bert-base-multilingual-cased' for bertscore
-        bert_results = bertscore.compute(
-            predictions=generated_texts_final, 
-            references=reference_texts_final, 
-            lang="en",
-            model_type="distilbert-base-uncased" # Lightweight and fast
-        )
+    # Calculate Classification Metrics
+    if results:
+        logger.info(f"Computing classification metrics for {len(results)} samples...")
         
-        total_sim = 0
-        total_word_overlap = 0
-        total_len_ratio = 0
+        y_true = []
+        y_pred = []
         
-        for idx in range(len(results)):
-            gen = results[idx]['generated'].lower()
-            ref = results[idx]['reference'].lower()
+        class_to_id = {name.lower(): i for i, name in enumerate(class_names)}
+        
+        for res in results:
+            ref_name = res["reference"].lower()
+            gen_text = res["generated"].lower()
             
-            # 1. BERTScore F1 (Semantic)
-            # F1 is usually the best balance of precision/recall
-            sim = bert_results['f1'][idx] * 100
-            results[idx]['semantic_similarity'] = sim
+            true_id = class_to_id.get(ref_name, -1)
+            y_true.append(true_id)
             
-            # 2. Word Overlap (Jaccard Similarity)
-            gen_words = set(gen.split())
-            ref_words = set(ref.split())
-            if gen_words or ref_words:
-                intersection = gen_words.intersection(ref_words)
-                union = gen_words.union(ref_words)
-                overlap = len(intersection) / len(union) * 100
-            else:
-                overlap = 100.0
-            results[idx]['word_overlap'] = overlap
+            # Simple heuristic to find class in generated text
+            pred_id = -1
+            # Sort by length descending to match longest breed names first (e.g. "English Cocker Spaniel" before "Cocker Spaniel")
+            sorted_classes = sorted(class_names, key=len, reverse=True)
+            for name in sorted_classes:
+                if name.lower().replace("_", " ") in gen_text.replace("_", " "):
+                    pred_id = class_to_id[name.lower()]
+                    break
+            y_pred.append(pred_id)
             
-            # 3. Length Ratio
-            if len(ref) > 0:
-                len_ratio = min(len(gen) / len(ref), 1.0) * 100
-            else:
-                len_ratio = 100.0 if len(gen) == 0 else 0.0
-            results[idx]['length_ratio'] = len_ratio
-            
-            total_sim += results[idx]['semantic_similarity']
-            total_word_overlap += results[idx]['word_overlap']
-            total_len_ratio += results[idx]['length_ratio']
-            
-        avg_sim = total_sim / len(results)
-        avg_overlap = total_word_overlap / len(results)
-        avg_len_ratio = total_len_ratio / len(results)
-    else:
-        avg_sim = avg_overlap = avg_len_ratio = 0
+            res["correct"] = (pred_id == true_id)
+            res["predicted_label"] = class_names[pred_id] if pred_id != -1 else "Unknown"
 
-    # Log Aggregate metrics first
+        # Calculate Accuracy and F1
+        avg_acc = acc_metric.compute(predictions=y_pred, references=y_true)["accuracy"] * 100
+        avg_f1 = f1_metric.compute(predictions=y_pred, references=y_true, average="macro")["f1"] * 100
+        
+        # Calculate "Unknown" rate
+        unknown_count = y_pred.count(-1)
+        unknown_rate = (unknown_count / len(y_pred)) * 100
+    else:
+        avg_acc = avg_f1 = unknown_rate = 0
+
+    # Log Aggregate metrics
     logger.info("="*40)
-    logger.info("AGGREGATE EVALUATION METRICS")
-    logger.info(f"  Avg Semantic Similarity: {avg_sim:.2f}%")
-    logger.info(f"  Avg Word Overlap:       {avg_overlap:.2f}%")
-    logger.info(f"  Avg Length Consistency:  {avg_len_ratio:.2f}%")
+    logger.info("AGGREGATE CLASSIFICATION METRICS")
+    logger.info(f"  Accuracy:         {avg_acc:.2f}%")
+    logger.info(f"  F1 Score (Macro): {avg_f1:.2f}%")
+    logger.info(f"  Unknown Rate:     {unknown_rate:.2f}%")
     logger.info("="*40)
 
     logger.info("Individual Samples:")
     for i in range(min(3, len(results))):
         logger.info(f"  Sample {i+1}:")
-        logger.info(f"    Ref: {results[i]['reference'][:100]}...")
-        logger.info(f"    Gen: {results[i]['generated'][:100]}...")
-        logger.info(f"    Semantic: {results[i]['semantic_similarity']:.2f}% | Word Overlap: {results[i]['word_overlap']:.2f}%")
+        logger.info(f"    Ref: {results[i]['reference']}")
+        logger.info(f"    Gen: {results[i]['generated']}")
+        logger.info(f"    Pred: {results[i].get('predicted_label', 'N/A')} | Correct: {results[i].get('correct', 'N/A')}")
         
     return {
-        "avg_semantic_similarity": avg_sim, 
-        "avg_word_overlap": avg_overlap,
-        "avg_length_ratio": avg_len_ratio,
+        "accuracy": avg_acc, 
+        "f1": avg_f1,
+        "unknown_rate": unknown_rate,
         "samples": results
     }
 
@@ -370,7 +312,7 @@ def train_model(model, processor, train_data, eval_data, args):
         r=args.lora_r,
         lora_alpha=args.lora_alpha,
         lora_dropout=args.lora_dropout,
-        target_modules="all-linear",
+        target_modules=["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
         task_type="CAUSAL_LM",
     )
     
@@ -387,9 +329,9 @@ def train_model(model, processor, train_data, eval_data, args):
         save_strategy="no",
         eval_strategy="no",
         bf16=torch.cuda.is_available(),
-        max_length=512,
-        dataset_text_field="text", # SFTTrainer uses this
-        remove_unused_columns=False, # Required for multimodal/custom data
+        max_length=512, # Correct parameter name for trl SFTConfig
+        dataset_text_field="text", 
+        remove_unused_columns=False,
         report_to="none",
     )
     
@@ -404,7 +346,8 @@ def train_model(model, processor, train_data, eval_data, args):
     trainer.train()
     
     trainer.save_model(args.output_dir)
-    logger.info(f"✓ Fine-tuned model saved to {args.output_dir}")
+    logger.info(f"✓ Fine-tuned adapter saved to {args.output_dir}")
+    return trainer.model
 
 def upload_directory_to_gcs(local_path, gcs_path):
     """Uploads the local model directory to GCS."""
@@ -436,73 +379,73 @@ def main():
     
     # Force HF_TOKEN into environment for all libraries (like load_dataset and evaluate)
     token = args.hf_token or os.environ.get('HF_TOKEN')
+    
+    # Strip trailing slashes to prevent "Repo id" errors when using local paths
+    args.model_id = args.model_id.rstrip('/')
+    
     if token:
         os.environ['HF_TOKEN'] = token
         logger.info("✓ HF_TOKEN set globally")
     
     logger.info("="*80)
-    logger.info("Gemma 3 Fine-tuning on Open Images")
+    logger.info("Gemma 3 Fine-tuning on Oxford-IIIT Pet")
     logger.info("="*80)
     
     if torch.cuda.is_available():
         logger.info(f"Using GPU: {torch.cuda.get_device_name(0)}")
         logger.info(f"VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.2f} GB")
+        args.device = 'cuda'
     else:
-        logger.warning("Running on CPU - this will be extremely slow!")
+        logger.warning("CUDA not available. Falling back to CPU.")
+        args.device = 'cpu'
 
     authenticate_huggingface(args.hf_token)
     
-    DEFAULT_PROMPT = "Describe this image in detail."
+    DEFAULT_PROMPT = "Identify the breed of the animal in this image."
     
     # Load data
     token = args.hf_token or os.environ.get('HF_TOKEN')
-    train_data, eval_data = load_data(args.train_size, args.eval_size, hf_token=token)
+    train_data, eval_data, class_names = load_data(args.train_size, args.eval_size, hf_token=token)
     
-    # Load model
-    model, processor = load_model_and_processor(args.model_id, args.device, hf_token=token)
+    # Load model and processor (processor only in dry run)
+    model, processor = load_model_and_processor(args.model_id, args.device, hf_token=token, load_model=not args.dry_run)
     
     # Format data for SFT
     logger.info("Formatting datasets...")
     formatted_train = train_data.map(lambda x: format_data(x, DEFAULT_PROMPT, processor))
     formatted_eval = eval_data.map(lambda x: format_data(x, DEFAULT_PROMPT, processor))
     
+    if args.dry_run:
+        logger.info("="*50)
+        logger.info("DRY RUN: DATA VERIFICATION")
+        logger.info("-" * 30)
+        sample = formatted_train[0]
+        logger.info(f"Sample Breed: {train_data[0]['caption']}")
+        logger.info(f"Formatted Text:\n{sample['text'][:500]}...")
+        logger.info("-" * 30)
+        logger.info("✓ Dry run data verification complete! (Model loading skipped)")
+        logger.info("="*50)
+        return
+    
     # Baseline Evaluation
     token = args.hf_token or os.environ.get('HF_TOKEN')
     logger.info("Baseline Evaluation...")
-    baseline_results = evaluate_model(model, processor, eval_data, DEFAULT_PROMPT, args.eval_batch_size, hf_token=token)
+    baseline_results = evaluate_model(model, processor, eval_data, DEFAULT_PROMPT, class_names, args.eval_batch_size, hf_token=token)
     
     # Train
-    train_model(model, processor, formatted_train, formatted_eval, args)
+    model = train_model(model, processor, formatted_train, formatted_eval, args)
     
-    logger.info("Merging LoRA weights...")
-    quantization_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype=torch.bfloat16,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_use_double_quant=True,
-    ) if args.device == 'cuda' else None
-
-    base_model = AutoModelForImageTextToText.from_pretrained(
-        args.model_id, 
-        dtype=torch.bfloat16 if args.device == 'cuda' else torch.float32,
-        device_map="auto" if args.device == 'cuda' else None,
-        token=token,
-        quantization_config=quantization_config
-    )
-    model = PeftModel.from_pretrained(base_model, args.output_dir)
-    model = model.merge_and_unload()
-    
-    # Final Evaluation
+    # Final Evaluation (directly on the trained PeftModel)
     logger.info("Final Evaluation...")
-    final_results = evaluate_model(model, processor, eval_data, DEFAULT_PROMPT, args.eval_batch_size, hf_token=token)
+    final_results = evaluate_model(model, processor, eval_data, DEFAULT_PROMPT, class_names, args.eval_batch_size, hf_token=token)
     
-    # Save merged model
-    merged_dir = f"{args.output_dir}-merged"
-    model.save_pretrained(merged_dir)
-    processor.save_pretrained(merged_dir)
+    # For 4-bit quantization, we typically save and use adapters rather than merging
+    # Weights are already saved in args.output_dir via trainer.save_model()
+    # We'll also save the processor there to make it a complete inference-ready directory
+    processor.save_pretrained(args.output_dir)
     
     if args.gcs_output_path:
-        upload_directory_to_gcs(merged_dir, args.gcs_output_path)
+        upload_directory_to_gcs(args.output_dir, args.gcs_output_path)
 
     # Final Comparison
     logger.info("="*80)
@@ -510,9 +453,9 @@ def main():
     logger.info("-" * 40)
     logger.info(f"  METRIC                 | BASELINE | FINAL    | IMPROVEMENT")
     logger.info("-" * 40)
-    logger.info(f"  Semantic Similarity    | {baseline_results['avg_semantic_similarity']:>7.2f}% | {final_results['avg_semantic_similarity']:>7.2f}% | {final_results['avg_semantic_similarity'] - baseline_results['avg_semantic_similarity']:>+7.2f}%")
-    logger.info(f"  Word Overlap (Jaccard) | {baseline_results['avg_word_overlap']:>7.2f}% | {final_results['avg_word_overlap']:>7.2f}% | {final_results['avg_word_overlap'] - baseline_results['avg_word_overlap']:>+7.2f}%")
-    logger.info(f"  Length Consistency     | {baseline_results['avg_length_ratio']:>7.2f}% | {final_results['avg_length_ratio']:>7.2f}% | {final_results['avg_length_ratio'] - baseline_results['avg_length_ratio']:>+7.2f}%")
+    logger.info(f"  Accuracy               | {baseline_results['accuracy']:>7.2f}% | {final_results['accuracy']:>7.2f}% | {final_results['accuracy'] - baseline_results['accuracy']:>+7.2f}%")
+    logger.info(f"  F1 Score (Macro)       | {baseline_results['f1']:>7.2f}% | {final_results['f1']:>7.2f}% | {final_results['f1'] - baseline_results['f1']:>+7.2f}%")
+    logger.info(f"  Unknown Rate           | {baseline_results['unknown_rate']:>7.2f}% | {final_results['unknown_rate']:>7.2f}% | {final_results['unknown_rate'] - baseline_results['unknown_rate']:>+7.2f}%")
     logger.info("-" * 40)
     logger.info("="*80)
     

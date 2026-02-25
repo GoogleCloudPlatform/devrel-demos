@@ -1,12 +1,12 @@
-# Fine-tuning Gemma 3 with Cloud Run jobs (NVIDIA RTX 6000 Pro)
+# Fine-tuning Gemma 3 for Pet Breed Classification (NVIDIA RTX 6000 Pro)
 
-Building state-of-the-art vision-language applications requires a powerful foundation. Imagine you are building a high-fidelity image auditing system for an e-commerce platform. You need a model that doesn't just label objects like "shoe" or "watch" but can describe the texture, brand authenticity, and condition of a product in detail. 
+Building state-of-the-art vision-language applications requires a powerful foundation. Imagine you are building a smart pet-care application. You need a model that can instantly identify the breed of a cat or dog from a simple photo to provide tailored nutrition advice or health alerts. 
 
 To achieve this, you need the world-class reasoning of **[Gemma 3 27B](https://huggingface.co/google/gemma-3-27b-it)**, but you don't want to manage massive Kubernetes clusters or maintain idle 24/7 dedicated instances. You need a setup that is **reproducible, cost-effective, and container-native**.
 
 By combining the **[NVIDIA RTX PRO 6000 Blackwell Server Edition GPUs](https://cloud.google.com/blog/products/serverless/cloud-run-supports-nvidia-rtx-6000-pro-gpus-for-ai-workloads)** on Cloud Run with the **Gemma 3 27B** model and the **uv** package manager, you can transform a complex VLM fine-tuning process into a simple, scalable batch job.
 
-### The Problem: Scaling Multimodal Fine-Tuning
+### The Problem: Scaling Multimodal Classification
 Fine-tuning a 27B parameter model used to require complex orchestration. You’d have to:
 1. Provision a massive VM.
 2. Manually install CUDA drivers and dependencies.
@@ -16,7 +16,7 @@ Fine-tuning a 27B parameter model used to require complex orchestration. You’d
 ### The Solution: Serverless Blackwell GPUs
 Cloud Run Jobs solves this by allowing you to package your training logic as a container. With support for **RTX 6000 Pro (Blackwell)** GPUs, you get 48GB of VRAM in a fully managed environment. You only pay for the minutes your model is training, and everything—from model weight mounting via GCS to multi-epoch training—is handled within a single container.
 
-In this guide, we walk through the process of fine-tuning the **Gemma 3 27B** model for **Deep Image Captioning** at scale.
+In this guide, we walk through the process of fine-tuning the **Gemma 3 27B** model for **Pet Breed Classification** using the [Oxford-IIIT Pet Dataset](https://huggingface.co/datasets/timm/oxford-iiit-pet).
 
 ## Step 1 - Setting the stage: Your environment
 
@@ -192,24 +192,24 @@ To ensure a stable and production-ready environment, we use several specialized 
 gcloud beta run jobs execute $JOB_NAME --region $REGION --async
 ```
 
-## Step 5 - Evaluate with Semantic Precision: BERTScore
+## Step 5 - Evaluate with Classification Metrics: Accuracy & F1 Score
 
-Traditional metrics like BLEU or simple string matching often fail when evaluating creative tasks like image captioning. They penalize the model for using synonyms (e.g., "car" instead of "automobile") or rephrasing a sentence.
+For a precise task like pet breed classification, we need metrics that directly measure the model"s ability to categorize images into the correct breed labels. Unlike open-ended captioning, classification requires the model to produce a specific, recognizable class name.
 
-For this project, we've implemented **BERTScore** as our primary evaluation metric. 
+For this project, we"ve implemented **Accuracy** and **Macro F1 Score** as our primary evaluation metrics.
 
-### Why BERTScore?
-BERTScore leverages contextual embeddings from a transformer model (like DistilBERT) to compare the similarity of two sentences. Instead of matching characters, it aligns words based on their **semantic meaning** within the context of the sentence. 
+### Why Accuracy and F1 Score?
+By mapping the model"s text output to our set of 37 pet breeds (using the Oxford-IIIT Pet dataset), we can rigorously quantify its performance.
 
-*   **Human-Centric**: It correlates much more closely with human judgment than traditional string-matching metrics.
-*   **Intuitive Scaling**: Unlike raw cosine similarity, which can yield confusingly low percentages, BERTScore yields scores in a familiar **80%–95%** range, making it easy to quantify a "B+" vs. an "A" grade caption.
-*   **Style Detection**: It is sensitive enough to detect when the model adopts the specific descriptive "style" of our training data, even if the exact vocabulary differs.
+*   **Accuracy**: Provides a clear percentage of how often the model correctly identifies the breed.
+*   **Macro F1 Score**: Ensures that the model performs well across all breeds, not just the most common ones. This is critical for detecting if the model is biased toward specific popular breeds.
+*   **Label Mapping**: Our evaluation script includes robust text processing to find the correct breed name within the model"s generated response, even if it includes conversational filler.
 
 ## Step 6 - Check the results
 
 Once the job completes, you can view the detailed logs in the Google Cloud Console. The fine-tuned model will be automatically saved to your Cloud Storage bucket `gs://$BUCKET_NAME/gemma3-finetuned`.
 
-By leveraging the **RTX 6000 Pro** Blackwell GPUs on Cloud Run and a sophisticated semantic evaluation pipeline, you've transformed a complex VLM fine-tuning process into a scalable, repeatable, and cost-effective production workflow.
+By leveraging the **RTX 6000 Pro** Blackwell GPUs on Cloud Run and a robust classification evaluation pipeline, you've transformed a complex VLM fine-tuning process into a scalable, repeatable, and cost-effective production workflow.
 
 ## Next Steps: Production Inference with `cr-infer`
 
