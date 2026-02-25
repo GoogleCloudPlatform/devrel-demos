@@ -40,6 +40,21 @@ RUN uv venv ${VIRTUAL_ENV} && \
         --extra-index-url https://pypi.org/simple \
         -r requirements.txt
 
+# Workaround for bitsandbytes/triton compatibility on Blackwell/CUDA 12.8
+# Fixes: ModuleNotFoundError: No module named 'triton.ops'
+RUN python3 -c "import os; import triton; \
+    ops_path = os.path.join(os.path.dirname(triton.__file__), 'ops'); \
+    os.makedirs(ops_path, exist_ok=True); \
+    with open(os.path.join(ops_path, '__init__.py'), 'a') as f: pass; \
+    with open(os.path.join(ops_path, 'matmul_perf_model.py'), 'w') as f: \
+        f.write('def early_config_prune(*args, **kwargs): return []\ndef estimate_matmul_time(*args, **kwargs): return 0.1\n')"
+
+# Ensure bitsandbytes finds a compatible CUDA binary for 12.8
+RUN BnbPath=$(python3 -c "import bitsandbytes as bnb; print(bnb.__path__[0])") && \
+    if [ ! -f "$BnbPath/libbitsandbytes_cuda128.so" ]; then \
+        ln -s "$BnbPath/libbitsandbytes_cuda121.so" "$BnbPath/libbitsandbytes_cuda128.so" || true; \
+    fi
+
 # Copy code last (most frequently changed)
 COPY finetune_and_evaluate.py .
 
