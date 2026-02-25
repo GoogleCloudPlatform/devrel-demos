@@ -22,7 +22,6 @@ import uuid
 import asyncio
 import dotenv
 import os
-import sys
 
 dotenv.load_dotenv()
 
@@ -73,7 +72,8 @@ async def main(prompt: str):
 
 if __name__ == "__main__":    
     # Suppress noisy async cleanup by redirecting stderr to null
-    sys.stderr = open(os.devnull, 'w')
+    # import sys
+    # sys.stderr = open(os.devnull, 'w')
     
     prompts = [
        f"what can you tell me about my dataset {DATASET_ID} in project {PROJECT_ID}?",
@@ -83,6 +83,6 @@ if __name__ == "__main__":
     for i, prompt in enumerate(prompts):        
         try:
             asyncio.run(main(prompt))
-        except:
-             pass
+        except Exception as e:
+             print(f"An error occurred: {e}")
         

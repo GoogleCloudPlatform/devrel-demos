@@ -49,7 +49,6 @@ Before running the agent, you **must** configure the environment variables in `m
 To run the agent with the Agent Development Kit (ADK) Web UI, which provides a visual interface for chatting with your agent, tracing execution steps, and debugging:
 
 ```bash
-# Point to the create_agent_app factory in deploy_agent.py
 adk web
 ```
 (This will start a local server at http://localhost:8000. Open this URL in your browser to interact with the agent.)

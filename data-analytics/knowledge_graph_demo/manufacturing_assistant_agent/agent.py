@@ -22,7 +22,6 @@ from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPConnecti
 logger = logging.getLogger(__name__)
 
 import google.auth
-from google.auth.transport.requests import Request
 
 from google.adk.tools.bigquery import BigQueryCredentialsConfig, BigQueryToolset
 
