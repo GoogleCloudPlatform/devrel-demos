@@ -1,0 +1,176 @@
+<!--
+ Copyright 2026 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+ 
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cymbal Transit Concierge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 h-screen flex flex-col font-sans">
+
+    <!-- Header -->
+    <header class="bg-blue-600 text-white p-4 shadow-md flex items-center justify-center gap-3 shrink-0">
+        <i class="fa-solid fa-bus text-2xl"></i>
+        <div>
+            <h1 class="text-xl font-bold leading-tight">Cymbal Transit Concierge</h1>
+            <p class="text-blue-200 text-xs">Powered by AlloyDB & MCP Toolbox</p>
+        </div>
+    </header>
+
+    <!-- Chat Container -->
+    <main class="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center">
+        <div class="w-full max-w-3xl flex flex-col gap-4" id="chat-box">
+            
+            <!-- Agent Welcome Message -->
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0 shadow-sm">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div class="bg-white border border-gray-200 p-4 rounded-2xl rounded-tl-none shadow-sm text-gray-700 max-w-[80%]">
+                    Hello! I'm the Cymbal Transit Concierge. I can help you find bus schedules, book tickets, or answer questions about our travel policies. Where are you heading today?
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Loading Indicator (Hidden by default) -->
+    <div id="loading-indicator" class="hidden justify-center pb-4">
+        <div class="flex items-center gap-2 text-gray-500 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+            <span class="text-sm font-medium">Agent is thinking...</span>
+        </div>
+    </div>
+
+    <!-- Input Area -->
+    <footer class="bg-white border-t border-gray-200 p-4 shrink-0">
+        <div class="max-w-3xl mx-auto flex gap-2">
+            <input type="text" id="user-input" 
+                class="flex-1 border border-gray-300 rounded-full px-6 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 transition-all" 
+                placeholder="E.g., I need a bus from New York to Boston tomorrow..."
+                autocomplete="off">
+            <button id="send-btn" 
+                class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const chatBox = document.getElementById('chat-box');
+            const userInput = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            const loadingIndicator = document.getElementById('loading-indicator');
+
+            function scrollToBottom() {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                chatBox.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            function appendUserMessage(text) {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'flex items-start justify-end gap-3';
+                msgDiv.innerHTML = `
+                    <div class="bg-blue-600 text-white p-4 rounded-2xl rounded-tr-none shadow-sm max-w-[80%]">
+                        ${text}
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 shrink-0 shadow-sm">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                `;
+                chatBox.appendChild(msgDiv);
+                scrollToBottom();
+            }
+
+            function appendAgentMessage(text) {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'flex items-start gap-3';
+                // Replace basic newlines with HTML line breaks for readability
+                const formattedText = text.replace(/\n/g, '<br>');
+                msgDiv.innerHTML = `
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0 shadow-sm">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div class="bg-white border border-gray-200 p-4 rounded-2xl rounded-tl-none shadow-sm text-gray-700 max-w-[80%]">
+                        ${formattedText}
+                    </div>
+                `;
+                chatBox.appendChild(msgDiv);
+                scrollToBottom();
+            }
+
+            async function handleSend() {
+                const text = userInput.value.trim();
+                if (!text) return;
+
+                // Disable UI and show user message
+                userInput.value = '';
+                userInput.disabled = true;
+                sendBtn.disabled = true;
+                appendUserMessage(text);
+                
+                // Show loading
+                loadingIndicator.classList.remove('hidden');
+                loadingIndicator.classList.add('flex');
+                scrollToBottom();
+
+                try {
+                    // Make the REST call to the Spring Boot Backend we created
+                    const response = await fetch('/api/agent/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'text/plain',
+                        },
+                        body: text
+                    });
+
+                    if (response.ok) {
+                        const responseText = await response.text();
+                        appendAgentMessage(responseText);
+                    } else {
+                        appendAgentMessage("⚠️ Sorry, I encountered an error communicating with the server.");
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    appendAgentMessage("⚠️ Connection error. Please ensure the Spring Boot server is running.");
+                } finally {
+                    // Restore UI
+                    loadingIndicator.classList.add('hidden');
+                    loadingIndicator.classList.remove('flex');
+                    userInput.disabled = false;
+                    sendBtn.disabled = false;
+                    userInput.focus();
+                    scrollToBottom();
+                }
+            }
+
+            sendBtn.addEventListener('click', handleSend);
+            
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSend();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

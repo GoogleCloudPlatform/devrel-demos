@@ -1,0 +1,100 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+sources:
+    alloydb:
+        kind: "alloydb-postgres"
+        project: "*******"
+        region: "us-central1"
+        cluster: "**********"
+        instance: "**********"
+        database: "postgres"
+        user: "postgres"
+        password: "*******"
+
+authServices:
+    google_auth:
+      kind: google
+      # The client ID that issues the tokens (e.g., your Cloud Run service account or OAuth client)
+      clientId: "https://toolbox-cymbal-transit-********-uc.a.run.app"
+
+tools:
+
+   find-bus-schedules:
+    kind: postgres-sql
+    source: alloydb
+    description: Find all available bus schedules.
+    statement: |
+      SELECT CAST(trip_id AS TEXT) trip_id, departure_time, arrival_time, ticket_price, available_seats , origin_city, destination_city 
+      FROM bus_schedules;
+
+   query-schedules:
+    kind: postgres-sql
+    source: alloydb
+    description: Find available bus schedules between an origin and destination city.
+    parameters:
+      - name: origin
+        type: string
+        description: The departure city name.
+      - name: destination
+        type: string
+        description: The arrival city name.
+    statement: |
+      SELECT CAST(trip_id AS TEXT) trip_id, departure_time, arrival_time, ticket_price, available_seats 
+      FROM bus_schedules 
+      WHERE lower(origin_city) = lower($1) 
+        AND lower(destination_city) = lower($2) 
+        AND available_seats > 0 
+      ORDER BY departure_time ASC 
+      LIMIT 5;
+
+   book-ticket:
+    kind: postgres-sql
+    source: alloydb
+    description: Books a ticket for a specific trip, decrementing available seats and generating a confirmed booking record.
+    parameters:
+      - name: trip_id
+        type: string
+        description: The UUID of the trip schedule to book.
+      - name: passenger_name
+        type: string
+        description: Name or ID of the passenger (Bound securely via backend or AuthToken).
+        authServices:
+          - name: google_auth
+            field: sub
+    statement: |
+      WITH updated_schedule AS (
+          UPDATE bus_schedules 
+          SET available_seats = available_seats - 1 
+          WHERE trip_id = CAST($1 AS UUID) AND available_seats > 0
+          RETURNING trip_id
+      )
+      INSERT INTO bookings (trip_id, passenger_id)
+      SELECT trip_id, $2 
+      FROM updated_schedule
+      RETURNING CAST(booking_id as TEXT) as booking_id, trip_id, passenger_id, status, booking_time;
+
+   search-policies:
+    kind: postgres-sql
+    source: alloydb
+    description: Semantic search for transit policies regarding luggage, pets, refunds, and general rules.
+    parameters:
+      - name: search_query
+        type: string
+        description: The user's question about transit policies to be embedded and searched.
+    statement: |
+      SELECT category, policy_text 
+      FROM transit_policies 
+      ORDER BY policy_embedding <=> CAST(embedding('text-embedding-005', $1) AS vector(768))
+      LIMIT 2;
