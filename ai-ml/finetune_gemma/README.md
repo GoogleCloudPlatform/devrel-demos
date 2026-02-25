@@ -1,13 +1,9 @@
-# Fine-tuning Gemma 3 with Cloud Run Jobs (NVIDIA RTX 6000 Pro)
+# Fine-Tuning Gemma 3 with Cloud Run Jobs: Serverless GPUs (NVIDIA RTX 6000 Pro)
 
-This repository contains the code and configuration for fine-tuning the **Gemma 3 27B** model for Deep Image Captioning using **Cloud Run jobs** and the **NVIDIA RTX 6000 Pro (Blackwell)** GPU.
-
-## Features
-- **Serverless Fine-tuning**: Fully managed execution on Cloud Run with high-performance GPUs.
-- **Deep Image Captioning**: Specialized on the [Synthetic DALL-E 3](https://huggingface.co/datasets/ProGamerGov/synthetic-dataset-1m-dalle3-high-quality-captions) dataset.
+This repository contains the code and configuration for fine-tuning the **Gemma 3 27B** model for- **Pet Breed Classification**: Specialized on the [Oxford-IIIT Pet Dataset](https://huggingface.co/datasets/timm/oxford-iiit-pet) (**3,680** training images / **3,669** test images).
 - **Memory Optimized**: Uses `Dataset.from_generator` and `low_cpu_mem_usage` for efficient streaming.
 - **Modern Stack**: Leverages `uv` for dependency management and CUDA 12.8 for Blackwell compatibility.
-- **Semantic Evaluation**: Uses **BERTScore** for high-fidelity caption quality assessment.
+- **Classification Evaluation**: Uses **Accuracy** and **F1 Score** for breed identification assessment.
 
 ## Project Structure
 - `finetune_and_evaluate.py`: Main script for fine-tuning and evaluation logic.
