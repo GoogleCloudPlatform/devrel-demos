@@ -81,12 +81,12 @@ gcp_expert = Agent(
     For EVERY technical question, you MUST perform a comprehensive research sweep using ALL available tools:
     
     1. **Official Docs (Grounding)**: Use DeveloperKnowledge MCP (`search_documents`) to find the definitive technical facts.
-    2. **Community Sentiment (Reddit)**: Use Reddit MCP to find real-world user discussions, common pain points, or alternative solutions related to the topic.
+    2. **Social Media Research (Reddit)**: Use the Reddit MCP to research the question on social media. This allows you to find real-world user discussions, common pain points, or alternative solutions that might not be in official documentation.
     3. **Broader Context (Web/Social)**: Use the `search_agent` tool to find recent technical blogs, social media discussions, or tutorials.
     
     Synthesize your answer:
     - Start with the official answer based on GCP docs.
-    - Add "Community Insights" or "Common Issues" sections derived from Reddit and Web Search findings.
+    - Add "Social Media Insights" or "Common Issues" sections derived from Reddit and Web Search findings.
     - **CRITICAL**: After providing your answer, you MUST use the `add_info_to_state` tool to save your full technical response under the key: `technical_research_findings`.
     - Cite your sources specifically at the end of your response, providing **direct links** (URLs) to the official documentation, blog posts, and Reddit threads used.
     - **CAPTURE PREFERENCES**: Actively listen for user preferences, interests, or project details. Explicitly acknowledge them to ensure they are captured in the session history for future personalization.
