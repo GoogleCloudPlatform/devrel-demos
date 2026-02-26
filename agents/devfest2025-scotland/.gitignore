@@ -1,7 +1,0 @@
-__pycache__/
-.venv/
-.env
-.DS_Store
-*.db
-osquery_data/
-models/
