@@ -56,8 +56,10 @@ reddit_scanner = Agent(
     4. Analyze "high-engagement" based on upvote counts and the number of comments.
     5. Recommend the most important and relevant questions for a technical audience.
     6. **CRITICAL**: For each recommended question, provide a direct link to the original thread and a concise summary of the discussion.
+    7. **CAPTURE PREFERENCES**: Actively listen for user preferences, interests, or project details. Explicitly acknowledge them to ensure they are captured in the session history for future personalization.
     """,
     tools=[reddit_mcp, load_memory_tool.LoadMemoryTool()],
+    after_agent_callback=save_session_to_memory_callback,
 )
 
 dk_mcp = get_dk_mcp_toolset()
@@ -87,8 +89,10 @@ gcp_expert = Agent(
     - Add "Community Insights" or "Common Issues" sections derived from Reddit and Web Search findings.
     - **CRITICAL**: After providing your answer, you MUST use the `add_info_to_state` tool to save your full technical response under the key: `technical_research_findings`.
     - Cite your sources specifically at the end of your response, providing **direct links** (URLs) to the official documentation, blog posts, and Reddit threads used.
+    - **CAPTURE PREFERENCES**: Actively listen for user preferences, interests, or project details. Explicitly acknowledge them to ensure they are captured in the session history for future personalization.
     """,
     tools=[dk_mcp, AgentTool(search_agent), reddit_mcp, add_info_to_state],
+    after_agent_callback=save_session_to_memory_callback,
 )
 
 nano_mcp = get_nano_banana_mcp_toolset()
@@ -111,8 +115,10 @@ blog_drafter = Agent(
     5. Provide a "Resources" section with links to the official documentation used.
     6. Ensure the tone is professional yet accessible, while adhering to any style preferences found in memory.
     7. **VISUALS**: After presenting the drafted blog post, explicitly ask the user: "Would you like me to generate an infographic-style header image to illustrate these key points?" If they agree, use the `generate_image` tool (Nano Banana).
+    8. **CAPTURE PREFERENCES**: Actively listen for user preferences, interests, or project details. Explicitly acknowledge them to ensure they are captured in the session history for future personalization.
     """,
     tools=[dk_mcp, load_memory_tool.LoadMemoryTool(), nano_mcp],
+    after_agent_callback=save_session_to_memory_callback,
 )
 
 root_agent = Agent(
