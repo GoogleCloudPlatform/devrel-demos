@@ -69,7 +69,7 @@
     <dependency>
         <groupId>com.google.cloud.mcp</groupId>
         <artifactId>mcp-toolbox-sdk-java</artifactId>
-        <version>0.1.0</version>
+        <version>0.1.1</version>
     </dependency>
 
     <!-- Java Annotations -->
