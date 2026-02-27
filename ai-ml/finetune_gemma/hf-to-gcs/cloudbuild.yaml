@@ -1,0 +1,13 @@
+steps:
+- name: 'python:3.11-slim'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    pip install huggingface_hub[hf_transfer] google-cloud-storage
+    python copy_to_gcs.py --model-id $_MODEL_ID --bucket $_BUCKET --token $_TOKEN
+
+options:
+  machineType: 'E2_HIGHCPU_32'
+  diskSizeGb: '500'
+timeout: '7200s' # 2 hours

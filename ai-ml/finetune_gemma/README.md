@@ -6,10 +6,12 @@ This repository contains the code and configuration for fine-tuning the **Gemma 
 - **Classification Evaluation**: Uses **Accuracy** and **F1 Score** for breed identification assessment.
 
 ## Project Structure
+- `vision-ai-app/`: Next.js web application for interacting with the models.
+- `gemma-3-27b-serving/`: Configuration for serving the **base** Gemma 3 model.
+- `gemma-3-finetuned-serving/`: Configuration for serving the **fine-tuned** Gemma 3 model.
 - `finetune_and_evaluate.py`: Main script for fine-tuning and evaluation logic.
-- `transfer_to_gcs.py`: (Optional) Script to stage the base model weights in GCS.
-- `Dockerfile`: Container configuration optimized for CUDA 12.8 and Blackwell GPUs.
-- `requirements.txt`: Python dependencies (includes fixes for `bitsandbytes` CUDA 12.8 binaries).
+- `Dockerfile`: Container configuration for the fine-tuning job.
+- `requirements.txt`: Python dependencies.
 
 ## Setup & Deployment
 
