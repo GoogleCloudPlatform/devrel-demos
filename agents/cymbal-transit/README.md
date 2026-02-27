@@ -1,5 +1,12 @@
 # Demo App for MCP Toolbox Java SDK
 
+Meet Cymbal Transit, a fictitious intercity bus network. Customers don't want to click through 15 dropdown menus to plan a trip. They want to ask:
+"I need to get from New York to Boston tomorrow morning. Can I bring my Golden Retriever? If so, book me the fastest trip."
+
+To answer this, an AI agent must seamlessly cross-reference unstructured data (pet policies) with structured data (schedules, seat availability) and execute a transaction (booking)—all while remembering the context of the conversation.
+Here is how we build this using the Java SDK for MCP Toolbox.
+
+
 ### Cymbal Bus Agent
 
 ##### 1. AlloyDB database and MCP Toolbox for AlloyDB for tools integration.
