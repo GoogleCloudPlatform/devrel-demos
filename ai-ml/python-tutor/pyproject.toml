@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "google-adk>=1.6.1",
-    "google-cloud-aiplatform==1.103.0",
+    "google-cloud-aiplatform==1.133.0",
     "pandas>=2.3.1",
     "psycopg2-binary>=2.9.10",
     "vertexai>=1.43.0",
