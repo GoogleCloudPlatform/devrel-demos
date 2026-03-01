@@ -9,8 +9,8 @@ Google Cloud Model Armor is a managed security service designed to help protect 
 **Useful Resources:**
 
 * [Model Armor Official Documentation](https://cloud.google.com/security-command-center/docs/model-armor-overview)
-* [Configure Model Armor Policies](https://cloud.google.com/security-command-center/docs/how-to-use-model-armor)
-* [Model Armor API Reference](https://cloud.google.com/model-armor/docs/reference/rest)
+* [Model Armor Floor Settings](https://docs.cloud.google.com/model-armor/configure-floor-settings)
+* [Model Armor API Reference](https://docs.cloud.google.com/model-armor/reference/rest?rep_location=global)
 
 ---
 
@@ -20,10 +20,8 @@ Explore the subfolders below to see how Model Armor can be integrated into diffe
 
 | Example | Description | Key Concepts Covered |
 | :--- | :--- | :--- |
-| **[01-basic-setup](./01-basic-setup)** | A beginner-friendly example showing how to initialize Model Armor and run a simple prompt evaluation. | API Initialization, Basic Request/Response filtering. |
-| **[02-dlp-integration](./02-dlp-integration)** | Demonstrates how to configure Model Armor to work with Cloud Data Loss Prevention (DLP) to mask PII in model responses. | Cloud DLP integration, PII masking, Policy routing. |
-| **[03-langchain-interceptor](./03-langchain-interceptor)** | Shows how to build a custom LangChain middleware that intercepts requests and routes them through Model Armor before hitting Vertex AI. | LangChain callbacks, Vertex AI, Custom middleware. |
-| **[04-prompt-injection-defense](./04-prompt-injection-defense)** | A practical scenario showcasing how Model Armor detects and blocks malicious jailbreak attempts. | Jailbreak detection, Block lists, Error handling. |
+| **[integration-setup-terraform](./integration-setup-terraform)** | Demonstrates how to configure Model Armor integration with Vertex AI and Google Cloud MCP servers using Terraform. | Terraform plan to configure floor settings and integration. |
+| **[sanitiation-quickstart](./sanitization-quickstart)** | A beginner-friendly example showing how to call Model Armor sanitiation API using Python client library. | API Initialization, Basic Request/Response sanitization. |
 
 ---
 

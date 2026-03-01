@@ -39,7 +39,7 @@ resource "google_project_service" "google_apis" {
 
 resource "google_model_armor_floorsetting" "floorsetting-filter-config" {
   location    = "global"
-  parent      = "project/${var.project_id}"
+  parent      = "projects/${var.project_id}"
   filter_config {
     rai_settings {
       rai_filters {
@@ -49,7 +49,7 @@ resource "google_model_armor_floorsetting" "floorsetting-filter-config" {
     }
     sdp_settings {
       basic_config {
-          filter_enforcement = "ENABLED"
+        filter_enforcement = "ENABLED"
       }
     }
     pi_and_jailbreak_filter_settings {

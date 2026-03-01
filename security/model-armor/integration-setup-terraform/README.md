@@ -19,10 +19,8 @@ This Terraform module relies on input variables to customize the deployment for 
 | Variable Name | Description | Type | Required |
 | :--- | :--- | :--- | :--- |
 | `project_id` | The Google Cloud project ID where resources will be deployed. | `string` | **Yes** |
-| `region` | The Google Cloud region for the Vertex AI and Model Armor resources (e.g., `us-central1`). | `string` | **Yes** |
-| `model_armor_template_id` | The ID of the existing Model Armor template to apply to the endpoints. | `string` | **Yes** |
-| `vertex_endpoint_id` | The target Vertex AI Endpoint ID you are integrating with Model Armor. | `string` | **Yes** |
-| `mcp_server_name` | The identifier or name of the Google Cloud MCP server being secured. | `string` | **Yes** |
+| `vertex_ai_integration` | Flag to configure Vertex AI integration. Default is `true`. | `bool` | No |
+| `mcp_integration` | Flag to configure MCP servers integration. Default is `false`. | `bool` | No |
 
 ---
 
@@ -68,5 +66,3 @@ Follow these steps to run the sample in the local environment:
 Once `terraform apply` completes successfully, you can verify the integration using the following methods:
 
 * **Google Cloud Console**: Navigate to the **Model Armor** section in the Google Cloud Console. You should see your specified Vertex AI Endpoint and MCP Server listed under the "Protected Resources" or "Integrations" tab, bound to the correct template.
-* **Test a Vertex AI Payload**: Send a test prompt to your Vertex AI endpoint that violates a rule in your Model Armor template (e.g., attempting to extract PII or triggering a toxic content filter).
-* **Check Cloud Logging**: Navigate to **Logs Explorer** and query for Model Armor logs. You should see log entries detailing the blocked or sanitized requests routing from your MCP server or Vertex AI endpoint, confirming the security layer is active.

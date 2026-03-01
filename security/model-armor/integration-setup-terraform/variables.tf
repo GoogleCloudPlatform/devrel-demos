@@ -12,5 +12,5 @@ variable "vertex_ai_integration" {
 variable "mcp_integration" {
   type        = bool
   description = "Flag whether to activate integration with Google Cloud MCP servers"
-  default     = true
+  default     = false
 }

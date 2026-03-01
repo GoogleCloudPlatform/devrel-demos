@@ -140,7 +140,7 @@ def main() -> None:
         or not location_id
         or (not user_prompt_template_id and not response_template_id)
     ):
-        printf("[Input Error]: Check environment variables setup.")
+        print("[Input Error]: Check environment variables setup.")
         sys.exit(1)
 
     # 1. Call the user prompt sanitization method
