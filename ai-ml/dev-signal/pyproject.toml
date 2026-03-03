@@ -15,5 +15,6 @@ dependencies = [
     "google-cloud-aiplatform>=1.38.0",
     "fastmcp>=2.13.0",
     "google-cloud-storage>=3.6.0",
-    "google-auth>=2.0.0"
+    "google-auth>=2.0.0",
+    "google-cloud-secret-manager>=2.26.0",
 ]

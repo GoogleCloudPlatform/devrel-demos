@@ -10,4 +10,5 @@ docker-deploy:
 	gcloud run services update dev-signal-agent \
 		--image $(IMAGE) \
 		--region $(REGION) \
-		--project $(PROJECT_ID)
+		--project $(PROJECT_ID) \
+		--labels dev-tutorial=dev-agent-agent
