@@ -7,9 +7,9 @@ Welcome to **Dev Signal**, an intelligent monitoring agent designed to filter no
 Dev Signal is a multi-agent system that operates in a continuous loop to monitor technical trends and generate high-quality content. Its workflow includes:
 
 1.  **Discovery (Reddit Scanner):** Scouts Reddit for high-engagement technical questions and trending topics (e.g., "AI agents on Cloud Run").
-2.  **Grounding (GCP Expert):** Researches answers using official Google Cloud documentation via the Developer Knowledge MCP to ensure accuracy.
+2.  **Grounding (GCP Expert):** Researches answers using official Google Cloud documentation (Developer Knowledge MCP) and broader web searches to ensure accuracy and capture community sentiment.
 3.  **Creation (Blog Drafter):** Drafts professional technical blog posts based on the research.
-4.  **Multimodal Generation:** Generates custom infographic-style header images for posts using the "Nano Banana" local image generation tool (Gemini 3 Pro).
+4.  **Multimodal Generation:** Generates custom infographic-style header images for posts using the "Nano Banana" local image generation tool (Gemini 3 Pro Image).
 5.  **Long-Term Memory:** Uses Vertex AI memory bank to remember user preferences (e.g., "I prefer rap-style blogs") across different sessions.
 
 ## 🏗️ Architecture
@@ -19,12 +19,12 @@ The system is built on a modular multi-agent architecture:
 *   **Root Orchestrator:** The strategist that manages the specialist agents and handles memory retrieval/persistence.
 *   **Specialist Agents:**
     *   `reddit_scanner`: Finds trending questions using the Reddit MCP tool.
-    *   `gcp_expert`: Provides grounded technical answers using the Google Cloud Docs MCP tool.
+    *   `gcp_expert`: Provides grounded technical answers by synthesizing official documentation with community insights gathered via web search.
     *   `blog_drafter`: Synthesizes findings into blog posts and generates visuals.
 *   **Tools (MCP):**
     *   **Reddit MCP:** Connects to Reddit API for discovery.
     *   **Developer Knowledge MCP:** Connects to Google Cloud documentation for grounding.
-    *   **Nano Banana MCP:** A custom local tool for image generation using Gemini 3 Pro.
+    *   **Nano Banana MCP:** A custom local tool for image generation using Gemini 3 Pro Image.
 
 ## 📋 Prerequisites
 
@@ -130,7 +130,7 @@ The Cloud Run service is deployed privately by default. To access it:
 
 1.  **Grant Permission:**
     ```bash
-    gcloud run services add-iam-policy-binding dev-signal-agent 
+    gcloud run services add-iam-policy-binding dev-signal 
       --member="user:your-email@example.com" 
       --role="roles/run.invoker" 
       --region=us-central1 
@@ -139,7 +139,7 @@ The Cloud Run service is deployed privately by default. To access it:
 
 2.  **Proxy via Localhost:**
     ```bash
-    gcloud run services proxy dev-signal-agent 
+    gcloud run services proxy dev-signal 
       --region us-central1 
       --project your-project-id
     ```
@@ -160,16 +160,13 @@ dev-signal/
 │       ├── __init__.py
 │       ├── mcp_config.py  # Tool configuration (Reddit, Docs)
 │       └── nano_banana_mcp/# Custom local image generation tool
-│           ├── __init__.py
-│           ├── main.py
-│           ├── nano_banana_pro.py
-│           ├── media_models.py
-│           ├── storage_utils.py
-│           └── requirements.txt
 ├── deployment/
 │   └── terraform/         # Infrastructure as Code
 ├── .env                   # Local secrets (API keys)
+├── .gitignore             # Git ignore patterns
 ├── Makefile               # Shortcuts for building/deploying
 ├── Dockerfile             # Container definition
-└── pyproject.toml         # Dependencies
+├── pyproject.toml         # Dependencies
+├── uv.lock                # Locked dependencies
+└── test_local.py          # Local test runner
 ```
