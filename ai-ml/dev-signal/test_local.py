@@ -1,5 +1,6 @@
 import asyncio
 import os
+import uuid
 import google.auth
 import vertexai
 from dotenv import load_dotenv
@@ -77,7 +78,6 @@ async def main():
             
         if user_input.lower() == "new":
             # Simulate starting a completely fresh session
-            import uuid
             current_session_id = f"session-{str(uuid.uuid4())[:8]}"
             await session_service.create_session(
                 app_name="dev-signal",
