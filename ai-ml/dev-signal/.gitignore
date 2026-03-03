@@ -15,5 +15,12 @@ wheels/
 
 # Local ADK data
 .adk/
-**/ .adk/
+**/.adk/
 **/session.db
+
+# Terraform secrets and state
+**/.terraform/
+*.tfvars
+*.tfvars.json
+terraform.tfstate*
+*.tfplan
