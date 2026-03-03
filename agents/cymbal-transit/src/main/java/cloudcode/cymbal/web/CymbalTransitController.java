@@ -47,6 +47,7 @@ import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.UserMessage;
+import java.util.stream.Collectors;
 
 @SpringBootApplication
 public class CymbalTransitController {
@@ -186,10 +187,14 @@ class McpToolboxService {
         }
     }
 
-    public CompletableFuture<String> findAllSchedules() {
+ public CompletableFuture<String> findAllSchedules() {
         return mcpClient.invokeTool("find-bus-schedules", Collections.emptyMap()).thenApply(result -> {
             if (result.isError() || result.content() == null || result.content().isEmpty()) return "No schedules found.";
-            return result.content().get(0).text();
+            //return result.content().get(0).text();
+            //return result.text();
+            return result.content().stream()
+            .map(content -> content.text())
+            .collect(Collectors.joining(", ", "[", "]"));
         });
     }
 
@@ -197,11 +202,12 @@ class McpToolboxService {
         java.util.Map<String, Object> params = new java.util.HashMap<>();
         params.put("origin", origin);
         params.put("destination", destination);
-
         return mcpClient.invokeTool("query-schedules", params).thenApply(result -> {
             if (result.isError() || result.content() == null || result.content().isEmpty()) return "No specific schedules found.";
             System.out.println(result);
-            return result.content().get(0).text();
+            return result.content().stream()
+            .map(content -> content.text())
+            .collect(Collectors.joining(", ", "[", "]"));
         });
     }
 
@@ -213,16 +219,21 @@ class McpToolboxService {
                 return tool.execute(Collections.singletonMap("trip_id", tripId));
             })
             .thenApply(result -> {
-                if (result.isError() || result.content() == null || result.content().isEmpty()) return "Transaction failed.";
+                if (result.isError() || result.content() == null || result.content().isEmpty()) {
+                    System.err.println("Tool execution failed: " + result.content().get(0).text());
+                    return "Transaction failed.";
+                }
                 return result.content().get(0).text();
             });
     }
 
     public CompletableFuture<String> searchPolicies(String searchQuery) {
         return mcpClient.invokeTool("search-policies", Map.of("search_query", searchQuery))
-            .thenApply(result -> {
-                if (result.isError() || result.content() == null || result.content().isEmpty()) return "No policy information found.";
-                return result.content().get(0).text();
+        .thenApply(result -> {
+            if (result.isError() || result.content() == null || result.content().isEmpty()) return "No policy information found.";
+            return result.content().stream()
+            .map(content -> content.text())
+            .collect(Collectors.joining(", ", "[", "]"));
             });
     }
 }

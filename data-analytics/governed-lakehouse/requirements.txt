@@ -1,0 +1,3 @@
+google-cloud-datacatalog
+google-cloud-bigquery-datapolicies
+google-cloud-bigquery
