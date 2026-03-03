@@ -1,6 +1,7 @@
 
 # 1. Enable Required Google Cloud APIs
 resource "google_project_service" "services" {
+  project = var.project_id
   for_each = toset([
     "run.googleapis.com",
     "artifactregistry.googleapis.com",
@@ -51,6 +52,7 @@ resource "google_project_iam_member" "storage_user" {
 
 # 5. Secret Manager Configuration
 resource "google_secret_manager_secret" "agent_secrets" {
+  project   = var.project_id
   for_each  = toset(keys(var.secrets))
   secret_id = each.key
   replication {
@@ -67,6 +69,7 @@ resource "google_secret_manager_secret_version" "agent_secrets_version" {
 
 # IMPORTANT: Grants the SA permission to CALL the Secret Manager API
 resource "google_secret_manager_secret_iam_member" "secret_accessor" {
+  project   = var.project_id
   for_each  = toset(keys(var.secrets))
   secret_id = google_secret_manager_secret.agent_secrets[each.key].id
   role      = "roles/secretmanager.secretAccessor"

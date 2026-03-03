@@ -11,4 +11,4 @@ docker-deploy:
 		--image $(IMAGE) \
 		--region $(REGION) \
 		--project $(PROJECT_ID) \
-		--labels dev-tutorial=dev-agent-agent
+		--labels dev-tutorial=dev-signal-agent
