@@ -12,11 +12,12 @@ wheels/
 # Secrets and Local Config
 .env
 .env.*
+session.db
+**/session.db
 
 # Local ADK data
 .adk/
 **/.adk/
-**/session.db
 
 # Terraform secrets and state
 **/.terraform/
