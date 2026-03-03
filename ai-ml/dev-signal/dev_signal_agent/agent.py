@@ -11,7 +11,7 @@ from dev_signal_agent.tools.mcp_config import (
     get_nano_banana_mcp_toolset
 )
 
-PROJECT_ID, MODEL_LOC, SERVICE_LOC = init_environment()
+PROJECT_ID, MODEL_LOC, SERVICE_LOC, SECRETS = init_environment()
 
 shared_model = Gemini(
     model="gemini-3-flash-preview", 

@@ -15,6 +15,7 @@ resource "google_project_service" "services" {
 
 # 2. Artifact Registry for Container Images
 resource "google_artifact_registry_repository" "repo" {
+  project       = var.project_id
   location      = var.region
   repository_id = "dev-signal-repo"
   description   = "Docker repository for Dev Signal Agent"
@@ -24,6 +25,7 @@ resource "google_artifact_registry_repository" "repo" {
 
 # 3. Dedicated Service Account for Least Privilege
 resource "google_service_account" "agent_sa" {
+  project      = var.project_id
   account_id   = "${var.service_name}-sa"
   display_name = "Dev Signal Agent Service Account"
 }
@@ -73,6 +75,7 @@ resource "google_secret_manager_secret_iam_member" "secret_accessor" {
 
 # 6. Cloud Run Service Deployment
 resource "google_cloud_run_v2_service" "default" {
+  project  = var.project_id
   name     = var.service_name
   location = var.region
   ingress  = "INGRESS_TRAFFIC_ALL"
