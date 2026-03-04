@@ -1,0 +1,20 @@
+[project]
+name = "production-adk-agent"
+version = "0.1.0"
+description = "Production-ready ADK agent for Lab 3 - Prototype to Production"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "google-adk==1.12.0",
+    "python-dotenv==1.1.0",
+    "httpx>=0.25.0",
+    "google-auth>=2.23.0",
+    "locust==2.37.10",
+    "litellm==1.77.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==8.4.0",
+    "ruff==0.11.13",
+]
