@@ -40,7 +40,11 @@ def add_info_to_state(tool_context: ToolContext, key: str, data: str) -> dict:
     return {"status": "success", "message": f"Saved '{key}' to state."}
 
 # Singleton toolsets
-reddit_mcp = get_reddit_mcp_toolset()
+reddit_mcp = get_reddit_mcp_toolset(
+    client_id=SECRETS.get("REDDIT_CLIENT_ID", ""),
+    client_secret=SECRETS.get("REDDIT_CLIENT_SECRET", ""),
+    user_agent=SECRETS.get("REDDIT_USER_AGENT", "")
+)
 
 reddit_scanner = Agent(
     name="reddit_scanner",
@@ -62,7 +66,7 @@ reddit_scanner = Agent(
     after_agent_callback=save_session_to_memory_callback,
 )
 
-dk_mcp = get_dk_mcp_toolset()
+dk_mcp = get_dk_mcp_toolset(api_key=SECRETS.get("DK_API_KEY", ""))
 
 search_agent = Agent(
     name="search_agent",
