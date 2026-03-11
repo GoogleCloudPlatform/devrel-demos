@@ -1,6 +1,6 @@
 google-genai
 flask==3.0.3
-werkzeug==3.0.6
+werkzeug==3.1.6
 python-dotenv==1.0.0
 google-cloud-modelarmor==0.1.0
 google-auth==2.35.0
