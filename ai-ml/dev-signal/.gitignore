@@ -16,6 +16,12 @@ session.db
 **/session.db
 blog.md
 **/blog.md
+evalaution_blog.md
+**/evalaution_blog.md
+evaluation_blog.md
+**/evaluation_blog.md
+security_blog.md
+**/security_blog.md
 
 # Local ADK data
 .adk/

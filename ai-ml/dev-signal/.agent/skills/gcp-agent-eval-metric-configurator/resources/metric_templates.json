@@ -1,0 +1,28 @@
+{
+  "managed_metrics": [
+    {
+      "metric_name": "grounding",
+      "auto_rater": "gemini-1.5-pro",
+      "threshold": 0.8,
+      "description": "Checks if claims are backed by the provided Wikipedia or Docs context."
+    },
+    {
+      "metric_name": "tool_use_quality",
+      "auto_rater": "gemini-1.5-pro",
+      "threshold": 0.9,
+      "description": "Evaluates parameter mapping and tool choice against the agent's definition."
+    }
+  ],
+  "rubric_metrics": [
+    {
+      "metric_name": "response_match",
+      "description": "Compares semantic meaning of agent response against the reference answer.",
+      "use_reference": true
+    },
+    {
+      "metric_name": "instruction_following",
+      "description": "Measures adherence to specific constraints (e.g. tone, format).",
+      "use_reference": false
+    }
+  ]
+}
