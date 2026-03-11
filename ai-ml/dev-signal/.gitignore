@@ -14,6 +14,8 @@ wheels/
 .env.*
 session.db
 **/session.db
+blog.md
+**/blog.md
 
 # Local ADK data
 .adk/
