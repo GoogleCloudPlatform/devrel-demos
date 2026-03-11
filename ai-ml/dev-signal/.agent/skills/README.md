@@ -1,6 +1,7 @@
 # Google Cloud Agent Production Skills
 
 This folder contains a suite of 13 Antigravity Skills designed to standardise the transition from AI prototypes to production-ready agents on Google Cloud. These skills are grounded in the professional roadmaps for infrastructure, evaluation, and security hardening.
+Want to learn more about how I created this skills? read the blog https://medium.com/p/7154031fe115/edit.
 
 ## Skill Scopes
 
