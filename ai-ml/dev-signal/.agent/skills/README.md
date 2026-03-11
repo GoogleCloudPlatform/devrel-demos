@@ -11,7 +11,7 @@ Antigravity supports two scopes for organizing skills:
 
 ## How to Use These Skills
 
-1.  **Installation**: These skills are located in `.agent/skills/`. Antigravity automatically detects them in this workspace.
+1.  **Installation**: Locate skills in  `.agent/skills/` within your project root. Antigravity automatically detects them in this workspace.
 2.  **Prompting**: Ask Antigravity for specific production patterns. For example:
     *   *"Configure Model Armor for my agent"*
     *   *"Deploy a shadow revision to Cloud Run"*
