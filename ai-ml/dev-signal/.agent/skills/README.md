@@ -20,24 +20,23 @@ Antigravity supports two scopes for organizing skills:
 
 ## Available Skills
 
-### 🛡️ Security Hardening
-*   **[gcp-agent-model-armor-shield](./gcp-agent-model-armor-shield/SKILL.md)**: Configures Model Armor (Prompt Injection, RAI filters).
-*   **[gcp-agent-safety-gatekeeper](./gcp-agent-safety-gatekeeper/SKILL.md)**: Python integration boilerplate (`safety_util.py`).
-*   **[gcp-agent-sdp-template-factory](./gcp-agent-sdp-template-factory/SKILL.md)**: Terraform for Sensitive Data Protection (PII redaction).
-
-### 📊 Rigorous Evaluation
-*   **[gcp-agent-eval-engine-runner](./gcp-agent-eval-engine-runner/SKILL.md)**: Parallel inference and reasoning trace capture.
-*   **[gcp-agent-eval-metric-configurator](./gcp-agent-eval-metric-configurator/SKILL.md)**: Setup for Grounding and Tool Use rubrics.
-*   **[gcp-agent-golden-dataset-builder](./gcp-agent-golden-dataset-builder/SKILL.md)**: Tools for building datasets with reference trajectories.
-*   **[gcp-agent-shadow-deployer](./gcp-agent-shadow-deployer/SKILL.md)**: "Dark Canary" deployment scripts (Cloud Run tagging).
-*   **[gcp-agent-tool-trajectory-evaluator](./gcp-agent-tool-trajectory-evaluator/SKILL.md)**: Custom Python metrics for Precision and Recall.
-
-### 🏗️ Production Core
+### 🏗️ Production Agent
 *   **[adk-memory-bank-initializer](./adk-memory-bank-initializer/SKILL.md)**: Vertex AI Memory Bank connection logic.
 *   **[agent-containerizer](./agent-containerizer/SKILL.md)**: Mixed-runtime Dockerfiles (Python + Node.js).
 *   **[cloud-run-agent-architect](./cloud-run-agent-architect/SKILL.md)**: Least-privilege Terraform for Cloud Run.
 *   **[gcp-production-secret-handler](./gcp-production-secret-handler/SKILL.md)**: Secure in-memory secret fetching pattern.
 *   **[mcp-connector-generator](./mcp-connector-generator/SKILL.md)**: Scaffolding for MCP server connections.
 
----
-*For more details on the implementation architecture, see the [walkthrough.md](../../.gemini/antigravity/brain/a527ff24-c3c3-4636-a671-c7620891c619/walkthrough.md).*
+### 🛡️ Security 
+*   **[gcp-agent-model-armor-shield](./gcp-agent-model-armor-shield/SKILL.md)**: Configures Model Armor (Prompt Injection, RAI filters).
+*   **[gcp-agent-safety-gatekeeper](./gcp-agent-safety-gatekeeper/SKILL.md)**: Python integration boilerplate (`safety_util.py`).
+*   **[gcp-agent-sdp-template-factory](./gcp-agent-sdp-template-factory/SKILL.md)**: Terraform for Sensitive Data Protection (PII redaction).
+
+### 📊 Evaluation
+*   **[gcp-agent-eval-engine-runner](./gcp-agent-eval-engine-runner/SKILL.md)**: Parallel inference and reasoning trace capture.
+*   **[gcp-agent-eval-metric-configurator](./gcp-agent-eval-metric-configurator/SKILL.md)**: Setup for Grounding and Tool Use rubrics.
+*   **[gcp-agent-golden-dataset-builder](./gcp-agent-golden-dataset-builder/SKILL.md)**: Tools for building datasets with reference trajectories.
+*   **[gcp-agent-shadow-deployer](./gcp-agent-shadow-deployer/SKILL.md)**: "Dark Canary" deployment scripts (Cloud Run tagging).
+*   **[gcp-agent-tool-trajectory-evaluator](./gcp-agent-tool-trajectory-evaluator/SKILL.md)**: Custom Python metrics for Precision and Recall.
+
+
