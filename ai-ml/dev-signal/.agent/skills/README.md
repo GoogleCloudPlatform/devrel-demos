@@ -39,4 +39,6 @@ Antigravity supports two scopes for organizing skills:
 *   **[gcp-agent-shadow-deployer](./gcp-agent-shadow-deployer/SKILL.md)**: "Dark Canary" deployment scripts (Cloud Run tagging).
 *   **[gcp-agent-tool-trajectory-evaluator](./gcp-agent-tool-trajectory-evaluator/SKILL.md)**: Custom Python metrics for Precision and Recall.
 
+### Pro tip - self improving skills!
+Because these skills were AI-generated, they might not work perfectly for your specific environment on the first try. But that's actually the best part of working with an agentic IDE. If a skill doesn't work well for you, don't just manually fix the code, let the coding agent figure it out. Once it finds the solution, you can ask it to update the corresponding SKILL.md with the learned workflow. This will capture the corrected workflow for the future, ensuring the agent doesn't repeat the mistake while saving you tokens and time on the next run. Think of these as living documents that actively improve as you build.
 
