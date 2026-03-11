@@ -9,19 +9,19 @@ def _get_tool_calls(events: list) -> list:
                 tool_calls.append({"name": fc["name"], "args": fc.get("args", {})})
     return tool_calls
 
-def trajectory_precision(instance: dict) -> float:
+def trajectory_precision_func(instance: dict) -> float:
     """Measures percentage of predicted tools that were in the reference."""
     predicted = _get_tool_calls(instance.get("intermediate_events", []))
     reference = instance.get("reference_trajectory", [])
     
     if not predicted:
-        return 0.0
+        return 1.0 if not reference else 0.0
         
     ref_names = {t["name"] for t in reference}
     matches = [t for t in predicted if t["name"] in ref_names]
     return len(matches) / len(predicted)
 
-def trajectory_recall(instance: dict) -> float:
+def trajectory_recall_func(instance: dict) -> float:
     """Measures percentage of reference tools that were predicted."""
     predicted = _get_tool_calls(instance.get("intermediate_events", []))
     reference = instance.get("reference_trajectory", [])
@@ -33,15 +33,8 @@ def trajectory_recall(instance: dict) -> float:
     matches = [t for t in reference if t["name"] in pred_names]
     return len(matches) / len(reference)
 
-def in_order_match(instance: dict) -> float:
-    """Checks if reference tools were called in the specified order."""
-    predicted = [t["name"] for t in _get_tool_calls(instance.get("intermediate_events", []))]
-    reference = [t["name"] for t in instance.get("reference_trajectory", [])]
-    
-    if not reference:
-        return 1.0
-        
-    it = iter(predicted)
-    if all(name in it for name in reference):
-        return 1.0
-    return 0.0
+# NOTE FOR VERTEX AI EVALUATION SERVICE:
+# To use these in a sandbox (RemoteCustomFunction), you must wrap them in an 'evaluate' function:
+#
+# def evaluate(instance: dict) -> float:
+#     return trajectory_precision_func(instance)
