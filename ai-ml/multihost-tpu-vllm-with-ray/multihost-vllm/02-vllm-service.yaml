@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-tpu-service
+spec:
+  type: LoadBalancer
+  selector:
+    leaderworkerset.sigs.k8s.io/name: vllm-tpu-qwen
+    leaderworkerset.sigs.k8s.io/worker-index: "0"
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
