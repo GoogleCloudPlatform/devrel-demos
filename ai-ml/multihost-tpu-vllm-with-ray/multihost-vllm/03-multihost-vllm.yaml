@@ -1,0 +1,115 @@
+apiVersion: leaderworkerset.x-k8s.io/v1
+kind: LeaderWorkerSet
+metadata:
+  name: vllm-tpu-qwen
+spec:
+  replicas: 1 
+  leaderWorkerTemplate:
+    size: 8 # 8 nodes for a 4x8 slice
+    restartPolicy: RecreateGroupOnPodRestart
+    workerTemplate:
+      metadata:
+        annotations:
+          gke-gcsfuse/volumes: "true"
+          gke-gcsfuse/memory-limit: "0"
+        labels:
+          leaderworkerset.sigs.k8s.io/name: vllm-tpu-qwen
+          gke-gcsfuse/volumes: "true"
+      spec:
+        hostname: vllm-tpu-qwen
+        # Use the Service Account with Workload Identity permissions
+        serviceAccountName: default 
+        containers:
+        - name: vllm-tpu
+          image: vllm/vllm-tpu:nightly
+          command: ["sh", "-c"]
+          args:
+          - |
+            # 1. DISCOVER THE CORRECT TPU-NETWORK IP
+            # We look for the IP on eth1 (the accelerator network)
+            # Get all IP addresses, then pick the second one (eth1)
+            # hostname -I usually returns "10.76.x.x 192.168.100.x"
+            MY_TPU_IP=$(hostname -I | awk '{print $1}')
+
+            echo "My TPU Network IP is: $MY_TPU_IP"
+
+            # Determine the Leader's DNS name
+            LEADER_DNS="vllm-tpu-qwen-0.vllm-tpu-qwen"
+            # Loop until the hostname resolves to an IP
+            until getent hosts $LEADER_DNS; do
+              echo "DNS not ready. Sleeping 5s..."
+              sleep 5
+              done
+            LEADER_IP=$(getent hosts $LEADER_DNS | awk '{print $1}')
+
+            #Critical JAX Multi-host Variables
+            export JAX_PLATFORMS=''
+            export SCAN_TPU_CHIPS=True
+            export TPU_MULTIHOST_BACKEND=ray
+            export JAX_DISTRIBUTED_INITIALIZATION_TIMEOUT=300
+
+            # 3. Ensure drivers are in the path if vLLM doesn't see them
+            export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+            
+            if [ "$LWS_WORKER_INDEX" = "0" ]; then
+              echo "Starting Ray Head..."
+              ray start --head --port=6379 --node-ip-address=$MY_TPU_IP --resources='{"TPU": 4}' --block &
+              sleep 20
+              echo "Waiting for Ray GCS to respond..."
+              until ray status; do
+                sleep 5
+                echo ".."
+              done
+
+              echo "Starting vLLM API Server..."
+              python3 -m vllm.entrypoints.openai.api_server \
+                --model=/models/qwen3-30b-weights \
+                --tensor-parallel-size=32 \
+                --pipeline-parallel-size=1 \
+                --distributed-executor-backend=ray \
+                --host=0.0.0.0 --port=8000 \
+                --enforce-eager \
+                --gpu-memory-utilization=0.90
+
+              sleep 3600
+              
+            else
+              echo "Starting Ray Worker, connecting to $LEADER_DNS..."
+              # Loop the ray start to handle transient connection resets during handshake
+              ray start --address=${LEADER_IP}:6379 --node-ip-address=$MY_TPU_IP --resources='{"TPU": 4}' --block
+            fi
+          ports:
+          - containerPort: 8000
+          - containerPort: 6379
+          volumeMounts:
+          - name: model-weights
+            mountPath: /models
+            readOnly: true
+          - name: dshm
+            mountPath: /dev/shm
+          resources:
+            claims:
+            - name: net-resources
+            limits:
+              google.com/tpu: 4
+              memory: "100Gi"
+            requests:
+              google.com/tpu: 4
+              memory: "100Gi"
+        nodeSelector:
+          cloud.google.com/gke-tpu-accelerator: tpu-v6e-slice
+          cloud.google.com/gke-tpu-topology: 4x8
+          gke.networks.io/accelerator-network-profile: auto
+        resourceClaims:
+        - name: net-resources
+          resourceClaimTemplateName: all-netdev
+        volumes:
+        - name: model-weights
+          csi:
+            driver: gcsfuse.csi.storage.gke.io
+            volumeAttributes:
+              bucketName: inf-demo-model-storage
+              mountOptions: "implicit-dirs"
+        - name: dshm
+          emptyDir:
+            medium: Memory
