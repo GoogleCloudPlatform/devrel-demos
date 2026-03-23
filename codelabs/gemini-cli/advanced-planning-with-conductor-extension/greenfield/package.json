@@ -1,0 +1,33 @@
+{
+  "name": "temp-vite",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "vue": "^3.5.25"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@vitejs/plugin-vue": "^6.0.2",
+    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/ui": "^4.0.18",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/eslint-config-typescript": "^14.7.0",
+    "@vue/test-utils": "^2.4.6",
+    "@vue/tsconfig": "^0.8.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-vue": "^10.8.0",
+    "jsdom": "^28.1.0",
+    "prettier": "^3.8.1",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18",
+    "vue-tsc": "^3.1.5"
+  }
+}
