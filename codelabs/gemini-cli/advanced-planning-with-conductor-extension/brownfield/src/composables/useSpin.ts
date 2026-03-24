@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, toValue, type MaybeRefOrGetter } from 'vue'
 import type { Option } from './useOptions'
 
 // Shared state for the spinner
@@ -6,8 +6,10 @@ const currentRotation = ref(0)
 const isSpinning = ref(false)
 const winner = ref<Option | null>(null)
 
-export function useSpin(options: Option[]) {
+export function useSpin(optionsSource: MaybeRefOrGetter<Option[]>) {
   const spin = () => {
+    const options = toValue(optionsSource)
+    
     if (options.length === 0 || isSpinning.value) return
 
     isSpinning.value = true
@@ -42,7 +44,8 @@ export function useSpin(options: Option[]) {
     // Wait for the animation to finish before setting the winner.
     // Assuming CSS animation takes 3 seconds
     setTimeout(() => {
-      winner.value = options[winningIndex]!
+      const currentOptions = toValue(optionsSource)
+      winner.value = currentOptions[winningIndex] || null
       isSpinning.value = false
     }, 3000)
   }

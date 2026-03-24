@@ -1,6 +1,6 @@
 {
   "projects": {
-    "default": ""
+    "default": "your-project-id"
   },
   "targets": {},
   "etags": {}

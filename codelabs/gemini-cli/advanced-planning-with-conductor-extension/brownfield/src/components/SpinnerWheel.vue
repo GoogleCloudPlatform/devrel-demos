@@ -59,7 +59,7 @@ const props = defineProps({
   }
 })
 
-const { spin, isSpinning, currentRotation, winner } = useSpin(props.options)
+const { spin, isSpinning, currentRotation, winner } = useSpin(() => props.options)
 
 const handleSpin = () => {
   spin()
