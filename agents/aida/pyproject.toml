@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = "==3.12.*"
 dependencies = [
     "google-adk>=1.19.0",
-    "litellm>=1.80.7",
+    "litellm>=1.80.7, <=1.82.6",
     "sqlite-rag>=0.1.4",
     "fastapi",
     "uvicorn",
