@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: rl-demo-gpu-lustre-pv
+spec:
+  capacity:
+    storage: ${LUSTRE_CAPACITY}Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  claimRef:
+    namespace: default
+    name: rl-demo-gpu-lustre-pvc
+  csi:
+    driver: lustre.csi.storage.gke.io
+    volumeHandle: ${PROJECT_ID}/${ZONE}/${LUSTRE_INSTANCE_ID}
+    volumeAttributes:
+      ip: 10.97.2.2
+      filesystem: lustre
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rl-demo-gpu-lustre-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: rl-demo-gpu-lustre-pv
+  resources:
+    requests:
+      storage: ${LUSTRE_CAPACITY}Gi
