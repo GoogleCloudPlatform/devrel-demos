@@ -1,0 +1,89 @@
+apiVersion: ray.io/v1
+kind: RayCluster
+metadata:
+  name: ${CLUSTER_NAME}
+  namespace: default
+spec:
+  rayVersion: '2.54.0'
+  headGroupSpec:
+    rayStartParams:
+      dashboard-host: '0.0.0.0'
+    template:
+      spec:
+        # The head node orchestrates the cluster. We place it on the massive GPU nodes so it has plenty of memory.
+        nodeSelector:
+          cloud.google.com/gke-accelerator: nvidia-b200
+        tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+        containers:
+        - name: ray-head
+          image: nvcr.io/nvidia/nemo-rl:v0.4.0
+          ports:
+          - containerPort: 6379
+            name: gcs-server
+          - containerPort: 8265
+            name: dashboard
+          - containerPort: 10001
+            name: client
+          resources:
+            limits:
+              cpu: "32"
+              memory: "1000Gi"
+            requests:
+              cpu: "8"
+              memory: "64Gi"
+          volumeMounts:
+
+          - mountPath: /lustre
+            name: lustre-storage
+        volumes:
+        - name: lustre-storage
+          persistentVolumeClaim:
+            claimName: rl-demo-gpu-lustre-pvc
+
+  workerGroupSpecs:
+  - groupName: gpu-worker-group
+    replicas: ${NUM_NODES}
+    minReplicas: ${NUM_NODES}
+    maxReplicas: ${NUM_NODES}
+    rayStartParams: {}
+    template:
+      spec:
+        # The workers are placed strictly on the A4 (B200) nodes provisioned by XPK.
+        nodeSelector:
+          cloud.google.com/gke-accelerator: nvidia-b200
+        # Toleration required for spot GPU VMs in GKE
+        tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+        containers:
+        - name: ray-worker
+          image: nvcr.io/nvidia/nemo-rl:v0.4.0
+          resources:
+            limits:
+              nvidia.com/gpu: "8"
+              # Adjust CPU/RAM below based on the specific A4 machine shape if pods refuse to schedule
+              cpu: "100" 
+              memory: "1000Gi"
+            requests:
+              nvidia.com/gpu: "8"
+              cpu: "100"
+              memory: "1000Gi"
+          volumeMounts:
+          - mountPath: /lustre
+            name: lustre-storage
+          - mountPath: /dev/shm
+            name: dshm
+
+        volumes:
+        - name: lustre-storage
+          persistentVolumeClaim:
+            # Must match the PVC created in attach_gpu_lustre.sh
+            claimName: rl-demo-gpu-lustre-pvc
+        - name: dshm
+          emptyDir:
+            medium: Memory
+
