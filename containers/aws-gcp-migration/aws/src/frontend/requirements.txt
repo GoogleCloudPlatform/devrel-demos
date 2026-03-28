@@ -10,13 +10,13 @@ cachetools==5.5.0
     # via google-auth
 certifi==2024.8.30
     # via requests
-cffi==1.17.1
+cffi==2.0.0
     # via cryptography
 charset-normalizer==3.3.2
     # via requests
 click==8.1.7
     # via flask
-cryptography==44.0.1
+cryptography==46.0.6
     # via -r requirements.in
 deprecated==1.2.14
     # via
