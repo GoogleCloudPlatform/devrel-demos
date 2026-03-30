@@ -22,10 +22,6 @@ To launch the demo, execute these scripts in sequential order from this director
 
 This execution runs exclusively on the high-speed Lustre volume mounted at `/lustre` to avoid the checkpoint write penalties associated with directly mounting a GCS bucket. When execution completes, you can copy the checkpoints residing in your Lustre volume (`/lustre/nemo_rl_qwen_72b_ds_cp/*`) out to a GCS bucket for long-term storage using robust networking tools available in Ray or GCP, before executing the teardown sequence.
 
-### Optional Patching
-If you encounter runtime environment bugs in the base image, you can optionally execute a dynamic patch:
-- **`./XX-apply-patch.sh`**: Automatically detects your Ray compute pods, pushes `XX-patch_nemo.py` to them, and executes the python patch dynamically without requiring a container rebuild.
-
 ### Teardown
 When you are finished exploring, use the cleanup script to halt all compute limits and charges:
 ```bash
