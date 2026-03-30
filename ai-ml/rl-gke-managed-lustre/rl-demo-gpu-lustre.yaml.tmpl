@@ -16,7 +16,7 @@ spec:
     driver: lustre.csi.storage.gke.io
     volumeHandle: ${PROJECT_ID}/${ZONE}/${LUSTRE_INSTANCE_ID}
     volumeAttributes:
-      ip: 10.97.2.2
+      ip: ${LUSTRE_IP}
       filesystem: lustre
 ---
 apiVersion: v1

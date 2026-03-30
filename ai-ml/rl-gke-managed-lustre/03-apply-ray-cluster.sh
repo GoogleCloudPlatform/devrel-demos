@@ -11,6 +11,13 @@ echo "============================================================"
 gcloud container clusters get-credentials ${CLUSTER_NAME} --region ${REGION} --project ${PROJECT_ID}
 
 echo "Generating yaml configs from templates..."
+
+if [ -z "${LUSTRE_IP}" ]; then
+    echo "Fetching active Lustre IP dynamically..."
+    export LUSTRE_IP=$(gcloud lustre instances describe "${LUSTRE_INSTANCE_ID}" --project="${PROJECT_ID}" --location="${ZONE}" --format="value(mountPoint)" | cut -d'@' -f1)
+    echo "Found Lustre IP: ${LUSTRE_IP}"
+fi
+
 # Using envsubst to safely fill variables into the templates
 envsubst < rl-demo-gpu-lustre.yaml.tmpl > /tmp/rl-demo-gpu-lustre.yaml
 envsubst < ray_cluster_gpu.yaml.tmpl > /tmp/ray_cluster_gpu.yaml
