@@ -27,3 +27,11 @@ echo "Cluster infrastructure partition creation submitted via xpk."
 echo "Enabling the RayOperator Add-on..."
 gcloud container clusters update ${CLUSTER_NAME} --region ${REGION} --project ${PROJECT_ID} \
   --update-addons=RayOperator=ENABLED || echo "Failed to enable RayOperator addon."
+
+echo "Verifying if Lustre CSI Driver is enabled..."
+if ! gcloud container clusters describe ${CLUSTER_NAME} --region ${REGION} --project ${PROJECT_ID} --format="value(addonsConfig.lustreCsiDriverConfig.enabled)" | grep -i true; then
+  echo "Lustre CSI driver is not enabled. Running fallback enable command..."
+  gcloud container clusters update ${CLUSTER_NAME} --region ${REGION} --project ${PROJECT_ID} --update-addons=LustreCsiDriver=ENABLED --quiet
+else
+  echo "Lustre CSI Driver is successfully enabled."
+fi

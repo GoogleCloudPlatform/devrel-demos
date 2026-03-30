@@ -14,7 +14,7 @@ To launch the demo, execute these scripts in sequential order from this director
 
 1. **`./00-setup-environment.sh`**: Interactively configures your environment variables and generates `env.sh`.
 2. **`./01-create-cluster.sh`**: Provisions the required Spot GPU cluster using `xpk`.
-3. **`./02-provision-lustre.sh`**: Requests the creation of the Managed Lustre filesystem array. *(Note: This can take ~15 minutes to become fully active)*.
+3. **`./02-provision-lustre.sh`**: Requests the creation of the Managed Lustre filesystem array. *(Note: This can take ~10 minutes to become fully active)*.
 4. **`./03-apply-ray-cluster.sh`**: Deploys the persistent volumes and the KubeRay `RayCluster` specification to your cluster.
 5. **`./04-submit-workload.sh`**: Establishes a connection to the KubeRay head node, builds the runtime environment, and dispatches the training script.
 

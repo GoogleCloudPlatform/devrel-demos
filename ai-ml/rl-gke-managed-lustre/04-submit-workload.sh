@@ -66,6 +66,16 @@ uv run python examples/run_grpo_math.py \\
 EOF
 chmod +x run_nemo_rl.sh
 
+# Generating .rayignore to prevent Ray from zipping locked or heavy folders
+cat << 'EOF' > .rayignore
+xpkclusters/
+mx-venv/
+maxtext_venv/
+.git/
+*.sh.log
+/tmp/
+EOF
+
 # =========================================================================
 
 echo "Connecting to KubeRay cluster to find Ray Head Service..."
