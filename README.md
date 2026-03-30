@@ -25,7 +25,7 @@ You can clone the entire repository to explore all samples:
 git clone https://github.com/GoogleCloudPlatform/devrel-demos.git
 ```
 
-### Pulling a single demo (Shallow Copy)
+### Downloading a single demo
 
 If you only want to download a specific folder without cloning the entire repository, you can use [giget](https://github.com/unjs/giget). This is faster and more efficient for trying out a single demo.
 
