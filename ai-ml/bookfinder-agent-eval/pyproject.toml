@@ -5,6 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "google-adk[eval]>=1.13.0",
+    "google-adk[eval]>=1.27.4,<2.0.0",
     "langchain-community>=0.3.29",
 ]
