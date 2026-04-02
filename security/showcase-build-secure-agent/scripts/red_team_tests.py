@@ -57,10 +57,11 @@ credentials.refresh(Request())
 # API configuration
 APP_NAME = "secured-ai-agent-demo"
 SESSION_PATH = f"apps/{APP_NAME}/" + "users/{user_id}/sessions/{session_id}"
-RUN_PATH = "run"
+RUN_PATH = "run_sse"
 
 HEADERS = {
     "Authorization": f"Bearer {credentials.token}",
+    "X-Goog-User-Project": PROJECT_ID,
     "Content-Type": "application/json",
 }
 

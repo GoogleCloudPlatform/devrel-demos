@@ -45,7 +45,7 @@ def get_bigquery_mcp_toolset() -> McpToolset:
 
     headers = {
         "Authorization": f"Bearer {oauth_token}",
-        "x-goog-user-project": project_id,
+        "X-Goog-User-Project": project_id,
     }
 
     tools = McpToolset(
