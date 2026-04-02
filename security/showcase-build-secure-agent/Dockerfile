@@ -11,6 +11,9 @@ ENV PIP_INDEX_URL=$PIP_INDEX_URL
 # Prevents Python from buffering stdout and stderr
 ENV PYTHONUNBUFFERED=1
 
+# Create the user and a home directory
+RUN useradd -m -u 1001 myuser
+
 WORKDIR /app
 
 # Install dependencies
@@ -20,6 +23,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy only code of the demo keeping folder hierarchy
 COPY main.py /app/
 COPY customer_service_agent/ /app/customer_service_agent/
+
+RUN chown -R myuser:myuser /app
 
 # DO NOT run under 'root'
 USER myuser
