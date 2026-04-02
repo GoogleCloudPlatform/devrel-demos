@@ -1,0 +1,244 @@
+multinode: false
+
+# Configure accelerator type for Google TPU
+accelerator:
+  type: google
+
+modelArtifacts:
+  uri: "hf://Qwen/Qwen3-32B"
+  size: 200Gi
+  authSecretName: "llm-d-hf-token"
+  name: "Qwen/Qwen3-32B"
+  labels:
+    llm-d.ai/inference-serving: "true"
+    llm-d.ai/guide: "pd-disaggregation"
+    llm-d.ai/hardware-variant: "tpu"
+    llm-d.ai/hardware-vendor: "google"
+    llm-d.ai/model: "Qwen3-32B"
+
+tracing:
+  enabled: true
+  otlpEndpoint: "localhost:4317"
+  serviceNames:
+    routingProxy: "routing-proxy"
+  sampling:
+    sampler: "always_off"
+    samplerArg: "0"
+
+routing:
+  servicePort: 8000
+  proxy:
+    image: ghcr.io/llm-d/llm-d-routing-sidecar:v0.5.0
+    connector: nixlv2
+    secure: false
+
+decode:
+  parallelism:
+    tensor: 4
+  create: true
+  replicas: 4
+  modelCommand: custom
+  extraConfig:
+    nodeSelector:
+      cloud.google.com/gke-tpu-accelerator: "tpu-v6e-slice"
+      cloud.google.com/gke-tpu-topology: "2x2"
+  monitoring:
+    podmonitor:
+      enabled: true
+      portName: "vllm"
+      path: "/metrics"
+      interval: "30s"
+  containers:
+    - name: "vllm"
+      image: "vllm/vllm-tpu:nightly"
+      command:
+        - "/bin/bash"
+        - "-c"
+        - |
+            # ROLE: kv_consumer (Receives KV cache from prefill)
+            KV_CONFIG="{\"kv_connector\":\"TPUConnector\", \"kv_connector_module_path\" : \"tpu_inference.distributed.tpu_connector\", \"kv_role\":\"kv_consumer\", \"kv_ip\" : \"$POD_IP\"}"
+            echo "KV_CONFIG=$KV_CONFIG"
+            
+            python3 -m vllm.entrypoints.openai.api_server \
+              --model "Qwen/Qwen3-32B" \
+              --port 8200 \
+              --tensor-parallel-size 4 \
+              --kv-transfer-config "${KV_CONFIG}" \
+              --disable-uvicorn-access-log \
+              --max-num-seqs 256 \
+              --block-size 128 \
+              --gpu-memory-utilization 0.90 \
+              --max-model-len 8192
+      env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: TPU_SIDE_CHANNEL_PORT
+          value: "9600"
+        - name: TPU_KV_TRANSFER_PORT
+          value: "9100"
+      ports:
+        - containerPort: 8200
+          name: vllm
+          protocol: TCP
+        - containerPort: 9100
+          name: tpu-kv-transfer
+          protocol: TCP
+        - containerPort: 9600
+          name: tpu-coord
+          protocol: TCP
+      resources:
+        limits:
+          memory: 64Gi
+          cpu: "16"
+          google.com/tpu: 4
+        requests:
+          memory: 64Gi
+          cpu: "16"
+          google.com/tpu: 4
+      mountModelVolume: true
+      volumeMounts:
+        - name: metrics-volume
+          mountPath: /.config
+        - name: shm
+          mountPath: /dev/shm
+        - name: torch-compile-cache
+          mountPath: /.cache
+      startupProbe:
+        httpGet:
+          path: /health
+          port: vllm
+        initialDelaySeconds: 15
+        periodSeconds: 30
+        timeoutSeconds: 5
+        failureThreshold: 120
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: vllm
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readinessProbe:
+        httpGet:
+          path: /v1/models
+          port: vllm
+        periodSeconds: 5
+        timeoutSeconds: 2
+        failureThreshold: 3
+  volumes:
+    - name: metrics-volume
+      emptyDir: {}
+    - name: shm
+      emptyDir:
+        medium: Memory
+        sizeLimit: "16Gi"
+    - name: torch-compile-cache
+      emptyDir: {}
+
+prefill:
+  parallelism:
+    tensor: 4
+  create: true
+  replicas: 4
+  modelCommand: custom
+  extraConfig:
+    nodeSelector:
+      cloud.google.com/gke-tpu-accelerator: "tpu-v6e-slice"
+      cloud.google.com/gke-tpu-topology: "2x2"
+  monitoring:
+    podmonitor:
+      enabled: true
+      portName: "vllm"
+      path: "/metrics"
+      interval: "30s"
+  containers:
+    - name: "vllm"
+      image: "vllm/vllm-tpu:nightly"
+      command:
+        - "/bin/bash"
+        - "-c"
+        - |
+            # ROLE: kv_producer (Sends KV cache to decode)
+            KV_CONFIG="{\"kv_connector\":\"TPUConnector\", \"kv_connector_module_path\" : \"tpu_inference.distributed.tpu_connector\", \"kv_role\":\"kv_producer\", \"kv_ip\" : \"$POD_IP\"}"
+            echo "KV_CONFIG=$KV_CONFIG"
+            
+            python3 -m vllm.entrypoints.openai.api_server \
+              --model "Qwen/Qwen3-32B" \
+              --port 8200 \
+              --tensor-parallel-size 4 \
+              --kv-transfer-config "${KV_CONFIG}" \
+              --disable-uvicorn-access-log \
+              --enable-chunked-prefill \
+              --block-size 128 \
+              --gpu-memory-utilization 0.90 \
+              --max-model-len 8192
+      env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: TPU_SIDE_CHANNEL_PORT
+          value: "9600"
+        - name: TPU_KV_TRANSFER_PORT
+          value: "9100"
+      ports:
+        - containerPort: 8200
+          name: vllm
+          protocol: TCP
+        - containerPort: 9100
+          name: tpu-kv-transfer
+          protocol: TCP
+        - containerPort: 9600
+          name: tpu-coord
+          protocol: TCP
+      resources:
+        limits:
+          memory: 64Gi
+          cpu: "16"
+          google.com/tpu: 4
+        requests:
+          memory: 64Gi
+          cpu: "16"
+          google.com/tpu: 4
+      mountModelVolume: true
+      volumeMounts:
+        - name: metrics-volume
+          mountPath: /.config
+        - name: shm
+          mountPath: /dev/shm
+        - name: torch-compile-cache
+          mountPath: /.cache
+      startupProbe:
+        httpGet:
+          path: /health
+          port: vllm
+        initialDelaySeconds: 15
+        periodSeconds: 30
+        timeoutSeconds: 5
+        failureThreshold: 120
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: vllm
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readinessProbe:
+        httpGet:
+          path: /v1/models
+          port: vllm
+        periodSeconds: 5
+        timeoutSeconds: 2
+        failureThreshold: 3
+  volumes:
+    - name: metrics-volume
+      emptyDir: {}
+    - name: shm
+      emptyDir:
+        medium: Memory
+        sizeLimit: "16Gi"
+    - name: torch-compile-cache
+      emptyDir: {}
+
