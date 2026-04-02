@@ -1,62 +1,50 @@
-"""
-=============================================================================
-OneMCP BigQuery Tools for Customer Service Agent - SOLUTION
-=============================================================================
-Complete implementation of the BigQuery MCP connection.
-
-This is the solution file - compare your implementation against this.
-=============================================================================
-"""
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import os
 import google.auth
 from google.auth.transport.requests import Request
 
-# ADK MCP imports
-from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset
-from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPConnectionParams
+# BigQuery MCP toolset imports
+from google.adk.tools.bigquery import BigQueryCredentialsConfig, BigQueryToolset
+from google.adk.tools.bigquery.config import BigQueryToolConfig, WriteMode
 
 
 # =============================================================================
 # Configuration
 # =============================================================================
 
-BIGQUERY_MCP_URL = "https://bigquery.googleapis.com/mcp"
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("PROJECT_ID")
 
 
-def get_bigquery_mcp_toolset() -> MCPToolset:
+def get_bigquery_mcp_toolset() -> BigQueryToolset:
     """
-    Create an MCPToolset connected to Google's managed BigQuery MCP server.
+    Create an McpToolset connected to Google's managed BigQuery MCP server.
     """
-    # SOLUTION for TODO 1: Get OAuth credentials
-    credentials, project_id = google.auth.default(
-        scopes=["https://www.googleapis.com/auth/bigquery"]
-    )
-    credentials.refresh(Request())
-    oauth_token = credentials.token
-
-    # Use environment project if available
-    if PROJECT_ID:
-        project_id = PROJECT_ID
-
-    # SOLUTION for TODO 2: Create headers with OAuth token
-    headers = {
-        "Authorization": f"Bearer {oauth_token}",
-        "x-goog-user-project": project_id,
-    }
-
-    # SOLUTION for TODO 3: Create the MCPToolset
-    tools = MCPToolset(
-        connection_params=StreamableHTTPConnectionParams(
-            url=BIGQUERY_MCP_URL,
-            headers=headers,
-        )
+    tool_config = BigQueryToolConfig(write_mode=WriteMode.BLOCKED)
+    application_default_credentials, _ = google.auth.default()
+    credentials_config = BigQueryCredentialsConfig(
+        credentials=application_default_credentials
     )
 
-    print(f"[BigQueryTools] MCP Toolset configured for project: {project_id}")
+    bigquery_toolset = BigQueryToolset(
+        credentials_config=credentials_config, bigquery_tool_config=tool_config
+    )
 
-    return tools
+    print(f"[BigQueryTools] configured to work for project: {PROJECT_ID}")
+
+    return bigquery_toolset
 
 
 def get_customer_service_instructions() -> str:
