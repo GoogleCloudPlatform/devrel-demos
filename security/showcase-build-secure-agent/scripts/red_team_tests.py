@@ -270,16 +270,15 @@ def send_message(session_id: str, message: str, user_id: str = "redteam_tester")
     full_response = ""
 
     # The response schema is an array of objects
-    if isinstance(response_data, list):
-        for message_turn in response_data:
-            # Navigate down to content -> parts
-            content = message_turn.get("content", {})
-            parts = content.get("parts", [])
+    if response_data and isinstance(response_data, list):
+        latest_turn = response_data[-1]
+        content = latest_turn.get("content", {})
+        parts = content.get("parts", [])
 
-            # Extract only the text modalities
-            for part in parts:
-                if "text" in part and isinstance(part["text"], str):
-                    full_response += part["text"]
+        # Extract only the text modalities
+        for part in parts:
+            if "text" in part and isinstance(part["text"], str):
+                full_response += part["text"]
 
     return full_response.strip()
 
