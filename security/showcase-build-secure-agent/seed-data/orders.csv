@@ -1,0 +1,7 @@
+order_id,customer_id,order_date,status,total_amount,shipping_address,tracking_number,items
+ORD-001,CUST-001,2024-12-15,shipped,129.99,"123 Main St, Los Angeles, CA 90001",1Z999AA10123456784,"[{""product_id"": ""PROD-001"", ""quantity"": 1}, {""product_id"": ""PROD-003"", ""quantity"": 2}]"
+ORD-002,CUST-001,2024-12-20,processing,79.5,"123 Main St, Los Angeles, CA 90001",,"[{""product_id"": ""PROD-002"", ""quantity"": 3}]"
+ORD-003,CUST-002,2024-12-18,delivered,249.99,"456 Oak Ave, San Francisco, CA 94102",1Z999AA10123456785,"[{""product_id"": ""PROD-004"", ""quantity"": 1}]"
+ORD-004,CUST-003,2024-12-22,pending,599.0,"789 Pine Rd, Seattle, WA 98101",,"[{""product_id"": ""PROD-005"", ""quantity"": 1}, {""product_id"": ""PROD-001"", ""quantity"": 2}]"
+ORD-005,CUST-004,2024-12-10,cancelled,45.0,"321 Elm St, Denver, CO 80201",,"[{""product_id"": ""PROD-002"", ""quantity"": 2}]"
+ORD-006,CUST-005,2024-12-25,processing,189.99,"555 Maple Dr, Austin, TX 78701",,"[{""product_id"": ""PROD-003"", ""quantity"": 1}, {""product_id"": ""PROD-004"", ""quantity"": 1}]"

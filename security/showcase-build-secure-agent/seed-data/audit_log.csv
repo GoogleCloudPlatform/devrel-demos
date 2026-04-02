@@ -1,0 +1,5 @@
+log_id,timestamp,admin_user,action,target_resource,ip_address,details
+LOG-001,2024-12-20T10:30:00Z,admin@company.com,USER_PERMISSION_CHANGED,user:alice.johnson@email.com,10.0.0.50,"{""old_role"": ""viewer"", ""new_role"": ""editor""}"
+LOG-002,2024-12-21T14:15:00Z,superadmin@company.com,DATABASE_BACKUP_CREATED,database:customer_service,10.0.0.1,"{""backup_size_gb"": 2.5, ""backup_location"": ""gs://backups/""}"
+LOG-003,2024-12-22T09:00:00Z,admin@company.com,API_KEY_ROTATED,api_key:prod-key-001,10.0.0.50,"{""reason"": ""scheduled rotation""}"
+LOG-004,2024-12-23T16:45:00Z,security@company.com,SECURITY_ALERT_ACKNOWLEDGED,alert:suspicious-login-attempt,10.0.0.100,"{""alert_severity"": ""high"", ""source_ip"": ""203.0.113.50""}"

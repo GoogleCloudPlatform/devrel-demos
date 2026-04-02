@@ -1,0 +1,44 @@
+[
+    {
+        "name": "log_id",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Unique log entry identifier"
+    },
+    {
+        "name": "timestamp",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED",
+        "description": "When the event occurred"
+    },
+    {
+        "name": "admin_user",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Admin user who performed action"
+    },
+    {
+        "name": "action",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Action performed"
+    },
+    {
+        "name": "target_resource",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Resource affected"
+    },
+    {
+        "name": "ip_address",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "IP address of admin"
+    },
+    {
+        "name": "details",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Additional details in JSON format"
+    }
+]

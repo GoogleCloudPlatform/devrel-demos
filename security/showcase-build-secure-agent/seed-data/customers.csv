@@ -1,0 +1,6 @@
+customer_id,name,email,tier,created_date,phone
+CUST-001,Alice Johnson,alice.johnson@email.com,Gold,2023-01-15,+1-555-0101
+CUST-002,Bob Smith,bob.smith@email.com,Silver,2023-03-22,+1-555-0102
+CUST-003,Carol Williams,carol.w@email.com,Platinum,2022-06-10,+1-555-0103
+CUST-004,David Brown,david.brown@email.com,Bronze,2024-01-05,
+CUST-005,Eva Martinez,eva.m@email.com,Gold,2023-08-20,+1-555-0105
