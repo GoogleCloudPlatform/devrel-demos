@@ -1,6 +1,6 @@
-# Deploying Qwen1.5-32B on Disaggregated v5e TPUs with llm-d and GKE
+# Deploying Qwen3-32B on Disaggregated v6e TPUs with llm-d and GKE
 
-This repository provides a step-by-step guide to deploying the Qwen1.5-32B model on Google Cloud's v5e TPUs. The deployment leverages `llm-d` for disaggregated serving, a tiered KV cache using GCS FUSE, and the GKE inference gateway for intelligent routing.
+This repository provides a step-by-step guide to deploying the Qwen3-32B model on Google Cloud's v6e TPUs. The deployment leverages `llm-d` for disaggregated serving, a tiered KV cache using GCS FUSE, and the GKE inference gateway for intelligent routing.
 
 ## Features
 
