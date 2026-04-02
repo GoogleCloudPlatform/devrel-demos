@@ -20,7 +20,7 @@ from typing import Optional
 import uuid
 
 import requests
-from google.auth import default
+from google.oauth2 import id_token
 from google.auth.transport.requests import Request
 
 # =============================================================================
@@ -51,16 +51,15 @@ if not AGENT_URL:
 # Setup Authentication
 # =============================================================================
 
-credentials, auth_project_id = default()
-credentials.refresh(Request())
+token = id_token.fetch_id_token(Request(), AGENT_URL)
 
 # API configuration
-APP_NAME = "secured-ai-agent-demo"
+APP_NAME = "customer_service_agent"
 SESSION_PATH = f"apps/{APP_NAME}/" + "users/{user_id}/sessions/{session_id}"
-RUN_PATH = "run_sse"
+RUN_PATH = "run"
 
 HEADERS = {
-    "Authorization": f"Bearer {credentials.token}",
+    "Authorization": f"Bearer {token}",
     "X-Goog-User-Project": PROJECT_ID,
     "Content-Type": "application/json",
 }

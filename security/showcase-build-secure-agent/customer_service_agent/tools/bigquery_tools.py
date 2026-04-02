@@ -16,50 +16,35 @@ import os
 import google.auth
 from google.auth.transport.requests import Request
 
-# ADK MCP imports
-from google.adk.tools.mcp_tool import McpToolset
-from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPConnectionParams
+# BigQuery MCP toolset imports
+from google.adk.tools.bigquery import BigQueryCredentialsConfig, BigQueryToolset
+from google.adk.tools.bigquery.config import BigQueryToolConfig, WriteMode
 
 
 # =============================================================================
 # Configuration
 # =============================================================================
 
-BIGQUERY_MCP_URL = "https://bigquery.googleapis.com/mcp"
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("PROJECT_ID")
 
 
-def get_bigquery_mcp_toolset() -> McpToolset:
+def get_bigquery_mcp_toolset() -> BigQueryToolset:
     """
     Create an McpToolset connected to Google's managed BigQuery MCP server.
     """
-    credentials, project_id = google.auth.default(
-        scopes=["https://www.googleapis.com/auth/bigquery"]
-    )
-    credentials.refresh(Request())
-    oauth_token = credentials.token
-
-    # Use environment project if available
-    if PROJECT_ID:
-        project_id = PROJECT_ID
-
-    headers = {
-        "Authorization": f"Bearer {oauth_token}",
-        "X-Goog-User-Project": project_id,
-    }
-
-    tools = McpToolset(
-        connection_params=StreamableHTTPConnectionParams(
-            url=BIGQUERY_MCP_URL,
-            headers=headers,
-            timeout=30.0,
-            sse_read_timeout=300.0
-        )
+    tool_config = BigQueryToolConfig(write_mode=WriteMode.BLOCKED)
+    application_default_credentials, _ = google.auth.default()
+    credentials_config = BigQueryCredentialsConfig(
+        credentials=application_default_credentials
     )
 
-    print(f"[BigQueryTools] MCP Toolset configured for project: {project_id}")
+    bigquery_toolset = BigQueryToolset(
+        credentials_config=credentials_config, bigquery_tool_config=tool_config
+    )
 
-    return tools
+    print(f"[BigQueryTools] configured to work for project: {PROJECT_ID}")
+
+    return bigquery_toolset
 
 
 def get_customer_service_instructions() -> str:
