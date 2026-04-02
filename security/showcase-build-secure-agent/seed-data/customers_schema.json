@@ -1,0 +1,38 @@
+[
+    {
+        "name": "customer_id",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Unique customer identifier"
+    },
+    {
+        "name": "name",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Customer full name"
+    },
+    {
+        "name": "email",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Customer email address"
+    },
+    {
+        "name": "tier",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Customer tier: Bronze, Silver, Gold, Platinum"
+    },
+    {
+        "name": "created_date",
+        "type": "DATE",
+        "mode": "REQUIRED",
+        "description": "Account creation date"
+    },
+    {
+        "name": "phone",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Customer phone number"
+    }
+]

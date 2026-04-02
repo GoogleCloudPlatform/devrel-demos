@@ -1,0 +1,10 @@
+# =============================================================================
+# Secure Customer Service Agent - Runtime Dependencies
+# =============================================================================
+# These are the dependencies needed when the agent runs in Agent Engine
+
+# ADK framework
+google-adk>=1.28.0
+
+# Model Armor for security
+google-cloud-modelarmor>=0.5.0
