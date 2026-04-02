@@ -17,6 +17,7 @@ import json
 import os
 import sys
 from typing import Optional
+import uuid
 
 import requests
 from google.auth import default
@@ -30,7 +31,7 @@ PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("PROJECT_I
 LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION") or os.environ.get(
     "LOCATION", "us-central1"
 )
-AGENT_ENGINE_ID = os.environ.get("AGENT_ENGINE_ID")
+AGENT_URL = os.environ.get("AGENT_URL")
 
 # Validate environment
 if not PROJECT_ID:
@@ -38,10 +39,12 @@ if not PROJECT_ID:
     print("   Run: source set_env.sh")
     sys.exit(1)
 
-if not AGENT_ENGINE_ID:
-    print("❌ Error: AGENT_ENGINE_ID not set")
+if not AGENT_URL:
+    print("❌ Error: AGENT_URL not set")
     print("   Deploy the agent first, then add the ID to set_env.sh:")
-    print("   echo 'export AGENT_ENGINE_ID=\"your-id\"' >> set_env.sh")
+    print(
+        "   echo 'export AGENT_URL=\"https://SERVICE_NAME-PROJECT_NUMBER.REGION.run.app\"' >> set_env.sh"
+    )
     sys.exit(1)
 
 # =============================================================================
@@ -52,10 +55,9 @@ credentials, auth_project_id = default()
 credentials.refresh(Request())
 
 # API configuration
-BASE_URL = f"https://{LOCATION}-aiplatform.googleapis.com/v1"
-RESOURCE_PATH = (
-    f"projects/{PROJECT_ID}/locations/{LOCATION}/reasoningEngines/{AGENT_ENGINE_ID}"
-)
+APP_NAME = "secured-ai-agent-demo"
+SESSION_PATH = f"apps/{APP_NAME}/" + "users/{user_id}/sessions/{session_id}"
+RUN_PATH = "run"
 
 HEADERS = {
     "Authorization": f"Bearer {credentials.token}",
@@ -67,7 +69,7 @@ print("   Red Team Security Testing")
 print("=" * 70)
 print(f"   Project:      {PROJECT_ID}")
 print(f"   Location:     {LOCATION}")
-print(f"   Agent Engine: {AGENT_ENGINE_ID}")
+print(f"   Agent URL: {AGENT_URL}")
 print("=" * 70)
 print()
 
@@ -231,107 +233,54 @@ RED_TEAM_TESTS = [
 
 def create_session(user_id: str = "redteam_tester") -> str:
     """Create a new session and return session ID."""
+    session_id = str(uuid.uuid4())
+    path = SESSION_PATH.format(user_id=user_id, session_id=session_id)
     response = requests.post(
-        f"{BASE_URL}/{RESOURCE_PATH}:query",
+        f"{AGENT_URL}/{path}",
         headers=HEADERS,
-        json={"class_method": "create_session", "input": {"user_id": user_id}},
+        json={"additionalProp1": {}},
     )
     response.raise_for_status()
-
-    session_data = response.json()
-    session_id = session_data["output"]["id"]
     return session_id
 
 
 def send_message(session_id: str, message: str, user_id: str = "redteam_tester") -> str:
-    """Send a message and collect the streaming response."""
+    # Construct the payload conforming to the run API schema
+    payload = {
+        "appName": APP_NAME,
+        "userId": user_id,
+        "sessionId": session_id,
+        "newMessage": {"role": "user", "parts": [{"text": message}]},
+        "streaming": False,  # Explicitly set to False for the blocking interaction
+    }
+
+    # Ensure RUN_PATH points to the `run` endpoint instead of `run_sse`
     response = requests.post(
-        f"{BASE_URL}/{RESOURCE_PATH}:streamQuery?alt=sse",
+        f"{AGENT_URL}/{RUN_PATH}",
         headers=HEADERS,
-        stream=True,
-        json={
-            "class_method": "stream_query",
-            "input": {"user_id": user_id, "session_id": session_id, "message": message},
-        },
+        json=payload,
     )
+
+    # Raise an exception for HTTP errors (like 422 Unprocessable Entity)
     response.raise_for_status()
 
-    # Collect streaming response
+    # Parse the complete JSON response
+    response_data = response.json()
     full_response = ""
 
-    for line in response.iter_lines():
-        if line:
-            line_str = line.decode("utf-8").strip()
+    # The response schema is an array of objects
+    if isinstance(response_data, list):
+        for message_turn in response_data:
+            # Navigate down to content -> parts
+            content = message_turn.get("content", {})
+            parts = content.get("parts", [])
 
-            if not line_str:
-                continue
-
-            # Robust Parsing: Handle both "data: {...}" and raw "{...}"
-            json_str = line_str
-            if line_str.startswith("data: "):
-                json_str = line_str[6:]
-
-            # Skip [DONE] marker
-            if json_str == "[DONE]":
-                continue
-
-            try:
-                data = json.loads(json_str)
-
-                # Extract text from various response formats
-                text = extract_text_from_response(data)
-                if text:
-                    full_response += text
-
-            except json.JSONDecodeError:
-                pass
+            # Extract only the text modalities
+            for part in parts:
+                if "text" in part and isinstance(part["text"], str):
+                    full_response += part["text"]
 
     return full_response.strip()
-
-
-def extract_text_from_response(data: dict) -> str:
-    """Extract text from various Agent Engine response formats."""
-    text = ""
-
-    if not isinstance(data, dict):
-        return ""
-
-    # Format 1: Direct "output" field
-    if "output" in data:
-        output = data["output"]
-        if isinstance(output, str):
-            return output
-        elif isinstance(output, dict):
-            if "text" in output:
-                return output["text"]
-            if "content" in output:
-                return extract_text_from_response(output)
-
-    # Format 2: "content" with "parts" array (Gemini/Agent Engine format)
-    if "content" in data:
-        content = data["content"]
-        if isinstance(content, dict):
-            if "parts" in content:
-                for part in content["parts"]:
-                    if isinstance(part, dict):
-                        if "text" in part:
-                            text += part["text"]
-            elif "text" in content:
-                text += content["text"]
-        elif isinstance(content, str):
-            text += content
-
-    # Format 3: Direct "text" field
-    if "text" in data and isinstance(data["text"], str):
-        text += data["text"]
-
-    # Format 4: "candidates" array
-    if "candidates" in data:
-        for candidate in data["candidates"]:
-            if isinstance(candidate, dict) and "content" in candidate:
-                text += extract_text_from_response(candidate)
-
-    return text
 
 
 # =============================================================================

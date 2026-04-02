@@ -1,19 +1,23 @@
-"""
-=============================================================================
-OneMCP BigQuery Tools for Customer Service Agent - SOLUTION
-=============================================================================
-Complete implementation of the BigQuery MCP connection.
-
-This is the solution file - compare your implementation against this.
-=============================================================================
-"""
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import os
 import google.auth
 from google.auth.transport.requests import Request
 
 # ADK MCP imports
-from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset
+from google.adk.tools.mcp_tool import McpToolset
 from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPConnectionParams
 
 
@@ -25,11 +29,10 @@ BIGQUERY_MCP_URL = "https://bigquery.googleapis.com/mcp"
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("PROJECT_ID")
 
 
-def get_bigquery_mcp_toolset() -> MCPToolset:
+def get_bigquery_mcp_toolset() -> McpToolset:
     """
-    Create an MCPToolset connected to Google's managed BigQuery MCP server.
+    Create an McpToolset connected to Google's managed BigQuery MCP server.
     """
-    # SOLUTION for TODO 1: Get OAuth credentials
     credentials, project_id = google.auth.default(
         scopes=["https://www.googleapis.com/auth/bigquery"]
     )
@@ -40,17 +43,17 @@ def get_bigquery_mcp_toolset() -> MCPToolset:
     if PROJECT_ID:
         project_id = PROJECT_ID
 
-    # SOLUTION for TODO 2: Create headers with OAuth token
     headers = {
         "Authorization": f"Bearer {oauth_token}",
         "x-goog-user-project": project_id,
     }
 
-    # SOLUTION for TODO 3: Create the MCPToolset
-    tools = MCPToolset(
+    tools = McpToolset(
         connection_params=StreamableHTTPConnectionParams(
             url=BIGQUERY_MCP_URL,
             headers=headers,
+            timeout=30.0,
+            sse_read_timeout=300.0
         )
     )
 
