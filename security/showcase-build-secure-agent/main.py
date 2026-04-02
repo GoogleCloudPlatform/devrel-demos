@@ -20,7 +20,7 @@ app: FastAPI = get_fast_api_app(
 app.title = "secured-ai-agent-demo"
 app.description = "A demo of the securely built and operated agents that protecting model and user data"
 
-logger.info(f"Discovered agent dir is ${AGENT_DIR}")
+logger.info(f"Discovered agent dir is {AGENT_DIR}")
 
 # Main execution
 if __name__ == "__main__":

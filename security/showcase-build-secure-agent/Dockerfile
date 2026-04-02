@@ -18,7 +18,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy only code of the demo keeping folder hierarchy
-COPY main.py customer_service_agent/ /app/
+COPY main.py /app/
+COPY customer_service_agent/ /app/customer_service_agent/
 
 # DO NOT run under 'root'
 USER myuser
