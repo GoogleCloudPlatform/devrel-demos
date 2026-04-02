@@ -19,11 +19,8 @@ import sys
 from google.adk.cli.fast_api import get_fast_api_app
 from fastapi import FastAPI
 
-
+logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 logger = logging.getLogger(__name__)
-sh = logging.StreamHandler(sys.stdout)
-logger.addHandler(sh)
-logger.setLevel(logging.DEBUG)
 
 # Discover the customer agent in the current working dir
 AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
