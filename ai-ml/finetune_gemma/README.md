@@ -12,6 +12,7 @@ Set the environment variables needed for the commands below:
 ```bash
 export PROJECT_ID=[YOUR_PROJECT_ID]
 export REGION=europe-west4
+export HF_TOKEN=[YOUR_HF_TOKEN]
 export BUCKET_NAME=[YOUR_BUCKET_NAME]
 export AR_REPO=[YOUR_AR_REPO]
 export IMAGE_NAME=gemma4-finetune
