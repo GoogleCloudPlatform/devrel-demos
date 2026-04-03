@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 def parse_args():
     """Parse command line arguments for configurable training."""
-    parser = argparse.ArgumentParser(description='Fine-tune Gemma 3 on Open Images dataset')
+    parser = argparse.ArgumentParser(description='Fine-tune Gemma 4 on Open Images dataset')
     
     # Data parameters
     parser.add_argument('--train-size', type=int, default=200,
@@ -62,7 +62,7 @@ def parse_args():
                        help='LoRA dropout (default: 0.05)')
     
     # Model parameters
-    parser.add_argument('--model-id', type=str, default='google/gemma-3-27b-it',
+    parser.add_argument('--model-id', type=str, default='google/gemma-4-31b-it',
                        help='Model ID to fine-tune')
     parser.add_argument('--device', type=str, default='cuda',
                        choices=['cuda', 'cpu'],
@@ -132,7 +132,7 @@ def load_data(train_size, eval_size, hf_token=None):
 
 def format_data(example, prompt, processor):
     """Format dataset examples into chat-style messages."""
-    # Gemma 3 expects specific message format
+    # Gemma 4 expects specific message format
     messages = [
         {
             "role": "user",
@@ -151,7 +151,7 @@ def format_data(example, prompt, processor):
     return example
 
 def load_model_and_processor(model_id, device, hf_token=None, load_model=True):
-    """Load Gemma 3 model and processor."""
+    """Load Gemma 4 model and processor."""
     try:
         processor = AutoProcessor.from_pretrained(model_id, token=hf_token)
         if processor.tokenizer.pad_token is None:
@@ -161,7 +161,7 @@ def load_model_and_processor(model_id, device, hf_token=None, load_model=True):
             logger.info("✓ Processor loaded (Dry Run: skipping model)")
             return None, processor
 
-        logger.info(f"Loading Gemma 3 model: {model_id}")
+        logger.info(f"Loading Gemma 4 model: {model_id}")
         model_kwargs = {
             "dtype": torch.bfloat16 if device == 'cuda' and torch.cuda.is_available() else torch.float32,
             "attn_implementation": "sdpa",
@@ -313,7 +313,7 @@ def evaluate_model(model, processor, eval_data, prompt, class_names, batch_size=
     }
 
 def train_model(model, processor, train_data, eval_data, args):
-    """Train Gemma 3 with LoRA."""
+    """Train Gemma 4 with LoRA."""
     logger.info("Configuring LoRA and Training...")
     processor.tokenizer.padding_side = "right"
     
@@ -422,7 +422,7 @@ def main():
     args = parse_args()
     
     # 0. Version Indicator (for visual confirmation in Cloud Run logs)
-    logger.info("🚀 Gemma 3 Fine-tuner: version v3 (Targeting Python 3.12 + CUDA 12.8)")
+    logger.info("🚀 Gemma 4 Fine-tuner: version v3 (Targeting Python 3.12 + CUDA 12.8)")
     
     # Force HF_TOKEN into environment for all libraries (like load_dataset and evaluate)
     token = args.hf_token or os.environ.get('HF_TOKEN')
@@ -435,7 +435,7 @@ def main():
         logger.info("✓ HF_TOKEN set globally")
     
     logger.info("="*80)
-    logger.info("Gemma 3 Fine-tuning on Oxford-IIIT Pet")
+    logger.info("Gemma 4 Fine-tuning on Oxford-IIIT Pet")
     logger.info("="*80)
     
     if torch.cuda.is_available():

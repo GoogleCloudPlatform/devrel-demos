@@ -1,6 +1,6 @@
-# Pet Analyzer: The Complete End-to-End Gemma 3 Lifecycle on Cloud Run
+# Pet Analyzer: The Complete End-to-End Gemma 4 Lifecycle on Cloud Run
 
-This repository provides a complete blueprint for the modern AI lifecycle using **Gemma 3 27B** on **Cloud Run Serverless GPUs**. It covers everything from model staging to fine-tuning and high-performance serving.
+This repository provides a complete blueprint for the modern AI lifecycle using **Gemma 4 31B** on **Cloud Run Serverless GPUs**. It covers everything from model staging to fine-tuning and high-performance serving.
 
 ---
 
@@ -18,16 +18,16 @@ gcloud storage buckets create gs://$BUCKET_NAME --location=$REGION
 
 # Transfer weights from Hugging Face to GCS (Requires HF_TOKEN with model access)
 export HF_TOKEN=your_huggingface_token
-./hf-to-gcs/hf_to_gcs.py --model-id google/gemma-3-27b-it --bucket $BUCKET_NAME --token $HF_TOKEN
+./hf-to-gcs/hf_to_gcs.py --model-id google/gemma-4-31b-it --bucket $BUCKET_NAME --token $HF_TOKEN
 ```
 
 ---
 
 ## 2. Deploy Base Model (Baseline)
-Deploy the base Gemma 3 model using vLLM and GCS Fuse.
+Deploy the base Gemma 4 model using vLLM and GCS Fuse.
 
 ```bash
-gcloud beta run deploy vllm-rtx6000-gemma3-27b-base \
+gcloud beta run deploy vllm-rtx6000-gemma4-31b-base \
     --image vllm/vllm-openai:latest \
     --region $REGION \
     --no-allow-unauthenticated \
@@ -43,8 +43,8 @@ gcloud beta run deploy vllm-rtx6000-gemma3-27b-base \
     --vpc-egress all-traffic \
     --add-volume name=models,type=cloud-storage,bucket=$BUCKET_NAME \
     --add-volume-mount volume=models,mount-path=/mnt/models \
-    --set-env-vars="VLLM_CACHE_ROOT=/tmp/vllm,HF_HUB_ENABLE_HF_TRANSFER=1" \
-    --args="--model","/mnt/models/google/gemma-3-27b-it","--load-format","runai_streamer","--gpu-memory-utilization","0.85","--max-model-len","8192","--trust-remote-code","--port","8080"
+    --set-env-vars="HF_HUB_ENABLE_HF_TRANSFER=1" \
+    --args="--model","/mnt/models/google/gemma-4-31b-it","--load-format","runai_streamer","--gpu-memory-utilization","0.85","--max-model-len","8192","--trust-remote-code","--port","8080"
 ```
 
 ---
@@ -74,12 +74,12 @@ gcloud storage buckets add-iam-policy-binding gs://$BUCKET_NAME \
 ### Build & Execute the Job
 ```bash
 # Build the trainer image
-gcloud builds submit --tag gcr.io/$PROJECT_ID/gemma3-finetune .
+gcloud builds submit --tag gcr.io/$PROJECT_ID/gemma4-finetune .
 
 # Run the fine-tuning job
-gcloud beta run jobs execute gemma3-finetuning-job \
+gcloud beta run jobs execute gemma4-finetuning-job \
   --region $REGION \
-  --args="--model-id","/mnt/gcs/google/gemma-3-27b-it/","--output-dir","/tmp/gemma3-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma3-finetuned","--train-size","1000","--learning-rate","5e-5"
+  --args="--model-id","/mnt/gcs/google/gemma-4-31b-it/","--output-dir","/tmp/gemma4-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma4-finetuned","--train-size","1000","--learning-rate","5e-5"
 ```
 
 ---
@@ -88,7 +88,7 @@ gcloud beta run jobs execute gemma3-finetuning-job \
 Deploy a second service running the same base model but with the new LoRA adapter applied.
 
 ```bash
-gcloud beta run deploy vllm-rtx6000-gemma3-27b-ft \
+gcloud beta run deploy vllm-rtx6000-gemma4-31b-ft \
     --image vllm/vllm-openai:latest \
     --region $REGION \
     --no-allow-unauthenticated \
@@ -107,7 +107,7 @@ gcloud beta run deploy vllm-rtx6000-gemma3-27b-ft \
     --add-volume name=finetune,type=cloud-storage,bucket=$BUCKET_NAME \
     --add-volume-mount volume=finetune,mount-path=/mnt/finetune \
     --set-env-vars="VLLM_CACHE_ROOT=/tmp/vllm,HF_HUB_ENABLE_HF_TRANSFER=1" \
-    --args="--model","/mnt/models/google/gemma-3-27b-it","--enable-lora","--lora-modules","pet-analyzer=/mnt/finetune/gemma3-finetuned","--load-format","runai_streamer","--gpu-memory-utilization","0.85","--max-model-len","8192","--trust-remote-code","--port","8080"
+    --args="--model","/mnt/models/google/gemma-4-31b-it","--enable-lora","--lora-modules","gemma-4-31b-it-fine-tuned=/mnt/finetune/gemma4-finetuned","--load-format","runai_streamer","--gpu-memory-utilization","0.85","--max-model-len","8192","--trust-remote-code","--port","8080"
 ```
 
 ---

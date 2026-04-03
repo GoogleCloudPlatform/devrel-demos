@@ -88,9 +88,9 @@ Finally, provide a very short "Title" for this analysis in the format: "TITLE: [
                 }
             ]
             
-            print("\n--- BASE MODEL (/mnt/models/google/gemma-3-27b-it) ---")
+            print("\n--- BASE MODEL (/mnt/models/google/gemma-4-31b-it) ---")
             # We must use the exact model string the vLLM engine knows
-            base_res = call_model(service_url, token, "/mnt/models/google/gemma-3-27b-it", messages)
+            base_res = call_model(service_url, token, "/mnt/models/google/gemma-4-31b-it", messages)
             print(base_res)
             
             print("\n--- FINE-TUNED MODEL (pet-analyzer) ---")

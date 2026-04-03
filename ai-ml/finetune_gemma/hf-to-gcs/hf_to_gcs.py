@@ -12,10 +12,7 @@ def main():
 
     args = parser.parse_args()
 
-    hf_token = args.token or os.environ.get("HF_TOKEN")
-    if not hf_token:
-        print("❌ Error: Hugging Face token must be provided via --token or HF_TOKEN environment variable.")
-        sys.exit(1)
+    hf_token = args.token or os.environ.get("HF_TOKEN") or ""
 
     # Resolve the directory of this script to find cloudbuild.yaml and copy_to_gcs.py
     script_dir = os.path.dirname(os.path.abspath(__file__))
