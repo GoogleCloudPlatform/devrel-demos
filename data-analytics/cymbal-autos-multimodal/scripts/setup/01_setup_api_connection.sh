@@ -42,7 +42,7 @@ echo -e "\n================================================================="
 echo "Retrieving connection service account email..."
 echo "================================================================="
 # Extract the auto-generated service account email for the connection
-SERVICE_ACCT_EMAIL=$(bq show --format=prettyjson --connection "$PROJECT_ID.$LOCATION.conn" | jq -r '.serviceAccountId')
+SERVICE_ACCT_EMAIL=$(bq show --format=prettyjson --connection $PROJECT_ID.$LOCATION.conn | grep "serviceAccountId" | cut -d '"' -f 4)
 
 if [ -z "$SERVICE_ACCT_EMAIL" ]; then
     echo "Error: Could not retrieve service account email for the connection."
