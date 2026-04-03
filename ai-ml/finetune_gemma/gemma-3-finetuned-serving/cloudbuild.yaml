@@ -1,0 +1,15 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'build',
+    '--build-arg', 'HF_TOKEN=$_HF_TOKEN',
+    '--build-arg', 'PROJECT_ID=$PROJECT_ID',
+    '-t', 'gcr.io/$PROJECT_ID/gemma-3-27b-finetuned-vllm:latest',
+    '.'
+  ]
+options:
+  machineType: 'E2_HIGHCPU_32'
+  diskSizeGb: '500' # Increased disk space for model download and large image layers
+timeout: '7200s' # 2 hours
+images:
+- 'gcr.io/$PROJECT_ID/gemma-3-27b-finetuned-vllm:latest'

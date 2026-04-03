@@ -1,0 +1,38 @@
+[
+    {
+        "name": "product_id",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Unique product identifier"
+    },
+    {
+        "name": "name",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Product name"
+    },
+    {
+        "name": "category",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Product category"
+    },
+    {
+        "name": "price",
+        "type": "FLOAT64",
+        "mode": "REQUIRED",
+        "description": "Product price in USD"
+    },
+    {
+        "name": "in_stock",
+        "type": "BOOLEAN",
+        "mode": "REQUIRED",
+        "description": "Whether product is in stock"
+    },
+    {
+        "name": "description",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Product description"
+    }
+]

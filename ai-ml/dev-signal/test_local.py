@@ -1,5 +1,6 @@
 import asyncio
 import os
+import uuid
 import google.auth
 import vertexai
 from dotenv import load_dotenv
@@ -60,7 +61,8 @@ async def main():
     print("2. Type 'new' to start a FRESH session (local state wiped).")
     print("3. Ask for a blog post. The agent should retrieve your preference from the CLOUD memory.")
     
-    current_session_id = "session-1"
+    current_session_id = f"session-{str(uuid.uuid4())[:8]}"
+
     await session_service.create_session(
         app_name="dev-signal",
         user_id=user_id,
@@ -76,7 +78,6 @@ async def main():
             
         if user_input.lower() == "new":
             # Simulate starting a completely fresh session
-            import uuid
             current_session_id = f"session-{str(uuid.uuid4())[:8]}"
             await session_service.create_session(
                 app_name="dev-signal",

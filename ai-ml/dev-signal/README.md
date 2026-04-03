@@ -7,9 +7,9 @@ Welcome to **Dev Signal**, an intelligent monitoring agent designed to filter no
 Dev Signal is a multi-agent system that operates in a continuous loop to monitor technical trends and generate high-quality content. Its workflow includes:
 
 1.  **Discovery (Reddit Scanner):** Scouts Reddit for high-engagement technical questions and trending topics (e.g., "AI agents on Cloud Run").
-2.  **Grounding (GCP Expert):** Researches answers using official Google Cloud documentation via the Developer Knowledge MCP to ensure accuracy.
+2.  **Grounding (GCP Expert):** Researches answers using official Google Cloud documentation (Developer Knowledge MCP) and broader web searches to ensure accuracy and capture community sentiment.
 3.  **Creation (Blog Drafter):** Drafts professional technical blog posts based on the research.
-4.  **Multimodal Generation:** Generates custom infographic-style header images for posts using the "Nano Banana" local image generation tool (Gemini 3 Pro).
+4.  **Multimodal Generation:** Generates custom infographic-style header images for posts using the "Nano Banana" local image generation tool (Gemini 3 Pro Image).
 5.  **Long-Term Memory:** Uses Vertex AI memory bank to remember user preferences (e.g., "I prefer rap-style blogs") across different sessions.
 
 ## 🏗️ Architecture
@@ -19,12 +19,12 @@ The system is built on a modular multi-agent architecture:
 *   **Root Orchestrator:** The strategist that manages the specialist agents and handles memory retrieval/persistence.
 *   **Specialist Agents:**
     *   `reddit_scanner`: Finds trending questions using the Reddit MCP tool.
-    *   `gcp_expert`: Provides grounded technical answers using the Google Cloud Docs MCP tool.
+    *   `gcp_expert`: Provides grounded technical answers by synthesizing official documentation with community insights gathered via web search.
     *   `blog_drafter`: Synthesizes findings into blog posts and generates visuals.
 *   **Tools (MCP):**
     *   **Reddit MCP:** Connects to Reddit API for discovery.
     *   **Developer Knowledge MCP:** Connects to Google Cloud documentation for grounding.
-    *   **Nano Banana MCP:** A custom local tool for image generation using Gemini 3 Pro.
+    *   **Nano Banana MCP:** A custom local tool for image generation using Gemini 3 Pro Image.
 
 ## 📋 Prerequisites
 
@@ -107,44 +107,62 @@ We use **Terraform** for infrastructure and **Cloud Run** for hosting.
 ### 1. Provision Infrastructure
 Initialize and apply the Terraform configuration to set up Cloud Run, Secret Manager, and permissions.
 
-```bash
-cd deployment/terraform
-terraform init
-terraform apply
-```
-*Create a `terraform.tfvars` file or enter values when prompted.*
+1.  **Initialize Terraform:**
+    ```bash
+    cd deployment/terraform
+    terraform init
+    ```
+
+2.  **Create Variables:**
+    Create a `terraform.tfvars` file and add your configuration (project ID, region, bucket, and secrets).
+
+3.  **Plan and Apply:**
+    ```bash
+    terraform plan -out=plan.tfplan
+    terraform apply plan.tfplan
+    ```
 
 ### 2. Build & Deploy
-Use the provided `Makefile` to build the Docker container and deploy it to Cloud Run.
+Use the provided `Makefile` to build the Docker container and deploy it to Cloud Run via Google Cloud Build.
 
-```bash
-# Return to project root
-cd ../..
+1.  **Return to project root:**
+    ```bash
+    cd ../..
+    ```
 
-# Deploy
-make docker-deploy
-```
+2.  **Deploy:**
+    ```bash
+    make docker-deploy
+    ```
+    *This command builds the image, stores it in Artifact Registry, and updates the Cloud Run service.*
 
 ### 3. Accessing the Agent
-The Cloud Run service is deployed privately by default. To access it:
+Production services are private by default. Access them securely via IAM and the Cloud Run proxy.
 
 1.  **Grant Permission:**
     ```bash
-    gcloud run services add-iam-policy-binding dev-signal-agent 
-      --member="user:your-email@example.com" 
-      --role="roles/run.invoker" 
-      --region=us-central1 
-      --project=your-project-id
+    gcloud run services add-iam-policy-binding dev-signal \
+      --member="user:$(gcloud config get-value account)" \
+      --role="roles/run.invoker" \
+      --region=us-central1 \
+      --project=$(gcloud config get-value project)
     ```
 
-2.  **Proxy via Localhost:**
+2.  **Launch Proxy:**
     ```bash
-    gcloud run services proxy dev-signal-agent 
-      --region us-central1 
-      --project your-project-id
+    gcloud run services proxy dev-signal \
+      --region us-central1 \
+      --project $(gcloud config get-value project)
     ```
 
 3.  **Chat:** Visit `http://localhost:8080` to interact with your production agent.
+
+## 📊 Monitoring & Tracing
+Once deployed, you can monitor your agent's reasoning traces in the Google Cloud Console:
+
+1.  Navigate to **Trace Explorer**.
+2.  Filter for the `dev-signal` service.
+3.  View the "visual waterfall" of agent thoughts, tool calls, and LLM responses.
 
 ## 📂 Project Structure
 
@@ -160,16 +178,13 @@ dev-signal/
 │       ├── __init__.py
 │       ├── mcp_config.py  # Tool configuration (Reddit, Docs)
 │       └── nano_banana_mcp/# Custom local image generation tool
-│           ├── __init__.py
-│           ├── main.py
-│           ├── nano_banana_pro.py
-│           ├── media_models.py
-│           ├── storage_utils.py
-│           └── requirements.txt
 ├── deployment/
 │   └── terraform/         # Infrastructure as Code
 ├── .env                   # Local secrets (API keys)
+├── .gitignore             # Git ignore patterns
 ├── Makefile               # Shortcuts for building/deploying
 ├── Dockerfile             # Container definition
-└── pyproject.toml         # Dependencies
+├── pyproject.toml         # Dependencies
+├── uv.lock                # Locked dependencies
+└── test_local.py          # Local test runner
 ```

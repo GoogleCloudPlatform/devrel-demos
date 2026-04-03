@@ -1,0 +1,114 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+substitutions:
+  _ATTESTOR_NAME: "demo-attestor"
+  _TAG: "latest"
+  _SA_NAME: "demo-agent-sa" # name of the agent's application service account
+  _KEYRING_NAME: "demo-attestor-keyring"
+  _KEY_NAME: "demo-attestor-key"
+  _KEY_VERSION: "1"
+  _LOCATION: "us-central1" # Cloud Run region to deploy demo
+  _REPO_PATH: "approved-docker-repo/secured-ai-agent-demo"
+options:
+  logging: CLOUD_LOGGING_ONLY
+steps:
+  # Step 1: Proceed with the build using the dynamically secured Dockerfile
+  - id: "build-app-container-image"
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      - "build"
+      - "--network=cloudbuild" # <-- This bridges the container to the metadata server
+      - "--build-arg"
+      # base image from public repo
+      - "BASE_IMAGE_URL=python:3.13-slim"
+      - "-t"
+      - "us-docker.pkg.dev/${PROJECT_ID}/${_REPO_PATH}:${_TAG}"
+      - "."
+  # Step 2: Push the image IMMEDIATELY to enable security scanning and attestation
+  - id: "push-app-container-image-to-repo"
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      - "push"
+      - "us-docker.pkg.dev/${PROJECT_ID}/${_REPO_PATH}:${_TAG}"
+
+  # Step 3: Create attestation that the image was built in this script
+  - id: "create-binary-authorization-attestation"
+    name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "bash"
+    args:
+      - "-ce"
+      - |
+        # 1. Fetch the immutable digest from Artifact Registry
+        # (Note: The image MUST be pushed to the registry before this step runs)
+        _digest=$(gcloud container images describe "us-docker.pkg.dev/${PROJECT_ID}/${_REPO_PATH}:${_TAG}" --format='get(image_summary.digest)')
+        # 2. Create the attestation using the digest
+        gcloud beta container binauthz attestations sign-and-create \
+          --artifact-url="us-docker.pkg.dev/${PROJECT_ID}/${_REPO_PATH}@$${_digest}" \
+          --attestor="${_ATTESTOR_NAME}" \
+          --attestor-project="${PROJECT_ID}" \
+          --keyversion-project="${PROJECT_ID}" \
+          --keyversion-location="${_LOCATION}" \
+          --keyversion-keyring="${_KEYRING_NAME}" \
+          --keyversion-key="${_KEY_NAME}" \
+          --keyversion="${_KEY_VERSION}" \
+          --project="${PROJECT_ID}" \
+          --validate
+
+  # Step 4: Ensure there is a dedicated service account to deploy the app to Cloud Run
+  - id: "make-agent-service-account"
+    name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "bash"
+    args:
+      - "-ce"
+      - |
+        _sa_email="${_SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+        echo "Checking if service account $${_sa_email} exists..."
+        if gcloud iam service-accounts describe "$${_sa_email}" --project="${PROJECT_ID}" > /dev/null 2>&1; then
+          echo "Service account $${_sa_email} already exists. Skipping creation."
+        else
+          echo "Service account does not exist. Creating ${_SA_NAME}..."
+          gcloud iam service-accounts create "${_SA_NAME}" \
+            --display-name="Demo application service account" \
+            --project="${PROJECT_ID}"
+        fi
+  # Step 5: Enforce PoLP on the service account
+  - id: "set-required-permissions-to-agent-service-account"
+    name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "bash"
+    args:
+      - "-ce"
+      - |
+        _roles=(
+          "roles/aiplatform.user"
+          "roles/cloudtrace.agent"
+          "roles/logging.logWriter"
+          "roles/mcp.toolUser"
+          "roles/modelarmor.user"
+          "roles/bigquery.jobUser"
+        )
+        _sa_email="${_SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+        # Apply all roles in the list one by one
+        for _role in "$${_roles[@]}"; do
+          echo "Grant $${_role} to $${_sa_email}"
+          gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+            --member="serviceAccount:$${_sa_email}" \
+            --role=$${_role} \
+            --condition=None
+        done
+        echo "Grant read data permissions on the 'customer_service' dataset to $${_sa_email}"
+        gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+          --member="serviceAccount:$${_sa_email}" \
+          --role="roles/bigquery.dataViewer" \
+          --condition="expression=resource.name.startsWith('projects/$PROJECT_ID/datasets/customer_service'),title=customer_service_only"

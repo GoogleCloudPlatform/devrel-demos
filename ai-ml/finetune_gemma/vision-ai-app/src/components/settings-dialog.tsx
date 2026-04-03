@@ -226,4 +226,3 @@ export function SettingsDialog({
     </Dialog>
   );
 }
-

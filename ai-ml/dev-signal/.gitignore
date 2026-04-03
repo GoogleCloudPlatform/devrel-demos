@@ -12,8 +12,26 @@ wheels/
 # Secrets and Local Config
 .env
 .env.*
+session.db
+**/session.db
+blog.md
+**/blog.md
+evalaution_blog.md
+**/evalaution_blog.md
+evaluation_blog.md
+**/evaluation_blog.md
+security_blog.md
+**/security_blog.md
+skills_blog.md
+**/skills_blog.md
 
 # Local ADK data
 .adk/
-**/ .adk/
-**/session.db
+**/.adk/
+
+# Terraform secrets and state
+**/.terraform/
+*.tfvars
+*.tfvars.json
+terraform.tfstate*
+*.tfplan

@@ -1,0 +1,50 @@
+[
+    {
+        "name": "order_id",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Unique order identifier"
+    },
+    {
+        "name": "customer_id",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Reference to customer"
+    },
+    {
+        "name": "order_date",
+        "type": "DATE",
+        "mode": "REQUIRED",
+        "description": "Date order was placed"
+    },
+    {
+        "name": "status",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Order status: pending, processing, shipped, delivered, cancelled"
+    },
+    {
+        "name": "total_amount",
+        "type": "FLOAT64",
+        "mode": "REQUIRED",
+        "description": "Total order amount in USD"
+    },
+    {
+        "name": "shipping_address",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Shipping address"
+    },
+    {
+        "name": "tracking_number",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Shipping tracking number"
+    },
+    {
+        "name": "items",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "JSON array of order items"
+    }
+]

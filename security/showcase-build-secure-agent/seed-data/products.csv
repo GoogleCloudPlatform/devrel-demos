@@ -1,0 +1,6 @@
+product_id,name,category,price,in_stock,description
+PROD-001,Wireless Bluetooth Headphones,Electronics,59.99,True,Premium wireless headphones with 30-hour battery life and noise cancellation.
+PROD-002,Organic Green Tea (50 bags),Food & Beverage,15.0,True,Premium organic green tea sourced from Japan.
+PROD-003,Yoga Mat - Premium,Sports & Fitness,35.0,True,"Extra thick, non-slip yoga mat with carrying strap."
+PROD-004,Smart Watch Pro,Electronics,249.99,False,Advanced smartwatch with health monitoring and GPS.
+PROD-005,Ergonomic Office Chair,Furniture,399.0,True,Fully adjustable ergonomic chair with lumbar support.

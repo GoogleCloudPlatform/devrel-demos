@@ -2,6 +2,12 @@
 
 This repository provides a complete blueprint for the modern AI lifecycle using **Gemma 4 31B** on **Cloud Run Serverless GPUs**. It covers everything from model staging to fine-tuning and high-performance serving.
 
+## Project Structure
+- `vision-ai-app/`: Next.js web application for interacting with the models.
+- `finetune_and_evaluate.py`: Main script for fine-tuning and evaluation logic.
+- `Dockerfile`: Container configuration for the fine-tuning job.
+- `requirements.txt`: Python dependencies.
+
 ---
 
 ## 1. Environment & Model Setup

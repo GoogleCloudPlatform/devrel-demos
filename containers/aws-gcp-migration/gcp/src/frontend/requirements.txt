@@ -122,7 +122,7 @@ protobuf==5.28.2
     #   googleapis-common-protos
     #   grpcio-status
     #   proto-plus
-pyasn1==0.6.2
+pyasn1==0.6.3
     # via
     #   pyasn1-modules
     #   rsa
@@ -130,7 +130,7 @@ pyasn1-modules==0.4.1
     # via google-auth
 pycparser==2.22
     # via cffi
-pyjwt==2.9.0
+pyjwt==2.12.0
     # via -r requirements.in
 requests==2.32.3
     # via
@@ -147,7 +147,7 @@ urllib3==2.6.0
     # via
     #   -r requirements.in
     #   requests
-werkzeug==3.1.5
+werkzeug==3.1.6
     # via flask
 wrapt==1.16.0
     # via

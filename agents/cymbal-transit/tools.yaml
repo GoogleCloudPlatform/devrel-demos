@@ -22,6 +22,7 @@ sources:
         database: "postgres"
         user: "postgres"
         password: "*******"
+        ipType: "private"
 
 authServices:
     google_auth:

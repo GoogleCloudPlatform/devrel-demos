@@ -490,14 +490,15 @@
 
     <!-- TABS -->
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('billing')">1. Billing Setup</div>
-        <div class="tab" onclick="switchTab('alloydb')">2. AlloyDB Setup</div>
+        <div class="tab" onclick="switchTab('billing')">1. Link Trial Billing Account</div>
+        <div class="tab active" onclick="switchTab('alloydb')">2. Setup AlloyDB</div>
     </div>
 
     <!-- TAB 1: BILLING -->
-    <div id="billing" class="tab-content active">
-        <h2>Link Project Billing</h2>
-        <p>Ensure your project is linked to an active billing account before creating resources.</p>
+    <div id="billing" class="tab-content">
+        <h2>Link Billing (Only if using trial credits)</h2>
+        <p>This is to ensure your project is linked to an active trial billing account before creating resources. If you want to use trial credits to begin with, here is a <a href="https://bit.ly/ez-alloydb-1">link</a>.
+    </p>
         <form id="billingForm">
             <label for="billing_project_id">Google Cloud Project ID</label>
             <input type="text" id="billing_project_id" name="project_id" placeholder="e.g. my-gcp-project" required>
@@ -512,8 +513,8 @@
     </div>
 
     <!-- TAB 2: ALLOYDB -->
-    <div id="alloydb" class="tab-content">
-        <h2>Create AlloyDB Cluster</h2>
+    <div id="alloydb" class="tab-content active">
+        <h2>Create AlloyDB Cluster & Instance</h2>
         <p>Configure and deploy your AlloyDB environment.</p>
         <form id="deployForm">
             <label for="project_id">Google Cloud Project ID</label>

@@ -28,11 +28,51 @@ PSA_RANGE_NAME="easy-alloydb-psa-range"
 
 echo "Starting deployment for Project: $PROJECT_ID..."
 
+# ==========================================
+# 1. SMART AUTHENTICATION & GATEKEEPER CHECK
+# ==========================================
+echo "Checking environment and authentication..."
+
+# 1a. Handle Environment Differences
+if [ -n "$CLOUD_SHELL" ]; then
+    echo "Running in Cloud Shell."
+else
+    ACTIVE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
+    if [ -z "$ACTIVE_ACCOUNT" ]; then
+        echo "No active account found. Initiating login..."
+        gcloud auth login
+    fi
+fi
+
+# 1b. Set Project
+echo "Setting project to $PROJECT_ID..."
+gcloud config set project "$PROJECT_ID" --quiet
+
+# 1c. THE GATEKEEPER: Verify actual API access
+# We try to list one resource. If this fails, we STOP the script.
+echo "Verifying permissions on project $PROJECT_ID..."
+if ! gcloud projects describe $PROJECT_ID > /dev/null 2>&1; then
+    echo ""
+    echo "################################################################"
+    echo "ERROR: AUTHENTICATION FAILURE"
+    echo "Your gcloud session is not active or lacks access to $PROJECT_ID."
+    echo ""
+    echo "PLEASE RUN THE FOLLOWING COMMAND MANUALLY, THEN RE-RUN THIS APP:"
+    echo "    gcloud auth login"
+    echo "################################################################"
+    exit 1
+fi
+
+echo "Authentication verified. Proceeding..."
+
 # 1. Config Project
-gcloud config set project $PROJECT_ID
+# gcloud config set project $PROJECT_ID
 
 # 2. Enable APIs
 gcloud services enable alloydb.googleapis.com servicenetworking.googleapis.com compute.googleapis.com cloudresourcemanager.googleapis.com
+
+# CRITICAL: Wait for API propagation
+sleep 15
 
 # 3. Network Setup
 # Check if VPC exists to avoid errors on re-runs
@@ -51,13 +91,30 @@ else
 fi
 
 # 4. Private Services Access
+echo "Checking Private Services Access..."
 if ! gcloud compute addresses describe $PSA_RANGE_NAME --global > /dev/null 2>&1; then
     echo "Creating Private Services Access Range..."
     gcloud compute addresses create $PSA_RANGE_NAME --global --purpose=VPC_PEERING --prefix-length=16 --network=$VPC_NAME
-    gcloud services vpc-peerings connect --service=servicenetworking.googleapis.com --ranges=$PSA_RANGE_NAME --network=$VPC_NAME
-else
-    echo "PSA Range $PSA_RANGE_NAME already exists. Skipping."
 fi
+
+# This ensures that even if the range existed, the peering is established.
+echo "Ensuring VPC Peering is connected..."
+# Try to connect; if it fails (likely because it's already connected), try to update.
+if ! gcloud services vpc-peerings connect \
+    --service=servicenetworking.googleapis.com \
+    --ranges=$PSA_RANGE_NAME \
+    --network=$VPC_NAME --quiet 2>/dev/null; then
+    
+    echo "Connection already exists or failed, attempting update..."
+    gcloud services vpc-peerings update \
+        --service=servicenetworking.googleapis.com \
+        --ranges=$PSA_RANGE_NAME \
+        --network=$VPC_NAME --quiet
+fi
+
+# CRITICAL: Give Service Networking time to stabilize before AlloyDB hits it
+echo "Waiting for Peering to stabilize..."
+sleep 10
 
 # 5. Create Cluster
 if ! gcloud alloydb clusters describe $CLUSTER_ID --region=$REGION > /dev/null 2>&1; then
@@ -69,6 +126,8 @@ if ! gcloud alloydb clusters describe $CLUSTER_ID --region=$REGION > /dev/null 2
 else
     echo "AlloyDB Cluster $CLUSTER_ID already exists. Skipping."
 fi
+
+sleep 10
 
 # 6. Create Instance
 if ! gcloud alloydb instances describe $INSTANCE_ID --cluster=$CLUSTER_ID --region=$REGION > /dev/null 2>&1; then

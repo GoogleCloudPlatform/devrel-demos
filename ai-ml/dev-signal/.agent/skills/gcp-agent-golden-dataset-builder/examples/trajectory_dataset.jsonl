@@ -1,0 +1,3 @@
+{"prompt": "History of Rome", "reference": "# The History of Rome\n\nThe history of Rome spans over 2,500 years...", "reference_trajectory": [{"tool_name": "wikipedia_search", "tool_input": {"query": "History of Rome"}}]}
+{"prompt": "Pythagorean theorem", "reference": "## The Pythagorean Theorem: A Cornerstone of Geometry...", "reference_trajectory": [{"tool_name": "wikipedia_search", "tool_input": {"query": "Pythagorean theorem"}}]}
+{"prompt": "Explain Quantum Entanglement simply", "reference": "Imagine two magic coins...", "reference_trajectory": [{"tool_name": "wikipedia_search", "tool_input": {"query": "Quantum entanglement"}}]}

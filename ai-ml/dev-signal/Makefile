@@ -7,7 +7,8 @@ IMAGE := $(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(IMAGE_REPO)/agent:latest
 docker-deploy:
 	 @echo "🚀 Building and deploying to $(PROJECT_ID) via Cloud Build..."
 	gcloud builds submit --tag $(IMAGE) --project $(PROJECT_ID) .
-	gcloud run services update dev-signal-agent \
+	gcloud run services update dev-signal \
 		--image $(IMAGE) \
 		--region $(REGION) \
-		--project $(PROJECT_ID)
+		--project $(PROJECT_ID) \
+		--labels dev-tutorial=dev-signal-agent
