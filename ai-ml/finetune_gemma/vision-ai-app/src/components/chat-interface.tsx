@@ -282,7 +282,7 @@ export function ChatInterface({
             </div>
           </div>
           <p className="text-[10px] text-center mt-2 text-gray-400">
-            Powered by Gemma 3 & Cloud Run Serverless GPUs
+            Powered by Google Gemma & Cloud Run Serverless GPUs
           </p>
         </div>
       </div>
