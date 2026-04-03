@@ -1,63 +1,50 @@
-# Fine-Tuning Gemma 4 with Cloud Run Jobs: Serverless GPUs (NVIDIA RTX 6000 Pro)
+# Fine-Tuning Gemma 3 with Cloud Run Jobs: Serverless GPUs (NVIDIA RTX 6000 Pro)
 
-This repository contains the code and configuration for fine-tuning the **Gemma 4 31B** model for- **Pet Breed Classification**: Specialized on the [Oxford-IIIT Pet Dataset](https://huggingface.co/datasets/timm/oxford-iiit-pet) (**3,680** training images / **3,669** test images).
+This repository contains the code and configuration for fine-tuning the **Gemma 3 27B** model for- **Pet Breed Classification**: Specialized on the [Oxford-IIIT Pet Dataset](https://huggingface.co/datasets/timm/oxford-iiit-pet) (**3,680** training images / **3,669** test images).
 - **Memory Optimized**: Uses `Dataset.from_generator` and `low_cpu_mem_usage` for efficient streaming.
 - **Modern Stack**: Leverages `uv` for dependency management and CUDA 12.8 for Blackwell compatibility.
 - **Classification Evaluation**: Uses **Accuracy** and **F1 Score** for breed identification assessment.
 
 ## Project Structure
 - `vision-ai-app/`: Next.js web application for interacting with the models.
-- `gemma-3-27b-serving/`: Configuration for serving the **base** Gemma 3 model.
-- `gemma-3-finetuned-serving/`: Configuration for serving the **fine-tuned** Gemma 3 model.
 - `finetune_and_evaluate.py`: Main script for fine-tuning and evaluation logic.
 - `Dockerfile`: Container configuration for the fine-tuning job.
 - `requirements.txt`: Python dependencies.
 
-## Setup & Deployment
+---
 
-### 1. Environment Variables
-> [!IMPORTANT]
-> **Regional Alignment**: Ensure your `REGION` and `BUCKET_NAME` (storage) are in the same region (e.g., `europe-west4`) to enable GCS volume mounting.
+## 1. Environment & Model Setup
+Stage the base model weights in Google Cloud Storage to enable fast, zero-build deployments.
 
 ```bash
-export PROJECT_ID=[YOUR_PROJECT_ID]
+export PROJECT_ID=$(gcloud config get-value project)
 export REGION=europe-west4
 export HF_TOKEN=[YOUR_HF_TOKEN]
 export SERVICE_ACCOUNT="finetune-gemma-job-sa"
-export BUCKET_NAME=$PROJECT_ID-gemma4-finetuning-eu
-export AR_REPO=gemma4-finetuning-repo
+export BUCKET_NAME=$PROJECT_ID-gemma3-finetuning-eu
+export AR_REPO=gemma3-finetuning-repo
 export SECRET_ID=HF_TOKEN
-export IMAGE_NAME=gemma4-finetune
-export JOB_NAME=gemma4-finetuning-job
+export IMAGE_NAME=gemma3-finetune
+export JOB_NAME=gemma3-finetuning-job
 ```
 
 ### 2. Infrastructure Setup
 ```bash
-# Create Service Account & Bucket
+export SERVICE_ACCOUNT="finetune-gemma-job-sa"
 gcloud iam service-accounts create $SERVICE_ACCOUNT
-gcloud storage buckets create gs://$BUCKET_NAME --location=$REGION
-
-# Grant Permissions
 gcloud storage buckets add-iam-policy-binding gs://$BUCKET_NAME \
   --member=serviceAccount:$SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com \
   --role=roles/storage.objectAdmin
-
-# Store HF Token in Secret Manager
-gcloud secrets create $SECRET_ID --replication-policy="automatic"
-printf $HF_TOKEN | gcloud secrets versions add $SECRET_ID --data-file=-
-gcloud secrets add-iam-policy-binding $SECRET_ID \
-  --member serviceAccount:$SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com \
-  --role='roles/secretmanager.secretAccessor'
 ```
 
-### 3. Staging the Model (Gemma 4 31B)
+### 3. Staging the Model (Gemma 3 27B)
 We'll use **[`cr-infer`](https://github.com/oded996/cr-infer)** to stage the model weights. Instead of installing it, you can run it directly using `uvx`.
 
 ```bash
-# Download Gemma 4 31B to GCS using uvx
+# Download Gemma 3 27B to GCS using uvx
 uvx --from git+https://github.com/oded996/cr-infer.git cr-infer model download \
   --source huggingface \
-  --model-id google/gemma-4-31b-it \
+  --model-id google/gemma-3-27b-it \
   --bucket $BUCKET_NAME \
   --token $HF_TOKEN
 ```
@@ -76,7 +63,7 @@ Before running the full job, you can verify the script runs correctly. We use pa
 
 ```bash
 python3 finetune_and_evaluate.py \
-  --model-id google/gemma-4-31b-it \
+  --model-id google/gemma-3-4b-it \
   --train-size 20 \
   --eval-size 20 \
   --gradient-accumulation-steps 2 \
@@ -107,13 +94,10 @@ gcloud beta run jobs create $JOB_NAME \
   --network=default \
   --subnet=default \
   --vpc-egress=private-ranges-only \
-  --args="--model-id","/mnt/gcs/google/gemma-4-31b-it/","--output-dir","/tmp/gemma4-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma4-finetuned","--train-size","1000","--eval-size","200","--learning-rate","5e-5"
+  --args="--model-id","/mnt/gcs/google/gemma-3-27b-it/","--output-dir","/tmp/gemma3-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma3-finetuned","--train-size","1000","--eval-size","200","--learning-rate","5e-5"
 ```
 
-### 7. Execute Fine-tuning
-```bash
-gcloud beta run jobs execute $JOB_NAME --region $REGION --async
-```
+---
 
-## Next Steps
-For production inference of your fine-tuned model, we recommend using **[`cr-infer`](https://github.com/oded996/cr-infer)** for automated deployments and smart GPU management. Check out the [cr-infer repo](https://github.com/oded996/cr-infer) for a complete developer workflow for serverless LLMs and VLMs.
+## 6. Compare & Validate
+Use the **Settings** in the Pet Analyzer UI to discover both `base` and `ft` services. Open two tabs to compare the results of the same pet image side-by-side!

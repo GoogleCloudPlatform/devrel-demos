@@ -102,7 +102,7 @@ export function SettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:w-[500px] sm:max-w-none">
         <DialogHeader>
           <DialogTitle>Backend Settings</DialogTitle>
           <DialogDescription>
@@ -110,8 +110,8 @@ export function SettingsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
-          <div className="flex justify-between items-center mb-4">
+        <div className="space-y-4 my-2">
+          <div className="flex justify-between items-center">
             <h4 className="text-sm font-medium">Available Services</h4>
             <Button
               variant="outline"
@@ -125,36 +125,43 @@ export function SettingsDialog({
             </Button>
           </div>
 
-          <ScrollArea className="h-[350px] border rounded-md p-2">
-            {loadingServices && availableServices.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-2">
-                <Loader2 className="animate-spin" />
-                <span className="text-sm">Fetching services...</span>
-              </div>
-            ) : availableServices.length === 0 ? (
-              <div className="text-center py-8 text-gray-500 text-sm">
-                No Cloud Run services found.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {availableServices.map((service, idx) => {
+          <ScrollArea className="h-[350px] border rounded-md w-full">
+            <div className="p-3 space-y-2">
+              {loadingServices && availableServices.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-[300px] text-gray-500 gap-2">
+                  <Loader2 className="animate-spin" />
+                  <span className="text-sm">Fetching services...</span>
+                </div>
+              ) : availableServices.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 text-sm">
+                  No Cloud Run services found.
+                </div>
+              ) : (
+                [...availableServices]
+                  .sort((a, b) => {
+                    const aHasModels = (a.models && a.models.length > 0) ? 1 : 0;
+                    const bHasModels = (b.models && b.models.length > 0) ? 1 : 0;
+                    if (aHasModels !== bHasModels) return bHasModels - aHasModels;
+                    return a.name.localeCompare(b.name);
+                  })
+                  .map((service, idx) => {
                   const isSelected = !!localSelected.find((s) => s.url === service.url);
                   const isProbing = probingUrls[service.url];
                   const isFailed = failedUrls[service.url];
                   const hasModels = service.models && service.models.length > 0;
                   const canSelect = hasModels && !isProbing;
+                  const isSmall = !hasModels && !isProbing;
 
                   return (
                     <div
                       key={`${service.name}-${idx}`}
-                      className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
-                        !canSelect ? "opacity-60 cursor-not-allowed bg-gray-50" : 
-                        isSelected ? "border-[#1a73e8] bg-[#e8f0fe] cursor-pointer" : 
-                        "hover:bg-gray-50 cursor-pointer"
-                      }`}
+                      className={`flex items-start gap-3 rounded-lg border transition-all w-full ${
+                        isSmall ? "p-1.5 opacity-50 bg-gray-50 text-gray-500 border-gray-100" : 
+                        "p-3 " + (isSelected ? "border-[#1a73e8] bg-[#e8f0fe] cursor-pointer" : "hover:bg-gray-50 cursor-pointer")
+                      } ${!canSelect ? "cursor-not-allowed" : ""}`}
                       onClick={() => canSelect && toggleService(service)}
                     >
-                      <div className="pt-1">
+                      <div className={isSmall ? "pt-0.5" : "pt-1"} onClick={(e) => e.stopPropagation()}>
                         <Checkbox 
                           checked={isSelected} 
                           disabled={!canSelect}
@@ -163,37 +170,49 @@ export function SettingsDialog({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <Server size={14} className={isFailed ? "text-gray-400" : "text-[#1a73e8]"} />
-                          <span className="text-sm font-medium truncate">{service.name}</span>
-                        </div>
-                        <div className="text-xs text-gray-500 truncate mt-0.5">{service.url}</div>
-                        
-                        <div className="mt-2 flex flex-wrap gap-1 items-center min-h-[20px]">
-                          {isProbing && (
-                            <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                              <Loader2 size={10} className="animate-spin" />
-                              Checking vLLM...
-                            </div>
-                          )}
-                          {!isProbing && isFailed && (
-                            <div className="flex items-center gap-1 text-[10px] text-orange-600">
+                          <Server size={isSmall ? 12 : 14} className={isFailed ? "text-gray-400" : "text-[#1a73e8]"} />
+                          <span className={`${isSmall ? "text-xs" : "text-sm"} font-medium truncate`}>{service.name}</span>
+                          {isSmall && isFailed && (
+                            <div className="flex items-center gap-1 text-[9px] text-orange-600 ml-auto whitespace-nowrap">
                               <AlertTriangle size={10} />
-                              Not a valid vLLM service
+                              Invalid vLLM
                             </div>
                           )}
-                          {!isProbing && hasModels && service.models!.map((m) => (
-                            <span key={m} className="text-[10px] bg-white border px-1.5 py-0.5 rounded text-gray-600 flex items-center gap-1">
-                              <Cpu size={8} />
-                              {m.split("/").pop()}
-                            </span>
-                          ))}
                         </div>
+                        
+                        {!isSmall && (
+                          <>
+                            <div className="text-[10px] text-gray-500 truncate mt-0.5 opacity-80" title={service.url}>
+                              {service.url}
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-1 items-center min-h-[16px]">
+                              {isProbing && (
+                                <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                                  <Loader2 size={10} className="animate-spin" />
+                                  Checking vLLM...
+                                </div>
+                              )}
+                              {!isProbing && isFailed && (
+                                <div className="flex items-center gap-1 text-[10px] text-orange-600">
+                                  <AlertTriangle size={10} />
+                                  Not a valid vLLM service
+                                </div>
+                              )}
+                              {!isProbing && hasModels && service.models!.map((m) => (
+                                <span key={m} className="text-[10px] bg-white border px-1.5 py-0.5 rounded text-gray-600 flex items-center gap-1">
+                                  <Cpu size={8} />
+                                  {m.split("/").pop()}
+                                </span>
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  )
+                })
+              )}
+            </div>
           </ScrollArea>
         </div>
 

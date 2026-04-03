@@ -1,4 +1,5 @@
 import os
+import sys
 import argparse
 import subprocess
 from pathlib import Path
@@ -24,7 +25,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-id", required=True)
     parser.add_argument("--bucket", required=True)
-    parser.add_argument("--token", required=True)
+    parser.add_argument("--token", required=False)
     args = parser.parse_args()
 
     local_dir = "/tmp/model"
@@ -38,10 +39,17 @@ def main():
         "hf", "download",
         args.model_id,
         "--local-dir", local_dir,
-        "--token", args.token
     ]
+    if args.token:
+        cmd.extend(["--token", args.token])
     
-    subprocess.run(cmd, check=True)
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError:
+        print("\n❌ Error: Download failed.")
+        if not args.token:
+            print("💡 Tip: If this is a gated or private model, you must provide a valid Hugging Face token.")
+        sys.exit(1)
 
     # Upload to GCS (using model-id as the prefix)
     upload_directory(local_dir, args.bucket, args.model_id)

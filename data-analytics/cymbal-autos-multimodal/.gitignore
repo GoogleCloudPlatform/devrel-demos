@@ -1,0 +1,21 @@
+data/downloads/
+app/public/images/
+venv/
+__pycache__/
+
+# Ignore intermediate data files
+*.csv
+*.jsonl
+!data/vehicle_metadata_bq.jsonl
+!data/seller_risk_profiles.jsonl
+!data/synthetic_car_data.csv
+# data/*.json (Removed to allow Gold Data tracking)
+
+# Allow schema definitions
+!data/schemas/
+!data/schemas/*.json
+.env
+.DS_Store
+
+# Ignore custom instructions
+.venv/

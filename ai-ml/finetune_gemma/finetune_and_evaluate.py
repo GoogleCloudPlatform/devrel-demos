@@ -132,7 +132,7 @@ def load_data(train_size, eval_size, hf_token=None):
 
 def format_data(example, prompt, processor):
     """Format dataset examples into chat-style messages."""
-    # Gemma 4 expects specific message format, supporting native system roles
+    # Gemma 3 expects specific message format
     messages = [
         {
             "role": "system",

@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       url: endpoint,
       method: "POST",
       data: {
-        model: model || "google/gemma-3-27b-it",
+        model: model || "google/gemma-4-31b-it",
         messages,
         max_tokens: 1024,
         stream: true,
