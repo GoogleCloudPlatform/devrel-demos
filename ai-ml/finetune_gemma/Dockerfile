@@ -64,9 +64,9 @@ ENV TORCH_HOME=/tmp/torch_cache
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
-RUN mkdir -p /tmp/huggingface /tmp/transformers_cache /tmp/torch_cache /tmp/gemma3-finetuned && \
+RUN mkdir -p /tmp/huggingface /tmp/transformers_cache /tmp/torch_cache /tmp/gemma4-finetuned && \
     chmod -R 777 /tmp
 
 ENTRYPOINT ["python3", "/app/finetune_and_evaluate.py"]
-CMD ["--device", "cuda", "--train-size", "1000", "--eval-size", "200", "--model-id", "google/gemma-3-4b-it"]
+CMD ["--device", "cuda", "--train-size", "1000", "--eval-size", "200", "--model-id", "google/gemma-4-31b-it"]
 

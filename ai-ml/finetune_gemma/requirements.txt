@@ -1,5 +1,6 @@
 # ML core
 torch>=2.7.0
+torchvision
 transformers>=4.49.0
 accelerate>=1.0.0
 peft>=0.14.0

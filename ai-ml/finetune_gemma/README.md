@@ -1,6 +1,6 @@
-# Fine-Tuning Gemma 3 with Cloud Run Jobs: Serverless GPUs (NVIDIA RTX 6000 Pro)
+# Fine-Tuning Gemma 4 with Cloud Run Jobs: Serverless GPUs (NVIDIA RTX 6000 Pro)
 
-This repository contains the code and configuration for fine-tuning the **Gemma 3 27B** model for- **Pet Breed Classification**: Specialized on the [Oxford-IIIT Pet Dataset](https://huggingface.co/datasets/timm/oxford-iiit-pet) (**3,680** training images / **3,669** test images).
+This repository contains the code and configuration for fine-tuning the **Gemma 4 31B** model for- **Pet Breed Classification**: Specialized on the [Oxford-IIIT Pet Dataset](https://huggingface.co/datasets/timm/oxford-iiit-pet) (**3,680** training images / **3,669** test images).
 - **Memory Optimized**: Uses `Dataset.from_generator` and `low_cpu_mem_usage` for efficient streaming.
 - **Modern Stack**: Leverages `uv` for dependency management and CUDA 12.8 for Blackwell compatibility.
 - **Classification Evaluation**: Uses **Accuracy** and **F1 Score** for breed identification assessment.
@@ -24,11 +24,11 @@ export PROJECT_ID=[YOUR_PROJECT_ID]
 export REGION=europe-west4
 export HF_TOKEN=[YOUR_HF_TOKEN]
 export SERVICE_ACCOUNT="finetune-gemma-job-sa"
-export BUCKET_NAME=$PROJECT_ID-gemma3-finetuning-eu
-export AR_REPO=gemma3-finetuning-repo
+export BUCKET_NAME=$PROJECT_ID-gemma4-finetuning-eu
+export AR_REPO=gemma4-finetuning-repo
 export SECRET_ID=HF_TOKEN
-export IMAGE_NAME=gemma3-finetune
-export JOB_NAME=gemma3-finetuning-job
+export IMAGE_NAME=gemma4-finetune
+export JOB_NAME=gemma4-finetuning-job
 ```
 
 ### 2. Infrastructure Setup
@@ -50,14 +50,14 @@ gcloud secrets add-iam-policy-binding $SECRET_ID \
   --role='roles/secretmanager.secretAccessor'
 ```
 
-### 3. Staging the Model (Gemma 3 27B)
+### 3. Staging the Model (Gemma 4 31B)
 We'll use **[`cr-infer`](https://github.com/oded996/cr-infer)** to stage the model weights. Instead of installing it, you can run it directly using `uvx`.
 
 ```bash
-# Download Gemma 3 27B to GCS using uvx
+# Download Gemma 4 31B to GCS using uvx
 uvx --from git+https://github.com/oded996/cr-infer.git cr-infer model download \
   --source huggingface \
-  --model-id google/gemma-3-27b-it \
+  --model-id google/gemma-4-31b-it \
   --bucket $BUCKET_NAME \
   --token $HF_TOKEN
 ```
@@ -76,7 +76,7 @@ Before running the full job, you can verify the script runs correctly. We use pa
 
 ```bash
 python3 finetune_and_evaluate.py \
-  --model-id google/gemma-3-4b-it \
+  --model-id google/gemma-4-31b-it \
   --train-size 20 \
   --eval-size 20 \
   --gradient-accumulation-steps 2 \
@@ -107,7 +107,7 @@ gcloud beta run jobs create $JOB_NAME \
   --network=default \
   --subnet=default \
   --vpc-egress=private-ranges-only \
-  --args="--model-id","/mnt/gcs/google/gemma-3-27b-it/","--output-dir","/tmp/gemma3-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma3-finetuned","--train-size","1000","--eval-size","200","--learning-rate","5e-5"
+  --args="--model-id","/mnt/gcs/google/gemma-4-31b-it/","--output-dir","/tmp/gemma4-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma4-finetuned","--train-size","1000","--eval-size","200","--learning-rate","5e-5"
 ```
 
 ### 7. Execute Fine-tuning

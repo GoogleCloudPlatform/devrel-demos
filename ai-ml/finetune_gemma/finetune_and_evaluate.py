@@ -11,7 +11,7 @@ import torch
 import gc
 from datasets import load_dataset, Dataset, Image as HFImage, Features, Value, Image, Sequence
 from peft import LoraConfig, PeftModel
-from transformers import AutoModelForImageTextToText, AutoProcessor, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoProcessor, BitsAndBytesConfig
 from trl import SFTTrainer, SFTConfig
 import evaluate
 from huggingface_hub import login
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 def parse_args():
     """Parse command line arguments for configurable training."""
-    parser = argparse.ArgumentParser(description='Fine-tune Gemma 3 on Open Images dataset')
+    parser = argparse.ArgumentParser(description='Fine-tune Gemma 4 on Open Images dataset')
     
     # Data parameters
     parser.add_argument('--train-size', type=int, default=200,
@@ -62,14 +62,14 @@ def parse_args():
                        help='LoRA dropout (default: 0.05)')
     
     # Model parameters
-    parser.add_argument('--model-id', type=str, default='google/gemma-3-27b-it',
+    parser.add_argument('--model-id', type=str, default='google/gemma-4-31b-it',
                        help='Model ID to fine-tune')
     parser.add_argument('--device', type=str, default='cuda',
                        choices=['cuda', 'cpu'],
                        help='Device to use for training')
     
     # Output parameters
-    parser.add_argument('--output-dir', type=str, default='/tmp/gemma3-finetuned',
+    parser.add_argument('--output-dir', type=str, default='/tmp/gemma4-finetuned',
                        help='Output directory for model checkpoints')
     parser.add_argument('--results-file', type=str, default='/tmp/results.json',
                        help='Path to save results JSON')
@@ -86,7 +86,7 @@ def authenticate_huggingface(hf_token=None):
     """Authenticate with HuggingFace."""
     token = hf_token or os.environ.get('HF_TOKEN')
     if not token:
-        logger.warning("⚠️ No HuggingFace token provided. Ensure access to google/gemma-3-4b-it.")
+        logger.warning("⚠️ No HuggingFace token provided. Ensure access to google/gemma-4-31b-it.")
         return
     
     try:
@@ -132,13 +132,17 @@ def load_data(train_size, eval_size, hf_token=None):
 
 def format_data(example, prompt, processor):
     """Format dataset examples into chat-style messages."""
-    # Gemma 3 expects specific message format
+    # Gemma 4 expects specific message format, supporting native system roles
     messages = [
+        {
+            "role": "system",
+            "content": prompt,
+        },
         {
             "role": "user",
             "content": [
                 {"type": "image"},
-                {"type": "text", "text": prompt},
+                {"type": "text", "text": "Identify the breed of the animal in this image."},
             ],
         },
         {
@@ -148,10 +152,15 @@ def format_data(example, prompt, processor):
     ]
     # We apply the chat template here to ensure correct formatting
     example["text"] = processor.apply_chat_template(messages, tokenize=False)
+    
+    # Save prompt part for dynamic length calculation in collator
+    prompt_messages = messages[:2] # system and user
+    example["prompt_text"] = processor.apply_chat_template(prompt_messages, tokenize=False, add_generation_prompt=True)
+    
     return example
 
 def load_model_and_processor(model_id, device, hf_token=None, load_model=True):
-    """Load Gemma 3 model and processor."""
+    """Load Gemma 4 model and processor."""
     try:
         processor = AutoProcessor.from_pretrained(model_id, token=hf_token)
         if processor.tokenizer.pad_token is None:
@@ -161,7 +170,7 @@ def load_model_and_processor(model_id, device, hf_token=None, load_model=True):
             logger.info("✓ Processor loaded (Dry Run: skipping model)")
             return None, processor
 
-        logger.info(f"Loading Gemma 3 model: {model_id}")
+        logger.info(f"Loading Gemma 4 model: {model_id}")
         model_kwargs = {
             "dtype": torch.bfloat16 if device == 'cuda' and torch.cuda.is_available() else torch.float32,
             "attn_implementation": "sdpa",
@@ -187,7 +196,7 @@ def load_model_and_processor(model_id, device, hf_token=None, load_model=True):
 
         logger.debug(f"Model Loading Kwargs: {model_kwargs}")
         
-        model = AutoModelForImageTextToText.from_pretrained(model_id, **model_kwargs)
+        model = AutoModelForCausalLM.from_pretrained(model_id, **model_kwargs)
         logger.info(f"✓ Model loaded on {model.device}")
         return model, processor
     except Exception as e:
@@ -240,10 +249,13 @@ def evaluate_model(model, processor, eval_data, prompt, class_names, batch_size=
             generated_ids = model.generate(**inputs, max_new_tokens=32)
             # Find the length of the prompt to slice out the generated part
             input_len = inputs.input_ids.shape[1]
-            generated_texts = processor.batch_decode(generated_ids[:, input_len:], skip_special_tokens=True)
+            generated_texts_raw = processor.batch_decode(generated_ids[:, input_len:], skip_special_tokens=False)
+            generated_texts = [processor.parse_response(text) for text in generated_texts_raw]
             
         for gen, ref in zip(generated_texts, references):
-            results.append({"generated": gen.strip(), "reference": ref.strip()})
+            # parse_response might return a dict (e.g. with 'content' or 'response' keys)
+            gen_str = gen.get("content", gen.get("response", str(gen))) if isinstance(gen, dict) else gen
+            results.append({"generated": gen_str.strip(), "reference": ref.strip()})
             
         # Free batch memory
         del inputs
@@ -313,7 +325,7 @@ def evaluate_model(model, processor, eval_data, prompt, class_names, batch_size=
     }
 
 def train_model(model, processor, train_data, eval_data, args):
-    """Train Gemma 3 with LoRA."""
+    """Train Gemma 4 with LoRA."""
     logger.info("Configuring LoRA and Training...")
     processor.tokenizer.padding_side = "right"
     
@@ -321,14 +333,14 @@ def train_model(model, processor, train_data, eval_data, args):
         r=args.lora_r,
         lora_alpha=args.lora_alpha,
         lora_dropout=args.lora_dropout,
-        target_modules=["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        target_modules=["q_proj.linear", "v_proj.linear", "k_proj.linear", "o_proj.linear", "gate_proj.linear", "up_proj.linear", "down_proj.linear"],
         task_type="CAUSAL_LM",
     )
     
     # Custom Data Collator for Vision-Language Models
     def data_collator(examples):
         texts = [ex["text"] for ex in examples]
-        # Wrap each image in a list as Gemma processor expects list of lists for batched inputs
+        prompt_texts = [ex["prompt_text"] for ex in examples]
         images = [[ex["images"]] for ex in examples]
         
         batch = processor(
@@ -338,26 +350,24 @@ def train_model(model, processor, train_data, eval_data, args):
             padding=True
         )
         
+        # Tokenize prompt only to find its length
+        prompt_batch = processor(
+            text=prompt_texts,
+            images=images,
+            return_tensors="pt",
+            padding=True
+        )
+        
         labels = batch["input_ids"].clone()
         labels[batch["attention_mask"] == 0] = -100
         
-        # Mask out everything up to and including the start of the assistant's turn
-        # The assistant's turn starts after '<start_of_turn>model\n' which encodes to [105, 4368, 107]
-        target_seq = [105, 4368, 107]
-        target_len = len(target_seq)
-        
         for i in range(labels.size(0)):
-            input_ids = batch["input_ids"][i].tolist()
-            # Search backwards to find the last occurrence
-            match_idx = -1
-            for j in range(len(input_ids) - target_len, -1, -1):
-                if input_ids[j:j+target_len] == target_seq:
-                    match_idx = j + target_len
-                    break
+            # The length of the tokenized prompt gives us the start of the assistant response
+            # We use attention mask sum to get the non-padded length
+            prompt_len = prompt_batch["attention_mask"][i].sum().item()
             
-            if match_idx != -1:
-                # Mask everything before the model's response
-                labels[i, :match_idx] = -100
+            # Mask everything before the prompt length
+            labels[i, :prompt_len] = -100
                 
         batch["labels"] = labels
         return batch
@@ -422,7 +432,7 @@ def main():
     args = parse_args()
     
     # 0. Version Indicator (for visual confirmation in Cloud Run logs)
-    logger.info("🚀 Gemma 3 Fine-tuner: version v3 (Targeting Python 3.12 + CUDA 12.8)")
+    logger.info("🚀 Gemma 4 Fine-tuner: version v3 (Targeting Python 3.12 + CUDA 12.8)")
     
     # Force HF_TOKEN into environment for all libraries (like load_dataset and evaluate)
     token = args.hf_token or os.environ.get('HF_TOKEN')
@@ -435,7 +445,7 @@ def main():
         logger.info("✓ HF_TOKEN set globally")
     
     logger.info("="*80)
-    logger.info("Gemma 3 Fine-tuning on Oxford-IIIT Pet")
+    logger.info("Gemma 4 Fine-tuning on Oxford-IIIT Pet")
     logger.info("="*80)
     
     if torch.cuda.is_available():
@@ -448,11 +458,13 @@ def main():
 
     authenticate_huggingface(args.hf_token)
     
-    DEFAULT_PROMPT = "Identify the breed of the animal in this image."
-    
     # Load data
     token = args.hf_token or os.environ.get('HF_TOKEN')
     train_data, eval_data, class_names = load_data(args.train_size, args.eval_size, hf_token=token)
+    
+    # Construct a dynamic prompt with the list of possible breeds
+    breeds_list = ", ".join(class_names)
+    DEFAULT_PROMPT = f"Identify the breed of the animal in this image. You must choose exactly one breed from the following list: [{breeds_list}]. Respond with ONLY the exact breed name from this list and nothing else. If you are not sure, respond with 'Unknown'."
     
     # Load model and processor (processor only in dry run)
     model, processor = load_model_and_processor(args.model_id, args.device, hf_token=token, load_model=not args.dry_run)
