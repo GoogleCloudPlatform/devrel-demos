@@ -1,0 +1,92 @@
+[
+  {
+    "name": "model_year",
+    "type": "INT64",
+    "mode": "NULLABLE",
+    "description": "Original synthetic field: year"
+  },
+  {
+    "name": "make",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Original synthetic field: make"
+  },
+  {
+    "name": "model",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Original synthetic field: model"
+  },
+  {
+    "name": "body_style",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Original synthetic field: body"
+  },
+  {
+    "name": "transmission_type",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Original synthetic field: transmission"
+  },
+  {
+    "name": "vin",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Original synthetic field: vin"
+  },
+  {
+    "name": "state",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Original synthetic field: state"
+  },
+  {
+    "name": "condition",
+    "type": "INT64",
+    "mode": "NULLABLE",
+    "description": "Original synthetic field: condition"
+  },
+  {
+    "name": "mileage",
+    "type": "INT64",
+    "mode": "NULLABLE",
+    "description": "Original synthetic field: odometer"
+  },
+  {
+    "name": "color",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Original synthetic field: color"
+  },
+  {
+    "name": "interior",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Original synthetic field: interior"
+  },
+  {
+    "name": "seller",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Original synthetic field: seller"
+  },
+  {
+    "name": "market_value",
+    "type": "INT64",
+    "mode": "NULLABLE",
+    "description": "Original synthetic field: market_value"
+  },
+  {
+    "name": "selling_price",
+    "type": "INT64",
+    "mode": "NULLABLE",
+    "description": "Original synthetic field: sellingprice"
+  },
+  {
+    "name": "sale_date",
+    "type": "DATE",
+    "mode": "NULLABLE",
+    "description": "Original synthetic field: sale_date"
+  }
+]
