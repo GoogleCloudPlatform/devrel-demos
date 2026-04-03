@@ -48,7 +48,7 @@ gcloud run services delete cymbal-autos-frontend \
 
 echo -e "\n3. Removing Connection Service Account IAM bindings..."
 # Attempt to get the connection SA email before we delete the connection
-SERVICE_ACCT_EMAIL=$(bq show --format=prettyjson --connection "$PROJECT_ID.$LOCATION.conn" 2>/dev/null | jq -r '.serviceAccountId')
+SERVICE_ACCT_EMAIL=$(bq show --format=prettyjson --connection $PROJECT_ID.$LOCATION.conn 2>/dev/null | grep "serviceAccountId" | cut -d '"' -f 4)
 
 if [ ! -z "$SERVICE_ACCT_EMAIL" ]; then
     echo "Removing roles for $SERVICE_ACCT_EMAIL..."
