@@ -1,103 +1,55 @@
-# Fine-Tuning Gemma 3 with Cloud Run Jobs: Serverless GPUs (NVIDIA RTX 6000 Pro)
+# Fine-Tuning Gemma 4 with Cloud Run Jobs
 
-This repository contains the code and configuration for fine-tuning the **Gemma 3 27B** model for- **Pet Breed Classification**: Specialized on the [Oxford-IIIT Pet Dataset](https://huggingface.co/datasets/timm/oxford-iiit-pet) (**3,680** training images / **3,669** test images).
-- **Memory Optimized**: Uses `Dataset.from_generator` and `low_cpu_mem_usage` for efficient streaming.
-- **Modern Stack**: Leverages `uv` for dependency management and CUDA 12.8 for Blackwell compatibility.
-- **Classification Evaluation**: Uses **Accuracy** and **F1 Score** for breed identification assessment.
+This guide explains how to fine-tune the **Gemma 4 31B** model for pet breed classification on **Cloud Run Jobs** using **NVIDIA RTX PRO 6000** GPUs.
 
-## Project Structure
-- `vision-ai-app/`: Next.js web application for interacting with the models.
-- `finetune_and_evaluate.py`: Main script for fine-tuning and evaluation logic.
-- `Dockerfile`: Container configuration for the fine-tuning job.
-- `requirements.txt`: Python dependencies.
+## Prerequisites
+* **Google Cloud Project** with billing enabled and APIs active (Cloud Run, Artifact Registry, Cloud Build, Secret Manager).
+* **NVIDIA RTX PRO 6000** availability in your region (e.g., `europe-west4`).
+* **Hugging Face Token**: A valid token with access to the Gemma 4 model weights.
 
----
-
-## 1. Environment & Model Setup
-Stage the base model weights in Google Cloud Storage to enable fast, zero-build deployments.
-
+## Step 0: Set Environment Variables
+Set the environment variables needed for the commands below:
 ```bash
-export PROJECT_ID=$(gcloud config get-value project)
+export PROJECT_ID=[YOUR_PROJECT_ID]
 export REGION=europe-west4
-export HF_TOKEN=[YOUR_HF_TOKEN]
-export SERVICE_ACCOUNT="finetune-gemma-job-sa"
-export BUCKET_NAME=$PROJECT_ID-gemma3-finetuning-eu
-export AR_REPO=gemma3-finetuning-repo
-export SECRET_ID=HF_TOKEN
-export IMAGE_NAME=gemma3-finetune
-export JOB_NAME=gemma3-finetuning-job
+export BUCKET_NAME=[YOUR_BUCKET_NAME]
+export AR_REPO=[YOUR_AR_REPO]
+export IMAGE_NAME=gemma4-finetune
 ```
 
-### 2. Infrastructure Setup
+## Step 1: Get the Code
+Clone the repository and navigate to the project directory:
 ```bash
-export SERVICE_ACCOUNT="finetune-gemma-job-sa"
-gcloud iam service-accounts create $SERVICE_ACCOUNT
-gcloud storage buckets add-iam-policy-binding gs://$BUCKET_NAME \
-  --member=serviceAccount:$SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com \
-  --role=roles/storage.objectAdmin
+git clone https://github.com/GoogleCloudPlatform/devrel-demos
+cd devrel-demos/ai-ml/finetune_gemma/
 ```
 
-### 3. Staging the Model (Gemma 3 27B)
-We'll use **[`cr-infer`](https://github.com/oded996/cr-infer)** to stage the model weights. Instead of installing it, you can run it directly using `uvx`.
+## Step 2: Stage the Model in GCS
+To save startup time, stage the model weights (`google/gemma-4-31b-it`) in a GCS bucket located in the same region as your Cloud Run job.
+Refer to the blog post for details on using `cr-infer` for this.
 
+## Step 3: Build the Container
+Use Cloud Build to package your script and dependencies into a container image:
 ```bash
-# Download Gemma 3 27B to GCS using uvx
-uvx --from git+https://github.com/oded996/cr-infer.git cr-infer model download \
-  --source huggingface \
-  --model-id google/gemma-3-27b-it \
-  --bucket $BUCKET_NAME \
-  --token $HF_TOKEN
-```
-
-### 4. Build Container (Cloud Build)
-```bash
-# Register AR Repo
-gcloud artifacts repositories create $AR_REPO --repository-format=docker --location=$REGION
-
-# Build
 gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT_ID/$AR_REPO/$IMAGE_NAME:latest .
 ```
 
-### 5. Test locally (Optional)
-Before running the full job, you can verify the script runs correctly. We use parameters optimized for a quick local test to ensure the model learns the task format:
-
+## Step 4: Create and Execute the Cloud Run Job
+Create the job with GPU support and volume mounts for the GCS bucket holding the model:
 ```bash
-python3 finetune_and_evaluate.py \
-  --model-id google/gemma-3-4b-it \
-  --train-size 20 \
-  --eval-size 20 \
-  --gradient-accumulation-steps 2 \
-  --learning-rate 2e-4 \
-  --batch-size 1 \
-  --num-epochs 3
-```
-
-> [!NOTE]
-> This local test run should take approximately **30 minutes** to complete (benchmarked on an **Apple M4 Pro using CPU**, not GPU). It serves as a validation step to ensure your environment and script are correctly configured before launching the full training job on Cloud Run.
-
-### 6. Create/Update Cloud Run Job
-```bash
-gcloud beta run jobs create $JOB_NAME \
+gcloud beta run jobs create gemma4-finetuning-job \
   --region $REGION \
   --image $REGION-docker.pkg.dev/$PROJECT_ID/$AR_REPO/$IMAGE_NAME:latest \
-  --set-env-vars BUCKET_NAME=$BUCKET_NAME \
-  --set-secrets HF_TOKEN=$SECRET_ID:latest \
-  --no-gpu-zonal-redundancy \
-  --cpu 20.0 \
-  --memory 80Gi \
-  --task-timeout 360m \
   --gpu 1 \
   --gpu-type nvidia-rtx-pro-6000 \
-  --service-account $SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com \
+  --cpu 20.0 \
+  --memory 80Gi \
   --add-volume name=model-volume,type=cloud-storage,bucket=$BUCKET_NAME \
   --add-volume-mount volume=model-volume,mount-path=/mnt/gcs \
-  --network=default \
-  --subnet=default \
-  --vpc-egress=private-ranges-only \
-  --args="--model-id","/mnt/gcs/google/gemma-3-27b-it/","--output-dir","/tmp/gemma3-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma3-finetuned","--train-size","1000","--eval-size","200","--learning-rate","5e-5"
+  --args="--model-id","/mnt/gcs/google/gemma-4-31b-it/","--output-dir","/tmp/gemma4-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma4-finetuned"
 ```
 
----
-
-## 6. Compare & Validate
-Use the **Settings** in the Pet Analyzer UI to discover both `base` and `ft` services. Open two tabs to compare the results of the same pet image side-by-side!
+Then execute it:
+```bash
+gcloud beta run jobs execute gemma4-finetuning-job --region $REGION --async
+```
