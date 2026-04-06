@@ -11,7 +11,7 @@ import torch
 import gc
 from datasets import load_dataset, Dataset, Image as HFImage, Features, Value, Image, Sequence
 from peft import LoraConfig, PeftModel
-from transformers import AutoModelForImageTextToText, AutoProcessor, BitsAndBytesConfig
+from transformers import AutoModelForMultimodalLM, AutoProcessor, BitsAndBytesConfig
 from trl import SFTTrainer, SFTConfig
 import evaluate
 from huggingface_hub import login
@@ -201,7 +201,7 @@ def load_model_and_processor(model_id, device, hf_token=None, load_model=True):
 
         logger.debug(f"Model Loading Kwargs: {model_kwargs}")
         
-        model = AutoModelForImageTextToText.from_pretrained(model_id, **model_kwargs)
+        model = AutoModelForMultimodalLM.from_pretrained(model_id, **model_kwargs)
         
         # Memory optimization for larger models (31B)
         if "31b" in model_id.lower():
