@@ -130,32 +130,39 @@ def load_data(train_size, eval_size, hf_token=None):
         logger.error(traceback.format_exc())
         sys.exit(1)
 
-def format_data(example, prompt, processor):
+def format_data(example, prompt, processor, model_id):
     """Format dataset examples into chat-style messages."""
-    # Gemma 3 expects specific message format
+    # Combine instructions and task into a single user message
+    # This is more effective for Gemma models than separate system turns
+    full_user_content = f"{prompt}\n\nIdentify the breed of the animal in this image."
+    
+    # Integration Note: Larger models (e.g., gemma-4-31B-it) may generate a thought 
+    # channel even when thinking mode is OFF. We add an empty thinking token to stabilize.
+    # We only apply this to the large models so we don't poison the small local tests.
+    if "31b" in model_id.lower() or "26b" in model_id.lower():
+        assistant_content = "<|channel>thought <channel|>" + example["caption"]
+    else:
+        assistant_content = example["caption"]
+    
     messages = [
-        {
-            "role": "system",
-            "content": prompt,
-        },
         {
             "role": "user",
             "content": [
                 {"type": "image"},
-                {"type": "text", "text": "Identify the breed of the animal in this image."},
+                {"type": "text", "text": full_user_content},
             ],
         },
         {
             "role": "assistant",
-            "content": [{"type": "text", "text": example["caption"]}],
+            "content": [{"type": "text", "text": assistant_content}],
         },
     ]
     # We apply the chat template here to ensure correct formatting
-    example["text"] = processor.apply_chat_template(messages, tokenize=False)
+    example["text"] = processor.apply_chat_template(messages, tokenize=False, enable_thinking=False)
     
     # Save prompt part for dynamic length calculation in collator
-    prompt_messages = messages[:2] # system and user
-    example["prompt_text"] = processor.apply_chat_template(prompt_messages, tokenize=False, add_generation_prompt=True)
+    prompt_messages = messages[:1] # just the user turn
+    example["prompt_text"] = processor.apply_chat_template(prompt_messages, tokenize=False, add_generation_prompt=True, enable_thinking=False)
     
     return example
 
@@ -197,6 +204,12 @@ def load_model_and_processor(model_id, device, hf_token=None, load_model=True):
         logger.debug(f"Model Loading Kwargs: {model_kwargs}")
         
         model = AutoModelForCausalLM.from_pretrained(model_id, **model_kwargs)
+        
+        # Memory optimization for larger models (31B)
+        if "31b" in model_id.lower():
+            logger.info("  Enabling gradient checkpointing for 31B model...")
+            model.gradient_checkpointing_enable()
+            
         logger.info(f"✓ Model loaded on {model.device}")
         return model, processor
     except Exception as e:
@@ -224,17 +237,20 @@ def evaluate_model(model, processor, eval_data, prompt, class_names, batch_size=
         batch_images = []
         references = []
         
+        # Combined turn to match training format
+        full_user_content = f"{prompt}\n\nIdentify the breed of the animal in this image."
+        
         for ex in batch:
             messages = [
                 {
                     "role": "user",
                     "content": [
                         {"type": "image"},
-                        {"type": "text", "text": prompt},
+                        {"type": "text", "text": full_user_content},
                     ],
                 }
             ]
-            batch_messages.append(processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True))
+            batch_messages.append(processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False))
             batch_images.append([ex["images"]]) # List of images for this sample
             references.append(ex["caption"])
             
@@ -246,16 +262,22 @@ def evaluate_model(model, processor, eval_data, prompt, class_names, batch_size=
         ).to(model.device)
         
         with torch.no_grad():
-            generated_ids = model.generate(**inputs, max_new_tokens=32)
+            # Increase max_new_tokens to 128 to capture the breed even if the 31B model generates thought tokens first
+            generated_ids = model.generate(**inputs, max_new_tokens=128)
             # Find the length of the prompt to slice out the generated part
             input_len = inputs.input_ids.shape[1]
-            generated_texts_raw = processor.batch_decode(generated_ids[:, input_len:], skip_special_tokens=False)
-            generated_texts = [processor.parse_response(text) for text in generated_texts_raw]
+            # Use skip_special_tokens=True for cleaner text matching
+            generated_texts_raw = processor.batch_decode(generated_ids[:, input_len:], skip_special_tokens=True)
+            
+            # Log raw generated texts for debugging
+            logger.debug(f"Raw generated texts: {generated_texts_raw}")
+            
+            # We don't use parse_response here as we want the raw string for the heuristic
+            generated_texts = [text.strip() for text in generated_texts_raw]
             
         for gen, ref in zip(generated_texts, references):
-            # parse_response might return a dict (e.g. with 'content' or 'response' keys)
-            gen_str = gen.get("content", gen.get("response", str(gen))) if isinstance(gen, dict) else gen
-            results.append({"generated": gen_str.strip(), "reference": ref.strip()})
+            logger.debug(f"Generated response: {gen}")
+            results.append({"generated": gen, "reference": ref.strip()})
             
         # Free batch memory
         del inputs
@@ -347,7 +369,9 @@ def train_model(model, processor, train_data, eval_data, args):
             text=texts,
             images=images,
             return_tensors="pt",
-            padding=True
+            padding=True,
+            truncation=True,
+            max_length=1024
         )
         
         # Tokenize prompt only to find its length
@@ -355,7 +379,9 @@ def train_model(model, processor, train_data, eval_data, args):
             text=prompt_texts,
             images=images,
             return_tensors="pt",
-            padding=True
+            padding=True,
+            truncation=True,
+            max_length=1024
         )
         
         labels = batch["input_ids"].clone()
@@ -367,7 +393,8 @@ def train_model(model, processor, train_data, eval_data, args):
             prompt_len = prompt_batch["attention_mask"][i].sum().item()
             
             # Mask everything before the prompt length
-            labels[i, :prompt_len] = -100
+            # Use min to avoid index out of bounds if something went weird with truncation
+            labels[i, :min(prompt_len, labels.size(1))] = -100
                 
         batch["labels"] = labels
         return batch
@@ -385,7 +412,7 @@ def train_model(model, processor, train_data, eval_data, args):
         save_strategy="no",
         eval_strategy="no",
         bf16=torch.cuda.is_available(),
-        max_length=512,
+        max_length=1024, # Increased from 512 to avoid truncation
         dataset_kwargs={"skip_prepare_dataset": True}, # Tell SFTTrainer to use raw dataset via data_collator
         remove_unused_columns=False,
         report_to="none",
@@ -432,7 +459,7 @@ def main():
     args = parse_args()
     
     # 0. Version Indicator (for visual confirmation in Cloud Run logs)
-    logger.info("🚀 Gemma 4 Fine-tuner: version v3 (Targeting Python 3.12 + CUDA 12.8)")
+    logger.info("🚀 Gemma 4 Fine-tuner: version v5 (Fixed Thought Tokens for 2B models)")
     
     # Force HF_TOKEN into environment for all libraries (like load_dataset and evaluate)
     token = args.hf_token or os.environ.get('HF_TOKEN')
@@ -471,8 +498,8 @@ def main():
     
     # Format data for SFT
     logger.info("Formatting datasets...")
-    formatted_train = train_data.map(lambda x: format_data(x, DEFAULT_PROMPT, processor))
-    formatted_eval = eval_data.map(lambda x: format_data(x, DEFAULT_PROMPT, processor))
+    formatted_train = train_data.map(lambda x: format_data(x, DEFAULT_PROMPT, processor, args.model_id))
+    formatted_eval = eval_data.map(lambda x: format_data(x, DEFAULT_PROMPT, processor, args.model_id))
     
     if args.dry_run:
         logger.info("="*50)
