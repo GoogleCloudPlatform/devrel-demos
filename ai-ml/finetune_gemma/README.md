@@ -13,9 +13,12 @@ Set the environment variables needed for the commands below:
 export PROJECT_ID=[YOUR_PROJECT_ID]
 export REGION=europe-west4
 export HF_TOKEN=[YOUR_HF_TOKEN]
-export BUCKET_NAME=[YOUR_BUCKET_NAME]
-export AR_REPO=[YOUR_AR_REPO]
+export SERVICE_ACCOUNT="finetune-gemma-job-sa"
+export BUCKET_NAME=$PROJECT_ID-gemma4-finetuning-eu
+export AR_REPO=gemma4-finetuning-repo
+export SECRET_ID=HF_TOKEN
 export IMAGE_NAME=gemma4-finetune
+export JOB_NAME=gemma4-finetuning-job
 ```
 
 ## Step 1: Get the Code
@@ -26,8 +29,15 @@ cd devrel-demos/ai-ml/finetune_gemma/
 ```
 
 ## Step 2: Stage the Model in GCS
-To save startup time, stage the model weights (`google/gemma-4-31b-it`) in a GCS bucket located in the same region as your Cloud Run job.
-Refer to the blog post for details on using `cr-infer` for this.
+To save startup time, stage the model weights (`google/gemma-4-31b-it`) in a GCS bucket located in the same region as your Cloud Run job. We use `cr-infer` to perform this transfer directly:
+
+```bash
+uvx --from git+https://github.com/oded996/cr-infer.git cr-infer model download \
+  --source huggingface \
+  --model-id google/gemma-4-31b-it \
+  --bucket $BUCKET_NAME \
+  --token $HF_TOKEN
+```
 
 ## Step 3: Build the Container
 Use Cloud Build to package your script and dependencies into a container image:
@@ -38,7 +48,7 @@ gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT_ID/$AR_REPO/$IMAGE_NA
 ## Step 4: Create and Execute the Cloud Run Job
 Create the job with GPU support and volume mounts for the GCS bucket holding the model:
 ```bash
-gcloud beta run jobs create gemma4-finetuning-job \
+gcloud beta run jobs create $JOB_NAME \
   --region $REGION \
   --image $REGION-docker.pkg.dev/$PROJECT_ID/$AR_REPO/$IMAGE_NAME:latest \
   --gpu 1 \
@@ -47,7 +57,7 @@ gcloud beta run jobs create gemma4-finetuning-job \
   --memory 80Gi \
   --add-volume name=model-volume,type=cloud-storage,bucket=$BUCKET_NAME \
   --add-volume-mount volume=model-volume,mount-path=/mnt/gcs \
-  --args="--model-id","/mnt/gcs/google/gemma-4-31b-it/","--output-dir","/tmp/gemma4-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma4-finetuned"
+  --args="--model-id","/mnt/gcs/google/gemma-4-31b-it/","--output-dir","/tmp/gemma4-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma4-finetuned","--train-size","700","--eval-size","200"
 ```
 
 Then execute it:
