@@ -11,7 +11,7 @@ import torch
 import gc
 from datasets import load_dataset, Dataset, Image as HFImage, Features, Value, Image, Sequence
 from peft import LoraConfig, PeftModel
-from transformers import AutoModelForCausalLM, AutoProcessor, BitsAndBytesConfig
+from transformers import AutoModelForImageTextToText, AutoProcessor, BitsAndBytesConfig
 from trl import SFTTrainer, SFTConfig
 import evaluate
 from huggingface_hub import login
@@ -41,8 +41,8 @@ def parse_args():
     # Training parameters
     parser.add_argument('--num-epochs', type=int, default=3,
                        help='Number of training epochs (default: 3)')
-    parser.add_argument('--learning-rate', type=float, default=2e-5,
-                       help='Learning rate (default: 2e-5)')
+    parser.add_argument('--learning-rate', type=float, default=1e-5,
+                       help='Learning rate (default: 1e-5)')
     parser.add_argument('--batch-size', type=int, default=1,
                        help='Per-device batch size (default: 1)')
     parser.add_argument('--gradient-accumulation-steps', type=int, default=16,
@@ -136,13 +136,10 @@ def format_data(example, prompt, processor, model_id):
     # This is more effective for Gemma models than separate system turns
     full_user_content = f"{prompt}\n\nIdentify the breed of the animal in this image."
     
-    # Integration Note: Larger models (e.g., gemma-4-31B-it) may generate a thought 
-    # channel even when thinking mode is OFF. We add an empty thinking token to stabilize.
-    # We only apply this to the large models so we don't poison the small local tests.
-    if "31b" in model_id.lower() or "26b" in model_id.lower():
-        assistant_content = "<|channel>thought <channel|>" + example["caption"]
-    else:
-        assistant_content = example["caption"]
+    # The assistant content should just be the label (e.g. breed name).
+    # The official Gemma 4 chat template will automatically inject an empty
+    # thought channel for 26B/31B models to stabilize behavior.
+    assistant_content = example["caption"]
     
     messages = [
         {
@@ -192,6 +189,7 @@ def load_model_and_processor(model_id, device, hf_token=None, load_model=True):
             model_kwargs["quantization_config"] = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_compute_dtype=torch.bfloat16,
+                bnb_4bit_quant_storage=torch.bfloat16,
                 bnb_4bit_quant_type="nf4",
                 bnb_4bit_use_double_quant=True,
             )
@@ -203,7 +201,7 @@ def load_model_and_processor(model_id, device, hf_token=None, load_model=True):
 
         logger.debug(f"Model Loading Kwargs: {model_kwargs}")
         
-        model = AutoModelForCausalLM.from_pretrained(model_id, **model_kwargs)
+        model = AutoModelForImageTextToText.from_pretrained(model_id, **model_kwargs)
         
         # Memory optimization for larger models (31B)
         if "31b" in model_id.lower():
