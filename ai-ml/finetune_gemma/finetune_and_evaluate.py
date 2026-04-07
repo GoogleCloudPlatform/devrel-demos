@@ -69,12 +69,14 @@ def parse_args():
                        help='Device to use for training')
     
     # Output parameters
-    parser.add_argument('--output-dir', type=str, default='/tmp/gemma3-finetuned',
+    parser.add_argument('--output-dir', type=str, default='/tmp/gemma4-finetuned',
                        help='Output directory for model checkpoints')
     parser.add_argument('--results-file', type=str, default='/tmp/results.json',
                        help='Path to save results JSON')
     parser.add_argument('--gcs-output-path', type=str, default=None,
                        help='GCS path to upload the final model to')
+    parser.add_argument('--merge', action='store_true',
+                       help='Merge LoRA adapters into the base model after training')
     
     # HuggingFace parameters
     parser.add_argument('--hf-token', type=str, default=None,
@@ -396,6 +398,44 @@ def train_model(model, processor, train_data, eval_data, args):
     logger.info(f"✓ Fine-tuned adapter saved to {args.output_dir}")
     return trainer.model
 
+def merge_model_with_base(model_id, adapter_dir, output_dir, hf_token=None):
+    """Merge LoRA adapters with the base model to create a standalone model."""
+    logger.info(f"🚀 Starting model merge: {model_id} + {adapter_dir}")
+    
+    # 1. Clear GPU memory if possible to make room for BF16 load
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        
+    try:
+        # 2. Load base model in BF16 (31B in BF16 = 62GB, fits in 80GB VRAM)
+        logger.info("  Loading base model in BF16 for merging...")
+        base_model = AutoModelForImageTextToText.from_pretrained(
+            model_id,
+            torch_dtype=torch.bfloat16,
+            device_map="auto",
+            token=hf_token,
+            trust_remote_code=True
+        )
+        
+        # 3. Load adapter
+        logger.info("  Loading adapters...")
+        model = PeftModel.from_pretrained(base_model, adapter_dir)
+        
+        # 4. Merge and unload
+        logger.info("  Merging weights (this may take a few minutes)...")
+        merged_model = model.merge_and_unload()
+        
+        # 5. Save merged model
+        logger.info(f"  Saving merged model to {output_dir}")
+        merged_model.save_pretrained(output_dir)
+        return True
+    except Exception as e:
+        logger.error(f"❌ Merge failed: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return False
+
 def upload_directory_to_gcs(local_path, gcs_path):
     """Uploads the local model directory to GCS."""
     if not gcs_path.startswith("gs://"):
@@ -496,10 +536,22 @@ def main():
     logger.info("Final Evaluation...")
     final_results = evaluate_model(model, processor, eval_data, DEFAULT_PROMPT, class_names, args.eval_batch_size, hf_token=token)
     
-    # For 4-bit quantization, we typically save and use adapters rather than merging
-    # Weights are already saved in args.output_dir via trainer.save_model()
     # We'll also save the processor there to make it a complete inference-ready directory
     processor.save_pretrained(args.output_dir)
+
+    # 1. Clear GPU memory to ensure enough VRAM for merging
+    del model
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    # 2. Merge model if requested
+    if args.merge:
+        logger.info("Starting merge process...")
+        if merge_model_with_base(args.model_id, args.output_dir, args.output_dir, hf_token=token):
+            logger.info("✓ Model merged and saved as a standalone model.")
+        else:
+            logger.warning("⚠️ Merge failed. LoRA adapters still saved in the output directory.")
     
     if args.gcs_output_path:
         upload_directory_to_gcs(args.output_dir, args.gcs_output_path)
