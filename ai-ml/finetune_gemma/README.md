@@ -28,7 +28,28 @@ git clone https://github.com/GoogleCloudPlatform/devrel-demos
 cd devrel-demos/ai-ml/finetune_gemma/
 ```
 
-## Step 2: Stage the Model in GCS
+## Step 2: Test Locally Before Cloud Deployment
+Before spinning up massive GPUs in the cloud, verify your pipeline locally using a smaller model variant (like the 2B IT model) on a subset of the data. 
+
+Activate your virtual environment (assuming you used `uv` or `venv`):
+```bash
+source .venv/bin/activate
+```
+
+Execute the script with a tiny dataset:
+```bash
+python3 finetune_and_evaluate.py \
+  --model-id google/gemma-4-e2b-it \
+  --device cpu \
+  --train-size 20 \
+  --eval-size 20 \
+  --gradient-accumulation-steps 4 \
+  --num-epochs 1
+```
+
+Once the training pipeline completes successfully, scale up to Cloud Run!
+
+## Step 3: Stage the Model in GCS
 To save startup time, stage the model weights (`google/gemma-4-31b-it`) in a GCS bucket located in the same region as your Cloud Run job. We use `cr-infer` to perform this transfer directly:
 
 ```bash
@@ -39,13 +60,13 @@ uvx --from git+https://github.com/oded996/cr-infer.git cr-infer model download \
   --token $HF_TOKEN
 ```
 
-## Step 3: Build the Container
+## Step 4: Build the Container
 Use Cloud Build to package your script and dependencies into a container image:
 ```bash
 gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT_ID/$AR_REPO/$IMAGE_NAME:latest .
 ```
 
-## Step 4: Create and Execute the Cloud Run Job
+## Step 5: Create and Execute the Cloud Run Job
 Create the job with GPU support and volume mounts for the GCS bucket holding the model:
 ```bash
 gcloud beta run jobs create $JOB_NAME \
@@ -63,5 +84,5 @@ gcloud beta run jobs create $JOB_NAME \
 
 Then execute it:
 ```bash
-gcloud beta run jobs execute gemma4-finetuning-job --region $REGION --async
+gcloud beta run jobs execute $JOB_NAME --region $REGION --async
 ```
