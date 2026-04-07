@@ -32,17 +32,17 @@ def parse_args():
     """Parse command line arguments for configurable training."""
     parser = argparse.ArgumentParser(description='Fine-tune Gemma 4 on Open Images dataset')
     
-    # Data parameters
-    parser.add_argument('--train-size', type=int, default=200,
-                       help='Number of training samples (default: 200)')
-    parser.add_argument('--eval-size', type=int, default=100,
-                       help='Number of evaluation samples (default: 100)')
+    # Dataset parameters
+    parser.add_argument('--train-size', type=int, default=700,
+                       help='Number of training samples (default: 700)')
+    parser.add_argument('--eval-size', type=int, default=200,
+                       help='Number of evaluation samples (default: 200)')
     
     # Training parameters
     parser.add_argument('--num-epochs', type=int, default=3,
                        help='Number of training epochs (default: 3)')
-    parser.add_argument('--learning-rate', type=float, default=1e-5,
-                       help='Learning rate (default: 1e-5)')
+    parser.add_argument('--learning-rate', type=float, default=5e-5,
+                       help='Learning rate (default: 5e-5)')
     parser.add_argument('--batch-size', type=int, default=1,
                        help='Per-device batch size (default: 1)')
     parser.add_argument('--gradient-accumulation-steps', type=int, default=16,
@@ -54,10 +54,10 @@ def parse_args():
                        help='Run a dry test without loading the full model (local testing)')
     
     # LoRA parameters
-    parser.add_argument('--lora-r', type=int, default=16,
-                       help='LoRA rank (default: 16)')
-    parser.add_argument('--lora-alpha', type=int, default=32,
-                       help='LoRA alpha (default: 32)')
+    parser.add_argument('--lora-r', type=int, default=64,
+                       help='LoRA rank (default: 64)')
+    parser.add_argument('--lora-alpha', type=int, default=64,
+                       help='LoRA alpha (default: 64)')
     parser.add_argument('--lora-dropout', type=float, default=0.05,
                        help='LoRA dropout (default: 0.05)')
     
@@ -353,28 +353,18 @@ def train_model(model, processor, train_data, eval_data, args):
         r=args.lora_r,
         lora_alpha=args.lora_alpha,
         lora_dropout=args.lora_dropout,
-        target_modules=["q_proj.linear", "v_proj.linear", "k_proj.linear", "o_proj.linear", "gate_proj.linear", "up_proj.linear", "down_proj.linear"],
+        target_modules="all-linear",
         task_type="CAUSAL_LM",
     )
     
     # Custom Data Collator for Vision-Language Models
     def data_collator(examples):
         texts = [ex["text"] for ex in examples]
-        prompt_texts = [ex["prompt_text"] for ex in examples]
         images = [[ex["images"]] for ex in examples]
+        captions = [ex["caption"] for ex in examples]
         
         batch = processor(
             text=texts,
-            images=images,
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=1024
-        )
-        
-        # Tokenize prompt only to find its length
-        prompt_batch = processor(
-            text=prompt_texts,
             images=images,
             return_tensors="pt",
             padding=True,
@@ -386,13 +376,48 @@ def train_model(model, processor, train_data, eval_data, args):
         labels[batch["attention_mask"] == 0] = -100
         
         for i in range(labels.size(0)):
-            # The length of the tokenized prompt gives us the start of the assistant response
-            # We use attention mask sum to get the non-padded length
-            prompt_len = prompt_batch["attention_mask"][i].sum().item()
+            # Bulletproof SOTA labeling: Find the breed name (caption) in the tokenized sequence
+            # and then step backwards to find the `<|turn>` control token that marks the start 
+            # of the assistant's response. Mask everything before it.
+            # This guarantees we train on `<|turn>model\n` (and the thought channel for 31B)
+            # while avoiding image re-tokenization length mismatches perfectly!
             
-            # Mask everything before the prompt length
-            # Use min to avoid index out of bounds if something went weird with truncation
-            labels[i, :min(prompt_len, labels.size(1))] = -100
+            # 1. Tokenize the caption alone to get its IDs (the anchor point)
+            caption_ids = processor.tokenizer.encode(captions[i], add_special_tokens=False)
+            
+            # 2. Find where the caption IDs start in the full sequence
+            full_ids = batch["input_ids"][i].tolist()
+            
+            start_idx = -1
+            # Search from the end to avoid matching prompt text if breed name appears there
+            for j in range(len(full_ids) - len(caption_ids), 0, -1):
+                if full_ids[j:j+len(caption_ids)] == caption_ids:
+                    start_idx = j
+                    break
+            
+            if start_idx != -1:
+                # 3. Step backwards from the caption to find the `<|turn>` token (ID 105)
+                # that marks the beginning of the model's response.
+                turn_token_id = processor.tokenizer.encode("<|turn>", add_special_tokens=False)[0]
+                model_turn_idx = -1
+                
+                # We search backwards from just before the breed name
+                for k in range(start_idx - 1, -1, -1):
+                    if full_ids[k] == turn_token_id:
+                        model_turn_idx = k
+                        break
+                
+                if model_turn_idx != -1:
+                    # Mask everything before `<|turn>model...`
+                    labels[i, :model_turn_idx] = -100
+                else:
+                    # Fallback (should never happen): Mask just before the caption
+                    labels[i, :start_idx] = -100
+            else:
+                # Absolute fallback (rare): Use the prompt tokenizer method
+                prompt_batch = processor(text=[examples[i]["prompt_text"]], return_tensors="pt")
+                prompt_len = prompt_batch["attention_mask"][0].sum().item()
+                labels[i, :min(prompt_len, labels.size(1))] = -100
                 
         batch["labels"] = labels
         return batch
@@ -403,7 +428,7 @@ def train_model(model, processor, train_data, eval_data, args):
         per_device_train_batch_size=args.batch_size,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         learning_rate=args.learning_rate,
-        weight_decay=0.01,
+        weight_decay=0.01, 
         lr_scheduler_type="linear",
         warmup_ratio=0.1, # Use ratio instead of fixed steps for local runs
         logging_steps=10,

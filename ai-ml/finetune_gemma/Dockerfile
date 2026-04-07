@@ -68,5 +68,5 @@ RUN mkdir -p /tmp/huggingface /tmp/transformers_cache /tmp/torch_cache /tmp/gemm
     chmod -R 777 /tmp
 
 ENTRYPOINT ["python3", "/app/finetune_and_evaluate.py"]
-CMD ["--device", "cuda", "--train-size", "1000", "--eval-size", "200", "--model-id", "google/gemma-4-31b-it"]
+CMD ["--device", "cuda", "--train-size", "700", "--eval-size", "200", "--model-id", "google/gemma-4-31b-it"]
 
