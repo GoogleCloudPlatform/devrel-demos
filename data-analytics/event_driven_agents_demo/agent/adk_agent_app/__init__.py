@@ -1,13 +1,18 @@
-"""
-This file marks the 'adk_agent_app' directory as a Python package.
+# Copyright 2026 Google LLC
 
-By importing the modules below, it makes them attributes of the package itself.
-This allows other scripts (like the main application runner) to access the agent
-definitions more cleanly. For example, it allows importing the agent module by writing:
-  from adk_agent_app import agent
-instead of having to target the specific file:
-  from adk_agent_app.agent import ...
-"""
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     https://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# 
+
 
 # Perform a relative import to expose the 'agent.py' module.
 # This makes all agent definitions (like 'decision_agent') and the
