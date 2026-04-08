@@ -1,0 +1,100 @@
+user_id,customer_name,home_city,home_state,home_country,avg_monthly_spend,customer_tier
+user_48503,Karen Burton,Columbus,OH,USA,23104.89,Platinum
+user_70204,June Heath,Houston,TX,USA,1376.4,Bronze
+user_53453,Gregory Ochoa,London,N/A,GBR,500.0,Free
+user_33700,Helen Caldwell,Sydney,N/A,AUS,500.04,Bronze
+user_70245,Donna Pruitt,Fort Worth,TX,USA,622.94,Bronze
+user_84393,Ivy Willis,Houston,TX,USA,507.85,Bronze
+user_40715,Dennis Hernandez,Jacksonville,FL,USA,1717.32,Bronze
+user_07791,Kelly Stephens,San Jose,CA,USA,3186.87,Silver
+user_88065,Manuel Rowland,San Jose,CA,USA,3459.98,Silver
+user_52137,Dwayne Donovan,Los Angeles,CA,USA,15982.87,Platinum
+user_94483,Lori Lawson,Chicago,IL,USA,590.35,Bronze
+user_78593,Hope Flynn,Columbus,OH,USA,15539.78,Platinum
+user_72628,Regina Oneal,London,N/A,GBR,2780.22,Silver
+user_47287,Edward Bond,Columbus,OH,USA,9071.54,Gold
+user_58382,Mia Preston,Los Angeles,CA,USA,1325.18,Bronze
+user_68095,Kendra Delgado,Austin,TX,USA,500.03,Bronze
+user_90807,Vanessa Swanson,Indianapolis,IN,USA,9475.77,Gold
+user_19157,Nelson Holland,Los Angeles,CA,USA,3196.03,Silver
+user_88842,Wyatt David,Sydney,N/A,AUS,589.55,Bronze
+user_81469,Rufus Barton,Philadelphia,PA,USA,3796.4,Silver
+user_14798,Randy Joyce,Columbus,OH,USA,7466.33,Silver
+user_06207,Jerome Kelly,Phoenix,AZ,USA,9724.23,Gold
+user_77939,Patty Gillespie,Washington,DC,USA,655.42,Bronze
+user_75408,Ricky Moon,San Antonio,TX,USA,1400.28,Bronze
+user_14409,Virgil Hunt,Charlotte,NC,USA,3495.87,Silver
+user_83288,Penny Robbins,Toronto,N/A,CAN,632.76,Bronze
+user_29351,Ann Webster,Fort Worth,TX,USA,3144.55,Silver
+user_92867,Cheryl Compton,Austin,TX,USA,610.51,Bronze
+user_03319,Evelyn Gamble,Jacksonville,FL,USA,11366.19,Gold
+user_03514,Ruby Jackson,Washington,DC,USA,854.19,Bronze
+user_51408,Diana Lawson,Dallas,TX,USA,9201.03,Gold
+user_30829,Nina Carr,New York,NY,USA,3896.58,Silver
+user_89265,Timothy Ferguson,Jacksonville,FL,USA,3275.3,Silver
+user_36056,Thomas Reynolds,San Diego,CA,USA,1195.87,Bronze
+user_68240,Melissa Hale,Indianapolis,IN,USA,930.81,Bronze
+user_73231,Claudia Morgan,Chicago,IL,USA,2043.57,Bronze
+user_30886,Gail Guerrero,Columbus,OH,USA,12540.96,Gold
+user_52648,Marian Donovan,Seattle,WA,USA,14641.64,Gold
+user_77151,Wanda Key,Columbus,OH,USA,6429.05,Silver
+user_39175,Jonathan Mckinney,Phoenix,AZ,USA,23777.81,Platinum
+user_46906,Sydney Cardenas,Austin,TX,USA,16831.04,Platinum
+user_92774,Manuel Owens,Toronto,N/A,CAN,505.11,Bronze
+user_89778,Maurice Wyatt,Washington,DC,USA,22009.21,Platinum
+user_95481,Kendrick Rosario,Denver,CO,USA,518.65,Bronze
+user_07339,Gerardo Weiss,Seattle,WA,USA,8216.39,Gold
+user_50467,Ruth Benson,San Antonio,TX,USA,975.11,Bronze
+user_99631,Wyatt Hancock,San Francisco,CA,USA,500.0,Free
+user_10670,Gina Gordon,Columbus,OH,USA,515.75,Bronze
+user_98983,Brandon Lancaster,Houston,TX,USA,12834.35,Gold
+user_07409,Sharon Mejia,Toronto,N/A,CAN,25252.55,Platinum
+user_88384,Cory Orr,Charlotte,NC,USA,5685.64,Silver
+user_87859,May York,Phoenix,AZ,USA,9814.97,Gold
+user_40294,Abigail Wise,San Jose,CA,USA,1068.09,Bronze
+user_23764,Justin Cruz,Charlotte,NC,USA,859.99,Bronze
+user_25200,Tara Vega,Austin,TX,USA,505.81,Bronze
+user_34429,Tom Braun,Houston,TX,USA,4467.79,Silver
+user_99556,Kristen Hernandez,Chicago,IL,USA,21311.71,Platinum
+user_01089,Zane Guerra,San Antonio,TX,USA,1412.91,Bronze
+user_87144,Colleen Obrien,London,N/A,GBR,4962.82,Silver
+user_44921,Shelia Savage,Phoenix,AZ,USA,6094.3,Silver
+user_87148,Ana Johnston,Phoenix,AZ,USA,24803.67,Platinum
+user_96096,Michael Hampton,San Antonio,TX,USA,10576.43,Gold
+user_37884,Willard Lane,London,N/A,GBR,12431.89,Gold
+user_66508,Lynn Drake,New York,NY,USA,569.18,Bronze
+user_02407,Harley Holt,San Jose,CA,USA,5616.78,Silver
+user_98602,Joy Knight,San Antonio,TX,USA,6734.71,Silver
+user_32007,Eva Kelley,Jacksonville,FL,USA,1032.02,Bronze
+user_31323,Alex Roberts,Austin,TX,USA,1009.16,Bronze
+user_34615,Constance Hutchinson,Phoenix,AZ,USA,6477.02,Silver
+user_92930,Kate Miller,Phoenix,AZ,USA,512.04,Bronze
+user_84612,Mia Hester,Fort Worth,TX,USA,1672.18,Bronze
+user_75259,Barry Richards,Denver,CO,USA,6912.99,Silver
+user_85131,Jessica Dunn,Indianapolis,IN,USA,617.47,Bronze
+user_28136,Whitney Schafer,Toronto,N/A,CAN,744.59,Bronze
+user_79161,Betty Perkins,Washington,DC,USA,564.11,Bronze
+user_00978,Darrell Ibarra,Columbus,OH,USA,6081.54,Silver
+user_77334,Nicholas Ferguson,Columbus,OH,USA,3555.21,Silver
+user_01627,Marco Pitts,San Antonio,TX,USA,591.44,Bronze
+user_86643,Phillip Luna,Chicago,IL,USA,508.4,Bronze
+user_38233,Francis Spears,Houston,TX,USA,1758.31,Bronze
+user_72285,Vernon Pierce,Washington,DC,USA,4067.88,Silver
+user_03772,Kurt Vance,San Jose,CA,USA,1584.04,Bronze
+user_17951,Max Mann,Washington,DC,USA,12367.56,Gold
+user_85770,Candice Hoover,Phoenix,AZ,USA,508.61,Bronze
+user_40784,Simon Watkins,New York,NY,USA,3532.72,Silver
+user_55152,Sabrina Bowen,Los Angeles,CA,USA,500.0,Free
+user_31800,Veronica Haynes,Sydney,N/A,AUS,2706.85,Silver
+user_72885,Frank Davis,Jacksonville,FL,USA,821.08,Bronze
+user_62996,Arthur Knight,San Francisco,CA,USA,1719.31,Bronze
+user_08138,Christian Wiley,Jacksonville,FL,USA,12259.0,Gold
+user_52889,Valerie Zuniga,San Jose,CA,USA,575.42,Bronze
+user_06491,Max Sparks,Jacksonville,FL,USA,1543.47,Bronze
+user_37959,Noah Turner,Denver,CO,USA,662.86,Bronze
+user_84118,Julie Heath,Columbus,OH,USA,24487.07,Platinum
+user_00006,Ivy Dickerson,Indianapolis,IN,USA,561.28,Bronze
+user_51229,Tracey Irwin,San Diego,CA,USA,9228.79,Gold
+user_11300,Jodi Crawford,Charlotte,NC,USA,501.88,Bronze
+user_64605,Jill Hill,Houston,TX,USA,576.78,Bronze
+user_47483,Sydney Daugherty,Denver,CO,USA,5131.14,Silver
