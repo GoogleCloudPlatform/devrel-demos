@@ -22,57 +22,7 @@ This demo showcases an **Event-Driven Data Agent** architecture on Google Cloud.
 
 ---
 
-## Prerequisites
+## Demo Guide
 
-Enable the following Google Cloud APIs in your project:
-- BigQuery API (`bigquery.googleapis.com`)
-- Cloud Pub/Sub API (`pubsub.googleapis.com`)
-- Vertex AI API (`aiplatform.googleapis.com`)
 
----
-
-## Usage Instructions
-
-### 1. Environment Setup
-
-Navigate to the setup directory to initialize your environment, base tables, continuous query, and Pub/Sub resources:
-
-```bash
-cd setup
-./setup_env.sh
-```
-
-### 2. Deploying the Agent
-
-Navigate to the agent directory to configure and deploy the ADK agent:
-
-```bash
-cd ../agent
-pip install -r requirements.txt
-
-# Make sure to populate your .env file with your PROJECT_ID and DATASET_ID
-python deploy_agent_script.py
-```
-
-### 3. Running the Simulator
-
-With the continuous query running and the agent deployed, run the simulator to stream a synthetic "Impossible Travel" anomaly into BigQuery, triggering the entire pipeline:
-
-```bash
-cd ../simulator
-python generate_events.py
-```
-
-### 4. Clean Up
-
-To prevent ongoing charges for BigQuery Continuous Queries, Pub/Sub, and Vertex AI Agent Engine, run the cleanup script when finished:
-
-```bash
-cd ../setup
-./cleanup_env.sh
-```
-
----
-
-> [NOTE]
-> You can walk through this demo in Google Cloud by following this interactive codelab: [Event-Driven Data Agent with BigQuery and ADK](https://codelabs.developers.google.com/bigquery-adk-event-driven-agents).
+Check out the [Event-Driven Data Agent with BigQuery and ADK Codelab](https://codelabs.developers.google.com/bigquery-adk-event-driven-agents) for a comprehensive walk through of this demo in Google Cloud.
