@@ -37,7 +37,12 @@ export class ChatWidget {
     private loadState() {
         const saved = localStorage.getItem('chat_history');
         if (saved) {
-            this.messages = JSON.parse(saved);
+            try {
+                this.messages = JSON.parse(saved);
+            } catch (error) {
+                console.error('Failed to parse chat history from localStorage:', error);
+                localStorage.removeItem('chat_history');
+            }
         }
     }
 
@@ -56,7 +61,7 @@ export class ChatWidget {
 
     private toggle() {
         this.isOpen = !this.isOpen;
-        
+
         const chatWindow = this.container.querySelector('#chat-window');
         if (chatWindow) {
             if (this.isOpen) {
