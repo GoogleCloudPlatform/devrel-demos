@@ -13,7 +13,9 @@ from .tools import log_final_decision
 
 def get_root_agent():
     # --- Config ---
-    PROJECT_ID = os.getenv("PROJECT_ID", "missing-project-id")
+    PROJECT_ID = os.getenv("PROJECT_ID")
+    if not PROJECT_ID:
+        raise ValueError("PROJECT_ID environment variable is not set.")
     MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
     # Initialize the BigQuery toolset inside the factory function

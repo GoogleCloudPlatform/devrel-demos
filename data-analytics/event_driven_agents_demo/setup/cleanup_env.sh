@@ -22,7 +22,7 @@ echo "Deleting BigQuery dataset (and all tables)..."
 bq rm -r -f -d ${PROJECT_ID}:${DATASET_NAME} || true
 
 echo "Locating and deleting BigQuery Reservation Assignments..."
-ASSIGNMENTS=$(bq ls --format=json --reservation_assignment --project_id=$PROJECT_ID --location=US | jq -r '.[].name' 2>/dev/null || true)
+ASSIGNMENTS=$(bq ls --format=json --reservation_assignment --project_id=$PROJECT_ID --location=US | grep -o '"name": "[^"]*"' | cut -d'"' -f4 2>/dev/null || true)
 for ASSIGNMENT in $ASSIGNMENTS; do
   if [[ "$ASSIGNMENT" == *"my-continuous-reservation"* ]]; then
     ASSIGNMENT_ID=$(basename "$ASSIGNMENT")
@@ -56,7 +56,7 @@ gcloud storage rm -r gs://$PROJECT_ID-adk-staging --quiet || true
 echo "Removing IAM bindings and deleting Service Account..."
 gcloud projects remove-iam-policy-binding $PROJECT_ID \
     --member="serviceAccount:${SA_EMAIL}" \
-    --role="roles/aiplatform.user" --quiet || true
+    --role="roles/aiplatform.admin" --quiet || true
 
 gcloud projects remove-iam-policy-binding $PROJECT_ID \
     --member="serviceAccount:${SA_EMAIL}" \

@@ -27,7 +27,7 @@ def deploy():
     remote_app = create(
         app,
         display_name="Cymbal Bank Fraud Assitant",
-        requirements=[line.strip() for line in open("requirements.txt")],
+        requirements=[line.strip() for line in open("requirements.txt") if line.strip() and not line.startswith("#")], 
         extra_packages=["./adk_agent_app"],
         env_vars={k:v for k,v in config.items() if k not in ("GOOGLE_CLOUD_PROJECT", "GOOGLE_CLOUD_LOCATION")},
         service_account=SERVICE_ACCOUNT 

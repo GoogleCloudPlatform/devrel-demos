@@ -49,7 +49,8 @@ def log_final_decision(tool_context: ToolContext, user_id: str, merchant: str, d
             "summary": summary
         }
                 
-        errors = bigquery.Client(project=project_id).insert_rows_json(f"{project_id}.cymbal_bank.agent_decisions", [row])
+        dataset_id = os.getenv("BIGQUERY_DATASET", "cymbal_bank")
+        errors = bigquery.Client(project=project_id).insert_rows_json(f"{project_id}.{dataset_id}.agent_decisions", [row])
         return f"Failed to log decision: {errors}" if errors else "Decision successfully logged. You may now respond to the user."
     except Exception as e:
         return f"Error logging decision: {e}"
