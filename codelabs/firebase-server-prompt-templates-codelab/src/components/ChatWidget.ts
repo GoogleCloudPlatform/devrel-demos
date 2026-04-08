@@ -182,7 +182,7 @@ export class ChatWidget {
         const messageContainer = this.container.querySelector('#chat-messages');
         if (messageContainer) {
             messageContainer.innerHTML = this.messages.map(msg => `
-                <div class="self-${msg.isUser ? 'end' : 'start'} max-w-[80%] ${msg.isUser ? 'bg-terrain-orange' : 'bg-terrain-earth'} text-white p-3 font-condensed text-sm shadow-sm prose prose-invert prose-p:leading-normal prose-sm max-w-none">
+                <div class="self-${msg.isUser ? 'end' : 'start'} max-w-[80%] ${msg.isUser ? 'bg-terrain-orange' : 'bg-terrain-earth'} text-white p-3 font-condensed text-sm shadow-sm prose prose-invert prose-p:leading-normal prose-sm">
                     ${DOMPurify.sanitize(marked.parse(msg.text) as string)}
                 </div>
             `).join('');

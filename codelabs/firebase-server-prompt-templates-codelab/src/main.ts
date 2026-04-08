@@ -17,6 +17,9 @@
 import { Home } from './pages/Home';
 import { ProductDetail } from './pages/ProductDetail';
 import { products } from './data';
+import { ChatWidget } from './components/ChatWidget';
+import { Header } from './components/Header';
+import { Footer } from './components/Footer';
 
 console.log('Rugged Terrain Guide Loaded');
 
@@ -41,14 +44,10 @@ if (appContent) {
     }
 }
 // Initialize Chat Widget
-import { ChatWidget } from './components/ChatWidget';
 const chatWidget = new ChatWidget();
 chatWidget.mount(document.body);
 
 // Initialize Header and Footer
-import { Header } from './components/Header';
-import { Footer } from './components/Footer';
-
 const appLayout = document.querySelector<HTMLElement>('#app-layout');
 if (appLayout) {
     const header = new Header();
@@ -57,4 +56,3 @@ if (appLayout) {
     const footer = new Footer();
     footer.mount(appLayout);
 }
-
