@@ -460,7 +460,8 @@ def train_model(model, processor, train_data, eval_data, args):
 
 def merge_model_with_base(model_id, adapter_dir, output_dir, hf_token=None):
     """Merge LoRA adapters with the base model to create a standalone model."""
-    logger.info(f"🚀 Starting model merge: {model_id} + {adapter_dir}")
+    merged_dir = os.path.join(output_dir, "merged")
+    logger.info(f"🚀 Starting model merge: {model_id} + {adapter_dir} -> {merged_dir}")
     
     # 1. Clear GPU memory if possible to make room for BF16 load
     gc.collect()
@@ -469,10 +470,11 @@ def merge_model_with_base(model_id, adapter_dir, output_dir, hf_token=None):
         
     try:
         # 2. Load base model in BF16 (31B in BF16 = 62GB, fits in 80GB VRAM)
-        logger.info("  Loading base model in BF16 for merging...")
-        base_model = AutoModelForImageTextToText.from_pretrained(
+        dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+        logger.info(f"  Loading base model with dtype {dtype} for merging...")
+        base_model = AutoModelForMultimodalLM.from_pretrained(
             model_id,
-            torch_dtype=torch.bfloat16,
+            torch_dtype=dtype,
             device_map="auto",
             token=hf_token,
             trust_remote_code=True
@@ -487,8 +489,14 @@ def merge_model_with_base(model_id, adapter_dir, output_dir, hf_token=None):
         merged_model = model.merge_and_unload()
         
         # 5. Save merged model
-        logger.info(f"  Saving merged model to {output_dir}")
-        merged_model.save_pretrained(output_dir)
+        os.makedirs(merged_dir, exist_ok=True)
+        logger.info(f"  Saving merged model to {merged_dir}")
+        merged_model.save_pretrained(merged_dir)
+        
+        # Save processor to the merged directory as well
+        processor = AutoProcessor.from_pretrained(model_id, token=hf_token)
+        processor.save_pretrained(merged_dir)
+        
         return True
     except Exception as e:
         logger.error(f"❌ Merge failed: {e}")
@@ -612,9 +620,13 @@ def main():
         logger.info("Starting merge process...")
         if merge_model_with_base(args.model_id, args.output_dir, args.output_dir, hf_token=token):
             logger.info("✓ Model merged and saved as a standalone model.")
+            # Upload the `merged` subdirectory to GCS
+            if args.gcs_output_path:
+                upload_directory_to_gcs(os.path.join(args.output_dir, "merged"), os.path.join(args.gcs_output_path, "merged"))
         else:
             logger.warning("⚠️ Merge failed. LoRA adapters still saved in the output directory.")
     
+    # Standard GCS upload for LoRA adapters (or base folder)
     if args.gcs_output_path:
         upload_directory_to_gcs(args.output_dir, args.gcs_output_path)
 
