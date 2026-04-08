@@ -170,7 +170,7 @@ export class ChatWidget {
         }
 
         if (input) {
-            input.addEventListener('keypress', (e) => {
+            input.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     this.sendMessage();
                 }
