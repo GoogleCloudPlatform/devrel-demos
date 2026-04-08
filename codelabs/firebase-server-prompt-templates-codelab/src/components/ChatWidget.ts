@@ -16,6 +16,7 @@
 
 import { callCustomerSupportModel } from '../firebase';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 export class ChatWidget {
     private isOpen = false;
@@ -177,7 +178,7 @@ export class ChatWidget {
         if (messageContainer) {
             messageContainer.innerHTML = this.messages.map(msg => `
                 <div class="self-${msg.isUser ? 'end' : 'start'} max-w-[80%] ${msg.isUser ? 'bg-terrain-orange' : 'bg-terrain-earth'} text-white p-3 font-condensed text-sm shadow-sm prose prose-invert prose-p:leading-normal prose-sm max-w-none">
-                    ${marked.parse(msg.text)}
+                    ${DOMPurify.sanitize(marked.parse(msg.text) as string)}
                 </div>
             `).join('');
         }
