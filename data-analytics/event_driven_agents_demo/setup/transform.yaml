@@ -1,0 +1,48 @@
+- javascriptUdf:
+    code: >
+      function pubsub_to_adk_transform(message, metadata) {
+        var rawData = "";
+
+        if (message.data) {
+          try {
+            rawData = new TextDecoder("utf-8").decode(message.data);
+          } catch (e) {
+            rawData = message.data;
+          }
+        }
+
+        var cleanObject = {};
+        var detectedUser = "pubsub-trigger";
+
+        try {
+          var parsed = JSON.parse(rawData);
+          if (parsed.data && typeof parsed.data === 'string') {
+            try {
+              cleanObject = JSON.parse(parsed.data);
+            } catch (innerErr) {
+              cleanObject = parsed;
+            }
+          } else {
+            cleanObject = parsed;
+          }
+
+          if (cleanObject.user_id) {
+            detectedUser = cleanObject.user_id;
+          }
+        } catch (e) {
+          cleanObject = { "text_content": rawData };
+        }
+
+        var apiPayload = {
+          "input": {
+            "message": JSON.stringify(cleanObject),
+            "user_id": detectedUser
+          }
+        };
+
+        return {
+          data: JSON.stringify(apiPayload),
+          attributes: message.attributes
+        };
+      }
+    functionName: pubsub_to_adk_transform

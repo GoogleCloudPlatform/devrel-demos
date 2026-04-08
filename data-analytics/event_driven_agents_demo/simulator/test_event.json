@@ -1,0 +1,17 @@
+{
+  "window_end": "2026-03-19T10:02:00Z",
+  "user_id": "user_48503",
+  "customer_name": "Karen Burton",
+  "tx_count": 2,
+  "total_window_spend": 2545.50,
+  "highest_value_merchant": "London Luxury Electronics",
+  "highest_value_mcc": "5732",
+  "contains_international_tx": true,
+  "contains_untrusted_device_tx": true,
+  "final_risk_score": 100,
+  "logic_signals": {
+    "is_impossible_travel": true,
+    "has_security_mismatch": true,
+    "is_high_velocity": false
+  }
+}
