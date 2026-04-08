@@ -1,0 +1,107 @@
+# Product Catalog
+
+## WEATHERPROOF SHELL 4.0
+**ID:** weatherproof-shell
+**Price:** $449.00
+**Spec:** Alpine Spec
+**Description:** The ultimate barrier against the elements. Constructed with our proprietary tri-layer membrane, this shell offers 20,000mm waterproofing while maintaining exceptional breathability. Features helmet-compatible hood and reinforced articulation points.
+
+### Features
+- Tri-layer Membrane
+- Helmet Compatible
+- Reinforced Articulation
+- Waterproof Zippers
+
+### Usage
+- **When:** During severe weather conditions, heavy rain, snowstorms, or high-altitude expeditions.
+- **Where:** Alpine environments, exposed mountain ridges, and harsh outdoor climates.
+
+---
+
+## ALL-TERRAIN BOOTS
+**ID:** all-terrain-boots
+**Price:** $285.00
+**Spec:** Vibram Sole
+**Description:** Dominate any surface with the All-Terrain Boots. Featuring a Vibram Megagrip outsole and abrasion-resistant upper, these boots provide unmatched traction and durability in the harshest environments.
+
+### Features
+- Vibram Megagrip
+- Abrasion Resistant
+- Ankle Support
+- Quick Lacing System
+
+### Usage
+- **When:** Long-distance trekking, hiking over loose or slippery rocks, and navigating unpredictable ground.
+- **Where:** Rocky trails, muddy paths, uneven terrain, and rugged wilderness areas.
+
+---
+
+## THERMAL BASE LAYER
+**ID:** thermal-base-layer
+**Price:** $120.00
+**Spec:** Merino Core
+**Description:** Regulate your core temperature with premium Merino wool. Naturally antimicrobial and moisture-wicking, this base layer keeps you warm when wet and cool when active.
+
+### Features
+- Merino Wool
+- Moisture Wicking
+- Antimicrobial
+- Flatlock Seams
+
+### Usage
+- **When:** Acting as a foundational layer for temperature regulation during active pursuits or static periods in the cold.
+- **Where:** Underneath outerwear in freezing conditions, or worn alone in cool, transitional weather.
+
+---
+
+## SUB-ZERO BEANIE
+**ID:** sub-zero-beanie
+**Price:** $45.00
+**Spec:** Windproof
+**Description:** Essential headwear for freezing conditions. Lined with windproof fleece and featuring a knitted outer layer for maximum insulation.
+
+### Features
+- Windproof Fleece Lining
+- Insulated Knit
+- One Size Fits All
+- Quick Dry
+
+### Usage
+- **When:** Temperatures drop below freezing or during biting winds.
+- **Where:** Winter camping sites, ski slopes, or while stationary in cold environments.
+
+---
+
+## RIPSTOP FIELD PANTS
+**ID:** ripstop-pants
+**Price:** $185.00
+**Spec:** Heavy Duty
+**Description:** Reinforced knees and moisture-wicking technology. Designed to navigate the dense undergrowth without compromise.
+
+### Features
+- Reinforced Knees
+- Moisture Wicking
+- Articulated Fit
+- Multi-Pocket Design
+
+### Usage
+- **When:** Bushwhacking, working in rough terrain, or pushing through dense vegetation.
+- **Where:** Thick forests, brush-filled trails, and off-path backcountry zones.
+
+---
+
+## TACTICAL PACK 30L
+**ID:** tactical-pack
+**Price:** $220.00
+**Spec:** 30L Capacity
+**Description:** Hydration ready with modular attachment points. Built for multi-day excursions deep into the timberline.
+
+### Features
+- Hydration Compatible
+- Modular Attachments
+- Ergonomic Straps
+- Rain Cover Included
+
+### Usage
+- **When:** Carrying gear for overnight stays, extended day missions, or tactical operations.
+- **Where:** Deep woods, backcountry trails, and remote expedition sites.
