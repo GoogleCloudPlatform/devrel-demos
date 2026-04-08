@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""A script to run the agent conversation locally for testing."""
+
 import asyncio
 import os
 import uuid

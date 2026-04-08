@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Generates and loads historical transaction data into BigQuery."""
+
 import json
 import random
 import uuid

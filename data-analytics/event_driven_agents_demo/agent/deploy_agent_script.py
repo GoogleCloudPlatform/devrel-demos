@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Deploys the ADK agent to Vertex AI Agent Engine."""
+
 import os
 import vertexai
 from vertexai.agent_engines import AdkApp, create

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Generates and streams synthetic transaction events to BigQuery."""
+
 import json
 import uuid
 import random
