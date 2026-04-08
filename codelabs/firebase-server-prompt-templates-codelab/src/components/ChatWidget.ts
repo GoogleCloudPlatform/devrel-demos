@@ -28,7 +28,8 @@ export class ChatWidget {
         this.container = document.createElement('div');
         this.container.id = 'chat-widget-container';
         this.loadState();
-        this.render();
+        this.renderInitial();
+        this.renderMessages();
         this.attachListeners();
     }
 
@@ -48,17 +49,44 @@ export class ChatWidget {
             { text: 'Operator connected. How can we assist your mission today?', isUser: false }
         ];
         this.saveState();
-        this.render();
-        this.attachListeners();
+        this.renderMessages();
         this.scrollToBottom();
     }
 
     private toggle() {
         this.isOpen = !this.isOpen;
-        this.render();
-        this.attachListeners(); // Re-attach listeners because render overwrites HTML
+        
+        const chatWindow = this.container.querySelector('#chat-window');
+        if (chatWindow) {
+            if (this.isOpen) {
+                chatWindow.classList.remove('hidden');
+                chatWindow.classList.add('flex');
+            } else {
+                chatWindow.classList.remove('flex');
+                chatWindow.classList.add('hidden');
+            }
+        }
+
+        const toggleIcon = this.container.querySelector('#chat-toggle-icon');
+        if (toggleIcon) {
+            toggleIcon.textContent = this.isOpen ? 'close' : 'support_agent';
+        }
+
+        const badge = this.container.querySelector('#chat-unread-badge');
+        if (badge) {
+            if (this.isOpen) {
+                badge.classList.add('hidden');
+                badge.classList.remove('flex');
+            } else {
+                badge.classList.remove('hidden');
+                badge.classList.add('flex');
+            }
+        }
+
         if (this.isOpen) {
             this.scrollToBottom();
+            const input = this.container.querySelector('input');
+            if (input) input.focus();
         }
     }
 
@@ -70,8 +98,7 @@ export class ChatWidget {
             input.value = '';
 
             this.saveState();
-            this.render();
-            this.attachListeners();
+            this.renderMessages();
             this.scrollToBottom();
 
             try {
@@ -95,8 +122,7 @@ export class ChatWidget {
                 this.saveState();
             }
 
-            this.render();
-            this.attachListeners();
+            this.renderMessages();
             this.scrollToBottom();
         }
     }
@@ -130,35 +156,36 @@ export class ChatWidget {
         }
 
         // Send Message Interactions
-        if (this.isOpen) {
-            const sendBtn = this.container.querySelector('#chat-send-btn');
-            const input = this.container.querySelector('input');
+        const sendBtn = this.container.querySelector('#chat-send-btn');
+        const input = this.container.querySelector('input');
 
-            if (sendBtn) {
-                sendBtn.addEventListener('click', () => this.sendMessage());
-            }
+        if (sendBtn) {
+            sendBtn.addEventListener('click', () => this.sendMessage());
+        }
 
-            if (input) {
-                input.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        this.sendMessage();
-                    }
-                });
-                // Focus input when opened
-                // setTimeout(() => input.focus(), 50); 
-            }
+        if (input) {
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.sendMessage();
+                }
+            });
         }
     }
 
-    private render() {
-        const messagesHTML = this.messages.map(msg => `
-            <div class="self-${msg.isUser ? 'end' : 'start'} max-w-[80%] ${msg.isUser ? 'bg-terrain-orange' : 'bg-terrain-earth'} text-white p-3 font-condensed text-sm shadow-sm prose prose-invert prose-p:leading-normal prose-sm max-w-none">
-                ${marked.parse(msg.text)}
-            </div>
-        `).join('');
+    private renderMessages() {
+        const messageContainer = this.container.querySelector('#chat-messages');
+        if (messageContainer) {
+            messageContainer.innerHTML = this.messages.map(msg => `
+                <div class="self-${msg.isUser ? 'end' : 'start'} max-w-[80%] ${msg.isUser ? 'bg-terrain-orange' : 'bg-terrain-earth'} text-white p-3 font-condensed text-sm shadow-sm prose prose-invert prose-p:leading-normal prose-sm max-w-none">
+                    ${marked.parse(msg.text)}
+                </div>
+            `).join('');
+        }
+    }
 
+    private renderInitial() {
         const chatWindowHTML = `
-            <div id="chat-window" class="${this.isOpen ? 'flex' : 'hidden'} fixed bottom-32 right-8 z-50 w-96 flex-col border-4 border-terrain-earth bg-background-rugged shadow-[12px_12px_0px_0px_rgba(27,79,114,1)]">
+            <div id="chat-window" class="hidden fixed bottom-32 right-8 z-50 w-96 flex-col border-4 border-terrain-earth bg-background-rugged shadow-[12px_12px_0px_0px_rgba(27,79,114,1)]">
                 <div class="flex items-center justify-between border-b-4 border-terrain-earth bg-terrain-earth px-4 py-3 text-white">
                     <h3 class="font-display text-lg uppercase tracking-wide">Tactical Support</h3>
                     <div class="flex gap-2">
@@ -167,7 +194,6 @@ export class ChatWidget {
                     </div>
                 </div>
                 <div id="chat-messages" class="h-96 overflow-y-auto p-4 flex flex-col gap-3">
-                    ${messagesHTML}
                 </div>
                 <div class="border-t-4 border-terrain-earth p-4 bg-white">
                     <div class="flex gap-2">
@@ -180,13 +206,11 @@ export class ChatWidget {
 
         const fabHTML = `
             <button id="chat-toggle-btn" aria-label="Open Tactical Support" class="fixed bottom-8 right-8 z-50 flex h-20 w-20 items-center justify-center rounded-none bg-terrain-orange text-white shadow-[8px_8px_0px_0px_rgba(27,79,114,1)] transition-all hover:-translate-y-2 hover:-translate-x-2 hover:shadow-[12px_12px_0px_0px_rgba(27,79,114,1)]">
-                <span class="material-symbols-outlined !text-[40px]">${this.isOpen ? 'close' : 'support_agent'}</span>
-                ${!this.isOpen ? `
-                <span class="absolute -top-1 -right-1 flex h-6 w-6">
+                <span id="chat-toggle-icon" class="material-symbols-outlined !text-[40px]">support_agent</span>
+                <span id="chat-unread-badge" class="absolute -top-1 -right-1 flex h-6 w-6">
                     <span class="absolute inline-flex h-full w-full animate-ping bg-white opacity-75"></span>
                     <span class="relative inline-flex h-6 w-6 bg-white text-terrain-orange font-display text-[10px] items-center justify-center">1</span>
                 </span>
-                ` : ''}
             </button>
         `;
 
