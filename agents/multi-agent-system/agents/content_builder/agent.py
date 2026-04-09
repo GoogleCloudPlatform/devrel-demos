@@ -5,22 +5,20 @@ from google.oauth2 import id_token
 from google.adk.agents import Agent
 from google.adk.models import LiteLlm
 
-# 1. Fetch the token
+# Fetch the ID token that's needed for Cloud Run
 target_url = os.environ.get("OLLAMA_API_BASE", "http://localhost:11434")
 auth_req = google.auth.transport.requests.Request()
 token = id_token.fetch_id_token(auth_req, target_url)
 
-# 2. Inject the token securely into LiteLLM's environment state
-# LiteLLM's 'ollama_chat' provider will automatically discover this and 
-# inject 'Authorization: Bearer <token>' for every request!
-os.environ["OLLAMA_API_KEY"] = token
-
-# 4. Instantiate the model 
+# Instantiate the model 
 # (Note: We use 'ollama/gemma3:270m' to align with ADK's expected prefix)
 gemma_model_name = os.environ.get("GEMMA_MODEL_NAME", "gemma3:270m")
 model = LiteLlm(
     model=f"ollama_chat/{gemma_model_name}", 
-    api_base=target_url
+    api_base=target_url,
+    extra_headers={
+        "Authorization": f"Bearer {token}",
+},
 )
 
 # 5. Define the Agent
