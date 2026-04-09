@@ -4,7 +4,7 @@ from google.adk.apps.app import App
 from pydantic import BaseModel, Field
 
 
-MODEL = "gemini-2.5-pro"
+MODEL = "gemini-3-flash-preview"
 
 # --- Data Models ---
 class JudgeFeedback(BaseModel):
