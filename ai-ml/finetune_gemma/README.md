@@ -74,12 +74,12 @@ gcloud beta run jobs create $JOB_NAME \
   --image $REGION-docker.pkg.dev/$PROJECT_ID/$AR_REPO/$IMAGE_NAME:latest \
   --gpu 1 \
   --gpu-type nvidia-rtx-pro-6000 \
-  --cpu 20.0 \
-  --memory 80Gi \
+  --cpu 30.0 \
+  --memory 120Gi \
   --labels dev-tutorial=finetune-gemma \
   --add-volume name=model-volume,type=cloud-storage,bucket=$BUCKET_NAME \
   --add-volume-mount volume=model-volume,mount-path=/mnt/gcs \
-  --args="--model-id","/mnt/gcs/google/gemma-4-31b-it/","--output-dir","/tmp/gemma4-finetuned","--gcs-output-path","gs://$BUCKET_NAME/gemma4-finetuned","--train-size","700","--eval-size","200"
+  --args="--model-id","/mnt/gcs/google/gemma-4-31b-it/","--output-dir","/mnt/gcs/gemma4-finetuned","--train-size","700","--eval-size","200","--merge"
 ```
 
 Then execute it:
