@@ -64,7 +64,8 @@ gcloud run deploy researcher \
   --region $REGION \
   --no-allow-unauthenticated \
   --set-env-vars GOOGLE_CLOUD_PROJECT="${GOOGLE_CLOUD_PROJECT}" \
-  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI="true"
+  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI="true"  \
+  --set-env-vars GOOGLE_CLOUD_LOCATION="global"
 RESEARCHER_URL=$(gcloud run services describe researcher --region $REGION --format='value(status.url)')
 
 gcloud run deploy content-builder \
@@ -83,7 +84,8 @@ gcloud run deploy judge \
   --region $REGION \
   --no-allow-unauthenticated \
   --set-env-vars GOOGLE_CLOUD_PROJECT="${GOOGLE_CLOUD_PROJECT}" \
-  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI="true"
+  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI="true"  \
+  --set-env-vars GOOGLE_CLOUD_LOCATION="global"
 JUDGE_URL=$(gcloud run services describe judge --region $REGION --format='value(status.url)')
 
 gcloud run deploy orchestrator \
