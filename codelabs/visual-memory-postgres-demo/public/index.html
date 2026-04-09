@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Living Memory: The Adaptive AI Cortex</title>
+    <!-- Use modern fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Libraries for physics and rendering -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/force-graph"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- LEFT HALF: Chat Experience -->
+        <main class="chat-container">
+            <header class="chat-header">
+                <div class="header-title">
+                    <h1>Living Memory</h1>
+                    <p>Cloud SQL & Gemini AI Cortex</p>
+                </div>
+                <div class="header-controls">
+                    <select id="user-select">
+                        <option value="">Loading Users...</option>
+                    </select>
+                    <button id="create-user-btn" class="secondary-btn">+ User</button>
+                    <select id="conversation-select">
+                        <option value="">New Conversation</option>
+                    </select>
+                    <button id="new-chat-btn" class="secondary-btn">+ Chat</button>
+                    <button id="reset-btn" class="secondary-btn" style="background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.5); color: #fca5a5;">Reset Data</button>
+                </div>
+            </header>
+            
+            <div id="chat-window" class="chat-window">
+                <!-- Messages will be injected here -->
+            </div>
+
+            <div id="quick-prompts" style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
+            </div>
+
+            <form id="chat-form" class="chat-form">
+                <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off" required />
+                <button type="submit">
+                    Send
+                </button>
+            </form>
+        </main>
+
+        <!-- RIGHT HALF: 3D Brain Galaxy Data Viz -->
+        <aside class="brain-container">
+            <div class="brain-overlay">
+                <h2>AI Cortex Data Visualizer</h2>
+                <div class="legend">
+                    <span class="legend-item"><span class="color-dot bg-blue"></span><span>Explicit Fact (<span id="count-fact">0</span>)</span></span>
+                    <span class="legend-item"><span class="color-dot bg-pink"></span><span>Expected Preference (<span id="count-pref">0</span>)</span></span>
+                    <span class="legend-item"><span class="color-dot bg-gold"></span><span>Implicit Trait (<span id="count-implicit">0</span>)</span></span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <label for="repulsion-slider" style="color: var(--text-secondary); font-size: 0.75rem; display: block; margin-bottom: 0.25rem;">Node Distance</label>
+                    <input type="range" id="repulsion-slider" min="200" max="2000" value="800" style="width: 100%; accent-color: var(--color-fact);">
+                </div>
+                <div style="margin-top: 1rem;">
+                    <label for="threshold-slider" style="color: var(--text-secondary); font-size: 0.75rem; display: block; margin-bottom: 0.25rem;">Similarity Threshold (<span id="threshold-val">0.70</span>)</label>
+                    <input type="range" id="threshold-slider" min="0.5" max="0.9" step="0.05" value="0.70" style="width: 100%; accent-color: var(--color-fact);">
+                </div>
+                <div id="extraction-indicator" style="margin-top: 0.8rem; font-size: 0.75rem; color: var(--color-pref); display: none; align-items: center; gap: 0.5rem;">
+                    <span class="typing-indicator" style="height: 10px;"><div class="typing-dot" style="background-color: var(--color-pref);"></div><div class="typing-dot" style="background-color: var(--color-pref);"></div><div class="typing-dot" style="background-color: var(--color-pref);"></div></span>
+                    <span>Extracting memories...</span>
+                </div>
+            </div>
+            <div id="graph-3d"></div>
+    <div id="user-modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: var(--bg-dark); padding: 2rem; border-radius: 12px; border: 1px solid var(--color-fact); text-align: left; width: 450px; max-width: 90%;">
+            <h3 style="margin-top: 0; margin-bottom: 1rem; color: white;">Generate New Persona</h3>
+            
+            <label style="color: var(--text-secondary); font-size: 0.75rem; display: block; margin-bottom: 0.25rem;">Name</label>
+            <input type="text" id="new-user-input" placeholder="Generating name..."
+                style="padding: 0.8rem; width: 100%; margin-bottom: 1.5rem; border-radius: 8px; border: none; background: rgba(255,255,255,0.1); color: white; outline: none;" />
+            
+            <label style="color: var(--text-secondary); font-size: 0.75rem; display: block; margin-bottom: 0.25rem;">Description (Intro Story)</label>
+            <textarea id="new-user-desc" placeholder="Generating comprehensive description..." rows="6"
+                style="padding: 0.8rem; width: 100%; margin-bottom: 1.5rem; border-radius: 8px; border: none; background: rgba(255,255,255,0.1); color: white; outline: none; resize: vertical;"></textarea>
+            
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button id="cancel-user-btn" class="secondary-btn" style="flex: 1;">Cancel</button>
+                <button id="submit-user-btn" class="secondary-btn"
+                    style="flex: 1; background: var(--color-fact); color: #000; font-weight: bold;">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
