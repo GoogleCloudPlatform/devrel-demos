@@ -121,6 +121,7 @@ gcloud beta run deploy vllm-gemma-4-31b-ft \
     --no-gpu-zonal-redundancy \
     --network $VPC_NETWORK \
     --subnet $VPC_SUBNET \
+    --labels dev-tutorial=finetune-gemma \
     --vpc-egress all-traffic \
     --set-env-vars "MODEL_NAME=gemma-4-31b-it-finetuned,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,GOOGLE_CLOUD_REGION=$REGION" \
     --startup-probe tcpSocket.port=8080,initialDelaySeconds=240,failureThreshold=1,timeoutSeconds=240,periodSeconds=240 \
