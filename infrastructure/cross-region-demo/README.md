@@ -1,4 +1,4 @@
-# N26 Code to Cloud Demo
+# Code to Cloud Demo
 
 This project demonstrates a multi-region, two-tier web application deployed on Google Cloud Run with cross-region data transfer via Google Cloud Storage (GCS). It is designed to showcase service-to-service communication, IAM security, and multi-region architecture.
 
