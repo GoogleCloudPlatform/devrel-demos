@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load Balancing Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0, transparent 50%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            backdrop-filter: blur(12px);
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+            font-size: 1.1rem;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            align-items: center;
+        }
+
+        .batch-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .batch-selector label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        input[type="range"] {
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+            display: none; /* Hidden by default */
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.2rem;
+            text-align: center;
+        }
+
+        .stat-card .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+        }
+
+        .stat-card .label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        button {
+            padding: 0.8rem 1.5rem;
+            border-radius: 12px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        button.secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .results {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+            padding: 1.5rem;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .log-entry {
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .log-entry span.time { color: var(--text-muted); margin-right: 0.5rem; }
+        .log-entry span.id { color: #34d399; font-weight: bold; }
+        .log-entry span.msg { color: #facc15; }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        .dot-green { background: #10b981; box-shadow: 0 0 10px #10b981; }
+
+        /* Custom Scrollbar */
+        .results::-webkit-scrollbar {
+            width: 8px;
+        }
+        .results::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .results::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cloud Run Load Test</h1>
+        <p class="subtitle">Monitor service-to-service communication with IAM authentication.</p>
+        
+        <div class="controls">
+            <button id="pingBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                Single Ping
+            </button>
+            <div class="batch-selector">
+                <label for="batchCount">Batch size:</label>
+                <input type="range" id="batchCount" min="10" max="1000" step="10" value="50">
+                <span id="batchValue">50</span>
+            </div>
+            <div class="batch-selector">
+                <label for="payloadSize">Payload:</label>
+                <input type="range" id="payloadSize" min="0" max="19" step="1" value="0">
+                <span id="payloadValue">None</span>
+            </div>
+            <div class="batch-selector">
+                <label for="testMode">Mode:</label>
+                <select id="testMode" style="background: rgba(255, 255, 255, 0.05); color: var(--text); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 0.2rem;">
+                    <option value="gcs" selected>GCS Transfer</option>
+                    <option value="standard">Ping/Pong</option>
+                </select>
+            </div>
+            <button id="batchBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                Batch Test
+            </button>
+            <button id="clearBtn" class="secondary">Clear</button>
+        </div>
+
+        <div id="statsGrid" class="stats-grid">
+            <div class="stat-card">
+                <span class="value" id="statTotal">-</span>
+                <span class="label">Total Pings</span>
+            </div>
+            <div class="stat-card">
+                <span class="value" id="statSuccess" style="color: #10b981;">-</span>
+                <span class="label">Success</span>
+            </div>
+            <div class="stat-card">
+                <span class="value" id="statBackends">-</span>
+                <span class="label">Backends Hit</span>
+            </div>
+        </div>
+
+        <div class="results" id="results">
+            <div class="log-entry" style="border: none; color: var(--text-muted)">Logs will appear here...</div>
+        </div>
+    </div>
+
+    <script>
+        const pingBtn = document.getElementById('pingBtn');
+        const batchBtn = document.getElementById('batchBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const batchCount = document.getElementById('batchCount');
+        const payloadSize = document.getElementById('payloadSize');
+        const payloadValue = document.getElementById('payloadValue');
+        const testMode = document.getElementById('testMode');
+        const results = document.getElementById('results');
+        const statsGrid = document.getElementById('statsGrid');
+        
+        const statTotal = document.getElementById('statTotal');
+        const statSuccess = document.getElementById('statSuccess');
+        const statBackends = document.getElementById('statBackends');
+
+        let backendURL = 'Loading...';
+
+        async function fetchConfig() {
+            try {
+                const resp = await fetch('/api/config');
+                const data = await resp.json();
+                backendURL = data.backend_url || 'Unknown';
+            } catch (err) {
+                console.error('Failed to fetch config:', err);
+                backendURL = 'Error loading backend URL';
+            }
+        }
+        fetchConfig();
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return 'None';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        function getSizeBytes() {
+            const val = parseInt(payloadSize.value);
+            if (val === 0) return 0;
+            return Math.pow(2, val);
+        }
+
+        batchCount.addEventListener('input', (e) => {
+            batchValue.textContent = e.target.value;
+        });
+
+        payloadSize.addEventListener('input', (e) => {
+            payloadValue.textContent = formatBytes(getSizeBytes());
+        });
+
+        function addLog(data) {
+            if (results.innerHTML.includes('Logs will appear here...')) {
+                results.innerHTML = '';
+            }
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            const time = new Date().toLocaleTimeString();
+            
+            let msg = data.message || `Pinged ${backendURL}`;
+            let origin = data.backend_id || window.location.origin;
+
+            div.innerHTML = `
+                <span class="time">[${time}]</span>
+                <span class="status-dot dot-green"></span>
+                <span class="msg">${msg}</span>
+                from <span class="id">${origin}</span>
+            `;
+            results.insertBefore(div, results.firstChild);
+        }
+
+        function addBatchLog(data) {
+            if (results.innerHTML.includes('Logs will appear here...')) {
+                results.innerHTML = '';
+            }
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            const time = new Date().toLocaleTimeString();
+            
+            let backendList = Object.entries(data.backends)
+                .map(([id, count]) => `<span class="id">${id === 'localhost' ? backendURL : id}</span> (${count})`)
+                .join(', ');
+
+            div.innerHTML = `
+                <span class="time">[${time}]</span>
+                <span class="status-dot dot-green"></span>
+                <span class="msg">Batch Complete:</span> ${data.success}/${data.total} success. 
+                Nodes: ${backendList}
+            `;
+            results.insertBefore(div, results.firstChild);
+
+            // Update Stats
+            statsGrid.style.display = 'grid';
+            statTotal.textContent = data.total;
+            statSuccess.textContent = data.success;
+            statBackends.textContent = Object.keys(data.backends).length;
+        }
+
+        function addError(err) {
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.style.color = '#f87171';
+            div.innerHTML = `<span class="time">[${new Date().toLocaleTimeString()}]</span> ERROR: ${err}`;
+            results.insertBefore(div, results.firstChild);
+        }
+
+        async function runPing(isBatch = false) {
+            const btn = isBatch ? batchBtn : pingBtn;
+            const originalText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+            btn.textContent = 'Running...';
+
+            try {
+                const size = getSizeBytes();
+                const mode = testMode.value;
+                const url = isBatch 
+                    ? `/api/batch-ping?count=${batchCount.value}&size=${size}&mode=${mode}` 
+                    : `/api/ping?size=${size}&mode=${mode}`;
+                const resp = await fetch(url);
+                if (!resp.ok) throw new Error(`Status ${resp.status}`);
+                const data = await resp.json();
+                
+                if (isBatch) {
+                    addBatchLog(data);
+                } else {
+                    addLog(data);
+                }
+            } catch (err) {
+                addError(err.message);
+            } finally {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.innerHTML = originalText;
+            }
+        }
+
+        pingBtn.addEventListener('click', () => runPing(false));
+        batchBtn.addEventListener('click', () => runPing(true));
+
+        clearBtn.addEventListener('click', () => {
+            results.innerHTML = '<div class="log-entry" style="border: none; color: var(--text-muted)">Logs will appear here...</div>';
+            statsGrid.style.display = 'none';
+        });
+    </script>
+</body>
+</html>

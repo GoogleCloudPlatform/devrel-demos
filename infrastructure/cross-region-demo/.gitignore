@@ -1,0 +1,36 @@
+# OS files
+.DS_Store
+
+# Go
+# Binaries and executables
+backend/backend
+backend/main
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binaries and coverage
+*.test
+*.out
+
+# Terraform
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.backup
+
+# Variables files
+*.tfvars
+*.tfvars.json
+
+# Crash logs
+crash.log
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
