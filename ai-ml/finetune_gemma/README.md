@@ -101,10 +101,9 @@ gcloud storage buckets add-iam-policy-binding gs://$BUCKET_NAME \
 gcloud builds submit --tag gcr.io/$PROJECT_ID/gemma4-finetune .
 
 # Run the fine-tuning and merge job
-gcloud beta run jobs execute gemma4-finetuning-job \
+gcloud beta run jobs create gemma4-finetuning-job \
   --region $REGION \
-  --args="--model-id","google/gemma-4-31b-it","--output-dir","/tmp/gemma4-merged","--gcs-output-path","gs://$BUCKET_NAME/gemma-4-31b-it-merged","--train-size","1000","--merge"
-  --image $REGION-docker.pkg.dev/$PROJECT_ID/$AR_REPO/$IMAGE_NAME:latest \
+  --image gcr.io/$PROJECT_ID/gemma4-finetune \
   --gpu 1 \
   --gpu-type nvidia-rtx-pro-6000 \
   --cpu 30.0 \
@@ -113,6 +112,8 @@ gcloud beta run jobs execute gemma4-finetuning-job \
   --add-volume name=model-volume,type=cloud-storage,bucket=$BUCKET_NAME \
   --add-volume-mount volume=model-volume,mount-path=/mnt/gcs \
   --args="--model-id","/mnt/gcs/google/gemma-4-31b-it/","--output-dir","/mnt/gcs/gemma4-finetuned","--train-size","700","--eval-size","200","--merge"
+
+gcloud beta run jobs execute gemma4-finetuning-job --region $REGION --async
 ```
 
 ---
