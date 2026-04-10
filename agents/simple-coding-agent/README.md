@@ -1,6 +1,6 @@
 # Gemma 4 Coding Agent
 
-This agent demonstrates how to create a coding agent using Aget Development Kit (ADK) and Gemma 4 Open Model. The agent can generate and execute Python code in an isolated WebAssembly environment (Pyodide).
+This agent demonstrates how to create a coding agent using [Aget Development Kit (ADK)](https://adk.dev/) and [Google Gemma 4](https://ai.google.dev/gemma) open model. The agent can generate and execute Python code in an isolated WebAssembly environment (Pyodide).
 
 ## How to run
 
