@@ -158,9 +158,7 @@ id_token = subprocess.check_output(['gcloud', 'auth', 'print-identity-token']).s
 custom_model = LiteLlm(
     model=f"openai/{model_name}",
     base_url=api_base,
-    extra_headers={
-        "Authorization": f"Bearer {id_token}",
-    },
+    api_key=id_token,
     extra_body={
         "chat_template_kwargs": {
             "enable_thinking": True
