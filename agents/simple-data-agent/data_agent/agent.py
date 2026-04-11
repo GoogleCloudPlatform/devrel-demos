@@ -97,7 +97,7 @@ Plan of action:
 1. Analyze your data, investigate schema and dimentions by querying distrinct values of columns using `execute_sql`.
    Output information about tables, columns, their data types and sets of values (for dimensions).
    Note which columns can be joined or used in aggregations/filters, and what type conversion may be needed for joining or aggregating.
-   DO NOT MAKE ASSUMPTIONS ABOUT DATA FROM YOUR PRIOR KNOWLEDGE. ALWAYS VERIFY YOUR ASSUMPTIONS.
+   DO NOT MAKE ASSUMPTIONS ABOUT DATA (structure, type, values, relationships) BASED ON YOUR PRIOR KNOWLEDGE. ALWAYS VERIFY YOUR ASSUMPTIONS.
 2. Understand and interpret the user's question.
 3. Formulate a plan to answer the user's question.
 4. Write a SQL query to retrieve relevant data in necessary form.
