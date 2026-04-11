@@ -186,8 +186,9 @@ testem.log
 .DS_Store
 Thumbs.db
 *.vscode*
+.adk
 
-# Audio files 
+# Audio files
 *.mp3
 # Gemini CLI
 .gemini/
