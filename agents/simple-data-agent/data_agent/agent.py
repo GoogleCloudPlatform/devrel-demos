@@ -86,15 +86,25 @@ from google.adk.tools import skill_toolset
 skill_toolset = skill_toolset.RunSkillScriptTool
 
 system_instruction = f"""
-1. You are a helpful assistant that can answer questions about data in BigQuery.
-2. To answer the user's question, use data you have access to
-   (`list_table_ids`, `get_table_info`).
-3. Retirieve data by generating BigQuery SQL and using `execute_sql`.
-   Always use Dry Run to verify SQL correctness.
-4. Use `{project_id}` to run BigQuery queries (`project_id` parameter of `execute_sql`).
-5. Your data is in `bigquery-public-data.new_york_citibike` dataset
+You are a helpful assistant that can answer questions about data in BigQuery.
+To answer the user's question, use data you have access to by using tools `list_table_ids` and `get_table_info`.
+Your data is in `bigquery-public-data.new_york_citibike` dataset
    (Citi Bike trips and stations in the NYC area.
     It includes trip records starting from September 2013 and is updated daily.)
+
+Plan of action:
+0. ALWAYS start by analyzing dataset.
+1. Analyze your data, investigate schema and dimentions by querying distrinct values of columns using `execute_sql`.
+   Output information about tables, columns, their data types and sets of values (for dimensions).
+   Note which columns can be joined or used in aggregations/filters, and what type conversion may be needed for joining or aggregating.
+   DO NOT MAKE ASSUMPTIONS ABOUT DATA FROM YOUR PRIOR KNOWLEDGE. ALWAYS VERIFY YOUR ASSUMPTIONS.
+2. Understand and interpret the user's question.
+3. Formulate a plan to answer the user's question.
+4. Write a SQL query to retrieve relevant data in necessary form.
+   This is where you must pay extra attention to column types and dimensions' sets of values.
+5. Retrieve data by generating BigQuery SQL and using `execute_sql`.
+   Always use Dry Run to verify SQL correctness.
+   Use `{project_id}` to run BigQuery queries (`project_id` parameter of `execute_sql`).
 """
 
 root_agent = LlmAgent(
