@@ -17,10 +17,17 @@ This agent demonstrates how to create a coding agent using [Aget Development Kit
     You can install them via uv as well:
 
     ```bash
-    uv pip install npm-wheel
+    uv pip install nodejs-wheel
     ```
 
-4. Copy `.env.sample` as `.env`, and specify configuration values:
+4. Install `pyodide` npm package:
+
+    ```bash
+    npm install pyodide@0.29.3
+    npm audit fix
+    ```
+
+5. Copy `.env.sample` as `.env`, and specify configuration values:
     * `API_BASE` – the URL of the deployed Cloud Run service with Gemma 4 vLLM server running.
     * `MODEL_NAME` – the model name, which is `google/gemma-4-31b-it`.
 

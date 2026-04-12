@@ -98,12 +98,13 @@ def run_isolated_python(code: str) -> str:
     # Check and install pyodide if missing
     node_modules_pyodide = os.path.join(workspace_root, "coding_agent", "node_modules", "pyodide")
     if not os.path.exists(node_modules_pyodide):
-        print("Pyodide not found locally, running npm install pyodide@0.26.4...")
+        print("Pyodide not found locally, running npm install pyodide...")
         try:
             cwd_path = os.path.join(workspace_root, "coding_agent")
             if not os.path.exists(cwd_path):
                 os.makedirs(cwd_path)
-            subprocess.run(["npm", "install", "pyodide@0.26.4"], cwd=cwd_path, check=True)
+            subprocess.run(["npm", "install", "pyodide@0.29.3"], cwd=cwd_path, check=True)
+            subprocess.run(["npm", "audit", "fix"], cwd=cwd_path, check=True)
             print("Pyodide installed successfully.")
         except subprocess.CalledProcessError as e:
             return f"Error: Failed to install pyodide npm package: {e}"
