@@ -7,7 +7,7 @@ CREATE OR REPLACE TABLE `model_dev.vehicle_images_embedded` AS
 SELECT
   auction_id,
   AI.EMBED(
-    (image_ref, description),
+    STRUCT(image_ref),
     endpoint => 'gemini-embedding-2-preview').result AS multimodal_embedding
 FROM `model_dev.vehicle_multimodal`
 WHERE ARRAY_LENGTH(image_ref) > 0;
