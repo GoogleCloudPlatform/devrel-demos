@@ -27,8 +27,7 @@ export async function POST(request: Request) {
         (
           SELECT AI.EMBED(
             @searchQuery,
-            endpoint => 'multimodalembedding@001',
-            connection_id => 'us.conn'
+            endpoint => 'gemini-embedding-2-preview'
           ).result AS multimodal_embedding
         ),
         top_k => 12,

@@ -59,6 +59,18 @@ gcloud config set project $PROJECT_ID
 gcloud auth application-default login
 ```
 
+Enable the required Google Cloud APIs for the project:
+
+```bash
+gcloud services enable \
+  aiplatform.googleapis.com \
+  artifactregistry.googleapis.com \
+  bigquery.googleapis.com \
+  bigqueryconnection.googleapis.com \
+  cloudbuild.googleapis.com \
+  run.googleapis.com
+```
+
 ### 3. Copy Data Assets
 Run the data ingestion script to pull pre-processed images from a central public bucket and push your local workspace datasets (`data/`) into personal Cloud Storage bucket created in this script:
 
