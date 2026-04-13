@@ -1,7 +1,7 @@
 -- ==============================================================================
 -- 1. GENERATE MULTIMODAL EMBEDDINGS FOR VEHICLE IMAGES
 -- ==============================================================================
--- Embed the images and description for each vehicle to allow semantic search.
+-- Embed the images for each vehicle to allow semantic search.
 
 CREATE OR REPLACE TABLE `model_dev.vehicle_images_embedded` AS
 SELECT
