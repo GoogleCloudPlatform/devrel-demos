@@ -1,6 +1,11 @@
 # Gemma 4 Data Agent
 
-This agent demonstrates how to create a data agent using [Aget Development Kit (ADK)](https://adk.dev/) and [Google Gemma 4](https://ai.google.dev/gemma) open model. The agent can answer questions about data in BigQuery.
+This agent demonstrates how to create a data agent using [Agent Development Kit (ADK)](https://adk.dev/) and [Google Gemma 4](https://ai.google.dev/gemma) open model. The agent can answer questions about data in BigQuery.
+
+It features a custom web client with:
+- **Real-time streaming** of thoughts and responses using SSE.
+- **Syntax highlighting** for code blocks and JSON.
+- **Robust auto-scrolling** behavior.
 
 ## How to run
 
@@ -17,17 +22,22 @@ This agent demonstrates how to create a data agent using [Aget Development Kit (
     You can install them via uv as well:
 
     ```bash
-    uv pip install npm-wheel
+    uv pip install nodejs-wheel
     ```
 
 4. Copy `.env.sample` as `.env`, and specify configuration values:
     * `API_BASE` – the URL of the deployed Cloud Run service with Gemma 4 vLLM server running.
     * `MODEL_NAME` – the model name, which is `google/gemma-4-31b-it`.
     * `GOOGLE_CLOUD_PROJECT` – the Google Cloud project ID. This is necessary to run BigQuery tools.
+    * `SERVER_BASE_URL` – (Optional) The URL of the ADK API server for the web client to proxy to (defaults to `http://localhost:8000`).
+    * `AGENT_NAME` – (Optional) The name of the agent to use. If not set, the server will auto-detect it from the available agents.
 
-5. Run `adk web` to interact with the agent:
+5. Run the application using the provided script:
 
     ```bash
-    adk web agents/simple-data-agent
+    ./run.sh
     ```
 
+    This script will start both the ADK API server (port 8000) and the custom web client (port 8080).
+
+6. Open your browser and navigate to `http://localhost:8080` to interact with the agent.
