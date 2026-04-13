@@ -31,6 +31,7 @@ APIS=(
     "appoptimize.googleapis.com"
     "cloudresourcemanager.googleapis.com"
     "cloudaiservices.googleapis.com"
+    "cloudscheduler.googleapis.com"
 )
 
 echo "Enabling necessary APIs..."
