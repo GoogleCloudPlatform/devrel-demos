@@ -32,7 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let sessionId = localStorage.getItem('adk_current_session_id');
     if (!sessionId) {
-        sessionId = "session_" + Math.random().toString(36).substring(2, 9);
+        const array = new Uint32Array(1);
+        crypto.getRandomValues(array);
+        sessionId = "session_" + array[0].toString(36);
         localStorage.setItem('adk_current_session_id', sessionId);
     }
 
@@ -655,9 +657,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (toolCall.args && toolCall.args.code) {
                 const markdownCode = `\`\`\`python\n${toolCall.args.code}\n\`\`\``;
-                content.innerHTML = marked.parse(markdownCode);
+                content.innerHTML = DOMPurify.sanitize(marked.parse(markdownCode));
             } else {
-                content.innerHTML = `<pre><code class="language-json">${JSON.stringify(toolCall.args, null, 2)}</code></pre>`;
+                const pre = document.createElement('pre');
+                const code = document.createElement('code');
+                code.classList.add('language-json');
+                code.textContent = JSON.stringify(toolCall.args, null, 2);
+                pre.appendChild(code);
+                content.appendChild(pre);
             }
             content.querySelectorAll('pre code').forEach(hljs.highlightElement);
             details.appendChild(content);
@@ -757,7 +764,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let newText = currentText + text;
 
         element.setAttribute('data-raw-text', newText);
-        element.innerHTML = marked.parse(newText);
+        element.innerHTML = DOMPurify.sanitize(marked.parse(newText));
         element.querySelectorAll('pre code').forEach(hljs.highlightElement);
     }
 
@@ -771,7 +778,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isPlaceholder) {
             contentDiv.innerHTML = '<span class="typing-indicator">...</span>';
         } else if (text) {
-            contentDiv.innerHTML = marked.parse(text);
+            contentDiv.innerHTML = DOMPurify.sanitize(marked.parse(text));
             contentDiv.setAttribute('data-raw-text', text);
             contentDiv.querySelectorAll('pre code').forEach(hljs.highlightElement);
         }
@@ -864,7 +871,7 @@ document.addEventListener('DOMContentLoaded', () => {
              vid.controls = true;
              content.appendChild(vid);
         } else if (artifact.text_content) {
-             content.innerHTML = marked.parse(artifact.text_content);
+             content.innerHTML = DOMPurify.sanitize(marked.parse(artifact.text_content));
         } else {
              content.textContent = 'Unsupported artifact type.';
         }
