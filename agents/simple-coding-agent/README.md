@@ -1,6 +1,12 @@
 # Gemma 4 Coding Agent
 
-This agent demonstrates how to create a coding agent using [Aget Development Kit (ADK)](https://adk.dev/) and [Google Gemma 4](https://ai.google.dev/gemma) open model. The agent can generate and execute Python code in an isolated WebAssembly environment (Pyodide).
+This agent demonstrates how to create a coding agent using [Agent Development Kit (ADK)](https://adk.dev/) and [Google Gemma 4](https://ai.google.dev/gemma) open model. The agent can generate and execute Python code in an isolated WebAssembly environment (Pyodide).
+
+It features a custom web client with:
+- **Real-time streaming** of thoughts and responses using SSE.
+- **Syntax highlighting** for code blocks and JSON.
+- **Artifact rendering** for generated images and media.
+- **Robust auto-scrolling** behavior.
 
 ## Example task
 
@@ -125,12 +131,18 @@ plt.close()
 5. Copy `.env.sample` as `.env`, and specify configuration values:
     * `API_BASE` – the URL of the deployed Cloud Run service with Gemma 4 vLLM server running.
     * `MODEL_NAME` – the model name, which is `google/gemma-4-31b-it`.
+    * `SERVER_BASE_URL` – (Optional) The URL of the ADK API server for the web client to proxy to (defaults to `http://localhost:8000`).
+    * `AGENT_NAME` – (Optional) The name of the agent to use. If not set, the server will auto-detect it from the available agents.
 
-5. Run `adk web` to interact with the agent:
+6. Run the application using the provided script:
 
     ```bash
-    adk web agents/simple-coding-agent
+    ./run.sh
     ```
+
+    This script will start both the ADK API server (port 8000) and the custom web client (port 8080).
+
+7. Open your browser and navigate to `http://localhost:8080` to interact with the agent.
 
 ## DISCLAIMER
 
