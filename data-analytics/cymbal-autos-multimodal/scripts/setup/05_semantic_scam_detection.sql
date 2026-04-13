@@ -1,12 +1,14 @@
 -- ==============================================================================
 -- 1. GENERATE MULTIMODAL EMBEDDINGS FOR VEHICLE IMAGES
 -- ==============================================================================
--- Embed the primary image for each vehicle to allow semantic search against images.
+-- Embed the images and description for each vehicle to allow semantic search.
 
 CREATE OR REPLACE TABLE `model_dev.vehicle_images_embedded` AS
 SELECT
   auction_id,
-  AI.EMBED(image_ref[OFFSET(0)], endpoint => 'multimodalembedding@001', connection_id => 'us.conn').result AS multimodal_embedding
+  AI.EMBED(
+    (image_ref, description),
+    endpoint => 'gemini-embedding-2-preview').result AS multimodal_embedding
 FROM `model_dev.vehicle_multimodal`
 WHERE ARRAY_LENGTH(image_ref) > 0;
 
@@ -21,7 +23,7 @@ SELECT
   profile_id, 
   description AS content, 
   profile_type, 
-  AI.EMBED(description, endpoint => 'text-embedding-005', connection_id => 'us.conn').result AS text_embedding
+  AI.EMBED(description, endpoint => 'text-embedding-005').result AS text_embedding
 FROM `model_dev.seller_risk_profiles`;
 
 
@@ -34,7 +36,7 @@ CREATE OR REPLACE TABLE `model_dev.vehicle_descriptions_embedded` AS
 SELECT 
   auction_id,
   description AS content,
-  AI.EMBED(description, endpoint => 'text-embedding-005', connection_id => 'us.conn').result AS text_embedding
+  AI.EMBED(description, endpoint => 'text-embedding-005').result AS text_embedding
 FROM `model_dev.vehicle_metadata`
 WHERE description IS NOT NULL;
 
