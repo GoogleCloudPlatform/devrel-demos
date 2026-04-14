@@ -19,7 +19,7 @@ substitutions:
   _KEYRING_NAME: "demo-attestor-keyring"
   _KEY_NAME: "demo-attestor-key"
   _KEY_VERSION: "1"
-  _LOCATION: "us-central1" # Cloud Run region to deploy demo
+  _LOCATION: "us-west1" # Cloud Run region to deploy demo
   _REPO_PATH: "approved-docker-repo/secured-ai-agent-demo"
 options:
   logging: CLOUD_LOGGING_ONLY

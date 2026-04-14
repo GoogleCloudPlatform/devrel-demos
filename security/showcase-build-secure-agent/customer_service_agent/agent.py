@@ -28,7 +28,7 @@ from .tools.bigquery_tools import (
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("PROJECT_ID")
 LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION") or os.environ.get(
-    "LOCATION", "us-central1"
+    "LOCATION", "us-west1"
 )
 MODEL_ID = os.environ.get("MODEL_ID", "gemini-2.5-flash")
 

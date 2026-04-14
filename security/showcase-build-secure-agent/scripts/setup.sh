@@ -41,12 +41,12 @@ if [[ -z "${PROJECT_ID}" ]]; then
     fi
 fi
 
-# Determine LOCATION: check LOCATION, then GOOGLE_CLOUD_LOCATION, then use "us-central1" as default
+# Determine LOCATION: check LOCATION, then GOOGLE_CLOUD_LOCATION, then use "us-west1" as default
 if [[ -z "${LOCATION}" ]]; then
     if [[ -n "${GOOGLE_CLOUD_LOCATION}" ]]; then
         LOCATION="${GOOGLE_CLOUD_LOCATION}"
     else
-        LOCATION="us-central1"
+        LOCATION="us-west1"
     fi
 fi
 
