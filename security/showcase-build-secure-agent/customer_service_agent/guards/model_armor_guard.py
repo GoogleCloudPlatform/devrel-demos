@@ -46,7 +46,7 @@ class ModelArmorGuard:
     def __init__(
         self,
         template_name: str,
-        location: str = "us-central1",
+        location: str = "us-west1",
         block_on_match: bool = True,
     ):
         """
@@ -343,7 +343,7 @@ def create_model_armor_guard(
 
     Environment variables:
         GOOGLE_CLOUD_PROJECT: GCP project ID
-        GOOGLE_CLOUD_LOCATION: Region (default: us-central1)
+        GOOGLE_CLOUD_LOCATION: Region (default: us-west1)
         TEMPLATE_NAME: Full Model Armor template resource name
 
     Returns:
@@ -357,7 +357,7 @@ def create_model_armor_guard(
     location = (
         location
         or os.environ.get("GOOGLE_CLOUD_LOCATION")
-        or os.environ.get("LOCATION", "us-central1")
+        or os.environ.get("LOCATION", "us-west1")
     )
     template_name = template_name or os.environ.get("TEMPLATE_NAME")
 

@@ -29,7 +29,7 @@ from google.auth.transport.requests import Request
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("PROJECT_ID")
 LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION") or os.environ.get(
-    "LOCATION", "us-central1"
+    "LOCATION", "us-west1"
 )
 AGENT_URL = os.environ.get("AGENT_URL")
 
