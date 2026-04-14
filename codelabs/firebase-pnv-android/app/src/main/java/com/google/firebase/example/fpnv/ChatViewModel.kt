@@ -115,7 +115,7 @@ class ChatViewModel : ViewModel() {
         parameters = mapOf(
             "restaurantName" to Schema.string("Name of the restaurant"),
             "date" to Schema.string("Date of reservation in the format YYYY-MM-DD"),
-            "time" to Schema.string("Time of reservation in the format HH:ss"),
+            "time" to Schema.string("Time of reservation in the format HH:mm"),
             "name" to Schema.string("User's name"),
             "partySize" to Schema.string("Number of guests")
         )
