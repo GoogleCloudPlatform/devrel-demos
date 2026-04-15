@@ -51,7 +51,6 @@ data class ChatUiState(
     val availableRestaurants: List<Restaurant> = emptyList(),
     val reservations: List<Reservation> = emptyList(),
     val pendingReservation: Reservation? = null,
-    val isVerifying: Boolean = false,
     val error: String? = null
 )
 
@@ -100,13 +99,13 @@ class ChatViewModel : ViewModel() {
     )
 
     // Tool Declarations
-    private val findRestaurantsDecl = FunctionDeclaration(
-        name = "findRestaurants",
-        description = "Search for restaurants in Las Vegas based on cuisine and area.",
+    private val listRestaurantsDecl = FunctionDeclaration(
+        name = "listRestaurants",
+        description = "Search for restaurants in Las Vegas based on desired cuisines, and display them in the UI for the user to see",
         parameters = mapOf(
-            "cuisine" to Schema.string("Desired cuisine type"),
-            "area" to Schema.string("Preferred area in Las Vegas")
-        )
+            "cuisine" to Schema.string("Desired cuisine type")
+        ),
+        optionalParameters = listOf("cuisine")
     )
 
     private val confirmReservationDecl = FunctionDeclaration(
@@ -115,7 +114,7 @@ class ChatViewModel : ViewModel() {
         parameters = mapOf(
             "restaurantName" to Schema.string("Name of the restaurant"),
             "date" to Schema.string("Date of reservation in the format YYYY-MM-DD"),
-            "time" to Schema.string("Time of reservation in the format HH:mm"),
+            "time" to Schema.string("Time of reservation in the format HH:ss"),
             "name" to Schema.string("User's name"),
             "partySize" to Schema.string("Number of guests")
         )
@@ -146,7 +145,7 @@ class ChatViewModel : ViewModel() {
                         tools = listOf(
                             Tool.functionDeclarations(
                                 listOf(
-                                    findRestaurantsDecl,
+                                    listRestaurantsDecl,
                                     confirmReservationDecl,
                                     verifyPhoneNumberDecl
                                 )
@@ -159,6 +158,9 @@ class ChatViewModel : ViewModel() {
                             
                             Your available restaurants are:
                             ${restaurants.joinToString("\n") { "- ${it.name} (${it.cuisine}, ${it.area}): ${it.description}" }}
+                            
+                            If the user asks about restaurants, call the listRestaurants function.
+                            This will show the restaurants to on the screen for review. 
                             
                             FOLLOW THIS STREAMLINED 2-STEP RESERVATION FLOW:
                             
@@ -192,14 +194,14 @@ class ChatViewModel : ViewModel() {
 
     fun functionCallHandler(call: FunctionCallPart): FunctionResponsePart {
         return when (call.name) {
-            "findRestaurants" -> {
-                val cuisine = call.args["cuisine"]?.jsonPrimitive?.content ?: ""
-                val area = call.args["area"]?.jsonPrimitive?.content ?: ""
-                val filtered = restaurants.filter {
-                    it.cuisine.contains(cuisine, ignoreCase = true) && it.area.contains(
-                        area,
-                        ignoreCase = true
-                    )
+            "listRestaurants" -> {
+                val cuisine = call.args["cuisine"]?.jsonPrimitive?.content
+                val filtered = if (cuisine != null) {
+                    restaurants.filter {
+                        it.cuisine.contains(cuisine, ignoreCase = true)
+                    }
+                } else {
+                    restaurants
                 }
                 _uiState.update { it.copy(availableRestaurants = filtered) }
                 FunctionResponsePart(
@@ -233,6 +235,17 @@ class ChatViewModel : ViewModel() {
                 runBlocking {
                     try {
                         val verifiedNum = verifyPhoneNumber()
+                        _uiState.update { state ->
+                            val pending = state.pendingReservation
+                            if (pending != null) {
+                                state.copy(
+                                    reservations = state.reservations + pending.copy(phoneNumber = verifiedNum),
+                                    pendingReservation = null
+                                )
+                            } else {
+                                state // Should not happen in correct flow
+                            }
+                        }
                         FunctionResponsePart(
                             call.name,
                             JsonObject(
@@ -267,22 +280,29 @@ class ChatViewModel : ViewModel() {
     }
 
     suspend fun verifyPhoneNumber(): String {
-        _uiState.update { it.copy(isVerifying = true) }
         // Call FPNV
         val phoneNumber = TODO("Call Firebase PNV to verify the user's phone number")
 
-        _uiState.update { state ->
-            val pending = state.pendingReservation
-            if (pending != null) {
-                state.copy(
-                    reservations = state.reservations + pending.copy(phoneNumber = phoneNumber),
-                    pendingReservation = null
-                )
-            } else {
-                state // Should not happen in correct flow
+    fun retry() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val verifiedNum = verifyPhoneNumber()
+                _uiState.update { state ->
+                    val pending = state.pendingReservation
+                    if (pending != null) {
+                        state.copy(
+                            reservations = state.reservations + pending.copy(phoneNumber = verifiedNum),
+                            pendingReservation = null
+                        )
+                    } else {
+                        state // Should not happen in correct flow
+                    }
+                }
+                liveSession?.send("I have verified my number")
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
-        return phoneNumber
     }
 
     fun stopCall() {

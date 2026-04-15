@@ -165,7 +165,10 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     item {
                         ReservationCard(
                             reservation = uiState.pendingReservation!!,
-                            isPending = true
+                            isPending = true,
+                            onRetry = {
+                                viewModel.retry()
+                            }
                         )
                     }
                 }
@@ -188,7 +191,10 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     items(uiState.reservations) { reservation ->
                         ReservationCard(
                             reservation = reservation,
-                            isPending = false
+                            isPending = false,
+                            onRetry = {
+                                viewModel.retry()
+                            }
                         )
                     }
                 }
@@ -246,7 +252,11 @@ fun RestaurantCard(restaurant: Restaurant) {
 }
 
 @Composable
-fun ReservationCard(reservation: Reservation, isPending: Boolean = false) {
+fun ReservationCard(
+    reservation: Reservation,
+    isPending: Boolean = false,
+    onRetry: () -> Unit
+) {
     val backgroundColor = if (isPending)
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
     else
@@ -294,6 +304,13 @@ fun ReservationCard(reservation: Reservation, isPending: Boolean = false) {
                     CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(8.dp))
                     Text("Awaiting phone verification...", style = MaterialTheme.typography.bodySmall, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                    TextButton(
+                        onClick =  {
+                            onRetry()
+                        }
+                    ) {
+                        Text("Retry")
+                    }
                 }
             }
         }
