@@ -298,7 +298,6 @@ class ChatViewModel : ViewModel() {
                         state // Should not happen in correct flow
                     }
                 }
-                liveSession?.send("I have verified my number")
             } catch (e: Exception) {
                 e.printStackTrace()
             }
