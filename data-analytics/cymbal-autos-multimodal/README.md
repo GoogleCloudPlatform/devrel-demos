@@ -135,7 +135,7 @@ Alternatively, deploy the application as a serverless container to the public in
 cd app
 gcloud run deploy cymbal-autos-frontend \
   --source . \
-  --region us-central1 \
+  --region us-west1 \
   --allow-unauthenticated \
   --min-instances 1 \
   --project $PROJECT_ID
