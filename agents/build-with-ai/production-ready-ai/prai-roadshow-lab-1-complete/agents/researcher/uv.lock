@@ -354,7 +354,7 @@ wheels = [
 
 [[package]]
 name = "fastapi"
-version = "0.123.10"
+version = "0.124.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "annotated-doc" },
@@ -362,14 +362,14 @@ dependencies = [
     { name = "starlette" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/22/ff/e01087de891010089f1620c916c0c13130f3898177955c13e2b02d22ec4a/fastapi-0.123.10.tar.gz", hash = "sha256:624d384d7cda7c096449c889fc776a0571948ba14c3c929fa8e9a78cd0b0a6a8", size = 356360, upload-time = "2025-12-05T21:27:46.237Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cd/21/ade3ff6745a82ea8ad88552b4139d27941549e4f19125879f848ac8f3c3d/fastapi-0.124.4.tar.gz", hash = "sha256:0e9422e8d6b797515f33f500309f6e1c98ee4e85563ba0f2debb282df6343763", size = 378460, upload-time = "2025-12-12T15:00:43.891Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/f0/7cb92c4a720def85240fd63fbbcf147ce19e7a731c8e1032376bb5a486ac/fastapi-0.123.10-py3-none-any.whl", hash = "sha256:0503b7b7bc71bc98f7c90c9117d21fdf6147c0d74703011b87936becc86985c1", size = 111774, upload-time = "2025-12-05T21:27:44.78Z" },
+    { url = "https://files.pythonhosted.org/packages/3e/57/aa70121b5008f44031be645a61a7c4abc24e0e888ad3fc8fda916f4d188e/fastapi-0.124.4-py3-none-any.whl", hash = "sha256:6d1e703698443ccb89e50abe4893f3c84d9d6689c0cf1ca4fad6d3c15cf69f15", size = 113281, upload-time = "2025-12-12T15:00:42.44Z" },
 ]
 
 [[package]]
 name = "google-adk"
-version = "1.22.0"
+version = "1.30.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiosqlite" },
@@ -378,11 +378,12 @@ dependencies = [
     { name = "click" },
     { name = "fastapi" },
     { name = "google-api-python-client" },
-    { name = "google-auth" },
+    { name = "google-auth", extra = ["pyopenssl"] },
     { name = "google-cloud-aiplatform", extra = ["agent-engines"] },
     { name = "google-cloud-bigquery" },
     { name = "google-cloud-bigquery-storage" },
     { name = "google-cloud-bigtable" },
+    { name = "google-cloud-dataplex" },
     { name = "google-cloud-discoveryengine" },
     { name = "google-cloud-pubsub" },
     { name = "google-cloud-secret-manager" },
@@ -391,6 +392,7 @@ dependencies = [
     { name = "google-cloud-storage" },
     { name = "google-genai" },
     { name = "graphviz" },
+    { name = "httpx" },
     { name = "jsonschema" },
     { name = "mcp" },
     { name = "opentelemetry-api" },
@@ -416,9 +418,9 @@ dependencies = [
     { name = "watchdog" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/29/88/d8192e87e603b6d7bee6812ea1a6a24ccb3fb29c266585d6226b9ce5b6c2/google_adk-1.22.0.tar.gz", hash = "sha256:777ee94c0741922345f747c11fb51beb515fdb0fbf25dccdbec5faadccd7fc41", size = 2046433, upload-time = "2026-01-08T18:38:24.211Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5e/4c/2d8eb9313e7c5e2dc23fac8aa74155c5628151eb037e5a33f21146220346/google_adk-1.30.0.tar.gz", hash = "sha256:53cf7330e76c14e44a8518e6d548bed7bf351537b3a98d9cfd29dc5d2f90de49", size = 2356985, upload-time = "2026-04-13T23:17:15.673Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/16/dff74edcf6c34ae8115dbc3a71260a55d8be9a6b8bc85a7bfd528f27d64d/google_adk-1.22.0-py3-none-any.whl", hash = "sha256:bd860399ff329946fa3a022a91743756419e9a9abc340e78ef7e1b33ec41ddb4", size = 2368553, upload-time = "2026-01-08T18:38:22.273Z" },
+    { url = "https://files.pythonhosted.org/packages/58/33/da2e72278ebbf0a41eb0dfc178def875f4ec781e71a0046b2bf11869ef58/google_adk-1.30.0-py3-none-any.whl", hash = "sha256:5e33f37a77d2af663296ad4e77eeaa78af20fff0ab0cb131059382f24347e21e", size = 2792492, upload-time = "2026-04-13T23:17:17.432Z" },
 ]
 
 [[package]]
@@ -461,18 +463,21 @@ wheels = [
 
 [[package]]
 name = "google-auth"
-version = "2.47.0"
+version = "2.49.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "cryptography" },
     { name = "pyasn1-modules" },
-    { name = "rsa" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/60/3c/ec64b9a275ca22fa1cd3b6e77fefcf837b0732c890aa32d2bd21313d9b33/google_auth-2.47.0.tar.gz", hash = "sha256:833229070a9dfee1a353ae9877dcd2dec069a8281a4e72e72f77d4a70ff945da", size = 323719, upload-time = "2026-01-06T21:55:31.045Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c6/fc/e925290a1ad95c975c459e2df070fac2b90954e13a0370ac505dff78cb99/google_auth-2.49.2.tar.gz", hash = "sha256:c1ae38500e73065dcae57355adb6278cf8b5c8e391994ae9cbadbcb9631ab409", size = 333958, upload-time = "2026-04-10T00:41:21.888Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/db/18/79e9008530b79527e0d5f79e7eef08d3b179b7f851cfd3a2f27822fbdfa9/google_auth-2.47.0-py3-none-any.whl", hash = "sha256:c516d68336bfde7cf0da26aab674a36fedcf04b37ac4edd59c597178760c3498", size = 234867, upload-time = "2026-01-06T21:55:28.6Z" },
+    { url = "https://files.pythonhosted.org/packages/73/76/d241a5c927433420507215df6cac1b1fa4ac0ba7a794df42a84326c68da8/google_auth-2.49.2-py3-none-any.whl", hash = "sha256:c2720924dfc82dedb962c9f52cabb2ab16714fd0a6a707e40561d217574ed6d5", size = 240638, upload-time = "2026-04-10T00:41:14.501Z" },
 ]
 
 [package.optional-dependencies]
+pyopenssl = [
+    { name = "pyopenssl" },
+]
 requests = [
     { name = "requests" },
 ]
@@ -620,6 +625,23 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a6/03/ef0bc99d0e0faf4fdbe67ac445e18cdaa74824fd93cd069e7bb6548cb52d/google_cloud_core-2.5.0.tar.gz", hash = "sha256:7c1b7ef5c92311717bd05301aa1a91ffbc565673d3b0b4163a52d8413a186963", size = 36027, upload-time = "2025-10-29T23:17:39.513Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/89/20/bfa472e327c8edee00f04beecc80baeddd2ab33ee0e86fd7654da49d45e9/google_cloud_core-2.5.0-py3-none-any.whl", hash = "sha256:67d977b41ae6c7211ee830c7912e41003ea8194bff15ae7d72fd6f51e57acabc", size = 29469, upload-time = "2025-10-29T23:17:38.548Z" },
+]
+
+[[package]]
+name = "google-cloud-dataplex"
+version = "2.18.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core", extra = ["grpc"] },
+    { name = "google-auth" },
+    { name = "grpc-google-iam-v1" },
+    { name = "grpcio" },
+    { name = "proto-plus" },
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ee/2b/c390bbe1f68015ea57eb9352e90ebbbf459c3139d9e5a8e6faa0b1abdc6e/google_cloud_dataplex-2.18.0.tar.gz", hash = "sha256:ae3f7f1b5c64675e8a4b66725d404eec864e12d29051323a2232bdb05797016d", size = 881810, upload-time = "2026-03-30T22:49:53.747Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b2/9a/8b096a6d772b7abf1c97dfbce17d47ba1d8a944ce8d7a239fd300a3ad8ae/google_cloud_dataplex-2.18.0-py3-none-any.whl", hash = "sha256:6e4ec95b24f64e95cec5f3753fbe7419f78ddb8b1ba90f8d955bc7613bb90764", size = 675743, upload-time = "2026-03-30T20:02:27.12Z" },
 ]
 
 [[package]]
@@ -832,7 +854,7 @@ wheels = [
 
 [[package]]
 name = "google-genai"
-version = "1.57.0"
+version = "1.73.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -846,9 +868,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2b/b4/8251c2d2576224a4b51a8ab6159820f9200b8da28ff555c78ee15607096e/google_genai-1.57.0.tar.gz", hash = "sha256:0ff9c36b8d68abfbdbd13b703ece926de5f3e67955666b36315ecf669b94a826", size = 485648, upload-time = "2026-01-07T20:38:20.271Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3d/d8/40f5f107e5a2976bbac52d421f04d14fc221b55a8f05e66be44b2f739fe6/google_genai-1.73.1.tar.gz", hash = "sha256:b637e3a3b9e2eccc46f27136d470165803de84eca52abfed2e7352081a4d5a15", size = 530998, upload-time = "2026-04-14T21:06:19.153Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d6/02/858bdae08e2184b6afe0b18bc3113318522c9cf326a5a1698055edd31f88/google_genai-1.57.0-py3-none-any.whl", hash = "sha256:d63c7a89a1f549c4d14032f41a0cdb4b6fe3f565e2eee6b5e0907a0aeceabefd", size = 713323, upload-time = "2026-01-07T20:38:18.051Z" },
+    { url = "https://files.pythonhosted.org/packages/65/af/508e0528015240d710c6763f7c89ff44fab9a94a80b4377e265d692cbfd6/google_genai-1.73.1-py3-none-any.whl", hash = "sha256:af2d2287d25e42a187de19811ef33beb2e347c7e2bdb4dc8c467d78254e43a2c", size = 783595, upload-time = "2026-04-14T21:06:17.464Z" },
 ]
 
 [[package]]
@@ -1124,14 +1146,14 @@ wheels = [
 
 [[package]]
 name = "mako"
-version = "1.3.10"
+version = "1.3.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "markupsafe" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9e/38/bd5b78a920a64d708fe6bc8e0a2c075e1389d53bef8413725c63ba041535/mako-1.3.10.tar.gz", hash = "sha256:99579a6f39583fa7e5630a28c3c1f440e4e97a414b80372649c0ce338da2ea28", size = 392474, upload-time = "2025-04-10T12:44:31.16Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/59/8a/805404d0c0b9f3d7a326475ca008db57aea9c5c9f2e1e39ed0faa335571c/mako-1.3.11.tar.gz", hash = "sha256:071eb4ab4c5010443152255d77db7faa6ce5916f35226eb02dc34479b6858069", size = 399811, upload-time = "2026-04-14T20:19:51.493Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/87/fb/99f81ac72ae23375f22b7afdb7642aba97c00a713c217124420147681a2f/mako-1.3.10-py3-none-any.whl", hash = "sha256:baef24a52fc4fc514a0887ac600f9f1cff3d82c61d4d700a1fa84d597b88db59", size = 78509, upload-time = "2025-04-10T12:50:53.297Z" },
+    { url = "https://files.pythonhosted.org/packages/68/a5/19d7aaa7e433713ffe881df33705925a196afb9532efc8475d26593921a6/mako-1.3.11-py3-none-any.whl", hash = "sha256:e372c6e333cf004aa736a15f425087ec977e1fcbd2966aae7f17c8dc1da27a77", size = 78503, upload-time = "2026-04-14T20:19:53.233Z" },
 ]
 
 [[package]]
@@ -1811,6 +1833,19 @@ crypto = [
 ]
 
 [[package]]
+name = "pyopenssl"
+version = "26.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cryptography" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8e/11/a62e1d33b373da2b2c2cd9eb508147871c80f12b1cacde3c5d314922afdd/pyopenssl-26.0.0.tar.gz", hash = "sha256:f293934e52936f2e3413b89c6ce36df66a0b34ae1ea3a053b8c5020ff2f513fc", size = 185534, upload-time = "2026-03-15T14:28:26.353Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fb/7d/d4f7d908fa8415571771b30669251d57c3cf313b36a856e6d7548ae01619/pyopenssl-26.0.0-py3-none-any.whl", hash = "sha256:df94d28498848b98cc1c0ffb8ef1e71e40210d3b0a8064c9d29571ed2904bf81", size = 57969, upload-time = "2026-03-15T14:28:24.864Z" },
+]
+
+[[package]]
 name = "pyparsing"
 version = "3.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1959,8 +1994,8 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "a2a-sdk", specifier = "==0.3.*" },
-    { name = "fastapi", specifier = "==0.123.*" },
-    { name = "google-adk", specifier = "==1.22.*" },
+    { name = "fastapi", specifier = "==0.124.*" },
+    { name = "google-adk", specifier = ">=1.27.4,<2.0.0" },
     { name = "google-cloud-logging", specifier = "==3.13.0" },
     { name = "opentelemetry-exporter-gcp-trace", specifier = "==1.11.0" },
     { name = "uvicorn", specifier = "==0.40.0" },
@@ -2057,18 +2092,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/13/64/b4d76f227d5c45a7e0b796c674fd81b0a6c4fbd48dc29271857d8219571c/rpds_py-0.30.0-pp311-pypy311_pp73-musllinux_1_2_aarch64.whl", hash = "sha256:dff13836529b921e22f15cb099751209a60009731a68519630a24d61f0b1b30a", size = 573981, upload-time = "2025-11-30T20:24:32.934Z" },
     { url = "https://files.pythonhosted.org/packages/20/91/092bacadeda3edf92bf743cc96a7be133e13a39cdbfd7b5082e7ab638406/rpds_py-0.30.0-pp311-pypy311_pp73-musllinux_1_2_i686.whl", hash = "sha256:1b151685b23929ab7beec71080a8889d4d6d9fa9a983d213f07121205d48e2c4", size = 599782, upload-time = "2025-11-30T20:24:35.169Z" },
     { url = "https://files.pythonhosted.org/packages/d1/b7/b95708304cd49b7b6f82fdd039f1748b66ec2b21d6a45180910802f1abf1/rpds_py-0.30.0-pp311-pypy311_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:ac37f9f516c51e5753f27dfdef11a88330f04de2d564be3991384b2f3535d02e", size = 562191, upload-time = "2025-11-30T20:24:36.853Z" },
-]
-
-[[package]]
-name = "rsa"
-version = "4.9.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pyasn1" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/da/8a/22b7beea3ee0d44b1916c0c1cb0ee3af23b700b6da9f04991899d0c555d4/rsa-4.9.1.tar.gz", hash = "sha256:e7bdbfdb5497da4c07dfd35530e1a902659db6ff241e39d9953cad06ebd0ae75", size = 29034, upload-time = "2025-04-16T09:51:18.218Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/64/8d/0133e4eb4beed9e425d9a98ed6e081a55d195481b7632472be1af08d2f6b/rsa-4.9.1-py3-none-any.whl", hash = "sha256:68635866661c6836b8d39430f97a996acbd61bfa49406748ea243539fe239762", size = 34696, upload-time = "2025-04-16T09:51:17.142Z" },
 ]
 
 [[package]]
