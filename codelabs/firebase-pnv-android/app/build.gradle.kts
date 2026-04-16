@@ -52,7 +52,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.ai.logic)
 
-    // TODO(developer): add a dependency on the FPNV SDK
+    implementation(libs.firebase.pnv)
 
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
