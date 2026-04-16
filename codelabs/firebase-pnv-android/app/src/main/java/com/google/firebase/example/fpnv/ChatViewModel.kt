@@ -280,8 +280,8 @@ class ChatViewModel : ViewModel() {
     }
 
     suspend fun verifyPhoneNumber(): String {
-        // Call FPNV
         val phoneNumber = TODO("Call Firebase PNV to verify the user's phone number")
+    }
 
     fun retry() {
         viewModelScope.launch(Dispatchers.IO) {
