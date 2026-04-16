@@ -48,10 +48,12 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+
     implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.ai.logic)
+
     // TODO(developer): add a dependency on the FPNV SDK
 
-    implementation(libs.firebase.ai.logic)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
