@@ -6,15 +6,13 @@ import google.auth.transport.requests
 from google.oauth2 import id_token
 from litellm import CustomStreamWrapper, ModelResponse
 
+creds, _ = google.auth.default()
+
 
 def get_auth_token() -> Optional[str]:
     """Obtains a Google ID token for the given audience (Cloud Run service URL)."""
     audience = os.getenv("OLLAMA_API_BASE", "")
     try:
-        creds, _ = google.auth.default()
-        # if user credentials are used
-        if hasattr(creds, "id_token") and creds.id_token:
-            return creds.id_token
         auth_req = google.auth.transport.requests.Request()
         creds.refresh(auth_req)
         if hasattr(creds, "id_token") and creds.id_token:
