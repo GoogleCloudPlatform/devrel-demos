@@ -1,3 +1,4 @@
+import os
 from typing import Any, Optional, Union
 from google.adk.models.lite_llm import LiteLLMClient
 import google.auth
