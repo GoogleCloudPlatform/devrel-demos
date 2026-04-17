@@ -1,6 +1,8 @@
 import os
 from typing import Any, Optional, Union
 from google.adk.models.lite_llm import LiteLLMClient
+import google.auth.transport.requests
+from google.oauth2 import id_token
 from litellm import CustomStreamWrapper, ModelResponse
 
 
