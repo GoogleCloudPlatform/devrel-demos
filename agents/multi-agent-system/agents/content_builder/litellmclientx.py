@@ -1,4 +1,3 @@
-import os
 from typing import Any, Optional, Union
 from google.adk.models.lite_llm import LiteLLMClient
 import google.auth.transport.requests
@@ -11,20 +10,15 @@ def get_auth_token() -> Optional[str]:
     audience = os.getenv("OLLAMA_API_BASE", "")
     try:
         creds, _ = google.auth.default()
-        print("DEBUG: acquiring credentials")
         # if user credentials are used
         if hasattr(creds, "id_token") and creds.id_token:
-            print("DEBUG: ID token in credentials")
             return creds.id_token
-        print("DEBUG: trying to refresh")
         auth_req = google.auth.transport.requests.Request()
         creds.refresh(auth_req)
         if hasattr(creds, "id_token") and creds.id_token:
-            print("DEBUG: ID token acquired after refresh")
             return creds.id_token
         # if service account credentials are used
         fetched_id_token = id_token.fetch_id_token(auth_req, audience)
-        print(f"DEBUG: ID token fetched with audience '{audience}'")
         return fetched_id_token
     except Exception as e:
         print(f"Error obtaining ID token for {audience}: {e}")
