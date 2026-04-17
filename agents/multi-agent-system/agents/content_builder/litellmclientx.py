@@ -27,7 +27,7 @@ def get_auth_token() -> Optional[str]:
 
 class AuthLiteLLMClient(LiteLLMClient):
     """
-    Overrides the LiteLLMClient to inject a custom httpx.AsyncClient.
+    Overrides the LiteLLMClient to inject a bearer token into the request headers.
     """
 
     def __init__(self, **data: Any) -> None:
