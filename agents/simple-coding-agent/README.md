@@ -131,8 +131,6 @@ plt.close()
 5. Copy `.env.sample` as `.env`, and specify configuration values:
     * `API_BASE` – the URL of the deployed Cloud Run service with Gemma 4 vLLM server running.
     * `MODEL_NAME` – the model name, which is `google/gemma-4-31b-it`.
-    * `SERVER_BASE_URL` – (Optional) The URL of the ADK API server for the web client to proxy to (defaults to `http://localhost:8000`).
-    * `AGENT_NAME` – (Optional) The name of the agent to use. If not set, the server will auto-detect it from the available agents.
 
 6. Run the application using the provided script:
 
@@ -140,9 +138,18 @@ plt.close()
     ./run.sh
     ```
 
-    This script will start both the ADK API server (port 8000) and the custom web client (port 8080).
+    This script will start the ADK API server (port 8000).
 
-7. Open your browser and navigate to `http://localhost:8080` to interact with the agent.
+## How to use
+
+Use **ADK Client** (located in [adk-client](../adk-client) to interact with the agent.
+
+In a separate terminal, run:
+
+```bash
+export SERVER_BASE_URL="http://localhost:8000"
+agents/simple-data-agent/run.sh
+```
 
 ## DISCLAIMER
 
