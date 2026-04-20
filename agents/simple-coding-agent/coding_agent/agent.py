@@ -87,11 +87,10 @@ async function main() {
 main();
 """
 
-def run_isolated_python(code: str) -> str:
-    """Runs Python code in an isolated Pyodide environment using Node.js.
+def run_python(code: str) -> str:
+    """Runs Python code in an isolated Pyodide environment.
 
     Files written to '/data' inside Pyodide are persisted to the host machine's `./data` folder.
-    Use this to run calculations, data processing scripts, or use standard scientific libraries.
     """
     workspace_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -128,7 +127,8 @@ def run_isolated_python(code: str) -> str:
             cwd=workspace_root,
             env=new_env
         )
-
+        code = code.replace(" <<< ", " < ")
+        code = code.replace(" << ", " < ")
         stdout, stderr = process.communicate(input=code)
 
         if process.returncode != 0:
@@ -139,19 +139,29 @@ def run_isolated_python(code: str) -> str:
         if os.path.exists(temp_js_path):
             os.unlink(temp_js_path)
 
+# You must avoid LaTeX expressions in your responses, even when thinking.
 
 system_instruction = """
-You are a helpful assistant that can execute Python code in an isolated WebAssembly environment (Pyodide).
-You can run calculations, run data processing scripts, or use standard scientific libraries.
+You are a helpful assistant with strong software engineering skills.
+You can write and execute Python code.
+You get stuff done. Securely and reliably.
 
-Do not be afraid to write and run code.
+Do not be afraid to write and run code. That's how you get stuff done.
 
-To save files persistently to the host machine, you MUST write them to the `/data` directory inside the sandbox (e.g., `/data/output.txt`). Writing to the current directory or other paths may not persist files to the host.
+* Use `run_python` tool to run Python code.
+
+To save files persistently to the host machine, your code MUST write them to the `/data` directory inside the sandbox (e.g., `/data/output.txt`).
+Writing to the current directory or other paths may not persist files to the host.
 If you save files, your answer must end with a list of full paths with full paths starting with `/data/`), as the following:
+
 ==== FILES SAVED ====
+
 /data/output.txt
-/data/subfolder/output2.png
+/data/folder/subfolder1/output88.png
+
 ==== END OF FILES SAVED ====
+
+============================
 """
 
 id_token = subprocess.check_output(['gcloud', 'auth', 'print-identity-token']).strip().decode()
@@ -237,6 +247,6 @@ root_agent = LlmAgent(
     model=custom_model,
     name='coding_agent',
     instruction=system_instruction,
-    tools=[run_isolated_python],
+    tools=[run_python],
     after_model_callback=pyodide_after_model_callback
 )

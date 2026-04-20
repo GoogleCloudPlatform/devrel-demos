@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Authenticating...</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #1e1e24;
+            color: #ffffff;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: #4285f4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Authorization Processed</h2>
+        <p>Updating your application, please stand by...</p>
+    </div>
+    <script>
+        if (window.opener) {
+            window.opener.postMessage({
+                type: 'ADK_OAUTH_CALLBACK',
+                url: window.location.href
+            }, window.location.origin);
+            window.close();
+        } else {
+            document.querySelector('.container').innerHTML = "<h2 style='color: #ea4335'>Error</h2><p>Could not locate main window to return credentials.</p>";
+        }
+    </script>
+</body>
+</html>
