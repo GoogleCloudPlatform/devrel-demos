@@ -120,6 +120,7 @@ type Game struct {
 	fontBold font.Face
 	fontBigBold font.Face
 	
+	showQRCode        bool
 	accessibilityMode bool
 	highContrastColors []color.RGBA
 	
@@ -164,6 +165,7 @@ func (g *Game) init() {
 	g.logoY = -600
 	g.introTimer = 0
 	g.introBgAlpha = 0
+	g.showQRCode = true
 	
 	if g.vkKeys == nil {
 		g.vkKeys = [][]string{
@@ -200,6 +202,9 @@ func (g *Game) init() {
 func (g *Game) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyF) {
 		ebiten.SetFullscreen(!ebiten.IsFullscreen())
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyQ) {
+		g.showQRCode = !g.showQRCode
 	}
 	// Only toggle accessibility in Playing or Animating states
 	if (g.state == StatePlaying || g.state == StateAnimating) && inpututil.IsKeyJustPressed(ebiten.KeyA) {
@@ -1155,12 +1160,13 @@ func (g *Game) drawText(screen *ebiten.Image) {
 		"Space: Select",
 		"F: Fullscreen",
 		"A: Accessibility",
+		"Q: Toggle QR",
 	}
 	for i, line := range instructions {
 		g.centerText(screen, line, g.fontNormal, sidePanelX + sidePanelW/2, sidePanelY + 240 + i*30, color.RGBA{200, 200, 200, 255})
 	}
 	
-	if g.qrcode != nil {
+	if g.showQRCode && g.qrcode != nil {
 		qop := &ebiten.DrawImageOptions{}
 		// QR code reduced by 20% (300x0.8 = 240)
 		qop.GeoM.Scale(0.8, 0.8)
