@@ -1,0 +1,13 @@
+.git
+.gemini
+screenshots
+node_modules
+*.png
+*.jpg
+!public/assets/*.png
+!public/assets/*.jpg
+!public/qrcode.png
+Dockerfile
+.dockerignore
+cloud-crush.wasm
+# removed wasm_exec.js and index.html from here to allow them in the image
