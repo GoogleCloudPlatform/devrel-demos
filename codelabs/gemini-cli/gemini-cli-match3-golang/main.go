@@ -165,7 +165,7 @@ func (g *Game) init() {
 	g.logoY = -600
 	g.introTimer = 0
 	g.introBgAlpha = 0
-	g.showQRCode = true
+	g.showQRCode = false
 	
 	if g.vkKeys == nil {
 		g.vkKeys = [][]string{
