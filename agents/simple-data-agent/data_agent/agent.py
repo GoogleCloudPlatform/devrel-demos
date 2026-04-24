@@ -24,6 +24,8 @@ from google.adk.tools.bigquery import BigQueryCredentialsConfig, BigQueryToolset
 from google.adk.tools.bigquery.config import BigQueryToolConfig, WriteMode
 import google.auth
 
+import httpx
+
 dotenv.load_dotenv()
 
 api_base = os.getenv(
@@ -43,9 +45,16 @@ project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
 if not project_id:
     raise ValueError("GOOGLE_CLOUD_PROJECT environment variable is not set")
 
-id_token = subprocess.check_output(
-    ['gcloud', 'auth', 'print-identity-token']
-).strip().decode()
+# Get an identity token from Google Cloud Metadata server (for Cloud Run) or from gcloud CLI (for local dev)
+try:
+    id_token = httpx.get(
+        f"http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience={api_base}",
+        headers={"Metadata-Flavor": "Google"}
+    ).text
+except Exception:
+    # Fall back to gcloud CLI for local dev
+    print("Getting identity token from gcloud CLI...")
+    id_token = subprocess.check_output(['gcloud', 'auth', 'print-identity-token']).strip().decode()
 
 custom_model = LiteLlm(
     model=f"openai/{model_name}",

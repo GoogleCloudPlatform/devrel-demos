@@ -6,7 +6,11 @@ A simple custom web client for [Agent Development Kit (ADK)](https://adk.dev/).
 
 ## Why not `adk web`?
 
-The default ADK Web App is a testing and debugging tool. It is not intended for end-users. This custom web client is an example of a custom web client that covers the vast majority of core ADK features:
+The default ADK Web App is a great testing and debugging tool.
+This custom web client is an example of an ADK web client that covers many ADK features,
+and demonstrates how to create user-facing agent clients.
+
+ADK features covered:
 
 * Multi-turn conversations
 * Tool calls visualization (a bit too nerdy, but the user knows what's going on)
@@ -61,10 +65,10 @@ export GOOGLE_CLOUD_REGION="us-central1" # (Required) Your Google Cloud region.
 export SERVER_BASE_URL="" # (Required) e.g. https://another-adk-server-123456.us-central1.run.app
 export AGENT_NAME="" # (Optional) If not set, the server will pick first from the agents available on the server.
 
-gcloud run deploy adk-client \
+gcloud beta run deploy adk-client \
   --source src \
   --no-build \
-  --base-image "node:22-slim" \
+  --base-image "google-24/nodejs24" \
   --command "node" \
   --args "server.js" \
   --project $GOOGLE_CLOUD_PROJECT \
@@ -85,7 +89,11 @@ gcloud run deploy adk-client \
     * Go to the Google Cloud Console, make sure you have selected the correct project.
     * Navigate to **Google Auth Platform** > **Clients**.
     * In **OAuth 2.0 Client IDs**, select your application.
-    * In the **Authorized redirect URIs** field, add a URL with your Cloud Run service URL and the `/auth_callback.html` path:
+    * In the **Authorized JavaScript origins** field, add a URL with your Cloud Run service URL:
+        ```
+        https://<your-cloud-run-service-url>
+        ```
+    * In the **Authorized redirect URIs** field, add a URL with your Cloud Run service URL followed by `/auth_callback.html` path:
         ```
         https://<your-cloud-run-service-url>/auth_callback.html
         ```
