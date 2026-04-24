@@ -4,33 +4,6 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
-// // Load .env file if it exists
-// try {
-//     const envPath1 = path.join('.env');
-//     const envPath2 = path.join(__dirname, '..', '.env');
-//     var envPath = envPath1;
-//     if (fs.existsSync(envPath1)) {
-//         envPath = envPath1;
-//     } else if (fs.existsSync(envPath2)) {
-//         envPath = envPath2;
-//     }
-//     if (fs.existsSync(envPath)) {
-//         const envData = fs.readFileSync(envPath, 'utf-8');
-//         envData.split('\n').forEach(line => {
-//             const trimmedLine = line.trim();
-//             if (trimmedLine && !trimmedLine.startsWith('#')) {
-//                 const [key, ...valueParts] = trimmedLine.split('=');
-//                 const value = valueParts.join('='); // Handle values containing '='
-//                 if (key && value) {
-//                     process.env[key.trim()] = value.trim();
-//                 }
-//             }
-//         });
-//     }
-// } catch (e) {
-//     console.error('Error loading .env file:', e);
-// }
-
 const PORT = process.env.PORT || 8080;
 
 // Combine API server into one variable - Server base URL
