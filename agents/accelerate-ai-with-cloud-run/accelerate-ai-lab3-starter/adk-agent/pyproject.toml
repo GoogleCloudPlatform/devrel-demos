@@ -10,7 +10,7 @@ dependencies = [
     "httpx>=0.25.0",
     "google-auth>=2.23.0",
     "locust==2.37.10",
-    "litellm==1.77.0",
+    "litellm==1.83.0",
 ]
 
 [dependency-groups]
