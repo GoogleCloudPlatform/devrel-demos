@@ -39,8 +39,8 @@ Evaluate the `Business_Logic_Rules.md` artifact (found in `docs/legacy-audit/`).
         *   For legacy Mongoose methods like password hashing, install `bcrypt@latest` and `-D @types/bcrypt@latest`.
     *   **Command Example (MongoDB 7 / JWT):** `npm install next-auth@latest mongodb@latest zod@latest bcrypt@latest && npm install -D @types/bcrypt@latest`
 
-### Step 3. Clean the Scaffold
+### Step 4. Clean the Scaffold
 Remove default boilerplate from `src/app/page.tsx` and `src/app/globals.css` to create a blank canvas for the next subagents.
 
-### Step 4. Verification
+### Step 5. Verification
 Ensure `npm run build` succeeds on the empty foundation.

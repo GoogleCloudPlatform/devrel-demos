@@ -1,5 +1,5 @@
 ---
-name: scaffolding-ui-and-pagess
+name: scaffolding-ui-and-pages
 description: Translates a UI_Component_Inventory.md artifact into modern ShadCN + Tailwind components AND fully scaffolded Next.js pages. Use when building the frontend design system and routing infrastructure.
 ---
 
@@ -37,7 +37,7 @@ Task Progress:
 ## Base UI & asChild Best Practices
 If the design system uses `@base-ui/react` primitives (standard in ShadCN v4+), you MUST follow these patterns for `asChild` support:
 
-1.  **Implicit Slot Pattern**: Use the `render` prop on Base UI primitives to implement `asChild`. 
+1.  **Implicit Slot Pattern**: Use the `render` prop on Base UI primitives to implement `asChild`.
 2.  **Button Semantics**: When a `Button` or `MenuItem` acts as a `Link` (via `asChild`), you MUST set `nativeButton={false}` on the primitive to suppress semantics warnings and avoid invalid nested interactive elements.
     *   **Example**: `<ButtonPrimitive nativeButton={false} render={(props) => <Link {...props} />}>`
 3.  **Prop Merging**: Use `React.cloneElement` or direct Prop spreading into the `render` callback to ensure `ref`, `className`, and event handlers are correctly merged onto the child.

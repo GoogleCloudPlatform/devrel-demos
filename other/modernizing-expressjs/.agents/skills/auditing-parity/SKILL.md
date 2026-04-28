@@ -62,4 +62,4 @@ Input malformed data (invalid IDs, excessively long strings) and compare the err
 Compile findings into a `docs/verification/Functional_Parity_Report.md`. Categorize every finding as **Confirmed Parity**, **Functional Gap** (missing logic), or **Intentional Drift** (modernized logic with a documented reason).
 
 ### Step 6: Rinse and Repeat
-If there are any gaps or errors during testing, go back to the modern app and fix them. Then, repeat tthese steps from the beginning until the modern app is a perfect functional replacement for the legacy app.
+If there are any gaps or errors during testing, go back to the modern app and fix them. Then, repeat these steps from the beginning until the modern app is a perfect functional replacement for the legacy app.

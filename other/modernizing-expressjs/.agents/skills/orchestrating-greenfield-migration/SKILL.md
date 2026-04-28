@@ -11,7 +11,7 @@ This skill manages the transition from legacy Node.js monoliths (Express/Pug/Mon
 The preferred workspace layout is a **"Modernization Hub"** monorepo:
 ```text
 /workspace-root/
-├── .agent/         # This Skills Pack
+├── .agents/        # This Skills Pack
 ├── docs/           # Centralized Audit & Verification Specs
 ├── legacy-app/     # The Source (Read-Only)
 └── modern-app/     # The Target (The Greenfield Repo)

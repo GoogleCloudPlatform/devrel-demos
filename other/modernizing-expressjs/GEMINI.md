@@ -28,7 +28,7 @@ Use this table to document errors, their root causes, and how to avoid them in t
 | 2026-04-05 | `EADDRINUSE :::3000` crash in Mongoose legacy apps | `mongoose.connection.once('open', listen)` fires again on auto-reconnects, causing `app.listen(port)` to be called a second time. | Add a boolean guard `isListening` to the `listen` function to prevent multiple calls to `app.listen`. | When using `mongoose.connection.once('open', listen)` in legacy codebases, always wrap `app.listen` with an `isListening` flag globally or verify listeners before binding. |
 | 2026-04-27 | `.json() is not a function` in Vitest using `node-mocks-http` | `node-mocks-http` `createRequest` returns an object that lacks the App Router `Request.json()` method. | Monkey-patch the mock request in tests with `req.json = async () => req.body`. | Always inject or mock `req.json()` when using `node-mocks-http` to test Next.js App Router Route Handlers. |
 | 2026-04-27 | Empty `{}` returned for Zod errors in `NextResponse.json` | Next.js struggles to serialize raw `ZodIssue` arrays directly if they are treated as complex objects rather than plain data. | Use `result.error.flatten().fieldErrors` instead of `result.error.errors` within `NextResponse.json(...)`. | Always flatten Zod validation errors to plain objects before passing to `NextResponse.json()` in Next.js.
-s
+
 ---
 
 ## Evolution Notes
