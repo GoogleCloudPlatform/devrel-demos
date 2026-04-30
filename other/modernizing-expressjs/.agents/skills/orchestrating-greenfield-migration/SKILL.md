@@ -53,6 +53,6 @@ Dispatch subagents to produce specifications while identifying project-specific 
 1.  **Validate Paths**: Confirm the relative paths to the `legacy-app` and `modern-app`.
 2.  **Dispatch Subagents**: Explicitly tell subagents where the source code and documentation folders are located.
 3.  **Checkpointing**: Wait for each phase's artifacts (in `docs/`) to be completed before starting the implementation phase.
-a
+
 ## Resources
 - **`resources/verification-strategy.md`**: The master methodology for side-by-side verification.
