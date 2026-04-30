@@ -1,59 +1,58 @@
-# Verification Strategy: The Two-Tab Test
-
-This document outlines the standard procedure for verifying a modernized Next.js application against its legacy Express counterpart.
-
-## The Objective
-A successful modernization must provide **perfect functional parity** for external consumers (API clients) and **intentional interaction parity** for end users, while adopting a superior design system.
-
+---
+name: orchestrating-greenfield-migration
+description: Manages the end-to-end modernization of legacy Express monoliths into Next.js architectures. Orchestrates subagents for auditing, scaffolding, and verification. Use when starting or managing a greenfield rewrite project.
 ---
 
-### Step 1: Environment Preparation
-You MUST explicitly invoke the `browser_subagent` tool to perform a runtime audit. Ensure both systems are locally accessible before invoking the tool:
+# Greenfield Migration Orchestrator
 
-| Application | Command | Port |
-| :--- | :--- | :--- |
-| **Legacy (Express)** | `npm start` | `3000` |
-| **Modern (Next.js)** | `npm run dev` | `3001` |
+This skill manages the transition from legacy Node.js monoliths (Express/Pug/Mongoose) to modern Next.js architectures using a **Greenfield Rewrite** strategy.
 
-> [!IMPORTANT]
-> **Unified Data State**: It is highly recommended to point both applications to the **same MongoDB instance** (or a recently mirrored snapshot). This ensures that resource IDs, search results, and authentication sessions are consistent during side-by-side testing.
+## Modernization Hub Structure
+The preferred workspace layout is a **"Modernization Hub"** monorepo:
+```text
+/workspace-root/
+├── .agents/        # This Skills Pack
+├── docs/           # Centralized Audit & Verification Specs
+├── legacy-app/     # The Source (Read-Only)
+└── modern-app/     # The Target (The Greenfield Repo)
+```
 
-> [!IMPORTANT]
-> **Browse Subagent Form Testing**: When testing a web form, it is critical that the form field is cleared prior to text entry to avoid appending a value to an existing value. For example, clear the "Title" field before entering a new title. `Username` and `Password` fields MUST always be emptied before entering a new value.
+## The Workflow
 
----
+### Phase 1: The AI Audit (Reverse Engineering)
+Dispatch subagents to produce specifications while identifying project-specific test scenarios for the `Verification_Plan.md`.
 
-### Step 2: The Functional Parity Audit (`auditing-functional-parity`)
-Dispatch an agent to perform the following checks across both `/api` surfaces:
+*   [ ] **Establish Database Strategy**: Decide whether to use the **Existing Legacy DB** or a **Seeded Greenfield DB**. (Default: Legacy Direct).
+*   [ ] **Expose Legacy DB to Host**: If using the legacy DB via Docker, modify `legacy-app/docker-compose.yml` to include `ports: ["27017:27017"]` and restart the service.
+*   [ ] **Initialize `docs/verification/Verification_Plan.md`**: Create the baseline template using `resources/verification-strategy.md`.
+*   [ ] Run `auditing-data-models` -> Append **Data Integrity Stress-Tests**.
+*   [ ] Run `auditing-api-contracts` -> Append **API Parity & Edge Case Probes**.
+*   [ ] Run `auditing-business-logic` -> Append **Logic & Authorization Stress-Tests**.
+*   [ ] Run `auditing-ui-archeology` -> Append **Interaction & Layout Verification Targets**.
 
-1.  **Response Envelope Check**: Compare a `GET` request to both endpoints.
-    - *Example*: Does both return `{ "id": 1, "title": "..." }` or is one wrapped in `{ "data": ... }`?
-2.  **Error Object Consistency**: Intentional parity is required for error fields.
-    - *Check*: If validation fails, does the legacy app return `errors: { field: "msg" }`? The new app must mirror this key structure.
-3.  **Status Code Verification**: Ensure a `404` in the old app is correctly mapped to a `404` in the new app (and not a `500` due to unhandled exceptions).
+### Phase 2: The Greenfield Foundation & TDD
+*   [ ] Run `scaffolding-nextjs-foundation` to generate the base App.
+*   [ ] Run `scaffolding-test-foundation` to configure Vitest.
+*   [ ] Run `generating-api-tests` to convert `API_Contracts.md` into failing integration tests.
 
----
+### Phase 3: The Greenfield Scaffold (Make Tests Pass)
+*   [ ] Run `scaffolding-data-layer` to translate models into Native MongoDB/Zod types.
+*   [ ] Run `scaffolding-api-routes` to implement Route Handlers until tests pass.
+*   [ ] **Skip or Run** `generating-database-seeder` based on the Strategy decision.
 
-### Step 3: The Adversarial Probe (`adversarial-verification`)
-Scrutinize the security and resiliency of the new Next.js routes:
+### Phase 4: The UI & Pages Scaffold
+*   [ ] Run `scaffolding-ui-and-pages` to translate `UI_Component_Inventory.md` into ShadCN components AND complete Next.js pages.
+*   [ ] **Strict Checkpoint**: Verify that every route identified in the "Route & Page Topology" section of the inventory has an associated `page.tsx` implementation.
 
-1.  **Identity & Ownership**:
-    - Log into the modern app as **User A**.
-    - Attempt a `DELETE` or `PUT` request to a resource owned by **User B**.
-    - **Expected Outcome**: Rejection with `404 Not Found` or `401 Unauthorized`.
-2.  **Schema Stress-Testing**:
-    - Submit an empty JSON object `{}` to a `POST` handler that requires specific fields.
-    - **Expected Outcome**: Graceful `422 Unprocessable Entity` with Zod-driven error messages.
-3.  **Dirty Data Grace**:
-    - Manually remove a "required" field (defined in your new Zod schema) from a record in the database.
-    - **Expected Outcome**: The UI should handle the missing data (e.g., using a default value) without a runtime crash.
+### Phase 5: Verification & Adversarial Audit
+*   [ ] Run `auditing-parity` to perform a side-by-side runtime check.
+*   [ ] Run `adversarial-verification` to probe for security and logic flaws.
+*   [ ] Finalize `Parity_Adversarial_Report.md`.
 
----
-
-### Step 4: Final Certification
-After all implementation fixes have been verified, generate the **`Parity_Adversarial_Report.md`**.
-
-- **Certification Level**:
-    - 🟢 **Full Parity**: Identical behavior and security.
-    - 🟡 **Partial Parity**: Minor UI/UX drift with documented reasoning.
-    - 🔴 **Significant Drift**: Core business logic differs from the original specification.
+## Instructions for Orchestration
+1.  **Validate Paths**: Confirm the relative paths to the `legacy-app` and `modern-app`.
+2.  **Dispatch Subagents**: Explicitly tell subagents where the source code and documentation folders are located.
+3.  **Checkpointing**: Wait for each phase's artifacts (in `docs/`) to be completed before starting the implementation phase.
+a
+## Resources
+- **`resources/verification-strategy.md`**: The master methodology for side-by-side verification.
