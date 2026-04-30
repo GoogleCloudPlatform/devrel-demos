@@ -8,7 +8,7 @@ A successful modernization must provide **perfect functional parity** for extern
 ---
 
 ### Step 1: Environment Preparation
-To perform a runtime audit, both systems must be locally accessible:
+You MUST explicitly invoke the `browser_subagent` tool to perform a runtime audit. Ensure both systems are locally accessible before invoking the tool:
 
 | Application | Command | Port |
 | :--- | :--- | :--- |
@@ -17,6 +17,9 @@ To perform a runtime audit, both systems must be locally accessible:
 
 > [!IMPORTANT]
 > **Unified Data State**: It is highly recommended to point both applications to the **same MongoDB instance** (or a recently mirrored snapshot). This ensures that resource IDs, search results, and authentication sessions are consistent during side-by-side testing.
+
+> [!IMPORTANT]
+> **Browse Subagent Form Testing**: When testing a web form, it is critical that the form field is cleared prior to text entry to avoid appending a value to an existing value. For example, clear the "Title" field before entering a new title. `Username` and `Password` fields MUST always be emptied before entering a new value.
 
 ---
 
@@ -50,7 +53,7 @@ Scrutinize the security and resiliency of the new Next.js routes:
 ### Step 4: Final Certification
 After all implementation fixes have been verified, generate the **`Parity_Adversarial_Report.md`**.
 
-- **Certification Level**: 
+- **Certification Level**:
     - 🟢 **Full Parity**: Identical behavior and security.
     - 🟡 **Partial Parity**: Minor UI/UX drift with documented reasoning.
     - 🔴 **Significant Drift**: Core business logic differs from the original specification.
