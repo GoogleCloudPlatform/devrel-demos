@@ -39,24 +39,24 @@ Task Progress:
 ```
 
 ### Step 1. Execute Side-by-Side Interactions
-Open both apps in the browser. Perform the following actions in tandem:
+You MUST invoke the `browser_subagent` tool to interactively test both applications. Formulate a specific subagent task to perform the following actions in tandem:
 - **Navigation**: Click through all primary and sub-resource routes. Do the URL structures match or have a clear mapping?
 - **Data Entry**: Submit the same data into both legacy and modern forms. Ensure both succeed or fail in the same way.
 - **Empty States**: Compare views when no data is present.
 
-### Step 2. Compare Network Payloads
-Use the browser developer tools (or server logs) to intercept API requests:
-- **Request Bodies**: Ensure the new frontend sends the exact same field names and types expected by the legacy API contract.
-- **Response Envelopes**: Verify that the JSON response structure is identical (Check for wrapped vs. unwrapped payloads).
-- **Status Codes**: Confirm that success (200/201) and failure (400/404/422/500) codes are shared between both versions.
+### Step 2. Compare Network Payloads (Terminal / CLI)
+You MUST use the `run_command` tool with `curl` to directly query and intercept API requests, avoiding browser caching or rendering delays:
+- **Request Bodies**: Ensure the new frontend API routes accept the exact same field names and types expected by the legacy API contract.
+- **Response Envelopes**: Verify that the JSON response structure is identical (Check for wrapped vs. unwrapped payloads using `curl | jq .`).
+- **Status Codes**: Confirm that success (200/201) and failure (400/404/422/500) HTTP codes match exactly.
 
-### Step 3. Verify Complex Authorization
-Test "Owner-Only" and "Role-Only" logic by attempting unauthorized actions in both:
-- **Unauthorized Access**: If the legacy app redirects to `/login` for a specific route, does the modern app do the same?
-- **Horizontal Privilege Checks**: If a user cannot delete another's resource in the legacy app, confirm the same failure occurs in the modern app.
+### Step 3. Verify Complex Authorization (Terminal / CLI)
+Use `curl` (via `run_command`) to construct authenticated and unauthenticated network requests to test "Owner-Only" and "Role-Only" logic:
+- **Unauthorized Access**: If the legacy app redirects to `/login` for a specific route, does the modern app do the same or return a 401?
+- **Horizontal Privilege Checks**: Attempt a `DELETE` request for another user's resource. Confirm the same failure/guard occurs in the modern app.
 
-### Step 4. Validate Edge Cases & Error Responses
-Input malformed data (invalid IDs, excessively long strings) and compare the error messages returned. While the UI can be modern, the **API logic must remain functionally equivalent** to prevent breaking downstream consumers.
+### Step 4. Validate Edge Cases & Error Responses (Terminal / CLI)
+Use `curl` (via `run_command`) to inject malformed data via POST/PUT payloads (empty JSON `{}`, invalid IDs, excessively long strings) and strictly compare the `errors` array structures returned. While the UI can be modern, the **API logic must remain functionally equivalent** to prevent breaking downstream consumers.
 
 ### Step 5. Final Parity Report
 Compile findings into a `docs/verification/Functional_Parity_Report.md`. Categorize every finding as **Confirmed Parity**, **Functional Gap** (missing logic), or **Intentional Drift** (modernized logic with a documented reason).
