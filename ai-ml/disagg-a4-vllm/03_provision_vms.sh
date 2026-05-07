@@ -38,9 +38,12 @@ fi
 
 # 3. Build Network Interface Arguments
 # We need:
-# - 1 GVNIC interface (nic0 on default)
-# - 8 MRDMA interfaces (nic1-8 on roce-subnet-0 to roce-subnet-7)
+# - Exactly 2 GVNIC interfaces to comply with A4 requirements:
+#   - nic0 on the default GCloud VPC network
+#   - nic1 on the distinct regular GVNIC VPC network aw-gvnic-main!
+# - Exactly 8 MRDMA interfaces (nic2-9 on roce-subnet-0 to roce-subnet-7)
 NIC_ARGS="--network-interface=network=default,subnet=default,nic-type=GVNIC"
+NIC_ARGS="$NIC_ARGS --network-interface=network=aw-gvnic-main,subnet=aw-gvnic-sub,nic-type=GVNIC"
 
 for i in {0..7}; do
     NIC_ARGS="$NIC_ARGS --network-interface=subnet=roce-subnet-$i,nic-type=MRDMA,no-address"
