@@ -28,15 +28,10 @@ NODE_0_IP=$(gcloud compute instances describe disagg-node-0 \
 echo "Node 0 Internal IP: $NODE_0_IP"
 
 # Update env.sh with HEAD_NODE_IP for subsequent scripts
-# Remove old definitions if they exist to ensure fresh update
-if sed --version >/dev/null >&1; then
-    sed -i '/HEAD_NODE_IP/d' env.sh
-    sed -i '/ETCD_ENDPOINTS/d' env.sh
-    sed -i '/NATS_SERVER/d' env.sh
-else
-    sed -i '' '/HEAD_NODE_IP/d' env.sh
-    sed -i '' '/ETCD_ENDPOINTS/d' env.sh
-    sed -i '' '/NATS_SERVER/d' env.sh
+# Remove old definitions if they exist to ensure fresh update (cross-platform POSIX compatible)
+if [ -f env.sh ]; then
+    grep -v -E 'HEAD_NODE_IP|ETCD_ENDPOINTS|NATS_SERVER' env.sh > env.sh.tmp || true
+    mv env.sh.tmp env.sh
 fi
 
 # Append fresh definitions
@@ -83,12 +78,19 @@ sudo docker ps
 EOF
 )
 
+# Build conditional SSH arguments for corporate environment compliance
+SSH_ARGS=""
+if [ "$USE_INTERNAL_SSH_OVERRIDE" = "true" ]; then
+    echo "Enabling Google Corporate Internal SSH Hostname override..."
+    SSH_ARGS="-- -o Hostname=nic0.disagg-node-0.${ZONE}.c.${PROJECT_ID}.internal.gcpnode.com"
+fi
+
 echo "SSHing into disagg-node-0 to start services..."
 gcloud compute ssh disagg-node-0 \
     --zone="$ZONE" \
     --project="$PROJECT_ID" \
     --command="$SSH_COMMANDS" \
-    -- -o Hostname=nic0.disagg-node-0.$ZONE.c.$PROJECT_ID.internal.gcpnode.com
+    $SSH_ARGS
 
 echo "===================================================="
 echo " etcd and NATS are running on disagg-node-0."

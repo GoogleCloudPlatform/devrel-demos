@@ -59,13 +59,19 @@ sudo docker logs disagg-decode --tail 20
 EOF
 )
 
+# Build conditional SSH arguments for corporate environment compliance
+SSH_ARGS=""
+if [ "$USE_INTERNAL_SSH_OVERRIDE" = "true" ]; then
+    echo "Enabling Google Corporate Internal SSH Hostname override..."
+    SSH_ARGS="-- -o Hostname=nic0.disagg-node-1.${ZONE}.c.${PROJECT_ID}.internal.gcpnode.com"
+fi
+
 echo "SSHing into disagg-node-1 to deploy containers..."
 gcloud compute ssh disagg-node-1 \
     --zone="$ZONE" \
     --project="$PROJECT_ID" \
     --command="$SSH_COMMANDS" \
-    -- -o Hostname=nic0.disagg-node-1.$ZONE.c.$PROJECT_ID.internal.gcpnode.com
-
+    $SSH_ARGS
 
 echo "===================================================="
 echo " Decode Worker deployed on Node 1."

@@ -29,22 +29,37 @@ curl -s -X POST "http://localhost:8000/v1/completions" \
 EOF
 )
 
+# Build conditional SSH arguments for corporate environment compliance
+SSH_ARGS=""
+if [ "$USE_INTERNAL_SSH_OVERRIDE" = "true" ]; then
+    echo "Enabling Google Corporate Internal SSH Hostname override..."
+    SSH_ARGS="-- -o Hostname=nic0.disagg-node-0.${ZONE}.c.${PROJECT_ID}.internal.gcpnode.com"
+fi
+
 echo "Sending test request locally on Node 0 via SSH..."
 gcloud compute ssh disagg-node-0 \
     --zone="$ZONE" \
     --project="$PROJECT_ID" \
     --command="$VERIFY_COMMAND" \
-    -- -o Hostname=nic0.disagg-node-0.$ZONE.c.$PROJECT_ID.internal.gcpnode.com
+    $SSH_ARGS
 
 echo ""
 echo "===================================================="
 echo " Verification completed."
 echo " To confirm disaggregated serving (Prefill -> NCCL GVNIC Transfer -> Decode):"
 echo " 1. Check Prefill logs on Node 0:"
-echo "    gcloud compute ssh disagg-node-0 --zone=$ZONE --command='sudo docker logs disagg-prefill --tail 50'"
+if [ "$USE_INTERNAL_SSH_OVERRIDE" = "true" ]; then
+    echo "    gcloud compute ssh disagg-node-0 --zone=$ZONE --command='sudo docker logs disagg-prefill --tail 50' -- -o Hostname=nic0.disagg-node-0.${ZONE}.c.${PROJECT_ID}.internal.gcpnode.com"
+else
+    echo "    gcloud compute ssh disagg-node-0 --zone=$ZONE --command='sudo docker logs disagg-prefill --tail 50'"
+fi
 echo "    Look for: '[PyNcclConnector] Save KV layer' or similar."
 echo " 2. Check Decode logs on Node 1:"
-echo "    gcloud compute ssh disagg-node-1 --zone=$ZONE --command='sudo docker logs disagg-decode --tail 50'"
+if [ "$USE_INTERNAL_SSH_OVERRIDE" = "true" ]; then
+    echo "    gcloud compute ssh disagg-node-1 --zone=$ZONE --command='sudo docker logs disagg-decode --tail 50' -- -o Hostname=nic0.disagg-node-1.${ZONE}.c.${PROJECT_ID}.internal.gcpnode.com"
+else
+    echo "    gcloud compute ssh disagg-node-1 --zone=$ZONE --command='sudo docker logs disagg-decode --tail 50'"
+fi
 echo "    Look for: '[PyNcclConnector] Load KV layer' and autoregressive generation."
 echo " "
 echo " Please run the next script to benchmark: ./09_benchmark.sh"

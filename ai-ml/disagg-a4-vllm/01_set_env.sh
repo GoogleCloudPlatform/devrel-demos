@@ -43,8 +43,16 @@ fi
 read -p "Enter Model Name [meta-llama/Meta-Llama-3-8B-Instruct]: " MODEL_NAME
 MODEL_NAME=${MODEL_NAME:-meta-llama/Meta-Llama-3-8B-Instruct}
 
-# Prompt for Reservation ID (Optional)
+# Prompt for GCP Reservation ID (Optional)
 read -p "Enter GCP Reservation ID (leave empty if none): " RESERVATION_ID
+
+# Prompt for GCP Corporate internal hostname override (Optional)
+read -p "Use Google Corporate Internal SSH Hostname override? (y/N): " USE_INTERNAL_SSH
+if [[ "$USE_INTERNAL_SSH" =~ ^[Yy]$ ]]; then
+    export USE_INTERNAL_SSH_OVERRIDE="true"
+else
+    export USE_INTERNAL_SSH_OVERRIDE="false"
+fi
 
 # Define static variables
 SERVED_MODEL_NAME="$MODEL_NAME"
@@ -62,6 +70,7 @@ export MODEL_NAME="$MODEL_NAME"
 export RESERVATION_ID="$RESERVATION_ID"
 export SERVED_MODEL_NAME="$SERVED_MODEL_NAME"
 export MODEL_PATH="$MODEL_PATH"
+export USE_INTERNAL_SSH_OVERRIDE="$USE_INTERNAL_SSH_OVERRIDE"
 EOF
 
 chmod +x "$ENV_FILE"
