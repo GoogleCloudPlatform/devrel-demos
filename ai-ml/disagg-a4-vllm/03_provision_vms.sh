@@ -63,6 +63,8 @@ gcloud compute instances create disagg-node-0 \
     --image-family="$IMAGE_FAMILY" \
     --image-project=deeplearning-platform-release \
     $NIC_ARGS \
+    --boot-disk-size=200GB \
+    --boot-disk-type=pd-ssd \
     --accelerator=type=nvidia-b200,count=8 \
     --maintenance-policy=TERMINATE --restart-on-failure \
     --resource-policies="$PLACEMENT_POLICY" \
@@ -81,6 +83,8 @@ gcloud compute instances create disagg-node-1 \
     --image-family="$IMAGE_FAMILY" \
     --image-project=deeplearning-platform-release \
     $NIC_ARGS \
+    --boot-disk-size=200GB \
+    --boot-disk-type=pd-ssd \
     --accelerator=type=nvidia-b200,count=8 \
     --maintenance-policy=TERMINATE --restart-on-failure \
     --resource-policies="$PLACEMENT_POLICY" \
@@ -88,7 +92,23 @@ gcloud compute instances create disagg-node-1 \
     --project="$PROJECT_ID"
 set +x
 
+# 6. Provision disagg-benchmark-host (Client Benchmarking Devhost)
+echo "Provisioning disagg-benchmark-host..."
+gcloud compute instances delete disagg-benchmark-host --zone="$ZONE" --project="$PROJECT_ID" --quiet || true
+
+set -x
+gcloud compute instances create disagg-benchmark-host \
+    --zone="$ZONE" \
+    --machine-type=n2-standard-2 \
+    --image-family="ubuntu-2204-lts" \
+    --image-project="ubuntu-os-cloud" \
+    --network-interface=network=default,subnet=default,nic-type=GVNIC \
+    --boot-disk-size=100GB \
+    --boot-disk-type=pd-ssd \
+    --project="$PROJECT_ID"
+set +x
+
 echo "===================================================="
-echo " A4 VMs provisioned successfully with 10 NICs."
+echo " A4 VMs and Benchmark host provisioned successfully."
 echo " Please run the next script: ./04_setup_infrastructure.sh"
 echo "===================================================="

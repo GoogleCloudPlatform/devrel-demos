@@ -3,7 +3,7 @@ set -ex
 
 # SCRIPT: 09_benchmark.sh
 # PURPOSE: Transfer and run the official vLLM stress-test benchmarks against the
-#          active disaggregated served cluster on Node 0 from dev-host-dmc.
+#          active disaggregated served cluster on Node 0 from disagg-benchmark-host.
 
 if [ ! -f "./env.sh" ]; then
     echo "Error: env.sh not found. Please run ./01_set_env.sh first."
@@ -14,7 +14,7 @@ fi
 
 echo "===================================================="
 echo " Preparing Disaggregated serving Benchmark on devhost..."
-echo " Devhost: dev-host-dmc"
+echo " Devhost: disagg-benchmark-host"
 echo "===================================================="
 
 # Retrieve internal GVNIC IP dynamically on Node 0
@@ -23,7 +23,7 @@ NODE_0_IP=$(gcloud compute instances describe disagg-node-0 \
     --format='get(networkInterfaces[0].networkIP)' \
     --project="$PROJECT_ID")
 
-# SSH Commands to download dataset and run benchmarks directly on dev-host-dmc
+# SSH Commands to download dataset and run benchmarks directly on disagg-benchmark-host
 SSH_COMMANDS=$(cat <<EOF
 set -ex
 
@@ -31,10 +31,10 @@ set -ex
 rm -rf /tmp/sharegpt.json ~/benchmark_venv
 
 # Ensure system python packages are active on the devhost
-if ! dpkg -s python3-pip &> /dev/null || ! dpkg -s python3-venv &> /dev/null; then
-    echo "Installing missing system python packages..."
+if ! dpkg -s python3-pip &> /dev/null || ! dpkg -s python3-venv &> /dev/null || ! command -v git &> /dev/null; then
+    echo "Installing missing system python packages on benchmark host..."
     sudo apt-get update
-    sudo apt-get install -y python3-pip python3-venv
+    sudo apt-get install -y python3-pip python3-venv git
 fi
 
 # 2. Create virtual env on massive home directory
@@ -88,11 +88,11 @@ EOF
 SSH_ARGS=""
 if [ "$USE_INTERNAL_SSH_OVERRIDE" = "true" ]; then
     echo "Enabling Google Corporate Internal SSH Hostname override..."
-    SSH_ARGS="-- -o Hostname=nic0.dev-host-dmc.${ZONE}.c.${PROJECT_ID}.internal.gcpnode.com"
+    SSH_ARGS="-- -o Hostname=nic0.disagg-benchmark-host.${ZONE}.c.${PROJECT_ID}.internal.gcpnode.com"
 fi
 
-echo "SSHing into dev-host-dmc to run benchmarks..."
-gcloud compute ssh dev-host-dmc \
+echo "SSHing into disagg-benchmark-host to run benchmarks..."
+gcloud compute ssh disagg-benchmark-host \
     --zone="$ZONE" \
     --project="$PROJECT_ID" \
     --command="$SSH_COMMANDS" \

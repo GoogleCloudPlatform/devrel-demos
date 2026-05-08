@@ -21,7 +21,7 @@ echo "===================================================="
 
 # 1. Delete VM Instances
 echo "Deleting VM instances..."
-gcloud compute instances delete disagg-node-0 disagg-node-1 \
+gcloud compute instances delete disagg-node-0 disagg-node-1 disagg-benchmark-host \
     --zone="$ZONE" \
     --project="$PROJECT_ID" \
     --quiet || echo "VMs might already be deleted, continuing..."

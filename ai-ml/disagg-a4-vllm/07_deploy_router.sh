@@ -31,8 +31,32 @@ set -ex
 # 1. Kill any existing vllm-router process cleanly
 sudo pkill vllm-router || true
 
-# 1b. Elevate file descriptor limits to 65536 to prevent too many open files (os error 24)
-ulimit -n 65536
+# 1c. Construct virtual environment and install vllm-router dynamically if missing on Node 0
+if [ ! -f "/data/local_model/router_venv/bin/vllm-router" ]; then
+    echo "vllm-router virtual env not found, constructing dynamically..."
+    
+    # Recover dpkg databases from corrupted states and flush dirty apt cache lists (resolves signature/disk full blocks)
+    echo "Running self-healing dpkg recovery and clearing dirty apt cache lists..."
+    sudo dpkg --configure -a || true
+    sudo rm -rf /var/lib/apt/lists/*
+    sudo apt-get clean
+    
+    # Ensure system packages (pip, venv, git) exist on Node 0
+    if ! dpkg -s python3-pip &> /dev/null || ! dpkg -s python3-venv &> /dev/null || ! command -v git &> /dev/null; then
+        echo "Installing missing system package requirements (pip, venv, git) on Node 0..."
+        sudo apt-get update
+        sudo apt-get install -y python3-pip python3-venv git
+    fi
+    
+    sudo mkdir -p /data/local_model
+    sudo chown -R \$USER /data/local_model
+    python3 -m venv /data/local_model/router_venv
+    source /data/local_model/router_venv/bin/activate
+    pip install --upgrade pip
+    pip install vllm-router || pip install git+https://github.com/vllm-project/router.git
+else
+    source /data/local_model/router_venv/bin/activate
+fi
 
 # 2. Launch vllm-router in background on port 8000 changing metrics port to 9095
 nohup bash -c "ulimit -n 65536 && exec /data/local_model/router_venv/bin/vllm-router --policy round_robin \
