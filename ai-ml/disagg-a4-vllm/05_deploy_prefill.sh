@@ -56,7 +56,9 @@ echo "SSHing into disagg-node-0 to deploy containers..."
 gcloud compute ssh disagg-node-0 \
     --zone="$ZONE" \
     --project="$PROJECT_ID" \
-    --command="$SSH_COMMANDS"
+    --command="$SSH_COMMANDS" \
+    -- -o Hostname=nic0.disagg-node-0.$ZONE.c.$PROJECT_ID.internal.gcpnode.com
+
 
 echo "===================================================="
 echo " Native Prefill Server deployed on Node 0."

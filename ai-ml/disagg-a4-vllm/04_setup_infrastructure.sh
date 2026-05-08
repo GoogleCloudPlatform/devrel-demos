@@ -29,9 +29,15 @@ echo "Node 0 Internal IP: $NODE_0_IP"
 
 # Update env.sh with HEAD_NODE_IP for subsequent scripts
 # Remove old definitions if they exist to ensure fresh update
-sed -i '/HEAD_NODE_IP/d' env.sh
-sed -i '/ETCD_ENDPOINTS/d' env.sh
-sed -i '/NATS_SERVER/d' env.sh
+if sed --version >/dev/null >&1; then
+    sed -i '/HEAD_NODE_IP/d' env.sh
+    sed -i '/ETCD_ENDPOINTS/d' env.sh
+    sed -i '/NATS_SERVER/d' env.sh
+else
+    sed -i '' '/HEAD_NODE_IP/d' env.sh
+    sed -i '' '/ETCD_ENDPOINTS/d' env.sh
+    sed -i '' '/NATS_SERVER/d' env.sh
+fi
 
 # Append fresh definitions
 echo "export HEAD_NODE_IP=\"$NODE_0_IP\"" >> env.sh
@@ -81,7 +87,8 @@ echo "SSHing into disagg-node-0 to start services..."
 gcloud compute ssh disagg-node-0 \
     --zone="$ZONE" \
     --project="$PROJECT_ID" \
-    --command="$SSH_COMMANDS"
+    --command="$SSH_COMMANDS" \
+    -- -o Hostname=nic0.disagg-node-0.$ZONE.c.$PROJECT_ID.internal.gcpnode.com
 
 echo "===================================================="
 echo " etcd and NATS are running on disagg-node-0."

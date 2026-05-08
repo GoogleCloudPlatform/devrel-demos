@@ -88,7 +88,9 @@ echo "SSHing into dev-host-dmc to run benchmarks..."
 gcloud compute ssh dev-host-dmc \
     --zone="$ZONE" \
     --project="$PROJECT_ID" \
-    --command="$SSH_COMMANDS"
+    --command="$SSH_COMMANDS" \
+    -- -o Hostname=nic0.dev-host-dmc.$ZONE.c.$PROJECT_ID.internal.gcpnode.com
+
 
 echo "===================================================="
 echo " Benchmarks completed successfully on devhost!"

@@ -33,7 +33,8 @@ echo "Sending test request locally on Node 0 via SSH..."
 gcloud compute ssh disagg-node-0 \
     --zone="$ZONE" \
     --project="$PROJECT_ID" \
-    --command="$VERIFY_COMMAND"
+    --command="$VERIFY_COMMAND" \
+    -- -o Hostname=nic0.disagg-node-0.$ZONE.c.$PROJECT_ID.internal.gcpnode.com
 
 echo ""
 echo "===================================================="

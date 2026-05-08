@@ -63,7 +63,9 @@ echo "SSHing into disagg-node-1 to deploy containers..."
 gcloud compute ssh disagg-node-1 \
     --zone="$ZONE" \
     --project="$PROJECT_ID" \
-    --command="$SSH_COMMANDS"
+    --command="$SSH_COMMANDS" \
+    -- -o Hostname=nic0.disagg-node-1.$ZONE.c.$PROJECT_ID.internal.gcpnode.com
+
 
 echo "===================================================="
 echo " Decode Worker deployed on Node 1."
