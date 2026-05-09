@@ -2,6 +2,8 @@
 
 This repository contains an Agentic Orchestrator Skill Pack, a suite of specialized AI agent instructions designed to automate the modernization of legacy Express.js monoliths into modern Next.js architectures. These skills leverage agentic design patterns to reverse-engineer "ground truth" logic and rebuild it with 1:1 functional parity.
 
+Read the deep-dive article that walks through this solution in detail (includes video): [Automating modernization: Migrating legacy Express to Next.js with Google Antigravity & AI Agents](https://medium.com/@jamesor/f48b4c206a8e)
+
 ## Architecture Mapping
 The skill pack is pre-configured to migrate legacy stacks to a modern, type-safe target:
 
