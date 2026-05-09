@@ -77,6 +77,8 @@ def parse_args():
                        help='GCS path to upload the final model to')
     parser.add_argument('--merge', action='store_true',
                        help='Merge LoRA adapters into the base model after training')
+    parser.add_argument('--merge-only', action='store_true',
+                       help='Skip training and only merge existing adapters from output-dir')
     
     # HuggingFace parameters
     parser.add_argument('--hf-token', type=str, default=None,
@@ -556,6 +558,20 @@ def main():
 
     authenticate_huggingface(args.hf_token)
     
+    token = args.hf_token or os.environ.get('HF_TOKEN')
+
+    # Merge Only Mode
+    if args.merge_only:
+        logger.info("🛠️ Running in MERGE-ONLY mode.")
+        if merge_model_with_base(args.model_id, args.output_dir, args.output_dir, hf_token=token):
+            logger.info("✓ Model merged successfully.")
+            if args.gcs_output_path:
+                upload_directory_to_gcs(os.path.join(args.output_dir, "merged"), os.path.join(args.gcs_output_path, "merged"))
+        else:
+            logger.error("❌ Merge-only failed.")
+            sys.exit(1)
+        return
+
     # Load data
     token = args.hf_token or os.environ.get('HF_TOKEN')
     train_data, eval_data, class_names = load_data(args.train_size, args.eval_size, hf_token=token)
