@@ -10,7 +10,7 @@ dependencies = [
     "uvicorn==0.41.*",
     "google-cloud-logging==3.13.0",
     "opentelemetry-exporter-gcp-trace==1.11.0",
-    "litellm==1.81.*",
+    "litellm==1.83.*",
 ]
 
 [[tool.uv.index]]
