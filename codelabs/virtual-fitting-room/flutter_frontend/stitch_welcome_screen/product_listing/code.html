@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Product Listing</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ee2b5b",
+              "background-light": "#f8f6f6",
+              "background-dark": "#221015",
+            },
+            fontFamily: {
+              "display": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm">
+<div class="flex items-center p-4">
+<button class="flex size-12 shrink-0 items-center justify-start">
+<span class="material-symbols-outlined text-zinc-900 dark:text-white text-2xl">arrow_back_ios_new</span>
+</button>
+<h1 class="flex-1 text-center text-lg font-bold leading-tight tracking-[-0.015em] text-zinc-900 dark:text-white">Dresses</h1>
+<button class="flex size-12 shrink-0 items-center justify-end">
+<span class="material-symbols-outlined text-zinc-900 dark:text-white text-2xl">search</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow">
+<!-- Chips/Filters Bar -->
+<div class="sticky top-[72px] z-10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm px-4 pt-2 pb-3">
+<div class="flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&amp;::-webkit-scrollbar]:hidden">
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-zinc-200/80 dark:bg-white/10 px-4">
+<span class="material-symbols-outlined text-zinc-700 dark:text-zinc-300 text-lg">tune</span>
+<p class="text-zinc-900 dark:text-white text-sm font-medium leading-normal">Filters</p>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-zinc-200/80 dark:bg-white/10 px-4">
+<p class="text-zinc-900 dark:text-white text-sm font-medium leading-normal">Sort by: Price Low</p>
+<span class="material-symbols-outlined text-zinc-700 dark:text-zinc-300 text-lg">expand_more</span>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-zinc-200/80 dark:bg-white/10 px-4">
+<p class="text-zinc-900 dark:text-white text-sm font-medium leading-normal">Size</p>
+<span class="material-symbols-outlined text-zinc-700 dark:text-zinc-300 text-lg">expand_more</span>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-zinc-200/80 dark:bg-white/10 px-4">
+<p class="text-zinc-900 dark:text-white text-sm font-medium leading-normal">Color</p>
+<span class="material-symbols-outlined text-zinc-700 dark:text-zinc-300 text-lg">expand_more</span>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-zinc-200/80 dark:bg-white/10 px-4">
+<p class="text-zinc-900 dark:text-white text-sm font-medium leading-normal">Brand</p>
+<span class="material-symbols-outlined text-zinc-700 dark:text-zinc-300 text-lg">expand_more</span>
+</button>
+</div>
+</div>
+<!-- Image Grid -->
+<div class="grid grid-cols-2 gap-4 p-4">
+<div class="flex flex-col gap-2">
+<div class="relative w-full">
+<div class="w-full bg-center bg-no-repeat aspect-[3/4] bg-cover rounded-xl" data-alt="Model wearing a floral sundress in a garden" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD5ifdb75XYWDbWNKBTKnyL1d4HCy6xaDK8sdLzNP0wN5PC63OhydYCCYVE2V5nKp4IFAS8JAz6SvlO3977YMtdfAqboIDdW4BOmROlJIUBBTldr9X8hGUCekSQfFienvr0WBT_ipmGTmNiBgDfGdzoZsBWXFERatqgLIAumMLAGlkP7qOTI34TXrixOuGqukeMS_rZj1mv5sO1i-sbF98S82dluafPRirT4fuX9QEdWjn4w1uMqVm1J45QziHYSAv1qMroMp7cd08");'></div>
+<button class="absolute top-2 right-2 flex size-8 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm">
+<span class="material-symbols-outlined text-white text-lg" style="font-variation-settings: 'FILL' 0, 'wght' 300;">favorite</span>
+</button>
+</div>
+<div>
+<p class="text-zinc-800 dark:text-zinc-200 text-base font-medium leading-normal">Floral Sundress</p>
+<p class="text-zinc-500 dark:text-zinc-400 text-sm font-normal leading-normal">Elegance Co.</p>
+<p class="text-zinc-800 dark:text-zinc-200 text-sm font-medium leading-normal">$49.99</p>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="relative w-full">
+<div class="w-full bg-center bg-no-repeat aspect-[3/4] bg-cover rounded-xl" data-alt="Woman in a polka dot mini dress posing on a city street" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCdtiAfjahy4PGbXtTDWecrbg6SQd7W7JAEO5c03aoytpY5wUohMce6KIK0GaVDlrT0xnxxPSHmSWi2NM2Wx80F1tmELmUz_tptTwqOyN8N15KqBoUi7lZUMeEAPky8U-kQwPv6Re1Keeg4yWxOChP8D6DQVjUrVsIA4kTn1AuDa8cvTCMAlB9IHyftxG5A8Dqj-Zs9vWCVukxx-2_J-jWu3u-LqrQg3bXpe4fphWAo87IfgCa8oxPVDPlr2BPNy1N6SYlAnmeUrBM");'></div>
+<button class="absolute top-2 right-2 flex size-8 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm">
+<span class="material-symbols-outlined text-white text-lg" style="font-variation-settings: 'FILL' 1, 'wght' 300;">favorite</span>
+</button>
+</div>
+<div>
+<p class="text-zinc-800 dark:text-zinc-200 text-base font-medium leading-normal">Polka Dot Dress</p>
+<p class="text-zinc-500 dark:text-zinc-400 text-sm font-normal leading-normal">Urban Vogue</p>
+<p class="text-zinc-800 dark:text-zinc-200 text-sm font-medium leading-normal">$65.00</p>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="relative w-full">
+<div class="w-full bg-center bg-no-repeat aspect-[3/4] bg-cover rounded-xl" data-alt="Close up of a woman wearing a satin slip dress" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD1pGuh_nK98uqpvS_0MRuSu7dUOuWgaVFVF9Ri3Pzr9iswnfv6MS5PBpRpJBIFjBeyQGCGknEunpquJgP1qu4RZ-z_RIlajZ0hFhXPsdexseqnnm64MzkKuGAf2sF3OLO4AUDXmhnk8rbQTW53ipfhejmA3kYnhLCnM9PMUEzMjU67mkxA_cg93WMy89MtfMabN5MKHpAeAE3Px-UzxBYxD8o9ZWXccjOLki1n37dL7jYSb21f6GwfUwwZgbeiaSRbawrB89KJ_-U");'></div>
+<button class="absolute top-2 right-2 flex size-8 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm">
+<span class="material-symbols-outlined text-white text-lg" style="font-variation-settings: 'FILL' 0, 'wght' 300;">favorite</span>
+</button>
+</div>
+<div>
+<p class="text-zinc-800 dark:text-zinc-200 text-base font-medium leading-normal">Satin Slip Dress</p>
+<p class="text-zinc-500 dark:text-zinc-400 text-sm font-normal leading-normal">Silk &amp; Sassy</p>
+<p class="text-zinc-800 dark:text-zinc-200 text-sm font-medium leading-normal">$89.99</p>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="relative w-full">
+<div class="w-full bg-center bg-no-repeat aspect-[3/4] bg-cover rounded-xl" data-alt="Woman in a white summer dress walking through a field" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuChsITfAwqpiTLUQJ_ZVhXZixtBSbH-0_OAz-iyIaNXz_UZj35omkYaLeXZuZjJ-YyRExiPu6WvR0PXfNgxA_wOPgE85JU7tjLYzaGOWLoHdozFRYA64i_aucv-XO_omZxbzcXVD9qenazD-RuBiGXtB4hAMm07hXQwneW8NNDGgytVbkeRoLYz4AEucFA1Uxfcy4HG8JYdyOkrWvRFq0ComIY21pMsnzE_0jQ0QDG_-wVDQSN_CP25Hk9SvKnjecVRB7prqxqkVks");'></div>
+<button class="absolute top-2 right-2 flex size-8 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm">
+<span class="material-symbols-outlined text-white text-lg" style="font-variation-settings: 'FILL' 0, 'wght' 300;">favorite</span>
+</button>
+</div>
+<div>
+<p class="text-zinc-800 dark:text-zinc-200 text-base font-medium leading-normal">Linen Maxi Dress</p>
+<p class="text-zinc-500 dark:text-zinc-400 text-sm font-normal leading-normal">Summer Breeze</p>
+<p class="text-zinc-800 dark:text-zinc-200 text-sm font-medium leading-normal">$79.50</p>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="relative w-full">
+<div class="w-full bg-center bg-no-repeat aspect-[3/4] bg-cover rounded-xl" data-alt="Model in a vibrant red cocktail dress" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBRY2i6z2LdHs_ZjgAJK5z29XxYRwV3ieyKEKANx3AE-rZysSe27O6peLPLVadywyzL2A4gp_W_83TY9-5q342DMn9CiLct9pOHSp45zKqgAG8oJd2AdfG2yeAMac32hb8GPlMTOUP5-APQnAVZ5O55_zckuHgZ1RavqrwMBrRK0k-Plcm7fQQtOLdgcP2wQBndTqy9QrpIuqxJ6gqRzaH9cSv05ODVR7QK_Ke9_rbjcc9kKYSpX5bvC57gz47wI21DSCxO7ZDXAdQ");'></div>
+<button class="absolute top-2 right-2 flex size-8 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm">
+<span class="material-symbols-outlined text-white text-lg" style="font-variation-settings: 'FILL' 0, 'wght' 300;">favorite</span>
+</button>
+</div>
+<div>
+<p class="text-zinc-800 dark:text-zinc-200 text-base font-medium leading-normal">Red Cocktail Dress</p>
+<p class="text-zinc-500 dark:text-zinc-400 text-sm font-normal leading-normal">Evening Glam</p>
+<p class="text-zinc-800 dark:text-zinc-200 text-sm font-medium leading-normal">$129.00</p>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="relative w-full">
+<div class="w-full bg-center bg-no-repeat aspect-[3/4] bg-cover rounded-xl" data-alt="A casual denim shirt dress on a hanger" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDV9IL5DqjCHw-WSKXsAjolp1uU3RVvsALktCNgyp255E_6Wfz6Thv2MRNlF2Vxu4z0zz82u8U2MIq1ttfRu39cYwzxC11yaBn2RHMrsdX8qUQoC3V5YBt6GfFrxFeaztx7RlEhAH7pAViuyVvhYaKebY30ujKUgzeFv099zhYzGhmnxuVZCr8an61Ckk4JEr1luLI8jSTroshuKrUU98MsThBYj4P75oJXmdE0BqDhRDJRKdwyCd3_KUOUCTtOZDt3SCe03Vxy7Io");'></div>
+<button class="absolute top-2 right-2 flex size-8 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm">
+<span class="material-symbols-outlined text-white text-lg" style="font-variation-settings: 'FILL' 0, 'wght' 300;">favorite</span>
+</button>
+</div>
+<div>
+<p class="text-zinc-800 dark:text-zinc-200 text-base font-medium leading-normal">Denim Shirt Dress</p>
+<p class="text-zinc-500 dark:text-zinc-400 text-sm font-normal leading-normal">Casual Day</p>
+<p class="text-zinc-800 dark:text-zinc-200 text-sm font-medium leading-normal">$55.99</p>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<footer class="sticky bottom-0 z-10">
+<div class="flex border-t border-zinc-200/80 dark:border-white/10 bg-background-light/80 dark:bg-background-dark/80 px-4 pt-2 pb-3 backdrop-blur-sm">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-zinc-500 dark:text-zinc-400" href="#">
+<span class="material-symbols-outlined text-2xl">home</span>
+<p class="text-xs font-medium leading-normal tracking-[0.015em]">Home</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-primary" href="#">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">storefront</span>
+<p class="text-xs font-medium leading-normal tracking-[0.015em]">Shop</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-zinc-500 dark:text-zinc-400" href="#">
+<span class="material-symbols-outlined text-2xl">favorite</span>
+<p class="text-xs font-medium leading-normal tracking-[0.015em]">Wishlist</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-zinc-500 dark:text-zinc-400" href="#">
+<span class="material-symbols-outlined text-2xl">shopping_bag</span>
+<p class="text-xs font-medium leading-normal tracking-[0.015em]">Bag</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-zinc-500 dark:text-zinc-400" href="#">
+<span class="material-symbols-outlined text-2xl">person</span>
+<p class="text-xs font-medium leading-normal tracking-[0.015em]">Profile</p>
+</a>
+</div>
+</footer>
+</div>
+</body></html>
