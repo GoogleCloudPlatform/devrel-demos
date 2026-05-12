@@ -1,0 +1,144 @@
+- id: id_bomber_jacket
+  title: Bomber Jacket
+  subtitle: Classic bomber style
+  price: 150
+  images:
+    - bomber_jacket.png
+- id: id_flutter_hat
+  title: Flutter Hat
+  subtitle: Official Flutter merchandise
+  price: 25
+  images:
+    - flutter_hat.png
+- id: id_flutter_letterman
+  title: Flutter Letterman
+  subtitle: Vintage varsity jacket
+  price: 180
+  images:
+    - flutter_letterman.png
+- id: id_hightop
+  title: High Top Sneakers
+  subtitle: Retro basketball shoes
+  price: 95
+  images:
+    - hightop.png
+- id: id_plaid_shirt
+  title: Plaid Shirt
+  subtitle: Casual button-down
+  price: 45
+  images:
+    - plaid_shirt.png
+- id: id_product_1
+  title: Red Floral Dress
+  subtitle: Sleeveless, tie-waist midi
+  price: 45
+  images:
+    - product_1.png
+- id: id_product_2
+  title: Folded Blue Jeans
+  subtitle: Everyday comfort in durable denim
+  price: 50
+  images:
+    - product_2.png
+- id: id_product_3
+  title: Mountain Wave Tee
+  subtitle: Embroidered nature-inspired cotton tee
+  price: 55
+  images:
+    - product_3.png
+- id: id_product_4
+  title: Black Ankle Boots
+  subtitle: Leather booties with block heel
+  price: 60
+  images:
+    - product_4.png
+- id: id_quarter-zip
+  title: Quarter Zip
+  subtitle: Comfortable pullover
+  price: 60
+  images:
+    - quarter-zip.png
+- id: id_style_1
+  title: Floral Tiered Dress
+  subtitle: Strappy design for summer days
+  price: 82
+  images:
+    - prod1_var1.png
+    - prod1_var2.png
+- id: id_style_2
+  title: Blue Denim Jeans
+  subtitle: Folded classic casual apparel.
+  price: 84
+  images:
+    - prod2_var1.png
+    - prod2_var2.png
+- id: id_style_3
+  title: Organic Cotton T-Shirt
+  subtitle: Soft, breathable everyday comfort
+  price: 86
+  images:
+    - prod3_var1.png
+    - prod3_var2.png
+- id: id_style_4
+  title: Brogue Cap-Toe Boots
+  subtitle: Rich brown leather with zipper.
+  price: 88
+  images:
+    - prod4_var1.png
+    - prod4_var2.png
+- id: id_style_5
+  title: Red Midi Dress
+  subtitle: Elegant V-neck A-line
+  price: 90
+  images:
+    - prod5_var1.png
+    - prod5_var2.png
+- id: id_style_6
+  title: Denim Shirt Dress
+  subtitle: Belted long sleeve casual style
+  price: 92
+  images:
+    - prod6_var1.png
+    - prod6_var2.png
+- id: id_style_7
+  title: Olive Bomber Jacket
+  subtitle: Urban style with utility pocket
+  price: 94
+  images:
+    - prod7_var1.png
+    - prod7_var2.png
+- id: id_style_8
+  title: Blue Canvas Sneakers
+  subtitle: Iconic Chuck Taylor High-Tops
+  price: 96
+  images:
+    - prod8_var1.png
+    - prod8_var2.png
+- id: id_style_9
+  title: Classic Flannel Shirt
+  subtitle: Comfortable long-sleeve button-up
+  price: 98
+  images:
+    - prod9_var1.png
+    - prod9_var2.png
+- id: id_style_10
+  title: Active Half-Zip
+  subtitle: Performance top with thumbholes.
+  price: 100
+  images:
+    - prod10_var1.png
+    - prod10_var2.png
+- id: id_style_11
+  title: Navy Logo Cap
+  subtitle: Embroidered classic baseball hat.
+  price: 102
+  images:
+    - prod11_var1.png
+    - prod11_var2.png
+- id: id_style_12
+  title: Varsity Bomber Jacket
+  subtitle: Timeless collegiate style outerwear
+  price: 104
+  images:
+    - prod12_var1.png
+    - prod12_var2.png

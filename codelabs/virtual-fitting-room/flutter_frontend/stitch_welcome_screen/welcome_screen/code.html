@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Welcome Screen</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ee2b5b",
+              "background-light": "#f8f6f6",
+              "background-dark": "#221015",
+            },
+            fontFamily: {
+              "display": ["Plus Jakarta Sans", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden">
+<div class="absolute top-0 right-0 p-4 z-10">
+<button class="px-4 py-2 text-sm font-bold text-gray-500 dark:text-gray-400">Skip</button>
+</div>
+<div class="flex-grow flex flex-col justify-end">
+<!-- HeaderImage -->
+<div class="@container">
+<div class="@[480px]:px-4 @[480px]:py-3">
+<div class="bg-cover bg-center flex flex-col justify-end overflow-hidden bg-background-light dark:bg-background-dark min-h-[40vh] md:min-h-80 @[480px]:rounded-xl" data-alt="Stylish person wearing a unique, fashionable outfit in an urban setting." style='background-image: linear-gradient(0deg, rgba(34, 16, 21, 0.6) 0%, rgba(34, 16, 21, 0) 40%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuBUnEa2os-EIGb4Bz4b8irU_0vB6wYhn7sJi1TYAWtKwddphX_2B7jMrA3slz5PLBRrSLqUdJAMyHWQDlcskym2Uhbze4XR_4JGUJdIUop01a5SsRjPL2C_Ijpg2txeVhsR5DOyi1WDKA9Oclg3wFHCGocfg9Kf_LjAVCdrl1XpXSKZ0mBb5A_a2_UUy0VA9BGwzGAGfc2jj-OM3YUUrcx5mE6xWS1dg_duWrQtBn1HhGNiS-EDM7jxdvVp9mxgJnbYwChxoqZkXzc");'>
+</div>
+</div>
+</div>
+<!-- HeadlineText -->
+<h1 class="text-gray-900 dark:text-white tracking-tight text-3xl font-bold leading-tight px-4 text-center pt-6 pb-2">Discover Your Style</h1>
+<!-- BodyText -->
+<p class="text-gray-600 dark:text-gray-300 text-base font-normal leading-normal pb-3 pt-1 px-4 text-center">Explore curated collections and get personalized recommendations tailored just for you.</p>
+<!-- PageIndicators -->
+<div class="flex w-full flex-row items-center justify-center gap-3 py-5">
+<div class="h-2 w-2 rounded-full bg-primary"></div>
+<div class="h-2 w-2 rounded-full bg-gray-300 dark:bg-gray-700"></div>
+<div class="h-2 w-2 rounded-full bg-gray-300 dark:bg-gray-700"></div>
+</div>
+<!-- ButtonGroup -->
+<div class="flex justify-center">
+<div class="flex w-full flex-1 gap-3 max-w-[480px] flex-col items-stretch px-4 py-3">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-12 px-5 bg-primary text-white text-base font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Create Account</span>
+</button>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-12 px-5 bg-transparent text-gray-900 dark:text-white text-base font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Log In</span>
+</button>
+</div>
+</div>
+<div class="h-5"></div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Shopping Cart</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ee2b5b",
+              "background-light": "#f8f6f6",
+              "background-dark": "#221015",
+            },
+            fontFamily: {
+              "display": ["Plus Jakarta Sans", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="relative flex min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-10 flex h-16 items-center bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm px-4 justify-between border-b border-black/10 dark:border-white/10">
+<button class="text-slate-900 dark:text-white flex size-10 shrink-0 items-center justify-center">
+<span class="material-symbols-outlined">arrow_back_ios_new</span>
+</button>
+<h1 class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Shopping Cart</h1>
+<div class="size-10 shrink-0"></div>
+</header>
+<main class="flex-grow pb-48">
+<div class="p-4">
+<h2 class="text-slate-800 dark:text-slate-200 text-xl font-bold mb-4">2 Items</h2>
+<div class="space-y-4">
+<!-- List Item 1 -->
+<div class="flex gap-4 bg-white dark:bg-black/20 p-4 rounded-xl">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-[80px]" data-alt="A woman wearing a classic white t-shirt against a plain background." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC6PQ7c96lIXi5lhdHObVJ_eWyHXRz0CHEfVW1j6RhahYlyQD0ZlGr_XwgQsnvlSTQ0k09x14jBHVloKCKcmopijeHGiIZUrPA_mceiUfXCb23t7uOv4B1lxyj1lXU8BrtkDZgVINRi8uQ_XCFZ1VP2wa1tUEi17DSA4U5VBjpBU_5XG8xwPhLTuCdhvJYLOgHFPxiaWrVayxGEbS2paZJkf1QiIiCmm_qfwivoQ62sgnEfVsnOjFjxUoCiaZAlkGrEyvYzk_vQru0');"></div>
+<div class="flex flex-1 flex-col justify-between">
+<div>
+<p class="text-slate-900 dark:text-white text-base font-medium leading-normal">Classic T-Shirt</p>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">Size: M, Color: White</p>
+<p class="text-slate-900 dark:text-white text-base font-semibold leading-normal pt-1">$25.00</p>
+</div>
+</div>
+<div class="shrink-0 flex flex-col justify-between items-end">
+<button class="text-slate-500 dark:text-slate-400">
+<span class="material-symbols-outlined">delete</span>
+</button>
+<div class="flex items-center gap-2 text-slate-900 dark:text-white">
+<button class="text-base font-medium leading-normal flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 dark:bg-white/10 cursor-pointer">-</button>
+<span class="text-base font-medium leading-normal w-4 text-center">1</span>
+<button class="text-base font-medium leading-normal flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 dark:bg-white/10 cursor-pointer">+</button>
+</div>
+</div>
+</div>
+<!-- List Item 2 -->
+<div class="flex gap-4 bg-white dark:bg-black/20 p-4 rounded-xl">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-[80px]" data-alt="A pair of blue denim jeans folded neatly." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDfzwinv31rMopOZ4UvnEFOyt3Ectw_FarnrThB1RxrimRmTQh2PzU1HWuIaoQ5PN0vh1NYPEpIX_2Kz_4XDHI7P3KIAF3XOoMRxtyRW8yKLEkoP4ku7rXIumI-Dvem-Ltm2cJ23u210fGlUY_ig5F1KpQ_s0MmRb8v3I9eJVkUpNc6gbWQHf8EzdI0_sAmam5Od_ZyGfeL-fyU04ouCHvo5K8RZQeyO_FYFjgfutQQi9MjuSLhZtjp1SFprwfo3wkQeB7fb8mUqMg');"></div>
+<div class="flex flex-1 flex-col justify-between">
+<div>
+<p class="text-slate-900 dark:text-white text-base font-medium leading-normal">Denim Jeans</p>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">Size: 32, Color: Blue</p>
+<p class="text-slate-900 dark:text-white text-base font-semibold leading-normal pt-1">$75.00</p>
+</div>
+</div>
+<div class="shrink-0 flex flex-col justify-between items-end">
+<button class="text-slate-500 dark:text-slate-400">
+<span class="material-symbols-outlined">delete</span>
+</button>
+<div class="flex items-center gap-2 text-slate-900 dark:text-white">
+<button class="text-base font-medium leading-normal flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 dark:bg-white/10 cursor-pointer">-</button>
+<span class="text-base font-medium leading-normal w-4 text-center">1</span>
+<button class="text-base font-medium leading-normal flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 dark:bg-white/10 cursor-pointer">+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Fixed Section -->
+<footer class="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900/80 backdrop-blur-sm border-t border-black/10 dark:border-white/10 rounded-t-2xl">
+<div class="p-4 space-y-4">
+<!-- Promo Code -->
+<div class="flex items-center gap-2">
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 focus:border-primary h-12 placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4 text-base font-normal leading-normal" placeholder="Enter promo code" value=""/>
+<button class="h-12 px-5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-sm">Apply</button>
+</div>
+<!-- Description List (Order Summary) -->
+<div class="space-y-1 pt-2">
+<div class="flex justify-between gap-x-6 py-1">
+<p class="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal">Subtotal</p>
+<p class="text-slate-900 dark:text-white text-base font-medium leading-normal text-right">$100.00</p>
+</div>
+<div class="flex justify-between gap-x-6 py-1">
+<p class="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal">Shipping</p>
+<p class="text-slate-900 dark:text-white text-base font-medium leading-normal text-right">$5.00</p>
+</div>
+<div class="flex justify-between gap-x-6 py-1">
+<p class="text-slate-500 dark:text-slate-400 text-base font-bold leading-normal">Total</p>
+<p class="text-slate-900 dark:text-white text-lg font-bold leading-normal text-right">$105.00</p>
+</div>
+</div>
+<!-- CTA Button -->
+<button class="w-full h-14 rounded-xl bg-primary text-white text-base font-bold flex items-center justify-center gap-2">
+<span>Proceed to Checkout</span>
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</footer>
+</div>
+</body></html>

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "914235183282",
+    "project_id": "yenkhanh-flutter",
+    "storage_bucket": "yenkhanh-flutter.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:914235183282:android:e2045ba5533634ed2879ab",
+        "android_client_info": {
+          "package_name": "com.example.fashion_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXcQK_BO2Sk98-uReCcsuXyDFVOywkiD4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:914235183282:android:593fdf960853dfdc2879ab",
+        "android_client_info": {
+          "package_name": "com.example.flutter_firebase_ai_sample"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXcQK_BO2Sk98-uReCcsuXyDFVOywkiD4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
