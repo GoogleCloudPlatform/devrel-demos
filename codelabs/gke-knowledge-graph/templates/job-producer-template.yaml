@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: petverse-producer-job
+  labels:
+    dev-tutorial: stabby-unicorn
+spec:
+  template:
+    metadata:
+      labels:
+        app: petverse-producer
+        dev-tutorial: stabby-unicorn
+    spec:
+      # Ensure the pod can cleanly reach Storage/PubSub via Workload Identity
+      serviceAccountName: petverse-gke-sa
+      containers:
+      - name: producer
+        image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/gke-cats-repo/petverse-producer:latest
+        imagePullPolicy: Always
+        args: ["gs://sample-data-and-media/petverse/", "--driver", "pets.csv"]
+
+        env:
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "${PROJECT_ID}"
+        - name: PUBSUB_TOPIC
+          value: "petverse-topic"
+
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+
+      restartPolicy: Never
+  backoffLimit: 1

@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.env
+
+# Virtual environments
+.venv
+#codelab context
+LAB.md
+
+# Generated GKE manifests
+job-producer.yaml
+job-worker.yaml
+job.yaml
+

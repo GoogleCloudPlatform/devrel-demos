@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: petverse-worker-job
+  labels:
+    dev-tutorial: stabby-unicorn
+spec:
+  parallelism: 3
+  completions: 3
+  template:
+    metadata:
+      labels:
+        app: petverse-worker
+        dev-tutorial: stabby-unicorn
+    spec:
+      # Ensure the pod can cleanly reach BigQuery/Storage/Vertex/PubSub via Workload Identity
+      serviceAccountName: petverse-gke-sa
+      containers:
+      - name: worker
+        image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/gke-cats-repo/petverse-worker:latest
+        imagePullPolicy: Always
+
+        # Inherit environment from original job + pubsub
+        env:
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "${PROJECT_ID}"
+        - name: BQ_DATASET
+          value: "petverse_kg"
+        - name: GEMINI_MODEL
+          value: "gemini-2.5-flash"
+        - name: GOOGLE_CLOUD_REGION
+          value: "${REGION}"
+        - name: PUBSUB_SUBSCRIPTION
+          value: "petverse-sub"
+
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+
+      restartPolicy: Never
+  backoffLimit: 1
