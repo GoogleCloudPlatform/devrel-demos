@@ -325,7 +325,7 @@
                 }
                 window.__gmaps_callback__ = () => resolve();
                 const script = document.createElement('script');
-                script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=__gmaps_callback__&loading=async&v=weekly`;
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&callback=__gmaps_callback__&loading=async&v=weekly`;
                 script.async = true;
                 script.defer = true;
                 script.onerror = () => reject(new Error("Failed to load Google Maps API"));
@@ -450,7 +450,12 @@
 
                 // Securely parse markdown and sanitize HTML output
                 const rawHtml = window.marked ? window.marked.parse(text) : text;
-                itineraryContainer.innerHTML = window.DOMPurify ? window.DOMPurify.sanitize(rawHtml) : rawHtml;
+                if (window.DOMPurify) {
+                    itineraryContainer.innerHTML = window.DOMPurify.sanitize(rawHtml);
+                } else {
+                    console.warn("DOMPurify not found. Falling back to safe text content.");
+                    itineraryContainer.textContent = text;
+                }
 
                 if (chunks.length === 0) {
                     console.log("No grounding metadata found in the response.");
@@ -558,7 +563,12 @@
 
             } catch (error) {
                 console.error("Workflow Failed:", error);
-                itineraryContainer.innerHTML = `<div style="color: #ef4444; font-weight: 600;">Error: ${error.message}</div>`;
+                itineraryContainer.innerHTML = '';
+                const errorDiv = document.createElement('div');
+                errorDiv.style.color = '#ef4444';
+                errorDiv.style.fontWeight = '600';
+                errorDiv.textContent = `Error: ${error.message}`;
+                itineraryContainer.appendChild(errorDiv);
             }
         }
 
