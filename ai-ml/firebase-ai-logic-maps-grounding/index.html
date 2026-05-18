@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Travel Concierge - Firebase AI & Maps Grounding</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- DOMPurify for secure HTML rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            color: #2c3e50;
+            background-color: #f8fafc;
+        }
+
+        #sidebar {
+            width: 440px;
+            padding: 32px 28px;
+            overflow-y: auto;
+            box-shadow: 4px 0 16px rgba(0, 0, 0, 0.06);
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        #map-container {
+            flex-grow: 1;
+            height: 100%;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .header {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 700;
+            color: #1e293b;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            margin: 0;
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 13px;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input,
+        textarea {
+            padding: 12px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            color: #334155;
+            background-color: #f8fafc;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            background-color: #ffffff;
+        }
+
+        button {
+            padding: 14px 20px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            transition: background 0.2s, transform 0.1s;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+        }
+
+        button:hover:not(:disabled) {
+            background: #2563eb;
+        }
+
+        button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        #itinerary-container {
+            margin-top: 12px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 24px;
+            font-size: 15px;
+            line-height: 1.6;
+            color: #334155;
+        }
+
+        #itinerary-container h2,
+        #itinerary-container h3 {
+            color: #0f172a;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .GMP-attribution {
+            font-family: Roboto, Sans-Serif;
+            font-style: normal;
+            font-weight: 400;
+            font-size: 1rem;
+            letter-spacing: normal;
+            white-space: nowrap;
+            color: #5e5e5e;
+        }
+
+        .sources-container {
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .sources-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 12px;
+        }
+
+        .sources-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .source-item {
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .source-link {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .source-link:hover {
+            text-decoration: underline;
+        }
+
+        .citation-link {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.85em;
+            vertical-align: super;
+            padding: 0 2px;
+        }
+
+        .citation-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="sidebar">
+        <div class="header">
+            <h1>AI Travel Concierge</h1>
+            <p>Powered by Firebase AI & Google Maps Grounding</p>
+        </div>
+
+        <form id="planner-form">
+            <div class="form-group">
+                <label for="api-key">API Key (Gemini & Google Maps)</label>
+                <input type="password" id="api-key" value="AIza…" required>
+            </div>
+            <div class="form-group">
+                <label for="project-id">Firebase Project ID</label>
+                <input type="text" id="project-id" value="your-project-id" required>
+            </div>
+            <div class="form-group">
+                <label for="app-id">Firebase App ID</label>
+                <input type="text" id="app-id" value="1:your:web:app-id" required>
+            </div>
+            <div class="form-group">
+                <label for="starting-city">Starting City</label>
+                <input type="text" id="starting-city" value="Paris" required>
+            </div>
+            <div class="form-group">
+                <label for="trip-details">Trip Details</label>
+                <textarea id="trip-details" rows="3"
+                    required>Plan a 3-day art and food history tour. For each day recommend a place to eat, a site to see, and an activity.</textarea>
+            </div>
+            <button type="submit" id="submit-btn">Generate Itinerary</button>
+        </form>
+
+
+        <div id="itinerary-container">
+            <p style="color: #64748b; margin: 0;">Enter your trip details and click Generate to build a grounded
+                itinerary.</p>
+        </div>
+    </div>
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+
+
+    <!-- Firebase AI and Core ESM SDK block -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+        import { getAI, getGenerativeModel, GoogleAIBackend } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-ai.js";
+
+
+        // ============================================================================
+        // BLOG POST CALLOUT 1: MAKING THE CALL (CONFIGURATION & MODEL EXECUTION)
+        // ============================================================================
+
+
+        /**
+         * Initializes the Firebase AI instance targeting the Gemini Developer API backend.
+         * In this demo, we isolate app instances by apiKey to support dynamic re-initialization.
+         */
+        function getAIInstance(apiKey, projectId, appId) {
+            const firebaseConfig = {
+                apiKey: apiKey,
+                projectId: projectId,
+                appId: appId
+            };
+            const app = initializeApp(firebaseConfig, `app-${apiKey.substring(0, 8)}`);
+            return getAI(app, { backend: new GoogleAIBackend() });
+        }
+
+
+        /**
+         * Configures the Gemini 3 Flash model specifically for Google Maps Grounding.
+         * Enables the googleMaps tool and injects the user's geographic coordinates (lat/lng)
+         * as retrieval context so recommendations are locally relevant.
+         */
+        function getTravelModel(apiKey, projectId, appId, lat, lng) {
+            const ai = getAIInstance(apiKey, projectId, appId);
+
+            // 1a. Define model options with Google Maps grounding tool enabled
+            const config = {
+                model: "gemini-3-flash-preview", // Grounding with Google Maps is supported in Gemini 3 series and later
+                tools: [{ googleMaps: {} }],
+                systemInstruction: "You are a professional travel concierge. Provide a detailed day-by-day itinerary in markdown. Ground all recommended places in Google Maps."
+            };
+
+
+            // 1b. Provide geographic retrieval context for localized grounding
+            if (lat && lng) {
+                config.toolConfig = {
+                    retrievalConfig: {
+                        latLng: { latitude: lat, longitude: lng },
+                        languageCode: "en_US"
+                    }
+                };
+            }
+            return getGenerativeModel(ai, config);
+        }
+
+
+        // ============================================================================
+        // BLOG POST CALLOUT 2: PLOTTING THE PLACES ON THE MAP
+        // ============================================================================
+
+
+        let map;
+        let activeMarkers = [];
+        let AdvancedMarkerElement;
+        let PinElement;
+
+
+        // Dynamically injects Google Maps JS API script and awaits initialization callback
+        function loadGoogleMapsScript(apiKey) {
+            return new Promise((resolve, reject) => {
+                if (window.google && window.google.maps && window.google.maps.importLibrary) {
+                    resolve();
+                    return;
+                }
+                window.__gmaps_callback__ = () => resolve();
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=__gmaps_callback__&loading=async&v=weekly`;
+                script.async = true;
+                script.defer = true;
+                script.onerror = () => reject(new Error("Failed to load Google Maps API"));
+                document.head.appendChild(script);
+            });
+        }
+
+
+        async function initMap() {
+            try {
+                const { Map } = await google.maps.importLibrary("maps");
+                const markerLib = await google.maps.importLibrary("marker");
+                AdvancedMarkerElement = markerLib.AdvancedMarkerElement;
+                PinElement = markerLib.PinElement;
+
+
+                map = new Map(document.getElementById("map"), {
+                    center: { lat: 48.8566, lng: 2.3522 }, // Default: Paris
+                    zoom: 12,
+                    mapId: "DEMO_MAP_ID",
+                });
+            } catch (error) {
+                console.error("Failed to initialize Google Map:", error);
+            }
+        }
+
+
+        function clearMarkers() {
+            activeMarkers.forEach(marker => marker.map = null);
+            activeMarkers = [];
+        }
+
+
+        /**
+         * Plots a grounded location onto the Google Map using modern Web Component standards.
+         * Utilizes PinElement for custom glyph styling and AdvancedMarkerElement for plotting.
+         */
+        async function plotLocation(location, index) {
+            // 2a. Create a customized PinElement (replaces deprecated glyph property with glyphText)
+            const pin = new PinElement({
+                background: "#3b82f6",
+                borderColor: "#1d4ed8",
+                glyphColor: "#ffffff",
+                glyphText: `${index + 1}`,
+            });
+
+
+            // 2b. Create AdvancedMarkerElement (passing PinElement directly as content)
+            const marker = new AdvancedMarkerElement({
+                map: map,
+                position: { lat: location.latitude, lng: location.longitude },
+                title: location.name,
+                content: pin
+            });
+
+
+            activeMarkers.push(marker);
+        }
+
+
+        function autoFitMapBounds(locations) {
+            if (locations.length === 0) return;
+            const bounds = new google.maps.LatLngBounds();
+            locations.forEach(loc => bounds.extend({ lat: loc.latitude, lng: loc.longitude }));
+            map.fitBounds(bounds);
+        }
+
+
+        // ============================================================================
+        // BLOG POST CALLOUT 3: CITING THE TEXT WITH SOURCES (GROUNDING METADATA)
+        // ============================================================================
+
+
+        async function runAIConciergeWorkflow(apiKey, projectId, appId, lat, lng, cityInput, details) {
+            const itineraryContainer = document.getElementById('itinerary-container');
+            itineraryContainer.innerHTML = "<div style='color: #3b82f6; font-weight: 600;'>Generating itinerary and grounding places...</div>";
+
+
+            try {
+                // 3a. Initialize model and execute prompt requesting strict Google Maps grounding
+                const model = getTravelModel(apiKey, projectId, appId, lat, lng);
+                const promptText = `Plan a detailed, day-by-day travel itinerary for a trip starting in ${cityInput}. Theme and traveler preferences: ${details}. You MUST use the Google Maps grounding tool to search for and verify every single museum, restaurant, cafe, landmark, and attraction you recommend.`;
+
+                const result = await model.generateContent(promptText);
+                console.log("LLM Response:", result.response);
+                let text = result.response.text();
+
+                // 3b. Extract Grounding Metadata from the first candidate response
+                const groundingMetadata = result.response.candidates?.[0]?.groundingMetadata;
+                const chunks = groundingMetadata?.groundingChunks || [];
+                const supports = groundingMetadata?.groundingSupports || [];
+
+
+                // Work backward through supports to insert citation links at the end index of each support
+                // Sorting by endIndex descending ensures earlier indices remain valid during string insertion
+                const sortedSupports = [...supports].sort((a, b) => {
+                    const endA = a.segment?.endIndex || 0;
+                    const endB = b.segment?.endIndex || 0;
+                    return endB - endA;
+                });
+
+
+                sortedSupports.forEach(support => {
+                    const endIndex = support.segment?.endIndex;
+                    if (endIndex !== undefined && endIndex <= text.length) {
+                        const indices = support.groundingChunkIndices || [];
+                        if (indices.length > 0) {
+                            const linksHtml = indices.map(idx => {
+                                const chunk = chunks[idx];
+                                if (!chunk) return '';
+                                const sourceData = chunk.maps || chunk.web || {};
+                                const uri = sourceData.uri || sourceData.googleMapsUri || '#';
+                                return `<a href="${uri}" target="_blank" rel="noopener noreferrer" class="citation-link">[${idx + 1}]</a>`;
+                            }).join('');
+
+
+                            text = text.slice(0, endIndex) + linksHtml + text.slice(endIndex);
+                        }
+                    }
+                });
+
+
+                // Securely parse markdown and sanitize HTML output
+                const rawHtml = window.marked ? window.marked.parse(text) : text;
+                itineraryContainer.innerHTML = window.DOMPurify ? window.DOMPurify.sanitize(rawHtml) : rawHtml;
+
+                if (chunks.length === 0) {
+                    console.log("No grounding metadata found in the response.");
+                    return;
+                }
+
+
+                // 3c. Inform the user and display Google Maps sources with links
+                const mapsChunks = chunks.filter(c => c.maps);
+                if (mapsChunks.length > 0) {
+                    const sourcesContainer = document.createElement('div');
+                    sourcesContainer.className = 'sources-container';
+
+
+                    const sourcesHeader = document.createElement('div');
+                    sourcesHeader.className = 'sources-header';
+                    sourcesHeader.textContent = 'Grounded with Google Maps Sources:';
+                    sourcesContainer.appendChild(sourcesHeader);
+
+
+                    const sourcesList = document.createElement('ul');
+                    sourcesList.className = 'sources-list';
+
+
+                    const seenUris = new Set();
+                    mapsChunks.forEach(chunk => {
+                        const mapsData = chunk.maps;
+                        const uri = mapsData.uri || mapsData.googleMapsUri || '#';
+                        if (seenUris.has(uri)) return;
+                        seenUris.add(uri);
+
+
+                        const title = mapsData.title || mapsData.displayName || 'Google Maps Location';
+
+
+                        const li = document.createElement('li');
+                        li.className = 'source-item';
+
+
+                        const link = document.createElement('a');
+                        link.className = 'source-link';
+                        link.href = uri;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        link.textContent = title;
+
+
+
+
+                        const gmpSpan = document.createElement('span');
+                        gmpSpan.className = 'GMP-attribution';
+                        gmpSpan.setAttribute('translate', 'no');
+
+
+                        li.appendChild(link);
+                        li.appendChild(gmpSpan);
+                        sourcesList.appendChild(li);
+                    });
+
+
+                    sourcesContainer.appendChild(sourcesList);
+                    itineraryContainer.appendChild(sourcesContainer);
+                }
+
+
+                clearMarkers();
+                const { Place } = await google.maps.importLibrary("places");
+                const resolvedLocations = [];
+
+
+                // 3d. Iterate over grounding chunks to resolve Place details and plot markers
+                const lookupPromises = chunks.map(async (chunk, index) => {
+                    if (!chunk.maps || !chunk.maps.placeId) return;
+
+                    // Clean the placeId string (strip 'places/' prefix if present)
+                    let rawPlaceId = chunk.maps.placeId;
+                    if (rawPlaceId.startsWith("places/")) {
+                        rawPlaceId = rawPlaceId.split("/")[1];
+                    }
+
+                    // 3e. Fetch precise geographic coordinates via Google Maps Places Library
+                    const place = new Place({ id: rawPlaceId });
+                    try {
+                        await place.fetchFields({ fields: ['location', 'displayName'] });
+                        if (place.location) {
+                            const locData = {
+                                name: place.displayName,
+                                latitude: place.location.lat(),
+                                longitude: place.location.lng()
+                            };
+                            resolvedLocations.push(locData);
+                            plotLocation(locData, index);
+                        }
+                    } catch (e) {
+                        console.error(`Place lookup failed for ${rawPlaceId}:`, e);
+                    }
+                });
+
+
+                await Promise.all(lookupPromises);
+                if (resolvedLocations.length > 0) {
+                    autoFitMapBounds(resolvedLocations);
+                }
+
+
+            } catch (error) {
+                console.error("Workflow Failed:", error);
+                itineraryContainer.innerHTML = `<div style="color: #ef4444; font-weight: 600;">Error: ${error.message}</div>`;
+            }
+        }
+
+
+        // ============================================================================
+        // 4. EVENT LISTENERS & INITIALIZATION
+        // ============================================================================
+
+
+        document.getElementById('planner-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Generating...";
+
+
+            const cityInput = document.getElementById('starting-city').value;
+            const details = document.getElementById('trip-details').value;
+            const apiKey = document.getElementById('api-key').value;
+            const projectId = document.getElementById('project-id').value;
+            const appId = document.getElementById('app-id').value;
+
+
+            try {
+                await loadGoogleMapsScript(apiKey);
+                if (!map) await initMap();
+
+
+                const geocoder = new google.maps.Geocoder();
+                geocoder.geocode({ address: cityInput }, async (results, status) => {
+                    if (status === google.maps.GeocoderStatus.OK && results[0]?.geometry) {
+                        const lat = results[0].geometry.location.lat();
+                        const lng = results[0].geometry.location.lng();
+                        map.setCenter({ lat, lng });
+                        map.setZoom(12);
+                        await runAIConciergeWorkflow(apiKey, projectId, appId, lat, lng, cityInput, details);
+                    } else {
+                        alert("Could not locate starting city.");
+                    }
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = "Generate Itinerary";
+                });
+            } catch (error) {
+                console.error("Submission Error:", error);
+                alert(`Error: ${error.message}`);
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Generate Itinerary";
+            }
+        });
+
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const apiKey = document.getElementById('api-key')?.value;
+            if (apiKey) {
+                try {
+                    await loadGoogleMapsScript(apiKey);
+                    await initMap();
+                } catch (e) {
+                    console.error("Initial Maps load failed:", e);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
