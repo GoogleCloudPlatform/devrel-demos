@@ -1,0 +1,14 @@
+[project]
+name = "gke-cats"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "google-cloud-bigquery>=3.41.0",
+    "google-cloud-storage>=3.10.1",
+    "google-genai>=1.75.0",
+    "pandas>=3.0.2",
+    "pyopenssl>=26.2.0",
+    "pytest>=9.0.3",
+]

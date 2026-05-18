@@ -1,0 +1,5 @@
+google-genai
+google-cloud-bigquery
+pandas
+google-cloud-storage
+google-cloud-pubsub
