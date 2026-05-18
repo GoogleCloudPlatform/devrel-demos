@@ -16,7 +16,7 @@ graph TD
         PubSub([Pub/Sub Queue])
         subgraph "GKE Autopilot Cluster"
             Producer[Producer Job]
-            Worker[Worker Job (Parallel Pods)]
+            Worker[Worker Job - Parallel Pods]
         end
         GEM(Gemini 2.5 Flash - Multimodal Extraction)
         BQ[(BigQuery - Knowledge Graph)]
