@@ -3,7 +3,7 @@ name = "gke-cats"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "google-cloud-bigquery>=3.41.0",
     "google-cloud-storage>=3.10.1",
