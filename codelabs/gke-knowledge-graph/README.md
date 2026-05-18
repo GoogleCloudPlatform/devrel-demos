@@ -161,7 +161,7 @@ Visualize the pets with similar hobbies:
 GRAPH `petverse_kg.knowledge_graph`
 MATCH p = (cat:Nodes)-[e]->(hobby:Nodes)
 WHERE (LOWER(cat.entity_type) = 'pet' OR LOWER(cat.entity_type) = 'cat')
-  AND (JSON_VALUE(cat.properties.species) = 'Cat' OR JSON_VALUE(cat.properties.species) = 'cat')
+  AND LOWER(JSON_VALUE(cat.properties.species)) = 'cat'
   AND LOWER(hobby.entity_type) IN ('hobby', 'action', 'activity')
 RETURN TO_JSON(p) as res
 LIMIT 100
