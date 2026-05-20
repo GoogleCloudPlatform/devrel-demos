@@ -46,32 +46,24 @@ else
     echo -e "${YELLOW}⚠️ gemini CLI is not installed. In a real lab, this should be pre-installed in Cloud Shell.${NC}"
 fi
 
-# kubectl-ai
-if kubectl-ai --help &> /dev/null; then
-    echo -e "${GREEN}✅ kubectl-ai is installed.${NC}"
-else
-    echo -e "${YELLOW}⚠️ kubectl-ai not found. Attempting to install...${NC}"
-    curl -sSL https://raw.githubusercontent.com/GoogleCloudPlatform/kubectl-ai/main/install.sh | bash
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✅ kubectl-ai installed successfully.${NC}"
-    else
-        echo -e "${RED}❌ Failed to install kubectl-ai.${NC}"
-    fi
-fi
-
 # 4. Create GKE Autopilot Cluster
 CLUSTER_NAME="cymbal-bank-lab"
-echo -e "${YELLOW}☸️ Creating GKE Autopilot cluster '$CLUSTER_NAME' in region '$REGION'...${NC}"
-echo -e "${YELLOW}⏳ This may take a few minutes...${NC}"
-gcloud container clusters create-auto "$CLUSTER_NAME" \
-    --region "$REGION" \
-    --project "$PROJECT_ID"
 
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}🎉 GKE Autopilot cluster '$CLUSTER_NAME' created successfully!${NC}"
+if gcloud container clusters describe "$CLUSTER_NAME" --region "$REGION" --project "$PROJECT_ID" &> /dev/null; then
+    echo -e "${GREEN}✅ GKE Autopilot cluster '$CLUSTER_NAME' already exists.${NC}"
 else
-    echo -e "${RED}❌ Failed to create cluster.${NC}"
-    exit 1
+    echo -e "${YELLOW}☸️ Creating GKE Autopilot cluster '$CLUSTER_NAME' in region '$REGION'...${NC}"
+    echo -e "${YELLOW}⏳ This may take a few minutes...${NC}"
+    gcloud container clusters create-auto "$CLUSTER_NAME" \
+        --region "$REGION" \
+        --project "$PROJECT_ID"
+    
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}🎉 GKE Autopilot cluster '$CLUSTER_NAME' created successfully!${NC}"
+    else
+        echo -e "${RED}❌ Failed to create cluster.${NC}"
+        exit 1
+    fi
 fi
 
 echo -e "${GREEN}🏁 Setup complete! Ready to start the lab.${NC}"
