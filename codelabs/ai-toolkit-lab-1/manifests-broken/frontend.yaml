@@ -62,8 +62,6 @@ spec:
         team: frontend
         tier: web
     spec:
-      nodeSelector:
-        kubernetes.io/arch: arm64
       containers:
         - env:
             - name: VERSION
