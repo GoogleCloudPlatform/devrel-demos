@@ -86,6 +86,21 @@ echo "☝️☝️☝️ ATTENTION ☝️☝️☝️"
       --member="serviceAccount:${VERTEX_AI_SERVICE_AGENT}" \
       --role="roles/storage.objectViewer" >/dev/null
 
+  # 1c. Create Project-Specific GCS Bucket & Copy Sample Data
+  BUCKET_NAME="${PROJECT_ID}-petverse"
+  echo "🛠️ Step 1c: Creating project-specific GCS bucket 'gs://${BUCKET_NAME}'..."
+  if gcloud storage buckets describe "gs://${BUCKET_NAME}" >/dev/null 2>&1; then
+      echo "✅ GCS Bucket 'gs://${BUCKET_NAME}' already exists."
+  else
+      echo "Creating bucket 'gs://${BUCKET_NAME}'..."
+      gcloud storage buckets create "gs://${BUCKET_NAME}" \
+          --location="${LOCATION}" \
+          --uniform-bucket-level-access
+      
+      echo "📦 Copying sample dataset into GCS bucket..."
+      gcloud storage cp -r gs://sample-data-and-media/petverse/* "gs://${BUCKET_NAME}/"
+  fi
+
   # 2. Create Artifact Registry Repository
   echo "🛠️ Step 2: Creating Artifact Registry Repository..."
   gcloud artifacts repositories create gke-cats-repo \
