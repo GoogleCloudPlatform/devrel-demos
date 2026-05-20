@@ -17,7 +17,7 @@ spec:
       - name: producer
         image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/gke-cats-repo/petverse-producer:latest
         imagePullPolicy: Always
-        args: ["gs://sample-data-and-media/petverse/", "--driver", "pets.csv"]
+        args: ["gs://${PROJECT_ID}-petverse/", "--driver", "pets.csv"]
 
         env:
         - name: GOOGLE_CLOUD_PROJECT

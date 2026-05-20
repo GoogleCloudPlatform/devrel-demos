@@ -1,9 +1,8 @@
 # Petverse Knowledge Graph Pipeline
 
-Distributed knowledge acquisition pipeline processing unstructured multimedia assets (Audio, Video, Images, Text/CSV) from Cloud Storage bucket, converting them into Knowledge Graph structured data via Gemini multi-modality processing, and natively enriching BigQuery relational datasets with high integrity idempotence controls.
+Distributed knowledge acquisition pipeline processing unstructured multimedia assets (Audio, Video, Images, Text/CSV) from a Cloud Storage bucket, converting them into Knowledge Graph structured data via Gemini multi-modality processing on Google Kubernetes Engine (GKE), and natively enriching BigQuery relational datasets with high integrity.
 
 There is a [codelab](https://codelabs.developers.google.com/codelabs/gke/ai-toolkit-lab-3) for this sample.
-
 
 ## System Architecture
 
@@ -41,12 +40,11 @@ graph TD
 4. **Storage**: Workers write the extracted nodes and edges directly to **BigQuery**.
 5. **Vector Enrichment**: BigQuery automatically generates embeddings for pet bios using a connection to the Vertex AI Text Embeddings API.
 
-
 ---
 
-# GKE Deployment & Orchestration Guide
+## GKE Deployment & Orchestration Guide
 
-This guide presents foundational components and precise workflows required to run the Petverse knowledge pipeline at scale in Google Kubernetes Engine (GKE) using enterprise-grade Workload Identity best practices.
+This guide presents foundational components and precise workflows required to run the Petverse knowledge pipeline at scale in Google Kubernetes Engine (GKE) using enterprise-grade modern Workload Identity best practices.
 
 ## Setup Environment Variables
 First, export the required environment variables. These will be used by the setup script and subsequent commands.
@@ -67,7 +65,7 @@ chmod +x scripts/setup.sh
 ---
 
 ## 1. Initialize Core Infrastructure
-Use these commands to initialize the container cluster. The artifact repository and image should have been created by `setup.sh`.
+Use these commands to initialize the container cluster. The GCS bucket, Pub/Sub topics, and images are created by `setup.sh`.
 
 ```bash
 # Create Cluster (GKE Autopilot is automated best-practice)
@@ -83,7 +81,7 @@ gcloud container clusters get-credentials petverse-cluster --region $REGION --pr
 
 ## 2. Build and Deploy Workloads
 
-Run the deployment script to configure the Kubernetes service account and load sample data into BigQuery.
+Run the deployment script to configure GKE Modern Workload Identity permissions directly for the Kubernetes Service Account and load sample data into BigQuery.
 
 ```bash
 chmod +x scripts/deploy.sh
@@ -103,6 +101,8 @@ This job scans the GCS bucket and enqueues tasks to Pub/Sub, completing quickly.
 kubectl apply -f job-worker.yaml
 ```
 This deploys workers configured to run in parallel to drain the Pub/Sub queue. GKE Autopilot will automatically scale nodes to accommodate the workload.
+
+---
 
 ## 3. Validation monitoring
 
@@ -135,6 +135,8 @@ petverse-producer-job   Complete   1/1           15s        2m
 petverse-worker-job     Complete   3/3           3m20s      3m
 ```
 
+---
+
 # Create the graph
 In [BigQuery Studio](https://console.cloud.google.com/bigquery?utm_campaign=CDR_0x6cb6c9c7_default_b513837417&utm_medium=external&utm_source=lab), run the following query to create a graph:
 
@@ -166,5 +168,3 @@ WHERE (LOWER(cat.entity_type) = 'pet' OR LOWER(cat.entity_type) = 'cat')
 RETURN TO_JSON(p) as res
 LIMIT 100
 ```
-
-

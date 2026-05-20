@@ -72,7 +72,7 @@ def main():
             print(f"⏱️ Idle timeout of {idle_timeout}s reached. Exiting.")
             break
 
-    print("🏁 🦄  Worker shut down.")
+    print("🏁 Worker shut down.")
 
 if __name__ == "__main__":
     main()

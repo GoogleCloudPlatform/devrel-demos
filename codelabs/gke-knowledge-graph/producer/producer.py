@@ -54,8 +54,7 @@ def main():
 
     print(f"📦 Located {len(discovery_list)} target candidate files.")
 
-    # If using a CSV file as a driver (instead of the BigQuery table),
-    # prioritize its processing. This is not part of the codelab, but for testing.
+    # User specific feature: Priority Queue positioning for "Driver" metadata files
     queue = []
     if args.driver:
         # Match exact matching filename in recursive path
@@ -95,7 +94,7 @@ def main():
             fail_count += 1
 
     print("\n" + "="*40)
-    print(f"🏁 🦄 PRODUCER SUMMARY")
+    print(f"🏁 PRODUCER SUMMARY")
     print(f"✅ PUBLISHED : {success_count}")
     print(f"❌ FAILED    : {fail_count}")
     print("="*40)
