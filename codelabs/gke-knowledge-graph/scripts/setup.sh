@@ -187,7 +187,7 @@ echo "☝️☝️☝️ ATTENTION ☝️☝️☝️"
       echo "✅ Subscription '$SUBSCRIPTION' already exists."
   else
       echo "Creating subscription '$SUBSCRIPTION'..."
-      gcloud pubsub subscriptions create "$SUBSCRIPTION" --topic="$TOPIC"
+      gcloud pubsub subscriptions create "$SUBSCRIPTION" --topic="$TOPIC" --ack-deadline=600
   fi
 
   echo "🦄 Setup Complete for project $PROJECT_ID!"
