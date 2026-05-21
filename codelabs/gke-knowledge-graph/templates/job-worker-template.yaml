@@ -5,8 +5,8 @@ metadata:
   labels:
     dev-tutorial: stabby-unicorn
 spec:
-  parallelism: 3
-  completions: 3
+  parallelism: 6
+  completions: 6
   template:
     metadata:
       labels:
