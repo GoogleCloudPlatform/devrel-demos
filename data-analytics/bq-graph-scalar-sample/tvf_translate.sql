@@ -37,9 +37,25 @@ WITH ComplaintData AS (
         comp.complaint_text
   )
 )
-SELECT *
+SELECT
+  tr.customer_name,
+  JSON_VALUE(
+    -- First, extract the 'translations' array as a SQL ARRAY<JSON>
+    JSON_QUERY_ARRAY(tr.ml_translate_result, '$.translations')[SAFE_OFFSET(0)],
+    -- Then, from the first JSON object in the array, extract the 'translated_text' string value
+    '$.translated_text'
+  ) AS spanish_translation,
+
+  -- Example: Extracting detected language code
+  JSON_VALUE(
+    JSON_QUERY_ARRAY(tr.ml_translate_result, '$.translations')[SAFE_OFFSET(0)],
+    '$.detected_language_code'
+  ) AS detected_language,
+
+  tr.ml_translate_status
 FROM ML.TRANSLATE(
   MODEL `finance_ds.translate`,
   TABLE ComplaintData,
   STRUCT('translate_text' AS translate_mode, 'es' AS target_language_code)
 ) AS tr;
+

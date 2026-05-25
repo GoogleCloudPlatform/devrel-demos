@@ -1,6 +1,6 @@
 # BigQuery Graph: Scalar & AI Functions Samples
 
-This directory contains sample SQL scripts demonstrating how to leverage **standard scalar functions**, **AI functions** (like `AI.EMBED`, `ML.DISTANCE`, and `ML.TRANSLATE`), and **JSON serialization** within BigQuery Property Graph queries.
+This directory contains sample SQL scripts demonstrating how to leverage **standard scalar functions**, **AI functions** (like `AI.EMBED`, `ML.DISTANCE`, and `ML.TRANSLATE`) within BigQuery Property Graph queries.
 
 These samples highlight the power of combining Graph Query Language (GQL) with BigQuery's rich function ecosystem, enabling complex analysis, semantic search, and translation directly on graph node and edge properties.
 
