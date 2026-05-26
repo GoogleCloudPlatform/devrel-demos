@@ -1,7 +1,7 @@
 import os
 from google.adk.plugins.bigquery_agent_analytics_plugin import BigQueryAgentAnalyticsPlugin
 
-class customBigQueryPlugin(BigQueryAgentAnalyticsPlugin):
+class CustomBigQueryPlugin(BigQueryAgentAnalyticsPlugin):
     def __init__(self, *args, **kwargs):
         # Retrieve parameters from OS environment variables with sensible defaults
         project_id = os.getenv("GOOGLE_CLOUD_PROJECT", "your-gcp-project-id")

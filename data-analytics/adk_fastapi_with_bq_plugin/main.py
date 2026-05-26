@@ -4,7 +4,7 @@ import uvicorn
 from fastapi import FastAPI
 from dotenv import load_dotenv
 from google.adk.cli.fast_api import get_fast_api_app
-from custom_plugin import customBigQueryPlugin
+
 
 load_dotenv()
 
@@ -16,7 +16,7 @@ app: FastAPI = get_fast_api_app(
     agents_dir=AGENT_DIR,
     allow_origins=["*"],
     web=True,
-    extra_plugins=['custom_plugin.customBigQueryPlugin']
+    extra_plugins=['custom_plugin.CustomBigQueryPlugin']
 )
 
 if __name__ == "__main__":
