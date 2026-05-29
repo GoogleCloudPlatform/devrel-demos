@@ -49,7 +49,7 @@ func (s *GoogleResultSubscriber) Start(ctx context.Context, handle func(domain.J
 		var result domain.JudgingResult
 		if err := json.Unmarshal(msg.Data, &result); err != nil {
 			log.Printf("Failed to unmarshal judging result: %v", err)
-			msg.Nack()
+			msg.Ack()
 			return
 		}
 
