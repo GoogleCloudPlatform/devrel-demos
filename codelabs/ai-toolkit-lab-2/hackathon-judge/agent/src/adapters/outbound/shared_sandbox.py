@@ -98,7 +98,7 @@ def evaluate_repository(github_url: str, judging_criteria: str) -> str:
         return result_json
     except Exception as e:
         logger.error(f"Sandbox evaluation failed: {str(e)}")
-        return json.dumps({"error": f"Sandbox evaluation failed: {str(e)}"})
+        raise RuntimeError(f"Sandbox evaluation failed: {str(e)}") from e
     finally:
         logger.info("Terminating sandbox...")
         sandbox.terminate()
