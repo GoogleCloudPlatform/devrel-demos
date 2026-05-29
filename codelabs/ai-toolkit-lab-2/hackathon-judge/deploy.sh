@@ -733,8 +733,8 @@ fi
 # Wait for all parallel jobs to complete
 FAILURES=0
 for i in "${!PIDS[@]}"; do
-  wait "${PIDS[$i]}"
-  STATUS=$?
+  # Safely wait and capture exit code without triggering 'set -e'
+  wait "${PIDS[$i]}" && STATUS=0 || STATUS=$?
   if [ $STATUS -eq 0 ]; then
     log_success "${RESULTS[$i]} configuration completed successfully."
   else
@@ -814,14 +814,6 @@ if [ "$RUN_K8S" = "true" ]; then
   bind_workload_identity "hackathon-judge-sandbox-sa" "roles/aiplatform.user"
 
   log_info "Applying Kubernetes ConfigMap with environment variables..."
-  
-  # SAFELY LOAD ENV FOR ENVSUBST WITHOUT SOURCING THE SECOND SCRIPT
-  if [ -f "$ENV_FILE" ]; then
-    export $(grep -v '^#' "$ENV_FILE" | xargs)
-  else
-    log_error "Missing .env file. Cannot proceed with substitution."
-    exit 1
-  fi
   
   # Safely calculate COMMIT_SHA locally if not inherited
   if [ -z "${COMMIT_SHA:-}" ]; then
