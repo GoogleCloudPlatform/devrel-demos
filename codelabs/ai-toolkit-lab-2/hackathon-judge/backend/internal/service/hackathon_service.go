@@ -29,6 +29,7 @@ type HackathonService interface {
 	ListProjectsByHackathon(id string) ([]domain.Project, error)
 	GetProject(id string) (domain.Project, error)
 	AddEvaluation(eval domain.Evaluation) error
+	SaveJudgingResult(res domain.JudgingResult) error
 	ListEvaluationsByProject(projectID string) ([]domain.Evaluation, error)
 	TriggerJudgingAgent(projectID string) (string, error)
 }
@@ -136,12 +137,14 @@ func (s *hackathonService) AddEvaluation(eval domain.Evaluation) error {
 
 	// Calculate TotalScore
 	var evalTotal float64
-	for _, cs := range eval.Criteria {
+	for i, cs := range eval.Criteria {
 		weight := 0.0
+		maxScore := 0.0
 		// Check standard criteria
 		for _, hc := range hackathon.Criteria {
 			if hc.Name == cs.Name {
 				weight = hc.Weight
+				maxScore = hc.MaxScore
 				break
 			}
 		}
@@ -150,11 +153,16 @@ func (s *hackathonService) AddEvaluation(eval domain.Evaluation) error {
 			for _, bc := range hackathon.BonusCriteria {
 				if bc.Name == cs.Name {
 					weight = bc.Weight
+					maxScore = bc.MaxScore
 					break
 				}
 			}
 		}
 		evalTotal += cs.Score * weight
+		
+		// Update the criteria struct so the weight and maxScore are saved
+		eval.Criteria[i].Weight = weight
+		eval.Criteria[i].MaxScore = maxScore
 	}
 	eval.TotalScore = evalTotal
 
@@ -231,4 +239,56 @@ func (s *hackathonService) TriggerJudgingAgent(projectID string) (string, error)
 	}
 
 	return taskID, nil
+}
+
+func (s *hackathonService) SaveJudgingResult(res domain.JudgingResult) error {
+	s.scoreMu.Lock()
+	defer s.scoreMu.Unlock()
+
+	eval, err := s.evalRepo.GetEvaluationByID(res.TaskID)
+	if err != nil {
+		return fmt.Errorf("evaluation with ID %s not found: %w", res.TaskID, err)
+	}
+
+	if res.Status == "error" {
+		eval.Status = "FAILED"
+		if res.ErrorMessage != nil {
+			eval.Comment = *res.ErrorMessage
+		}
+	} else {
+		eval.Status = "SUCCESS"
+		eval.Criteria = res.Scores
+		
+		var calculatedTotal float64
+		for _, score := range res.Scores {
+			calculatedTotal += score.Score * score.Weight
+		}
+		eval.TotalScore = calculatedTotal
+		
+		eval.Comment = res.OverallComments
+	}
+
+	if err := s.evalRepo.Update(eval); err != nil {
+		return fmt.Errorf("failed to update evaluation %s: %w", res.TaskID, err)
+	}
+
+	if eval.Status == "SUCCESS" {
+		evals, err := s.evalRepo.GetByProjectID(eval.ProjectID)
+		if err == nil {
+			var total float64
+			var count int
+			for _, e := range evals {
+				if e.Status == "SUCCESS" {
+					total += e.TotalScore
+					count++
+				}
+			}
+			if count > 0 {
+				average := total / float64(count)
+				return s.projectRepo.UpdateScore(eval.ProjectID, average)
+			}
+		}
+	}
+
+	return nil
 }

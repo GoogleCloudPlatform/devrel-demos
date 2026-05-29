@@ -84,6 +84,8 @@ func main() {
 		evalRepo = bqRepo
 	}
 
+	svc := service.NewHackathonService(hackathonRepo, projectRepo, evalRepo, publisher)
+
 	subscriber, err := pubsub.NewGoogleResultSubscriber(projectID, subID)
 	if err != nil {
 		log.Printf("Warning: failed to initialize PubSub subscriber: %v. Result listening disabled.", err)
@@ -95,51 +97,10 @@ func main() {
 				log.Printf("Task ID: %s", res.TaskID)
 				log.Printf("Status: %s", res.Status)
 				
-				eval, err := evalRepo.GetEvaluationByID(res.TaskID)
+				err := svc.SaveJudgingResult(res)
 				if err != nil {
-					log.Printf("Evaluation with ID %s not found: %v", res.TaskID, err)
+					log.Printf("Failed to process judging result: %v", err)
 					return err
-				}
-
-				if res.Status == "error" {
-					eval.Status = "FAILED"
-					if res.ErrorMessage != nil {
-						eval.Comment = *res.ErrorMessage
-					}
-				} else {
-					eval.Status = "SUCCESS"
-					eval.Criteria = res.Scores
-					
-					var calculatedTotal float64
-					for _, score := range res.Scores {
-						calculatedTotal += score.Score * score.Weight
-					}
-					eval.TotalScore = calculatedTotal
-					
-					eval.Comment = res.OverallComments
-				}
-
-				if err := evalRepo.Update(eval); err != nil {
-					log.Printf("Failed to update evaluation %s: %v", res.TaskID, err)
-					return err
-				}
-
-				if eval.Status == "SUCCESS" {
-					evals, err := evalRepo.GetByProjectID(eval.ProjectID)
-					if err == nil {
-						var total float64
-						var count int
-						for _, e := range evals {
-							if e.Status == "SUCCESS" {
-								total += e.TotalScore
-								count++
-							}
-						}
-						if count > 0 {
-							average := total / float64(count)
-							projectRepo.UpdateScore(eval.ProjectID, average)
-						}
-					}
 				}
 
 				log.Printf("Successfully processed result for task %s", res.TaskID)
@@ -152,7 +113,6 @@ func main() {
 		}()
 	}
 
-	svc := service.NewHackathonService(hackathonRepo, projectRepo, evalRepo, publisher)
 	h := handler.NewHackathonHandler(svc)
 
 	h.RegisterRoutes(r)
