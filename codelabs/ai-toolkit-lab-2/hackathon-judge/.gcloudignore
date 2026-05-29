@@ -1,0 +1,60 @@
+# .gcloudignore
+# This file specifies which files should be ignored by the gcloud CLI
+# when uploading files to Google Cloud.
+
+# Standard gcloud ignore patterns
+.git
+.gitignore
+
+# From root .gitignore
+.worktrees/
+node_modules/
+dist/
+.env
+superpowers/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+.pytest_cache/
+.mypy_cache/
+.tox/
+.nox/
+.coverage
+htmlcov/
+
+# Go
+backend/bin/
+
+# Data files
+*.csv
+
+# Temp
+temp/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker / Deployment artifacts
+# Dockerfile
+# .dockerignore
+# .gcloudignore
+# cloudbuild.yaml
+# deploy.sh
+# destroy.sh

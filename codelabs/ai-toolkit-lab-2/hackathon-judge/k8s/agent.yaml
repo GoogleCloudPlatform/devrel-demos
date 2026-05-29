@@ -1,0 +1,82 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent
+  namespace: hackathon-judge
+  labels:
+    app: agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent
+  template:
+    metadata:
+      labels:
+        app: agent
+    spec:
+      serviceAccountName: hackathon-judge-sa
+      containers:
+      - name: agent
+        image: "${ARTIFACT_REGISTRY_LOCATION}-docker.pkg.dev/${GOOGLE_CLOUD_PROJECT}/${ARTIFACT_REPO_NAME}/agent:$COMMIT_SHA"
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        env:
+        - name: GOOGLE_CLOUD_PROJECT
+          valueFrom:
+            configMapKeyRef:
+              name: hackathon-judge-config
+              key: GOOGLE_CLOUD_PROJECT
+        - name: GOOGLE_CLOUD_LOCATION
+          value: "global"
+        - name: GOOGLE_GENAI_USE_VERTEXAI
+          value: "True"
+        - name: TASKS_SUBSCRIPTION
+          valueFrom:
+            configMapKeyRef:
+              name: hackathon-judge-config
+              key: TASKS_SUBSCRIPTION
+        - name: RESULTS_TOPIC
+          valueFrom:
+            configMapKeyRef:
+              name: hackathon-judge-config
+              key: RESULTS_TOPIC
+        - name: SANDBOX_TEMPLATE
+          valueFrom:
+            configMapKeyRef:
+              name: hackathon-judge-config
+              key: SANDBOX_TEMPLATE
+        - name: SANDBOX_NAMESPACE
+          valueFrom:
+            configMapKeyRef:
+              name: hackathon-judge-config
+              key: SANDBOX_NAMESPACE
+        - name: USE_MOCK_PUBSUB
+          value: "false"
+        - name: AGENT_TYPE
+          valueFrom:
+            configMapKeyRef:
+              name: hackathon-judge-config
+              key: AGENT_TYPE
+              optional: true
