@@ -733,8 +733,8 @@ fi
 # Wait for all parallel jobs to complete
 FAILURES=0
 for i in "${!PIDS[@]}"; do
-  wait "${PIDS[$i]}"
-  STATUS=$?
+  # Safely wait and capture exit code without triggering 'set -e'
+  wait "${PIDS[$i]}" && STATUS=0 || STATUS=$?
   if [ $STATUS -eq 0 ]; then
     log_success "${RESULTS[$i]} configuration completed successfully."
   else
@@ -814,8 +814,13 @@ if [ "$RUN_K8S" = "true" ]; then
   bind_workload_identity "hackathon-judge-sandbox-sa" "roles/aiplatform.user"
 
   log_info "Applying Kubernetes ConfigMap with environment variables..."
-  # Source setup-env.sh before envsubst to ensure all variables are set and exported
-  source ./setup-env.sh >/dev/null
+  
+  # Safely calculate COMMIT_SHA locally if not inherited
+  if [ -z "${COMMIT_SHA:-}" ]; then
+    COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "latest")
+    export COMMIT_SHA
+  fi
+
   envsubst < k8s/configmap.yaml | kubectl apply -f -
 
   log_info "Applying Sandbox Router..."
