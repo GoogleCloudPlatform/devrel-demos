@@ -1,0 +1,9 @@
+.worktrees/
+node_modules/
+dist/
+.env
+
+superpowers/
+CLAUDE.md
+GEMINI.md
+readmes/

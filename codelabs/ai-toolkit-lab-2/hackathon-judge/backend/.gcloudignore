@@ -1,0 +1,24 @@
+.git
+.gitignore
+
+# Go build artifacts
+bin/
+tmp/
+*.exe
+
+# Environments
+.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+
+# Cloud Run specific
+.dockerignore
