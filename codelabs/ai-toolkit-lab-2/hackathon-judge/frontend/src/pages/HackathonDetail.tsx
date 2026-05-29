@@ -20,8 +20,7 @@ import { useParams, Link } from 'react-router-dom';
 import { fetcher } from '../utils/fetcher';
 import type { Project, Evaluation, Hackathon } from '../types/models';
 
-function ProjectCard({ project }: { project: Project }) {
-  const { data: evaluations, mutate } = useSWR<Evaluation[]>(`/api/projects/${project.id}/evaluations`, fetcher);
+function ProjectCard({ project, evaluations, mutateEvaluations }: { project: Project, evaluations?: Evaluation[], mutateEvaluations: () => void }) {
   const [isTriggeringAgent, setIsTriggeringAgent] = useState(false);
   const [judgeMessage, setJudgeMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
@@ -33,11 +32,11 @@ function ProjectCard({ project }: { project: Project }) {
     let interval: ReturnType<typeof setInterval>;
     if (isRunning) {
       interval = setInterval(() => {
-        mutate();
+        mutateEvaluations();
       }, 5000);
     }
     return () => clearInterval(interval);
-  }, [isRunning, mutate]);
+  }, [isRunning, mutateEvaluations]);
 
   const handleJudgeAgent = async () => {
     if (hasAgentEvaluations && !window.confirm('Agent evaluations already exist for this project. Are you sure you want to run another evaluation?')) {
@@ -50,7 +49,7 @@ function ProjectCard({ project }: { project: Project }) {
       const response = await fetch(`/api/projects/${project.id}/judge`, { method: 'POST' });
       if (!response.ok) throw new Error('Failed to start judging');
       setJudgeMessage({ text: 'Agent judging task started!', type: 'success' });
-      setTimeout(() => mutate(), 1000);
+      setTimeout(() => mutateEvaluations(), 1000);
     } catch {
       setJudgeMessage({ text: 'Error starting judging', type: 'error' });
     } finally {
@@ -100,6 +99,17 @@ export default function HackathonDetail() {
   
   const { data: hackathon, error: hackathonError, isLoading: isHackathonLoading } = useSWR<Hackathon>(id ? `/api/hackathons/${id}` : null, fetcher);
   const { data: projects, error: projectsError, isLoading: isProjectsLoading } = useSWR<Project[]>(id ? `/api/hackathons/${id}/projects` : null, fetcher);
+
+  const { data: evaluationsData, mutate: mutateEvaluations } = useSWR<Evaluation[][]>(
+    projects && projects.length > 0 ? `hackathon-${id}-evaluations` : null,
+    () => Promise.all(projects!.map(p => fetcher(`/api/projects/${p.id}/evaluations`).catch(() => [])))
+  );
+
+  const getEvaluationsForProject = (projectId: string) => {
+    if (!projects || !evaluationsData) return [];
+    const index = projects.findIndex(p => p.id === projectId);
+    return evaluationsData[index] || [];
+  };
 
   if (isHackathonLoading || isProjectsLoading) return <div className="p-4">Loading details...</div>;
   if (hackathonError) return <div className="p-4 text-red-500">Failed to load hackathon details.</div>;
@@ -158,7 +168,12 @@ export default function HackathonDetail() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {projects.map((p) => (
-                <ProjectCard key={p.id} project={p} />
+                <ProjectCard 
+                  key={p.id} 
+                  project={p} 
+                  evaluations={getEvaluationsForProject(p.id)}
+                  mutateEvaluations={mutateEvaluations}
+                />
               ))}
             </div>
           )}
