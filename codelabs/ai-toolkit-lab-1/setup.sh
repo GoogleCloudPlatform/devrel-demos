@@ -56,7 +56,8 @@ else
     echo -e "${YELLOW}⏳ This may take a few minutes...${NC}"
     gcloud container clusters create-auto "$CLUSTER_NAME" \
         --region "$REGION" \
-        --project "$PROJECT_ID"
+        --project "$PROJECT_ID" \
+        --labels dev-tutorial=airoadshow
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}🎉 GKE Autopilot cluster '$CLUSTER_NAME' created successfully!${NC}"
