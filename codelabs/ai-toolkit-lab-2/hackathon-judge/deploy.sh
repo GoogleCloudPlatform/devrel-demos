@@ -289,7 +289,7 @@ else
     GOOGLE_CLOUD_REGION="$existing_GOOGLE_CLOUD_REGION"
   else
     # Randomly select a default region from a predefined list of supported regions
-    REGIONS=("us-central1")
+    REGIONS=("us-east1" "us-west1" "europe-west4")
     RANDOM_REGION=${REGIONS[$RANDOM % ${#REGIONS[@]}]}
     prompt_var "GOOGLE_CLOUD_REGION" "GCP Target Region" "${existing_GOOGLE_CLOUD_REGION:-$RANDOM_REGION}"
   fi
