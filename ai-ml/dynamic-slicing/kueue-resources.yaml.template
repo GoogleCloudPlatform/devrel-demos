@@ -1,0 +1,50 @@
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: Topology
+metadata:
+  name: superslice-topology
+spec:
+  levels:
+  - nodeLabel: cloud.google.com/gce-topology-block
+  - nodeLabel: cloud.google.com/gke-tpu-partition-4x4x4-id
+  - nodeLabel: kubernetes.io/hostname
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ResourceFlavor
+metadata:
+  name: superslice-rf
+spec:
+  nodeLabels:
+    cloud.google.com/gke-tpu-accelerator: tpu7x
+  topologyName: superslice-topology
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: AdmissionCheck
+metadata:
+  name: superslice-ac
+spec:
+  controllerName: accelerator.gke.io/slice
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: cq
+spec:
+  namespaceSelector: {}
+  admissionChecks:
+  - superslice-ac
+  resourceGroups:
+  - coveredResources:
+    - google.com/tpu
+    flavors:
+    - name: superslice-rf
+      resources:
+      - name: google.com/tpu
+        nominalQuota: "999999"  # Bypasses Kueue quota management for TAS focus
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: LocalQueue
+metadata:
+  name: lq
+  namespace: ${NAMESPACE}
+spec:
+  clusterQueue: cq
