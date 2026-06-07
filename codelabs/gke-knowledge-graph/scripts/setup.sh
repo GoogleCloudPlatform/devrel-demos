@@ -220,4 +220,11 @@ else
     else
         echo "⚠️ templates/job-worker-template.yaml not found, skipping."
     fi
+    echo "📝 Replacing region placeholder in SQL..."
+    if [ -f "templates/job-worker-template.yaml" ]; then
+        sed -i "s/\${PROJECT_ID}/$PROJECT_ID/g; s/\${REGION}/$REGION/g" scripts/create_tables.sql
+        echo "✅ Replaced REGION in create_tables.sql."
+    else
+        echo "⚠️ create_tables.sql not found"
+    fi
 fi
