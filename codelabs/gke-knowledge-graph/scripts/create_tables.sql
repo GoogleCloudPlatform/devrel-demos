@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS `petverse_kg.Nodes` (
   bio_embedding STRUCT<result ARRAY<FLOAT64>, status STRING> GENERATED ALWAYS AS (
     AI.EMBED(
       pet_bio,
-      connection_id => 'us-central1.petverse-embeddings',
+      connection_id => '${REGION}.petverse-embeddings',
       endpoint => 'text-embedding-005'
     )
   ) STORED OPTIONS(asynchronous = TRUE)
