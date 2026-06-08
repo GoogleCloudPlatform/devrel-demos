@@ -10,14 +10,38 @@ set -euo pipefail
 # ---------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------
-SOURCE_BUCKET="gs://sample-data-and-media/data-cloud-roadshow-26/lab2"
-PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
-if [[ -z "$PROJECT_ID" ]]; then
-  echo "ERROR: No project set. Run 'gcloud config set project YOUR_PROJECT_ID' first."
-  exit 1
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_FILE="$SCRIPT_DIR/../.env"
+
+# Load environment from .env if it exists
+if [ -f "$ENV_FILE" ]; then
+    echo "Loading environment variables from $ENV_FILE..."
+    export $(grep -v '^#' "$ENV_FILE" | xargs)
 fi
-REGION=${REGION:-us-central1}
+
+# Determine Project ID (env/gcloud config/prompt)
+PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}"
+if [[ -z "$PROJECT_ID" ]]; then
+    read -p "Enter your Google Cloud Project ID: " PROJECT_ID
+fi
+if [[ -z "$PROJECT_ID" ]]; then
+    echo "❌ ERROR: Google Cloud Project ID cannot be empty."
+    exit 1
+fi
+
+# Determine Region
+REGION="${REGION:-us-central1}"
+
+# Save to .env file
+echo "Writing environment variables to $ENV_FILE..."
+echo "PROJECT_ID=$PROJECT_ID" > "$ENV_FILE"
+echo "REGION=$REGION" >> "$ENV_FILE"
+
+# Configure gcloud CLI
+gcloud config set project "$PROJECT_ID" >/dev/null 2>&1
+
 BUCKET="gs://${PROJECT_ID}-lab2"
+SOURCE_BUCKET="gs://sample-data-and-media/data-cloud-roadshow-26/lab2"
 
 echo "Project:  $PROJECT_ID"
 echo "Region:   $REGION"
