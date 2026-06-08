@@ -1,0 +1,13 @@
+export PROJECT_ID="my-custom-project"
+export CLUSTER_NAME="gemma-serving-tpu7-2"
+export ZONE="us-central1-ai1a"
+export NAMESPACE="disagg-serving"
+export RESERVATION_NAME="cloudtpu-20260516010000-518507031"
+export SERVED_MODEL_NAME="google/gemma-3-27b-it"
+export GCS_BUCKET_NAME="gemma-weights"
+export TPU_MACHINE_TYPE="tpu7x-standard-4t"
+export PREFILL_REPLICAS=2
+export DECODE_REPLICAS=2
+export HF_TOKEN="my-custom-token"
+export HOST_NETWORK="gemma-host-net"
+export HOST_SUBNET="gemma-host-subnet"
