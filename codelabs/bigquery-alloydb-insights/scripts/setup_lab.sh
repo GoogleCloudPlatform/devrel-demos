@@ -16,7 +16,10 @@ ENV_FILE="$SCRIPT_DIR/../.env"
 # Load environment from .env if it exists
 if [ -f "$ENV_FILE" ]; then
     echo "Loading environment variables from $ENV_FILE..."
-    export $(grep -v '^#' "$ENV_FILE" | xargs)
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ "$line" =~ ^[[:space:]]*# || -z "$line" ]] && continue
+        export "$line"
+    done < "$ENV_FILE"
 fi
 
 # Determine Project ID (env/gcloud config/prompt)
@@ -54,6 +57,34 @@ if ! gcloud auth print-access-token &>/dev/null; then
   exit 1
 fi
 
+# Helper function to run IAM policy binding with retries to handle propagation delay
+function grant_iam_role_with_retry() {
+  local project=$1
+  local member=$2
+  local role=$3
+  local max_attempts=4
+  local attempt=1
+  local delay=5
+
+  echo "      Granting $role to $member..."
+  while [ $attempt -le $max_attempts ]; do
+    if gcloud projects add-iam-policy-binding "$project" --format=none \
+      --member="$member" --role="$role" --quiet &>/dev/null; then
+        echo "      ✅ Successfully granted $role."
+        return 0
+    else
+        if [ $attempt -lt $max_attempts ]; then
+          echo "      ⚠️ IAM propagation delay encountered. Retrying in ${delay}s (Attempt $attempt/$max_attempts)..."
+          sleep $delay
+          ((attempt++))
+        else
+          echo "      ❌ Error: Failed to grant $role after $max_attempts attempts."
+          return 1
+        fi
+    fi
+  done
+}
+
 # ---------------------------------------------------------------
 # [1/8] Enable required APIs
 # ---------------------------------------------------------------
@@ -84,16 +115,10 @@ bq mk --connection --location=us --connection_type=CLOUD_RESOURCE lost_cargo_con
 SA_EMAIL=$(bq show --format=prettyjson --connection us.lost_cargo_conn \
   | grep "serviceAccountId" | cut -d '"' -f 4)
 echo "      Connection service account: $SA_EMAIL"
-echo "      Waiting 10s for service account to propagate..."
-sleep 10
 
-gcloud projects add-iam-policy-binding "$PROJECT_ID" --format=none \
-  --member="serviceAccount:$SA_EMAIL" \
-  --role='roles/storage.objectViewer' --quiet
-
-gcloud projects add-iam-policy-binding "$PROJECT_ID" --format=none \
-  --member="serviceAccount:$SA_EMAIL" \
-  --role='roles/aiplatform.user' --quiet
+# Grant permissions using the retry helper to gracefully handle propagation delay
+grant_iam_role_with_retry "$PROJECT_ID" "serviceAccount:$SA_EMAIL" "roles/storage.objectViewer"
+grant_iam_role_with_retry "$PROJECT_ID" "serviceAccount:$SA_EMAIL" "roles/aiplatform.user"
 echo "      Done."
 
 
@@ -124,27 +149,48 @@ curl -s -X POST \
 # Grant the connection's service account access to AlloyDB
 SA_EMAIL_ALLOYDB=$(bq show --format=prettyjson --connection us.lost_cargo_alloydb_conn | grep "serviceAccountId" | cut -d '"' -f 4)
 if [[ -n "$SA_EMAIL_ALLOYDB" ]]; then
-  echo "      Granting alloydb.client to $SA_EMAIL_ALLOYDB..."
-  gcloud projects add-iam-policy-binding $PROJECT_ID \
-    --member="serviceAccount:$SA_EMAIL_ALLOYDB" \
-    --role="roles/alloydb.client" \
-    --quiet >/dev/null
+  grant_iam_role_with_retry "$PROJECT_ID" "serviceAccount:$SA_EMAIL_ALLOYDB" "roles/alloydb.client"
 fi
 echo "      Done."
 
 # ---------------------------------------------------------------
-# [5/8] Create GCS bucket and copy lab assets
+# [5/8] Create GCS bucket, copy assets, and grant AlloyDB access
 # ---------------------------------------------------------------
-echo "[5/8] Creating GCS bucket and copying lab assets..."
-gsutil mb -l us "$BUCKET" 2>/dev/null || true
+echo "[5/8] Creating GCS bucket, copying lab assets, and granting AlloyDB permissions..."
+if gcloud storage buckets describe "$BUCKET" &>/dev/null; then
+    echo "      Bucket already exists: $BUCKET"
+else
+    echo "      Creating bucket $BUCKET..."
+    gcloud storage buckets create "$BUCKET" --location=us
+fi
 
 echo "      Copying images from central bucket..."
-gsutil -m cp -r "${SOURCE_BUCKET}/images/*" "${BUCKET}/images/" 2>/dev/null || \
-  gsutil cp -r "${SOURCE_BUCKET}/images/*" "${BUCKET}/images/"
+gcloud storage cp -r "${SOURCE_BUCKET}/images/*" "${BUCKET}/images/"
 
 echo "      Copying data from central bucket..."
-gsutil -m cp -r "${SOURCE_BUCKET}/data/*" "${BUCKET}/data/" 2>/dev/null || \
-  gsutil cp -r "${SOURCE_BUCKET}/data/*" "${BUCKET}/data/"
+gcloud storage cp -r "${SOURCE_BUCKET}/data/*" "${BUCKET}/data/"
+
+# Grant GCS bucket access to AlloyDB service identities
+echo "      Granting GCS access to AlloyDB service identities..."
+PROJECT_NUMBER=$(gcloud projects describe "${PROJECT_ID}" --format="value(projectNumber)" 2>/dev/null || echo "")
+if [[ -n "$PROJECT_NUMBER" ]]; then
+  ALLOYDB_SERVICE_AGENT="service-${PROJECT_NUMBER}@gcp-sa-alloydb.iam.gserviceaccount.com"
+  gcloud storage buckets add-iam-policy-binding "$BUCKET" \
+    --member="serviceAccount:${ALLOYDB_SERVICE_AGENT}" \
+    --role="roles/storage.objectViewer" \
+    --quiet || echo "⚠️ Warning: Failed to grant GCS access to AlloyDB Service Agent."
+fi
+
+ALLOYDB_SA=$(gcloud alloydb clusters describe "lost-cargo-cluster" \
+  --region="us-central1" \
+  --format="value(serviceAccount)" 2>/dev/null || echo "")
+if [[ -n "$ALLOYDB_SA" ]]; then
+  gcloud storage buckets add-iam-policy-binding "$BUCKET" \
+    --member="serviceAccount:${ALLOYDB_SA}" \
+    --role="roles/storage.objectViewer" \
+    --quiet || echo "⚠️ Warning: Failed to grant GCS access to AlloyDB cluster service account."
+fi
+
 echo "      Done."
 
 
