@@ -44,7 +44,6 @@ if [ ! -f "$ENV_FILE" ]; then
     echo "REGION=$REGION" >> "$ENV_FILE"
 fi
 
-DEPLOY_DIR="/tmp/alloydb-deploy-$$"
 LOG_FILE="${LAB_DIR}/alloydb_deploy.log"
 
 echo "=============================================="
@@ -57,23 +56,128 @@ echo " Instance: ${INSTANCE_NAME}"
 echo " Log file: ${LOG_FILE}"
 echo "=============================================="
 
-# --- Fetch the upstream deployment script ---
-echo "[1/5] Fetching deployment script from GoogleCloudPlatform/codelabs..."
-mkdir -p "${DEPLOY_DIR}"
-cd "${DEPLOY_DIR}"
+# --- [1/4] Start AlloyDB deployment (takes ~10 minutes) ---
+echo "[1/4] Starting AlloyDB deployment (this takes ~10 minutes)..."
+(
+  set -e
+  NETWORK="default"
+  PSA_RANGE_NAME="psa-range"
+  PASSWORD="lost-cargo"
 
-git clone --no-checkout --filter=blob:none \
-  https://github.com/GoogleCloudPlatform/codelabs.git repo 2>&1
-cd repo
-git sparse-checkout set alloydb-querydata 2>&1
-git checkout 2>&1
+  # 1. Enable required APIs
+  echo "Enabling required APIs..."
+  gcloud services enable alloydb.googleapis.com \
+                         compute.googleapis.com \
+                         servicenetworking.googleapis.com \
+                         --quiet
 
-# --- Run the upstream script with public IP for AlloyDB Studio access ---
-echo "[2/5] Starting AlloyDB deployment (this takes ~10 minutes)..."
-cd alloydb-querydata
-bash deploy_alloydb.sh --public-ip 2>&1 | tee "${LOG_FILE}"
+  # 2. Evaluate and prepare network for Private Service Access (PSA)
+  echo "Checking network for PSA..."
 
-# --- Enable IAM authentication flag ---
+  # Ensure our range exists
+  RANGE_EXISTS=$(gcloud compute addresses list --filter="name=$PSA_RANGE_NAME" --format="value(name)")
+  if [[ -z "$RANGE_EXISTS" ]]; then
+      echo "Creating PSA range: $PSA_RANGE_NAME"
+      gcloud compute addresses create $PSA_RANGE_NAME \
+          --global \
+          --purpose=VPC_PEERING \
+          --prefix-length=24 \
+          --network=$NETWORK
+  fi
+
+  # Get existing peering connection info
+  PEERING_INFO=$(gcloud services vpc-peerings list --network=$NETWORK --service=servicenetworking.googleapis.com --format="json" 2>/dev/null)
+
+  if [[ "$PEERING_INFO" == "[]" || -z "$PEERING_INFO" ]]; then
+      echo "PSA Peering not found. Connecting service networking..."
+      gcloud services vpc-peerings connect \
+          --service=servicenetworking.googleapis.com \
+          --ranges=$PSA_RANGE_NAME \
+          --network=$NETWORK
+  else
+      echo "PSA Peering exists. Checking if range $PSA_RANGE_NAME is included..."
+      EXISTING_RANGES=$(echo "$PEERING_INFO" | python3 -c "import sys, json; data=json.load(sys.stdin); print(','.join(data[0]['reservedPeeringRanges'])) if data else print('')")
+      
+      if [[ $EXISTING_RANGES != *"$PSA_RANGE_NAME"* ]]; then
+          echo "Range $PSA_RANGE_NAME not in peering. Current ranges: $EXISTING_RANGES"
+          echo "Updating connection..."
+          NEW_RANGES="${EXISTING_RANGES},${PSA_RANGE_NAME}"
+          gcloud services vpc-peerings update \
+              --service=servicenetworking.googleapis.com \
+              --ranges=$NEW_RANGES \
+              --network=$NETWORK
+      else
+          echo "PSA Peering and range already configured."
+      fi
+  fi
+
+  # 3. Handle Cluster Creation or Detection
+  echo "Checking if cluster $CLUSTER_NAME exists..."
+  EXISTING_CLUSTER=$(gcloud alloydb clusters list --region=$REGION --filter="name:clusters/$CLUSTER_NAME" --format="json" 2>/dev/null)
+
+  if [[ "$EXISTING_CLUSTER" != "[]" && -n "$EXISTING_CLUSTER" ]]; then
+      echo "Cluster $CLUSTER_NAME already exists."
+      CLUSTER_TYPE=$(echo "$EXISTING_CLUSTER" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data[0].get('subscriptionType', 'STANDARD')) if data else print('STANDARD')")
+      echo "Existing cluster type: $CLUSTER_TYPE"
+      if [[ "$CLUSTER_TYPE" == "TRIAL" ]]; then
+          CPU_COUNT=8
+      else
+          CPU_COUNT=2
+      fi
+  else
+      echo "Cluster $CLUSTER_NAME not found. Attempting to create..."
+      set +e
+      CPU_COUNT=8
+      gcloud alloydb clusters create $CLUSTER_NAME \
+          --region=$REGION \
+          --network=$NETWORK \
+          --password=$PASSWORD \
+          --subscription-type=TRIAL \
+          --quiet
+
+      if [ $? -ne 0 ]; then
+          echo "Free Trial cluster creation failed or not available. Attempting Standard cluster..."
+          CPU_COUNT=2
+          gcloud alloydb clusters create $CLUSTER_NAME \
+              --region=$REGION \
+              --network=$NETWORK \
+              --password=$PASSWORD \
+              --subscription-type=STANDARD \
+              --quiet
+          
+          if [ $? -ne 0 ]; then
+              echo "Error: Failed to create AlloyDB cluster."
+              exit 1
+          fi
+          CLUSTER_TYPE="STANDARD"
+      else
+          CLUSTER_TYPE="TRIAL"
+      fi
+      set -e
+  fi
+
+  # 4. Create Primary Instance if not exists
+  echo "Checking if instance $INSTANCE_NAME exists in cluster $CLUSTER_NAME..."
+  EXISTING_INSTANCE=$(gcloud alloydb instances list --cluster=$CLUSTER_NAME --region=$REGION --filter="name:instances/$INSTANCE_NAME" --format="value(name)" 2>/dev/null)
+
+  if [[ -z "$EXISTING_INSTANCE" ]]; then
+      echo "Creating primary instance: $INSTANCE_NAME ($CPU_COUNT vCPUs for $CLUSTER_TYPE cluster)"
+      gcloud alloydb instances create $INSTANCE_NAME \
+          --cluster=$CLUSTER_NAME \
+          --region=$REGION \
+          --cpu-count=$CPU_COUNT \
+          --instance-type=PRIMARY \
+          --assign-inbound-public-ip=ASSIGN_IPV4 \
+          --outbound-public-ip \
+          --database-flags=password.enforce_complexity=on \
+          --quiet
+  else
+      echo "Instance $INSTANCE_NAME already exists. Skipping creation."
+  fi
+) 2>&1 | tee "${LOG_FILE}"
+
+# --- [2/4] Configure instance settings (IAM, Data API) ---
+echo "[2/4] Configuring instance settings (IAM, Data API)..."
 echo "Enabling IAM authentication flag on the instance..."
 gcloud alloydb instances update "${INSTANCE_NAME}" \
   --cluster="${CLUSTER_NAME}" \
@@ -81,7 +185,20 @@ gcloud alloydb instances update "${INSTANCE_NAME}" \
   --database-flags=password.enforce_complexity=on,alloydb.iam_authentication=on \
   --quiet || echo "⚠️ Warning: Failed to enable IAM authentication flag."
 
-# --- Enable Data API access ---
+# Wait for the instance to finish updating the database flags (avoiding 409 conflict)
+echo "Waiting for instance to finish updating database flags..."
+while true; do
+  RECONCILING=$(gcloud alloydb instances describe "${INSTANCE_NAME}" \
+    --cluster="${CLUSTER_NAME}" \
+    --region="${REGION}" \
+    --format="value(reconciling)" 2>/dev/null || echo "False")
+  if [[ "$RECONCILING" != "True" ]]; then
+    break
+  fi
+  echo "      Instance is updating, waiting 10s..."
+  sleep 10
+done
+
 echo "Enabling Data API access on the instance..."
 curl -X PATCH \
 -H "Authorization: Bearer $(gcloud auth print-access-token)" \
@@ -89,7 +206,6 @@ curl -X PATCH \
 "https://alloydb.googleapis.com/v1beta/projects/${PROJECT_ID}/locations/${REGION}/clusters/${CLUSTER_NAME}/instances/${INSTANCE_NAME}?updateMask=dataApiAccess" \
 -d '{ "dataApiAccess": "ENABLED" }' || echo "⚠️ Warning: Failed to enable Data API access."
 
-# --- Reset postgres password to a known value for the lab ---
 echo "Resetting postgres password to 'lost-cargo'..."
 gcloud alloydb users set-password postgres \
   --cluster="${CLUSTER_NAME}" \
@@ -97,21 +213,17 @@ gcloud alloydb users set-password postgres \
   --password="lost-cargo" \
   --quiet || echo "⚠️ Warning: Failed to reset postgres password."
 
-# --- Clean up temp files ---
-echo "[3/5] Cleaning up temporary files..."
-rm -rf "${DEPLOY_DIR}"
-
-# --- Create database user for current IAM principal ---
+# --- [3/4] Create database user for current IAM principal ---
 CURRENT_USER=$(gcloud config get-value account)
-echo "[4/5] Creating database user for current IAM principal: ${CURRENT_USER}..."
+echo "[3/4] Creating database user for current IAM principal: ${CURRENT_USER}..."
 gcloud alloydb users create "${CURRENT_USER}" \
   --cluster="${CLUSTER_NAME}" \
   --region="${REGION}" \
   --type=IAM_BASED \
   --superuser=true || echo "⚠️ Warning: Failed to create database user for ${CURRENT_USER}. You may need to create it manually."
 
-# --- Grant GCS Bucket and Vertex AI access to the AlloyDB Service Agent and cluster account ---
-echo "[5/5] Configuring IAM permissions for AlloyDB..."
+# --- [4/4] Configure IAM permissions for AlloyDB Service Agent ---
+echo "[4/4] Configuring IAM permissions for AlloyDB..."
 
 # Retrieve project number for the project-wide AlloyDB Service Agent
 PROJECT_NUMBER=$(gcloud projects describe "${PROJECT_ID}" --format="value(projectNumber)" 2>/dev/null || echo "")

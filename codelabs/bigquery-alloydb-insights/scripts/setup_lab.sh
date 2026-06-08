@@ -157,15 +157,18 @@ echo "      Done."
 # [5/8] Create GCS bucket, copy assets, and grant AlloyDB access
 # ---------------------------------------------------------------
 echo "[5/8] Creating GCS bucket, copying lab assets, and granting AlloyDB permissions..."
-gsutil mb -l us "$BUCKET" 2>/dev/null || true
+if gcloud storage buckets describe "$BUCKET" &>/dev/null; then
+    echo "      Bucket already exists: $BUCKET"
+else
+    echo "      Creating bucket $BUCKET..."
+    gcloud storage buckets create "$BUCKET" --location=us
+fi
 
 echo "      Copying images from central bucket..."
-gsutil -m cp -r "${SOURCE_BUCKET}/images/*" "${BUCKET}/images/" 2>/dev/null || \
-  gsutil cp -r "${SOURCE_BUCKET}/images/*" "${BUCKET}/images/"
+gcloud storage cp -r "${SOURCE_BUCKET}/images/*" "${BUCKET}/images/"
 
 echo "      Copying data from central bucket..."
-gsutil -m cp -r "${SOURCE_BUCKET}/data/*" "${BUCKET}/data/" 2>/dev/null || \
-  gsutil cp -r "${SOURCE_BUCKET}/data/*" "${BUCKET}/data/"
+gcloud storage cp -r "${SOURCE_BUCKET}/data/*" "${BUCKET}/data/"
 
 # Grant GCS bucket access to AlloyDB service identities
 echo "      Granting GCS access to AlloyDB service identities..."
