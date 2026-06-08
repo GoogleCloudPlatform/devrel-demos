@@ -21,6 +21,7 @@ APIS=(
   "container.googleapis.com"
   "compute.googleapis.com"
   "iam.googleapis.com"
+  "cloudresourcemanager.googleapis.com"
 )
 
 for api in "${APIS[@]}"; do

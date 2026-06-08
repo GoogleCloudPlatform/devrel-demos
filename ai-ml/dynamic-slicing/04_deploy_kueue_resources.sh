@@ -53,9 +53,9 @@ kubectl apply -f kueue-resources.yaml
 
 # 4. Verify Kueue resources
 echo "Verifying Kueue resources..."
-kubectl get topology superslice-topology
-kubectl get resourceflavor superslice-rf
-kubectl get admissioncheck superslice-ac
+kubectl get topology slice-topology
+kubectl get resourceflavor slice-rf
+kubectl get admissioncheck ac
 kubectl get clusterqueue cq
 kubectl get localqueue lq -n "${NAMESPACE}"
 

@@ -30,26 +30,22 @@ echo "===================================================="
 
 # 1. Install JobSet
 # We use the versions recommended in GKE documentation
-JOBSET_VER="v0.11.1"
+JOBSET_VER="0.11.1"
 echo "Installing JobSet (${JOBSET_VER})..."
 helm upgrade --install jobset oci://registry.k8s.io/jobset/charts/jobset \
   --version "${JOBSET_VER}" \
   --namespace jobset-system \
   --create-namespace \
-  --set controller.resources.requests.cpu=4 \
-  --set controller.resources.requests.memory=16Gi \
   --wait
 
 # 2. Install Kueue
-KUEUE_VER="v0.16.6"
+KUEUE_VER="0.16.6"
 echo "Installing Kueue (${KUEUE_VER})..."
 helm upgrade --install kueue oci://registry.k8s.io/kueue/charts/kueue \
   --version "${KUEUE_VER}" \
   --namespace kueue-system \
   --create-namespace \
   --set controllerManager.replicas=3 \
-  --set controllerManager.manager.resources.requests.cpu=16 \
-  --set controllerManager.manager.resources.requests.memory=64Gi \
   --wait
 
 # 3. Deploy GKE Slice Controller

@@ -58,6 +58,6 @@ apiVersion: kueue.x-k8s.io/v1beta2
 kind: LocalQueue
 metadata:
   name: lq
-  namespace: ${NAMESPACE}
+  namespace: llm-d-pd-disaggregation
 spec:
   clusterQueue: cq

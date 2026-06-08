@@ -333,11 +333,12 @@ spec:
         - --leader-elect
         - --health-probe-bind-address=:8081
         - --zap-log-level=3
-        - --feature-gates=UseRetryMechanismForSliceCreation=true
-        - --activation-timeout=6m
+        - --feature-gates=UseRetryMechanismForSliceCreation=true,ShorterSliceNameLength=true
+        - --activation-timeout=60m
+        - --default-slice-health-node-affinity=HEALTHY_AND_DEGRADED
         command:
         - /manager
-        image: tpuongke/kueue-slice-controller:latest
+        image: tpuongke/kueue-slice-controller:v0.8.0-195
         livenessProbe:
           httpGet:
             path: /healthz
@@ -357,11 +358,11 @@ spec:
           periodSeconds: 10
         resources:
           limits:
-            cpu: 12000m
-            memory: 32Gi
+            cpu: 2000m
+            memory: 4Gi
           requests:
-            cpu: 8000m
-            memory: 16Gi
+            cpu: 500m
+            memory: 1Gi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -446,4 +447,23 @@ webhooks:
     - CREATE
     resources:
     - leaderworkersets
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: slice-controller-webhook-service
+      namespace: slice-controller-system
+      path: /mutate-apps-v1-statefulset
+  failurePolicy: Fail
+  name: mstatefulset.slice-controller.kb.io
+  rules:
+  - apiGroups:
+    - apps
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    resources:
+    - statefulsets
   sideEffects: None
