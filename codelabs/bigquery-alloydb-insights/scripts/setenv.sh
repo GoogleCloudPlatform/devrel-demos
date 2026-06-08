@@ -20,7 +20,10 @@ ENV_FILE="$DIR/../.env"
 if [ -f "$ENV_FILE" ]; then
     echo "Loading environment variables from $ENV_FILE..."
     # Export all non-commented variables from the .env file cleanly
-    export $(grep -v '^#' "$ENV_FILE" | xargs)
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ "$line" =~ ^[[:space:]]*# || -z "$line" ]] && continue
+        export "$line"
+    done < "$ENV_FILE"
     echo "✅ Environment loaded successfully: PROJECT_ID=$PROJECT_ID, REGION=$REGION"
 else
     echo "❌ Error: .env file not found at $ENV_FILE"

@@ -18,7 +18,10 @@ ENV_FILE="${LAB_DIR}/.env"
 # Load environment from .env if it exists
 if [ -f "$ENV_FILE" ]; then
     echo "Found existing environment file: $ENV_FILE"
-    export $(grep -v '^#' "$ENV_FILE" | xargs)
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ "$line" =~ ^[[:space:]]*# || -z "$line" ]] && continue
+        export "$line"
+    done < "$ENV_FILE"
 fi
 
 # --- Lab-specific configuration ---
@@ -115,12 +118,6 @@ PROJECT_NUMBER=$(gcloud projects describe "${PROJECT_ID}" --format="value(projec
 if [[ -n "$PROJECT_NUMBER" ]]; then
   ALLOYDB_SERVICE_AGENT="service-${PROJECT_NUMBER}@gcp-sa-alloydb.iam.gserviceaccount.com"
   
-  echo "      Granting GCS access to AlloyDB Service Agent: ${ALLOYDB_SERVICE_AGENT}..."
-  gcloud storage buckets add-iam-policy-binding "gs://${PROJECT_ID}-lab2" \
-    --member="serviceAccount:${ALLOYDB_SERVICE_AGENT}" \
-    --role="roles/storage.objectViewer" \
-    --quiet || echo "⚠️ Warning: Failed to grant GCS access to AlloyDB Service Agent."
-    
   echo "      Granting Vertex AI access to AlloyDB Service Agent..."
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" --format=none \
     --member="serviceAccount:${ALLOYDB_SERVICE_AGENT}" \
@@ -134,12 +131,6 @@ ALLOYDB_SA=$(gcloud alloydb clusters describe "${CLUSTER_NAME}" \
   --format="value(serviceAccount)" 2>/dev/null || echo "")
 
 if [[ -n "$ALLOYDB_SA" ]]; then
-  echo "      Granting GCS access to cluster-specific service account: ${ALLOYDB_SA}..."
-  gcloud storage buckets add-iam-policy-binding "gs://${PROJECT_ID}-lab2" \
-    --member="serviceAccount:${ALLOYDB_SA}" \
-    --role="roles/storage.objectViewer" \
-    --quiet || echo "⚠️ Warning: Failed to grant GCS access to cluster-specific service account."
-    
   echo "      Granting Vertex AI access to cluster-specific service account..."
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" --format=none \
     --member="serviceAccount:${ALLOYDB_SA}" \
