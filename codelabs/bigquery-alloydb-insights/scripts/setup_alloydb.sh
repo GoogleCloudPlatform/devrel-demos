@@ -13,12 +13,33 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LAB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ENV_FILE="${LAB_DIR}/.env"
+
+# Load environment from .env if it exists
+if [ -f "$ENV_FILE" ]; then
+    echo "Found existing environment file: $ENV_FILE"
+    export $(grep -v '^#' "$ENV_FILE" | xargs)
+fi
 
 # --- Lab-specific configuration ---
 export CLUSTER_NAME="lost-cargo-cluster"
 export INSTANCE_NAME="lost-cargo-instance"
-export PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project)}"
+export PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}"
 export REGION="${REGION:-us-central1}"
+
+# Check for valid Project ID
+if [[ -z "$PROJECT_ID" ]]; then
+  echo "❌ ERROR: No Google Cloud Project ID detected."
+  echo "   Please run 'gcloud config set project YOUR_PROJECT_ID' first."
+  exit 1
+fi
+
+# Write environment variables immediately to .env if not already created
+if [ ! -f "$ENV_FILE" ]; then
+    echo "Creating environment file: $ENV_FILE"
+    echo "PROJECT_ID=$PROJECT_ID" > "$ENV_FILE"
+    echo "REGION=$REGION" >> "$ENV_FILE"
+fi
 
 DEPLOY_DIR="/tmp/alloydb-deploy-$$"
 LOG_FILE="${LAB_DIR}/alloydb_deploy.log"
