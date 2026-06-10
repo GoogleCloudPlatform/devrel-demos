@@ -79,10 +79,11 @@ fi
 # 3. Create standard VPC Firewall Rules for vLLM Peer-to-Peer NCCL communications on 'default' network
 echo "Creating standard VPC Firewall rules for vLLM P2P socket transport..."
 if ! gcloud compute firewall-rules describe default-allow-vllm-p2p --project="$PROJECT_ID" &>/dev/null; then
+    DEFAULT_SUB_CIDR=$(gcloud compute networks subnets describe default --region="$REGION" --project="$PROJECT_ID" --format='value(ipCidrRange)')
     gcloud compute firewall-rules create default-allow-vllm-p2p \
         --network=default \
         --allow=tcp:14579-14589,tcp:8000-8001,tcp:2379,tcp:4222 \
-        --source-ranges=10.180.0.0/20 \
+        --source-ranges="$DEFAULT_SUB_CIDR" \
         --project="$PROJECT_ID"
 else
     echo "default-allow-vllm-p2p firewall rule already exists, skipping..."
