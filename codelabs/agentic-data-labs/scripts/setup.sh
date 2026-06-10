@@ -40,10 +40,9 @@ ENV_FILE="$SCRIPT_DIR/../.env"
 # Load environment from .env if it exists
 if [ -f "$ENV_FILE" ]; then
     log_info "Loading environment variables from $ENV_FILE..."
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        [[ "$line" =~ ^[[:space:]]*# || -z "$line" ]] && continue
-        export "$line"
-    done < "$ENV_FILE"
+    set -a
+    source "$ENV_FILE"
+    set +a
 fi
 
 # Determine Project ID (env/gcloud config/prompt)
@@ -192,7 +191,7 @@ log_step "4" "Starting Cloud SQL instance provisioning (background)"
 log_info "Spawning background worker process (setup_sql.sh)..."
 
 # Launch setup_sql.sh in the background and redirect all output to a log file
-nohup ./setup_sql.sh "$PROJECT_ID" > /tmp/cloudsql_setup.log 2>&1 &
+nohup bash ./setup_sql.sh "$PROJECT_ID" > /tmp/cloudsql_setup.log 2>&1 &
 CLOUDSQL_PID=$!
 
 log_info "Cloud SQL background setup started (PID: ${CLOUDSQL_PID}). Logs are written to /tmp/cloudsql_setup.log"

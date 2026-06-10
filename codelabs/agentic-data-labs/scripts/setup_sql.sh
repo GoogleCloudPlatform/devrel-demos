@@ -58,10 +58,9 @@ ENV_FILE="$SCRIPT_DIR/../.env"
 
 # Load environment from .env if it exists
 if [ -f "$ENV_FILE" ]; then
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        [[ "$line" =~ ^[[:space:]]*# || -z "$line" ]] && continue
-        export "$line"
-    done < "$ENV_FILE"
+    set -a
+    source "$ENV_FILE"
+    set +a
 fi
 
 # Determine Project ID (env/gcloud config/arguments)
@@ -89,7 +88,7 @@ log_info "Starting Cloud SQL instance creation (takes ~5 minutes)..."
 if gcloud sql instances describe "$CLOUDSQL_INSTANCE" --project="$PROJECT_ID" &>/dev/null; then
   log_warn "Cloud SQL instance ${CLOUDSQL_INSTANCE} already exists. Skipping creation."
 else
-  gcloud beta sql instances create "$CLOUDSQL_INSTANCE" \
+  if ! gcloud beta sql instances create "$CLOUDSQL_INSTANCE" \
     --project="$PROJECT_ID" \
     --database-version=POSTGRES_15 \
     --tier="$CLOUDSQL_TIER" \
@@ -97,9 +96,8 @@ else
     --database-flags=cloudsql.iam_authentication=on \
     --data-api-access=ALLOW_DATA_API \
     --storage-auto-increase \
-    --quiet > /dev/null 2>&1
-
-  if [[ $? -ne 0 ]]; then
+    --quiet > /dev/null 2>&1; then
+    
     log_error "Cloud SQL instance creation failed!"
     exit 1
   fi
