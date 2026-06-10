@@ -1,0 +1,98 @@
+#!/bin/bash
+# 04_setup_infrastructure.sh - Setup etcd and NATS on Node 0
+
+set -e
+
+if [ ! -f "./env.sh" ]; then
+    echo "Error: env.sh not found. Please run env setup first."
+    exit 1
+fi
+
+. ./env.sh
+
+echo "===================================================="
+echo " Setting up etcd and NATS on dynamo-node-0..."
+echo " Project: $PROJECT_ID"
+echo " Zone: $ZONE"
+echo "===================================================="
+
+# Get internal IP of Node 0
+echo "Retrieving internal IP of dynamo-node-0..."
+NODE_0_IP=$(gcloud compute instances describe dynamo-node-0 \
+    --zone="$ZONE" \
+    --format='get(networkInterfaces[0].networkIP)' \
+    --project="$PROJECT_ID")
+
+echo "Node 0 Internal IP: $NODE_0_IP"
+
+# Update env.sh with HEAD_NODE_IP for subsequent scripts
+sed -i '/HEAD_NODE_IP/d' env.sh
+sed -i '/ETCD_ENDPOINTS/d' env.sh
+sed -i '/NATS_SERVER/d' env.sh
+
+# Append fresh definitions
+echo "export HEAD_NODE_IP=\"$NODE_0_IP\"" >> env.sh
+echo "export ETCD_ENDPOINTS=\"http://\${HEAD_NODE_IP}:2379\"" >> env.sh
+echo "export NATS_SERVER=\"nats://\${HEAD_NODE_IP}:4222\"" >> env.sh
+
+# Reload env.sh to get updated variables
+. ./env.sh
+
+# Commands to run on Node 0 via SSH
+SSH_COMMANDS=$(cat <<EOF
+set -ex
+
+# Check if Docker is installed
+if ! command -v docker &> /dev/null; then
+    echo "Docker not found, installing..."
+    sudo apt-get update
+    sudo apt-get install -y docker.io
+    sudo systemctl start docker
+    sudo systemctl enable docker
+fi
+
+# Clean up existing containers if any
+sudo docker rm -f etcd nats || true
+
+# Run etcd
+# Listen on 0.0.0.0 but advertise the internal IP
+sudo docker run -d \
+    --name etcd \
+    --net=host \
+    quay.io/coreos/etcd:v3.5.0 \
+    /usr/local/bin/etcd \
+    --advertise-client-urls http://${NODE_0_IP}:2379 \
+    --listen-client-urls http://0.0.0.0:2379
+
+# Run NATS with JetStream enabled
+sudo docker run -d \
+    --name nats \
+    --net=host \
+    nats:latest -js
+
+# Verify they are running
+sudo docker ps
+EOF
+)
+
+# Build conditional SSH arguments for corporate environment compliance
+SSH_ARGS=""
+IAP_FLAG="--tunnel-through-iap"
+if [ "$USE_INTERNAL_SSH_OVERRIDE" = "true" ]; then
+    echo "Enabling Google Corporate Internal SSH Hostname override..."
+    SSH_ARGS="-- -o Hostname=nic0.dynamo-node-0.${ZONE}.c.${PROJECT_ID}.internal.gcpnode.com"
+    IAP_FLAG=""
+fi
+
+echo "SSHing into dynamo-node-0 to start services..."
+gcloud compute ssh dynamo-node-0 \
+    --zone="$ZONE" \
+    --project="$PROJECT_ID" \
+    $IAP_FLAG \
+    --command="$SSH_COMMANDS" \
+    $SSH_ARGS
+
+echo "===================================================="
+echo " etcd and NATS are running on dynamo-node-0."
+echo " Please run the next script: ./04b_mount_and_download.sh"
+echo "===================================================="
