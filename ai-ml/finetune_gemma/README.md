@@ -116,6 +116,34 @@ gcloud beta run jobs create gemma4-finetuning-job \
 gcloud beta run jobs execute gemma4-finetuning-job --region $REGION --async
 ```
 
+### Checkpointing and Job Resumption (Fault Tolerance)
+
+To make fine-tuning resilient to potential preemption or worker restarts on Cloud Run, the pipeline features built-in model checkpointing and automatic resumption. By mounting a Google Cloud Storage (GCS) bucket as a persistent volume, trainer checkpoints are stored safely on GCS.
+
+If a job is interrupted, running the job again with the exact same output directory will automatically detect the last saved checkpoint and resume training seamlessly without loss of progress or duplicate computations.
+
+The following arguments configure the checkpointing behavior:
+
+- **`--checkpoint-strategy`** How often to save checkpoints (`steps`, `epoch`, or `no`). Default is `steps`.
+- **`--save-steps`** Save a checkpoint every X steps (only active when strategy is `steps`). Default is `100`.
+- **`--save-total-limit`** Maximum number of checkpoint folders to keep. Older checkpoints are pruned automatically. Default is `2`.
+
+For example, to run the fine-tuning job with custom checkpoint settings (saving every 50 steps and keeping only the 3 most recent checkpoints):
+
+```bash
+gcloud beta run jobs create gemma4-finetuning-job \
+  --region $REGION \
+  --image gcr.io/$PROJECT_ID/gemma4-finetune \
+  --gpu 1 \
+  --gpu-type nvidia-rtx-pro-6000 \
+  --cpu 30.0 \
+  --memory 120Gi \
+  --labels dev-tutorial=finetune-gemma \
+  --add-volume name=model-volume,type=cloud-storage,bucket=$BUCKET_NAME \
+  --add-volume-mount volume=model-volume,mount-path=/mnt/gcs \
+  --args="--model-id","/mnt/gcs/google/gemma-4-31b-it/","--output-dir","/mnt/gcs/gemma4-finetuned","--train-size","700","--eval-size","200","--checkpoint-strategy","steps","--save-steps","50","--save-total-limit","3","--merge"
+```
+
 ---
 
 ## 5. Deploy the Fine-Tuned (Merged) Model
