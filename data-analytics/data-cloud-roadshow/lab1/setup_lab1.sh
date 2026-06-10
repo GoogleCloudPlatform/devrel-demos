@@ -58,8 +58,8 @@ echo "Populating bucket with sample logistics data..."
 # gcloud storage cp -r gs://sample-data-and-media/raw_logs "gs://${BUCKET_NAME}/raw_logs" || true
 
 # TEMPORARY FOR TESTING
-gcloud storage cp ../infrastructure/manifests.jsonl gs://${BUCKET_NAME}/shipping_manifests/
-gcloud storage cp ../infrastructure/maritime_logs.txt gs://${BUCKET_NAME}/raw_logs/
+gcloud storage cp ./data/manifests.jsonl gs://${BUCKET_NAME}/shipping_manifests/
+gcloud storage cp ./data/maritime_logs.txt gs://${BUCKET_NAME}/raw_logs/
 
 # 2. BigQuery Dataset Creation
 echo "Creating BigQuery dataset: ${DATASET}..."
