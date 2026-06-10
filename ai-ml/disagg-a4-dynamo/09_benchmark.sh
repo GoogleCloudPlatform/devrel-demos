@@ -77,7 +77,7 @@ echo "Executing high-concurrency stress-test benchmark against vLLM Router gatew
   --dataset-path "/tmp/sharegpt.json" \
   --request-rate inf \
   --num-prompts 5000 \
-  --tokenizer "google/gemma-4-31B-it" \
+  --tokenizer "$TOKENIZER_NAME" \
   --trust-remote-code
 EOF
 )
