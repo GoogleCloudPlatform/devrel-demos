@@ -25,6 +25,9 @@ set -ex
 # Clean up existing containers
 sudo docker rm -f dynamo-prefill dynamo-decode dynamo-frontend || true
 
+# Dynamically discover RoCE interfaces
+ROCE_DEVS=\$(ls /sys/class/net | grep '^roce' | sed 's/\$/:1/' | paste -sd, -)
+
 # Launch Dynamo Prefill Worker
 echo "Launching Dynamo Prefill Worker..."
 sudo docker run -d \
@@ -44,7 +47,7 @@ sudo docker run -d \
     -e DYN_EVENT_PLANE="nats" \
     -e DYN_SYSTEM_PORT=8001 \
     -e VLLM_NIXL_SIDE_CHANNEL_PORT=5600 \
-    -e UCX_NET_DEVICES=rocep145s0:1,rocep146s0:1,rocep152s0:1,rocep153s0:1,rocep198s0:1,rocep199s0:1,rocep205s0:1,rocep206s0:1 \
+    -e UCX_NET_DEVICES="\$ROCE_DEVS" \
     -e UCX_TLS=rc,self,sm,cuda_copy,cuda_ipc,gdr_copy \
     -e UCX_IB_GID_INDEX=3 \
     -e UCX_IB_ODP_MEM_TYPES=cuda \
