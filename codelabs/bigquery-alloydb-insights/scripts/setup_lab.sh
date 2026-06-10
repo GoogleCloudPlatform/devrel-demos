@@ -103,16 +103,16 @@ echo ""
 # [2/8] Create BigQuery dataset
 # ---------------------------------------------------------------
 echo "[2/8] Creating BigQuery dataset 'lost_cargo_dataset'..."
-bq --location=us mk --dataset "$PROJECT_ID:lost_cargo_dataset" 2>/dev/null || true
+bq --location=us-central1 mk --dataset "$PROJECT_ID:lost_cargo_dataset" 2>/dev/null || true
 echo "      Done."
 
 # ---------------------------------------------------------------
 # [3/8] Create Cloud Resource connection + IAM grants
 # ---------------------------------------------------------------
 echo "[3/8] Creating Cloud Resource connection and granting permissions..."
-bq mk --connection --location=us --connection_type=CLOUD_RESOURCE lost_cargo_conn 2>/dev/null || true
+bq mk --connection --location=us-central1 --connection_type=CLOUD_RESOURCE lost_cargo_conn 2>/dev/null || true
 
-SA_EMAIL=$(bq show --format=prettyjson --connection us.lost_cargo_conn \
+SA_EMAIL=$(bq show --format=prettyjson --connection us-central1.lost_cargo_conn \
   | grep "serviceAccountId" | cut -d '"' -f 4)
 echo "      Connection service account: $SA_EMAIL"
 
@@ -133,7 +133,7 @@ echo "      You can re-run this step later with: bq mk --connection ..."
 curl -s -X POST \
   -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
   -H "Content-Type: application/json" \
-  "https://bigqueryconnection.googleapis.com/v1/projects/${PROJECT_ID}/locations/US/connections?connectionId=lost_cargo_alloydb_conn" \
+  "https://bigqueryconnection.googleapis.com/v1/projects/${PROJECT_ID}/locations/us-central1/connections?connectionId=lost_cargo_alloydb_conn" \
   -d '{
     "cloudSql": {
       "instanceId": "'${PROJECT_ID}':us-central1:lost-cargo-cluster",
@@ -147,7 +147,7 @@ curl -s -X POST \
   }' > /dev/null || true
 
 # Grant the connection's service account access to AlloyDB
-SA_EMAIL_ALLOYDB=$(bq show --format=prettyjson --connection us.lost_cargo_alloydb_conn | grep "serviceAccountId" | cut -d '"' -f 4)
+SA_EMAIL_ALLOYDB=$(bq show --format=prettyjson --connection us-central1.lost_cargo_alloydb_conn | grep "serviceAccountId" | cut -d '"' -f 4)
 if [[ -n "$SA_EMAIL_ALLOYDB" ]]; then
   grant_iam_role_with_retry "$PROJECT_ID" "serviceAccount:$SA_EMAIL_ALLOYDB" "roles/alloydb.client"
 fi
@@ -161,7 +161,7 @@ if gcloud storage buckets describe "$BUCKET" &>/dev/null; then
     echo "      Bucket already exists: $BUCKET"
 else
     echo "      Creating bucket $BUCKET..."
-    gcloud storage buckets create "$BUCKET" --location=us
+    gcloud storage buckets create "$BUCKET" --location=us-central1
 fi
 
 echo "      Copying images from central bucket..."
@@ -169,27 +169,6 @@ gcloud storage cp -r "${SOURCE_BUCKET}/images/*" "${BUCKET}/images/"
 
 echo "      Copying data from central bucket..."
 gcloud storage cp -r "${SOURCE_BUCKET}/data/*" "${BUCKET}/data/"
-
-# Grant GCS bucket access to AlloyDB service identities
-echo "      Granting GCS access to AlloyDB service identities..."
-PROJECT_NUMBER=$(gcloud projects describe "${PROJECT_ID}" --format="value(projectNumber)" 2>/dev/null || echo "")
-if [[ -n "$PROJECT_NUMBER" ]]; then
-  ALLOYDB_SERVICE_AGENT="service-${PROJECT_NUMBER}@gcp-sa-alloydb.iam.gserviceaccount.com"
-  gcloud storage buckets add-iam-policy-binding "$BUCKET" \
-    --member="serviceAccount:${ALLOYDB_SERVICE_AGENT}" \
-    --role="roles/storage.objectViewer" \
-    --quiet || echo "⚠️ Warning: Failed to grant GCS access to AlloyDB Service Agent."
-fi
-
-ALLOYDB_SA=$(gcloud alloydb clusters describe "lost-cargo-cluster" \
-  --region="us-central1" \
-  --format="value(serviceAccount)" 2>/dev/null || echo "")
-if [[ -n "$ALLOYDB_SA" ]]; then
-  gcloud storage buckets add-iam-policy-binding "$BUCKET" \
-    --member="serviceAccount:${ALLOYDB_SA}" \
-    --role="roles/storage.objectViewer" \
-    --quiet || echo "⚠️ Warning: Failed to grant GCS access to AlloyDB cluster service account."
-fi
 
 echo "      Done."
 
@@ -244,8 +223,8 @@ echo "============================================"
 echo ""
 echo " Created resources:"
 echo "   - BigQuery dataset:    lost_cargo_dataset"
-echo "   - BQ connection:       us.lost_cargo_conn (Cloud Resource)"
-echo "   - BQ connection:       us.lost_cargo_alloydb_conn (AlloyDB)"
+echo "   - BQ connection:       us-central1.lost_cargo_conn (Cloud Resource)"
+echo "   - BQ connection:       us-central1.lost_cargo_alloydb_conn (AlloyDB)"
 echo "   - GCS bucket:          $BUCKET"
 echo "     - images/:           Port security images"
 echo "     - data/:             Telemetry data"

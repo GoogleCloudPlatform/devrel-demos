@@ -235,6 +235,12 @@ if [[ -n "$PROJECT_NUMBER" ]]; then
     --member="serviceAccount:${ALLOYDB_SERVICE_AGENT}" \
     --role="roles/aiplatform.user" \
     --quiet || echo "⚠️ Warning: Failed to grant Vertex AI User role to AlloyDB Service Agent."
+    
+  echo "      Granting GCS access to AlloyDB Service Agent..."
+  gcloud projects add-iam-policy-binding "${PROJECT_ID}" --format=none \
+    --member="serviceAccount:${ALLOYDB_SERVICE_AGENT}" \
+    --role="roles/storage.objectViewer" \
+    --quiet || echo "⚠️ Warning: Failed to grant storage.objectViewer to AlloyDB Service Agent."
 fi
 
 # Also grant to cluster-specific service account if retrieved
@@ -248,6 +254,12 @@ if [[ -n "$ALLOYDB_SA" ]]; then
     --member="serviceAccount:${ALLOYDB_SA}" \
     --role="roles/aiplatform.user" \
     --quiet || echo "⚠️ Warning: Failed to grant Vertex AI User role to cluster-specific service account."
+    
+  echo "      Granting GCS access to cluster-specific service account..."
+  gcloud projects add-iam-policy-binding "${PROJECT_ID}" --format=none \
+    --member="serviceAccount:${ALLOYDB_SA}" \
+    --role="roles/storage.objectViewer" \
+    --quiet || echo "⚠️ Warning: Failed to grant storage.objectViewer to cluster-specific service account."
 fi
 
 echo ""
