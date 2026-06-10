@@ -78,6 +78,15 @@ def parse_args():
     parser.add_argument('--merge', action='store_true',
                        help='Merge LoRA adapters into the base model after training')
     
+    # Checkpoint parameters
+    parser.add_argument('--checkpoint-strategy', type=str, default='steps',
+                        choices=['steps', 'epoch', 'no'],
+                        help='How often to save checkpoints (steps, epoch, or no)')
+    parser.add_argument('--save-steps', type=int, default=100,
+                        help='Save a checkpoint every X steps')
+    parser.add_argument('--save-total-limit', type=int, default=2,
+                        help='Maximum number of checkpoint folders to keep')
+    
     # HuggingFace parameters
     parser.add_argument('--hf-token', type=str, default=None,
                        help='HuggingFace token (or set HF_TOKEN env var)')
@@ -348,6 +357,15 @@ def evaluate_model(model, processor, eval_data, prompt, class_names, batch_size=
 
 def train_model(model, processor, train_data, eval_data, args):
     """Train Gemma 4 with LoRA."""
+    from transformers.trainer_utils import get_last_checkpoint
+
+    # Check if a previous run left a checkpoint to resume from
+    resume_from_checkpoint = None
+    if args.checkpoint_strategy != "no" and os.path.isdir(args.output_dir):
+        resume_from_checkpoint = get_last_checkpoint(args.output_dir)
+        if resume_from_checkpoint:
+            logger.info(f"🔎 Resuming fine-tuning from checkpoint: {resume_from_checkpoint}")
+
     logger.info("Configuring LoRA and Training...")
     processor.tokenizer.padding_side = "right"
     
@@ -434,7 +452,9 @@ def train_model(model, processor, train_data, eval_data, args):
         lr_scheduler_type="linear",
         warmup_ratio=0.1, # Use ratio instead of fixed steps for local runs
         logging_steps=10,
-        save_strategy="no",
+        save_strategy=args.checkpoint_strategy,
+        save_steps=args.save_steps if args.checkpoint_strategy == 'steps' else 999999,
+        save_total_limit=args.save_total_limit if args.checkpoint_strategy != 'no' else None,
         eval_strategy="no",
         bf16=torch.cuda.is_available(),
         max_length=1024, # Increased from 512 to avoid truncation
@@ -451,8 +471,8 @@ def train_model(model, processor, train_data, eval_data, args):
         data_collator=data_collator,
     )
     
-    logger.info("Starting training...")
-    trainer.train()
+    logger.info(f"Starting training (Resuming: {resume_from_checkpoint is not None})...")
+    trainer.train(resume_from_checkpoint=resume_from_checkpoint)
     
     trainer.save_model(args.output_dir)
     logger.info(f"✓ Fine-tuned adapter saved to {args.output_dir}")
