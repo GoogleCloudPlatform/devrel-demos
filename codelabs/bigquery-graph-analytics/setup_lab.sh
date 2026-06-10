@@ -55,9 +55,19 @@ EOF
   TAXONOMY_ID=$(gcloud data-catalog taxonomies list --location="${LOCATION}" --filter="display_name=LostCargoSecurity" --format="value(name)" | head -n 1 | xargs)
 fi
 
+if [ -z "$TAXONOMY_ID" ]; then
+  echo "❌ Error: Failed to find or import 'LostCargoSecurity' taxonomy."
+  exit 1
+fi
+
 echo "🏷️ Taxonomy ID: ${TAXONOMY_ID}"
 echo "🏷️ Resolving target 'MaskShippingDetails' policy tag..."
 POLICY_TAG_ID=$(gcloud data-catalog taxonomies policy-tags list --taxonomy="${TAXONOMY_ID}" --filter="display_name=MaskShippingDetails" --format="value(name)" | head -n 1 | xargs)
+
+if [ -z "$POLICY_TAG_ID" ]; then
+  echo "❌ Error: Failed to resolve policy tag 'MaskShippingDetails'."
+  exit 1
+fi
 
 echo "🛡️ Target Policy Tag Resource Path: ${POLICY_TAG_ID}"
 
