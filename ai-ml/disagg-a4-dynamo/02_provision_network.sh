@@ -101,6 +101,26 @@ else
     echo "default-allow-iap firewall rule already exists, skipping..."
 fi
 
+# Create the second GVNIC VPC network required for nic1
+if ! gcloud compute networks describe aw-gvnic-main --project="$PROJECT_ID" &>/dev/null; then
+    gcloud compute networks create aw-gvnic-main \
+        --subnet-mode=custom \
+        --project="$PROJECT_ID"
+else
+    echo "aw-gvnic-main already exists, skipping creation."
+fi
+
+# Create the subnet for the second GVNIC network
+if ! gcloud compute networks subnets describe aw-gvnic-sub --region="$REGION" --project="$PROJECT_ID" &>/dev/null; then
+    gcloud compute networks subnets create aw-gvnic-sub \
+        --network=aw-gvnic-main \
+        --region="$REGION" \
+        --range="10.11.0.0/24" \
+        --project="$PROJECT_ID"
+else
+    echo "aw-gvnic-sub already exists, skipping creation."
+fi
+
 set +x
 
 echo "===================================================="
