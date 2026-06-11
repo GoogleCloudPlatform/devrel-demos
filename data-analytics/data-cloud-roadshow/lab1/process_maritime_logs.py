@@ -71,7 +71,7 @@ spark.sql("""CREATE TABLE IF NOT EXISTS processed_maritime_logs (
     log_timestamp    STRING,
     custodian_id     STRING,
     raw_message      STRING,
-    sentence         STRING,
+    sentence         STRING
 ) 
 USING iceberg;""")
 
