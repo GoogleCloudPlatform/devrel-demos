@@ -202,6 +202,93 @@ class TestCheckpointing(unittest.TestCase):
         # Verify trainer.train was called with resume_from_checkpoint=None
         mock_trainer_instance.train.assert_called_once_with(resume_from_checkpoint=None)
 
+    @patch('finetune_and_evaluate.SFTTrainer')
+    @patch('finetune_and_evaluate.SFTConfig')
+    @patch('finetune_and_evaluate.LoraConfig')
+    @patch('finetune_and_evaluate.os.path.isdir')
+    @patch('transformers.trainer_utils.get_last_checkpoint')
+    @patch.dict('os.environ', {'CLOUD_RUN_TASK_ATTEMPT': '1'})
+    @patch('finetune_and_evaluate.logger')
+    def test_checkpoint_detection_restart_with_checkpoint(
+        self, mock_logger, mock_get_last_checkpoint, mock_isdir, mock_lora_config, mock_sft_config, mock_sft_trainer
+    ):
+        """Verify behavior during a job restart with a checkpoint present."""
+        mock_isdir.return_value = True
+        mock_get_last_checkpoint.return_value = '/tmp/test-output/checkpoint-100'
+
+        mock_model = MagicMock()
+        mock_processor = MagicMock()
+        mock_train_data = MagicMock()
+        mock_eval_data = MagicMock()
+
+        args = argparse.Namespace(
+            output_dir='/tmp/test-output',
+            num_epochs=1,
+            batch_size=1,
+            gradient_accumulation_steps=1,
+            learning_rate=1e-5,
+            checkpoint_strategy='steps',
+            save_steps=10,
+            save_total_limit=2,
+            lora_r=8,
+            lora_alpha=16,
+            lora_dropout=0.05
+        )
+
+        mock_trainer_instance = mock_sft_trainer.return_value
+        mock_trainer_instance.model = mock_model
+
+        train_model(mock_model, mock_processor, mock_train_data, mock_eval_data, args)
+
+        # Assert logging was triggered indicating the restart attempt and found checkpoint
+        mock_logger.info.assert_any_call("🏃 Running in Cloud Run Jobs: Task Attempt #1")
+        mock_logger.info.assert_any_call("🔄 Job restart detected (likely due to a platform preemption or system maintenance).")
+        mock_logger.info.assert_any_call("🔎 Found checkpoint to resume fine-tuning: /tmp/test-output/checkpoint-100")
+
+    @patch('finetune_and_evaluate.SFTTrainer')
+    @patch('finetune_and_evaluate.SFTConfig')
+    @patch('finetune_and_evaluate.LoraConfig')
+    @patch('finetune_and_evaluate.os.path.isdir')
+    @patch('transformers.trainer_utils.get_last_checkpoint')
+    @patch.dict('os.environ', {'CLOUD_RUN_TASK_ATTEMPT': '2'})
+    @patch('finetune_and_evaluate.logger')
+    def test_checkpoint_detection_restart_no_checkpoint_warning(
+        self, mock_logger, mock_get_last_checkpoint, mock_isdir, mock_lora_config, mock_sft_config, mock_sft_trainer
+    ):
+        """Verify warning log is emitted during a job restart with no checkpoints found."""
+        mock_isdir.return_value = True
+        mock_get_last_checkpoint.return_value = None
+
+        mock_model = MagicMock()
+        mock_processor = MagicMock()
+        mock_train_data = MagicMock()
+        mock_eval_data = MagicMock()
+
+        args = argparse.Namespace(
+            output_dir='/tmp/test-output',
+            num_epochs=1,
+            batch_size=1,
+            gradient_accumulation_steps=1,
+            learning_rate=1e-5,
+            checkpoint_strategy='steps',
+            save_steps=10,
+            save_total_limit=2,
+            lora_r=8,
+            lora_alpha=16,
+            lora_dropout=0.05
+        )
+
+        mock_trainer_instance = mock_sft_trainer.return_value
+        mock_trainer_instance.model = mock_model
+
+        train_model(mock_model, mock_processor, mock_train_data, mock_eval_data, args)
+
+        # Assert warning logging was triggered indicating no checkpoints found
+        mock_logger.info.assert_any_call("🏃 Running in Cloud Run Jobs: Task Attempt #2")
+        mock_logger.info.assert_any_call("🔄 Job restart detected (likely due to a platform preemption or system maintenance).")
+        mock_logger.warning.assert_any_call("⚠️ Job restart detected, but no checkpoints were found in the output directory. Starting from scratch.")
+
 
 if __name__ == '__main__':
     unittest.main()
+
