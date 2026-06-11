@@ -191,15 +191,15 @@ EOF
 
 if [[ -n "${CURRENT_USER_EMAIL:-}" ]]; then
   cat >> /tmp/_init_db.sql <<EOF
+-- Grant permissions to IAM user (role created by gcloud sql users create --type=CLOUD_IAM_USER)
 DO \$\$
 BEGIN
-  CREATE ROLE "${CURRENT_USER_EMAIL}" WITH LOGIN;
-EXCEPTION WHEN duplicate_object THEN
-  NULL;
+  GRANT USAGE ON SCHEMA public TO "${CURRENT_USER_EMAIL}";
+  GRANT SELECT ON ALL TABLES IN SCHEMA public TO "${CURRENT_USER_EMAIL}";
+  GRANT cloudsqlsuperuser TO "${CURRENT_USER_EMAIL}";
+EXCEPTION WHEN undefined_object THEN
+  RAISE NOTICE 'IAM user role not found, skipping grants';
 END \$\$;
-GRANT USAGE ON SCHEMA public TO "${CURRENT_USER_EMAIL}";
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO "${CURRENT_USER_EMAIL}";
-GRANT cloudsqlsuperuser TO "${CURRENT_USER_EMAIL}";
 EOF
 fi
 
