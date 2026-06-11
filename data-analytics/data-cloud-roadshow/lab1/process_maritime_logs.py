@@ -41,29 +41,12 @@ def process_log_text(log_path: str):
     )
 
     # Step 3: Explode the message column into discrete sentences while retaining parent metadata & raw context
-    sentence_df = extracted_df.select(
+    return extracted_df.select(
         F.col("log_timestamp"),
         F.col("custodian_id"),
         F.col("raw_message"),
         F.explode(F.split(F.col("raw_message"), r"(?<=[.!?])\s+")).alias("sentence")
-    ).filter(F.col("sentence") != "")
-
-    # Simulated embedding generation function (UDF)
-    def simulate_embedding(text):
-        if not text:
-            return []
-        # Generate a stable integer seed using a hash of the exact text snippet.
-        # Prevents cross-thread mutation side effects that global random.seed caused.
-        seed = int(hashlib.md5(text.encode()).hexdigest()[:8], 16)
-        local_rng = random.Random(seed)
-        return [float(local_rng.random()) for _ in range(5)]
-
-    embedding_udf = F.udf(simulate_embedding, ArrayType(FloatType()))
-    
-    # Append the simulated embeddings to dataframe
-    final_df = sentence_df.withColumn("embedding_vector", embedding_udf(F.col("sentence")))
-    
-    return final_df
+    ).filter(F.col("sentence") != "") 
 
 ####################------DELETE------##############################
 # ARGHH!!!! Don't think this code will run so easily. I'll stop you!
@@ -89,7 +72,6 @@ spark.sql("""CREATE TABLE IF NOT EXISTS processed_maritime_logs (
     custodian_id     STRING,
     raw_message      STRING,
     sentence         STRING,
-    embedding_vector ARRAY<FLOAT>
 ) 
 USING iceberg;""")
 
