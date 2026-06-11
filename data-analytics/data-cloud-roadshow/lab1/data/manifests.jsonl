@@ -1,0 +1,4 @@
+{"shipment_id": "NORMAL-001", "timestamp": "2024-10-24T08:00:00Z", "last_ping_lat": 37.8044, "last_ping_long": -122.2711, "seal_integrity_status": 1, "custodian_id": "usr_123_safe"}
+{"shipment_id": "NORMAL-002", "timestamp": "2024-10-24T08:15:00Z", "last_ping_lat": 37.7749, "last_ping_long": -122.4194, "seal_integrity_status": 1, "custodian_id": "usr_456_ops"}
+{"shipment_id": "MV-CAT-001", "timestamp": "2024-10-24T08:30:00Z", "last_ping_lat": 51.5074, "last_ping_long": -0.1278, "seal_integrity_status": 0, "custodian_id": "usr_999_shadow"}
+{"shipment_id": "NORMAL-003", "timestamp": "2024-10-24T08:45:00Z", "last_ping_lat": 37.3382, "last_ping_long": -121.8863, "seal_integrity_status": 1, "custodian_id": "usr_789_route"}
