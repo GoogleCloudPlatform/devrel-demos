@@ -17,11 +17,13 @@ echo " Namespace: ${NAMESPACE}"
 echo " Cluster: ${CLUSTER_NAME}"
 echo "===================================================="
 
-read -p "Are you sure you want to proceed with teardown? (y/N) " -n 1 -r
-echo ""
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Teardown cancelled."
-    exit 0
+if [[ "$1" != "-y" ]]; then
+    read -p "Are you sure you want to proceed with teardown? (y/N) " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Teardown cancelled."
+        exit 0
+    fi
 fi
 
 # Derive region from ZONE
