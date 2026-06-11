@@ -1,0 +1,47 @@
+apiVersion: jobset.x-k8s.io/v1alpha2
+kind: JobSet
+metadata:
+  name: kueue-jobset-simple-superslicing
+  namespace: llm-d-pd-disaggregation
+  labels:
+    kueue.x-k8s.io/queue-name: lq
+  annotations:
+    leaderworkerset.sigs.k8s.io/exclusive-topology: cloud.google.com/gke-tpu-slice
+spec:
+  replicatedJobs:
+    - name: job-jax
+      replicas: 1
+      template:
+        spec:
+          parallelism: 32
+          completions: 32
+          backoffLimit: 10
+          template:
+            metadata:
+              annotations:
+                cloud.google.com/gke-tpu-slice-topology: 4x4x8
+            spec:
+              tolerations:
+                - key: "google.com/tpu"
+                  operator: "Equal"
+                  value: "present"
+                  effect: "NoSchedule"
+              nodeSelector:
+                cloud.google.com/gke-tpu-accelerator: tpu7x
+              containers:
+                - name: simple-container
+                  image: python:3.12
+                  command:
+                    - bash
+                    - -c
+                    - |
+                      printenv
+                      pip install "jax[tpu]" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
+                      python -c 'import jax; print("Global device count:", jax.device_count(), "Local device count:", jax.local_device_count())' &&
+                      sleep infinity
+                  resources:
+                    requests:
+                      google.com/tpu: "4"
+                    limits:
+                      google.com/tpu: 4
+              restartPolicy: Never

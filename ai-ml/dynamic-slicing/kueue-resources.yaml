@@ -1,0 +1,63 @@
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: Topology
+metadata:
+  name: slice-topology
+spec:
+  levels:
+  - nodeLabel: cloud.google.com/gce-topology-block
+  - nodeLabel: cloud.google.com/gke-tpu-partition-4x4x4-id
+  - nodeLabel: cloud.google.com/gke-tpu-partition-2x4x4-id
+  - nodeLabel: cloud.google.com/gke-tpu-partition-2x2x4-id
+  - nodeLabel: cloud.google.com/gke-tpu-partition-2x2x2-id
+  - nodeLabel: cloud.google.com/gke-tpu-partition-2x2x1-id
+  - nodeLabel: kubernetes.io/hostname
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata:
+  name: slice-rf
+spec:
+  nodeLabels:
+    cloud.google.com/gke-tpu-accelerator: tpu7x
+  topologyName: slice-topology
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: AdmissionCheck
+metadata:
+  name: ac
+spec:
+  controllerName: accelerator.gke.io/slice
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ClusterQueue
+metadata:
+  name: cq
+spec:
+  namespaceSelector: {}
+  admissionChecksStrategy:
+    admissionChecks:
+    - name: ac
+  preemption:
+    withinClusterQueue: LowerPriority
+  resourceGroups:
+  - coveredResources:
+    - google.com/tpu
+    - cpu
+    - memory
+    flavors:
+    - name: slice-rf
+      resources:
+      - name: google.com/tpu
+        nominalQuota: "999999"
+      - name: cpu
+        nominalQuota: "999999"
+      - name: memory
+        nominalQuota: "999999Pi"
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: LocalQueue
+metadata:
+  name: lq
+  namespace: llm-d-pd-disaggregation
+spec:
+  clusterQueue: cq
