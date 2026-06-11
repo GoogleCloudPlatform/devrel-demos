@@ -1,0 +1,270 @@
+apiVersion: leaderworkerset.x-k8s.io/v1
+kind: LeaderWorkerSet
+metadata:
+  name: kueue-vllm-decode-model-streamer
+  namespace: llm-d-pd-disaggregation
+  annotations:
+    leaderworkerset.sigs.k8s.io/exclusive-topology: cloud.google.com/gke-tpu-slice
+  labels:
+    llm-d.ai/guide: pd-disaggregation
+    llm-d.ai/model: Qwen3.5-397B-A17B-FP8
+    llm-d.ai/role: decode
+    inference.networking.k8s.io/engine-type: vllm
+    kueue.x-k8s.io/queue-name: lq
+spec:
+  replicas: 1
+  leaderWorkerTemplate:
+    size: 2
+    restartPolicy: RecreateGroupOnPodRestart
+    leaderTemplate:
+      metadata:
+        labels:
+          llm-d.ai/guide: pd-disaggregation
+          llm-d.ai/model: Qwen3.5-397B-A17B-FP8
+          llm-d.ai/role: decode
+          inference.networking.k8s.io/engine-type: vllm
+        annotations:
+          cloud.google.com/gke-tpu-slice-topology: "2x2x2"
+          gke-gcsfuse/volumes: "true"
+      spec:
+        serviceAccountName: gcs-fuse-ksa
+        nodeSelector:
+          cloud.google.com/gke-tpu-accelerator: tpu7x
+#          cloud.google.com/gke-tpu-partition-2x2x2-state: "HEALTHY"
+        tolerations:
+        - effect: NoSchedule   
+          key: google.com/tpu
+          operator: Exists
+        initContainers:
+          - name: routing-proxy
+            image: ghcr.io/llm-d/llm-d-routing-sidecar:v0.8.0
+            imagePullPolicy: Always
+            args:
+              - --port=8000
+              - --vllm-port=8200
+              - --connector=nixlv2
+              - --zap-log-level=1
+              - --secure-proxy=false
+            ports:
+              - containerPort: 8000
+                name: modelserver
+                protocol: TCP
+            resources: {}
+            restartPolicy: Always
+            securityContext:
+              allowPrivilegeEscalation: false
+              runAsNonRoot: true
+        containers:
+          - name: vllm-leader
+            image: docker.io/vllm/vllm-tpu:nightly-20260430-18ed615-5b39b26
+            imagePullPolicy: IfNotPresent
+            env:
+              - name: HF_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: llm-d-hf-token
+                    key: HF_TOKEN
+              - name: HF_HOME
+                value: /usr/vllm
+              - name: TPU_MULTIHOST_BACKEND
+                value: ray
+              - name: SKIP_JAX_PRECOMPILE
+                value: "1"
+              - name: TPU_NODE_ID
+                value: $(LWS_WORKER_INDEX)
+              - name: JAX_PLATFORMS
+                value: ""
+              - name: MODEL_IMPL_TYPE
+                value: vllm
+              - name: TPU_BACKEND_TYPE
+                value: jax
+              - name: PJRT_DEVICE
+                value: TPU
+              - name: USE_MOE_EP_KERNEL
+                value: "0"
+              - name: VLLM_DISABLE_SHARED_EXPERTS_STREAM
+                value: "1"
+              - name: VLLM_LOGGING_LEVEL
+                value: DEBUG
+              - name: VLLM_MLA_DISABLE
+                value: "1"
+              - name: VLLM_ENGINE_CLIENT_STARTUP_TIMEOUT
+                value: "1800"
+              - name: USE_BATCHED_RPA_KERNEL
+                value: "0"
+              - name: RAY_RESERVE_CPU_FOR_RAYLET
+                value: "1"
+              - name: RAY_heartbeat_timeout_milliseconds
+                value: "300000"
+              - name: RAY_initial_reconstruction_timeout_milliseconds
+                value: "300000"
+              - name: RAY_external_storage_heartbeat_timeout_ms
+                value: "60000"
+              - name: RAY_grpc_server_thread_pool_size
+                value: "100"
+              - name: RAY_max_pending_lease_requests_per_scheduling_category
+                value: "1000"
+              - name: RAY_rpc_server_listen_quiet_period_ms
+                value: "3600000"
+              - name: RAY_gcs_server_request_timeout_seconds
+                value: "3600"
+              - name: TPU_SIDE_CHANNEL_PORT
+                value: "9600"
+              - name: TPU_KV_TRANSFER_PORT
+                value: "9100"
+              - name: VLLM_XLA_CACHE_PATH
+                value: "gs://MODEL_WEIGHT_BUCKET/xla_cache"
+            command:
+              - sh
+              - -c
+              - |
+                chmod +x /workspace/vllm/examples/online_serving/multi-node-serving.sh
+                bash /workspace/vllm/examples/online_serving/multi-node-serving.sh leader --ray_cluster_size=$(LWS_GROUP_SIZE) --ray_init_timeout=1800
+                vllm serve --model=gs://MODEL_WEIGHT_BUCKET/models--Qwen--Qwen3.5-397B-A17B-FP8/snapshots/ea5b4f81096f3901c91dea97f81324302495781d --load-format=runai_streamer --served-model-name=Qwen/Qwen3.5-397B-A17B-FP8 --max-model-len=9216 --max-num-batched-tokens=8192 --max-num-seqs=512 --tensor-parallel-size=16 --language-model-only --limit-mm-per-prompt '{"image": 0, "video": 0}' --kv-cache-dtype=fp8 --enable-expert-parallel --no-disable-hybrid-kv-cache-manager --kv-transfer-config '{"kv_connector":"TPUConnectorHMA","kv_connector_module_path":"tpu_inference.distributed.tpu_connector_hma","kv_role":"kv_consumer"}' --port=8200 --disable-access-log-for-endpoints=/health,/metrics,/v1/models
+            resources:
+              limits:
+                google.com/tpu: "4"
+                memory: "850Gi"
+                cpu: "220"
+              requests:
+                google.com/tpu: "4"
+                memory: "850Gi"
+                cpu: "220"
+            ports:
+              - containerPort: 8200
+                name: vllm
+              - containerPort: 9100
+                name: tpu-kv-transfer
+              - containerPort: 9600
+                name: tpu-pd-coord
+            volumeMounts:
+              - name: dshm
+                mountPath: /dev/shm
+              - name: gcs-fuse-csi-ephemeral
+                mountPath: /data
+        volumes:
+          - name: dshm
+            emptyDir:
+              medium: Memory
+              sizeLimit: 100Gi
+          - name: gcs-fuse-csi-ephemeral
+            csi:
+              driver: gcsfuse.csi.storage.gke.io
+              volumeAttributes:
+                bucketName: MODEL_WEIGHT_BUCKET
+                mountOptions: "implicit-dirs,file-cache:enable-parallel-downloads:true,file-cache:parallel-downloads-per-file:100,file-cache:max-parallel-downloads:-1,file-cache:download-chunk-size-mb:10,file-cache:max-size-mb:-1"
+    workerTemplate:
+      metadata:
+        labels:
+          llm-d.ai/guide: pd-disaggregation
+          llm-d.ai/model: Qwen3.5-397B-A17B-FP8
+          llm-d.ai/role: decode
+          inference.networking.k8s.io/engine-type: vllm
+        annotations:
+          cloud.google.com/gke-tpu-slice-topology: "2x2x2"
+          gke-gcsfuse/volumes: "true"
+      spec:
+        serviceAccountName: gcs-fuse-ksa
+        nodeSelector:
+          cloud.google.com/gke-tpu-accelerator: tpu7x
+#          cloud.google.com/gke-tpu-partition-2x2x2-state: "HEALTHY"
+        tolerations:
+        - effect: NoSchedule   
+          key: google.com/tpu
+          operator: Exists
+        containers:
+          - name: vllm-worker
+            image: docker.io/vllm/vllm-tpu:nightly-20260430-18ed615-5b39b26
+            imagePullPolicy: IfNotPresent
+            command:
+              - sh
+              - -c
+              - |
+                chmod +x /workspace/vllm/examples/online_serving/multi-node-serving.sh
+                /workspace/vllm/examples/online_serving/multi-node-serving.sh worker --ray_address=$(LWS_LEADER_ADDRESS) --ray_init_timeout=1800
+            resources:
+              limits:
+                google.com/tpu: "4"
+                memory: "850Gi"
+                cpu: "220"
+              requests:
+                google.com/tpu: "4"
+                memory: "850Gi"
+                cpu: "220"
+            env:
+              - name: HF_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: llm-d-hf-token
+                    key: HF_TOKEN
+              - name: HF_HOME
+                value: /usr/vllm
+              - name: TPU_MULTIHOST_BACKEND
+                value: ray
+              - name: SKIP_JAX_PRECOMPILE
+                value: "1"
+              - name: TPU_NODE_ID
+                value: $(LWS_WORKER_INDEX)
+              - name: JAX_PLATFORMS
+                value: ""
+              - name: MODEL_IMPL_TYPE
+                value: vllm
+              - name: TPU_BACKEND_TYPE
+                value: jax
+              - name: PJRT_DEVICE
+                value: TPU
+              - name: USE_MOE_EP_KERNEL
+                value: "0"
+              - name: VLLM_DISABLE_SHARED_EXPERTS_STREAM
+                value: "1"
+              - name: VLLM_LOGGING_LEVEL
+                value: DEBUG
+              - name: VLLM_MLA_DISABLE
+                value: "1"
+              - name: VLLM_ENGINE_CLIENT_STARTUP_TIMEOUT
+                value: "1800"
+              - name: USE_BATCHED_RPA_KERNEL
+                value: "0"
+              - name: RAY_RESERVE_CPU_FOR_RAYLET
+                value: "1"
+              - name: RAY_heartbeat_timeout_milliseconds
+                value: "300000"
+              - name: RAY_initial_reconstruction_timeout_milliseconds
+                value: "300000"
+              - name: RAY_external_storage_heartbeat_timeout_ms
+                value: "60000"
+              - name: RAY_grpc_server_thread_pool_size
+                value: "100"
+              - name: RAY_max_pending_lease_requests_per_scheduling_category
+                value: "1000"
+              - name: RAY_rpc_server_listen_quiet_period_ms
+                value: "3600000"
+              - name: RAY_gcs_server_request_timeout_seconds
+                value: "3600"
+              - name: TPU_SIDE_CHANNEL_PORT
+                value: "9600"
+              - name: TPU_KV_TRANSFER_PORT
+                value: "9100"
+              - name: VLLM_XLA_CACHE_PATH
+                value: "gs://MODEL_WEIGHT_BUCKET/xla_cache"
+            ports:
+              - containerPort: 9100
+                name: tpu-kv-transfer
+              - containerPort: 9600
+                name: tpu-pd-coord
+            volumeMounts:
+              - mountPath: /dev/shm
+                name: dshm
+              - name: gcs-fuse-csi-ephemeral
+                mountPath: /data
+        volumes:
+          - name: dshm
+            emptyDir:
+              medium: Memory
+              sizeLimit: 100Gi
+          - name: gcs-fuse-csi-ephemeral
+            csi:
+              driver: gcsfuse.csi.storage.gke.io
+              volumeAttributes:
+                bucketName: MODEL_WEIGHT_BUCKET
+                mountOptions: "implicit-dirs,file-cache:enable-parallel-downloads:true,file-cache:parallel-downloads-per-file:100,file-cache:max-parallel-downloads:-1,file-cache:download-chunk-size-mb:10,file-cache:max-size-mb:-1"

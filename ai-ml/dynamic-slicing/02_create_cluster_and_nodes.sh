@@ -85,7 +85,7 @@ if ! gcloud container clusters describe "${CLUSTER_NAME}" --region "${REGION}" -
     --location="${REGION}" \
     --release-channel=rapid \
     --cluster-version="${GKE_VERSION}" \
-    --machine-type=n2-standard-8 \
+    --machine-type=n2-standard-32 \
     --network="${GVNIC_NETWORK_PREFIX}-main" \
     --subnetwork="${GVNIC_NETWORK_PREFIX}-tpu" \
     --num-nodes=1 \
@@ -170,12 +170,9 @@ echo "===================================================="
 kubectl get nodes
 
 # 7. Query GKE runtime details and append to env.sh
-echo "Querying GKE private cluster endpoint..."
-PRIVATE_IP=$(gcloud container clusters describe "${CLUSTER_NAME}" --region "${REGION}" --project "${PROJECT_ID}" --format="value(privateClusterConfig.privateEndpoint)")
-if [ -z "$PRIVATE_IP" ]; then
-  PRIVATE_IP=$(gcloud container clusters describe "${CLUSTER_NAME}" --region "${REGION}" --project "${PROJECT_ID}" --format="value(endpoint)")
-fi
-echo "Found GKE endpoint: ${PRIVATE_IP}"
+echo "Querying GKE cluster endpoint..."
+CLUSTER_ENDPOINT=$(gcloud container clusters describe "${CLUSTER_NAME}" --region "${REGION}" --project "${PROJECT_ID}" --format="value(endpoint)")
+echo "Found GKE endpoint: ${CLUSTER_ENDPOINT}"
 
 echo "Querying GKE Node VM instance name..."
 VM_NAME=$(gcloud compute instances list --filter="name~${CLUSTER_NAME}" --project "${PROJECT_ID}" --format="value(name)" | head -n 1)
@@ -186,7 +183,7 @@ TOKEN="$(gcloud auth print-access-token)"
 
 # Append to env.sh
 cat <<EOF >> env.sh
-export SERVER="https://${PRIVATE_IP}"
+export SERVER="https://${CLUSTER_ENDPOINT}"
 export NODE_VM_NAME="${VM_NAME}"
 export TOKEN="${TOKEN}"
 EOF

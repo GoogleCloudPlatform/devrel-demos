@@ -10,19 +10,6 @@ if [ ! -f "./env.sh" ]; then
 fi
 . ./env.sh
 
-# Setup kubectl context wrapper
-kubectl() {
-  if [ -n "$SERVER" ]; then
-    if [ -n "$TOKEN" ]; then
-      command kubectl --token="$TOKEN" --server="$SERVER" --insecure-skip-tls-verify=true "$@"
-    else
-      command kubectl --server="$SERVER" --insecure-skip-tls-verify=true "$@"
-    fi
-  else
-    command kubectl "$@"
-  fi
-}
-
 echo "===================================================="
 # Force a newline
 echo " Deploying Kueue Resources..."

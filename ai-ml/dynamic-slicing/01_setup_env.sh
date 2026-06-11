@@ -11,10 +11,13 @@ echo " Press [ENTER] to accept the default values."
 echo "===================================================="
 echo ""
 
-# 1. PROJECT_ID
+# 1. PROJECT_ID and PROJECT_NUMBER
 DEFAULT_PROJECT_ID="${PROJECT_ID}"
+DEFAULT_PROJECT_NUMBER="${PROJECT_NUMBER}"
 read -p "Enter GCP Project ID [${DEFAULT_PROJECT_ID}]: " INPUT_PROJECT_ID
 export PROJECT_ID="${INPUT_PROJECT_ID:-$DEFAULT_PROJECT_ID}"
+read -p "Enter GCP Project Number [${DEFAULT_PROJECT_NUMBER}]: " INPUT_PROJECT_NUMBER
+export PROJECT_NUMBER="${INPUT_PROJECT_NUMBER:-$DEFAULT_PROJECT_NUMBER}"
 
 # 2. CLUSTER_NAME
 DEFAULT_CLUSTER_NAME="${CLUSTER_NAME:-qwen-serving-cluster}"
@@ -91,6 +94,7 @@ export HF_TOKEN="${INPUT_HF_TOKEN:-$DEFAULT_HF_TOKEN}"
 # Generate secure env.sh context
 cat <<EOF > env.sh
 export PROJECT_ID="${PROJECT_ID}"
+export PROJECT_NUMBER="${PROJECT_NUMBER}"
 export CLUSTER_NAME="${CLUSTER_NAME}"
 export ZONE="${ZONE}"
 export NAMESPACE="${NAMESPACE}"
