@@ -113,14 +113,14 @@ spec:
               - name: TPU_KV_TRANSFER_PORT
                 value: "9100"
               - name: VLLM_XLA_CACHE_PATH
-                value: "gs://qwen-ds-397b/xla_cache"
+                value: "gs://MODEL_WEIGHT_BUCKET/xla_cache"
             command:
               - sh
               - -c
               - |
                 chmod +x /workspace/vllm/examples/online_serving/multi-node-serving.sh
                 bash /workspace/vllm/examples/online_serving/multi-node-serving.sh leader --ray_cluster_size=$(LWS_GROUP_SIZE) --ray_init_timeout=1800
-                vllm serve --model=gs://qwen-ds-397b/models--Qwen--Qwen3.5-397B-A17B-FP8/snapshots/ea5b4f81096f3901c91dea97f81324302495781d --load-format=runai_streamer --served-model-name=Qwen/Qwen3.5-397B-A17B-FP8 --max-model-len=9216 --max-num-batched-tokens=8192 --max-num-seqs=512 --tensor-parallel-size=16 --language-model-only --limit-mm-per-prompt '{"image": 0, "video": 0}' --kv-cache-dtype=fp8 --enable-expert-parallel --no-disable-hybrid-kv-cache-manager --kv-transfer-config '{"kv_connector":"TPUConnectorHMA","kv_connector_module_path":"tpu_inference.distributed.tpu_connector_hma","kv_role":"kv_consumer"}' --port=8200 --disable-access-log-for-endpoints=/health,/metrics,/v1/models
+                vllm serve --model=gs://MODEL_WEIGHT_BUCKET/models--Qwen--Qwen3.5-397B-A17B-FP8/snapshots/ea5b4f81096f3901c91dea97f81324302495781d --load-format=runai_streamer --served-model-name=Qwen/Qwen3.5-397B-A17B-FP8 --max-model-len=9216 --max-num-batched-tokens=8192 --max-num-seqs=512 --tensor-parallel-size=16 --language-model-only --limit-mm-per-prompt '{"image": 0, "video": 0}' --kv-cache-dtype=fp8 --enable-expert-parallel --no-disable-hybrid-kv-cache-manager --kv-transfer-config '{"kv_connector":"TPUConnectorHMA","kv_connector_module_path":"tpu_inference.distributed.tpu_connector_hma","kv_role":"kv_consumer"}' --port=8200 --disable-access-log-for-endpoints=/health,/metrics,/v1/models
             resources:
               limits:
                 google.com/tpu: "4"
@@ -151,7 +151,7 @@ spec:
             csi:
               driver: gcsfuse.csi.storage.gke.io
               volumeAttributes:
-                bucketName: qwen-ds-397b
+                bucketName: MODEL_WEIGHT_BUCKET
                 mountOptions: "implicit-dirs,file-cache:enable-parallel-downloads:true,file-cache:parallel-downloads-per-file:100,file-cache:max-parallel-downloads:-1,file-cache:download-chunk-size-mb:10,file-cache:max-size-mb:-1"
     workerTemplate:
       metadata:
@@ -246,7 +246,7 @@ spec:
               - name: TPU_KV_TRANSFER_PORT
                 value: "9100"
               - name: VLLM_XLA_CACHE_PATH
-                value: "gs://qwen-ds-397b/xla_cache"
+                value: "gs://MODEL_WEIGHT_BUCKET/xla_cache"
             ports:
               - containerPort: 9100
                 name: tpu-kv-transfer
@@ -266,5 +266,5 @@ spec:
             csi:
               driver: gcsfuse.csi.storage.gke.io
               volumeAttributes:
-                bucketName: qwen-ds-397b
+                bucketName: MODEL_WEIGHT_BUCKET
                 mountOptions: "implicit-dirs,file-cache:enable-parallel-downloads:true,file-cache:parallel-downloads-per-file:100,file-cache:max-parallel-downloads:-1,file-cache:download-chunk-size-mb:10,file-cache:max-size-mb:-1"
