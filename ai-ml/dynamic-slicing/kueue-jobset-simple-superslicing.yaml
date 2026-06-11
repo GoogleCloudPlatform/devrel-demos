@@ -35,6 +35,7 @@ spec:
                     - bash
                     - -c
                     - |
+                      set -ex
                       printenv
                       pip install "jax[tpu]" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
                       python -c 'import jax; print("Global device count:", jax.device_count(), "Local device count:", jax.local_device_count())' &&
