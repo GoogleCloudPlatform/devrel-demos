@@ -24,7 +24,7 @@ run_curl_pod() {
       -n ${NAMESPACE} \
       -- sh -c "
 for i in {1..15}; do
-  res_code=\$(curl -s -o /tmp/res.json -w \"%{http_code}\" -X POST ${url} -H 'Content-Type: application/json' -d '${data}' || echo \"000\")
+  res_code=\$(curl --connect-timeout 5 --max-time 10 -s -o /tmp/res.json -w \"%{http_code}\" -X POST ${url} -H 'Content-Type: application/json' -d '${data}' || echo \"000\")
   if [ \"\$res_code\" = \"200\" ]; then
     cat /tmp/res.json
     exit 0
