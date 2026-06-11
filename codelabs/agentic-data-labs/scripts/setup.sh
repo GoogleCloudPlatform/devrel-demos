@@ -213,19 +213,14 @@ bq query --project_id="$PROJECT_ID" --use_legacy_sql=false --quiet \
    ADD COLUMN IF NOT EXISTS promo_code STRING"
 
 bq query --project_id="$PROJECT_ID" --use_legacy_sql=false --quiet \
-  "ALTER TABLE \`${PROJECT_ID}.${TARGET_DATASET}.order_items\`
-   ADD COLUMN IF NOT EXISTS discount_pct FLOAT64"
-
-bq query --project_id="$PROJECT_ID" --use_legacy_sql=false --quiet \
   "ALTER TABLE \`${PROJECT_ID}.${TARGET_DATASET}.products\`
    ADD COLUMN IF NOT EXISTS cost FLOAT64"
 
 log_info "Adding column descriptions to clarify line vs unit price..."
 bq query --project_id="$PROJECT_ID" --use_legacy_sql=false --quiet \
   "ALTER TABLE \`${PROJECT_ID}.${TARGET_DATASET}.order_items\`
-   ALTER COLUMN price SET OPTIONS(description='The total pre-discount price for this line item, which is already multiplied by quantity (i.e. unit_price * quantity)'),
-   ALTER COLUMN quantity SET OPTIONS(description='The number of units purchased for this line item'),
-   ALTER COLUMN discount_pct SET OPTIONS(description='The discount percentage applied to this line item (e.g. 0.25 for 25% off)')"
+   ALTER COLUMN price SET OPTIONS(description='The total price for this line item (unit_price * quantity), with any applicable discounts already applied'),
+   ALTER COLUMN quantity SET OPTIONS(description='The number of units purchased for this line item')"
 
 log_ok "Columns and descriptions added."
 
@@ -339,7 +334,7 @@ log_ok "B2B orders inserted."
 log_info "Inserting B2B order line items (2 items per order)..."
 bq query --project_id="$PROJECT_ID" --use_legacy_sql=false --quiet \
   "INSERT INTO \`${PROJECT_ID}.${TARGET_DATASET}.order_items\`
-     (order_item_id, order_id, product_id, quantity, price, discount_pct)
+     (order_item_id, order_id, product_id, quantity, price)
    WITH b2b_products AS (
      SELECT product_id, price, ROUND(price * 0.75, 2) AS discounted_price,
             ROW_NUMBER() OVER (ORDER BY product_id) AS prod_row
@@ -360,8 +355,7 @@ bq query --project_id="$PROJECT_ID" --use_legacy_sql=false --quiet \
      e.order_id,
      p.product_id,
      e.quantity,
-     p.discounted_price * e.quantity AS price,
-     0.25 AS discount_pct
+     p.discounted_price * e.quantity AS price
    FROM b2b_orders_expanded e
    JOIN b2b_products p ON p.prod_row = e.prod_idx"
 
@@ -427,7 +421,7 @@ echo -e "${GREEN}╔════════════════════
 echo -e "${GREEN}║   Base Setup complete!                               ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "Your core BigQuery and GCS assets are ready in under 90 seconds."
+echo -e "Your core BigQuery and GCS assets are ready."
 echo -e "Cloud SQL is currently provisioning in the background and will be fully ready by Step 4."
 echo ""
 echo -e "  ${BLUE}BigQuery:${NC}   ${PROJECT_ID}.${TARGET_DATASET}"
