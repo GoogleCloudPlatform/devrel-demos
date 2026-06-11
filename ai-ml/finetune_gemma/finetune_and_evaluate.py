@@ -361,10 +361,21 @@ def train_model(model, processor, train_data, eval_data, args):
 
     # Check if a previous run left a checkpoint to resume from
     resume_from_checkpoint = None
+
+    # Retrieve Cloud Run Jobs built-in environment variables
+    task_attempt = os.environ.get("CLOUD_RUN_TASK_ATTEMPT")
+    if task_attempt is not None:
+        logger.info(f"🏃 Running in Cloud Run Jobs: Task Attempt #{task_attempt}")
+        # If task_attempt is '0', it's the initial run. If > 0, it's a restart (e.g., due to maintenance)
+        if int(task_attempt) > 0:
+            logger.info("🔄 Job restart detected (likely due to a platform preemption or system maintenance).")
+
     if args.checkpoint_strategy != "no" and os.path.isdir(args.output_dir):
         resume_from_checkpoint = get_last_checkpoint(args.output_dir)
         if resume_from_checkpoint:
-            logger.info(f"🔎 Resuming fine-tuning from checkpoint: {resume_from_checkpoint}")
+            logger.info(f"🔎 Found checkpoint to resume fine-tuning: {resume_from_checkpoint}")
+        elif task_attempt and int(task_attempt) > 0:
+            logger.warning("⚠️ Job restart detected, but no checkpoints were found in the output directory. Starting from scratch.")
 
     logger.info("Configuring LoRA and Training...")
     processor.tokenizer.padding_side = "right"
