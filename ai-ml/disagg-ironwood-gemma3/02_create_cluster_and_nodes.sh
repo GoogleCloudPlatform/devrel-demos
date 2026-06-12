@@ -133,14 +133,11 @@ echo "Querying GKE Node VM instance name..."
 VM_NAME=$(gcloud compute instances list --filter="name~${CLUSTER_NAME}" --project "${PROJECT_ID}" --format="value(name)" | head -n 1)
 echo "Found GKE Node VM instance name: ${VM_NAME}"
 
-# Generate fresh access token
-TOKEN="$(gcloud auth print-access-token)"
-
 # Append to env.sh
 cat <<EOF >> env.sh
 export SERVER="https://${PRIVATE_IP}"
 export NODE_VM_NAME="${VM_NAME}"
-export TOKEN="${TOKEN}"
+export TOKEN="\$(gcloud auth print-access-token 2>/dev/null)"
 EOF
 
 echo "===================================================="
