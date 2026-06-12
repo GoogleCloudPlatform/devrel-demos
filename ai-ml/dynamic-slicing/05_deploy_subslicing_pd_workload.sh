@@ -10,10 +10,11 @@ if [ ! -f "./env.sh" ]; then
 fi
 . ./env.sh
 
-echo "===================================================="
+echo "======================================================================"
+echo " Deploying two LWS through Kueue using subslicing with medium priority"
 echo " Project ID: ${PROJECT_ID}"
 echo " Namespace: ${NAMESPACE}"
-echo "===================================================="
+echo "======================================================================"
 
 # Create Service Account if not exists (should be created by 04, but double check)
 kubectl create serviceaccount gcs-fuse-ksa -n "${NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -

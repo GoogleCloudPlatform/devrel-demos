@@ -10,10 +10,11 @@ if [ ! -f "./env.sh" ]; then
 fi
 . ./env.sh
 
-echo "===================================================="
+echo "========================================================================"
+echo " Deploying a JobSet through Kueue using super slicing with high priority"
 echo " Project ID: ${PROJECT_ID}"
 echo " Namespace: ${NAMESPACE}"
-echo "===================================================="
+echo "========================================================================"
 
 # Apply JobSet manifests
 echo "Applying TPU JobSet manifests..."

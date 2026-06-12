@@ -5,6 +5,7 @@ metadata:
   namespace: llm-d-pd-disaggregation
   labels:
     kueue.x-k8s.io/queue-name: lq
+    kueue.x-k8s.io/priority-class: high-priority-3000
   annotations:
     leaderworkerset.sigs.k8s.io/exclusive-topology: cloud.google.com/gke-tpu-slice
 spec:

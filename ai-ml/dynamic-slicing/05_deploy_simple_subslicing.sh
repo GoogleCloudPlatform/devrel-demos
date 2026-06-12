@@ -10,10 +10,11 @@ if [ ! -f "./env.sh" ]; then
 fi
 . ./env.sh
 
-echo "===================================================="
+echo "=================================================================="
+echo " Deploying a LWS through Kueue using subslicing with low priority"
 echo " Project ID: ${PROJECT_ID}"
 echo " Namespace: ${NAMESPACE}"
-echo "===================================================="
+echo "=================================================================="
 
 # Apply LWS manifests
 echo "Applying TPU Model Server manifests (LWS)..."

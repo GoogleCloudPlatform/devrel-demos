@@ -1,0 +1,20 @@
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: WorkloadPriorityClass
+metadata:
+  name: low-priority-1000
+value: 1000
+description: "Low priority workloads"
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: WorkloadPriorityClass
+metadata:
+  name: medium-priority-2000
+value: 2000
+description: "Medium priority workloads"
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: WorkloadPriorityClass
+metadata:
+  name: high-priority-3000
+value: 3000
+description: "High priority workloads"

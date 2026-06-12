@@ -11,6 +11,7 @@ metadata:
     llm-d.ai/role: decode
     inference.networking.k8s.io/engine-type: vllm
     kueue.x-k8s.io/queue-name: lq
+    kueue.x-k8s.io/priority-class: medium-priority-2000
 spec:
   replicas: 1
   leaderWorkerTemplate:
