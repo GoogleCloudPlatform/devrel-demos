@@ -76,7 +76,7 @@ static_resources:
         - endpoint:
             address:
               socket_address:
-                address: vllm-prefill-service.disagg-serving.svc.cluster.local
+                address: vllm-prefill-service.${NAMESPACE}.svc.cluster.local
                 port_value: 8200
 EOF
 
