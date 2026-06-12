@@ -35,7 +35,7 @@ kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -
 # Create Kubernetes Service Account and annotate for GCP GSA Workload Identity
 echo "Configuring GCS Fuse Service Account and Workload Identity annotations..."
 kubectl create serviceaccount gcs-fuse-ksa -n ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
-kubectl annotate serviceaccount gcs-fuse-ksa -n ${NAMESPACE} iam.gke.io/gcp-service-account=gemma-gcs-gsa@dx-supercomputer-testing.iam.gserviceaccount.com --overwrite
+kubectl annotate serviceaccount gcs-fuse-ksa -n ${NAMESPACE} iam.gke.io/gcp-service-account=gemma-gcs-gsa@${PROJECT_ID}.iam.gserviceaccount.com --overwrite
 
 
 # Deploy GKE DRA ResourceClaimTemplate for networking
