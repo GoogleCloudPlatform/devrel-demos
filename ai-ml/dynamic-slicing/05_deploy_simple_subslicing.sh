@@ -11,17 +11,17 @@ fi
 . ./env.sh
 
 echo "=================================================================="
-echo " Deploying a LWS through Kueue using subslicing with low priority"
+echo " Deploying a Jobset through Kueue using subslicing with low priority"
 echo " Project ID: ${PROJECT_ID}"
 echo " Namespace: ${NAMESPACE}"
 echo "=================================================================="
 
-# Apply LWS manifests
-echo "Applying TPU Model Server manifests (LWS)..."
-kubectl apply -f kueue-lws-simple-subslicing.yaml -n ${NAMESPACE}
+# Apply Jobset manifests
+echo "Applying TPU Model Server manifests ..."
+kubectl apply -f kueue-jobset-simple-subslicing.yaml -n ${NAMESPACE}
 
-echo "Waiting for LWS to be created..."
-until kubectl get leaderworkerset -n ${NAMESPACE} kueue-lws-simple-subslicing >/dev/null 2>&1; do
+echo "Waiting for Jobset to be created..."
+until kubectl get jobset -n ${NAMESPACE} kueue-jobset-simple-subslicing >/dev/null 2>&1; do
   echo -n "."
   sleep 2
 done
@@ -64,12 +64,9 @@ wait_for_pods_ready() {
 }
 
 echo "Waiting for pods to be ready..."
-# 16 replicas * size 2 = 32 pods.
-wait_for_pods_ready "leaderworkerset.sigs.k8s.io/name=kueue-lws-simple-subslicing" 32 600
+# 6 replicas * size 2 = 12 pods.
+wait_for_pods_ready "jobset.sigs.k8s.io/jobset-name=kueue-jobset-simple-subslicing" 12 600
 
 echo "===================================================="
 echo " TPU Simple Subslicing Workload deployed successfully!"
-echo "===================================================="
-echo "You can monitor the logs with:"
-echo "  kubectl logs -f kueue-lws-simple-subslicing-0 -c simple-leader -n ${NAMESPACE}"
 echo "===================================================="

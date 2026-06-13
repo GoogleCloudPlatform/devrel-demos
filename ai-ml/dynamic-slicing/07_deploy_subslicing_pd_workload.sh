@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  Step 5: 05_deploy_ss_pd_workload.sh - Deploy TPU Prefill/Decode Workloads (LWS)
+#  Step 7: 07_deploy_ss_pd_workload.sh - Deploy TPU Prefill/Decode Workloads (LWS)
 # ==============================================================================
 set -e
 
@@ -11,7 +11,7 @@ fi
 . ./env.sh
 
 echo "======================================================================"
-echo " Deploying two LWS through Kueue using subslicing with medium priority"
+echo " Deploying two LWS through Kueue using subslicing with high priority"
 echo " Project ID: ${PROJECT_ID}"
 echo " Namespace: ${NAMESPACE}"
 echo "======================================================================"
@@ -83,12 +83,12 @@ wait_for_pods_ready() {
 }
 
 echo "Waiting for Prefill pods to be ready..."
-# 1 replica * size 2 = 2 pods.
-wait_for_pods_ready "prefill" 2 600
+# 4 replica * size 2 = 8 pods.
+wait_for_pods_ready "prefill" 8 600
 
 echo "Waiting for Decode pods to be ready..."
-# 1 replica * size 2 = 2 pods.
-wait_for_pods_ready "decode" 2 600
+# 4 replica * size 2 = 8 pods.
+wait_for_pods_ready "decode" 8 600
 
 echo "===================================================="
 echo " TPU P/D Workloads deployed successfully!"

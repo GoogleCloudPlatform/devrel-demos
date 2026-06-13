@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  Step 5: 05_deploy_simple_superslicing.sh - Deploy Simple Superslicing Workload
+#  Step 6: 06_deploy_simple_superslicing.sh - Deploy Simple Superslicing Workload
 # ==============================================================================
 set -e
 
@@ -11,7 +11,7 @@ fi
 . ./env.sh
 
 echo "========================================================================"
-echo " Deploying a JobSet through Kueue using super slicing with high priority"
+echo " Deploying a JobSet through Kueue using super slicing with medium priority"
 echo " Project ID: ${PROJECT_ID}"
 echo " Namespace: ${NAMESPACE}"
 echo "========================================================================"
