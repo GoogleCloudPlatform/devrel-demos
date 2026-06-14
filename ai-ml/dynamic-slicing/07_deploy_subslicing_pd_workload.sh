@@ -29,8 +29,8 @@ gcloud storage buckets add-iam-policy-binding gs://$GCS_BUCKET_NAME \
 
 # Apply LWS manifests
 echo "Applying TPU Model Server manifests (LWS)..."
-sed "s/MODEL_WEIGHT_BUCKET/${GCS_BUCKET_NAME}/g" kueue-lws-prefill-model-streamer.yaml | kubectl apply -n ${NAMESPACE} -f -
-sed "s/MODEL_WEIGHT_BUCKET/${GCS_BUCKET_NAME}/g" kueue-lws-decode-model-streamer.yaml | kubectl apply -n ${NAMESPACE} -f -
+sed "s/MODEL_WEIGHT_BUCKET/${GCS_BUCKET_NAME}/g; s/\${NAMESPACE}/${NAMESPACE}/g" kueue-lws-prefill-model-streamer.yaml | kubectl apply -n ${NAMESPACE} -f -
+sed "s/MODEL_WEIGHT_BUCKET/${GCS_BUCKET_NAME}/g; s/\${NAMESPACE}/${NAMESPACE}/g" kueue-lws-decode-model-streamer.yaml | kubectl apply -n ${NAMESPACE} -f -
 
 echo "Waiting for Prefill LWS to be created..."
 until kubectl get leaderworkerset -n ${NAMESPACE} kueue-vllm-prefill-model-streamer >/dev/null 2>&1; do

@@ -2,7 +2,7 @@ apiVersion: leaderworkerset.x-k8s.io/v1
 kind: LeaderWorkerSet
 metadata:
   name: kueue-vllm-prefill-model-streamer
-  namespace: llm-d-pd-disaggregation
+  namespace: ${NAMESPACE}
   annotations:
     leaderworkerset.sigs.k8s.io/exclusive-topology: cloud.google.com/gke-tpu-slice
   labels:

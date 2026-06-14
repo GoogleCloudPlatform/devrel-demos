@@ -2,7 +2,7 @@ apiVersion: jobset.x-k8s.io/v1alpha2
 kind: JobSet
 metadata:
   name: kueue-jobset-simple-subslicing
-  namespace: llm-d-pd-disaggregation
+  namespace: ${NAMESPACE}
   labels:
     kueue.x-k8s.io/queue-name: lq
     kueue.x-k8s.io/priority-class: low-priority-1000

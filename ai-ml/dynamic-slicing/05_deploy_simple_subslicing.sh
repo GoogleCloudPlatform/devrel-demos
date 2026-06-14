@@ -18,7 +18,7 @@ echo "=================================================================="
 
 # Apply Jobset manifests
 echo "Applying TPU Model Server manifests ..."
-kubectl apply -f kueue-jobset-simple-subslicing.yaml -n ${NAMESPACE}
+sed "s/\${NAMESPACE}/${NAMESPACE}/g" kueue-jobset-simple-subslicing.yaml | kubectl apply -n ${NAMESPACE} -f -
 
 echo "Waiting for Jobset to be created..."
 until kubectl get jobset -n ${NAMESPACE} kueue-jobset-simple-subslicing >/dev/null 2>&1; do

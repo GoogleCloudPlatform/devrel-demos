@@ -26,8 +26,8 @@ helm upgrade --install jobset oci://registry.k8s.io/jobset/charts/jobset \
   --wait
 
 # 2. Install Kueue
-export VERSION=v0.17.4
-kubectl apply --server-side --force-conflicts -f https://github.com/kubernetes-sigs/kueue/releases/download/${VERSION}/manifests.yaml
+export KUEUE_VERSION=v0.17.4
+kubectl apply --server-side --force-conflicts -f https://github.com/kubernetes-sigs/kueue/releases/download/${KUEUE_VERSION}/manifests.yaml
 
 # 3. Install LeaderWorkerSet
 LWS_VERSION=v0.8.0
