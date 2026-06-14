@@ -1,24 +1,24 @@
 apiVersion: jobset.x-k8s.io/v1alpha2
 kind: JobSet
 metadata:
-  name: kueue-jobset-simple-superslicing
+  name: kueue-jobset-simple-subslicing
   namespace: ${NAMESPACE}
   labels:
     kueue.x-k8s.io/queue-name: lq
-    kueue.x-k8s.io/priority-class: medium-priority-2000
+    kueue.x-k8s.io/priority-class: low-priority-1000
 spec:
   replicatedJobs:
     - name: job-jax
-      replicas: 1
+      replicas: 6
       template:
         spec:
-          parallelism: 32
-          completions: 32
+          parallelism: 2
+          completions: 2
           backoffLimit: 10
           template:
             metadata:
               annotations:
-                cloud.google.com/gke-tpu-slice-topology: 4x4x8
+                cloud.google.com/gke-tpu-slice-topology: 2x2x2
             spec:
               tolerations:
                 - key: "google.com/tpu"

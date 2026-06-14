@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  Step 5: 05_deploy_simple_superslicing.sh - Deploy Simple Superslicing Workload
+#  Step 6: 06_deploy_simple_superslicing.sh - Deploy Simple Superslicing Workload
 # ==============================================================================
 set -e
 
@@ -10,14 +10,15 @@ if [ ! -f "./env.sh" ]; then
 fi
 . ./env.sh
 
-echo "===================================================="
+echo "========================================================================"
+echo " Deploying a JobSet through Kueue using super slicing with medium priority"
 echo " Project ID: ${PROJECT_ID}"
 echo " Namespace: ${NAMESPACE}"
-echo "===================================================="
+echo "========================================================================"
 
 # Apply JobSet manifests
 echo "Applying TPU JobSet manifests..."
-kubectl apply -f kueue-jobset-simple-superslicing.yaml -n ${NAMESPACE}
+sed "s/\${NAMESPACE}/${NAMESPACE}/g" kueue-jobset-simple-superslicing.yaml | kubectl apply -n ${NAMESPACE} -f -
 
 echo "Waiting for JobSet to be created..."
 until kubectl get jobset -n ${NAMESPACE} kueue-jobset-simple-superslicing >/dev/null 2>&1; do

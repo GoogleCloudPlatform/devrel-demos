@@ -37,6 +37,7 @@ fi
 # 3. Apply Kueue resources
 echo "Applying Kueue resources..."
 kubectl apply -f kueue-resources.yaml
+kubectl apply -f workload-priority-class.yaml
 
 # 4. Verify Kueue resources
 echo "Verifying Kueue resources..."
