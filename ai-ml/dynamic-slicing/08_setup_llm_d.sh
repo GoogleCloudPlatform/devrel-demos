@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  Step 3: 03_setup_llm_d.sh - Setup LLM-D repo, namespace, secrets and gateway
+#  Step 8: 08_setup_llm_d.sh - Setup LLM-D repo, namespace, secrets and gateway
 # ==============================================================================
 set -e
 

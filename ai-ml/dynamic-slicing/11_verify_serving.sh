@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  Step 6: 06_verify_serving.sh - Verify Qwen P/D Serving API via Temp Pod
+#  Step 11: 11_verify_serving.sh - Verify Qwen P/D Serving API via Temp Pod
 # ==============================================================================
 set -e
 

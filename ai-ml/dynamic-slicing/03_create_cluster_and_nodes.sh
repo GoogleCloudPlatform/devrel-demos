@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  Step 2: 02_create_cluster_and_nodes.sh - Provision VPC Networks, GKE Cluster,
+#  Step 3: 03_create_cluster_and_nodes.sh - Provision VPC Networks, GKE Cluster,
 #          TPU Node Pool with DRANET, and K8s Network Resources
 # ==============================================================================
 set -e
@@ -22,7 +22,7 @@ echo " Node Pool Zone: ${ZONE}"
 echo " Reservation: ${RESERVATION_NAME}"
 echo "===================================================="
 
-# AI Zone features enabled in 01b_enable_apis_and_features.sh
+# AI Zone features enabled in 02_enable_apis_and_features.sh
 
 
 # 1. Create VPC network with large MTU (8896)

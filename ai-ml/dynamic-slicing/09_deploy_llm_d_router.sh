@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  Step 4: 04_deploy_llm_d_router.sh - Deploy LLM-D Router in Gateway Mode
+#  Step 9: 09_deploy_llm_d_router.sh - Deploy LLM-D Router in Gateway Mode
 # ==============================================================================
 set -e
 
@@ -11,7 +11,7 @@ fi
 . ./env.sh
 
 if [ ! -d "llm-d" ]; then
-    echo "Error: llm-d directory not found. Please run 03_setup_llm_d.sh first."
+    echo "Error: llm-d directory not found. Please run 08_setup_llm_d.sh first."
     exit 1
 fi
 

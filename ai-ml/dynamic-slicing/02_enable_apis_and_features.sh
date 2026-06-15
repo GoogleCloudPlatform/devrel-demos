@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  Step 1.5: 01b_enable_apis_and_features.sh - Enable APIs and AI Zone features
+#  Step 2: 02_enable_apis_and_features.sh - Enable APIs and AI Zone features
 # ==============================================================================
 set -e
 

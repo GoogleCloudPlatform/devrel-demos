@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  Teardown: 99_teardown_cleanup.sh - Tear down all disaggregated resources,
+#  Step 12: 12_teardown_cleanup.sh - Tear down all disaggregated resources,
 #            GKE cluster, and VPC networks.
 # ==============================================================================
 set -e
