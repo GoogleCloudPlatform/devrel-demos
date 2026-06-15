@@ -26,14 +26,8 @@ helm upgrade --install jobset oci://registry.k8s.io/jobset/charts/jobset \
   --wait
 
 # 2. Install Kueue
-KUEUE_VER="0.16.6"
-echo "Installing Kueue (${KUEUE_VER})..."
-helm upgrade --install kueue oci://registry.k8s.io/kueue/charts/kueue \
-  --version "${KUEUE_VER}" \
-  --namespace kueue-system \
-  --create-namespace \
-  --set controllerManager.replicas=3 \
-  --wait
+export KUEUE_VERSION=v0.17.4
+kubectl apply --server-side --force-conflicts -f https://github.com/kubernetes-sigs/kueue/releases/download/${KUEUE_VERSION}/manifests.yaml
 
 # 3. Install LeaderWorkerSet
 LWS_VERSION=v0.8.0
@@ -45,7 +39,7 @@ helm install lws oci://registry.k8s.io/lws/charts/lws \
     --wait
     
 echo "Deploying GKE Slice Controller..."
-kubectl apply --server-side -f https://gist.githubusercontent.com/mwysokin/f6c4192c1e1ddf3c0b46720bd678e56a/raw/d26cc7973f96ded08b71fc99a3c468dc9cf4d3b3/kueue-slice-controller-v0.8.0-195.yaml
+kubectl apply --server-side -f https://gist.githubusercontent.com/mwysokin/f8ff6a7f8c2f8808ba30177e51413e32/raw/9086457ea35cd31a3bb95b714bf72309a2be357c/kueue-slice-controller-v0.8.0-200.yaml
 
 # Verify Slice Controller deployment
 echo "Verifying Slice Controller deployment..."

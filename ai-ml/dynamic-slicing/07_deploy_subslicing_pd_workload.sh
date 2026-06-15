@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  Step 5: 05_deploy_ss_pd_workload.sh - Deploy TPU Prefill/Decode Workloads (LWS)
+#  Step 7: 07_deploy_ss_pd_workload.sh - Deploy TPU Prefill/Decode Workloads (LWS)
 # ==============================================================================
 set -e
 
@@ -10,10 +10,11 @@ if [ ! -f "./env.sh" ]; then
 fi
 . ./env.sh
 
-echo "===================================================="
+echo "======================================================================"
+echo " Deploying two LWS through Kueue using subslicing with high priority"
 echo " Project ID: ${PROJECT_ID}"
 echo " Namespace: ${NAMESPACE}"
-echo "===================================================="
+echo "======================================================================"
 
 # Create Service Account if not exists (should be created by 04, but double check)
 kubectl create serviceaccount gcs-fuse-ksa -n "${NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
@@ -28,8 +29,8 @@ gcloud storage buckets add-iam-policy-binding gs://$GCS_BUCKET_NAME \
 
 # Apply LWS manifests
 echo "Applying TPU Model Server manifests (LWS)..."
-sed "s/MODEL_WEIGHT_BUCKET/${GCS_BUCKET_NAME}/g" kueue-lws-prefill-model-streamer.yaml | kubectl apply -n ${NAMESPACE} -f -
-sed "s/MODEL_WEIGHT_BUCKET/${GCS_BUCKET_NAME}/g" kueue-lws-decode-model-streamer.yaml | kubectl apply -n ${NAMESPACE} -f -
+sed "s/MODEL_WEIGHT_BUCKET/${GCS_BUCKET_NAME}/g; s/\${NAMESPACE}/${NAMESPACE}/g" kueue-lws-prefill-model-streamer.yaml | kubectl apply -n ${NAMESPACE} -f -
+sed "s/MODEL_WEIGHT_BUCKET/${GCS_BUCKET_NAME}/g; s/\${NAMESPACE}/${NAMESPACE}/g" kueue-lws-decode-model-streamer.yaml | kubectl apply -n ${NAMESPACE} -f -
 
 echo "Waiting for Prefill LWS to be created..."
 until kubectl get leaderworkerset -n ${NAMESPACE} kueue-vllm-prefill-model-streamer >/dev/null 2>&1; do
@@ -82,12 +83,12 @@ wait_for_pods_ready() {
 }
 
 echo "Waiting for Prefill pods to be ready..."
-# 1 replica * size 2 = 2 pods.
-wait_for_pods_ready "prefill" 2 600
+# 4 replica * size 2 = 8 pods.
+wait_for_pods_ready "prefill" 8 600
 
 echo "Waiting for Decode pods to be ready..."
-# 1 replica * size 2 = 2 pods.
-wait_for_pods_ready "decode" 2 600
+# 4 replica * size 2 = 8 pods.
+wait_for_pods_ready "decode" 8 600
 
 echo "===================================================="
 echo " TPU P/D Workloads deployed successfully!"
