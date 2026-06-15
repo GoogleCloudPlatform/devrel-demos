@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  Step 7: 07_deploy_ss_pd_workload.sh - Deploy TPU Prefill/Decode Workloads (LWS)
+#  Step 10: 10_deploy_subslicing_pd_workload.sh - Deploy TPU Prefill/Decode Workloads (LWS)
 # ==============================================================================
 set -e
 

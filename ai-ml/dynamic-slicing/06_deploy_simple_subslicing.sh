@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  Step 6: 06_deploy_simple_superslicing.sh - Deploy Simple Superslicing Workload
+#  Step 6: 06_deploy_simple_subslicing.sh - Deploy Simple Subslicing Workload
 # ==============================================================================
 set -e
 
@@ -10,28 +10,22 @@ if [ ! -f "./env.sh" ]; then
 fi
 . ./env.sh
 
-echo "========================================================================"
-echo " Deploying a JobSet through Kueue using super slicing with medium priority"
+echo "=================================================================="
+echo " Deploying a Jobset through Kueue using subslicing with low priority"
 echo " Project ID: ${PROJECT_ID}"
 echo " Namespace: ${NAMESPACE}"
-echo "========================================================================"
+echo "=================================================================="
 
-# Apply JobSet manifests
-echo "Applying TPU JobSet manifests..."
-sed "s/\${NAMESPACE}/${NAMESPACE}/g" kueue-jobset-simple-superslicing.yaml | kubectl apply -n ${NAMESPACE} -f -
+# Apply Jobset manifests
+echo "Applying TPU Model Server manifests ..."
+sed "s/\${NAMESPACE}/${NAMESPACE}/g" kueue-jobset-simple-subslicing.yaml | kubectl apply -n ${NAMESPACE} -f -
 
-echo "Waiting for JobSet to be created..."
-until kubectl get jobset -n ${NAMESPACE} kueue-jobset-simple-superslicing >/dev/null 2>&1; do
+echo "Waiting for Jobset to be created..."
+until kubectl get jobset -n ${NAMESPACE} kueue-jobset-simple-subslicing >/dev/null 2>&1; do
   echo -n "."
   sleep 2
 done
 echo ""
-
-# Get expected pods from jobset spec.parallelism (default to 1 if not set)
-expected_pods=$(kubectl get jobset -n ${NAMESPACE} kueue-jobset-simple-superslicing -o jsonpath='{.spec.replicatedJobs[*].template.spec.parallelism}' 2>/dev/null || echo 1)
-if [ -z "${expected_pods}" ]; then
-  expected_pods=1
-fi
 
 wait_for_pods_ready() {
   local selector=$1
@@ -70,8 +64,9 @@ wait_for_pods_ready() {
 }
 
 echo "Waiting for pods to be ready..."
-wait_for_pods_ready "jobset.sigs.k8s.io/jobset-name=kueue-jobset-simple-superslicing" ${expected_pods} 600
+# 6 replicas * size 2 = 12 pods.
+wait_for_pods_ready "jobset.sigs.k8s.io/jobset-name=kueue-jobset-simple-subslicing" 12 600
 
 echo "===================================================="
-echo " TPU Simple Superslicing Workload deployed successfully!"
+echo " TPU Simple Subslicing Workload deployed successfully!"
 echo "===================================================="

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  Step 4: 04_deploy_kueue_resources.sh - Deploy Kueue Resources
+#  Step 5: 05_deploy_kueue_resources.sh - Deploy Kueue Resources
 # ==============================================================================
 set -e
 

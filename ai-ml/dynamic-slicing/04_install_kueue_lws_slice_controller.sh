@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  Step 3: 03_install_kueue_and_slice_controller.sh - Install Orchestration Tools
+#  Step 4: 04_install_kueue_lws_slice_controller.sh - Install Orchestration Tools
 # ==============================================================================
 set -e
 
