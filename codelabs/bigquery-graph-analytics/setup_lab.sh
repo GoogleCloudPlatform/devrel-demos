@@ -31,13 +31,10 @@ bq query --use_legacy_sql=false < setup_bq_tables.sql
 echo "🔐 Verifying 'LostCargoSecurity' taxonomy..."
 
 # List all taxonomies and find one matching 'LostCargoSecurity' or 'LostCargoSecurity_<project_id>'
-TAXONOMY_INFO=$(gcloud data-catalog taxonomies list --location="${LOCATION}" --format="value(name, displayName)" 2>/dev/null | awk '$2 ~ /^LostCargoSecurity(_[a-zA-Z0-9-]+)?$/ {print $1; exit}')
+TAXONOMY_ID=$(gcloud data-catalog taxonomies list --location="${LOCATION}" --filter="displayName='LostCargoSecurity' OR displayName='LostCargoSecurity_${PROJECT_ID}'" --format="value(name)" | awk 'NR==1')
 
-if [ -n "$TAXONOMY_INFO" ]; then
-  TAXONOMY_ID="${TAXONOMY_INFO}"
+if [ -n "$TAXONOMY_ID" ]; then
   echo "Found existing active taxonomy: ${TAXONOMY_ID}"
-else
-  TAXONOMY_ID=""
 fi
 
 if [ -z "$TAXONOMY_ID" ]; then
@@ -64,7 +61,7 @@ if [ -z "$TAXONOMY_ID" ]; then
 EOF
   gcloud data-catalog taxonomies import /tmp/taxonomy_import.json --location="${LOCATION}"
   rm -f /tmp/taxonomy_import.json
-  TAXONOMY_ID=$(gcloud data-catalog taxonomies list --location="${LOCATION}" --filter="displayName=${UNIQUE_DISPLAY_NAME}" --format="value(name)" | head -n 1 | xargs)
+  TAXONOMY_ID=$(gcloud data-catalog taxonomies list --location="${LOCATION}" --filter="displayName='${UNIQUE_DISPLAY_NAME}'" --format="value(name)" | awk 'NR==1')
 fi
 
 if [ -z "$TAXONOMY_ID" ]; then
@@ -74,7 +71,7 @@ fi
 
 echo "🏷️ Taxonomy ID: ${TAXONOMY_ID}"
 echo "🏷️ Resolving target 'MaskShippingDetails' policy tag..."
-POLICY_TAG_ID=$(gcloud data-catalog taxonomies policy-tags list --taxonomy="${TAXONOMY_ID}" --filter="displayName=MaskShippingDetails" --format="value(name)" | head -n 1 | xargs)
+POLICY_TAG_ID=$(gcloud data-catalog taxonomies policy-tags list --taxonomy="${TAXONOMY_ID}" --filter="displayName='MaskShippingDetails'" --format="value(name)" | awk 'NR==1')
 
 if [ -z "$POLICY_TAG_ID" ]; then
   echo "❌ Error: Failed to resolve policy tag 'MaskShippingDetails'."
