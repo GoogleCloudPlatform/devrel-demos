@@ -1,0 +1,37 @@
+syntax = "proto2";
+
+package code_samples;
+
+// Scenario 1 (Committed Mode): Real-Time Credit Card Fraud Detection Ingestion
+message TransactionEvent {
+  required string transaction_id = 1;
+  required string card_number_hash = 2;
+  required double amount = 3;
+  required string merchant_id = 4;
+  required string timestamp = 5;
+  required double fraud_risk_score = 6;
+  optional string alert_level = 7; // e.g. LOW, MEDIUM, CRITICAL
+}
+
+// Scenario 2 (Pending Mode): Atomic Multi-Warehouse Inventory Ledger Balancing
+message InventoryAdjustment {
+  required string adjustment_id = 1;
+  required string warehouse_id = 2;
+  required string item_sku = 3;
+  required int32 quantity_changed = 4;
+  required string batch_id = 5;
+  required string timestamp = 6;
+  optional string operator_id = 7;
+}
+
+// Scenario 3 (Buffered Mode): Autonomous Vehicle Collision Telemetry and Safety Alerts
+message VehicleTelemetry {
+  required string telemetry_id = 1;
+  required string vehicle_vin = 2;
+  required double speed_mph = 3;
+  required double latitude = 4;
+  required double longitude = 5;
+  required string timestamp = 6;
+  required bool safety_trigger_active = 7; // true if collision or near-miss occurred
+  optional double G_force = 8;
+}
