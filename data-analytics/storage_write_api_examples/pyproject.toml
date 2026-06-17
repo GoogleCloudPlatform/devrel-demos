@@ -1,0 +1,11 @@
+[project]
+name = "storage-write-api-examples"
+version = "0.1.0"
+description = "BigQuery Storage Write API Code Samples"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "google-cloud-bigquery>=3.0.0",
+    "google-cloud-bigquery-storage>=2.0.0",
+    "protobuf>=4.0.0",
+]
