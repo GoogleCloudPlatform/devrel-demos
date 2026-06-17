@@ -29,15 +29,28 @@ bq query --use_legacy_sql=false < setup_bq_tables.sql
 
 # 4. Verify/Import Security Taxonomy and Policy Tags
 echo "🔐 Verifying 'LostCargoSecurity' taxonomy..."
-TAXONOMY_ID=$(gcloud data-catalog taxonomies list --location="${LOCATION}" --filter="display_name=LostCargoSecurity" --format="value(name)" | head -n 1 | xargs)
+
+# List all taxonomies and find one matching 'LostCargoSecurity' or 'LostCargoSecurity_<project_id>'
+# We use awk here to avoid pipefail errors if no match is found
+TAXONOMY_INFO=$(gcloud data-catalog taxonomies list --location="${LOCATION}" --format="value(name, displayName)" 2>/dev/null | awk '$2 ~ /^LostCargoSecurity(_[a-zA-Z0-9-]+)?$/ {print $1; exit}')
+
+if [ -n "$TAXONOMY_INFO" ]; then
+  TAXONOMY_ID="${TAXONOMY_INFO}"
+  echo "Found existing active taxonomy: ${TAXONOMY_ID}"
+else
+  TAXONOMY_ID=""
+fi
 
 if [ -z "$TAXONOMY_ID" ]; then
-  echo "🌱 Importing missing 'LostCargoSecurity' taxonomy..."
+  # Generate a unique display name using the project ID to avoid Data Catalog conflicts and match codelab instructions
+  UNIQUE_DISPLAY_NAME="LostCargoSecurity_${PROJECT_ID}"
+  echo "🌱 Importing missing taxonomy with unique name '${UNIQUE_DISPLAY_NAME}'..."
+  
   cat <<EOF > /tmp/taxonomy_import.json
 {
   "taxonomies": [
     {
-      "displayName": "LostCargoSecurity",
+      "displayName": "${UNIQUE_DISPLAY_NAME}",
       "description": "Taxonomy for lost cargo classification",
       "activatedPolicyTypes": ["FINE_GRAINED_ACCESS_CONTROL"],
       "policyTags": [
@@ -50,9 +63,9 @@ if [ -z "$TAXONOMY_ID" ]; then
   ]
 }
 EOF
-  gcloud data-catalog taxonomies import /tmp/taxonomy_import.json --location="${LOCATION}" || echo "⚠️ Warning: Import failed (likely already exists). Proceeding..."
+  gcloud data-catalog taxonomies import /tmp/taxonomy_import.json --location="${LOCATION}"
   rm -f /tmp/taxonomy_import.json
-  TAXONOMY_ID=$(gcloud data-catalog taxonomies list --location="${LOCATION}" --filter="display_name=LostCargoSecurity" --format="value(name)" | head -n 1 | xargs)
+  TAXONOMY_ID=$(gcloud data-catalog taxonomies list --location="${LOCATION}" --filter="displayName=${UNIQUE_DISPLAY_NAME}" --format="value(name)" | head -n 1 | xargs)
 fi
 
 if [ -z "$TAXONOMY_ID" ]; then
@@ -62,7 +75,7 @@ fi
 
 echo "🏷️ Taxonomy ID: ${TAXONOMY_ID}"
 echo "🏷️ Resolving target 'MaskShippingDetails' policy tag..."
-POLICY_TAG_ID=$(gcloud data-catalog taxonomies policy-tags list --taxonomy="${TAXONOMY_ID}" --filter="display_name=MaskShippingDetails" --format="value(name)" | head -n 1 | xargs)
+POLICY_TAG_ID=$(gcloud data-catalog taxonomies policy-tags list --taxonomy="${TAXONOMY_ID}" --filter="displayName=MaskShippingDetails" --format="value(name)" | head -n 1 | xargs)
 
 if [ -z "$POLICY_TAG_ID" ]; then
   echo "❌ Error: Failed to resolve policy tag 'MaskShippingDetails'."
