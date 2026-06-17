@@ -31,7 +31,6 @@ bq query --use_legacy_sql=false < setup_bq_tables.sql
 echo "🔐 Verifying 'LostCargoSecurity' taxonomy..."
 
 # List all taxonomies and find one matching 'LostCargoSecurity' or 'LostCargoSecurity_<project_id>'
-# We use awk here to avoid pipefail errors if no match is found
 TAXONOMY_INFO=$(gcloud data-catalog taxonomies list --location="${LOCATION}" --format="value(name, displayName)" 2>/dev/null | awk '$2 ~ /^LostCargoSecurity(_[a-zA-Z0-9-]+)?$/ {print $1; exit}')
 
 if [ -n "$TAXONOMY_INFO" ]; then
@@ -42,7 +41,7 @@ else
 fi
 
 if [ -z "$TAXONOMY_ID" ]; then
-  # Generate a unique display name using the project ID to avoid Data Catalog conflicts and match codelab instructions
+  # Generate a unique display name using the project ID conflicts
   UNIQUE_DISPLAY_NAME="LostCargoSecurity_${PROJECT_ID}"
   echo "🌱 Importing missing taxonomy with unique name '${UNIQUE_DISPLAY_NAME}'..."
   
