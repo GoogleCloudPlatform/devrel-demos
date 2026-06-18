@@ -1,4 +1,4 @@
-# Demos that belong in this folder 
+# Demos that belong in this folder
 
 Demos in this folder primarily focus on Google Cloud's security products. Below is a non-exhaustive list of what products may be considered security products for the purposes of this repo.
 
@@ -7,7 +7,7 @@ Demos in this folder primarily focus on Google Cloud's security products. Below 
 * Binary Authorization
 * Cloud Data Loss Prevention
 * Cloud Key Management
-* Secret Manager 
+* Secret Manager
 * Security Center
-* Security Command Center 
-* VPC Service Controls 
+* Security Command Center
+* VPC Service Controls
