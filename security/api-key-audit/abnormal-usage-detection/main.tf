@@ -64,7 +64,7 @@ resource "google_cloudbuild_trigger" "delete_key_trigger" {
     step {
       name = "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
       args = [
-        "gcloud", "alpha", "api-keys", "delete", var.api_key_uid, "--quiet"
+        "gcloud", "services", "api-keys", "delete", var.api_key_uid, "--quiet"
       ]
     }
   }
