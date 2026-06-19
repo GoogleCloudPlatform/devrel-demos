@@ -28,7 +28,7 @@ resource "google_monitoring_alert_policy" "api_spike_alert" {
 
     condition_prometheus_query_language {
       # We inject the var.api_key_uid variable directly into the PromQL query
-      query = "(sum(increase(serviceruntime_googleapis_com:api_request_count{metric_label_credential_id=\"${var.api_key_uid}\"}[5m])) / sum(increase(serviceruntime_googleapis_com:api_request_count{metric_label_credential_id=\"${var.api_key_uid}\"}[5m] offset 5m)) > 1.10) and (sum(increase(serviceruntime_googleapis_com:api_request_count{metric_label_credential_id=\"${var.api_key_uid}\"}[5m])) > 50)"
+      query = "(sum(increase(serviceruntime_googleapis_com:api_request_count{metric_label_credential_id=\"${var.api_key_uid}\"}[5m])) / (sum(increase(serviceruntime_googleapis_com:api_request_count{metric_label_credential_id=\"${var.api_key_uid}\"}[5m] offset 5m)) or on() vector(1)) > 1.10) and (sum(increase(serviceruntime_googleapis_com:api_request_count{metric_label_credential_id=\"${var.api_key_uid}\"}[5m])) > 50)"
       
       duration            = "0s"
       evaluation_interval = "60s"
