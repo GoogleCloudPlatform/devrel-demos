@@ -472,6 +472,7 @@ if [ "$RUN_APIS" = "true" ]; then
     "iam.googleapis.com"                  # Identity and Access Management (IAM)
     "bigquery.googleapis.com"             # BigQuery (Essential for evaluations analytics)
     "bigqueryconnection.googleapis.com"   # BigQuery Connection API
+    "cloudaicompanion.googleapis.com"     # Gemini for Google Cloud API
   )
 
   log_info "Enabling required services on new project. This might take a minute..."
