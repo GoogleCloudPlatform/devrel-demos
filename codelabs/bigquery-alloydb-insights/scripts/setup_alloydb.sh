@@ -97,7 +97,7 @@ echo "[1/4] Starting AlloyDB deployment (this takes ~10 minutes)..."
   else
       echo "PSA Peering exists. Checking if range $PSA_RANGE_NAME is included..."
       EXISTING_RANGES=$(echo "$PEERING_INFO" | python3 -c "import sys, json; data=json.load(sys.stdin); print(','.join(data[0]['reservedPeeringRanges'])) if data else print('')")
-      
+
       if [[ $EXISTING_RANGES != *"$PSA_RANGE_NAME"* ]]; then
           echo "Range $PSA_RANGE_NAME not in peering. Current ranges: $EXISTING_RANGES"
           echo "Updating connection..."
@@ -144,7 +144,7 @@ echo "[1/4] Starting AlloyDB deployment (this takes ~10 minutes)..."
               --password=$PASSWORD \
               --subscription-type=STANDARD \
               --quiet
-          
+
           if [ $? -ne 0 ]; then
               echo "Error: Failed to create AlloyDB cluster."
               exit 1
@@ -229,13 +229,13 @@ echo "[4/4] Configuring IAM permissions for AlloyDB..."
 PROJECT_NUMBER=$(gcloud projects describe "${PROJECT_ID}" --format="value(projectNumber)" 2>/dev/null || echo "")
 if [[ -n "$PROJECT_NUMBER" ]]; then
   ALLOYDB_SERVICE_AGENT="service-${PROJECT_NUMBER}@gcp-sa-alloydb.iam.gserviceaccount.com"
-  
+
   echo "      Granting Vertex AI access to AlloyDB Service Agent..."
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" --format=none \
     --member="serviceAccount:${ALLOYDB_SERVICE_AGENT}" \
     --role="roles/aiplatform.user" \
     --quiet || echo "⚠️ Warning: Failed to grant Vertex AI User role to AlloyDB Service Agent."
-    
+
   echo "      Granting GCS access to AlloyDB Service Agent..."
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" --format=none \
     --member="serviceAccount:${ALLOYDB_SERVICE_AGENT}" \
@@ -254,7 +254,7 @@ if [[ -n "$ALLOYDB_SA" ]]; then
     --member="serviceAccount:${ALLOYDB_SA}" \
     --role="roles/aiplatform.user" \
     --quiet || echo "⚠️ Warning: Failed to grant Vertex AI User role to cluster-specific service account."
-    
+
   echo "      Granting GCS access to cluster-specific service account..."
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" --format=none \
     --member="serviceAccount:${ALLOYDB_SA}" \
