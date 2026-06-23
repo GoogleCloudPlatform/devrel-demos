@@ -71,13 +71,17 @@ echo "☝️☝️☝️ ATTENTION ☝️☝️☝️"
       artifactregistry.googleapis.com \
       container.googleapis.com \
       pubsub.googleapis.com
-
+      
+  sleep 30
+  
   # Force-provision Vertex AI Service Agent and grant storage permissions to avoid lazy-provisioning race conditions
   echo "🛠️ Step 1b: Force-provisioning Vertex AI Service Agent..."
   gcloud beta services identity create \
       --service=aiplatform.googleapis.com \
       --project="${PROJECT_ID}"
-
+      
+  sleep 30
+  
   PROJECT_NUMBER=$(gcloud projects describe "${PROJECT_ID}" --format="value(projectNumber)")
   VERTEX_AI_SERVICE_AGENT="service-${PROJECT_NUMBER}@gcp-sa-aiplatform.iam.gserviceaccount.com"
 
