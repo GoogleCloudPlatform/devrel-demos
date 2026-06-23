@@ -136,7 +136,7 @@ curl -s -X POST \
   "https://bigqueryconnection.googleapis.com/v1/projects/${PROJECT_ID}/locations/${REGION}/connections?connectionId=lost_cargo_alloydb_conn" \
   -d '{
     "cloudSql": {
-      "instanceId": "'${PROJECT_ID}':'$REGION':lost-cargo-cluster",
+      "instanceId": "'${PROJECT_ID}':'${REGION}':lost-cargo-cluster",
       "database": "postgres",
       "type": "POSTGRES",
       "credential": {
