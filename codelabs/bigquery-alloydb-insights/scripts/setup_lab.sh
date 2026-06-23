@@ -103,7 +103,7 @@ echo ""
 # [2/8] Create BigQuery dataset
 # ---------------------------------------------------------------
 echo "[2/8] Creating BigQuery dataset 'lost_cargo_dataset'..."
-bq --location=$REGION mk --dataset "$PROJECT_ID:lost_cargo_dataset" 2>/dev/null || true
+bq --location="$REGION" mk --dataset "$PROJECT_ID:lost_cargo_dataset" 2>/dev/null || true
 echo "      Done."
 
 # ---------------------------------------------------------------
