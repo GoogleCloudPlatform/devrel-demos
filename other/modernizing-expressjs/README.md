@@ -4,6 +4,8 @@ This repository contains an Agentic Orchestrator Skill Pack, a suite of speciali
 
 Read the deep-dive article that walks through this solution in detail (includes video): [Automating modernization: Migrating legacy Express to Next.js with Google Antigravity & AI Agents](https://medium.com/@jamesor/f48b4c206a8e)
 
+Follow along with the [codelab](https://codelabs.developers.google.com/automating-modernization-with-antigravity).
+
 ## Architecture Mapping
 The skill pack is pre-configured to migrate legacy stacks to a modern, type-safe target:
 
