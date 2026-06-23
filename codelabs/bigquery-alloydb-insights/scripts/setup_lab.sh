@@ -147,7 +147,7 @@ curl -s -X POST \
   }' > /dev/null || true
 
 # Grant the connection's service account access to AlloyDB
-SA_EMAIL_ALLOYDB=$(bq show --format=prettyjson --connection $REGION.lost_cargo_alloydb_conn | grep "serviceAccountId" | cut -d '"' -f 4)
+SA_EMAIL_ALLOYDB=$(bq show --format=prettyjson --connection "$REGION.lost_cargo_alloydb_conn" | grep "serviceAccountId" | cut -d '"' -f 4)
 if [[ -n "$SA_EMAIL_ALLOYDB" ]]; then
   grant_iam_role_with_retry "$PROJECT_ID" "serviceAccount:$SA_EMAIL_ALLOYDB" "roles/alloydb.client"
 fi
