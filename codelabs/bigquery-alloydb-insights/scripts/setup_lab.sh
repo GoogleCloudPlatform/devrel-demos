@@ -161,7 +161,7 @@ if gcloud storage buckets describe "$BUCKET" &>/dev/null; then
     echo "      Bucket already exists: $BUCKET"
 else
     echo "      Creating bucket $BUCKET..."
-    gcloud storage buckets create "$BUCKET" --location=$REGION
+    gcloud storage buckets create "$BUCKET" --location="$REGION"
 fi
 
 echo "      Copying images from central bucket..."
