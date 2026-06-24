@@ -33,7 +33,12 @@ if [[ -z "$PROJECT_ID" ]]; then
 fi
 
 # Determine Region
-REGION="${REGION:-us-central1}"
+if [ -z "${REGION:-}" ]; then
+    echo -e "\033[1;33m⚠️  REGION environment variable is not set.\033[0m"
+    while [ -z "${REGION:-}" ]; do
+        read -p "Please explicitly enter your assigned Google Cloud region (e.g., us-central1, europe-west1): " REGION
+    done
+fi
 
 # Save to .env file
 echo "Writing environment variables to $ENV_FILE..."
@@ -103,7 +108,7 @@ echo ""
 # [2/8] Create BigQuery dataset
 # ---------------------------------------------------------------
 echo "[2/8] Creating BigQuery dataset 'lost_cargo_dataset'..."
-bq --location="$REGION" mk --dataset "$PROJECT_ID:lost_cargo_dataset" 2>/dev/null || true
+bq --location=$REGION mk --dataset "$PROJECT_ID:lost_cargo_dataset" 2>/dev/null || true
 echo "      Done."
 
 # ---------------------------------------------------------------
@@ -112,7 +117,7 @@ echo "      Done."
 echo "[3/8] Creating Cloud Resource connection and granting permissions..."
 bq mk --connection --location=$REGION --connection_type=CLOUD_RESOURCE lost_cargo_conn 2>/dev/null || true
 
-SA_EMAIL=$(bq show --format=prettyjson --connection $REGION.lost_cargo_conn \
+SA_EMAIL=$(bq show --format=prettyjson --connection ${REGION}.lost_cargo_conn \
   | grep "serviceAccountId" | cut -d '"' -f 4)
 echo "      Connection service account: $SA_EMAIL"
 
@@ -147,7 +152,7 @@ curl -s -X POST \
   }' > /dev/null || true
 
 # Grant the connection's service account access to AlloyDB
-SA_EMAIL_ALLOYDB=$(bq show --format=prettyjson --connection "$REGION.lost_cargo_alloydb_conn" | grep "serviceAccountId" | cut -d '"' -f 4)
+SA_EMAIL_ALLOYDB=$(bq show --format=prettyjson --connection ${REGION}.lost_cargo_alloydb_conn | grep "serviceAccountId" | cut -d '"' -f 4)
 if [[ -n "$SA_EMAIL_ALLOYDB" ]]; then
   grant_iam_role_with_retry "$PROJECT_ID" "serviceAccount:$SA_EMAIL_ALLOYDB" "roles/alloydb.client"
 fi
@@ -161,7 +166,7 @@ if gcloud storage buckets describe "$BUCKET" &>/dev/null; then
     echo "      Bucket already exists: $BUCKET"
 else
     echo "      Creating bucket $BUCKET..."
-    gcloud storage buckets create "$BUCKET" --location="$REGION"
+    gcloud storage buckets create "$BUCKET" --location=$REGION
 fi
 
 echo "      Copying images from central bucket..."
@@ -223,8 +228,8 @@ echo "============================================"
 echo ""
 echo " Created resources:"
 echo "   - BigQuery dataset:    lost_cargo_dataset"
-echo "   - BQ connection:       $REGION.lost_cargo_conn (Cloud Resource)"
-echo "   - BQ connection:       $REGION.lost_cargo_alloydb_conn (AlloyDB)"
+echo "   - BQ connection:       ${REGION}.lost_cargo_conn (Cloud Resource)"
+echo "   - BQ connection:       ${REGION}.lost_cargo_alloydb_conn (AlloyDB)"
 echo "   - GCS bucket:          $BUCKET"
 echo "     - images/:           Port security images"
 echo "     - data/:             Telemetry data"
@@ -235,4 +240,5 @@ echo ""
 echo " Next: Return to the codelab and continue with"
 echo "       setting up the Data Agent Kit."
 echo ""
+
 
