@@ -109,7 +109,7 @@ gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
 
 echo "Granting the Dataproc SA Service Agent access to prevent first-time job failures"
 gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-    --member="service-account:service-${PROJECT_NUMBER}@gcp-sa-dataproc.iam.gserviceaccount.com" \
+    --member="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-dataproc.iam.gserviceaccount.com" \
     --role="roles/dataproc.serviceAgent"
 
 echo "Granting Compute SA Data Editor access to BigQuery"
