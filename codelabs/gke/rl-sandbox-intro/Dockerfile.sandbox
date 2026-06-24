@@ -1,0 +1,49 @@
+# Use a stable Debian-based Miniconda image
+FROM condaforge/miniforge3:latest
+
+# 1. Install essential system libraries (including sqlite3 for Django tests)
+RUN apt-get update && apt-get install -y \
+    git \
+    build-essential \
+    libsqlite3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. Set up the /workspace directory and grant ownership to the pre-existing non-root 'ubuntu' user (UID 1000)
+RUN mkdir -p /workspace \
+    && chown -R 1000:1000 /workspace
+
+# 3. Switch to the non-root user
+USER ubuntu
+WORKDIR /workspace
+
+# 4. Pre-configure Git globally so the agent can run git commands
+RUN git config --global user.email "agent@gke-sandbox.local" \
+    && git config --global user.name "Agent"
+
+# 5. Pre-clone the repository as the non-root user
+RUN git clone https://github.com/django/django.git .
+
+# 6. Pre-build Conda environments and pre-cache common dependencies
+# We do NOT run "pip install -e ." here to avoid Python version conflicts with the main branch.
+# Instead, we pre-install the heavy dependencies so that runtime installation is instantaneous.
+RUN conda create -y -n django-py39 python=3.9 \
+    && conda run -n django-py39 pip install --no-cache-dir asgiref sqlparse tzdata pytest pytest-django
+
+RUN conda create -y -n django-py310 python=3.10 \
+    && conda run -n django-py310 pip install --no-cache-dir asgiref sqlparse tzdata pytest pytest-django
+
+# --- Add Agent Server ---
+# We use a multi-stage build to copy the agent server from the official python-runtime-sandbox image
+COPY --from=registry.k8s.io/agent-sandbox/python-runtime-sandbox:v0.1.0 /app /opt/sandbox-agent
+USER root
+RUN chown -R 1000:1000 /opt/sandbox-agent \
+    && /opt/conda/bin/pip install --no-cache-dir -r /opt/sandbox-agent/requirements.txt \
+    && sed -i 's|"/app"|"/workspace"|g' /opt/sandbox-agent/main.py
+USER ubuntu
+# ------------------------
+
+# Prepend the django-py39 conda environment bin to PATH for commands executed inside the container
+ENV PATH=/home/ubuntu/.conda/envs/django-py39/bin:$PATH
+
+# Keep the container alive and run the agent server using the system Python
+CMD ["/opt/conda/bin/python3", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8888", "--log-level", "trace", "--app-dir", "/opt/sandbox-agent"]

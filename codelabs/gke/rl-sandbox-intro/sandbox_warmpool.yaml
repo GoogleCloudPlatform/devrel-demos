@@ -1,0 +1,25 @@
+apiVersion: extensions.agents.x-k8s.io/v1alpha1
+kind: SandboxTemplate
+metadata:
+  name: swe-bench-django
+  namespace: default
+spec:
+  podTemplate:
+    spec:
+      containers:
+      - name: sandbox
+        image: us-west3-docker.pkg.dev/dx-supercomputer-testing/rl-sandbox-repo/django-sandbox:v1
+        resources:
+          requests:
+            cpu: "2"
+            memory: "4Gi"
+---
+apiVersion: extensions.agents.x-k8s.io/v1alpha1
+kind: SandboxWarmPool
+metadata:
+  name: swe-bench-django-warmpool
+  namespace: default
+spec:
+  replicas: 10
+  sandboxTemplateRef:
+    name: swe-bench-django
