@@ -1,0 +1,57 @@
+apiVersion: ray.io/v1
+kind: RayCluster
+metadata:
+  name: grpo-cluster
+  namespace: default
+spec:
+  rayVersion: "2.35.0"
+  headGroupSpec:
+    rayStartParams:
+      dashboard-host: "0.0.0.0"
+    template:
+      spec:
+        tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+        containers:
+        - name: ray-head
+          image: us-west3-docker.pkg.dev/dx-supercomputer-testing/rl-sandbox-repo/ray-gpu-worker:v1
+          ports:
+          - containerPort: 6379
+            name: gcs-server
+          - containerPort: 8265
+            name: dashboard
+          - containerPort: 10001
+            name: client
+          resources:
+            limits:
+              cpu: "4"
+              memory: "16Gi"
+            requests:
+              cpu: "4"
+              memory: "16Gi"
+  workerGroupSpecs:
+  - groupName: gpu-group
+    replicas: 1
+    minReplicas: 1
+    maxReplicas: 1
+    rayStartParams: {}
+    template:
+      spec:
+        tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+        containers:
+        - name: ray-worker
+          image: us-west3-docker.pkg.dev/dx-supercomputer-testing/rl-sandbox-repo/ray-gpu-worker:v1
+          resources:
+            limits:
+              cpu: "12"
+              memory: "120Gi"
+              nvidia.com/gpu: "1"
+            requests:
+              cpu: "12"
+              memory: "120Gi"
+              nvidia.com/gpu: "1"

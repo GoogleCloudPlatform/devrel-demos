@@ -1,0 +1,25 @@
+# ==============================================================================
+# Base Image: Use the official vLLM production image. 
+# ==============================================================================
+FROM vllm/vllm-openai:latest
+
+USER root
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    numactl \
+    libnuma-dev \
+    wget \
+    ca-certificates \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Ray, TRL, and Sandbox tools
+# TRL does not require compiling flash_attn from source.
+RUN pip install --no-cache-dir \
+    "ray[default]==2.55.1" \
+    "numpy<2.0" \
+    gymnasium>=0.28.1 \
+    k8s-agent-sandbox>=0.4.6 \
+    trl transformers packaging ninja cachetools accelerate datasets peft
