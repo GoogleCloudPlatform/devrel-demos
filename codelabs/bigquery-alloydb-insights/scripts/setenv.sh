@@ -24,9 +24,16 @@ if [ -f "$ENV_FILE" ]; then
         [[ "$line" =~ ^[[:space:]]*# || -z "$line" ]] && continue
         export "$line"
     done < "$ENV_FILE"
+    # Validate that the critical variables were actually found in the .env file
+    if [ -z "${PROJECT_ID:-}" ] || [ -z "${REGION:-}" ]; then
+        echo "⚠️  Warning: .env was loaded, but is missing PROJECT_ID or REGION."
+        echo "   Please re-run scripts/setup_lab.sh to configure your environment."
+        return 1 2>/dev/null || exit 1
+    fi
     echo "✅ Environment loaded successfully: PROJECT_ID=$PROJECT_ID, REGION=$REGION"
 else
     echo "❌ Error: .env file not found at $ENV_FILE"
     echo "   Please execute scripts/setup_lab.sh first to configure your environment."
     return 1 2>/dev/null || exit 1
 fi
+
