@@ -41,29 +41,29 @@ The Coordinator drives the process by invoking the subagents sequentially using 
 1.  **Invoke `tdd_player_one`** with the prompt:
     *   *Prompt*: `"Write the next failing unit test for [feature description/checklist item]. Verify it fails, then report back."`
 2.  **Wait** for the subagent to finish.
-3.  **Verify & Commit**: Run git status, verify the test file was changed, and commit:
-    *   `git commit -am "Player One: Add failing test for [feature]"`
+3.  **Verify & Commit**: Run git status, stage any new or modified files (e.g., `git add <file>`), and commit:
+    *   `git commit -m "Player One: Add failing test for [feature]"`
 
 ### Turn 2: Player Two (Pong)
 1.  **Invoke `tdd_player_two`** with the prompt:
     *   *Prompt*: `"Implement the minimum code to pass the current failing test. Run the test suite, verify it passes, then report back."`
 2.  **Wait** for the subagent to finish.
-3.  **Verify & Commit**: Run git status, verify the implementation file was changed, and commit:
-    *   `git commit -am "Player Two: Implement minimum code for [feature]"`
+3.  **Verify & Commit**: Run git status, stage any new or modified files (e.g., `git add <file>`), and commit:
+    *   `git commit -m "Player Two: Implement minimum code for [feature]"`
 
 ### Turn 3: Player Two (New Ping)
 1.  **Invoke `tdd_player_two`** with the prompt:
     *   *Prompt*: `"Write the next failing unit test for [next checklist item]. Verify it fails, then report back."`
 2.  **Wait** for the subagent to finish.
-3.  **Verify & Commit**: Run git status, verify the test file was changed, and commit:
-    *   `git commit -am "Player Two: Add failing test for [next feature]"`
+3.  **Verify & Commit**: Run git status, stage any new or modified files (e.g., `git add <file>`), and commit:
+    *   `git commit -m "Player Two: Add failing test for [next feature]"`
 
 ### Turn 4: Player One (Pong)
 1.  **Invoke `tdd_player_one`** with the prompt:
     *   *Prompt*: `"Implement the minimum code to pass the current failing test. Run the test suite, verify it passes, then report back."`
 2.  **Wait** for the subagent to finish.
-3.  **Verify & Commit**: Run git status, verify the implementation file was changed, and commit:
-    *   `git commit -am "Player One: Implement minimum code for [next feature]"`
+3.  **Verify & Commit**: Run git status, stage any new or modified files (e.g., `git add <file>`), and commit:
+    *   `git commit -m "Player One: Implement minimum code for [next feature]"`
 
 *Repeat this loop (alternating roles after every Green implementation) until all features are complete.*
 
@@ -71,7 +71,7 @@ The Coordinator drives the process by invoking the subagents sequentially using 
 *   At the start of any turn, the Coordinator can inspect the code and determine if refactoring is needed.
 *   Refactoring can ONLY be performed when the test suite is 100% GREEN.
 *   If refactoring is needed, the Coordinator can instruct the active subagent to perform the refactor and verify the tests remain green, or perform it directly.
-*   Refactor commits MUST be distinct: `git commit -am "Refactor: [description]"`
+*   Refactor commits MUST be distinct (remember to stage any new files first): `git commit -m "Refactor: [description]"`
 
 ## 4. Quality Gates
 *   No turn handoff is allowed unless the workspace has **exactly one failing test** (during Red phase) or **zero failing tests** (during Green/Refactor phase).
