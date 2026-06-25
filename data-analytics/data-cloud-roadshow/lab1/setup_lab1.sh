@@ -49,7 +49,7 @@ echo "Region:          ${REGION}"
 echo "Bucket Name:     ${BUCKET_NAME}"
 echo "===================================================="
 
-# 1. Warm up Managed Apache Spark and Knowledge Catalog
+# 1. Warm up Knowledge Catalog and Managed Apache Spark
 echo "Warming up Knowledge Catalog..."
 gcloud beta services identity create --service=dataplex.googleapis.com --project=${PROJECT_NUMBER}
 
