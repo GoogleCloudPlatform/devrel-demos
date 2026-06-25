@@ -49,23 +49,26 @@ echo "Region:          ${REGION}"
 echo "Bucket Name:     ${BUCKET_NAME}"
 echo "===================================================="
 
-# 1. GCS Bucket Creation & Data Ingestion
+# 1. Warm up Managed Apache Spark and Knowledge Catalog
+echo "Warming up Knowledge Catalog..."
+gcloud beta services identity create --service=dataplex.googleapis.com --project=${PROJECT_NUMBER}
+
+echo "Warming up Managed Apache Spark"
+gcloud beta services identity create --service=dataproc.googleapis.com --project=${PROJECT_NUMBER}
+
+# 2. GCS Bucket Creation & Data Ingestion
 echo "Creating Cloud Storage bucket: gs://${BUCKET_NAME}..."
 gcloud storage buckets create "gs://${BUCKET_NAME}" --location="${REGION}" || true
 
 echo "Populating bucket with sample logistics data..."
-# gcloud storage cp -r gs://sample-data-and-media/shipping_manifests/ "gs://${BUCKET_NAME}/shipping_manifests" || true
-# gcloud storage cp -r gs://sample-data-and-media/raw_logs "gs://${BUCKET_NAME}/raw_logs" || true
-
-# TEMPORARY FOR TESTING
 gcloud storage cp ./data/manifests.jsonl gs://${BUCKET_NAME}/shipping_manifests/
 gcloud storage cp ./data/maritime_logs.txt gs://${BUCKET_NAME}/raw_logs/
 
-# 2. BigQuery Dataset Creation
+# 3. BigQuery Dataset Creation
 echo "Creating BigQuery dataset: ${DATASET}..."
 bq mk --location="${REGION}" "${DATASET}" || true
 
-# 3. Lakehouse Catalog & Namespace Creation
+# 4. Lakehouse Catalog & Namespace Creation
 echo "Provisioning Lakehouse Iceberg REST Catalog..."
 gcloud alpha biglake iceberg catalogs create "${BUCKET_NAME}" \
   --catalog-type=gcs-bucket \
@@ -79,7 +82,7 @@ gcloud biglake iceberg namespaces create "${NAMESPACE}" \
 CATALOG_SA=$(gcloud biglake iceberg catalogs describe "${BUCKET_NAME}" --format="value(biglake-service-account)")
 echo "Catalog Service Account: ${CATALOG_SA}"
 
-# 4. Creating the GCS Connection (Cloud Resource Connection)
+# 5. Creating the GCS Connection (Cloud Resource Connection)
 # Note: Created using bq CLI as standard for BigQuery connection administration
 echo "Creating BigQuery Cloud Resource Connection (${REGION}.conn)..."
 bq mk --connection --location=${REGION} --connection_type=CLOUD_RESOURCE \
@@ -90,7 +93,7 @@ bq mk --connection --location=${REGION} --connection_type=CLOUD_RESOURCE \
 CONNECTION_SA=$(bq show --connection --format=json ${REGION}.conn | jq -r '.cloudResource.serviceAccountId')
 echo "Connection Service Account: ${CONNECTION_SA}"
 
-# 5. IAM Permission Assignments
+# 6. IAM Permission Assignments
 echo "Granting Catalog SA storage access on bucket..."
 gcloud storage buckets add-iam-policy-binding "gs://${BUCKET_NAME}" \
   --member="serviceAccount:${CATALOG_SA}" \
@@ -122,9 +125,16 @@ gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
   --member="user:${USER_ACCOUNT}" \
   --role="roles/bigquerydatapolicy.maskedReader" --quiet
 
-# 6. Nudge Knowledge Catalog to speed up Insights generation
-echo "Warming up Knowledge Catalog..."
-gcloud beta services identity create --service=dataplex.googleapis.com --project=${PROJECT_NUMBER}
+echo "Grant Dataproc Service Agent to the service identity"
+# Retry in case the service identity hasn't finished propagating
+for i in {1..5}; do
+  echo "Attempt $i: Binding Dataproc Service Agent role..."
+  gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:service-${PROJECT_NUMBER}@dataproc-accounts.iam.gserviceaccount.com" \
+    --role="roles/dataproc.serviceAgent" && break || echo "Attempt $i failed, retrying..."
+  
+  [ $i -lt 5 ] && sleep $((i * 10))
+done
 
 # 7. Generating .env File
 ENV_FILE=".env"
