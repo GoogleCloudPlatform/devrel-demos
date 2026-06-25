@@ -129,7 +129,7 @@ echo "Grant Dataproc Service Agent to the service identity"
 # Retry in case the service identity hasn't finished propagating
 for i in {1..5}; do
   echo "Attempt $i: Binding Dataproc Service Agent role..."
-  gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+  gcloud projects add-iam-policy-binding ${PROJECT_ID} \
     --member="serviceAccount:service-${PROJECT_NUMBER}@dataproc-accounts.iam.gserviceaccount.com" \
     --role="roles/dataproc.serviceAgent" && break || echo "Attempt $i failed, retrying..."
   
