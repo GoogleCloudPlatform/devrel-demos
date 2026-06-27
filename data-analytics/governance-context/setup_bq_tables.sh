@@ -75,13 +75,6 @@ bq query --use_legacy_sql=false "
   VALUES
     ('2024-01-31', 1500000.00, 900000.00, 600000.00, 'FINALIZED'),
     ('2024-02-29', 1450000.00, 850000.00, 600000.00, 'FINALIZED'),
-    ('2024-03-31', 1600000.00, 950000.00, 650000.00, 'FINALIZED')
-  ON SCHEMAS DISTINCT ROW ONLY;
-" >/dev/null 2>&1 || bq query --use_legacy_sql=false "
-  INSERT INTO \`${PROJECT_ID}.finance_mart.fin_monthly_closing_internal\` (closing_date, revenue_amt, cost_amt, profit_amt, status)
-  VALUES
-    ('2024-01-31', 1500000.00, 900000.00, 600000.00, 'FINALIZED'),
-    ('2024-02-29', 1450000.00, 850000.00, 600000.00, 'FINALIZED'),
     ('2024-03-31', 1600000.00, 950000.00, 650000.00, 'FINALIZED');
 "
 

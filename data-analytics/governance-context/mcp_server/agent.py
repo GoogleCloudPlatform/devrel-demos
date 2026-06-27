@@ -1,5 +1,7 @@
 import os
 import logging
+import asyncio
+import httpx
 import google.cloud.logging
 from dotenv import load_dotenv
 
@@ -11,6 +13,24 @@ from google.adk.tools.tool_context import ToolContext
 import google.auth
 import google.auth.transport.requests
 import google.oauth2.id_token
+
+# --- Monkey Patch httpx to dynamically refresh Google Cloud access tokens ---
+# This ensures long-running agent instances on Cloud Run do not fail after the initial 1-hour token expires.
+original_async_send = httpx.AsyncClient.send
+async def patched_async_send(self, request, *args, **kwargs):
+    if "dataplex.googleapis.com" in str(request.url):
+        token = await asyncio.to_thread(get_access_token)
+        request.headers["Authorization"] = f"Bearer {token}"
+    return await original_async_send(self, request, *args, **kwargs)
+httpx.AsyncClient.send = patched_async_send
+
+original_sync_send = httpx.Client.send
+def patched_sync_send(self, request, *args, **kwargs):
+    if "dataplex.googleapis.com" in str(request.url):
+        token = get_access_token()
+        request.headers["Authorization"] = f"Bearer {token}"
+    return original_sync_send(self, request, *args, **kwargs)
+httpx.Client.send = patched_sync_send
 
 # --- Setup Logging and Environment ---
 cloud_logging_client = google.cloud.logging.Client()
@@ -62,7 +82,9 @@ def add_prompt_to_state(
 
 def load_skill_instruction(skill_path: str) -> str:
     """Reads the SKILL.md file and returns the instruction content."""
-    with open(skill_path, "r") as f:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    resolved_path = os.path.normpath(os.path.join(base_dir, "..", skill_path))
+    with open(resolved_path, "r", encoding="utf-8") as f:
         content = f.read()
     if content.startswith("---"):
         parts = content.split("---", 2)
