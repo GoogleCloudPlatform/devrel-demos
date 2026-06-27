@@ -10,6 +10,143 @@
 # while attendees work through BigQuery tasks (~10-15 min to complete).
 # ---------------------------------------------------------------------------
 set -e
+set -o pipefail
+
+# Capture original arguments for re-run instructions in the error trap
+ORIGINAL_ARGS="$*"
+
+# Track script success for exit trap
+SUCCESS=false
+
+# Print resource status report
+print_resource_status() {
+    echo ""
+    echo "=============================================="
+    echo " RESOURCE STATUS REPORT"
+    echo "=============================================="
+    
+    # 1. Check APIs
+    echo -n "APIs Enabled: "
+    ENABLED_APIS=$(gcloud services list --enabled --filter="config.name:(alloydb.googleapis.com,compute.googleapis.com,servicenetworking.googleapis.com)" --format="value(config.name)" 2>/dev/null | tr '\n' ' ')
+    if [[ -z "$ENABLED_APIS" ]]; then
+        echo "None"
+    else
+        echo "$ENABLED_APIS"
+    fi
+
+    # 2. Check PSA Network Range
+    echo -n "PSA Network Range ($PSA_RANGE_NAME): "
+    RANGE_EXISTS=$(gcloud compute addresses list --filter="name=$PSA_RANGE_NAME" --format="value(name)" 2>/dev/null)
+    if [[ -n "$RANGE_EXISTS" ]]; then
+        echo "Configured"
+    else
+        echo "Not found"
+    fi
+
+    # 3. Check Cluster
+    echo -n "AlloyDB Cluster ($CLUSTER_NAME): "
+    CLUSTER_INFO=$(gcloud alloydb clusters describe "$CLUSTER_NAME" --region="$REGION" --format="json" 2>/dev/null)
+    if [[ -n "$CLUSTER_INFO" ]]; then
+        CLUSTER_STATE=$(echo "$CLUSTER_INFO" | python3 -c 'import sys, json; data=json.load(sys.stdin); print(data.get("state", "UNKNOWN"))' 2>/dev/null || echo "Exists")
+        CLUSTER_TYPE=$(echo "$CLUSTER_INFO" | python3 -c 'import sys, json; data=json.load(sys.stdin); print(data.get("subscriptionType", "STANDARD"))' 2>/dev/null || echo "UNKNOWN")
+        echo "Exists (State: $CLUSTER_STATE, Type: $CLUSTER_TYPE)"
+    else
+        echo "Not found"
+    fi
+
+    # 4. Check Instance
+    echo -n "AlloyDB Instance ($INSTANCE_NAME): "
+    INSTANCE_INFO=$(gcloud alloydb instances describe "$INSTANCE_NAME" --cluster="$CLUSTER_NAME" --region="$REGION" --format="json" 2>/dev/null)
+    if [[ -n "$INSTANCE_INFO" ]]; then
+        INSTANCE_STATE=$(echo "$INSTANCE_INFO" | python3 -c 'import sys, json; data=json.load(sys.stdin); print(data.get("state", "UNKNOWN"))' 2>/dev/null || echo "Exists")
+        echo "Exists (State: $INSTANCE_STATE)"
+    else
+        echo "Not found"
+    fi
+
+    # 5. Check IAM Permissions
+    echo "IAM Permissions:"
+    PROJECT_NUMBER=$(gcloud projects describe "${PROJECT_ID}" --format="value(projectNumber)" 2>/dev/null || echo "")
+    if [[ -n "$PROJECT_NUMBER" ]]; then
+        ALLOYDB_SERVICE_AGENT="service-${PROJECT_NUMBER}@gcp-sa-alloydb.iam.gserviceaccount.com"
+        
+        POLICY=$(gcloud projects get-iam-policy "$PROJECT_ID" --format="json" 2>/dev/null)
+        if [[ -n "$POLICY" ]]; then
+            has_role() {
+                local member="$1"
+                local role="$2"
+                echo "$POLICY" | MEMBER="$member" ROLE="$role" python3 -c '
+import sys, json, os
+data = json.load(sys.stdin)
+bindings = data.get("bindings", [])
+member = os.environ.get("MEMBER")
+role = os.environ.get("ROLE")
+found = False
+for b in bindings:
+    if b.get("role") == role and any(m.endswith(member) or m == member for m in b.get("members", [])):
+        found = True
+        break
+print("Granted" if found else "Not granted")
+' 2>/dev/null || echo "Unknown"
+            }
+            
+            echo "  - AlloyDB Service Agent ($ALLOYDB_SERVICE_AGENT):"
+            echo "      Vertex AI User: $(has_role "serviceAccount:$ALLOYDB_SERVICE_AGENT" "roles/aiplatform.user")"
+            echo "      Storage Object Viewer: $(has_role "serviceAccount:$ALLOYDB_SERVICE_AGENT" "roles/storage.objectViewer")"
+            
+            ALLOYDB_SA=$(echo "$CLUSTER_INFO" | python3 -c 'import sys, json; data=json.load(sys.stdin); print(data.get("serviceAccount", ""))' 2>/dev/null || echo "")
+            if [[ -n "$ALLOYDB_SA" ]]; then
+                echo "  - Cluster Service Account ($ALLOYDB_SA):"
+                echo "      Vertex AI User: $(has_role "serviceAccount:$ALLOYDB_SA" "roles/aiplatform.user")"
+                echo "      Storage Object Viewer: $(has_role "serviceAccount:$ALLOYDB_SA" "roles/storage.objectViewer")"
+            fi
+        else
+            echo "  - Could not retrieve IAM policy"
+        fi
+    else
+        echo "  - Could not retrieve project number for IAM checks"
+    fi
+    echo "=============================================="
+    echo ""
+}
+
+cleanup() {
+    # If the script failed, print the error message and the status report
+    if [ "$SUCCESS" = false ]; then
+        echo ""
+        echo "❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌"
+        echo " ERROR: AlloyDB deployment failed!"
+        echo " The setup script did not complete successfully."
+        echo " Review the output above or check your nohup log file."
+        echo " ----------------------------------------------"
+        echo " Directions to resolve:"
+        echo " 1. Check the resource status report below to see what failed."
+        echo " 2. Address any project quota or permission issues."
+        echo " 3. Re-execute this script to attempt re-deployment:"
+        echo "    $0 ${ORIGINAL_ARGS}"
+        echo "❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌"
+        echo ""
+        print_resource_status 2>/dev/null || echo "  ⚠️ Could not retrieve full resource status."
+    fi
+}
+trap cleanup EXIT
+
+# --- Command line argument parsing ---
+CLUSTER_TYPE_REQ="STANDARD"
+
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --trial|-t)
+            CLUSTER_TYPE_REQ="TRIAL"
+            shift
+            ;;
+        *)
+            echo "Unknown parameter passed: $1"
+            echo "Usage: $0 [--trial|-t]"
+            exit 1
+            ;;
+    esac
+done
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LAB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -27,12 +164,16 @@ fi
 # --- Lab-specific configuration ---
 export CLUSTER_NAME="lost-cargo-cluster"
 export INSTANCE_NAME="lost-cargo-instance"
+export NETWORK="default"
+export PSA_RANGE_NAME="psa-range"
+export PASSWORD="lost-cargo"
 export PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}"
 if [ -z "$REGION" ]; then
-    echo -e "\033[1;33m⚠️  REGION environment variable is not set.\033[0m"
-    while [ -z "$REGION" ]; do
-        read -p "Please explicitly enter your assigned Google Cloud region (e.g., us-central1, europe-west1): " REGION
-    done
+    echo "❌ ERROR: REGION environment variable is not set."
+    echo "   This script runs in the background and cannot prompt for input."
+    echo "   Please export REGION first, or run scripts/setup_lab.sh (foreground) to create .env."
+    echo "   Example: export REGION=us-central1"
+    exit 1
 fi
 export REGION
 
@@ -50,8 +191,6 @@ if [ ! -f "$ENV_FILE" ]; then
     echo "REGION=$REGION" >> "$ENV_FILE"
 fi
 
-LOG_FILE="${LAB_DIR}/alloydb_deploy.log"
-
 echo "=============================================="
 echo " Lab 2: AlloyDB Background Deployment"
 echo "=============================================="
@@ -59,16 +198,12 @@ echo " Project:  ${PROJECT_ID}"
 echo " Region:   ${REGION}"
 echo " Cluster:  ${CLUSTER_NAME}"
 echo " Instance: ${INSTANCE_NAME}"
-echo " Log file: ${LOG_FILE}"
 echo "=============================================="
 
 # --- [1/4] Start AlloyDB deployment (takes ~10 minutes) ---
 echo "[1/4] Starting AlloyDB deployment (this takes ~10 minutes)..."
 (
   set -e
-  NETWORK="default"
-  PSA_RANGE_NAME="psa-range"
-  PASSWORD="lost-cargo"
 
   # 1. Enable required APIs
   echo "Enabling required APIs..."
@@ -133,16 +268,27 @@ echo "[1/4] Starting AlloyDB deployment (this takes ~10 minutes)..."
   else
       echo "Cluster $CLUSTER_NAME not found. Attempting to create..."
       set +e
-      CPU_COUNT=8
-      gcloud alloydb clusters create $CLUSTER_NAME \
-          --region=$REGION \
-          --network=$NETWORK \
-          --password=$PASSWORD \
-          --subscription-type=TRIAL \
-          --quiet
+      
+      if [[ "$CLUSTER_TYPE_REQ" == "TRIAL" ]]; then
+          echo "Attempting to create Free Trial cluster..."
+          CPU_COUNT=8
+          gcloud alloydb clusters create $CLUSTER_NAME \
+              --region=$REGION \
+              --network=$NETWORK \
+              --password=$PASSWORD \
+              --subscription-type=TRIAL \
+              --quiet
+          
+          if [ $? -eq 0 ]; then
+              CLUSTER_TYPE="TRIAL"
+          else
+              echo "Free Trial cluster creation failed. Falling back to Standard cluster..."
+              CLUSTER_TYPE_REQ="STANDARD"
+          fi
+      fi
 
-      if [ $? -ne 0 ]; then
-          echo "Free Trial cluster creation failed or not available. Attempting Standard cluster..."
+      if [[ "$CLUSTER_TYPE_REQ" == "STANDARD" ]]; then
+          echo "Attempting to create Standard cluster..."
           CPU_COUNT=2
           gcloud alloydb clusters create $CLUSTER_NAME \
               --region=$REGION \
@@ -156,8 +302,6 @@ echo "[1/4] Starting AlloyDB deployment (this takes ~10 minutes)..."
               exit 1
           fi
           CLUSTER_TYPE="STANDARD"
-      else
-          CLUSTER_TYPE="TRIAL"
       fi
       set -e
   fi
@@ -180,7 +324,7 @@ echo "[1/4] Starting AlloyDB deployment (this takes ~10 minutes)..."
   else
       echo "Instance $INSTANCE_NAME already exists. Skipping creation."
   fi
-) 2>&1 | tee "${LOG_FILE}"
+) 2>&1
 
 # --- [2/4] Configure instance settings (IAM, Data API) ---
 echo "[2/4] Configuring instance settings (IAM, Data API)..."
@@ -193,12 +337,19 @@ gcloud alloydb instances update "${INSTANCE_NAME}" \
 
 # Wait for the instance to finish updating the database flags (avoiding 409 conflict)
 echo "Waiting for instance to finish updating database flags..."
+MAX_WAIT=300
+ELAPSED=0
 while true; do
   RECONCILING=$(gcloud alloydb instances describe "${INSTANCE_NAME}" \
     --cluster="${CLUSTER_NAME}" \
     --region="${REGION}" \
     --format="value(reconciling)" 2>/dev/null || echo "False")
   if [[ "$RECONCILING" != "True" ]]; then
+    break
+  fi
+  ELAPSED=$((ELAPSED + 10))
+  if [[ $ELAPSED -ge $MAX_WAIT ]]; then
+    echo "      ⚠️ Timed out waiting for instance reconciliation after ${MAX_WAIT}s. Proceeding..."
     break
   fi
   echo "      Instance is updating, waiting 10s..."
@@ -210,7 +361,7 @@ curl -X PATCH \
 -H "Authorization: Bearer $(gcloud auth print-access-token)" \
 -H "Content-Type: application/json" \
 "https://alloydb.googleapis.com/v1beta/projects/${PROJECT_ID}/locations/${REGION}/clusters/${CLUSTER_NAME}/instances/${INSTANCE_NAME}?updateMask=dataApiAccess" \
--d '{ "dataApiAccess": "ENABLED" }' || echo "⚠️ Warning: Failed to enable Data API access."
+-d '{ "dataApiAccess": "ENABLED" }' > /dev/null 2>&1 || echo "⚠️ Warning: Failed to enable Data API access."
 
 echo "Resetting postgres password to 'lost-cargo'..."
 gcloud alloydb users set-password postgres \
@@ -240,12 +391,14 @@ if [[ -n "$PROJECT_NUMBER" ]]; then
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" --format=none \
     --member="serviceAccount:${ALLOYDB_SERVICE_AGENT}" \
     --role="roles/aiplatform.user" \
+    --condition=None \
     --quiet || echo "⚠️ Warning: Failed to grant Vertex AI User role to AlloyDB Service Agent."
     
   echo "      Granting GCS access to AlloyDB Service Agent..."
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" --format=none \
     --member="serviceAccount:${ALLOYDB_SERVICE_AGENT}" \
     --role="roles/storage.objectViewer" \
+    --condition=None \
     --quiet || echo "⚠️ Warning: Failed to grant storage.objectViewer to AlloyDB Service Agent."
 fi
 
@@ -259,15 +412,18 @@ if [[ -n "$ALLOYDB_SA" ]]; then
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" --format=none \
     --member="serviceAccount:${ALLOYDB_SA}" \
     --role="roles/aiplatform.user" \
+    --condition=None \
     --quiet || echo "⚠️ Warning: Failed to grant Vertex AI User role to cluster-specific service account."
     
   echo "      Granting GCS access to cluster-specific service account..."
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" --format=none \
     --member="serviceAccount:${ALLOYDB_SA}" \
     --role="roles/storage.objectViewer" \
+    --condition=None \
     --quiet || echo "⚠️ Warning: Failed to grant storage.objectViewer to cluster-specific service account."
 fi
 
+SUCCESS=true
 echo ""
 echo "=============================================="
 echo " ✅ AlloyDB deployment complete!"
