@@ -1,0 +1,60 @@
+{
+  "name": "OfficialDataProductSpec",
+  "type": "record",
+  "recordFields": [
+    {
+      "name": "product_tier",
+      "type": "enum",
+      "annotations": { "displayName": "1. Criticality Tier", "description": "How critical is this data?" },
+      "index": 1,
+      "constraints": { "required": true },
+      "enumValues": [
+        { "name": "GOLD_CRITICAL", "index": 1 },
+        { "name": "SILVER_STANDARD", "index": 2 },
+        { "name": "BRONZE_ADHOC", "index": 3 }
+      ]
+    },
+    {
+      "name": "data_domain",
+      "type": "enum",
+      "annotations": { "displayName": "2. Owner Domain", "description": "Business domain responsible." },
+      "index": 2,
+      "constraints": { "required": true },
+      "enumValues": [
+        { "name": "FINANCE", "index": 1 },
+        { "name": "MARKETING", "index": 2 },
+        { "name": "LOGISTICS", "index": 3 }
+      ]
+    },
+    {
+      "name": "usage_scope",
+      "type": "enum",
+      "annotations": { "displayName": "3. Usage Scope", "description": "Who can see this outside?" },
+      "index": 3,
+      "constraints": { "required": true },
+      "enumValues": [
+        { "name": "INTERNAL_ONLY", "index": 1 },
+        { "name": "EXTERNAL_READY", "index": 2 }
+      ]
+    },
+    {
+      "name": "update_frequency",
+      "type": "enum",
+      "annotations": { "displayName": "4. Freshness", "description": "How often it updates." },
+      "index": 4,
+      "constraints": { "required": true },
+      "enumValues": [
+        { "name": "REALTIME_STREAMING", "index": 1 },
+        { "name": "DAILY_BATCH", "index": 2 },
+        { "name": "QUARTERLY_CLOSING", "index": 3 }
+      ]
+    },
+    {
+      "name": "is_certified",
+      "type": "bool",
+      "annotations": { "displayName": "5. Certified?", "description": "Officially stamped by Data Governance Council." },
+      "index": 5,
+      "constraints": { "required": true }
+    }
+  ]
+}

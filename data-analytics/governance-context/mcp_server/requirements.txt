@@ -1,4 +1,4 @@
-google-adk
+google-adk[gcp,mcp]
 google-auth
 requests
 python-dotenv

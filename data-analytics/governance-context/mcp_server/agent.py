@@ -1,5 +1,7 @@
 import os
 import logging
+import asyncio
+import httpx
 import google.cloud.logging
 from dotenv import load_dotenv
 
@@ -12,6 +14,24 @@ import google.auth
 import google.auth.transport.requests
 import google.oauth2.id_token
 
+# --- Monkey Patch httpx to dynamically refresh Google Cloud access tokens ---
+# This ensures long-running agent instances on Cloud Run do not fail after the initial 1-hour token expires.
+original_async_send = httpx.AsyncClient.send
+async def patched_async_send(self, request, *args, **kwargs):
+    if "dataplex.googleapis.com" in str(request.url):
+        token = await asyncio.to_thread(get_access_token)
+        request.headers["Authorization"] = f"Bearer {token}"
+    return await original_async_send(self, request, *args, **kwargs)
+httpx.AsyncClient.send = patched_async_send
+
+original_sync_send = httpx.Client.send
+def patched_sync_send(self, request, *args, **kwargs):
+    if "dataplex.googleapis.com" in str(request.url):
+        token = get_access_token()
+        request.headers["Authorization"] = f"Bearer {token}"
+    return original_sync_send(self, request, *args, **kwargs)
+httpx.Client.send = patched_sync_send
+
 # --- Setup Logging and Environment ---
 cloud_logging_client = google.cloud.logging.Client()
 cloud_logging_client.setup_logging()
@@ -19,25 +39,32 @@ cloud_logging_client.setup_logging()
 load_dotenv()
 
 model_name = "gemini-2.5-flash"
-mcp_server_url = os.getenv("MCP_SERVER_URL")
-if not mcp_server_url:
-    raise ValueError("The environment variable MCP_SERVER_URL is not set.")
 
+# --- Configuration ---
+project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+if not project_id:
+    raise ValueError("The environment variable GOOGLE_CLOUD_PROJECT is not set.")
 
-def get_id_token():
-    """Get an ID token to authenticate with the MCP server."""
-    target_url = os.getenv("MCP_SERVER_URL")
-    audience = target_url.split('/mcp/')[0]
-    request = google.auth.transport.requests.Request()
-    id_token = google.oauth2.id_token.fetch_id_token(request, audience)
-    return id_token
+location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+
+# Connect directly to the Google-Managed Knowledge Catalog MCP Server
+mcp_server_url = f"https://dataplex.googleapis.com/v1/projects/{project_id}/locations/{location}/mcp/sse"
+
+def get_access_token():
+    """Get a Google Cloud access token to authenticate with the Managed MCP server."""
+    credentials, project = google.auth.default(
+        scopes=["https://www.googleapis.com/auth/cloud-platform"]
+    )
+    auth_request = google.auth.transport.requests.Request()
+    credentials.refresh(auth_request)
+    return credentials.token
 
 
 tools = McpToolset(
             connection_params=StreamableHTTPConnectionParams(
                 url=mcp_server_url,
                 headers={
-                    "Authorization": f"Bearer {get_id_token()}",
+                    "Authorization": f"Bearer {get_access_token()}",
                 },
             ),
         )
@@ -53,50 +80,24 @@ def add_prompt_to_state(
     return {"status": "success"}
 
 
-# --- Configuration ---
-project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
-if not project_id:
-    raise ValueError("The environment variable GOOGLE_CLOUD_PROJECT is not set.")
-
-location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1") 
+def load_skill_instruction(skill_path: str) -> str:
+    """Reads the SKILL.md file and returns the instruction content."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    resolved_path = os.path.normpath(os.path.join(base_dir, "..", skill_path))
+    with open(resolved_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    if content.startswith("---"):
+        parts = content.split("---", 2)
+        if len(parts) >= 3:
+            content = parts[2].strip()
+    # Inject runtime variables if present in the skill template
+    content = content.replace("[PROJECT_ID]", project_id)
+    content = content.replace("[LOCATION]", location)
+    return content.strip()
 
 # --- 1. Governance Researcher Agent ---
-governance_researcher_instruction = f"""
-    You are a strict Data Governance AI Agent. Your primary role is to enforce institutional data policies by querying the Dataplex Universal Catalog via MCP tools.
-    You MUST NOT guess or assume SQL table names. You MUST rely ONLY on the metadata (Aspects) returned by your tools.
-
-    CRITICAL RULES:
-    1. Never hallucinate data. If you cannot find a certified table matching the user's request, you must state: "I cannot find an officially certified table for this request."
-    2. Your working environment is restricted to Project ID: {project_id} and Location: {location}.
-
-    EXECUTION WORKFLOW:
-    When a user asks for data, you must follow these phases strictly:
-
-    PHASE 1: Understand the Governance Rules
-    If you don't know the exact aspect schema, use the `search_aspect_types` tool to look up the governance aspect definitions.
-    - Search Query: `official-data-product-spec`
-
-    PHASE 2: Search for Certified Data
-    Once you understand the aspect fields (like data_domain, is_certified, data_product_tier), use the `search_entries` tool.
-
-    CRITICAL SYNTAX FOR `search_entries`:
-    Do NOT use `projectid:` or `type=table` prefixes. They will break the search API when combined with aspects.
-    To search by aspect values, you MUST use the exact following format for each condition, separated by a space:
-    {project_id}.{location}.[ASPECT_NAME].[FIELD_NAME]=[VALUE]
-
-    Example Logic for Phase 2:
-    - User wants: Certified Financial Data
-    - You MUST construct the query exactly like this:
-    {project_id}.{location}.official-data-product-spec.data_domain=FINANCE {project_id}.{location}.official-data-product-spec.is_certified=true
-
-    - User wants: Publicly shareable data
-    - You MUST construct the query exactly like this:
-    {project_id}.{location}.official-data-product-spec.data_product_tier=EXTERNAL_READY
-    
-    PHASE 3: Verify and Formulate Response
-    Use `lookup_entry` if you need to double-check the exact table details before answering.
-    Synthesize your final answer explaining WHY you chose this table based on its governance tags (Aspects). Do not expose the raw Dataplex search query to the user.
-"""
+# Load the shared governance instruction from the Agent Skill (Single Source of Truth)
+governance_researcher_instruction = load_skill_instruction("./.agents/skills/knowledge_catalog_governance/SKILL.md")
 
 governance_researcher = LlmAgent(
     name="governance_researcher",
