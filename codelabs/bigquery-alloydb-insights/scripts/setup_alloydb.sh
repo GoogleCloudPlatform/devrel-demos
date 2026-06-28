@@ -124,6 +124,7 @@ print("Granted" if found else "Not granted")
 }
 
 cleanup() {
+    set +e
     # If the script failed, print the error message and the status report
     if [ "$SUCCESS" = false ]; then
         echo ""
