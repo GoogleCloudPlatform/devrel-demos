@@ -12,15 +12,31 @@
 set -e
 set -o pipefail
 
+# --- Set Logging Config ---
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+print_info()  { echo -e "${CYAN}ℹ️  ${BOLD}$1${NC}"; }
+print_ok()    { echo -e "${GREEN}✅ $1${NC}"; }
+print_warn()  { echo -e "${YELLOW}⚠️  $1${NC}"; }
+print_error() { echo -e "${RED}❌ $1${NC}"; }
+
+# Capture original arguments for re-run instructions in the error trap
+ORIGINAL_ARGS="$*"
+
 # Track script success for exit trap
 SUCCESS=false
 
 # Print resource status report
 print_resource_status() {
     echo ""
-    echo "=============================================="
-    echo " RESOURCE STATUS REPORT"
-    echo "=============================================="
+    print_info "=============================================="
+    print_info " RESOURCE STATUS REPORT"
+    print_info "=============================================="
     
     # 1. Check APIs
     echo -n "APIs Enabled: "
@@ -103,7 +119,7 @@ print("Granted" if found else "Not granted")
     else
         echo "  - Could not retrieve project number for IAM checks"
     fi
-    echo "=============================================="
+    print_info "=============================================="
     echo ""
 }
 
@@ -111,19 +127,19 @@ cleanup() {
     # If the script failed, print the error message and the status report
     if [ "$SUCCESS" = false ]; then
         echo ""
-        echo "❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌"
-        echo " ERROR: AlloyDB deployment failed!"
-        echo " The setup script did not complete successfully."
-        echo " Please review the log file: ${LOG_FILE}"
-        echo " ----------------------------------------------"
-        echo " Directions to resolve:"
-        echo " 1. Check the resource status report below to see what failed."
-        echo " 2. Address any project quota or permission issues."
-        echo " 3. Re-execute this script to attempt re-deployment:"
-        echo "    $0 ${@}"
-        echo "❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌"
+        print_error "❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌"
+        print_error " ERROR: AlloyDB deployment failed!"
+        print_error " The setup script did not complete successfully."
+        print_error " Review the output above or check your nohup log file."
+        print_error " ----------------------------------------------"
+        print_error " Directions to resolve:"
+        print_error " 1. Check the resource status report below to see what failed."
+        print_error " 2. Address any project quota or permission issues."
+        print_error " 3. Re-execute this script to attempt re-deployment:"
+        print_error "    $0 ${ORIGINAL_ARGS}"
+        print_error "❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌"
         echo ""
-        print_resource_status
+        print_resource_status 2>/dev/null || print_warn "Could not retrieve full resource status."
     fi
 }
 trap cleanup EXIT
@@ -138,8 +154,8 @@ while [[ "$#" -gt 0 ]]; do
             shift
             ;;
         *)
-            echo "Unknown parameter passed: $1"
-            echo "Usage: $0 [--trial|-t]"
+            print_error "Unknown parameter passed: $1"
+            print_info "Usage: $0 [--trial|-t]"
             exit 1
             ;;
     esac
@@ -151,7 +167,7 @@ ENV_FILE="${LAB_DIR}/.env"
 
 # Load environment from .env if it exists
 if [ -f "$ENV_FILE" ]; then
-    echo "Found existing environment file: $ENV_FILE"
+    print_info "Found existing environment file: $ENV_FILE"
     while IFS= read -r line || [[ -n "$line" ]]; do
         [[ "$line" =~ ^[[:space:]]*# || -z "$line" ]] && continue
         export "$line"
@@ -166,58 +182,59 @@ export PSA_RANGE_NAME="psa-range"
 export PASSWORD="lost-cargo"
 export PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}"
 if [ -z "$REGION" ]; then
-    echo -e "\033[1;33m⚠️  REGION environment variable is not set.\033[0m"
-    while [ -z "$REGION" ]; do
-        read -p "Please explicitly enter your assigned Google Cloud region (e.g., us-central1, europe-west1): " REGION
-    done
+    print_error "REGION environment variable is not set."
+    print_info "   This script runs in the background and cannot prompt for input."
+    print_info "   Please export REGION first, or run scripts/setup_lab.sh (foreground) to create .env."
+    print_info "   Example: export REGION=us-central1"
+    exit 1
 fi
 export REGION
 
+LOG_FILE="${LAB_DIR}/alloydb_deploy.log"
+
 # Check for valid Project ID
 if [[ -z "$PROJECT_ID" ]]; then
-  echo "❌ ERROR: No Google Cloud Project ID detected."
-  echo "   Please run 'gcloud config set project YOUR_PROJECT_ID' first."
+  print_error "No Google Cloud Project ID detected."
+  print_info "   Please run 'gcloud config set project YOUR_PROJECT_ID' first."
   exit 1
 fi
 
 # Write environment variables immediately to .env if not already created
 if [ ! -f "$ENV_FILE" ]; then
-    echo "Creating environment file: $ENV_FILE"
+    print_info "Creating environment file: $ENV_FILE"
     echo "PROJECT_ID=$PROJECT_ID" > "$ENV_FILE"
     echo "REGION=$REGION" >> "$ENV_FILE"
 fi
 
-LOG_FILE="${LAB_DIR}/alloydb_deploy.log"
-
-echo "=============================================="
-echo " Lab 2: AlloyDB Background Deployment"
-echo "=============================================="
-echo " Project:  ${PROJECT_ID}"
-echo " Region:   ${REGION}"
-echo " Cluster:  ${CLUSTER_NAME}"
-echo " Instance: ${INSTANCE_NAME}"
-echo " Log file: ${LOG_FILE}"
-echo "=============================================="
+print_info "=============================================="
+print_info " Lab 2: AlloyDB Background Deployment"
+print_info "=============================================="
+print_info " Project:  ${PROJECT_ID}"
+print_info " Region:   ${REGION}"
+print_info " Cluster:  ${CLUSTER_NAME}"
+print_info " Instance: ${INSTANCE_NAME}"
+print_info " Log file: ${LOG_FILE}"
+print_info "=============================================="
 
 # --- [1/4] Start AlloyDB deployment (takes ~10 minutes) ---
-echo "[1/4] Starting AlloyDB deployment (this takes ~10 minutes)..."
+print_info "[1/4] Starting AlloyDB deployment (this takes ~10 minutes)..."
 (
   set -e
 
   # 1. Enable required APIs
-  echo "Enabling required APIs..."
+  print_info "Enabling required APIs..."
   gcloud services enable alloydb.googleapis.com \
                          compute.googleapis.com \
                          servicenetworking.googleapis.com \
                          --quiet
 
   # 2. Evaluate and prepare network for Private Service Access (PSA)
-  echo "Checking network for PSA..."
+  print_info "Checking network for PSA..."
 
   # Ensure our range exists
   RANGE_EXISTS=$(gcloud compute addresses list --filter="name=$PSA_RANGE_NAME" --format="value(name)")
   if [[ -z "$RANGE_EXISTS" ]]; then
-      echo "Creating PSA range: $PSA_RANGE_NAME"
+      print_info "Creating PSA range: $PSA_RANGE_NAME"
       gcloud compute addresses create $PSA_RANGE_NAME \
           --global \
           --purpose=VPC_PEERING \
@@ -229,47 +246,47 @@ echo "[1/4] Starting AlloyDB deployment (this takes ~10 minutes)..."
   PEERING_INFO=$(gcloud services vpc-peerings list --network=$NETWORK --service=servicenetworking.googleapis.com --format="json" 2>/dev/null)
 
   if [[ "$PEERING_INFO" == "[]" || -z "$PEERING_INFO" ]]; then
-      echo "PSA Peering not found. Connecting service networking..."
+      print_info "PSA Peering not found. Connecting service networking..."
       gcloud services vpc-peerings connect \
           --service=servicenetworking.googleapis.com \
           --ranges=$PSA_RANGE_NAME \
           --network=$NETWORK
   else
-      echo "PSA Peering exists. Checking if range $PSA_RANGE_NAME is included..."
+      print_info "PSA Peering exists. Checking if range $PSA_RANGE_NAME is included..."
       EXISTING_RANGES=$(echo "$PEERING_INFO" | python3 -c "import sys, json; data=json.load(sys.stdin); print(','.join(data[0]['reservedPeeringRanges'])) if data else print('')")
       
       if [[ $EXISTING_RANGES != *"$PSA_RANGE_NAME"* ]]; then
-          echo "Range $PSA_RANGE_NAME not in peering. Current ranges: $EXISTING_RANGES"
-          echo "Updating connection..."
+          print_info "Range $PSA_RANGE_NAME not in peering. Current ranges: $EXISTING_RANGES"
+          print_info "Updating connection..."
           NEW_RANGES="${EXISTING_RANGES},${PSA_RANGE_NAME}"
           gcloud services vpc-peerings update \
               --service=servicenetworking.googleapis.com \
               --ranges=$NEW_RANGES \
               --network=$NETWORK
       else
-          echo "PSA Peering and range already configured."
+          print_ok "PSA Peering and range already configured."
       fi
   fi
 
   # 3. Handle Cluster Creation or Detection
-  echo "Checking if cluster $CLUSTER_NAME exists..."
+  print_info "Checking if cluster $CLUSTER_NAME exists..."
   EXISTING_CLUSTER=$(gcloud alloydb clusters list --region=$REGION --filter="name:clusters/$CLUSTER_NAME" --format="json" 2>/dev/null)
 
   if [[ "$EXISTING_CLUSTER" != "[]" && -n "$EXISTING_CLUSTER" ]]; then
-      echo "Cluster $CLUSTER_NAME already exists."
+      print_info "Cluster $CLUSTER_NAME already exists."
       CLUSTER_TYPE=$(echo "$EXISTING_CLUSTER" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data[0].get('subscriptionType', 'STANDARD')) if data else print('STANDARD')")
-      echo "Existing cluster type: $CLUSTER_TYPE"
+      print_info "Existing cluster type: $CLUSTER_TYPE"
       if [[ "$CLUSTER_TYPE" == "TRIAL" ]]; then
           CPU_COUNT=8
       else
           CPU_COUNT=2
       fi
   else
-      echo "Cluster $CLUSTER_NAME not found. Attempting to create..."
+      print_info "Cluster $CLUSTER_NAME not found. Attempting to create..."
       set +e
       
       if [[ "$CLUSTER_TYPE_REQ" == "TRIAL" ]]; then
-          echo "Attempting to create Free Trial cluster..."
+          print_info "Attempting to create Free Trial cluster..."
           CPU_COUNT=8
           gcloud alloydb clusters create $CLUSTER_NAME \
               --region=$REGION \
@@ -281,13 +298,13 @@ echo "[1/4] Starting AlloyDB deployment (this takes ~10 minutes)..."
           if [ $? -eq 0 ]; then
               CLUSTER_TYPE="TRIAL"
           else
-              echo "Free Trial cluster creation failed. Falling back to Standard cluster..."
+              print_warn "Free Trial cluster creation failed. Falling back to Standard cluster..."
               CLUSTER_TYPE_REQ="STANDARD"
           fi
       fi
 
       if [[ "$CLUSTER_TYPE_REQ" == "STANDARD" ]]; then
-          echo "Attempting to create Standard cluster..."
+          print_info "Attempting to create Standard cluster..."
           CPU_COUNT=2
           gcloud alloydb clusters create $CLUSTER_NAME \
               --region=$REGION \
@@ -297,7 +314,7 @@ echo "[1/4] Starting AlloyDB deployment (this takes ~10 minutes)..."
               --quiet
           
           if [ $? -ne 0 ]; then
-              echo "Error: Failed to create AlloyDB cluster."
+              print_error "Failed to create AlloyDB cluster."
               exit 1
           fi
           CLUSTER_TYPE="STANDARD"
@@ -306,11 +323,11 @@ echo "[1/4] Starting AlloyDB deployment (this takes ~10 minutes)..."
   fi
 
   # 4. Create Primary Instance if not exists
-  echo "Checking if instance $INSTANCE_NAME exists in cluster $CLUSTER_NAME..."
+  print_info "Checking if instance $INSTANCE_NAME exists in cluster $CLUSTER_NAME..."
   EXISTING_INSTANCE=$(gcloud alloydb instances list --cluster=$CLUSTER_NAME --region=$REGION --filter="name:instances/$INSTANCE_NAME" --format="value(name)" 2>/dev/null)
 
   if [[ -z "$EXISTING_INSTANCE" ]]; then
-      echo "Creating primary instance: $INSTANCE_NAME ($CPU_COUNT vCPUs for $CLUSTER_TYPE cluster)"
+      print_info "Creating primary instance: $INSTANCE_NAME ($CPU_COUNT vCPUs for $CLUSTER_TYPE cluster)"
       gcloud alloydb instances create $INSTANCE_NAME \
           --cluster=$CLUSTER_NAME \
           --region=$REGION \
@@ -321,21 +338,23 @@ echo "[1/4] Starting AlloyDB deployment (this takes ~10 minutes)..."
           --database-flags=password.enforce_complexity=on \
           --quiet
   else
-      echo "Instance $INSTANCE_NAME already exists. Skipping creation."
+      print_ok "Instance $INSTANCE_NAME already exists. Skipping creation."
   fi
 ) 2>&1 | tee "${LOG_FILE}"
 
 # --- [2/4] Configure instance settings (IAM, Data API) ---
-echo "[2/4] Configuring instance settings (IAM, Data API)..."
-echo "Enabling IAM authentication flag on the instance..."
+print_info "[2/4] Configuring instance settings (IAM, Data API)..."
+print_info "Enabling IAM authentication flag on the instance..."
 gcloud alloydb instances update "${INSTANCE_NAME}" \
   --cluster="${CLUSTER_NAME}" \
   --region="${REGION}" \
   --database-flags=password.enforce_complexity=on,alloydb.iam_authentication=on \
-  --quiet || echo "⚠️ Warning: Failed to enable IAM authentication flag."
+  --quiet || print_warn "Failed to enable IAM authentication flag."
 
 # Wait for the instance to finish updating the database flags (avoiding 409 conflict)
-echo "Waiting for instance to finish updating database flags..."
+print_info "Waiting for instance to finish updating database flags..."
+MAX_WAIT=300
+ELAPSED=0
 while true; do
   RECONCILING=$(gcloud alloydb instances describe "${INSTANCE_NAME}" \
     --cluster="${CLUSTER_NAME}" \
@@ -344,54 +363,59 @@ while true; do
   if [[ "$RECONCILING" != "True" ]]; then
     break
   fi
-  echo "      Instance is updating, waiting 10s..."
+  ELAPSED=$((ELAPSED + 10))
+  if [[ $ELAPSED -ge $MAX_WAIT ]]; then
+    print_warn "Timed out waiting for instance reconciliation after ${MAX_WAIT}s. Proceeding..."
+    break
+  fi
+  print_info "      Instance is updating, waiting 10s..."
   sleep 10
 done
 
-echo "Enabling Data API access on the instance..."
+print_info "Enabling Data API access on the instance..."
 curl -X PATCH \
 -H "Authorization: Bearer $(gcloud auth print-access-token)" \
 -H "Content-Type: application/json" \
 "https://alloydb.googleapis.com/v1beta/projects/${PROJECT_ID}/locations/${REGION}/clusters/${CLUSTER_NAME}/instances/${INSTANCE_NAME}?updateMask=dataApiAccess" \
--d '{ "dataApiAccess": "ENABLED" }' || echo "⚠️ Warning: Failed to enable Data API access."
+-d '{ "dataApiAccess": "ENABLED" }' > /dev/null 2>&1 || print_warn "Failed to enable Data API access."
 
-echo "Resetting postgres password to 'lost-cargo'..."
+print_info "Resetting postgres password to 'lost-cargo'..."
 gcloud alloydb users set-password postgres \
   --cluster="${CLUSTER_NAME}" \
   --region="${REGION}" \
   --password="lost-cargo" \
-  --quiet || echo "⚠️ Warning: Failed to reset postgres password."
+  --quiet || print_warn "Failed to reset postgres password."
 
 # --- [3/4] Create database user for current IAM principal ---
 CURRENT_USER=$(gcloud config get-value account)
-echo "[3/4] Creating database user for current IAM principal: ${CURRENT_USER}..."
+print_info "[3/4] Creating database user for current IAM principal: ${CURRENT_USER}..."
 gcloud alloydb users create "${CURRENT_USER}" \
   --cluster="${CLUSTER_NAME}" \
   --region="${REGION}" \
   --type=IAM_BASED \
-  --superuser=true || echo "⚠️ Warning: Failed to create database user for ${CURRENT_USER}. You may need to create it manually."
+  --superuser=true || print_warn "Failed to create database user for ${CURRENT_USER}. You may need to create it manually."
 
 # --- [4/4] Configure IAM permissions for AlloyDB Service Agent ---
-echo "[4/4] Configuring IAM permissions for AlloyDB..."
+print_info "[4/4] Configuring IAM permissions for AlloyDB..."
 
 # Retrieve project number for the project-wide AlloyDB Service Agent
 PROJECT_NUMBER=$(gcloud projects describe "${PROJECT_ID}" --format="value(projectNumber)" 2>/dev/null || echo "")
 if [[ -n "$PROJECT_NUMBER" ]]; then
   ALLOYDB_SERVICE_AGENT="service-${PROJECT_NUMBER}@gcp-sa-alloydb.iam.gserviceaccount.com"
   
-  echo "      Granting Vertex AI access to AlloyDB Service Agent..."
+  print_info "      Granting Vertex AI access to AlloyDB Service Agent..."
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" --format=none \
     --member="serviceAccount:${ALLOYDB_SERVICE_AGENT}" \
     --role="roles/aiplatform.user" \
     --condition=None \
-    --quiet || echo "⚠️ Warning: Failed to grant Vertex AI User role to AlloyDB Service Agent."
+    --quiet || print_warn "Failed to grant Vertex AI User role to AlloyDB Service Agent."
     
-  echo "      Granting GCS access to AlloyDB Service Agent..."
+  print_info "      Granting GCS access to AlloyDB Service Agent..."
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" --format=none \
     --member="serviceAccount:${ALLOYDB_SERVICE_AGENT}" \
     --role="roles/storage.objectViewer" \
     --condition=None \
-    --quiet || echo "⚠️ Warning: Failed to grant storage.objectViewer to AlloyDB Service Agent."
+    --quiet || print_warn "Failed to grant storage.objectViewer to AlloyDB Service Agent."
 fi
 
 # Also grant to cluster-specific service account if retrieved
@@ -400,31 +424,30 @@ ALLOYDB_SA=$(gcloud alloydb clusters describe "${CLUSTER_NAME}" \
   --format="value(serviceAccount)" 2>/dev/null || echo "")
 
 if [[ -n "$ALLOYDB_SA" ]]; then
-  echo "      Granting Vertex AI access to cluster-specific service account..."
+  print_info "      Granting Vertex AI access to cluster-specific service account..."
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" --format=none \
     --member="serviceAccount:${ALLOYDB_SA}" \
     --role="roles/aiplatform.user" \
     --condition=None \
-    --quiet || echo "⚠️ Warning: Failed to grant Vertex AI User role to cluster-specific service account."
+    --quiet || print_warn "Failed to grant Vertex AI User role to cluster-specific service account."
     
-  echo "      Granting GCS access to cluster-specific service account..."
+  print_info "      Granting GCS access to cluster-specific service account..."
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" --format=none \
     --member="serviceAccount:${ALLOYDB_SA}" \
     --role="roles/storage.objectViewer" \
     --condition=None \
-    --quiet || echo "⚠️ Warning: Failed to grant storage.objectViewer to cluster-specific service account."
+    --quiet || print_warn "Failed to grant storage.objectViewer to cluster-specific service account."
 fi
 
-echo ""
-echo "=============================================="
-echo " ✅ AlloyDB deployment complete!"
 SUCCESS=true
 echo ""
-echo " Cluster:  ${CLUSTER_NAME}"
-echo " Instance: ${INSTANCE_NAME}"
-echo " Region:   ${REGION}"
+print_ok "=============================================="
+print_ok " AlloyDB deployment complete!"
 echo ""
-echo " Connect via AlloyDB Studio in the Cloud Console:"
-echo " AlloyDB → Clusters → ${CLUSTER_NAME} → AlloyDB Studio"
-echo "=============================================="
-
+print_info " Cluster:  ${CLUSTER_NAME}"
+print_info " Instance: ${INSTANCE_NAME}"
+print_info " Region:   ${REGION}"
+echo ""
+print_info " Connect via AlloyDB Studio in the Cloud Console:"
+print_info " AlloyDB → Clusters → ${CLUSTER_NAME} → AlloyDB Studio"
+print_ok "=============================================="
