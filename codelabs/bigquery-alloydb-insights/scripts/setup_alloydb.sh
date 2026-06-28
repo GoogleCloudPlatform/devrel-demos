@@ -130,7 +130,11 @@ cleanup() {
         print_error "❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌"
         print_error " ERROR: AlloyDB deployment failed!"
         print_error " The setup script did not complete successfully."
-        print_error " Review the output above or check alloydb_deploy.log."
+        if [ -f "${LOG_FILE:-}" ]; then
+            print_error " Review the output above or check alloydb_deploy.log."
+        else
+            print_error " Review the output above."
+        fi
         print_error " ----------------------------------------------"
         print_error " Directions to resolve:"
         print_error " 1. Check the resource status report below to see what failed."
