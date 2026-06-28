@@ -1,13 +1,12 @@
 #!/bin/bash
 # ---------------------------------------------------------------------------
-# Lab 2: AlloyDB Background Deployment Wrapper
+# Lab 2: AlloyDB Deployment Wrapper
 # ---------------------------------------------------------------------------
 # This script wraps the upstream deploy_alloydb.sh from
 # GoogleCloudPlatform/codelabs to provision an AlloyDB cluster + instance
 # with naming conventions that match this lab's codelab instructions.
 #
-# Designed to be kicked off early in the lab and run in the background
-# while attendees work through BigQuery tasks (~10-15 min to complete).
+# Designed to be kicked off early in the lab (~10-15 min to complete).
 # ---------------------------------------------------------------------------
 set -e
 set -o pipefail
@@ -131,13 +130,14 @@ cleanup() {
         print_error "❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌"
         print_error " ERROR: AlloyDB deployment failed!"
         print_error " The setup script did not complete successfully."
-        print_error " Review the output above or check your nohup log file."
+        print_error " Review the output above or check alloydb_deploy.log."
         print_error " ----------------------------------------------"
         print_error " Directions to resolve:"
         print_error " 1. Check the resource status report below to see what failed."
-        print_error " 2. Address any project quota or permission issues."
+        print_error " 2. Verify that your REGION variable matches your assigned lab region."
         print_error " 3. Re-execute this script to attempt re-deployment:"
         print_error "    $0 ${ORIGINAL_ARGS}"
+        print_error " 4. If quota or permission errors persist, end the lab and start a new lab session."
         print_error "❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌ ❌"
         echo ""
         print_resource_status 2>/dev/null || print_warn "Could not retrieve full resource status."
@@ -184,8 +184,8 @@ export PASSWORD="lost-cargo"
 export PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}"
 if [ -z "$REGION" ]; then
     print_error "REGION environment variable is not set."
-    print_info "   This script runs in the background and cannot prompt for input."
-    print_info "   Please export REGION first, or run scripts/setup_lab.sh (foreground) to create .env."
+    print_info "   This script runs without prompting for input."
+    print_info "   Please export REGION first, or run scripts/setup_lab.sh to create .env."
     print_info "   Example: export REGION=us-central1"
     exit 1
 fi
@@ -208,7 +208,7 @@ if [ ! -f "$ENV_FILE" ]; then
 fi
 
 print_info "=============================================="
-print_info " Lab 2: AlloyDB Background Deployment"
+print_info " Lab 2: AlloyDB Deployment"
 print_info "=============================================="
 print_info " Project:  ${PROJECT_ID}"
 print_info " Region:   ${REGION}"
