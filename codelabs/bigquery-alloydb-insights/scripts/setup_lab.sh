@@ -139,12 +139,6 @@ print_info "      Connection service account: $SA_EMAIL"
 # Grant permissions using the retry helper to gracefully handle propagation delay
 grant_iam_role_with_retry "$PROJECT_ID" "serviceAccount:$SA_EMAIL" "roles/storage.objectViewer"
 grant_iam_role_with_retry "$PROJECT_ID" "serviceAccount:$SA_EMAIL" "roles/aiplatform.user"
-
-print_info "      Creating remote embedding model..."
-bq query --use_legacy_sql=false --quiet --location="$REGION" \
-"CREATE OR REPLACE MODEL \`${PROJECT_ID}.lost_cargo_dataset.embedding_model\`
-REMOTE WITH CONNECTION \`${REGION}.lost_cargo_conn\`
-OPTIONS (ENDPOINT = 'text-embedding-005');" || true
 print_ok "      Done."
 
 
