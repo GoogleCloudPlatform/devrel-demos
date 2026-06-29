@@ -141,7 +141,7 @@ grant_iam_role_with_retry "$PROJECT_ID" "serviceAccount:$SA_EMAIL" "roles/storag
 grant_iam_role_with_retry "$PROJECT_ID" "serviceAccount:$SA_EMAIL" "roles/aiplatform.user"
 
 print_info "      Creating remote embedding model..."
-bq query --use_legacy_sql=false --quiet \
+bq query --use_legacy_sql=false --quiet --location="$REGION" \
 "CREATE OR REPLACE MODEL \`${PROJECT_ID}.lost_cargo_dataset.embedding_model\`
 REMOTE WITH CONNECTION \`${REGION}.lost_cargo_conn\`
 OPTIONS (ENDPOINT = 'text-embedding-005');" || true
@@ -214,7 +214,7 @@ print_ok "      Done."
 # [7/8] Create thermal baseline (thermal_history)
 # ---------------------------------------------------------------
 print_info "[7/8] Creating thermal sensor baseline data..."
-bq query --use_legacy_sql=false --quiet \
+bq query --use_legacy_sql=false --quiet --location="$REGION" \
 "CREATE OR REPLACE TABLE \`${PROJECT_ID}.lost_cargo_dataset.thermal_history\` AS
 SELECT
   TIMESTAMP_SUB(TIMESTAMP_TRUNC(CURRENT_TIMESTAMP(), HOUR), INTERVAL (n * 15) MINUTE) AS reading_time,
@@ -227,7 +227,7 @@ print_ok "      Done."
 # [8/8] Create current thermal readings (thermal_current)
 # ---------------------------------------------------------------
 print_info "[8/8] Creating current thermal readings data..."
-bq query --use_legacy_sql=false --quiet \
+bq query --use_legacy_sql=false --quiet --location="$REGION" \
 "CREATE OR REPLACE TABLE \`${PROJECT_ID}.lost_cargo_dataset.thermal_current\` AS
 SELECT
   TIMESTAMP_SUB(TIMESTAMP_TRUNC(CURRENT_TIMESTAMP(), HOUR), INTERVAL (n * 15) MINUTE) AS reading_time,
