@@ -252,10 +252,27 @@ print_info "[1/4] Starting AlloyDB deployment (this takes ~10 minutes)..."
 
   if [[ "$PEERING_INFO" == "[]" || -z "$PEERING_INFO" ]]; then
       print_info "PSA Peering not found. Connecting service networking..."
-      gcloud services vpc-peerings connect \
-          --service=servicenetworking.googleapis.com \
-          --ranges=$PSA_RANGE_NAME \
-          --network=$NETWORK
+      PEER_ATTEMPT=1
+      PEER_MAX=4
+      PEER_DELAY=10
+      while (( PEER_ATTEMPT <= PEER_MAX )); do
+          if gcloud services vpc-peerings connect \
+              --service=servicenetworking.googleapis.com \
+              --ranges="$PSA_RANGE_NAME" \
+              --network="$NETWORK"; then
+              print_ok "PSA Peering connected successfully."
+              break
+          fi
+
+          if (( PEER_ATTEMPT < PEER_MAX )); then
+              print_warn "Service Networking service agent provisioning delay encountered. Retrying in ${PEER_DELAY}s (Attempt $PEER_ATTEMPT/$PEER_MAX)..."
+              sleep "$PEER_DELAY"
+              (( PEER_ATTEMPT++ ))
+          else
+              print_error "Failed to connect VPC peering after $PEER_MAX attempts."
+              exit 1
+          fi
+      done
   else
       print_info "PSA Peering exists. Checking if range $PSA_RANGE_NAME is included..."
       EXISTING_RANGES=$(echo "$PEERING_INFO" | python3 -c "import sys, json; data=json.load(sys.stdin); print(','.join(data[0]['reservedPeeringRanges'])) if data else print('')")
