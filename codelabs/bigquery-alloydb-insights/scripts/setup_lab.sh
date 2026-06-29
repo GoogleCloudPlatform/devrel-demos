@@ -108,10 +108,12 @@ function grant_iam_role_with_retry() {
 # ---------------------------------------------------------------
 print_info "[1/8] Enabling required Google Cloud APIs (BigQuery, Vertex AI, Gemini Data Analytics, AlloyDB, Storage)..."
 gcloud services enable \
-  bigquery.googleapis.com \
   aiplatform.googleapis.com \
-  geminidataanalytics.googleapis.com \
   alloydb.googleapis.com \
+  bigquery.googleapis.com \
+  bigqueryconnection.googleapis.com \
+  cloudaicompanion.googleapis.com \
+  geminidataanalytics.googleapis.com \
   storage.googleapis.com \
   --quiet
 print_ok "      Done."
