@@ -255,22 +255,22 @@ print_info "[1/4] Starting AlloyDB deployment (this takes ~10 minutes)..."
       PEER_ATTEMPT=1
       PEER_MAX=4
       PEER_DELAY=10
-      while [ $PEER_ATTEMPT -le $PEER_MAX ]; do
+      while (( PEER_ATTEMPT <= PEER_MAX )); do
           if gcloud services vpc-peerings connect \
               --service=servicenetworking.googleapis.com \
-              --ranges=$PSA_RANGE_NAME \
-              --network=$NETWORK; then
+              --ranges="$PSA_RANGE_NAME" \
+              --network="$NETWORK"; then
               print_ok "PSA Peering connected successfully."
               break
+          fi
+
+          if (( PEER_ATTEMPT < PEER_MAX )); then
+              print_warn "Service Networking service agent provisioning delay encountered. Retrying in ${PEER_DELAY}s (Attempt $PEER_ATTEMPT/$PEER_MAX)..."
+              sleep "$PEER_DELAY"
+              (( PEER_ATTEMPT++ ))
           else
-              if [ $PEER_ATTEMPT -lt $PEER_MAX ]; then
-                  print_warn "Service Networking service agent provisioning delay encountered. Retrying in ${PEER_DELAY}s (Attempt $PEER_ATTEMPT/$PEER_MAX)..."
-                  sleep $PEER_DELAY
-                  PEER_ATTEMPT=$((PEER_ATTEMPT + 1))
-              else
-                  print_error "Failed to connect VPC peering after $PEER_MAX attempts."
-                  exit 1
-              fi
+              print_error "Failed to connect VPC peering after $PEER_MAX attempts."
+              exit 1
           fi
       done
   else
