@@ -159,7 +159,7 @@ log_info "Waiting for GCS CSV exports to complete..."
 MAX_WAIT_ATTEMPTS=100
 WAIT_ATTEMPT=0
 while ! gcloud storage ls "${GCS_BUCKET}/export/products.csv" &>/dev/null; do
-  ((WAIT_ATTEMPT++))
+  ((++WAIT_ATTEMPT))
   if [ $WAIT_ATTEMPT -ge $MAX_WAIT_ATTEMPTS ]; then
     log_error "Timed out waiting for CSV exports in GCS after $((MAX_WAIT_ATTEMPTS * 3))s. Did setup.sh complete successfully?"
     exit 1
