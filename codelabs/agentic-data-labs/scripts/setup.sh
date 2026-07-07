@@ -96,6 +96,7 @@ APIS=(
   storage.googleapis.com
   dataplex.googleapis.com
   bigqueryconnection.googleapis.com
+  cloudresourcemanager.googleapis.com
 )
 
 for api in "${APIS[@]}"; do
@@ -112,7 +113,7 @@ log_step "2" "Creating GCS bucket"
 if gcloud storage ls "$GCS_BUCKET" &>/dev/null; then
   log_warn "Bucket ${GCS_BUCKET} already exists. Reusing it."
 else
-  gcloud storage buckets create "$GCS_BUCKET" --project="$PROJECT_ID" --location="$REGION" --quiet
+  gcloud storage buckets create "$GCS_BUCKET" --project="$PROJECT_ID" --location="$REGION" --quiet 2>/dev/null
   log_ok "Created bucket ${GCS_BUCKET}"
 fi
 
@@ -134,7 +135,7 @@ log_ok "Dataset ${TARGET_DATASET} ready."
 
 log_info "Loading customers from PARQUET..."
 bq query --project_id="$PROJECT_ID" --use_legacy_sql=false --quiet \
-  "LOAD DATA INTO \`${PROJECT_ID}.${TARGET_DATASET}.customers\`
+  "LOAD DATA OVERWRITE \`${PROJECT_ID}.${TARGET_DATASET}.customers\`
    OPTIONS(description='Cymbal Pets customers table')
    FROM FILES (
      uris = ['${SOURCE_BUCKET}/customers/*.parquet'],
@@ -144,7 +145,7 @@ log_ok "customers loaded."
 
 log_info "Loading orders from PARQUET..."
 bq query --project_id="$PROJECT_ID" --use_legacy_sql=false --quiet \
-  "LOAD DATA INTO \`${PROJECT_ID}.${TARGET_DATASET}.orders\`
+  "LOAD DATA OVERWRITE \`${PROJECT_ID}.${TARGET_DATASET}.orders\`
    OPTIONS(description='Cymbal Pets orders table')
    FROM FILES (
      uris = ['${SOURCE_BUCKET}/orders/*.parquet'],
@@ -154,7 +155,7 @@ log_ok "orders loaded."
 
 log_info "Loading order_items from PARQUET..."
 bq query --project_id="$PROJECT_ID" --use_legacy_sql=false --quiet \
-  "LOAD DATA INTO \`${PROJECT_ID}.${TARGET_DATASET}.order_items\`
+  "LOAD DATA OVERWRITE \`${PROJECT_ID}.${TARGET_DATASET}.order_items\`
    OPTIONS(description='Cymbal Pets order items table')
    FROM FILES (
      uris = ['${SOURCE_BUCKET}/order_items/*.parquet'],
@@ -164,7 +165,7 @@ log_ok "order_items loaded."
 
 log_info "Loading products from PARQUET..."
 bq query --project_id="$PROJECT_ID" --use_legacy_sql=false --quiet \
-  "LOAD DATA INTO \`${PROJECT_ID}.${TARGET_DATASET}.products\`
+  "LOAD DATA OVERWRITE \`${PROJECT_ID}.${TARGET_DATASET}.products\`
    OPTIONS(description='Cymbal Pets products table')
    FROM FILES (
      uris = ['${SOURCE_BUCKET}/products/*.parquet'],
@@ -174,7 +175,7 @@ log_ok "products loaded."
 
 log_info "Loading pet_profiles from PARQUET..."
 bq query --project_id="$PROJECT_ID" --use_legacy_sql=false --quiet \
-  "LOAD DATA INTO \`${PROJECT_ID}.${TARGET_DATASET}.pet_profiles\`
+  "LOAD DATA OVERWRITE \`${PROJECT_ID}.${TARGET_DATASET}.pet_profiles\`
    OPTIONS(description='Cymbal Pets pet profiles table')
    FROM FILES (
      uris = ['${SOURCE_BUCKET}/pet_profiles/*.parquet'],
@@ -410,7 +411,7 @@ done
 # =============================================================================
 log_step "6" "Uploading promotional event data to GCS"
 
-gcloud storage cp ../data/promo_events.json "${GCS_BUCKET}/promo_events.json"
+gcloud storage cp ../data/promo_events.json "${GCS_BUCKET}/promo_events.json" 2>/dev/null
 log_ok "Promotional data uploaded to ${GCS_BUCKET}/promo_events.json"
 
 # =============================================================================

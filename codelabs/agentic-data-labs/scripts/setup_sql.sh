@@ -156,7 +156,14 @@ fi
 
 # Wait for GCS CSV exports to be fully completed by the foreground script
 log_info "Waiting for GCS CSV exports to complete..."
+MAX_WAIT_ATTEMPTS=100
+WAIT_ATTEMPT=0
 while ! gcloud storage ls "${GCS_BUCKET}/export/products.csv" &>/dev/null; do
+  ((++WAIT_ATTEMPT))
+  if [ $WAIT_ATTEMPT -ge $MAX_WAIT_ATTEMPTS ]; then
+    log_error "Timed out waiting for CSV exports in GCS after $((MAX_WAIT_ATTEMPTS * 3))s. Did setup.sh complete successfully?"
+    exit 1
+  fi
   sleep 3
 done
 log_ok "GCS CSV files detected. Proceeding with database loading."
@@ -203,7 +210,7 @@ END \$\$;
 EOF
 fi
 
-gcloud storage cp /tmp/_init_db.sql "${GCS_BUCKET}/temp/_init_db.sql" --quiet > /dev/null
+gcloud storage cp /tmp/_init_db.sql "${GCS_BUCKET}/temp/_init_db.sql" --quiet > /dev/null 2>&1
 log_info "Executing schema DDL and user grant scripts..."
 if ! gcloud sql import sql "$CLOUDSQL_INSTANCE" \
   "${GCS_BUCKET}/temp/_init_db.sql" \
