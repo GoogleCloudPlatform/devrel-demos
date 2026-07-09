@@ -25,7 +25,8 @@ from google.genai import types
 # Initialize the environment
 # ==============================================================================
 _, project_id = google.auth.default()
-os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
+if project_id:
+    os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
 os.environ["GOOGLE_CLOUD_LOCATION"] = "global"
 os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
 
@@ -108,7 +109,7 @@ root_agent = Agent(
     Once you have a list of tasks, present them clearly to the user and ask
     for their final approval to execute them.
     Do NOT execute anything until the user explicitly approves.
-    Once the user approves the list of tasks, call the tool `run_workflow` with
+    Once the user approves the list of tasks, call the tool `tasks_workflow` with
     the list of tasks.
     """,
     tools=[tasks_workflow],
