@@ -17,6 +17,9 @@
 @import "tailwindcss";
 
 /* Cache-busting hash reset to force browser style refresh: 20260710-0906 */
+.cache-buster-906 {
+  content: "20260710-0906";
+}
 
 @theme {
   /* Colors */
