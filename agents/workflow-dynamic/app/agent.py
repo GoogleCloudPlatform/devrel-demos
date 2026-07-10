@@ -64,7 +64,7 @@ async def task_workflow_node(ctx: Context, node_input: list[str]):
 
         # Dynamically trigger subagent
         explanation = await ctx.run_node(task_explainer, node_input=task)
-        explanation_content = str(explanation)
+        explanation_content = getattr(explanation, "text", None) or str(explanation)
 
         # Mark as done
         yield Event(
