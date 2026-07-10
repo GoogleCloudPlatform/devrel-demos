@@ -15,6 +15,7 @@
  */
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import useSWR, { useSWRConfig } from 'swr';
 import { Link } from 'react-router-dom';
 import { fetcher } from '../utils/fetcher';
@@ -511,10 +512,10 @@ export default function Dashboard() {
       )}
 
       {/* ==================== CREATE PROJECT DIALOG ==================== */}
-      {isProjectModalOpen && (
+      {isProjectModalOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs" 
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
             onClick={() => setIsProjectModalOpen(false)}
           ></div>
           
@@ -609,7 +610,8 @@ export default function Dashboard() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

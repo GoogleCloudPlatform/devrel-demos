@@ -15,6 +15,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 import { useParams, Link } from 'react-router-dom';
 import { fetcher } from '../utils/fetcher';
@@ -283,10 +284,10 @@ export default function HackathonDetail() {
       )}
 
       {/* ==================== CREATE PROJECT DIALOG ==================== */}
-      {isProjectModalOpen && (
+      {isProjectModalOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs" 
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
             onClick={() => setIsProjectModalOpen(false)}
           ></div>
           
@@ -381,7 +382,8 @@ export default function HackathonDetail() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
