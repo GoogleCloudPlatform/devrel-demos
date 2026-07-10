@@ -27,3 +27,6 @@ createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </StrictMode>,
 )
+
+// Cache-busting bundle reset to force browser script refresh: 20260710-0906
+
