@@ -483,3 +483,96 @@ func (r *BigQueryRepo) GetByProjectID(projectID string) ([]domain.Evaluation, er
 
 	return evaluations, nil
 }
+
+func (r *BigQueryRepo) Create(hackathon domain.Hackathon) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	bqCriteria := make([]bqCriterion, len(hackathon.Criteria))
+	for i, c := range hackathon.Criteria {
+		bqCriteria[i] = bqCriterion{
+			ID:          fmt.Sprintf("crit_%d", i),
+			Name:        c.Name,
+			Description: c.Description,
+			Weight:      c.Weight,
+			Score:       0,
+			MaxScore:    c.MaxScore,
+		}
+	}
+
+	bqBonusCriteria := make([]bqCriterion, len(hackathon.BonusCriteria))
+	for i, c := range hackathon.BonusCriteria {
+		bqBonusCriteria[i] = bqCriterion{
+			ID:          fmt.Sprintf("bonus_%d", i),
+			Name:        c.Name,
+			Description: c.Description,
+			Weight:      c.Weight,
+			Score:       0,
+			MaxScore:    c.MaxScore,
+		}
+	}
+
+	query := r.client.Query(fmt.Sprintf(`
+		INSERT INTO `+"`"+`%s.%s.hackathons`+"`"+` (id, title, date, description, goal, status, criteria, bonus_criteria) 
+		VALUES (@id, @title, @date, @description, @goal, @status, @criteria, @bonus_criteria)`, r.projectID, r.datasetID))
+
+	query.Parameters = []bigquery.QueryParameter{
+		{Name: "id", Value: hackathon.ID},
+		{Name: "title", Value: hackathon.Title},
+		{Name: "date", Value: hackathon.Date},
+		{Name: "description", Value: hackathon.Description},
+		{Name: "goal", Value: hackathon.Goal},
+		{Name: "status", Value: hackathon.Status},
+		{Name: "criteria", Value: bqCriteria},
+		{Name: "bonus_criteria", Value: bqBonusCriteria},
+	}
+
+	job, err := query.Run(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to run insert query for hackathon: %w", err)
+	}
+	status, err := job.Wait(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to wait for insert query for hackathon: %w", err)
+	}
+	if status.Err() != nil {
+		return fmt.Errorf("insert query failed for hackathon: %w", status.Err())
+	}
+	return nil
+}
+
+func (r *BigQueryRepo) CreateProject(project domain.Project) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	query := r.client.Query(fmt.Sprintf(`
+		INSERT INTO `+"`"+`%s.%s.projects`+"`"+` (id, name, title, url, readme_ref, github_url, team_name, document, processing_date, hackathon_id, score) 
+		VALUES (@id, @name, @title, @url, NULL, @github_url, @team_name, @document, @processing_date, @hackathon_id, @score)`, r.projectID, r.datasetID))
+
+	query.Parameters = []bigquery.QueryParameter{
+		{Name: "id", Value: project.ID},
+		{Name: "name", Value: project.Name},
+		{Name: "title", Value: project.Title},
+		{Name: "url", Value: project.URL},
+		{Name: "github_url", Value: project.GitHubURL},
+		{Name: "team_name", Value: project.TeamName},
+		{Name: "document", Value: project.Document},
+		{Name: "processing_date", Value: project.Date},
+		{Name: "hackathon_id", Value: project.HackathonID},
+		{Name: "score", Value: project.Score},
+	}
+
+	job, err := query.Run(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to run insert query for project: %w", err)
+	}
+	status, err := job.Wait(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to wait for insert query for project: %w", err)
+	}
+	if status.Err() != nil {
+		return fmt.Errorf("insert query failed for project: %w", status.Err())
+	}
+	return nil
+}
+

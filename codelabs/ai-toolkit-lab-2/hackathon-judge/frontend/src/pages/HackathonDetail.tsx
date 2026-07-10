@@ -19,6 +19,7 @@ import useSWR from 'swr';
 import { useParams, Link } from 'react-router-dom';
 import { fetcher } from '../utils/fetcher';
 import type { Project, Evaluation, Hackathon } from '../types/models';
+import { Plus, X } from 'lucide-react';
 
 function ProjectCard({ project, evaluations, mutateEvaluations }: { project: Project, evaluations?: Evaluation[], mutateEvaluations: () => void }) {
   const [isTriggeringAgent, setIsTriggeringAgent] = useState(false);
@@ -98,7 +99,57 @@ export default function HackathonDetail() {
   const [activeTab, setActiveTab] = useState<'projects' | 'criteria'>('projects');
   
   const { data: hackathon, error: hackathonError, isLoading: isHackathonLoading } = useSWR<Hackathon>(id ? `/api/hackathons/${id}` : null, fetcher);
-  const { data: projects, error: projectsError, isLoading: isProjectsLoading } = useSWR<Project[]>(id ? `/api/hackathons/${id}/projects` : null, fetcher);
+  const { data: projects, error: projectsError, isLoading: isProjectsLoading, mutate: mutateProjects } = useSWR<Project[]>(id ? `/api/hackathons/${id}/projects` : null, fetcher);
+
+  // New Project Form Fields
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [projTitle, setProjTitle] = useState('');
+  const [projGit, setProjGit] = useState('');
+  const [projTeam, setProjTeam] = useState('');
+  const [projDoc, setProjDoc] = useState('');
+
+  const handleCreateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id) return;
+
+    const derivedSlug = projTitle
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+
+    const payload = {
+      name: derivedSlug,
+      title: projTitle,
+      url: "",
+      github_url: projGit,
+      team_name: projTeam,
+      document: projDoc || ""
+    };
+
+    try {
+      const response = await fetch(`/api/hackathons/${id}/projects`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to add project');
+      }
+      
+      setIsProjectModalOpen(false);
+      setProjTitle('');
+      setProjGit('');
+      setProjTeam('');
+      setProjDoc('');
+      
+      await mutateProjects();
+      alert('Project successfully added to the hackathon!');
+    } catch (err: any) {
+      alert(err.message || 'Operation failed');
+    }
+  };
 
   const { data: evaluationsData, mutate: mutateEvaluations } = useSWR<Evaluation[][]>(
     projects && projects.length > 0 ? `hackathon-${id}-evaluations` : null,
@@ -136,8 +187,8 @@ export default function HackathonDetail() {
         )}
       </div>
 
-      <div className="mb-6 border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
+      <div className="mb-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+        <nav className="-mb-px flex space-x-8 overflow-x-auto">
           <button
             onClick={() => setActiveTab('projects')}
             className={`${
@@ -159,6 +210,15 @@ export default function HackathonDetail() {
             Judging Criteria
           </button>
         </nav>
+        {activeTab === 'projects' && (
+          <button
+            onClick={() => setIsProjectModalOpen(true)}
+            className="flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition-colors shadow-sm cursor-pointer mb-2 shrink-0 self-start sm:self-auto"
+          >
+            <Plus className="w-4 h-4" />
+            Add Project
+          </button>
+        )}
       </div>
 
       {activeTab === 'projects' && (
@@ -190,9 +250,9 @@ export default function HackathonDetail() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {hackathon.criteria.map((c, idx) => (
                   <div key={idx} className="bg-white p-4 border rounded-lg shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2 mb-2">
                       <h4 className="font-bold text-lg text-slate-800">{c.name}</h4>
-                      <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">Weight: {c.weight} &middot; Max: {c.max_score}</span>
+                      <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium shrink-0 self-start sm:self-auto">Weight: {c.weight} &middot; Max: {c.max_score}</span>
                     </div>
                     <p className="text-gray-600 text-sm">{c.description}</p>
                   </div>
@@ -209,9 +269,9 @@ export default function HackathonDetail() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {hackathon.bonus_criteria.map((c, idx) => (
                   <div key={idx} className="bg-purple-50 p-4 border border-purple-100 rounded-lg shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2 mb-2">
                       <h4 className="font-bold text-lg text-purple-900">{c.name}</h4>
-                      <span className="bg-purple-200 text-purple-900 text-xs px-2 py-1 rounded-full font-medium">Weight: {c.weight} &middot; Max: {c.max_score}</span>
+                      <span className="bg-purple-200 text-purple-900 text-xs px-2 py-1 rounded-full font-medium shrink-0 self-start sm:self-auto">Weight: {c.weight} &middot; Max: {c.max_score}</span>
                     </div>
                     <p className="text-purple-700 text-sm">{c.description}</p>
                   </div>
@@ -219,6 +279,108 @@ export default function HackathonDetail() {
               </div>
             )}
           </section>
+        </div>
+      )}
+
+      {/* ==================== CREATE PROJECT DIALOG ==================== */}
+      {isProjectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-slate-900 bg-opacity-60" 
+            onClick={() => setIsProjectModalOpen(false)}
+          ></div>
+          
+          <div className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl border border-slate-300 overflow-hidden z-10 flex flex-col">
+            {/* Header */}
+            <div className="bg-slate-950 px-6 py-4 flex justify-between items-center text-white">
+              <div className="flex items-center gap-2">
+                <Plus className="w-5 h-5 text-blue-400" />
+                <h3 className="text-lg font-bold tracking-tight">Add Team Project Submission</h3>
+              </div>
+              <button 
+                onClick={() => setIsProjectModalOpen(false)} 
+                className="text-slate-400 hover:text-white rounded-lg p-1.5 hover:bg-white/10 transition-colors"
+                aria-label="Close modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleCreateProject} className="p-6 space-y-5 bg-white">
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Project Name <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  required 
+                  value={projTitle} 
+                  onChange={(e) => setProjTitle(e.target.value)} 
+                  placeholder="e.g. Daybreak Planner"
+                  className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-lg px-3 py-2 text-sm text-slate-950 placeholder-slate-400 font-medium transition-all"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Team Name <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  required 
+                  value={projTeam} 
+                  onChange={(e) => setProjTeam(e.target.value)} 
+                  placeholder="e.g. Team Daybreak"
+                  className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-lg px-3 py-2 text-sm text-slate-950 placeholder-slate-400 font-medium transition-all"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  GitHub URL <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  type="url" 
+                  required 
+                  value={projGit} 
+                  onChange={(e) => setProjGit(e.target.value)} 
+                  placeholder="https://github.com/your-username/your-repo"
+                  className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-lg px-3 py-2 text-sm text-slate-950 placeholder-slate-400 font-medium transition-all"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Submission Document / Pitch details <span className="text-slate-400 font-normal">(Optional)</span>
+                </label>
+                <textarea 
+                  rows={3} 
+                  value={projDoc} 
+                  onChange={(e) => setProjDoc(e.target.value)} 
+                  placeholder="Describe your project, features, technologies used, or pitch ideas..."
+                  className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-lg px-3 py-2 text-sm text-slate-950 placeholder-slate-400 font-medium transition-all resize-none"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-4 border-t border-slate-100 flex justify-end gap-2 bg-white">
+                <button 
+                  type="button" 
+                  onClick={() => setIsProjectModalOpen(false)}
+                  className="border border-slate-300 hover:bg-slate-50 text-slate-600 font-semibold px-4 py-2 rounded-lg text-xs"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition-colors shadow-sm"
+                >
+                  Submit Project
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

@@ -149,3 +149,18 @@ func (r *memoryRepo) GetProjectByID(id string) (domain.Project, error) {
 	}
 	return domain.Project{}, errors.New("project not found")
 }
+
+func (r *memoryRepo) Create(hackathon domain.Hackathon) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.hackathons = append(r.hackathons, hackathon)
+	return nil
+}
+
+func (r *memoryRepo) CreateProject(project domain.Project) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.projects = append(r.projects, project)
+	return nil
+}
+

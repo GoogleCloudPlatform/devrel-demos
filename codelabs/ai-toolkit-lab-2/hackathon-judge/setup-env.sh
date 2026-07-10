@@ -86,6 +86,7 @@ if command -v git &> /dev/null && git rev-parse --short HEAD &> /dev/null; then
   if [ -n "$(git status --porcelain)" ]; then
     echo -e "${YELLOW}⚠️  Git repository has uncommitted changes (dirty state).${NC}"
     export COMMIT_SHA="dirty-$(date +%s)"
+    export COMMIT_SHA="latest"
   else
     export COMMIT_SHA=$(git rev-parse --short HEAD)
   fi

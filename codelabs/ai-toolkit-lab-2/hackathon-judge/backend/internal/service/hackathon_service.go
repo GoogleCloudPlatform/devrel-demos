@@ -32,6 +32,8 @@ type HackathonService interface {
 	SaveJudgingResult(res domain.JudgingResult) error
 	ListEvaluationsByProject(projectID string) ([]domain.Evaluation, error)
 	TriggerJudgingAgent(projectID string) (string, error)
+	CreateHackathon(hackathon domain.Hackathon) error
+	CreateProject(project domain.Project) error
 }
 
 type hackathonService struct {
@@ -291,4 +293,28 @@ func (s *hackathonService) SaveJudgingResult(res domain.JudgingResult) error {
 	}
 
 	return nil
+}
+
+func (s *hackathonService) CreateHackathon(hackathon domain.Hackathon) error {
+	if hackathon.ID == "" {
+		hackathon.ID = uuid.New().String()
+	}
+	if hackathon.Date.IsZero() {
+		hackathon.Date = time.Now()
+	}
+	if hackathon.Status == "" {
+		hackathon.Status = "active"
+	}
+	return s.repo.Create(hackathon)
+}
+
+func (s *hackathonService) CreateProject(project domain.Project) error {
+	if project.ID == "" {
+		project.ID = uuid.New().String()
+	}
+	if project.Date.IsZero() {
+		project.Date = time.Now()
+	}
+	project.Score = 0
+	return s.projectRepo.CreateProject(project)
 }
