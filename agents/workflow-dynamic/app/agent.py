@@ -64,14 +64,7 @@ async def task_workflow_node(ctx: Context, node_input: list[str]):
 
         # Dynamically trigger subagent
         explanation = await ctx.run_node(task_explainer, node_input=task)
-
-        # Extract explanation text from types.Content or other types
-        if hasattr(explanation, "text") and explanation.text:
-            explanation_content = explanation.text
-        elif hasattr(explanation, "parts") and explanation.parts:
-            explanation_content = "".join([p.text for p in explanation.parts if p.text])
-        else:
-            explanation_content = str(explanation)
+        explanation_content = getattr(explanation, "text", None) or str(explanation)
 
         # Mark as done
         yield Event(
@@ -81,7 +74,10 @@ async def task_workflow_node(ctx: Context, node_input: list[str]):
             )  # type: ignore
         )
 
-    yield Event(output="🎉🚀 All tasks executed successfully! ✨")
+
+@node
+async def task_workflow_end(ctx: Context):
+    yield Event(message="🎉🚀 All tasks executed successfully! ✨")  # type: ignore
 
 
 # ==============================================================================
@@ -92,7 +88,7 @@ tasks_workflow = Workflow(
     description="Iterates over the list of tasks and explains them.",
     input_schema=list[str],
     edges=[
-        ("START", task_workflow_node),
+        ("START", task_workflow_node, task_workflow_end),
     ],
 )
 
