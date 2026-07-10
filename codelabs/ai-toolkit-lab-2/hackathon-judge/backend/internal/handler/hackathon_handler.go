@@ -42,6 +42,7 @@ func (h *HackathonHandler) RegisterRoutes(r *gin.Engine) {
 		api.POST("/projects/:id/judge", h.TriggerJudgingAgent)
 		api.POST("/hackathons", h.CreateHackathon)
 		api.POST("/hackathons/:id/projects", h.CreateProject)
+		api.DELETE("/hackathons/:id", h.DeleteHackathon)
 	}
 }
 
@@ -160,5 +161,15 @@ func (h *HackathonHandler) CreateProject(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, req)
+}
+
+func (h *HackathonHandler) DeleteHackathon(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.DeleteHackathon(id); err != nil {
+		log.Printf("[ERROR] DeleteHackathon failed for %s: %v\n", id, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Hackathon deleted successfully"})
 }
 

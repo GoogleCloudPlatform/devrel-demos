@@ -30,9 +30,57 @@ interface CriterionInput {
 }
 
 const DEFAULT_CRITERIA: CriterionInput[] = [
-  { name: 'Innovation & Originality', description: 'How unique and creative is the solution?', weight: 0.3, max_score: 5 },
-  { name: 'Technical Execution', description: 'Code quality and technical execution completeness.', weight: 0.4, max_score: 5 },
-  { name: 'User Experience (UX/UI)', description: 'Minimalist design for flow-state productivity.', weight: 0.3, max_score: 5 }
+  {
+    name: 'Innovation & Originality',
+    description: 'How unique and original is the productivity tool?\n\n**Low (1-2):** The project is essentially a "Hello World" of productivity (e.g., a basic CRUD to-do list with no unique features).\n**High (4-5):** The team identified a unique bottleneck—like "context switching" or "decision fatigue"—and built a tool specifically to kill that problem.',
+    weight: 0.2,
+    max_score: 5
+  },
+  {
+    name: 'Theme Alignment (Impact)',
+    description: 'Does the app actually save time or remove friction?\n\n**Low (1-2):** The app might be cool, but it doesn\'t actually make the user more efficient.\n**High (4-5):** Does the app actually save time? Does it remove friction? A 5/5 project makes the judges want to start using the app immediately for their own work.',
+    weight: 0.3,
+    max_score: 5
+  },
+  {
+    name: 'Technical Execution',
+    description: 'Quality of implementation and technical complexity.\n\n**Low (1-2):** Code is messy, or the "app" is just a series of static HTML pages with no logic.\n**High (4-5):** The team integrated complex elements (e.g., AI APIs, browser extensions, real-time sync, or advanced data visualization) successfully within the hackathon timeframe.',
+    weight: 0.2,
+    max_score: 5
+  },
+  {
+    name: 'User Experience (UX/UI)',
+    description: 'Design for focus, minimal distractions, and clear feedback.\n\n**Low (1-2):** Buttons don\'t work, text is unreadable, or the workflow is frustrating.\n**High (4-5):** For productivity tools, **less is more**. Points are awarded for "Flow State" design—minimal distractions, keyboard shortcuts, and clear feedback.',
+    weight: 0.1,
+    max_score: 5
+  },
+  {
+    name: 'Pitch & Demo',
+    description: 'Quality of the presentation and live demonstration.\n\n**Low (1-2):** The team spent too much time on the technical stack and forgot to show the actual product.\n**High (4-5):** The team clearly demonstrated a "use case." They showed exactly how a user\'s life is better after using their tool.',
+    weight: 0.2,
+    max_score: 5
+  }
+];
+
+const DEFAULT_BONUS_CRITERIA: CriterionInput[] = [
+  {
+    name: 'Clean Code',
+    description: 'Repository is well-documented with a clear README.',
+    weight: 0.1,
+    max_score: 2
+  },
+  {
+    name: 'Accessibility',
+    description: 'Project considers screen readers, high contrast, or keyboard-only navigation.',
+    weight: 0.05,
+    max_score: 1
+  },
+  {
+    name: 'Wow Factor',
+    description: 'A specific feature that made the judges say "Wait, how did they build that in 24 hours?"',
+    weight: 0.1,
+    max_score: 2
+  }
 ];
 
 export default function Dashboard() {
@@ -43,6 +91,8 @@ export default function Dashboard() {
   const [isHackathonModalOpen, setIsHackathonModalOpen] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [selectedHackathonId, setSelectedHackathonId] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [hackathonToDelete, setHackathonToDelete] = useState<string | null>(null);
 
   // New Hackathon Form Fields
   const [hackathonTitle, setHackathonTitle] = useState('');
@@ -50,7 +100,7 @@ export default function Dashboard() {
   const [hackathonDesc, setHackathonDescription] = useState('');
   const [hackathonGoal, setHackathonGoal] = useState('');
   const [criteria, setCriteria] = useState<CriterionInput[]>(DEFAULT_CRITERIA);
-  const [bonusCriteria, setBonusCriteria] = useState<CriterionInput[]>([]);
+  const [bonusCriteria, setBonusCriteria] = useState<CriterionInput[]>(DEFAULT_BONUS_CRITERIA);
 
   // New Project Form Fields
   const [projTitle, setProjTitle] = useState('');
@@ -97,7 +147,7 @@ export default function Dashboard() {
       setHackathonDescription('');
       setHackathonGoal('');
       setCriteria(DEFAULT_CRITERIA);
-      setBonusCriteria([]);
+      setBonusCriteria(DEFAULT_BONUS_CRITERIA);
     } catch (err: any) {
       alert(err.message || 'Operation failed');
     }
@@ -141,6 +191,23 @@ export default function Dashboard() {
     }
   };
 
+  const handleDeleteHackathon = async () => {
+    if (!hackathonToDelete) return;
+    try {
+      const response = await fetch(`/api/hackathons/${hackathonToDelete}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete hackathon');
+      
+      // Refresh SWR caches
+      mutate('/api/hackathons');
+      setIsDeleteModalOpen(false);
+      setHackathonToDelete(null);
+    } catch (err: any) {
+      alert(err.message || 'An error occurred while deleting');
+    }
+  };
+
   // Helper arrays builders
   const addCriteriaRow = () => {
     setCriteria([...criteria, { name: '', description: '', weight: 0.1, max_score: 5 }]);
@@ -177,8 +244,8 @@ export default function Dashboard() {
 
       {/* Grid of Hackathons */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map(n => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[1, 2].map(n => (
             <div key={n} className="h-64 bg-slate-100 animate-pulse rounded-2xl border border-slate-200"></div>
           ))}
         </div>
@@ -191,7 +258,7 @@ export default function Dashboard() {
           <p className="text-slate-400 text-sm mt-1 mb-6">Create your first hackathon and configure AI-driven evaluation rubrics.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {hackathons.map((h) => (
             <div 
               key={h.id} 
@@ -235,10 +302,20 @@ export default function Dashboard() {
                     setSelectedHackathonId(h.id);
                     setIsProjectModalOpen(true);
                   }}
-                  className="flex items-center justify-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-600 font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-600 font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Add Project
+                </button>
+                <button
+                  onClick={() => {
+                    setHackathonToDelete(h.id);
+                    setIsDeleteModalOpen(true);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+                >
+                  <Trash className="w-3.5 h-3.5" />
+                  Delete
                 </button>
               </div>
             </div>
@@ -519,7 +596,7 @@ export default function Dashboard() {
             onClick={() => setIsProjectModalOpen(false)}
           ></div>
           
-          <div className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl border border-slate-300 overflow-hidden z-10 flex flex-col">
+          <div className="relative w-full max-w-[512px] bg-white rounded-xl shadow-2xl border border-slate-300 overflow-hidden z-10 flex flex-col">
             {/* Header */}
             <div className="bg-slate-950 px-6 py-4 flex justify-between items-center text-white">
               <div className="flex items-center gap-2">
@@ -609,6 +686,59 @@ export default function Dashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ==================== DELETE HACKATHON CONFIRMATION DIALOG ==================== */}
+      {isDeleteModalOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
+            onClick={() => setIsDeleteModalOpen(false)}
+          ></div>
+          
+          <div className="relative w-full max-w-[450px] bg-white rounded-xl shadow-2xl border border-slate-300 overflow-hidden z-10 flex flex-col">
+            {/* Header */}
+            <div className="bg-red-600 px-6 py-4 flex justify-between items-center text-white">
+              <div className="flex items-center gap-2">
+                <Trash className="w-5 h-5 text-white" />
+                <h3 className="text-lg font-bold tracking-tight">Delete Hackathon</h3>
+              </div>
+              <button 
+                onClick={() => setIsDeleteModalOpen(false)} 
+                className="text-white/80 hover:text-white rounded-lg p-1.5 hover:bg-white/10 transition-colors"
+                aria-label="Close modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 bg-white space-y-4">
+              <p className="text-slate-600 text-sm leading-relaxed">
+                Are you sure you want to delete this hackathon? This action is <strong className="text-red-600 font-bold">permanent</strong> and will delete all associated projects and evaluation results from the database.
+              </p>
+
+              {/* Action Buttons */}
+              <div className="pt-4 border-t border-slate-100 flex justify-end gap-2 bg-white">
+                <button 
+                  type="button" 
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="border border-slate-300 hover:bg-slate-50 text-slate-600 font-semibold px-4 py-2 rounded-lg text-xs cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button"
+                  onClick={handleDeleteHackathon}
+                  className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition-colors shadow-sm cursor-pointer"
+                >
+                  Delete Permanently
+                </button>
+              </div>
+            </div>
           </div>
         </div>,
         document.body

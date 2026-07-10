@@ -291,7 +291,7 @@ export default function HackathonDetail() {
             onClick={() => setIsProjectModalOpen(false)}
           ></div>
           
-          <div className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl border border-slate-300 overflow-hidden z-10 flex flex-col">
+          <div className="relative w-full max-w-[512px] bg-white rounded-xl shadow-2xl border border-slate-300 overflow-hidden z-10 flex flex-col">
             {/* Header */}
             <div className="bg-slate-950 px-6 py-4 flex justify-between items-center text-white">
               <div className="flex items-center gap-2">

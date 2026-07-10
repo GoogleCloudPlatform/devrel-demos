@@ -38,4 +38,5 @@ type HackathonRepository interface {
 	GetAll() ([]Hackathon, error)
 	GetByID(id string) (Hackathon, error)
 	Create(hackathon Hackathon) error
+	Delete(id string) error
 }

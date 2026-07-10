@@ -576,3 +576,28 @@ func (r *BigQueryRepo) CreateProject(project domain.Project) error {
 	return nil
 }
 
+func (r *BigQueryRepo) Delete(id string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	query := r.client.Query(fmt.Sprintf(`
+		DELETE FROM `+"`"+`%s.%s.hackathons`+"`"+` WHERE id = @id`, r.projectID, r.datasetID))
+
+	query.Parameters = []bigquery.QueryParameter{
+		{Name: "id", Value: id},
+	}
+
+	job, err := query.Run(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to run delete query for hackathon: %w", err)
+	}
+	status, err := job.Wait(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to wait for delete query for hackathon: %w", err)
+	}
+	if status.Err() != nil {
+		return fmt.Errorf("delete query failed for hackathon: %w", status.Err())
+	}
+	return nil
+}
+

@@ -164,3 +164,15 @@ func (r *memoryRepo) CreateProject(project domain.Project) error {
 	return nil
 }
 
+func (r *memoryRepo) Delete(id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for i, h := range r.hackathons {
+		if h.ID == id {
+			r.hackathons = append(r.hackathons[:i], r.hackathons[i+1:]...)
+			return nil
+		}
+	}
+	return errors.New("hackathon not found")
+}
+

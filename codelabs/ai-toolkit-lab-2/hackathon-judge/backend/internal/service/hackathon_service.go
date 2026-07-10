@@ -34,6 +34,7 @@ type HackathonService interface {
 	TriggerJudgingAgent(projectID string) (string, error)
 	CreateHackathon(hackathon domain.Hackathon) error
 	CreateProject(project domain.Project) error
+	DeleteHackathon(id string) error
 }
 
 type hackathonService struct {
@@ -317,4 +318,8 @@ func (s *hackathonService) CreateProject(project domain.Project) error {
 	}
 	project.Score = 0
 	return s.projectRepo.CreateProject(project)
+}
+
+func (s *hackathonService) DeleteHackathon(id string) error {
+	return s.repo.Delete(id)
 }
