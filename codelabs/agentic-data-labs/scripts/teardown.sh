@@ -54,9 +54,16 @@ echo ""
 
 log_info "Deleting BigQuery dataset cymbal_pets..."
 if bq rm --recursive --force --dataset "${PROJECT_ID}:cymbal_pets" 2>/dev/null; then
-  log_ok "BigQuery dataset deleted."
+  log_ok "BigQuery dataset cymbal_pets deleted."
 else
-  log_warn "BigQuery dataset not found or already deleted."
+  log_warn "BigQuery dataset cymbal_pets not found or already deleted."
+fi
+
+log_info "Deleting BigQuery dataset dbt_marts..."
+if bq rm --recursive --force --dataset "${PROJECT_ID}:dbt_marts" 2>/dev/null; then
+  log_ok "BigQuery dataset dbt_marts deleted."
+else
+  log_warn "BigQuery dataset dbt_marts not found or already deleted."
 fi
 
 log_info "Deleting GCS bucket..."
