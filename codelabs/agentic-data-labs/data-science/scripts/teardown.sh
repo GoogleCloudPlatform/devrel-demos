@@ -103,31 +103,40 @@ fi
 # =============================================================================
 # 3. Delete BigLake Iceberg Catalog (namespace + catalog)
 # =============================================================================
+# Detect which gcloud track has working biglake commands (mirrors setup.sh)
+if gcloud biglake iceberg catalogs list --project="$PROJECT_ID" &>/dev/null 2>&1; then
+  BIGLAKE_CMD="gcloud biglake"
+elif gcloud alpha biglake iceberg catalogs list --project="$PROJECT_ID" &>/dev/null 2>&1; then
+  BIGLAKE_CMD="gcloud alpha biglake"
+else
+  BIGLAKE_CMD="gcloud biglake"
+fi
+
 # Delete namespace first, then catalog
-if gcloud biglake iceberg namespaces describe "$DATASET_NAME" \
+if $BIGLAKE_CMD iceberg namespaces describe "$DATASET_NAME" \
     --catalog="$ICEBERG_CATALOG" --project="$PROJECT_ID" 2>/dev/null; then
     log_info "Deleting Iceberg namespace '${DATASET_NAME}'..."
     # Delete all tables in the namespace first
-    TABLES=$(gcloud biglake iceberg tables list \
+    TABLES=$($BIGLAKE_CMD iceberg tables list \
       --namespace="$DATASET_NAME" --catalog="$ICEBERG_CATALOG" \
       --project="$PROJECT_ID" --format="value(name)" 2>/dev/null || echo "")
     for table_path in $TABLES; do
       table_name=$(basename "$table_path")
       log_info "  Deleting Iceberg table '${table_name}'..."
-      gcloud biglake iceberg tables delete "$table_name" \
+      $BIGLAKE_CMD iceberg tables delete "$table_name" \
         --namespace="$DATASET_NAME" --catalog="$ICEBERG_CATALOG" \
         --project="$PROJECT_ID" --quiet 2>/dev/null || true
     done
-    gcloud biglake iceberg namespaces delete "$DATASET_NAME" \
+    $BIGLAKE_CMD iceberg namespaces delete "$DATASET_NAME" \
       --catalog="$ICEBERG_CATALOG" --project="$PROJECT_ID" --quiet 2>/dev/null || true
     log_ok "Iceberg namespace deleted."
 else
     log_warn "Iceberg namespace '${DATASET_NAME}' not found. Skipping."
 fi
 
-if gcloud biglake iceberg catalogs describe "$ICEBERG_CATALOG" --project="$PROJECT_ID" 2>/dev/null; then
+if $BIGLAKE_CMD iceberg catalogs describe "$ICEBERG_CATALOG" --project="$PROJECT_ID" 2>/dev/null; then
     log_info "Deleting Iceberg catalog '${ICEBERG_CATALOG}'..."
-    gcloud biglake iceberg catalogs delete "$ICEBERG_CATALOG" \
+    $BIGLAKE_CMD iceberg catalogs delete "$ICEBERG_CATALOG" \
       --project="$PROJECT_ID" --quiet 2>/dev/null || true
     log_ok "Iceberg catalog deleted."
 else
