@@ -322,8 +322,8 @@ export class Game extends Scene {
         this.scoreText.setText(`DISTANCE: ${Math.floor(this.score)}m`);
 
         // Controller / Keyboard Inputs (Input-mechanism mapping)
-        const moveLeft = this.keys.a.isDown || this.cursors.left.isDown || (pad && (pad.left || pad.axes[0].value < -0.5));
-        const moveRight = this.keys.d.isDown || this.cursors.right.isDown || (pad && (pad.right || pad.axes[0].value > 0.5));
+        const moveLeft = this.keys.a.isDown || this.cursors.left.isDown || (pad && (pad.left || pad.axes[0]?.value < -0.5));
+        const moveRight = this.keys.d.isDown || this.cursors.right.isDown || (pad && (pad.right || pad.axes[0]?.value > 0.5));
         const btnA = justDownX || (pad && pad.isButtonDown(0)); // Button A (Jump)
         const btnB = justDownZ || (pad && pad.isButtonJustDown(1)); // Button B (Flip Gravity)
 

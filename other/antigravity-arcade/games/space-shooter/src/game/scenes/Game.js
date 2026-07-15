@@ -340,7 +340,7 @@ export class Game extends Scene {
         }
 
         if (this.isGameOver) {
-            const fireButton = Phaser.Input.Keyboard.JustDown(this.keys.x) || (pad && pad.A);
+            const fireButton = Phaser.Input.Keyboard.JustDown(this.keys.x) || (pad && pad.isButtonDown(0));
 
             // In attract mode, auto-restart after 5 seconds
             const shouldRestart = fireButton || (this.isAttractMode && (this.time.now - this.gameOverTime > 5000));
@@ -419,7 +419,7 @@ export class Game extends Scene {
 
         // Fire (Keyboard 'X' mapped to Physical Button A or Gamepad Button A)
         // pad.A maps to physical index 0.
-        let fireButton = this.keys.x.isDown || (pad && pad.A);
+        let fireButton = this.keys.x.isDown || (pad && pad.isButtonDown(0));
 
         if (this.isAttractMode) {
             // Burst fire logic
@@ -439,6 +439,8 @@ export class Game extends Scene {
             if (bullet) {
                 bullet.setActive(true);
                 bullet.setVisible(true);
+                bullet.body.enable = true;
+                bullet.body.reset(this.player.x, this.player.y - 10);
                 bullet.body.velocity.y = -600;
                 this.gameLayer.add(bullet); // Move to low-res layer
             }
@@ -449,6 +451,7 @@ export class Game extends Scene {
             if (bullet.active && bullet.y < 0) {
                 bullet.setActive(false);
                 bullet.setVisible(false);
+                bullet.body.enable = false;
             }
         });
 
@@ -523,6 +526,7 @@ export class Game extends Scene {
 
         bullet.setActive(false);
         bullet.setVisible(false);
+        bullet.body.enable = false;
         enemy.destroy();
 
         this.score += 10;

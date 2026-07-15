@@ -398,11 +398,12 @@ export class Game extends Scene {
             }
 
             // Damage collision with Player
-            if (dist < 12) {
+            if (dist < 12 && !this.gameOver) {
                 this.playerStats.currentHp -= 0.5;
                 this.cameras.main.shake(50, 0.01);
                 this.updateHUD();
                 if (this.playerStats.currentHp <= 0) {
+                    this.gameOver = true;
                     this.announce("GAME OVER!\nRefresh to retry", 10000);
                     this.player.setTint(0xff0000);
                     window.parent.postMessage({
@@ -462,7 +463,7 @@ export class Game extends Scene {
             const dist = Phaser.Math.Distance.Between(gem.x, gem.y, this.player.x, this.player.y);
 
             // Strong magnet effect when player approaches
-            if (dist < 40) {
+            if (dist < 40 && dist > 0) {
                 gem.x += ((this.player.x - gem.x) / dist) * 150 * delta / 1000;
                 gem.y += ((this.player.y - gem.y) / dist) * 150 * delta / 1000;
             }
