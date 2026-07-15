@@ -25,7 +25,7 @@ export default function Layout() {
       <div className="flex flex-col min-w-0">
         <Header />
         <main className="flex-1 bg-slate-50 overflow-y-auto">
-          <div className="max-w-7xl mx-auto p-xl">
+          <div className="max-w-7xl mx-auto p-md md:p-xl">
             <Outlet />
           </div>
         </main>
