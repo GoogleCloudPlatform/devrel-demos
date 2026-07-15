@@ -200,7 +200,7 @@ export class Game extends Scene {
         });
     }
 
-    update() {
+    update(time, delta) {
         const rawPad = this.activeGamepad;
 
         // Remap hardware wiring inversion where physical face buttons are swapped:
