@@ -1,0 +1,10 @@
+{
+  "title": "Space Shooter",
+  "objective": "Fly around and shoot enemy space ships to score points.",
+  "controls": {
+    "A": "Fire",
+    "B": "",
+    "X": "",
+    "Y": ""
+  }
+}

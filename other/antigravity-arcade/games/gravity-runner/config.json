@@ -1,0 +1,10 @@
+{
+  "title": "Gravity Runner",
+  "objective": "Use gravity to your advantage while avoiding obstacles.",
+  "controls": {
+    "A": "Jump",
+    "B": "",
+    "X": "",
+    "Y": ""
+  }
+}

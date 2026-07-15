@@ -1,0 +1,10 @@
+{
+  "title": "Icy Hockey",
+  "objective": "Move the paddles to save and shoot the puck.",
+  "controls": {
+    "A": "2P Down",
+    "B": "",
+    "X": "2p Up",
+    "Y": ""
+  }
+}
