@@ -1,0 +1,12 @@
+{
+    "name": "agycade-games",
+    "description": "Antigravity Arcade Developer Machine",
+    "devDependencies": {
+        "terser": "^5.39.0",
+        "vite": "^6.4.2"
+    },
+    "dependencies": {
+        "phaser": "^3.90.0",
+        "phaser3-rex-plugins": "^1.80.20"
+    }
+}
