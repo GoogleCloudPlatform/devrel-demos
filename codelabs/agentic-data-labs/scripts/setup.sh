@@ -13,6 +13,7 @@ REGION="us-central1"
 CLOUDSQL_INSTANCE="cymbal-pets-ops"
 CLOUDSQL_TIER="db-f1-micro"
 CLOUDSQL_DB="cymbal_pets_ops"
+TOOLBOX_VERSION="${TOOLBOX_VERSION:-@toolbox-sdk/server@>=1.1.0}"
 # --- Colors ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -36,6 +37,18 @@ log_step() {
 # --- Config & Environment ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/../.env"
+
+# --- Parse Arguments ---
+SHOW_VSCODE_JSON=false
+
+for arg in "$@"; do
+  case $arg in
+    --vscode|--ide=vscode)
+      SHOW_VSCODE_JSON=true
+      shift
+      ;;
+  esac
+done
 
 # Load environment from .env if it exists
 if [ -f "$ENV_FILE" ]; then
@@ -439,3 +452,69 @@ echo -e "  ${YELLOW}tail -f /tmp/cloudsql_setup.log${NC}"
 echo ""
 echo -e "To clean up when done: ${YELLOW}./teardown.sh ${PROJECT_ID}${NC}"
 
+if [ "$SHOW_VSCODE_JSON" = true ]; then
+  echo ""
+  echo -e "${YELLOW}╔══════════════════════════════════════════════════════╗${NC}"
+  echo -e "${YELLOW}║   VS CODE DATA AGENT KIT CONFIGURATION               ║${NC}"
+  echo -e "${YELLOW}╚══════════════════════════════════════════════════════╝${NC}"
+  echo ""
+  echo -e "Copy the JSON block below and paste it into your VS Code ${BLUE}mcp.json${NC} file:"
+  echo ""
+  cat << EOF
+{
+  "servers": {
+    "datacloud_bigquery_toolbox": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "${TOOLBOX_VERSION}",
+        "--prebuilt",
+        "bigquery",
+        "--stdio",
+        "--user-agent-metadata",
+        "datacloud.visual studio code"
+      ],
+      "env": {
+        "BIGQUERY_LOCATION": "us-central1",
+        "BIGQUERY_PROJECT": "${PROJECT_ID}"
+      }
+    },
+    "datacloud_cloud-sql-postgresql-admin_toolbox": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "${TOOLBOX_VERSION}",
+        "--prebuilt",
+        "cloud-sql-postgres-admin",
+        "--stdio",
+        "--user-agent-metadata",
+        "datacloud.visual studio code"
+      ],
+      "env": {}
+    },
+    "datacloud_cloud-sql-postgresql_toolbox": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "${TOOLBOX_VERSION}",
+        "--prebuilt",
+        "cloud-sql-postgres",
+        "--stdio",
+        "--user-agent-metadata",
+        "datacloud.visual studio code"
+      ],
+      "env": {
+        "CLOUD_SQL_POSTGRES_DATABASE": "${CLOUDSQL_DB:-cymbal_pets_ops}",
+        "CLOUD_SQL_POSTGRES_INSTANCE": "${CLOUDSQL_INSTANCE:-cymbal-pets-ops}",
+        "CLOUD_SQL_POSTGRES_IP_TYPE": "PUBLIC",
+        "CLOUD_SQL_POSTGRES_PASSWORD": "${CLOUDSQL_PASSWORD}",
+        "CLOUD_SQL_POSTGRES_PROJECT": "${PROJECT_ID}",
+        "CLOUD_SQL_POSTGRES_REGION": "${REGION:-us-central1}",
+        "CLOUD_SQL_POSTGRES_USER": "postgres"
+      }
+    }
+  }
+}
+EOF
+  echo ""
+fi
