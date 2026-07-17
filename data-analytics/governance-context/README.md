@@ -30,16 +30,16 @@ Scripts in the root directory used to simulate an automated CI/CD governance pip
 *   **`apply_governance.sh`**: A shell script that iterates through the BigQuery tables and uses the `gcloud dataplex entries update` command to attach the generated YAML metadata (Aspects) to the actual tables.
 
 ### 3. AI Agent Local Prototyping (Agent Skill)
-*   **`.agents/skills/knowledge_catalog_governance/SKILL.md`**: The Agent Skill definition file. It contains the system instructions and the 3-phase algorithm (Metadata Discovery -> Search Execution -> Verification) for the AGY CLI, ensuring the agent strictly queries governed data.
+*   **`.agents/skills/knowledge-catalog-governance/SKILL.md`**: The Agent Skill definition file. It contains the system instructions and the 3-phase algorithm (Metadata Discovery -> Search Execution -> Verification) for the AGY CLI, ensuring the agent strictly queries governed data.
 
 ### 4. Production AI Agent Application (MCP & ADK)
 Located in the `mcp_server/` directory, these files are used in Part 2 to deploy the enterprise-grade web application.
-*   **`mcp_server/tools.yaml`**: The declarative configuration file for the GenAI Toolbox. It defines the Model Context Protocol (MCP) server settings and explicitly exposes only three specific Knowledge Catalog tools (`search_aspect_types`, `search_entries`, `lookup_entry`) to enforce a read-only, governance-first reasoning loop.
 *   **`mcp_server/agent.py`**: The core application logic built using **Google's Agent Development Kit (ADK)**. 
     *   It securely connects to the Google-managed Knowledge Catalog MCP server to fetch available tools.
-    *   It orchestrates a `SequentialAgent` workflow, utilizing a *Governance Researcher Agent* (to query Knowledge Catalog) and a *Compliance Formatter Agent* (to format the output for the user).
-*   **`mcp_server/env.temp`**: A template file for runtime environment variables.
-*   **`mcp_server/requirements.txt`**: Python dependencies required to run the ADK application (`google-adk[gcp,mcp]`, etc.).
+    *   It orchestrates a `SequentialAgent` workflow, utilizing a *Governance Researcher Agent* (equipped with the `knowledge-catalog-governance` skill) and a *Compliance Formatter Agent* (to format the output for the user).
+*   **`mcp_server/main.py`**: The FastAPI server entrypoint running Uvicorn to serve the agent web app.
+*   **`mcp_server/Dockerfile`**: The container blueprint to build and package the production backend for Cloud Run.
+*   **`mcp_server/requirements.txt`**: Python dependencies required to run the ADK application (`google-adk[gcp,mcp]`, `fastapi`, `uvicorn`, etc.).
 *   **`mcp_server/__init__.py`**: Python package initialization file.
 
 ---

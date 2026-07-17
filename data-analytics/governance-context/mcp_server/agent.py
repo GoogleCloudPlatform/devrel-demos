@@ -48,7 +48,7 @@ if not project_id:
 location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
 
 # Connect directly to the Google-Managed Knowledge Catalog MCP Server
-mcp_server_url = f"https://dataplex.googleapis.com/v1/projects/{project_id}/locations/{location}/mcp/sse"
+mcp_server_url = "https://dataplex.googleapis.com/mcp"
 
 def get_access_token():
     """Get a Google Cloud access token to authenticate with the Managed MCP server."""
@@ -70,41 +70,43 @@ tools = McpToolset(
         )
 
 
-# Greet user and save their prompt
-def add_prompt_to_state(
-    tool_context: ToolContext, prompt: str
-) -> dict[str, str]:
-    """Saves the user's initial prompt to the state."""
-    tool_context.state["PROMPT"] = prompt
-    logging.info(f"[State updated] Added to PROMPT: {prompt}")
-    return {"status": "success"}
+from pathlib import Path
+from google.adk.skills import load_skill_from_dir
+from google.adk.tools import skill_toolset
 
+# Load the governance skill following best practices (progressive disclosure)
+base_dir = Path(__file__).parent
+governance_skill = load_skill_from_dir(
+    base_dir / "skills" / "knowledge-catalog-governance"
+)
 
-def load_skill_instruction(skill_path: str) -> str:
-    """Reads the SKILL.md file and returns the instruction content."""
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    resolved_path = os.path.normpath(os.path.join(base_dir, "..", skill_path))
-    with open(resolved_path, "r", encoding="utf-8") as f:
-        content = f.read()
-    if content.startswith("---"):
-        parts = content.split("---", 2)
-        if len(parts) >= 3:
-            content = parts[2].strip()
-    # Inject runtime variables if present in the skill template
-    content = content.replace("[PROJECT_ID]", project_id)
-    content = content.replace("[LOCATION]", location)
-    return content.strip()
+# Bundle the skill and MCP tools together into a SkillToolset
+governance_skill_toolset = skill_toolset.SkillToolset(
+    skills=[governance_skill],
+    additional_tools=[tools]
+)
 
 # --- 1. Governance Researcher Agent ---
-# Load the shared governance instruction from the Agent Skill (Single Source of Truth)
-governance_researcher_instruction = load_skill_instruction("./.agents/skills/knowledge_catalog_governance/SKILL.md")
-
 governance_researcher = LlmAgent(
     name="governance_researcher",
     model=model_name,
     description="Dynamically interprets metadata schema (Booleans/Enums) and searches for assets using strict syntax.",
-    instruction=governance_researcher_instruction,
-    tools=[tools],
+    instruction=f"""
+    You are a governance researcher. Your job is to verify Knowledge Catalog metadata rules and find compliant assets for the user's query.
+    
+    YOUR ACTIVE ENVIRONMENT CONTEXT (CRITICAL):
+    - Google Cloud Project ID: {project_id} (You MUST use this EXACT string for your tool scope and aspect queries. Never use any other project name, placeholders, or cached names from previous sessions.)
+    - Location (Region): {location}
+
+    YOUR WORKFLOW:
+    1. First, check if the user query is related to data analytics assets, database tables, or data compliance.
+       - If YES: Call `load_skill` with `name="knowledge-catalog-governance"` to load the rules, then use search/lookup tools to locate a certified compliant table.
+       - If NO (e.g., general chit-chat, unrelated tasks): Skip skill loading and output a JSON object indicating it is out of scope:
+         {{"error": "out_of_scope", "message": "The query does not pertain to data catalog search or governance compliance."}}
+    2. Populate the required `projectId` and `location` parameters in tool calls with the active environment parameters. Ensure the `scope` parameter in `search_entries` is precisely set to `projects/{project_id}` using the active Google Cloud Project ID provided above.
+    3. Return the verified table's metadata in JSON format as your final research output.
+    """,
+    tools=[governance_skill_toolset, tools],
     output_key="research_data"
 )
 
@@ -116,50 +118,30 @@ compliance_formatter = LlmAgent(
     description="Formats the JSON research data into a helpful response for the user.",
     instruction="""
     You are the **Intelligent Data Governance Specialist**.
-    You have received technical research data (RESEARCH_DATA) from your internal analysis.
-    Your job is to explain the findings clearly to the user.
+    Your job is to explain the findings of the governance research clearly to the user.
 
     **YOUR GOAL:**
-    Explain the logical connection between the User's Request, the Governance Schema (translated criteria), and the Recommended Table.
-
-    **RESPONSE TEMPLATE:**
-    1. **Analysis:** "I analyzed the metadata schema and translated your request '{research_data.user_intent}' into the following technical criteria:..."
-       (List the criteria from 'technical_criteria' cleanly).
-    2. **Recommendation:** "Based on this, I recommend the following table:"
-       - **Table:** {research_data.table_name}
-       - **Description:** {research_data.description}
-    3. **Verification:** "This asset is a verified match because: {research_data.verification_details}."
-
-    **HANDLING NO RESULTS:**
-    If `research_data.found_match` is false, apologize politely and explain that no data asset currently matches the strict governance criteria defined in `official-data-product-spec`.
-
-    RESEARCH_DATA:
-    {{ research_data }}
+    1. If the researcher found a matching table (valid JSON with table metadata):
+       - Explain the logical connection between the User's Request, the Governance Schema (translated criteria), and the Recommended Table.
+       - Use the following RESPONSE TEMPLATE:
+         - **Analysis:** "I analyzed the metadata schema and translated your request into the following technical criteria:..."
+         - **Recommendation:** "Based on this, I recommend the following table:"
+           - **Table:** [Insert Table Name]
+           - **Description:** [Insert Table Description]
+         - **Verification:** "This asset is a verified match because: [Explain the verification details]."
+    2. If the researcher returned an 'out_of_scope' error or no matching tables were found:
+       - Apologize politely and explain that no data asset currently matches the strict governance criteria defined in `official-data-product-spec`.
+       - Clearly state what domain of questions this agent is certified to answer (e.g., Data Catalog Search and Data Governance compliance).
     """
 )
 
 
-governance_workflow = SequentialAgent(
+# --- Root Agent Workflow ---
+root_agent = SequentialAgent(
     name="governance_workflow",
     description="Workflow to learn metadata rules, search with strict syntax, and recommend assets.",
     sub_agents=[
         governance_researcher,
         compliance_formatter,
     ]
-)
-
-
-root_agent = LlmAgent(
-    model=model_name,
-    name="greeter",
-    description="Entry point for the Data Governance Assistant.",
-    instruction="""
-        - You are the 'Enterprise Data Governance Assistant'.
-        - Greet the user warmly.
-        - Save the user's request using 'add_prompt_to_state'.
-        - Then, invoke the 'governance_workflow' to find the best data product for them.
-        - **IMPORTANT:** Do not output the raw JSON from the workflow. Only show the final natural language explanation.
-    """,
-    tools=[add_prompt_to_state],
-    sub_agents=[governance_workflow]
 )
