@@ -1,0 +1,12 @@
+name: sentiment-agent-realtime
+agent_directory: agents
+region: us-central1
+base_template: adk
+acli_version: 1.0.0
+language: python
+create_params:
+  deployment_target: none
+  is_a2a: true
+  session_type: in_memory
+  cicd_runner: skip
+  agent_guidance_filename: GEMINI.md
