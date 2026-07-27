@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  grafana:
+    build: .
+    container_name: local-grafana-bigquery
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=grafana-bigquery-datasource
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
+      - GOOGLE_APPLICATION_CREDENTIALS=/home/grafana/.config/gcloud/application_default_credentials.json
+    volumes:
+      - ./provisioning:/etc/grafana/provisioning

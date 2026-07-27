@@ -1,0 +1,10 @@
+apiVersion: 1
+
+datasources:
+  - name: BigQuery-Vegas-Navigator
+    type: grafana-bigquery-datasource
+    access: proxy
+    isDefault: true
+    jsonData:
+      authenticationType: gce
+      defaultProject: "${GOOGLE_CLOUD_PROJECT}"

@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+.env
+.pytest_cache/
+*.log
+real-time/supporting-docs/
+real-time/tests/
+real-time/uv.lock
+SUMMARY.MD
+.adk/
+**/session.db
+agents/tests/
+batch-analytics/docs/
+docs/
+real-time/docs/
+
+

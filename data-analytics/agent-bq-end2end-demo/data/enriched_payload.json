@@ -1,0 +1,148 @@
+{
+  "hotel": [
+    {
+      "id": "h_001",
+      "name": "Main Keynote Theater",
+      "poi_type": "SESSION",
+      "category": "Keynote",
+      "location_summary": "Mandalay Bay Events Center, Level 1",
+      "description": "Primary venue for the opening keynote. Features 5,000+ capacity, 4K screen, and accessibility seating. AI for All starts here.",
+      "common_questions": [
+        "Where is the main keynote?",
+        "Which hall is the AI for All presentation in?",
+        "Where can I find the big theater?"
+      ],
+      "attributes": {
+        "capacity": 5000,
+        "accessibility": true,
+        "wifi": "premium"
+      }
+    },
+    {
+      "id": "h_002",
+      "name": "Expo Hall: Shorelines",
+      "poi_type": "EXPO",
+      "category": "Exhibition",
+      "location_summary": "Shorelines Exhibit Hall, Level 2",
+      "description": "Hub of innovation with 200+ partner booths. Includes coffee stations, charging lounges, and the Hands-on Labs area.",
+      "common_questions": [
+        "Where is the demo hall?",
+        "Where can I find the partner booths?",
+        "Is there a charging station?"
+      ],
+      "attributes": {
+        "booths": 200,
+        "has_coffee": true
+      }
+    },
+    {
+      "id": "h_006",
+      "name": "The Orchid Lounge",
+      "poi_type": "PERMANENT",
+      "category": "Quiet Zone",
+      "location_summary": "Behind the waterfalls, Level 1",
+      "description": "A secluded, premium lounge designed for deep work or private calls. Known for its zen atmosphere and white noise machines.",
+      "common_questions": [
+        "Where can I work quietly?",
+        "Is there a place for a private Zoom call?",
+        "Where is a low-noise area?",
+        "Where can I take a high-stakes client call?"
+      ],
+      "attributes": {
+        "noise_level": "very_low",
+        "private_pods": true,
+        "power": true
+      }
+    },
+    {
+      "id": "h_008",
+      "name": "Veranda Vegan & Gluten-Free Station",
+      "poi_type": "PERMANENT",
+      "category": "Food",
+      "location_summary": "Restaurant Row, Level 1",
+      "description": "Exclusive dining for attendees with dietary restrictions. Features 100% plant-based and certified gluten-free menus.",
+      "common_questions": [
+        "Where can I find vegan food?",
+        "Is there a gluten-free lunch option?",
+        "Where should I eat if I have allergies?",
+        "Vegan spots near the hall?"
+      ],
+      "attributes": {
+        "vegan": true,
+        "gluten_free": true,
+        "type": "buffet"
+      }
+    },
+    {
+      "id": "h_010",
+      "name": "Media Hub & Press Room",
+      "poi_type": "SESSION",
+      "category": "Media",
+      "location_summary": "Level 3, South Convention Center",
+      "description": "Dedicated space for journalists and bloggers. Features high-speed fiber, broadcast-quality lighting, and interview pods.",
+      "common_questions": [
+        "Where is the press room?",
+        "Where can I record a podcast?",
+        "Is there a media center?",
+        "High speed internet for uploading video?"
+      ],
+      "attributes": {
+        "fiber": true,
+        "interview_pods": true
+      }
+    }
+  ],
+  "stadium": [
+    {
+      "id": "s_001",
+      "policy_name": "Vegas Concert Party Entry Requirements",
+      "details": "All attendees must present their digital conference badge AND a valid government-issued ID. Gates open at 7:00 PM.",
+      "category": "Admission",
+      "common_questions": [
+        "What do I need to get into the party?",
+        "Do I need my ID for the Vegas night?",
+        "What time does the event start?",
+        "Can I use my badge on my phone?"
+      ]
+    },
+    {
+      "id": "s_004",
+      "policy_name": "Laptop, Tablet & Bag Policy",
+      "details": "Laptops, tablets, professional cameras, and large bags are strictly prohibited inside the stadium bowl for security reasons. There are no free secure lockers.",
+      "category": "Device & Bag Policy",
+      "common_questions": [
+        "Can I bring my laptop to the stadium?",
+        "Where can I store my MacBook?",
+        "Is there a locker service for my tablet?",
+        "Am I allowed to bring a professional camera?",
+        "Where do I put my bags for the concert tonight?",
+        "Are there lockers for bags?",
+        "MacBook air at the party?"
+      ]
+    },
+    {
+      "id": "s_005",
+      "policy_name": "Rideshare Pickup Point - Gate 9",
+      "details": "Official Uber/Lyft pickup point is at Gate 9. Follow the 'Vegas Glow' neon signs. Do not attempt pickup at the main entrance.",
+      "category": "Transport",
+      "common_questions": [
+        "Where is the Uber pickup?",
+        "How do I get a taxi after the party?",
+        "Where is Gate 9?",
+        "Uber location?"
+      ]
+    },
+    {
+      "id": "s_007",
+      "policy_name": "Hydration Policy",
+      "details": "Attendees may bring one factory-sealed plastic water bottle (20oz or less). Empty reusable bottles are permitted for use at refilling stations.",
+      "category": "Food & Drink",
+      "common_questions": [
+        "Can I bring my own water?",
+        "Are there refilling stations?",
+        "Is my hydroflask allowed?",
+        "Factory sealed water allowed?"
+      ]
+    }
+  ]
+}
