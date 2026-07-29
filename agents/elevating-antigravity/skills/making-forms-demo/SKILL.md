@@ -37,8 +37,7 @@ Interviews the user for critical implementation details needed to generate a Web
    {
      "FORMS": {
        "FIELD_VALIDATION_TYPE": ["<SELECTED_VALUES>"],
-       "FIELD_VALIDATION_LOCATION": "<SELECTED_VALUE>",
-       "FIELD_LABEL_TYPE": "<SELECTED_VALUE>"
+       "FIELD_VALIDATION_LOCATION": "<SELECTED_VALUE>"
      }
    }
    ```
