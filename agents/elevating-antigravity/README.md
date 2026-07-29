@@ -1,6 +1,6 @@
 # Elevating Antigravity Agent Skills Series
 
-The **Elevating Antigravity Agent Skills** series is a 5-part engineering guide authored by [James O'Reilly](https://www.linkedin.com/in/jamesor/) for developers looking elevate their AI agent workflows with native tools.
+The **Elevating Antigravity Agent Skills** series is a 5-part engineering guide authored by [James O'Reilly](https://www.linkedin.com/in/jamesor/) for developers looking to elevate their AI agent workflows with native tools.
 
 ---
 
