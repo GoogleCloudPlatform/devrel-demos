@@ -52,7 +52,7 @@ while [ $count -lt $max_retries ]; do
   echo "Attempt $count to grant IAM permissions..."
 
   # Extract Service Account ID of the connection
-  SA_ID=$(bq show --location="$REGION" --format=json --connection pet-connection 2>/dev/null | grep -o '"serviceAccountId": "[^"]*' | cut -d'"' -f4)
+  SA_ID=$(bq show --location="$REGION" --format=json --connection pet-connection 2>/dev/null | jq -r '.cloudResource.serviceAccountId')
 
   if [ -n "$SA_ID" ]; then
     echo "  ✅   Found Connection Service Account: $SA_ID"
@@ -84,4 +84,4 @@ if [ "$success" = false ]; then
 fi
 
 echo " "
-echo "  🎉   Script execution complete."
+echo "  🎉  🦄 Script execution complete."
