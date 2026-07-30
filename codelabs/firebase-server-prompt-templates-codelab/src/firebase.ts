@@ -30,6 +30,7 @@ const ai = getAI(app, { backend: new AgentPlatformBackend() });
 const model = getTemplateGenerativeModel(ai);
 
 export const callCustomerSupportModel = async (query: string, productId?: string, history?: { role: string, contents: string }[]) => {
+    // Generate content using the published 'product-agent' template
     const result = await model.generateContent('product-agent', {
         query,
         productId,
