@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { getAI, getTemplateGenerativeModel, VertexAIBackend } from "firebase/ai";
+import { getAI, getTemplateGenerativeModel, AgentPlatformBackend } from "firebase/ai";
 import { initializeApp } from "firebase/app";
 
 // Your web app's Firebase configuration
@@ -25,7 +25,7 @@ const firebaseConfig = {
 // Initialize Firebase
 export const app = initializeApp(firebaseConfig);
 
-const ai = getAI(app, { backend: new VertexAIBackend() });
+const ai = getAI(app, { backend: new AgentPlatformBackend() });
 
 const model = getTemplateGenerativeModel(ai);
 
