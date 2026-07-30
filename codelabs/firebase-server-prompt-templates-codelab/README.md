@@ -23,7 +23,7 @@ To replicate the demo, follow the steps outlined in the [Build an AI-powered cus
 2.  **Install dependencies**:
     *   Navigate to this directory and run `npm install`.
 3.  **Configure Firebase**:
-    *   Initialize a Firebase project and enable the **Vertex AI for Firebase** extensions.
+    *   Initialize a Firebase project and enable **Firebase AI Logic**.
     *   Update `src/firebase.ts` with your web app's configuration.
 4.  **Run the application**:
     *   Start the development server with `npm run dev`.
