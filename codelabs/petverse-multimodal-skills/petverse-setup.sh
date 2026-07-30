@@ -60,12 +60,10 @@ while [ $count -lt $max_retries ]; do
     echo "  🔄   Granting Storage Object Viewer and Vertex AI User permissions..."
     gcloud projects add-iam-policy-binding "$PROJECT_ID" \
       --member="serviceAccount:$SA_ID" \
-      --role="roles/storage.objectViewer" \
-      --condition=None >/dev/null 2>&1 && \
+      --role="roles/storage.objectViewer" >/dev/null 2>&1 && \
     gcloud projects add-iam-policy-binding "$PROJECT_ID" \
       --member="serviceAccount:$SA_ID" \
-      --role="roles/aiplatform.user" \
-      --condition=None >/dev/null 2>&1
+      --role="roles/aiplatform.user" >/dev/null 2>&1
 
     if [ $? -eq 0 ]; then
       echo "  ✅   IAM permissions successfully granted."
