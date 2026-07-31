@@ -15,7 +15,7 @@
  */
 
 import { getAI, getTemplateGenerativeModel, AgentPlatformBackend } from "firebase/ai";
-import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import { initializeApp } from "firebase/app";
 
 // Your web app's Firebase configuration
@@ -28,7 +28,7 @@ export const app = initializeApp(firebaseConfig);
 
 // Initialize App Check
 initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider('YOUR_RECAPTCHA_SITE_KEY'),
+  provider: new ReCaptchaEnterpriseProvider('YOUR_RECAPTCHA_ENTERPRISE_SITE_KEY'),
   isTokenAutoRefreshEnabled: true
 });
 
