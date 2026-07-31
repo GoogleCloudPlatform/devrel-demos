@@ -15,6 +15,7 @@
  */
 
 import { getAI, getTemplateGenerativeModel, AgentPlatformBackend } from "firebase/ai";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 import { initializeApp } from "firebase/app";
 
 // Your web app's Firebase configuration
@@ -25,10 +26,15 @@ const firebaseConfig = {
 // Initialize Firebase
 export const app = initializeApp(firebaseConfig);
 
-const ai = getAI(app, { backend: new AgentPlatformBackend() });
+// Initialize App Check
+initializeAppCheck(app, {
+  provider: new ReCaptchaV3Provider('YOUR_RECAPTCHA_SITE_KEY'),
+  isTokenAutoRefreshEnabled: true
+});
+
+const ai = getAI(app, { backend: new AgentPlatformBackend(), useLimitedUseAppCheckTokens: true });
 
 const model = getTemplateGenerativeModel(ai);
-
 export const callCustomerSupportModel = async (query: string, productId?: string, history?: { role: string, contents: string }[]) => {
     // Generate content using the published 'product-agent' template
     const result = await model.generateContent('product-agent', {
