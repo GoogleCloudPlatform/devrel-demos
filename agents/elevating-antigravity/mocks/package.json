@@ -1,0 +1,9 @@
+{
+  "name": "mock-test-suites",
+  "version": "0.0.0",
+  "description": "Mock test suites for testing parallel batch-executing-test-suites subagent skill",
+  "type": "module",
+  "scripts": {
+    "test": "node mocks/runner.js"
+  }
+}
