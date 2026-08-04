@@ -49,4 +49,4 @@ const fullPath = path.join(__dirname, testFile);
 
 console.log(`Running mock test suite: ${suite} (${testFile})...`);
 const result = spawnSync('node', ['--test', fullPath], { stdio: 'inherit' });
-process.exit(result.status ?? 0);
+process.exit(result.status ?? 1);
