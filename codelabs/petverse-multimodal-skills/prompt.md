@@ -33,6 +33,25 @@ Generate the complete project codebase comprising the exact files and structure 
   - `GET /pet/<int:pet_id>`: Renders `pet.html` with pet details and similar recommendations.
   - `GET /search`: Reads query parameter `query` and renders `search.html`.
 - **Server Entrypoint**: `app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))`.
+- **Helper Function**: \`format_gs_uri(uri)\`
+  - **MANDATORY**: Extract \`uri\` from dict if input is a RECORD.
+  - **MANDATORY**: Replace \`gs://\` with \`https://storage.googleapis.com/\` for public access.
+- **Database Functions**: 
+  - Ensure **ALL** functions (\`get_all_pets\`, \`get_pet_details\`, \`get_similar_pets\`, \`search_pets_semantic\`) apply \`format_gs_uri\` to every image/media URI returned to the frontend.
+  - Use \`bigquery.ScalarQueryParameter\` for all user-provided inputs to prevent SQL injection.
+
+### BigQuery Schema & SQL Details
+- **\`petverse.pets\` Table**:
+  - **\`profile_picture\`**: This is a \`RECORD\` (struct) type. You **must** extract the \`uri\` field (e.g., \`pet['profile_picture'].get('uri')\`) before processing as a string.
+  - **Field Mapping**: Map BigQuery camelCase fields to snake_case for the UI:
+    - \`AdoptionStory\` -> \`Adoption_Story\`
+    - \`FavoriteFood\` / \`FavoriteToy\` -> \`Favorite_Food_or_Toy\` (concatenated).
+    - \`additional_media\` -> \`media\` (REPEATED RECORD; extract and format all \`uri\` values).
+- **Semantic Search (\`VECTOR_SEARCH\`)**:
+  - Embedding column: \`ml_generate_embedding_result\`.
+  - Join logic: You **must** join on \`probe.base.Id\` (VECTOR_SEARCH result wraps table columns in \`base\`).
+- **Recommendations**:
+  - Use \`ML.DISTANCE\` with \`COSINE\` metric on \`ml_generate_embedding_result\` columns.
 
 ### 2. `requirements.txt` (Dependencies)
 ```text
@@ -64,12 +83,20 @@ shapely>=2.0.0
 - `search.html`: Displays search results cards corresponding to the semantic query.
 
 ### 6. `deploy.sh` (Deployment Automation)
+- Build container via Cloud Build.
 - Bash script to deploy the application container to Cloud Run:
   - Exports `SERVICE_NAME="petverse-profiles"`, `REPOSITORY_NAME="cloud-run-source-deploy"`, `REGION`, `PROJECT_ID`, and `IMAGE_URL`.
   - Verifies and creates Artifact Registry repository if non-existent.
   - Compiles container image via `gcloud builds submit --tag ${IMAGE_URL}`.
-  - Deploys service to Cloud Run with `--no-allow-unauthenticated` and `--iap`.
-  - Binds active account `user:${USER_EMAIL}` to IAP policy `roles/iap.httpsResourceAccessor`.
+  - Deploys service to Cloud Run with `--allow-unauthenticated`.
+- **CRITICAL**: Include this command to ensure images load in the browser:
+  \`gcloud storage buckets add-iam-policy-binding gs://${PROJECT_ID}-petverse --member=allUsers --role=roles/storage.objectViewer\`
+
+# Common Implementation Pitfalls to Avoid
+1. **AttributeError**: Do not call \`.startswith()\` on \`profile_picture\` without checking if it is a dictionary first.
+2. **Missing Images**: Do not use the \`mtls\` storage endpoint; use \`storage.googleapis.com\`.
+3. **Empty Search**: Ensure \`VECTOR_SEARCH\` uses \`ml_generate_embedding_result\` for both the table column and the query vector.
+4. **Incorrect Joins**: Always use \`probe.base.Id\` when joining \`VECTOR_SEARCH\` results with the pets table.
 
 ---
 
