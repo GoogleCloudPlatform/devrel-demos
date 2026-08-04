@@ -24,7 +24,7 @@ let suite = 'unit';
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--selectProjects' || args[i] === '--suite') {
-    suite = args[i + 1];
+    suite = args[i + 1] || 'unit';
     break;
   }
   if (args[i].startsWith('--suite=')) {
