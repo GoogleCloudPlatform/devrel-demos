@@ -12,6 +12,11 @@
 -- 2. Make sure the following prerequisite resources exist before running (run petverse-setup.sh):
 --      - Storage bucket: gs://PROJECT_ID-petverse (with pet media & CSV)
 --      - External connection: REGION.pet-connection
+-- 2. a - Run the creation of the storage bucket and copy (replace the placeholders):
+-- gcloud storage buckets create gs://"PROJECT_ID"-petverse --uniform-bucket-level-access --location="REGION"
+-- gcloud storage cp -r gs://sample-data-and-media/petverse/* gs://"PROJECT_ID"-petverse/
+-- bq mk --dataset --location="REGION" --project_id=PROJECT_ID petverse
+-- echo "your bucket is gs://PROJECT_ID-petverse"
 -- 3. You can run this entire script at once in the BigQuery Studio SQL Editor.
 -- ============================================================================
 
