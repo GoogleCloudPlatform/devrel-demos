@@ -49,7 +49,6 @@ SPANNER_INSTANCE="${SPANNER_INSTANCE:-cymbal-fraud}"
 DATASET_NAME="${DATASET_NAME:-transactions_dataset_evals}"
 RAW_BUCKET="${RAW_BUCKET:-${PROJECT_ID}-fin-clearing-raw}"
 MODELS_BUCKET="${MODELS_BUCKET:-${PROJECT_ID}-models}"
-ICEBERG_CATALOG="${RAW_BUCKET}"
 COMPOSER_SA_EMAIL="${COMPOSER_SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 
 echo ""
@@ -60,7 +59,6 @@ echo ""
 log_warn "This will delete the following resources in project '${PROJECT_ID}':"
 log_warn "  - GCS Bucket:          gs://${RAW_BUCKET}"
 log_warn "  - GCS Bucket:          gs://${MODELS_BUCKET}"
-log_warn "  - Iceberg Catalog:     ${ICEBERG_CATALOG}"
 log_warn "  - BigQuery Dataset:    ${DATASET_NAME}"
 log_warn "  - Spanner Instance:    ${SPANNER_INSTANCE}"
 log_warn "  - Composer Env:        ${COMPOSER_ENVIRONMENT} in ${REGION}"
@@ -91,6 +89,18 @@ fi
 # 2. Delete Cloud Spanner Instance
 # =============================================================================
 if gcloud spanner instances describe "$SPANNER_INSTANCE" --project="$PROJECT_ID" &>/dev/null; then
+    log_info "Deleting Spanner backup schedules and backups before instance deletion..."
+    for db in $(gcloud spanner databases list --instance="$SPANNER_INSTANCE" --project="$PROJECT_ID" --format="value(name)" 2>/dev/null || true); do
+        for sched in $(gcloud spanner backup-schedules list --instance="$SPANNER_INSTANCE" --database="$(basename "$db")" --project="$PROJECT_ID" --format="value(name)" 2>/dev/null || true); do
+            log_info "  Deleting backup schedule: $(basename "$sched")..."
+            gcloud spanner backup-schedules delete "$(basename "$sched")" --instance="$SPANNER_INSTANCE" --database="$(basename "$db")" --project="$PROJECT_ID" --quiet || true
+        done
+    done
+    for backup in $(gcloud spanner backups list --instance="$SPANNER_INSTANCE" --project="$PROJECT_ID" --format="value(name)" 2>/dev/null || true); do
+        log_info "  Deleting Spanner backup: $backup..."
+        gcloud spanner backups delete "$backup" --instance="$SPANNER_INSTANCE" --project="$PROJECT_ID" --quiet || true
+    done
+
     log_info "Deleting Cloud Spanner Instance '${SPANNER_INSTANCE}'..."
     gcloud spanner instances delete "$SPANNER_INSTANCE" \
         --project="$PROJECT_ID" \
@@ -101,46 +111,14 @@ else
 fi
 
 # =============================================================================
-# 3. Delete BigLake Iceberg Catalog (namespace + catalog)
+# 3. Delete Dataproc Serverless Runtime Template
 # =============================================================================
-# Detect which gcloud track has working biglake commands (mirrors setup.sh)
-if gcloud biglake iceberg catalogs list --project="$PROJECT_ID" &>/dev/null 2>&1; then
-  BIGLAKE_CMD="gcloud biglake"
-elif gcloud alpha biglake iceberg catalogs list --project="$PROJECT_ID" &>/dev/null 2>&1; then
-  BIGLAKE_CMD="gcloud alpha biglake"
+if gcloud beta dataproc session-templates describe fraud-pipeline-runtime --location="$REGION" --project="$PROJECT_ID" &>/dev/null; then
+    log_info "Deleting Dataproc Serverless Session Template 'fraud-pipeline-runtime'..."
+    gcloud beta dataproc session-templates delete fraud-pipeline-runtime --location="$REGION" --project="$PROJECT_ID" --quiet 2>/dev/null || true
+    log_ok "Session template deleted."
 else
-  BIGLAKE_CMD="gcloud biglake"
-fi
-
-# Delete namespace first, then catalog
-if $BIGLAKE_CMD iceberg namespaces describe "$DATASET_NAME" \
-    --catalog="$ICEBERG_CATALOG" --project="$PROJECT_ID" 2>/dev/null; then
-    log_info "Deleting Iceberg namespace '${DATASET_NAME}'..."
-    # Delete all tables in the namespace first
-    TABLES=$($BIGLAKE_CMD iceberg tables list \
-      --namespace="$DATASET_NAME" --catalog="$ICEBERG_CATALOG" \
-      --project="$PROJECT_ID" --format="value(name)" 2>/dev/null || echo "")
-    for table_path in $TABLES; do
-      table_name=$(basename "$table_path")
-      log_info "  Deleting Iceberg table '${table_name}'..."
-      $BIGLAKE_CMD iceberg tables delete "$table_name" \
-        --namespace="$DATASET_NAME" --catalog="$ICEBERG_CATALOG" \
-        --project="$PROJECT_ID" --quiet 2>/dev/null || true
-    done
-    $BIGLAKE_CMD iceberg namespaces delete "$DATASET_NAME" \
-      --catalog="$ICEBERG_CATALOG" --project="$PROJECT_ID" --quiet 2>/dev/null || true
-    log_ok "Iceberg namespace deleted."
-else
-    log_warn "Iceberg namespace '${DATASET_NAME}' not found. Skipping."
-fi
-
-if $BIGLAKE_CMD iceberg catalogs describe "$ICEBERG_CATALOG" --project="$PROJECT_ID" 2>/dev/null; then
-    log_info "Deleting Iceberg catalog '${ICEBERG_CATALOG}'..."
-    $BIGLAKE_CMD iceberg catalogs delete "$ICEBERG_CATALOG" \
-      --project="$PROJECT_ID" --quiet 2>/dev/null || true
-    log_ok "Iceberg catalog deleted."
-else
-    log_warn "Iceberg catalog '${ICEBERG_CATALOG}' not found. Skipping."
+    log_warn "Session template 'fraud-pipeline-runtime' not found. Skipping."
 fi
 
 # =============================================================================
@@ -157,10 +135,10 @@ fi
 # =============================================================================
 # 5. Delete Cloud Storage Buckets
 # =============================================================================
-for bucket in "$RAW_BUCKET" "$MODELS_BUCKET"; do
+for bucket in "$RAW_BUCKET" "$MODELS_BUCKET" "${PROJECT_ID}-airflow-artifacts"; do
   if gcloud storage buckets describe "gs://${bucket}" --project="$PROJECT_ID" &>/dev/null; then
       log_info "Deleting Cloud Storage Bucket gs://${bucket}..."
-      gcloud storage rm -r "gs://${bucket}" --quiet
+      gcloud storage rm -r "gs://${bucket}" --quiet 2>/dev/null || true
       log_ok "GCS Bucket gs://${bucket} deleted."
   else
       log_warn "GCS Bucket gs://${bucket} not found. Skipping."

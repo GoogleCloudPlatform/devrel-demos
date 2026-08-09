@@ -7,7 +7,7 @@
 # Prerequisites (run in Cloud Shell before this script):
 #   gcloud config set project <<YOUR_PROJECT_ID>>
 #   export PROJECT_ID=$(gcloud config get-value project)
-#   export REGION=us-west1
+#   export REGION=us-central1
 
 set -euo pipefail
 
@@ -39,7 +39,7 @@ ENV_FILE="$SCRIPT_DIR/../.env"
 
 # Auto-detect or use exported env vars
 PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}"
-REGION="${REGION:-us-west1}"
+REGION="${REGION:-us-central1}"
 
 if [[ -z "${PROJECT_ID:-}" ]]; then
     log_error "PROJECT_ID is not set. Run: gcloud config set project <<YOUR_PROJECT_ID>>"
@@ -56,7 +56,6 @@ SPANNER_DATABASE="${SPANNER_DATABASE:-fraud-db}"
 DATASET_NAME="${DATASET_NAME:-transactions_dataset_evals}"
 RAW_BUCKET="${RAW_BUCKET:-${PROJECT_ID}-fin-clearing-raw}"
 MODELS_BUCKET="${MODELS_BUCKET:-${PROJECT_ID}-models}"
-ICEBERG_CATALOG="${RAW_BUCKET}"
 COMPOSER_SA_NAME="${COMPOSER_SA_NAME:-composer-worker-sa}"
 
 # --- Write all config to .env ---
@@ -77,7 +76,6 @@ update_env_var "REGION" "$REGION"
 update_env_var "RAW_BUCKET" "$RAW_BUCKET"
 update_env_var "MODELS_BUCKET" "$MODELS_BUCKET"
 update_env_var "DATASET_NAME" "$DATASET_NAME"
-update_env_var "ICEBERG_CATALOG" "$ICEBERG_CATALOG"
 update_env_var "SPANNER_INSTANCE" "$SPANNER_INSTANCE"
 update_env_var "SPANNER_DATABASE" "$SPANNER_DATABASE"
 update_env_var "COMPOSER_ENVIRONMENT" "$COMPOSER_ENVIRONMENT"
@@ -93,7 +91,6 @@ log_info "Region:                ${REGION}"
 log_info "GCS Ingestion Bucket:  gs://${RAW_BUCKET}"
 log_info "GCS Models Bucket:     gs://${MODELS_BUCKET}"
 log_info "BigQuery Dataset:      ${DATASET_NAME}"
-log_info "Iceberg Catalog:       ${ICEBERG_CATALOG}"
 log_info "Spanner Instance:      ${SPANNER_INSTANCE}"
 log_info "Composer Environment:  ${COMPOSER_ENVIRONMENT}"
 echo ""
@@ -104,22 +101,20 @@ echo ""
 log_step "1" "Enabling required Google Cloud APIs"
 
 APIS=(
+  serviceusage.googleapis.com
+  cloudresourcemanager.googleapis.com
+  compute.googleapis.com
   storage.googleapis.com
   bigquery.googleapis.com
-  biglake.googleapis.com
   bigqueryconnection.googleapis.com
   dataproc.googleapis.com
   composer.googleapis.com
-  compute.googleapis.com
   spanner.googleapis.com
   iam.googleapis.com
-  cloudresourcemanager.googleapis.com
 )
 
-for api in "${APIS[@]}"; do
-  log_info "Enabling ${api}..."
-  gcloud services enable "$api" --project="$PROJECT_ID" --quiet 2>/dev/null || true
-done
+log_info "Enabling required Google Cloud APIs (${#APIS[@]} services)..."
+gcloud services enable "${APIS[@]}" --project="$PROJECT_ID"
 log_ok "Core APIs enabled."
 
 # =============================================================================
@@ -153,12 +148,18 @@ log_step "3" "Copying pre-generated datasets"
 DATA_DIR="$SCRIPT_DIR/data"
 SOURCE_BUCKET="gs://sample-data-and-media/cymbal-financial-fraud"
 
-# Copy logs.json directly between buckets (avoids downloading 276MB locally)
+# Copy logs.json directly between buckets with retry for GCS bucket propagation
 log_info "Copying logs.json → gs://${RAW_BUCKET}/logs.json..."
-gcloud storage cp "${SOURCE_BUCKET}/logs.json" "gs://${RAW_BUCKET}/logs.json" --quiet
+for i in {1..5}; do
+  if gcloud storage cp "${SOURCE_BUCKET}/logs.json" "gs://${RAW_BUCKET}/logs.json" --quiet 2>/dev/null; then
+    break
+  fi
+  log_warn "Waiting for GCS bucket metadata propagation (attempt $i/5)..."
+  sleep 3
+done
 log_ok "Raw logs copied to gs://${RAW_BUCKET}/logs.json"
 
-# Download dimension tables locally for BigQuery loading in Step 5
+# Download dimension tables locally for BigQuery loading in Step 4
 mkdir -p "$DATA_DIR"
 log_info "Downloading dimension tables for BigQuery loading..."
 gcloud storage cp "${SOURCE_BUCKET}/payers.csv" "$DATA_DIR/payers.csv" --quiet
@@ -166,53 +167,9 @@ gcloud storage cp "${SOURCE_BUCKET}/payees.csv" "$DATA_DIR/payees.csv" --quiet
 log_ok "Dimension tables downloaded to ${DATA_DIR}/"
 
 # =============================================================================
-# STEP 4: Create BigLake Iceberg Catalog & Namespace
+# STEP 4: Create BigQuery Dataset and Load Directory Tables
 # =============================================================================
-log_step "4" "Provisioning BigLake Iceberg Catalog"
-
-# Determine which gcloud track has working biglake iceberg commands.
-# The flags may live under 'gcloud alpha biglake' or 'gcloud biglake' depending
-# on the SDK version installed in Cloud Shell.
-if gcloud biglake iceberg catalogs list --project="$PROJECT_ID" &>/dev/null 2>&1; then
-  BIGLAKE_CMD="gcloud biglake"
-elif gcloud alpha biglake iceberg catalogs list --project="$PROJECT_ID" &>/dev/null 2>&1; then
-  BIGLAKE_CMD="gcloud alpha biglake"
-else
-  # Last resort: try GA and let errors surface
-  BIGLAKE_CMD="gcloud biglake"
-fi
-log_info "Using: ${BIGLAKE_CMD} iceberg ..."
-
-# Check if catalog already exists
-if $BIGLAKE_CMD iceberg catalogs describe "$ICEBERG_CATALOG" \
-    --project="$PROJECT_ID" &>/dev/null; then
-  log_warn "BigLake Iceberg catalog '${ICEBERG_CATALOG}' already exists."
-else
-  log_info "Creating BigLake Iceberg catalog '${ICEBERG_CATALOG}'..."
-  $BIGLAKE_CMD iceberg catalogs create "$ICEBERG_CATALOG" \
-    --catalog-type=gcs-bucket \
-    --project="$PROJECT_ID" \
-    --quiet
-  log_ok "Iceberg catalog '${ICEBERG_CATALOG}' created."
-fi
-
-# Create namespace for our transaction tables
-if $BIGLAKE_CMD iceberg namespaces describe "$DATASET_NAME" \
-    --catalog="$ICEBERG_CATALOG" --project="$PROJECT_ID" &>/dev/null; then
-  log_warn "Iceberg namespace '${DATASET_NAME}' already exists."
-else
-  log_info "Creating Iceberg namespace '${DATASET_NAME}'..."
-  $BIGLAKE_CMD iceberg namespaces create "$DATASET_NAME" \
-    --catalog="$ICEBERG_CATALOG" \
-    --project="$PROJECT_ID" \
-    --quiet
-  log_ok "Iceberg namespace '${DATASET_NAME}' created."
-fi
-
-# =============================================================================
-# STEP 5: Create BigQuery Dataset and Load Directory Tables
-# =============================================================================
-log_step "5" "Provisioning BigQuery Dataset and Directory Tables"
+log_step "4" "Provisioning BigQuery Dataset and Directory Tables"
 
 # Create BigQuery Dataset if not exists
 if bq show --project_id="$PROJECT_ID" "$DATASET_NAME" &>/dev/null; then
@@ -238,6 +195,23 @@ bq --project_id="$PROJECT_ID" load --autodetect --source_format=CSV \
 log_ok "Loaded dim_payees."
 
 # =============================================================================
+# STEP 5: Create Dataproc Serverless Runtime Template
+# =============================================================================
+log_step "5" "Creating Serverless Runtime Template (fraud-pipeline-runtime)"
+
+log_info "Configuring runtime session template with Spanner connector..."
+cat <<EOF | gcloud beta dataproc session-templates import fraud-pipeline-runtime --source=- --location="$REGION" --project="$PROJECT_ID" --quiet 2>/dev/null || log_warn "Session template 'fraud-pipeline-runtime' already exists or import failed."
+jupyterSession:
+  displayName: fraud-pipeline-runtime
+  kernel: PYTHON
+runtimeConfig:
+  properties:
+    spark.jars: gs://spark-lib/spanner/spark-3.5-spanner-1.4.0.jar
+  version: "2.2"
+EOF
+log_ok "Dataproc Serverless runtime session template configured."
+
+# =============================================================================
 # STEP 6: Trigger Long-Running Deployments in Background
 # =============================================================================
 log_step "6" "Triggering background infrastructure provisioning"
@@ -260,7 +234,7 @@ echo -e "${GREEN}╔════════════════════
 echo -e "${GREEN}║   Bootstrap Completed!                               ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "Your primary BigQuery dataset, GCS buckets, and Iceberg catalog are ready."
+echo -e "Your primary BigQuery dataset and GCS buckets are ready."
 echo -e "You can now begin Codelab steps (Pages 3, 4, 5, and 6) inside the IDE."
 echo ""
 echo -e "Cloud Spanner and Managed Airflow are provisioning in the background:"
