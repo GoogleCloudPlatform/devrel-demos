@@ -72,6 +72,9 @@ echo ""
 # e.g., us-west1 -> regional-us-west1
 SPANNER_CONFIG="regional-${REGION}"
 
+log_info "Ensuring Cloud Spanner API is active..."
+gcloud services enable spanner.googleapis.com --project="$PROJECT_ID" --quiet
+
 # =============================================================================
 # STEP 1: Provision Spanner Instance
 # =============================================================================
@@ -110,6 +113,9 @@ else
         exit 1
     fi
     log_ok "Spanner database '${SPANNER_DATABASE}' created."
+    # Remove default automatic backup schedule so teardown won't be blocked by backups
+    gcloud spanner backup-schedules delete default_daily_full_backup_schedule \
+        --instance="$SPANNER_INSTANCE" --database="$SPANNER_DATABASE" --project="$PROJECT_ID" --quiet 2>/dev/null || true
 fi
 
 # Create the fraud review queue table.

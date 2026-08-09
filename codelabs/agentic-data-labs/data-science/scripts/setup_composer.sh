@@ -102,8 +102,11 @@ log_info "Service Account:      ${COMPOSER_SA_EMAIL}"
 log_info "Environment Size:     small (minimal cost footprint)"
 echo ""
 
+log_info "Ensuring Cloud Composer and Compute APIs are active..."
+gcloud services enable composer.googleapis.com compute.googleapis.com --project="$PROJECT_ID" --quiet
+
 # =============================================================================
-# STEP 2: Provision Service Account & Grant IAM Roles
+# STEP 1: Provision Service Account & Grant IAM Roles
 # =============================================================================
 log_step "1" "Provisioning dedicated Service Account for Composer workers"
 
@@ -128,6 +131,7 @@ log_info "Granting IAM roles for BigQuery, Spark/Dataproc, Spanner, GCS, and Com
 ROLES=(
   roles/composer.worker
   roles/bigquery.admin
+  roles/biglake.admin
   roles/dataproc.editor
   roles/dataproc.worker
   roles/spanner.admin
@@ -250,7 +254,7 @@ echo -e "  ${BLUE}DAGs GCS Bucket:      ${NC}${COMPOSER_DAGS_BUCKET}"
 echo -e "  ${BLUE}Airflow Web UI:       ${NC}${AIRFLOW_URI}"
 echo ""
 echo -e "Included Service Access (IAM Roles):"
-echo -e "  • BigQuery          (roles/bigquery.admin)"
+echo -e "  • BigQuery / BigLake (roles/bigquery.admin, roles/biglake.admin)"
 echo -e "  • Spark / Dataproc  (roles/dataproc.editor, roles/dataproc.worker)"
 echo -e "  • Cloud Spanner     (roles/spanner.admin)"
 echo -e "  • Cloud Storage     (roles/storage.admin)"
