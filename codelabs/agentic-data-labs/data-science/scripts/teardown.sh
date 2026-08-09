@@ -97,8 +97,8 @@ if gcloud spanner instances describe "$SPANNER_INSTANCE" --project="$PROJECT_ID"
         done
     done
     for backup in $(gcloud spanner backups list --instance="$SPANNER_INSTANCE" --project="$PROJECT_ID" --format="value(name)" 2>/dev/null || true); do
-        log_info "  Deleting Spanner backup: $backup..."
-        gcloud spanner backups delete "$backup" --instance="$SPANNER_INSTANCE" --project="$PROJECT_ID" --quiet || true
+        log_info "  Deleting Spanner backup: $(basename "$backup")..."
+        gcloud spanner backups delete "$(basename "$backup")" --instance="$SPANNER_INSTANCE" --project="$PROJECT_ID" --quiet || true
     done
 
     log_info "Deleting Cloud Spanner Instance '${SPANNER_INSTANCE}'..."

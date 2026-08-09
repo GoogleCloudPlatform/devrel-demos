@@ -150,13 +150,20 @@ SOURCE_BUCKET="gs://sample-data-and-media/cymbal-financial-fraud"
 
 # Copy logs.json directly between buckets with retry for GCS bucket propagation
 log_info "Copying logs.json → gs://${RAW_BUCKET}/logs.json..."
+copied=false
 for i in {1..5}; do
   if gcloud storage cp "${SOURCE_BUCKET}/logs.json" "gs://${RAW_BUCKET}/logs.json" --quiet 2>/dev/null; then
+    copied=true
     break
   fi
   log_warn "Waiting for GCS bucket metadata propagation (attempt $i/5)..."
   sleep 3
 done
+
+if [[ "$copied" == "false" ]]; then
+  log_error "Failed to copy logs.json to gs://${RAW_BUCKET}/ after 5 attempts."
+  exit 1
+fi
 log_ok "Raw logs copied to gs://${RAW_BUCKET}/logs.json"
 
 # Download dimension tables locally for BigQuery loading in Step 4
