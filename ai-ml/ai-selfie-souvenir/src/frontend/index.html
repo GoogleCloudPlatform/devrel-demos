@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Selfie Souvenir</title>
+    <link rel="shortcut icon" href="https://www.gstatic.com/cgc/supercloud_favicon.ico">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+
+    <main class="app-container">
+
+        <!-- App Title and Status Header -->
+        <header class="app-header">
+            <h1 class="app-title">AI Selfie Souvenir</h1>
+            <h2 class="app-subtitle">Generate your personalized AI souvenir</h2>
+            <div class="status-badges-container">
+                <div id="status-badge" class="status-badge hidden">
+                    <span class="status-dot"></span>
+                    <span id="status-text">Detecting API...</span>
+                </div>
+                <div id="host-status-badge" class="status-badge info-mode hidden">
+                    <span class="status-dot"></span>
+                    <span id="host-status-text">Detecting Host...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Inputs Section -->
+        <section class="inputs-section">
+            <h2 class="section-title">Inputs</h2>
+            <div class="inputs-grid">
+                <!-- Input 1: Base Reference Image -->
+                <div class="input-card card" id="reference-card">
+                    <h3>Image 1</h3>
+                    <div class="viewport-box-small">
+                        <img src="" alt="" class="input-img" id="reference-base-img">
+                    </div>
+                </div>
+
+                <!-- Input 2: Your Snapshot / Camera Feed -->
+                <div class="input-card card">
+                    <h3>Image 2</h3>
+                    <div class="viewport-box-small" id="camera-container">
+                        <video id="webcam-video" autoplay playsinline muted></video>
+                        <img id="captured-image" alt="Your Captured Photo" class="input-img" style="display: none;">
+                        <div class="viewport-placeholder" id="camera-placeholder">
+                            <span class="placeholder-icon">📷</span>
+                            <p>Camera feed is inactive</p>
+                            <p class="privacy-text"></p>
+                        </div>
+                    </div>
+
+                    <!-- Action Controls inside Image 2 card -->
+                    <div class="controls-section">
+                        <!-- Camera Start State -->
+                        <div id="controls-start">
+                            <button class="btn btn-primary" id="btn-start-camera">▶️ Open Webcam</button>
+                        </div>
+
+                        <!-- Camera Active State -->
+                        <div id="controls-capture" style="display: none;">
+                            <button class="btn btn-accent" id="btn-capture-photo">📸 Capture & Generate</button>
+                        </div>
+
+                        <div id="controls-reset" style="display: none; gap: 10px;">
+                            <button class="btn btn-primary" id="btn-relaunch">🔄 Relaunch Generation</button>
+                            <button class="btn btn-secondary" id="btn-retake">📸 Take Another Picture</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prompt Display Card -->
+            <div class="prompt-card card collapsed">
+                <h3 id="prompt-header"
+                    style="cursor: pointer; display: flex; width: 100%; justify-content: space-between; align-items: center; margin: 0; user-select: none;">
+                    Prompt <span class="toggle-icon">▼</span>
+                </h3>
+                <textarea id="prompt-text" readonly placeholder="Loading system prompt..."></textarea>
+            </div>
+        </section>
+
+        <!-- Canvas for snapshot capture (hidden) -->
+        <canvas id="capture-canvas" style="display: none;"></canvas>
+
+        <!-- Output Section -->
+        <section class="output-section">
+            <h2 class="section-title">Output</h2>
+            <div class="viewport-section">
+                <!-- Loading Spinner -->
+                <div id="loading-container" class="loading-overlay">
+                    <div class="spinner"></div>
+                    <p class="loading-text">Nano Banana is cooking…</p>
+                </div>
+
+                <!-- Generated Result Image -->
+                <div id="result-container" class="viewport-box active">
+                    <img id="result-image" alt="Your Generated Photo" class="result-img-view" style="display: none;">
+                    <div class="viewport-placeholder" id="output-placeholder">
+                        <span class="placeholder-icon">🪄</span>
+                        <p>Your Nano Banana generation will appear here</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Footer Credit -->
+            <footer class="app-footer">
+                <p></p>
+            </footer>
+        </section>
+
+    </main>
+
+    <!-- Toast container for notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Lightbox Modal for Full View -->
+    <div id="lightbox-modal" class="lightbox-modal">
+        <span class="lightbox-close">&times;</span>
+        <div class="lightbox-container">
+            <img id="lightbox-img" class="lightbox-content" src="" alt="Full-size View">
+            <div id="lightbox-caption" class="lightbox-caption"></div>
+        </div>
+    </div>
+
+    <!-- App Logic Scripts -->
+    <script src="/app.js"></script>
+</body>
+
+</html>

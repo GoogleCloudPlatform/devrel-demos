@@ -1,0 +1,21 @@
+[project]
+name = "sentiment-agent-realtime"
+version = "0.1.0"
+description = "Pared-down local agent CLI"
+dependencies = [
+    "google-adk",
+    "google-cloud-bigquery",
+    "google-cloud-bigquery-storage",
+    "google-cloud-dataplex",
+    "google-cloud-aiplatform",
+    "google-genai",
+    "pandas",
+    "db-dtypes",
+    "pytest",
+    "a2a-sdk>=0.3.4,<0.4",
+    "fastapi",
+    "sse-starlette",
+    "uvicorn",
+    "rich",
+    "google-cloud-bigquery-reservation"
+]

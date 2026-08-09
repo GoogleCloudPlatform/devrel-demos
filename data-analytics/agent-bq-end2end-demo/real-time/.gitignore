@@ -1,0 +1,2 @@
+# Ignore local tests folder as requested by user
+tests/

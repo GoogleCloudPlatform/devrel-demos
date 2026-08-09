@@ -64,13 +64,13 @@ def main():
     # Construct the data_scan_id based on the target view name.
     data_scan_id = f"profile-scan-{TARGET_VIEW.replace('_', '-')}"
 
-    # 1. Initialize Dataplex client and get the latest successful job.
+    # 1. Initialize client and get the latest successful job.
     client = dataplex_v1.DataScanServiceClient()
     latest_job = get_latest_successful_job(client, PROJECT_ID, LOCATION, data_scan_id)
 
     if not latest_job:
         print(f"\n[ERROR] No successful job record was found for '{data_scan_id}'.")
-        print("Please ensure the 'run_dataplex_scans.py' script has completed successfully.")
+        print("Please ensure the '1_run_scan.py' script has completed successfully.")
         return
 
     job_id_short = latest_job.name.split('/')[-1]
