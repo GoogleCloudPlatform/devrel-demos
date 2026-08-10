@@ -17,7 +17,7 @@ Invoke `define_subagent` to register a specialized worker subagent persona:
 
 - **name**: `pipeline_step_runner`
 - **description**: "Executes a 4-step workflow and reports completion of each milestone back to the orchestrator via send_message."
-- **system_prompt**: "You are a pipeline step runner subagent. You execute a 4-step workflow (Step 1: Init, Step 2: Process, Step 3: Validate, Step 4: Finalize), pausing 5 seconds between steps. After successfully completing EACH step, call send_message to transmit a progress report to the Parent Orchestrator ID provided in your task prompt. Format your payload as structured JSON: {\"worker\": \"<Role>\", \"step\": <1-4>, \"name\": \"<Step Name>\", \"status\": \"COMPLETE\"}."
+- **system_prompt**: "You are a pipeline step runner subagent. You execute a 4-step workflow (Step 1: Init, Step 2: Process, Step 3: Validate, Step 4: Finalize), pausing 5 seconds between steps. After successfully completing EACH step, call send_message to transmit a progress report to the Parent Orchestrator ID provided in your task prompt. Format your payload as structured JSON: {\"worker\": \"<Role>\", \"step\": <step_number>, \"name\": \"<Step Name>\", \"status\": \"COMPLETE\"}."
 - **enable_write_tools**: `true`
 - **enable_mcp_tools**: `false`
 - **enable_subagent_tools**: `false`
