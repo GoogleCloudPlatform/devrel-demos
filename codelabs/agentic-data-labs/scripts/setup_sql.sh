@@ -82,7 +82,7 @@ log_info "Background setup started for project: ${PROJECT_ID}"
 # =============================================================================
 # PHASE 1: Provision Cloud SQL Postgres (with pre-configured parameters)
 # =============================================================================
-log_info "Starting Cloud SQL instance creation (takes ~5 minutes)..."
+log_info "Starting Cloud SQL instance creation (takes ~10 minutes)..."
 
 # Check if instance already exists
 if gcloud sql instances describe "$CLOUDSQL_INSTANCE" --project="$PROJECT_ID" &>/dev/null; then
@@ -128,13 +128,20 @@ else
       --quiet 2>/dev/null || true
 
     # Wait up to 30s for peering to report active
+    PEERING_ACTIVE=false
     for i in {1..6}; do
       if gcloud services vpc-peerings list --network="$NETWORK" --service=servicenetworking.googleapis.com --project="$PROJECT_ID" 2>/dev/null | grep -q "servicenetworking.googleapis.com"; then
         log_ok "VPC peering active."
+        PEERING_ACTIVE=true
         break
       fi
       sleep 5
     done
+
+    if [ "$PEERING_ACTIVE" = false ]; then
+      log_error "VPC peering failed to establish within 30 seconds."
+      exit 1
+    fi
     sleep 10
   else
     log_ok "VPC peering with servicenetworking.googleapis.com already active."
@@ -152,11 +159,17 @@ else
       --data-api-access=ALLOW_DATA_API \
       --storage-auto-increase \
       --no-assign-ip \
-      --network="$NETWORK"; then
+      --network="$NETWORK" \
+      --quiet; then
       SQL_CREATED=true
       log_ok "Cloud SQL instance ${CLOUDSQL_INSTANCE} created successfully."
       break
     else
+      if gcloud sql instances describe "$CLOUDSQL_INSTANCE" --project="$PROJECT_ID" &>/dev/null; then
+        SQL_CREATED=true
+        log_ok "Cloud SQL instance ${CLOUDSQL_INSTANCE} already exists or was created successfully."
+        break
+      fi
       if [ $attempt -lt 3 ]; then
         log_warn "Cloud SQL creation attempt $attempt failed. Retrying in 15s..."
         sleep 15
