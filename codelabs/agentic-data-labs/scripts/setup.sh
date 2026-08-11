@@ -110,6 +110,8 @@ APIS=(
   dataplex.googleapis.com
   bigqueryconnection.googleapis.com
   cloudresourcemanager.googleapis.com
+  servicenetworking.googleapis.com
+  compute.googleapis.com
 )
 
 for api in "${APIS[@]}"; do
@@ -126,8 +128,12 @@ log_step "2" "Creating GCS bucket"
 if gcloud storage ls "$GCS_BUCKET" &>/dev/null; then
   log_warn "Bucket ${GCS_BUCKET} already exists. Reusing it."
 else
-  gcloud storage buckets create "$GCS_BUCKET" --project="$PROJECT_ID" --location="$REGION" --quiet 2>/dev/null
-  log_ok "Created bucket ${GCS_BUCKET}"
+  if gcloud storage buckets create "$GCS_BUCKET" --project="$PROJECT_ID" --location="$REGION" --quiet; then
+    log_ok "Created bucket ${GCS_BUCKET}"
+  else
+    log_error "Failed to create bucket ${GCS_BUCKET}. Check your permissions or if the bucket name is taken."
+    exit 1
+  fi
 fi
 
 # =============================================================================
@@ -506,7 +512,7 @@ if [ "$SHOW_VSCODE_JSON" = true ]; then
       "env": {
         "CLOUD_SQL_POSTGRES_DATABASE": "${CLOUDSQL_DB:-cymbal_pets_ops}",
         "CLOUD_SQL_POSTGRES_INSTANCE": "${CLOUDSQL_INSTANCE:-cymbal-pets-ops}",
-        "CLOUD_SQL_POSTGRES_IP_TYPE": "PUBLIC",
+        "CLOUD_SQL_POSTGRES_IP_TYPE": "PRIVATE",
         "CLOUD_SQL_POSTGRES_PASSWORD": "${CLOUDSQL_PASSWORD}",
         "CLOUD_SQL_POSTGRES_PROJECT": "${PROJECT_ID}",
         "CLOUD_SQL_POSTGRES_REGION": "${REGION:-us-central1}",

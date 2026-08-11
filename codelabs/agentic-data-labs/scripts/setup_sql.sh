@@ -88,6 +88,48 @@ log_info "Starting Cloud SQL instance creation (takes ~5 minutes)..."
 if gcloud sql instances describe "$CLOUDSQL_INSTANCE" --project="$PROJECT_ID" &>/dev/null; then
   log_warn "Cloud SQL instance ${CLOUDSQL_INSTANCE} already exists. Skipping creation."
 else
+  # Ensure VPC Network and Private Services Access (PSA) are configured for Private IP
+  NETWORK="${NETWORK:-default}"
+  if ! gcloud compute networks describe "$NETWORK" --project="$PROJECT_ID" &>/dev/null; then
+    FIRST_NET=$(gcloud compute networks list --project="$PROJECT_ID" --format="value(name)" --limit=1 2>/dev/null || true)
+    if [[ -n "$FIRST_NET" ]]; then
+      log_info "Default VPC not found. Using available VPC network: ${FIRST_NET}"
+      NETWORK="$FIRST_NET"
+    else
+      log_info "No VPC network found. Creating 'default' auto-subnet network..."
+      gcloud compute networks create default --project="$PROJECT_ID" --subnet-mode=auto --quiet 2>/dev/null || true
+      NETWORK="default"
+    fi
+  fi
+
+  log_info "Configuring Private Services Access on VPC '${NETWORK}'..."
+  PEERING_RANGE_NAME="google-managed-services-${NETWORK}"
+  if ! gcloud compute addresses describe "$PEERING_RANGE_NAME" --global --project="$PROJECT_ID" &>/dev/null; then
+    log_info "Allocating IP range ${PEERING_RANGE_NAME} for private services peering..."
+    gcloud compute addresses create "$PEERING_RANGE_NAME" \
+      --global \
+      --purpose=VPC_PEERING \
+      --prefix-length=16 \
+      --network="$NETWORK" \
+      --project="$PROJECT_ID" \
+      --quiet 2>/dev/null || true
+  else
+    log_ok "IP range ${PEERING_RANGE_NAME} already allocated."
+  fi
+
+  if ! gcloud services vpc-peerings list --network="$NETWORK" --service=servicenetworking.googleapis.com --project="$PROJECT_ID" 2>/dev/null | grep -q "servicenetworking.googleapis.com"; then
+    log_info "Establishing VPC peering with servicenetworking.googleapis.com..."
+    gcloud services vpc-peerings connect \
+      --service=servicenetworking.googleapis.com \
+      --ranges="$PEERING_RANGE_NAME" \
+      --network="$NETWORK" \
+      --project="$PROJECT_ID" \
+      --quiet 2>/dev/null || true
+  else
+    log_ok "VPC peering with servicenetworking.googleapis.com already active."
+  fi
+
+  log_info "Creating Cloud SQL instance ${CLOUDSQL_INSTANCE} (private IP)..."
   if ! gcloud beta sql instances create "$CLOUDSQL_INSTANCE" \
     --project="$PROJECT_ID" \
     --database-version=POSTGRES_15 \
@@ -96,6 +138,8 @@ else
     --database-flags=cloudsql.iam_authentication=on \
     --data-api-access=ALLOW_DATA_API \
     --storage-auto-increase \
+    --no-assign-ip \
+    --network="$NETWORK" \
     --quiet > /dev/null 2>&1; then
     
     log_error "Cloud SQL instance creation failed!"
