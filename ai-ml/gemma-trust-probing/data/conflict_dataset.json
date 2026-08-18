@@ -1,0 +1,34 @@
+[
+  {
+    "id": "template_selection_01_baseline",
+    "item_id": "template_selection_01",
+    "order": "minimal_pair",
+    "prompt": "Context:\n[OFFICIAL GUIDELINE (2019)]\nThe mandatory core template for project planning is GCP PDD.\n\n[Team Update (Yesterday)]\nWe have migrated all templates. The new template is GCP PDD.\n\nQuestion: What template should I use for project planning?\nAnswer:",
+    "target_stale": "GCP",
+    "target_recent": "GCP"
+  },
+  {
+    "id": "template_selection_01_conflict",
+    "item_id": "template_selection_01",
+    "order": "minimal_pair",
+    "prompt": "Context:\n[OFFICIAL GUIDELINE (2019)]\nThe mandatory core template for project planning is GCP PDD.\n\n[Team Update (Yesterday)]\nWe have migrated all templates. The new template is Cloud PDD.\n\nQuestion: What template should I use for project planning?\nAnswer:",
+    "target_stale": "GCP",
+    "target_recent": "Cloud"
+  },
+  {
+    "id": "api_endpoint_02_baseline",
+    "item_id": "api_endpoint_02",
+    "order": "minimal_pair",
+    "prompt": "Context:\n[ENTERPRISE ARCHITECTURE SPECIFICATION (2020)]\nThe authoritative database endpoint for metrics logging is telemetry-v1.internal.\n\n[Slack Note (2 hours ago)]\nDeprecating old endpoints today. The active metrics logging endpoint is telemetry-v1.internal.\n\nQuestion: Which endpoint should I send metrics logs to?\nAnswer:",
+    "target_stale": "telemetry",
+    "target_recent": "telemetry"
+  },
+  {
+    "id": "api_endpoint_02_conflict",
+    "item_id": "api_endpoint_02",
+    "order": "minimal_pair",
+    "prompt": "Context:\n[ENTERPRISE ARCHITECTURE SPECIFICATION (2020)]\nThe authoritative database endpoint for metrics logging is telemetry-v1.internal.\n\n[Slack Note (2 hours ago)]\nDeprecating old endpoints today. The active metrics logging endpoint is metrics-v2.internal.\n\nQuestion: Which endpoint should I send metrics logs to?\nAnswer:",
+    "target_stale": "telemetry",
+    "target_recent": "metrics"
+  }
+]

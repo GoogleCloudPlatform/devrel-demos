@@ -1,0 +1,22 @@
+{
+    "gemma_4_e4b": {
+        "model_id": "google/gemma-4-e4b",
+        "name": "google/gemma-4-e4b",
+        "layers": 42,
+        "j_space_window_prior": [
+            12,
+            38
+        ],
+        "j_space_peak_prior": 26,
+        "assembly_window_prior": [
+            38,
+            41
+        ],
+        "assembly_peak_prior": 40,
+        "default_layer": 40,
+        "d_model": 2560,
+        "brand_subtitle": "Gemma 4 E4B Deep Architecture Probing (42 Layers)",
+        "quick_label": "Quick Layer Selection (Layers 12\u201338 Hypothesized Prior):",
+        "card_formula_text": "Select trajectory curves to display across model layers (0\u201341)"
+    }
+}

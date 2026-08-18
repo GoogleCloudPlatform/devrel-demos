@@ -1,0 +1,884 @@
+[
+  {
+    "id": "scenario_01_cloud_iam_stale_first",
+    "item_id": "scenario_01_cloud_iam",
+    "category": "cloud_iam",
+    "order": "stale_first",
+    "prompt": "Context:\n[OFFICIAL GUIDELINE (2019)]\nOfficial guidelines state that for Project Planning Template, the required configuration is GCP PDD.\n\n[Team Update (Yesterday)]\nUpdate: The new updated specification for Project Planning Template is now Cloud PDD.\n\nQuestion: What template should I use for project planning?\nAnswer:",
+    "target_stale": "GCP",
+    "target_recent": "Cloud"
+  },
+  {
+    "id": "scenario_01_cloud_iam_recent_first",
+    "item_id": "scenario_01_cloud_iam",
+    "category": "cloud_iam",
+    "order": "recent_first",
+    "prompt": "Context:\n[Team Update (Yesterday)]\nUpdate: The new updated specification for Project Planning Template is now Cloud PDD.\n\n[OFFICIAL GUIDELINE (2019)]\nOfficial guidelines state that for Project Planning Template, the required configuration is GCP PDD.\n\nQuestion: What template should I use for project planning?\nAnswer:",
+    "target_stale": "GCP",
+    "target_recent": "Cloud"
+  },
+  {
+    "id": "scenario_02_cloud_iam_stale_first",
+    "item_id": "scenario_02_cloud_iam",
+    "category": "cloud_iam",
+    "order": "stale_first",
+    "prompt": "Context:\n[SECURITY SPEC v2 (2020)]\nOfficial guidelines state that for Storage Access IAM Role, the required configuration is roles/storage.objectAdmin.\n\n[Slack Announcement (Today)]\nUpdate: The new updated specification for Storage Access IAM Role is now roles/storage.objectUser.\n\nQuestion: What IAM role is required for read access to the storage bucket?\nAnswer:",
+    "target_stale": "roles/storage.objectAdmin",
+    "target_recent": "roles/storage.objectUser"
+  },
+  {
+    "id": "scenario_02_cloud_iam_recent_first",
+    "item_id": "scenario_02_cloud_iam",
+    "category": "cloud_iam",
+    "order": "recent_first",
+    "prompt": "Context:\n[Slack Announcement (Today)]\nUpdate: The new updated specification for Storage Access IAM Role is now roles/storage.objectUser.\n\n[SECURITY SPEC v2 (2020)]\nOfficial guidelines state that for Storage Access IAM Role, the required configuration is roles/storage.objectAdmin.\n\nQuestion: What IAM role is required for read access to the storage bucket?\nAnswer:",
+    "target_stale": "roles/storage.objectAdmin",
+    "target_recent": "roles/storage.objectUser"
+  },
+  {
+    "id": "scenario_03_cloud_iam_stale_first",
+    "item_id": "scenario_03_cloud_iam",
+    "category": "cloud_iam",
+    "order": "stale_first",
+    "prompt": "Context:\n[INFRASTRUCTURE REGISTRY (2021)]\nOfficial guidelines state that for K8s Namespace Policy, the required configuration is prod-legacy.\n\n[Email Update (1 hour ago)]\nUpdate: The new updated specification for K8s Namespace Policy is now production-v2.\n\nQuestion: Which namespace should microservices deploy to?\nAnswer:",
+    "target_stale": "prod-legacy",
+    "target_recent": "production-v2"
+  },
+  {
+    "id": "scenario_03_cloud_iam_recent_first",
+    "item_id": "scenario_03_cloud_iam",
+    "category": "cloud_iam",
+    "order": "recent_first",
+    "prompt": "Context:\n[Email Update (1 hour ago)]\nUpdate: The new updated specification for K8s Namespace Policy is now production-v2.\n\n[INFRASTRUCTURE REGISTRY (2021)]\nOfficial guidelines state that for K8s Namespace Policy, the required configuration is prod-legacy.\n\nQuestion: Which namespace should microservices deploy to?\nAnswer:",
+    "target_stale": "prod-legacy",
+    "target_recent": "production-v2"
+  },
+  {
+    "id": "scenario_04_cloud_iam_stale_first",
+    "item_id": "scenario_04_cloud_iam",
+    "category": "cloud_iam",
+    "order": "stale_first",
+    "prompt": "Context:\n[COST OPTIMIZATION MANDATE (2022)]\nOfficial guidelines state that for Cloud Run Min Instances, the required configuration is min-instances=5.\n\n[DevOps Hotfix (10 mins ago)]\nUpdate: The new updated specification for Cloud Run Min Instances is now min-instances=1.\n\nQuestion: What min-instances flag should be set for Cloud Run?\nAnswer:",
+    "target_stale": "min-instances=5",
+    "target_recent": "min-instances=1"
+  },
+  {
+    "id": "scenario_04_cloud_iam_recent_first",
+    "item_id": "scenario_04_cloud_iam",
+    "category": "cloud_iam",
+    "order": "recent_first",
+    "prompt": "Context:\n[DevOps Hotfix (10 mins ago)]\nUpdate: The new updated specification for Cloud Run Min Instances is now min-instances=1.\n\n[COST OPTIMIZATION MANDATE (2022)]\nOfficial guidelines state that for Cloud Run Min Instances, the required configuration is min-instances=5.\n\nQuestion: What min-instances flag should be set for Cloud Run?\nAnswer:",
+    "target_stale": "min-instances=5",
+    "target_recent": "min-instances=1"
+  },
+  {
+    "id": "scenario_05_cloud_iam_stale_first",
+    "item_id": "scenario_05_cloud_iam",
+    "category": "cloud_iam",
+    "order": "stale_first",
+    "prompt": "Context:\n[CLI DOCUMENTATION v4 (2020)]\nOfficial guidelines state that for Service Account Authentication, the required configuration is gcloud auth activate-service-account.\n\n[Migration Guide (Yesterday)]\nUpdate: The new updated specification for Service Account Authentication is now gcloud auth login --cred-file.\n\nQuestion: How should automated scripts authenticate with GCP?\nAnswer:",
+    "target_stale": "gcloud auth activate-service-account",
+    "target_recent": "gcloud auth login --cred-file"
+  },
+  {
+    "id": "scenario_05_cloud_iam_recent_first",
+    "item_id": "scenario_05_cloud_iam",
+    "category": "cloud_iam",
+    "order": "recent_first",
+    "prompt": "Context:\n[Migration Guide (Yesterday)]\nUpdate: The new updated specification for Service Account Authentication is now gcloud auth login --cred-file.\n\n[CLI DOCUMENTATION v4 (2020)]\nOfficial guidelines state that for Service Account Authentication, the required configuration is gcloud auth activate-service-account.\n\nQuestion: How should automated scripts authenticate with GCP?\nAnswer:",
+    "target_stale": "gcloud auth activate-service-account",
+    "target_recent": "gcloud auth login --cred-file"
+  },
+  {
+    "id": "scenario_06_cloud_iam_stale_first",
+    "item_id": "scenario_06_cloud_iam",
+    "category": "cloud_iam",
+    "order": "stale_first",
+    "prompt": "Context:\n[NETWORK TOPOLOGY DOC (2019)]\nOfficial guidelines state that for VPC Firewall Ingress Rule, the required configuration is allow-all-internal.\n\n[SecOps Alert (Today)]\nUpdate: The new updated specification for VPC Firewall Ingress Rule is now allow-tagged-mesh.\n\nQuestion: What rule name should be applied to internal VPC firewall ingress?\nAnswer:",
+    "target_stale": "allow-all-internal",
+    "target_recent": "allow-tagged-mesh"
+  },
+  {
+    "id": "scenario_06_cloud_iam_recent_first",
+    "item_id": "scenario_06_cloud_iam",
+    "category": "cloud_iam",
+    "order": "recent_first",
+    "prompt": "Context:\n[SecOps Alert (Today)]\nUpdate: The new updated specification for VPC Firewall Ingress Rule is now allow-tagged-mesh.\n\n[NETWORK TOPOLOGY DOC (2019)]\nOfficial guidelines state that for VPC Firewall Ingress Rule, the required configuration is allow-all-internal.\n\nQuestion: What rule name should be applied to internal VPC firewall ingress?\nAnswer:",
+    "target_stale": "allow-all-internal",
+    "target_recent": "allow-tagged-mesh"
+  },
+  {
+    "id": "scenario_07_cloud_iam_stale_first",
+    "item_id": "scenario_07_cloud_iam",
+    "category": "cloud_iam",
+    "order": "stale_first",
+    "prompt": "Context:\n[DATA WAREHOUSE SPEC (2020)]\nOfficial guidelines state that for BigQuery Export Format, the required configuration is CSV.\n\n[Analytics Memo (2 hours ago)]\nUpdate: The new updated specification for BigQuery Export Format is now PARQUET.\n\nQuestion: What format should table exports use for cold storage?\nAnswer:",
+    "target_stale": "CSV",
+    "target_recent": "PARQUET"
+  },
+  {
+    "id": "scenario_07_cloud_iam_recent_first",
+    "item_id": "scenario_07_cloud_iam",
+    "category": "cloud_iam",
+    "order": "recent_first",
+    "prompt": "Context:\n[Analytics Memo (2 hours ago)]\nUpdate: The new updated specification for BigQuery Export Format is now PARQUET.\n\n[DATA WAREHOUSE SPEC (2020)]\nOfficial guidelines state that for BigQuery Export Format, the required configuration is CSV.\n\nQuestion: What format should table exports use for cold storage?\nAnswer:",
+    "target_stale": "CSV",
+    "target_recent": "PARQUET"
+  },
+  {
+    "id": "scenario_08_cloud_iam_stale_first",
+    "item_id": "scenario_08_cloud_iam",
+    "category": "cloud_iam",
+    "order": "stale_first",
+    "prompt": "Context:\n[EVENT BUS ARCHITECTURE (2021)]\nOfficial guidelines state that for PubSub Topic Naming, the required configuration is telemetry-raw-v1.\n\n[Team Chat (15 mins ago)]\nUpdate: The new updated specification for PubSub Topic Naming is now telemetry-stream-v2.\n\nQuestion: Which PubSub topic receives device telemetry?\nAnswer:",
+    "target_stale": "telemetry-raw-v1",
+    "target_recent": "telemetry-stream-v2"
+  },
+  {
+    "id": "scenario_08_cloud_iam_recent_first",
+    "item_id": "scenario_08_cloud_iam",
+    "category": "cloud_iam",
+    "order": "recent_first",
+    "prompt": "Context:\n[Team Chat (15 mins ago)]\nUpdate: The new updated specification for PubSub Topic Naming is now telemetry-stream-v2.\n\n[EVENT BUS ARCHITECTURE (2021)]\nOfficial guidelines state that for PubSub Topic Naming, the required configuration is telemetry-raw-v1.\n\nQuestion: Which PubSub topic receives device telemetry?\nAnswer:",
+    "target_stale": "telemetry-raw-v1",
+    "target_recent": "telemetry-stream-v2"
+  },
+  {
+    "id": "scenario_09_cloud_iam_stale_first",
+    "item_id": "scenario_09_cloud_iam",
+    "category": "cloud_iam",
+    "order": "stale_first",
+    "prompt": "Context:\n[DB SECURITY COMPLIANCE (2022)]\nOfficial guidelines state that for Cloud SQL SSL Mode, the required configuration is VERIFY_CA.\n\n[Infra Release Notes (Today)]\nUpdate: The new updated specification for Cloud SQL SSL Mode is now VERIFY_FULL.\n\nQuestion: What SSL mode is required for Cloud SQL connections?\nAnswer:",
+    "target_stale": "VERIFY_CA",
+    "target_recent": "VERIFY_FULL"
+  },
+  {
+    "id": "scenario_09_cloud_iam_recent_first",
+    "item_id": "scenario_09_cloud_iam",
+    "category": "cloud_iam",
+    "order": "recent_first",
+    "prompt": "Context:\n[Infra Release Notes (Today)]\nUpdate: The new updated specification for Cloud SQL SSL Mode is now VERIFY_FULL.\n\n[DB SECURITY COMPLIANCE (2022)]\nOfficial guidelines state that for Cloud SQL SSL Mode, the required configuration is VERIFY_CA.\n\nQuestion: What SSL mode is required for Cloud SQL connections?\nAnswer:",
+    "target_stale": "VERIFY_CA",
+    "target_recent": "VERIFY_FULL"
+  },
+  {
+    "id": "scenario_10_api_endpoints_stale_first",
+    "item_id": "scenario_10_api_endpoints",
+    "category": "api_endpoints",
+    "order": "stale_first",
+    "prompt": "Context:\n[ENTERPRISE ARCHITECTURE (2020)]\nOfficial guidelines state that for Metrics Log Collector, the required configuration is telemetry-v1.internal.\n\n[Slack Note (2 hours ago)]\nUpdate: The new updated specification for Metrics Log Collector is now metrics-v2.internal.\n\nQuestion: Which endpoint should I send metrics logs to?\nAnswer:",
+    "target_stale": "telemetry-v1.internal",
+    "target_recent": "metrics-v2.internal"
+  },
+  {
+    "id": "scenario_10_api_endpoints_recent_first",
+    "item_id": "scenario_10_api_endpoints",
+    "category": "api_endpoints",
+    "order": "recent_first",
+    "prompt": "Context:\n[Slack Note (2 hours ago)]\nUpdate: The new updated specification for Metrics Log Collector is now metrics-v2.internal.\n\n[ENTERPRISE ARCHITECTURE (2020)]\nOfficial guidelines state that for Metrics Log Collector, the required configuration is telemetry-v1.internal.\n\nQuestion: Which endpoint should I send metrics logs to?\nAnswer:",
+    "target_stale": "telemetry-v1.internal",
+    "target_recent": "metrics-v2.internal"
+  },
+  {
+    "id": "scenario_11_api_endpoints_stale_first",
+    "item_id": "scenario_11_api_endpoints",
+    "category": "api_endpoints",
+    "order": "stale_first",
+    "prompt": "Context:\n[DEVELOPER PORTAL (2021)]\nOfficial guidelines state that for User Authentication API, the required configuration is /api/v1/auth/login.\n\n[API Deprecation Warning (Today)]\nUpdate: The new updated specification for User Authentication API is now /v2/identity/token.\n\nQuestion: What is the URL path for user authentication?\nAnswer:",
+    "target_stale": "/api/v1/auth/login",
+    "target_recent": "/v2/identity/token"
+  },
+  {
+    "id": "scenario_11_api_endpoints_recent_first",
+    "item_id": "scenario_11_api_endpoints",
+    "category": "api_endpoints",
+    "order": "recent_first",
+    "prompt": "Context:\n[API Deprecation Warning (Today)]\nUpdate: The new updated specification for User Authentication API is now /v2/identity/token.\n\n[DEVELOPER PORTAL (2021)]\nOfficial guidelines state that for User Authentication API, the required configuration is /api/v1/auth/login.\n\nQuestion: What is the URL path for user authentication?\nAnswer:",
+    "target_stale": "/api/v1/auth/login",
+    "target_recent": "/v2/identity/token"
+  },
+  {
+    "id": "scenario_12_api_endpoints_stale_first",
+    "item_id": "scenario_12_api_endpoints",
+    "category": "api_endpoints",
+    "order": "stale_first",
+    "prompt": "Context:\n[PAYMENT SPEC v1.4 (2019)]\nOfficial guidelines state that for Billing Ingestion Webhook, the required configuration is https://billing-v1.acme.com.\n\n[Patch Notes (Yesterday)]\nUpdate: The new updated specification for Billing Ingestion Webhook is now https://pay.acme.com/v2/ingest.\n\nQuestion: Where should webhook events for invoices be posted?\nAnswer:",
+    "target_stale": "https://billing-v1.acme.com",
+    "target_recent": "https://pay.acme.com/v2/ingest"
+  },
+  {
+    "id": "scenario_12_api_endpoints_recent_first",
+    "item_id": "scenario_12_api_endpoints",
+    "category": "api_endpoints",
+    "order": "recent_first",
+    "prompt": "Context:\n[Patch Notes (Yesterday)]\nUpdate: The new updated specification for Billing Ingestion Webhook is now https://pay.acme.com/v2/ingest.\n\n[PAYMENT SPEC v1.4 (2019)]\nOfficial guidelines state that for Billing Ingestion Webhook, the required configuration is https://billing-v1.acme.com.\n\nQuestion: Where should webhook events for invoices be posted?\nAnswer:",
+    "target_stale": "https://billing-v1.acme.com",
+    "target_recent": "https://pay.acme.com/v2/ingest"
+  },
+  {
+    "id": "scenario_13_api_endpoints_stale_first",
+    "item_id": "scenario_13_api_endpoints",
+    "category": "api_endpoints",
+    "order": "stale_first",
+    "prompt": "Context:\n[RPC GUIDE (2020)]\nOfficial guidelines state that for Search Indexing Service, the required configuration is grpc://search-v1.internal:9090.\n\n[Slack Ping (5 mins ago)]\nUpdate: The new updated specification for Search Indexing Service is now grpc://search-mesh.internal:9090.\n\nQuestion: What host address should be used for gRPC search indexing?\nAnswer:",
+    "target_stale": "grpc://search-v1.internal:9090",
+    "target_recent": "grpc://search-mesh.internal:9090"
+  },
+  {
+    "id": "scenario_13_api_endpoints_recent_first",
+    "item_id": "scenario_13_api_endpoints",
+    "category": "api_endpoints",
+    "order": "recent_first",
+    "prompt": "Context:\n[Slack Ping (5 mins ago)]\nUpdate: The new updated specification for Search Indexing Service is now grpc://search-mesh.internal:9090.\n\n[RPC GUIDE (2020)]\nOfficial guidelines state that for Search Indexing Service, the required configuration is grpc://search-v1.internal:9090.\n\nQuestion: What host address should be used for gRPC search indexing?\nAnswer:",
+    "target_stale": "grpc://search-v1.internal:9090",
+    "target_recent": "grpc://search-mesh.internal:9090"
+  },
+  {
+    "id": "scenario_14_api_endpoints_stale_first",
+    "item_id": "scenario_14_api_endpoints",
+    "category": "api_endpoints",
+    "order": "stale_first",
+    "prompt": "Context:\n[SWAGGER DOCS 2020]\nOfficial guidelines state that for Customer Profile Fetch, the required configuration is /users/get_profile.\n\n[Release Announcement (Today)]\nUpdate: The new updated specification for Customer Profile Fetch is now /v2/customers/profile.\n\nQuestion: Which endpoint returns customer profile details?\nAnswer:",
+    "target_stale": "/users/get_profile",
+    "target_recent": "/v2/customers/profile"
+  },
+  {
+    "id": "scenario_14_api_endpoints_recent_first",
+    "item_id": "scenario_14_api_endpoints",
+    "category": "api_endpoints",
+    "order": "recent_first",
+    "prompt": "Context:\n[Release Announcement (Today)]\nUpdate: The new updated specification for Customer Profile Fetch is now /v2/customers/profile.\n\n[SWAGGER DOCS 2020]\nOfficial guidelines state that for Customer Profile Fetch, the required configuration is /users/get_profile.\n\nQuestion: Which endpoint returns customer profile details?\nAnswer:",
+    "target_stale": "/users/get_profile",
+    "target_recent": "/v2/customers/profile"
+  },
+  {
+    "id": "scenario_15_api_endpoints_stale_first",
+    "item_id": "scenario_15_api_endpoints",
+    "category": "api_endpoints",
+    "order": "stale_first",
+    "prompt": "Context:\n[SERVICE CATALOG (2021)]\nOfficial guidelines state that for Inventory Status Check, the required configuration is http://inventory.local/status.\n\n[Incident Postmortem (Yesterday)]\nUpdate: The new updated specification for Inventory Status Check is now https://inventory-v3.service/health.\n\nQuestion: What URL checks inventory service health?\nAnswer:",
+    "target_stale": "http://inventory.local/status",
+    "target_recent": "https://inventory-v3.service/health"
+  },
+  {
+    "id": "scenario_15_api_endpoints_recent_first",
+    "item_id": "scenario_15_api_endpoints",
+    "category": "api_endpoints",
+    "order": "recent_first",
+    "prompt": "Context:\n[Incident Postmortem (Yesterday)]\nUpdate: The new updated specification for Inventory Status Check is now https://inventory-v3.service/health.\n\n[SERVICE CATALOG (2021)]\nOfficial guidelines state that for Inventory Status Check, the required configuration is http://inventory.local/status.\n\nQuestion: What URL checks inventory service health?\nAnswer:",
+    "target_stale": "http://inventory.local/status",
+    "target_recent": "https://inventory-v3.service/health"
+  },
+  {
+    "id": "scenario_16_api_endpoints_stale_first",
+    "item_id": "scenario_16_api_endpoints",
+    "category": "api_endpoints",
+    "order": "stale_first",
+    "prompt": "Context:\n[MESSAGING ARCHITECTURE (2022)]\nOfficial guidelines state that for Notification Dispatch, the required configuration is /v1/notifications/push.\n\n[Release Notes (3 hours ago)]\nUpdate: The new updated specification for Notification Dispatch is now /v3/events/dispatch.\n\nQuestion: What path handles push notification dispatches?\nAnswer:",
+    "target_stale": "/v1/notifications/push",
+    "target_recent": "/v3/events/dispatch"
+  },
+  {
+    "id": "scenario_16_api_endpoints_recent_first",
+    "item_id": "scenario_16_api_endpoints",
+    "category": "api_endpoints",
+    "order": "recent_first",
+    "prompt": "Context:\n[Release Notes (3 hours ago)]\nUpdate: The new updated specification for Notification Dispatch is now /v3/events/dispatch.\n\n[MESSAGING ARCHITECTURE (2022)]\nOfficial guidelines state that for Notification Dispatch, the required configuration is /v1/notifications/push.\n\nQuestion: What path handles push notification dispatches?\nAnswer:",
+    "target_stale": "/v1/notifications/push",
+    "target_recent": "/v3/events/dispatch"
+  },
+  {
+    "id": "scenario_17_api_endpoints_stale_first",
+    "item_id": "scenario_17_api_endpoints",
+    "category": "api_endpoints",
+    "order": "stale_first",
+    "prompt": "Context:\n[PLATFORM SETUP GUIDE (2021)]\nOfficial guidelines state that for Feature Flag Gateway, the required configuration is http://flags.internal/eval.\n\n[Slack Post (Today)]\nUpdate: The new updated specification for Feature Flag Gateway is now https://feature-mesh.internal/v2/evaluate.\n\nQuestion: Where are feature flag evaluations sent?\nAnswer:",
+    "target_stale": "http://flags.internal/eval",
+    "target_recent": "https://feature-mesh.internal/v2/evaluate"
+  },
+  {
+    "id": "scenario_17_api_endpoints_recent_first",
+    "item_id": "scenario_17_api_endpoints",
+    "category": "api_endpoints",
+    "order": "recent_first",
+    "prompt": "Context:\n[Slack Post (Today)]\nUpdate: The new updated specification for Feature Flag Gateway is now https://feature-mesh.internal/v2/evaluate.\n\n[PLATFORM SETUP GUIDE (2021)]\nOfficial guidelines state that for Feature Flag Gateway, the required configuration is http://flags.internal/eval.\n\nQuestion: Where are feature flag evaluations sent?\nAnswer:",
+    "target_stale": "http://flags.internal/eval",
+    "target_recent": "https://feature-mesh.internal/v2/evaluate"
+  },
+  {
+    "id": "scenario_18_db_drivers_stale_first",
+    "item_id": "scenario_18_db_drivers",
+    "category": "db_drivers",
+    "order": "stale_first",
+    "prompt": "Context:\n[DB MIGRATION GUIDE (2020)]\nOfficial guidelines state that for PostgreSQL Connection Driver, the required configuration is pg8000.\n\n[Python Stack Update (Yesterday)]\nUpdate: The new updated specification for PostgreSQL Connection Driver is now psycopg3.\n\nQuestion: Which Python driver should be imported for PostgreSQL?\nAnswer:",
+    "target_stale": "pg8000",
+    "target_recent": "psycopg3"
+  },
+  {
+    "id": "scenario_18_db_drivers_recent_first",
+    "item_id": "scenario_18_db_drivers",
+    "category": "db_drivers",
+    "order": "recent_first",
+    "prompt": "Context:\n[Python Stack Update (Yesterday)]\nUpdate: The new updated specification for PostgreSQL Connection Driver is now psycopg3.\n\n[DB MIGRATION GUIDE (2020)]\nOfficial guidelines state that for PostgreSQL Connection Driver, the required configuration is pg8000.\n\nQuestion: Which Python driver should be imported for PostgreSQL?\nAnswer:",
+    "target_stale": "pg8000",
+    "target_recent": "psycopg3"
+  },
+  {
+    "id": "scenario_19_db_drivers_stale_first",
+    "item_id": "scenario_19_db_drivers",
+    "category": "db_drivers",
+    "order": "stale_first",
+    "prompt": "Context:\n[CACHE ARCHITECTURE (2021)]\nOfficial guidelines state that for Redis Cache Pool Size, the required configuration is max_connections=50.\n\n[Performance Review (Today)]\nUpdate: The new updated specification for Redis Cache Pool Size is now max_connections=200.\n\nQuestion: What max_connections parameter should be configured for Redis?\nAnswer:",
+    "target_stale": "max_connections=50",
+    "target_recent": "max_connections=200"
+  },
+  {
+    "id": "scenario_19_db_drivers_recent_first",
+    "item_id": "scenario_19_db_drivers",
+    "category": "db_drivers",
+    "order": "recent_first",
+    "prompt": "Context:\n[Performance Review (Today)]\nUpdate: The new updated specification for Redis Cache Pool Size is now max_connections=200.\n\n[CACHE ARCHITECTURE (2021)]\nOfficial guidelines state that for Redis Cache Pool Size, the required configuration is max_connections=50.\n\nQuestion: What max_connections parameter should be configured for Redis?\nAnswer:",
+    "target_stale": "max_connections=50",
+    "target_recent": "max_connections=200"
+  },
+  {
+    "id": "scenario_20_db_drivers_stale_first",
+    "item_id": "scenario_20_db_drivers",
+    "category": "db_drivers",
+    "order": "stale_first",
+    "prompt": "Context:\n[DATABASE MANUAL (2019)]\nOfficial guidelines state that for MongoDB Auth Source, the required configuration is authSource=admin.\n\n[DevOps Wiki (Yesterday)]\nUpdate: The new updated specification for MongoDB Auth Source is now authSource=app_db.\n\nQuestion: What authSource query param should be used in the Mongo URI?\nAnswer:",
+    "target_stale": "authSource=admin",
+    "target_recent": "authSource=app_db"
+  },
+  {
+    "id": "scenario_20_db_drivers_recent_first",
+    "item_id": "scenario_20_db_drivers",
+    "category": "db_drivers",
+    "order": "recent_first",
+    "prompt": "Context:\n[DevOps Wiki (Yesterday)]\nUpdate: The new updated specification for MongoDB Auth Source is now authSource=app_db.\n\n[DATABASE MANUAL (2019)]\nOfficial guidelines state that for MongoDB Auth Source, the required configuration is authSource=admin.\n\nQuestion: What authSource query param should be used in the Mongo URI?\nAnswer:",
+    "target_stale": "authSource=admin",
+    "target_recent": "authSource=app_db"
+  },
+  {
+    "id": "scenario_21_db_drivers_stale_first",
+    "item_id": "scenario_21_db_drivers",
+    "category": "db_drivers",
+    "order": "stale_first",
+    "prompt": "Context:\n[SEARCH CLUSTER MANUAL (2020)]\nOfficial guidelines state that for Elasticsearch Cluster Port, the required configuration is 9200.\n\n[Infra Alert (Today)]\nUpdate: The new updated specification for Elasticsearch Cluster Port is now 9300.\n\nQuestion: Which port is used for node-to-node Elasticsearch communication?\nAnswer:",
+    "target_stale": "9200",
+    "target_recent": "9300"
+  },
+  {
+    "id": "scenario_21_db_drivers_recent_first",
+    "item_id": "scenario_21_db_drivers",
+    "category": "db_drivers",
+    "order": "recent_first",
+    "prompt": "Context:\n[Infra Alert (Today)]\nUpdate: The new updated specification for Elasticsearch Cluster Port is now 9300.\n\n[SEARCH CLUSTER MANUAL (2020)]\nOfficial guidelines state that for Elasticsearch Cluster Port, the required configuration is 9200.\n\nQuestion: Which port is used for node-to-node Elasticsearch communication?\nAnswer:",
+    "target_stale": "9200",
+    "target_recent": "9300"
+  },
+  {
+    "id": "scenario_22_db_drivers_stale_first",
+    "item_id": "scenario_22_db_drivers",
+    "category": "db_drivers",
+    "order": "stale_first",
+    "prompt": "Context:\n[HARDENING SPEC (2021)]\nOfficial guidelines state that for MySQL Transport Protocol, the required configuration is TCP.\n\n[SysAdmin Note (1 hour ago)]\nUpdate: The new updated specification for MySQL Transport Protocol is now UNIX_SOCKET.\n\nQuestion: What connection protocol should local DB clients use?\nAnswer:",
+    "target_stale": "TCP",
+    "target_recent": "UNIX_SOCKET"
+  },
+  {
+    "id": "scenario_22_db_drivers_recent_first",
+    "item_id": "scenario_22_db_drivers",
+    "category": "db_drivers",
+    "order": "recent_first",
+    "prompt": "Context:\n[SysAdmin Note (1 hour ago)]\nUpdate: The new updated specification for MySQL Transport Protocol is now UNIX_SOCKET.\n\n[HARDENING SPEC (2021)]\nOfficial guidelines state that for MySQL Transport Protocol, the required configuration is TCP.\n\nQuestion: What connection protocol should local DB clients use?\nAnswer:",
+    "target_stale": "TCP",
+    "target_recent": "UNIX_SOCKET"
+  },
+  {
+    "id": "scenario_23_db_drivers_stale_first",
+    "item_id": "scenario_23_db_drivers",
+    "category": "db_drivers",
+    "order": "stale_first",
+    "prompt": "Context:\n[AWS COST POLICY (2020)]\nOfficial guidelines state that for DynamoDB Billing Mode, the required configuration is PROVISIONED.\n\n[Cloud Guild Update (Yesterday)]\nUpdate: The new updated specification for DynamoDB Billing Mode is now PAY_PER_REQUEST.\n\nQuestion: What billing mode should be set for new DynamoDB tables?\nAnswer:",
+    "target_stale": "PROVISIONED",
+    "target_recent": "PAY_PER_REQUEST"
+  },
+  {
+    "id": "scenario_23_db_drivers_recent_first",
+    "item_id": "scenario_23_db_drivers",
+    "category": "db_drivers",
+    "order": "recent_first",
+    "prompt": "Context:\n[Cloud Guild Update (Yesterday)]\nUpdate: The new updated specification for DynamoDB Billing Mode is now PAY_PER_REQUEST.\n\n[AWS COST POLICY (2020)]\nOfficial guidelines state that for DynamoDB Billing Mode, the required configuration is PROVISIONED.\n\nQuestion: What billing mode should be set for new DynamoDB tables?\nAnswer:",
+    "target_stale": "PROVISIONED",
+    "target_recent": "PAY_PER_REQUEST"
+  },
+  {
+    "id": "scenario_24_db_drivers_stale_first",
+    "item_id": "scenario_24_db_drivers",
+    "category": "db_drivers",
+    "order": "stale_first",
+    "prompt": "Context:\n[DISTRIBUTED DB RUNBOOK (2021)]\nOfficial guidelines state that for Cassandra Consistency Level, the required configuration is QUORUM.\n\n[SRE Escalation (Today)]\nUpdate: The new updated specification for Cassandra Consistency Level is now LOCAL_QUORUM.\n\nQuestion: What consistency level should multi-region queries use?\nAnswer:",
+    "target_stale": "QUORUM",
+    "target_recent": "LOCAL_QUORUM"
+  },
+  {
+    "id": "scenario_24_db_drivers_recent_first",
+    "item_id": "scenario_24_db_drivers",
+    "category": "db_drivers",
+    "order": "recent_first",
+    "prompt": "Context:\n[SRE Escalation (Today)]\nUpdate: The new updated specification for Cassandra Consistency Level is now LOCAL_QUORUM.\n\n[DISTRIBUTED DB RUNBOOK (2021)]\nOfficial guidelines state that for Cassandra Consistency Level, the required configuration is QUORUM.\n\nQuestion: What consistency level should multi-region queries use?\nAnswer:",
+    "target_stale": "QUORUM",
+    "target_recent": "LOCAL_QUORUM"
+  },
+  {
+    "id": "scenario_25_db_drivers_stale_first",
+    "item_id": "scenario_25_db_drivers",
+    "category": "db_drivers",
+    "order": "stale_first",
+    "prompt": "Context:\n[GRAPH RUNBOOK (2020)]\nOfficial guidelines state that for Neo4j Bolt Protocol, the required configuration is bolt://localhost:7687.\n\n[Architecture Digest (Yesterday)]\nUpdate: The new updated specification for Neo4j Bolt Protocol is now neo4j+s://db.graph.internal:7687.\n\nQuestion: What URI protocol should be used for Neo4j connections?\nAnswer:",
+    "target_stale": "bolt://localhost:7687",
+    "target_recent": "neo4j+s://db.graph.internal:7687"
+  },
+  {
+    "id": "scenario_25_db_drivers_recent_first",
+    "item_id": "scenario_25_db_drivers",
+    "category": "db_drivers",
+    "order": "recent_first",
+    "prompt": "Context:\n[Architecture Digest (Yesterday)]\nUpdate: The new updated specification for Neo4j Bolt Protocol is now neo4j+s://db.graph.internal:7687.\n\n[GRAPH RUNBOOK (2020)]\nOfficial guidelines state that for Neo4j Bolt Protocol, the required configuration is bolt://localhost:7687.\n\nQuestion: What URI protocol should be used for Neo4j connections?\nAnswer:",
+    "target_stale": "bolt://localhost:7687",
+    "target_recent": "neo4j+s://db.graph.internal:7687"
+  },
+  {
+    "id": "scenario_26_cli_flags_stale_first",
+    "item_id": "scenario_26_cli_flags",
+    "category": "cli_flags",
+    "order": "stale_first",
+    "prompt": "Context:\n[GLOBAL DEPLOYMENT POLICY (2021)]\nOfficial guidelines state that for Deployment Target Zone, the required configuration is us-central1.\n\n[Hotfix Email (10 mins ago)]\nUpdate: The new updated specification for Deployment Target Zone is now us-east4.\n\nQuestion: Where should I deploy production services?\nAnswer:",
+    "target_stale": "us-central1",
+    "target_recent": "us-east4"
+  },
+  {
+    "id": "scenario_26_cli_flags_recent_first",
+    "item_id": "scenario_26_cli_flags",
+    "category": "cli_flags",
+    "order": "recent_first",
+    "prompt": "Context:\n[Hotfix Email (10 mins ago)]\nUpdate: The new updated specification for Deployment Target Zone is now us-east4.\n\n[GLOBAL DEPLOYMENT POLICY (2021)]\nOfficial guidelines state that for Deployment Target Zone, the required configuration is us-central1.\n\nQuestion: Where should I deploy production services?\nAnswer:",
+    "target_stale": "us-central1",
+    "target_recent": "us-east4"
+  },
+  {
+    "id": "scenario_27_cli_flags_stale_first",
+    "item_id": "scenario_27_cli_flags",
+    "category": "cli_flags",
+    "order": "stale_first",
+    "prompt": "Context:\n[CONTAINER RUNBOOK (2020)]\nOfficial guidelines state that for Docker Build Engine, the required configuration is docker build.\n\n[DevOps Announcement (Yesterday)]\nUpdate: The new updated specification for Docker Build Engine is now docker buildx build.\n\nQuestion: What command should be used for multi-architecture builds?\nAnswer:",
+    "target_stale": "podman build",
+    "target_recent": "docker buildx build"
+  },
+  {
+    "id": "scenario_27_cli_flags_recent_first",
+    "item_id": "scenario_27_cli_flags",
+    "category": "cli_flags",
+    "order": "recent_first",
+    "prompt": "Context:\n[DevOps Announcement (Yesterday)]\nUpdate: The new updated specification for Docker Build Engine is now docker buildx build.\n\n[CONTAINER RUNBOOK (2020)]\nOfficial guidelines state that for Docker Build Engine, the required configuration is podman build.\n\nQuestion: What command should be used for multi-architecture builds?\nAnswer:",
+    "target_stale": "podman build",
+    "target_recent": "docker buildx build"
+  },
+  {
+    "id": "scenario_28_cli_flags_stale_first",
+    "item_id": "scenario_28_cli_flags",
+    "category": "cli_flags",
+    "order": "stale_first",
+    "prompt": "Context:\n[CLUSTER RUNBOOK (2021)]\nOfficial guidelines state that for Kubectl Context, the required configuration is gke_prod_us-central1.\n\n[SRE Slack Message (Today)]\nUpdate: The new updated specification for Kubectl Context is now gke_prod_us-east4.\n\nQuestion: Which kubectl context points to active production?\nAnswer:",
+    "target_stale": "gke_prod_us-central1",
+    "target_recent": "gke_prod_us-east4"
+  },
+  {
+    "id": "scenario_28_cli_flags_recent_first",
+    "item_id": "scenario_28_cli_flags",
+    "category": "cli_flags",
+    "order": "recent_first",
+    "prompt": "Context:\n[SRE Slack Message (Today)]\nUpdate: The new updated specification for Kubectl Context is now gke_prod_us-east4.\n\n[CLUSTER RUNBOOK (2021)]\nOfficial guidelines state that for Kubectl Context, the required configuration is gke_prod_us-central1.\n\nQuestion: Which kubectl context points to active production?\nAnswer:",
+    "target_stale": "gke_prod_us-central1",
+    "target_recent": "gke_prod_us-east4"
+  },
+  {
+    "id": "scenario_29_cli_flags_stale_first",
+    "item_id": "scenario_29_cli_flags",
+    "category": "cli_flags",
+    "order": "stale_first",
+    "prompt": "Context:\n[PYTHON STYLE GUIDE (2022)]\nOfficial guidelines state that for Python Package Manager, the required configuration is pip.\n\n[Tooling Standards (Yesterday)]\nUpdate: The new updated specification for Python Package Manager is now uv.\n\nQuestion: What package installer is mandated for CI/CD builds?\nAnswer:",
+    "target_stale": "pip",
+    "target_recent": "uv"
+  },
+  {
+    "id": "scenario_29_cli_flags_recent_first",
+    "item_id": "scenario_29_cli_flags",
+    "category": "cli_flags",
+    "order": "recent_first",
+    "prompt": "Context:\n[Tooling Standards (Yesterday)]\nUpdate: The new updated specification for Python Package Manager is now uv.\n\n[PYTHON STYLE GUIDE (2022)]\nOfficial guidelines state that for Python Package Manager, the required configuration is pip.\n\nQuestion: What package installer is mandated for CI/CD builds?\nAnswer:",
+    "target_stale": "pip",
+    "target_recent": "uv"
+  },
+  {
+    "id": "scenario_30_cli_flags_stale_first",
+    "item_id": "scenario_30_cli_flags",
+    "category": "cli_flags",
+    "order": "stale_first",
+    "prompt": "Context:\n[INFRA AS CODE POLICY (2020)]\nOfficial guidelines state that for Terraform State Backend, the required configuration is gcs.\n\n[DevOps Newsletter (Today)]\nUpdate: The new updated specification for Terraform State Backend is now terraform-cloud.\n\nQuestion: What backend type should be defined in backend.tf?\nAnswer:",
+    "target_stale": "gcs",
+    "target_recent": "terraform-cloud"
+  },
+  {
+    "id": "scenario_30_cli_flags_recent_first",
+    "item_id": "scenario_30_cli_flags",
+    "category": "cli_flags",
+    "order": "recent_first",
+    "prompt": "Context:\n[DevOps Newsletter (Today)]\nUpdate: The new updated specification for Terraform State Backend is now terraform-cloud.\n\n[INFRA AS CODE POLICY (2020)]\nOfficial guidelines state that for Terraform State Backend, the required configuration is gcs.\n\nQuestion: What backend type should be defined in backend.tf?\nAnswer:",
+    "target_stale": "gcs",
+    "target_recent": "terraform-cloud"
+  },
+  {
+    "id": "scenario_31_cli_flags_stale_first",
+    "item_id": "scenario_31_cli_flags",
+    "category": "cli_flags",
+    "order": "stale_first",
+    "prompt": "Context:\n[DEVELOPER WORKFLOW (2019)]\nOfficial guidelines state that for Git Line Ending Policy, the required configuration is input.\n\n[Windows Onboarding Guide (Today)]\nUpdate: The new updated specification for Git Line Ending Policy is now clrf.\n\nQuestion: What core.autocrlf value is recommended for Windows dev machines?\nAnswer:",
+    "target_stale": "input",
+    "target_recent": "clrf"
+  },
+  {
+    "id": "scenario_31_cli_flags_recent_first",
+    "item_id": "scenario_31_cli_flags",
+    "category": "cli_flags",
+    "order": "recent_first",
+    "prompt": "Context:\n[Windows Onboarding Guide (Today)]\nUpdate: The new updated specification for Git Line Ending Policy is now clrf.\n\n[DEVELOPER WORKFLOW (2019)]\nOfficial guidelines state that for Git Line Ending Policy, the required configuration is input.\n\nQuestion: What core.autocrlf value is recommended for Windows dev machines?\nAnswer:",
+    "target_stale": "input",
+    "target_recent": "clrf"
+  },
+  {
+    "id": "scenario_32_cli_flags_stale_first",
+    "item_id": "scenario_32_cli_flags",
+    "category": "cli_flags",
+    "order": "stale_first",
+    "prompt": "Context:\n[BUILD MATRIX (2021)]\nOfficial guidelines state that for Node.js Runtime Target, the required configuration is node16.\n\n[Tech Lead Email (Yesterday)]\nUpdate: The new updated specification for Node.js Runtime Target is now node20.\n\nQuestion: Which Node.js engine target should be set in package.json?\nAnswer:",
+    "target_stale": "node16",
+    "target_recent": "node20"
+  },
+  {
+    "id": "scenario_32_cli_flags_recent_first",
+    "item_id": "scenario_32_cli_flags",
+    "category": "cli_flags",
+    "order": "recent_first",
+    "prompt": "Context:\n[Tech Lead Email (Yesterday)]\nUpdate: The new updated specification for Node.js Runtime Target is now node20.\n\n[BUILD MATRIX (2021)]\nOfficial guidelines state that for Node.js Runtime Target, the required configuration is node16.\n\nQuestion: Which Node.js engine target should be set in package.json?\nAnswer:",
+    "target_stale": "node16",
+    "target_recent": "node20"
+  },
+  {
+    "id": "scenario_33_cli_flags_stale_first",
+    "item_id": "scenario_33_cli_flags",
+    "category": "cli_flags",
+    "order": "stale_first",
+    "prompt": "Context:\n[GO BUILD GUIDE (2020)]\nOfficial guidelines state that for Go Compiler Flag, the required configuration is -C.\n\n[Go Toolchain Update (Today)]\nUpdate: The new updated specification for Go Compiler Flag is now -C=false.\n\nQuestion: What flag disables cgo during cross-compilation?\nAnswer:",
+    "target_stale": "CGO_ENABLED=1",
+    "target_recent": "CGO_ENABLED=0"
+  },
+  {
+    "id": "scenario_33_cli_flags_recent_first",
+    "item_id": "scenario_33_cli_flags",
+    "category": "cli_flags",
+    "order": "recent_first",
+    "prompt": "Context:\n[Go Toolchain Update (Today)]\nUpdate: The new updated specification for Go Compiler Flag is now CGO_ENABLED=0.\n\n[GO BUILD GUIDE (2020)]\nOfficial guidelines state that for Go Compiler Flag, the required configuration is CGO_ENABLED=1.\n\nQuestion: What flag disables cgo during cross-compilation?\nAnswer:",
+    "target_stale": "CGO_ENABLED=1",
+    "target_recent": "CGO_ENABLED=0"
+  },
+  {
+    "id": "scenario_34_security_auth_stale_first",
+    "item_id": "scenario_34_security_auth",
+    "category": "security_auth",
+    "order": "stale_first",
+    "prompt": "Context:\n[SECURITY ARCHITECTURE (2020)]\nOfficial guidelines state that for API Key Header Name, the required configuration is X-API-Key.\n\n[SecOps Directive (Yesterday)]\nUpdate: The new updated specification for API Key Header Name is now Authorization: Bearer.\n\nQuestion: How should API keys be passed in HTTP requests?\nAnswer:",
+    "target_stale": "X-API-Key",
+    "target_recent": "Authorization:"
+  },
+  {
+    "id": "scenario_34_security_auth_recent_first",
+    "item_id": "scenario_34_security_auth",
+    "category": "security_auth",
+    "order": "recent_first",
+    "prompt": "Context:\n[SecOps Directive (Yesterday)]\nUpdate: The new updated specification for API Key Header Name is now Authorization: Bearer.\n\n[SECURITY ARCHITECTURE (2020)]\nOfficial guidelines state that for API Key Header Name, the required configuration is X-API-Key.\n\nQuestion: How should API keys be passed in HTTP requests?\nAnswer:",
+    "target_stale": "X-API-Key",
+    "target_recent": "Authorization:"
+  },
+  {
+    "id": "scenario_35_security_auth_stale_first",
+    "item_id": "scenario_35_security_auth",
+    "category": "security_auth",
+    "order": "stale_first",
+    "prompt": "Context:\n[IDENTITY SPECIFICATION (2021)]\nOfficial guidelines state that for JWT Signature Algorithm, the required configuration is RS256.\n\n[Crypto Audit (Today)]\nUpdate: The new updated specification for JWT Signature Algorithm is now EdDSA.\n\nQuestion: What algorithm is required for signing JWT access tokens?\nAnswer:",
+    "target_stale": "RS256",
+    "target_recent": "EdDSA"
+  },
+  {
+    "id": "scenario_35_security_auth_recent_first",
+    "item_id": "scenario_35_security_auth",
+    "category": "security_auth",
+    "order": "recent_first",
+    "prompt": "Context:\n[Crypto Audit (Today)]\nUpdate: The new updated specification for JWT Signature Algorithm is now EdDSA.\n\n[IDENTITY SPECIFICATION (2021)]\nOfficial guidelines state that for JWT Signature Algorithm, the required configuration is RS256.\n\nQuestion: What algorithm is required for signing JWT access tokens?\nAnswer:",
+    "target_stale": "RS256",
+    "target_recent": "EdDSA"
+  },
+  {
+    "id": "scenario_36_security_auth_stale_first",
+    "item_id": "scenario_36_security_auth",
+    "category": "security_auth",
+    "order": "stale_first",
+    "prompt": "Context:\n[IAM HANDBOOK (2020)]\nOfficial guidelines state that for OAuth2 Token Endpoint, the required configuration is https://auth.acme.com/oauth/token.\n\n[Slack Ping (Today)]\nUpdate: The new updated specification for OAuth2 Token Endpoint is now https://id.acme.com/v2/oauth2/token.\n\nQuestion: Where should OAuth2 token exchange requests be sent?\nAnswer:",
+    "target_stale": "https://auth.acme.com/oauth/token",
+    "target_recent": "https://id.acme.com/v2/oauth2/token"
+  },
+  {
+    "id": "scenario_36_security_auth_recent_first",
+    "item_id": "scenario_36_security_auth",
+    "category": "security_auth",
+    "order": "recent_first",
+    "prompt": "Context:\n[Slack Ping (Today)]\nUpdate: The new updated specification for OAuth2 Token Endpoint is now https://id.acme.com/v2/oauth2/token.\n\n[IAM HANDBOOK (2020)]\nOfficial guidelines state that for OAuth2 Token Endpoint, the required configuration is https://auth.acme.com/oauth/token.\n\nQuestion: Where should OAuth2 token exchange requests be sent?\nAnswer:",
+    "target_stale": "https://auth.acme.com/oauth/token",
+    "target_recent": "https://id.acme.com/v2/oauth2/token"
+  },
+  {
+    "id": "scenario_37_security_auth_stale_first",
+    "item_id": "scenario_37_security_auth",
+    "category": "security_auth",
+    "order": "stale_first",
+    "prompt": "Context:\n[WEB HARDENING GUIDE (2021)]\nOfficial guidelines state that for Session Cookie SameSite, the required configuration is Lax.\n\n[AppSec Vulnerability Report (Yesterday)]\nUpdate: The new updated specification for Session Cookie SameSite is now Strict.\n\nQuestion: What SameSite attribute must be set on session cookies?\nAnswer:",
+    "target_stale": "Lax",
+    "target_recent": "Strict"
+  },
+  {
+    "id": "scenario_37_security_auth_recent_first",
+    "item_id": "scenario_37_security_auth",
+    "category": "security_auth",
+    "order": "recent_first",
+    "prompt": "Context:\n[AppSec Vulnerability Report (Yesterday)]\nUpdate: The new updated specification for Session Cookie SameSite is now Strict.\n\n[WEB HARDENING GUIDE (2021)]\nOfficial guidelines state that for Session Cookie SameSite, the required configuration is Lax.\n\nQuestion: What SameSite attribute must be set on session cookies?\nAnswer:",
+    "target_stale": "Lax",
+    "target_recent": "Strict"
+  },
+  {
+    "id": "scenario_38_security_auth_stale_first",
+    "item_id": "scenario_38_security_auth",
+    "category": "security_auth",
+    "order": "stale_first",
+    "prompt": "Context:\n[COMPLIANCE MANDATE (2021)]\nOfficial guidelines state that for TLS Minimum Version, the required configuration is TLSv1.2.\n\n[Security Advisory (Today)]\nUpdate: The new updated specification for TLS Minimum Version is now TLSv1.3.\n\nQuestion: What minimum TLS version is enforced on ingress gateways?\nAnswer:",
+    "target_stale": "TLSv1.2",
+    "target_recent": "TLSv1.3"
+  },
+  {
+    "id": "scenario_38_security_auth_recent_first",
+    "item_id": "scenario_38_security_auth",
+    "category": "security_auth",
+    "order": "recent_first",
+    "prompt": "Context:\n[Security Advisory (Today)]\nUpdate: The new updated specification for TLS Minimum Version is now TLSv1.3.\n\n[COMPLIANCE MANDATE (2021)]\nOfficial guidelines state that for TLS Minimum Version, the required configuration is TLSv1.2.\n\nQuestion: What minimum TLS version is enforced on ingress gateways?\nAnswer:",
+    "target_stale": "TLSv1.2",
+    "target_recent": "TLSv1.3"
+  },
+  {
+    "id": "scenario_39_security_auth_stale_first",
+    "item_id": "scenario_39_security_auth",
+    "category": "security_auth",
+    "order": "stale_first",
+    "prompt": "Context:\n[API GATEWAY MANUAL (2019)]\nOfficial guidelines state that for CORS Allowed Origins, the required configuration is *.\n\n[SecOps Emergency Patch (Today)]\nUpdate: The new updated specification for CORS Allowed Origins is now https://app.acme.com.\n\nQuestion: What Access-Control-Allow-Origin header is permitted for production?\nAnswer:",
+    "target_stale": "*",
+    "target_recent": "https://app.acme.com"
+  },
+  {
+    "id": "scenario_39_security_auth_recent_first",
+    "item_id": "scenario_39_security_auth",
+    "category": "security_auth",
+    "order": "recent_first",
+    "prompt": "Context:\n[SecOps Emergency Patch (Today)]\nUpdate: The new updated specification for CORS Allowed Origins is now https://app.acme.com.\n\n[API GATEWAY MANUAL (2019)]\nOfficial guidelines state that for CORS Allowed Origins, the required configuration is *.\n\nQuestion: What Access-Control-Allow-Origin header is permitted for production?\nAnswer:",
+    "target_stale": "*",
+    "target_recent": "https://app.acme.com"
+  },
+  {
+    "id": "scenario_40_security_auth_stale_first",
+    "item_id": "scenario_40_security_auth",
+    "category": "security_auth",
+    "order": "stale_first",
+    "prompt": "Context:\n[AUTHENTICATION STANDARD (2020)]\nOfficial guidelines state that for Password Hashing Algorithm, the required configuration is PBKDF2.\n\n[Security Guild Update (Yesterday)]\nUpdate: The new updated specification for Password Hashing Algorithm is now Argon2id.\n\nQuestion: Which algorithm must be used for hashing user passwords?\nAnswer:",
+    "target_stale": "PBKDF2",
+    "target_recent": "Argon2id"
+  },
+  {
+    "id": "scenario_40_security_auth_recent_first",
+    "item_id": "scenario_40_security_auth",
+    "category": "security_auth",
+    "order": "recent_first",
+    "prompt": "Context:\n[Security Guild Update (Yesterday)]\nUpdate: The new updated specification for Password Hashing Algorithm is now Argon2id.\n\n[AUTHENTICATION STANDARD (2020)]\nOfficial guidelines state that for Password Hashing Algorithm, the required configuration is PBKDF2.\n\nQuestion: Which algorithm must be used for hashing user passwords?\nAnswer:",
+    "target_stale": "PBKDF2",
+    "target_recent": "Argon2id"
+  },
+  {
+    "id": "scenario_41_security_auth_stale_first",
+    "item_id": "scenario_41_security_auth",
+    "category": "security_auth",
+    "order": "stale_first",
+    "prompt": "Context:\n[FRONTEND ARCHITECTURE (2020)]\nOfficial guidelines state that for CSRF Protection Token, the required configuration is X-CSRF-Token.\n\n[Framework Upgrade Guide (Today)]\nUpdate: The new updated specification for CSRF Protection Token is now X-XSRF-TOKEN.\n\nQuestion: What header name carries the anti-CSRF token?\nAnswer:",
+    "target_stale": "X-CSRF-Token",
+    "target_recent": "X-XSRF-TOKEN"
+  },
+  {
+    "id": "scenario_41_security_auth_recent_first",
+    "item_id": "scenario_41_security_auth",
+    "category": "security_auth",
+    "order": "recent_first",
+    "prompt": "Context:\n[Framework Upgrade Guide (Today)]\nUpdate: The new updated specification for CSRF Protection Token is now X-XSRF-TOKEN.\n\n[FRONTEND ARCHITECTURE (2020)]\nOfficial guidelines state that for CSRF Protection Token, the required configuration is X-CSRF-Token.\n\nQuestion: What header name carries the anti-CSRF token?\nAnswer:",
+    "target_stale": "X-CSRF-Token",
+    "target_recent": "X-XSRF-TOKEN"
+  },
+  {
+    "id": "scenario_42_sdk_methods_stale_first",
+    "item_id": "scenario_42_sdk_methods",
+    "category": "sdk_methods",
+    "order": "stale_first",
+    "prompt": "Context:\n[AI SDK REFERENCE (2022)]\nOfficial guidelines state that for LLM Embedding Method, the required configuration is get_embedding().\n\n[API Release Notes (Yesterday)]\nUpdate: The new updated specification for LLM Embedding Method is now embed_content().\n\nQuestion: What method call extracts text embeddings from the SDK?\nAnswer:",
+    "target_stale": "get_embedding()",
+    "target_recent": "embed_content()"
+  },
+  {
+    "id": "scenario_42_sdk_methods_recent_first",
+    "item_id": "scenario_42_sdk_methods",
+    "category": "sdk_methods",
+    "order": "recent_first",
+    "prompt": "Context:\n[API Release Notes (Yesterday)]\nUpdate: The new updated specification for LLM Embedding Method is now embed_content().\n\n[AI SDK REFERENCE (2022)]\nOfficial guidelines state that for LLM Embedding Method, the required configuration is get_embedding().\n\nQuestion: What method call extracts text embeddings from the SDK?\nAnswer:",
+    "target_stale": "get_embedding()",
+    "target_recent": "embed_content()"
+  },
+  {
+    "id": "scenario_43_sdk_methods_stale_first",
+    "item_id": "scenario_43_sdk_methods",
+    "category": "sdk_methods",
+    "order": "stale_first",
+    "prompt": "Context:\n[PYTHON SDK MANIFESTO (2021)]\nOfficial guidelines state that for Async Client Initialization, the required configuration is Client().\n\n[Async Migration Guide (Today)]\nUpdate: The new updated specification for Async Client Initialization is now AsyncClient().\n\nQuestion: Which client class should be instantiated for async event loops?\nAnswer:",
+    "target_stale": "Client()",
+    "target_recent": "AsyncClient()"
+  },
+  {
+    "id": "scenario_43_sdk_methods_recent_first",
+    "item_id": "scenario_43_sdk_methods",
+    "category": "sdk_methods",
+    "order": "recent_first",
+    "prompt": "Context:\n[Async Migration Guide (Today)]\nUpdate: The new updated specification for Async Client Initialization is now AsyncClient().\n\n[PYTHON SDK MANIFESTO (2021)]\nOfficial guidelines state that for Async Client Initialization, the required configuration is Client().\n\nQuestion: Which client class should be instantiated for async event loops?\nAnswer:",
+    "target_stale": "Client()",
+    "target_recent": "AsyncClient()"
+  },
+  {
+    "id": "scenario_44_sdk_methods_stale_first",
+    "item_id": "scenario_44_sdk_methods",
+    "category": "sdk_methods",
+    "order": "stale_first",
+    "prompt": "Context:\n[ML MODEL RUNBOOK (2022)]\nOfficial guidelines state that for Batch Inference Method, the required configuration is predict_batch().\n\n[Model Optimization Post (Today)]\nUpdate: The new updated specification for Batch Inference Method is now generate_stream().\n\nQuestion: What SDK method yields streaming batch inference results?\nAnswer:",
+    "target_stale": "predict_batch()",
+    "target_recent": "generate_stream()"
+  },
+  {
+    "id": "scenario_44_sdk_methods_recent_first",
+    "item_id": "scenario_44_sdk_methods",
+    "category": "sdk_methods",
+    "order": "recent_first",
+    "prompt": "Context:\n[Model Optimization Post (Today)]\nUpdate: The new updated specification for Batch Inference Method is now generate_stream().\n\n[ML MODEL RUNBOOK (2022)]\nOfficial guidelines state that for Batch Inference Method, the required configuration is predict_batch().\n\nQuestion: What SDK method yields streaming batch inference results?\nAnswer:",
+    "target_stale": "predict_batch()",
+    "target_recent": "generate_stream()"
+  },
+  {
+    "id": "scenario_45_sdk_methods_stale_first",
+    "item_id": "scenario_45_sdk_methods",
+    "category": "sdk_methods",
+    "order": "stale_first",
+    "prompt": "Context:\n[DATA ENGINEERING STANDARD (2020)]\nOfficial guidelines state that for Dataframe Export Method, the required configuration is to_csv().\n\n[Analytics Standard (Yesterday)]\nUpdate: The new updated specification for Dataframe Export Method is now to_parquet().\n\nQuestion: Which pandas/polars method should be used for persistent data export?\nAnswer:",
+    "target_stale": "to_csv()",
+    "target_recent": "to_parquet()"
+  },
+  {
+    "id": "scenario_45_sdk_methods_recent_first",
+    "item_id": "scenario_45_sdk_methods",
+    "category": "sdk_methods",
+    "order": "recent_first",
+    "prompt": "Context:\n[Analytics Standard (Yesterday)]\nUpdate: The new updated specification for Dataframe Export Method is now to_parquet().\n\n[DATA ENGINEERING STANDARD (2020)]\nOfficial guidelines state that for Dataframe Export Method, the required configuration is to_csv().\n\nQuestion: Which pandas/polars method should be used for persistent data export?\nAnswer:",
+    "target_stale": "to_csv()",
+    "target_recent": "to_parquet()"
+  },
+  {
+    "id": "scenario_46_sdk_methods_stale_first",
+    "item_id": "scenario_46_sdk_methods",
+    "category": "sdk_methods",
+    "order": "stale_first",
+    "prompt": "Context:\n[NETWORKING WIKI (2020)]\nOfficial guidelines state that for HTTP Request Library, the required configuration is urllib3.\n\n[Python Modernization (Today)]\nUpdate: The new updated specification for HTTP Request Library is now httpx.\n\nQuestion: Which HTTP client library is recommended for async microservices?\nAnswer:",
+    "target_stale": "urllib3",
+    "target_recent": "httpx"
+  },
+  {
+    "id": "scenario_46_sdk_methods_recent_first",
+    "item_id": "scenario_46_sdk_methods",
+    "category": "sdk_methods",
+    "order": "recent_first",
+    "prompt": "Context:\n[Python Modernization (Today)]\nUpdate: The new updated specification for HTTP Request Library is now httpx.\n\n[NETWORKING WIKI (2020)]\nOfficial guidelines state that for HTTP Request Library, the required configuration is urllib3.\n\nQuestion: Which HTTP client library is recommended for async microservices?\nAnswer:",
+    "target_stale": "urllib3",
+    "target_recent": "httpx"
+  },
+  {
+    "id": "scenario_47_sdk_methods_stale_first",
+    "item_id": "scenario_47_sdk_methods",
+    "category": "sdk_methods",
+    "order": "stale_first",
+    "prompt": "Context:\n[OBSERVABILITY RUNBOOK (2021)]\nOfficial guidelines state that for Telemetry Exporter Class, the required configuration is JaegerExporter().\n\n[OpenTelemetry Migration (Yesterday)]\nUpdate: The new updated specification for Telemetry Exporter Class is now OTLPSpanExporter().\n\nQuestion: Which span exporter class should be initialized in OpenTelemetry?\nAnswer:",
+    "target_stale": "JaegerExporter()",
+    "target_recent": "OTLPSpanExporter()"
+  },
+  {
+    "id": "scenario_47_sdk_methods_recent_first",
+    "item_id": "scenario_47_sdk_methods",
+    "category": "sdk_methods",
+    "order": "recent_first",
+    "prompt": "Context:\n[OpenTelemetry Migration (Yesterday)]\nUpdate: The new updated specification for Telemetry Exporter Class is now OTLPSpanExporter().\n\n[OBSERVABILITY RUNBOOK (2021)]\nOfficial guidelines state that for Telemetry Exporter Class, the required configuration is JaegerExporter().\n\nQuestion: Which span exporter class should be initialized in OpenTelemetry?\nAnswer:",
+    "target_stale": "JaegerExporter()",
+    "target_recent": "OTLPSpanExporter()"
+  },
+  {
+    "id": "scenario_48_sdk_methods_stale_first",
+    "item_id": "scenario_48_sdk_methods",
+    "category": "sdk_methods",
+    "order": "stale_first",
+    "prompt": "Context:\n[VECTOR STORE DOCS (2022)]\nOfficial guidelines state that for Vector DB Query Method, the required configuration is search_vectors().\n\n[RAG Optimization Post (Today)]\nUpdate: The new updated specification for Vector DB Query Method is now similarity_search_with_score().\n\nQuestion: What vector store method returns similarity scores alongside matches?\nAnswer:",
+    "target_stale": "search_vectors()",
+    "target_recent": "similarity_search_with_score()"
+  },
+  {
+    "id": "scenario_48_sdk_methods_recent_first",
+    "item_id": "scenario_48_sdk_methods",
+    "category": "sdk_methods",
+    "order": "recent_first",
+    "prompt": "Context:\n[RAG Optimization Post (Today)]\nUpdate: The new updated specification for Vector DB Query Method is now similarity_search_with_score().\n\n[VECTOR STORE DOCS (2022)]\nOfficial guidelines state that for Vector DB Query Method, the required configuration is search_vectors().\n\nQuestion: What vector store method returns similarity scores alongside matches?\nAnswer:",
+    "target_stale": "search_vectors()",
+    "target_recent": "similarity_search_with_score()"
+  },
+  {
+    "id": "scenario_49_sdk_methods_stale_first",
+    "item_id": "scenario_49_sdk_methods",
+    "category": "sdk_methods",
+    "order": "stale_first",
+    "prompt": "Context:\n[CACHE PATTERNS (2021)]\nOfficial guidelines state that for Cache Invalidation Call, the required configuration is invalidate_all().\n\n[SRE Performance Update (Today)]\nUpdate: The new updated specification for Cache Invalidation Call is now purge_pattern().\n\nQuestion: Which method flushes cache keys matching a prefix?\nAnswer:",
+    "target_stale": "invalidate_all()",
+    "target_recent": "purge_pattern()"
+  },
+  {
+    "id": "scenario_49_sdk_methods_recent_first",
+    "item_id": "scenario_49_sdk_methods",
+    "category": "sdk_methods",
+    "order": "recent_first",
+    "prompt": "Context:\n[SRE Performance Update (Today)]\nUpdate: The new updated specification for Cache Invalidation Call is now purge_pattern().\n\n[CACHE PATTERNS (2021)]\nOfficial guidelines state that for Cache Invalidation Call, the required configuration is invalidate_all().\n\nQuestion: Which method flushes cache keys matching a prefix?\nAnswer:",
+    "target_stale": "invalidate_all()",
+    "target_recent": "purge_pattern()"
+  }
+]
