@@ -19,7 +19,11 @@ from transformers import AutoTokenizer
 def test_tokens():
     tokenizer = AutoTokenizer.from_pretrained("google/gemma-4-e4b")
     
-    with open("/path/to/your/project.json", "r") as f:
+    import os
+    from pathlib import Path
+    data_candidate = Path(__file__).resolve().parent.parent / "data" / "conflict_dataset_counterbalanced.json"
+    ds_path = os.environ.get("INPUT_JSON", str(data_candidate) if data_candidate.exists() else "data/conflict_dataset_counterbalanced.json")
+    with open(ds_path, "r") as f:
         dataset = json.load(f)
         
     unique_pairs = set()

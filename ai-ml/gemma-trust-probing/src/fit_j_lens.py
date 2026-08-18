@@ -131,10 +131,16 @@ def fit_jacobians(model, tokenizer, corpus, fit_layers=None, target_layer_idx=No
             return hook
             
         # Register hooks for target layer and earlier
-        if hasattr(model, "model") and hasattr(model.model, "language_model") and hasattr(model.model.language_model, "layers"):
+        if hasattr(model, "model") and hasattr(model.model, "language_model") and hasattr(model.model.language_model, "model") and hasattr(model.model.language_model.model, "layers"):
+            layers_module = model.model.language_model.model.layers
+        elif hasattr(model, "model") and hasattr(model.model, "language_model") and hasattr(model.model.language_model, "layers"):
             layers_module = model.model.language_model.layers
+        elif hasattr(model, "model") and hasattr(model.model, "layers"):
+            layers_module = model.model.layers
+        elif hasattr(model, "layers"):
+            layers_module = model.layers
         else:
-            layers_module = getattr(model, "model", model).layers
+            raise AttributeError("Could not identify layers module structure in model.")
         for l in fit_layers:
             handles.append(layers_module[l].register_forward_hook(make_hook(l)))
             

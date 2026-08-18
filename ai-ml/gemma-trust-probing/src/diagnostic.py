@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import json, sys
-sys.path.append("/path/to/your/project")
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent))
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from activation_patching import score, build_donor, load_model

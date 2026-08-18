@@ -205,7 +205,7 @@ class GemmaJLens:
         path = Path(pt_path)
         if not path.exists():
             raise FileNotFoundError(f"Jacobian matrices file not found at {path}")
-        data = torch.load(path, map_location=self.device)
+        data = torch.load(path, map_location=self.device, weights_only=True)
         self.jacobian_matrices = data.get("matrices", data)
         if randomize_jacobians:
             for l in self.jacobian_matrices:

@@ -22,6 +22,8 @@ Saves plots into the docs/plots directory.
 
 import json
 from pathlib import Path
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 # Import the single source of truth for configs

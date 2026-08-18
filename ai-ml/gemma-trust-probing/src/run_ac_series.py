@@ -91,8 +91,8 @@ TOST_BOUND = 0.15
 OUTLIER_TOKEN = 2.0
 OUTLIER_ORDER = 0.50
 
-DEFAULT_TXT = "/path/to/your/project.txt"
-DEFAULT_JSON = "/path/to/your/project.json"
+DEFAULT_TXT = "o2_results_ac_series.txt"
+DEFAULT_JSON = "o2_results_ac_series.json"
 
 QUESTION = "Question: What template should I use for project planning?\nAnswer:"
 

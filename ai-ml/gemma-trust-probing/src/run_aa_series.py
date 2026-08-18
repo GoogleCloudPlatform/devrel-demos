@@ -179,7 +179,9 @@ def run_aa_series():
     
     paired_diff(s_t5, s_t4, "T5 - T4 (Semantic Suppression)")
 
-    with open("/path/to/your/project.txt", "w") as f:
+    import os
+    out_path = os.environ.get("OUTPUT_TXT", "o2_results_aa_series.txt")
+    with open(out_path, "w") as f:
         f.write("\n".join(out))
 
 if __name__ == "__main__":

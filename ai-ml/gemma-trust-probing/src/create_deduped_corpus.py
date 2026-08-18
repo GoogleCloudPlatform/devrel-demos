@@ -29,7 +29,7 @@ processes = ["code review", "incident response", "release management", "vulnerab
 
 entities = ["GCP", "Cloud", "AWS", "Azure", "telemetry", "metrics", "kafka", "rabbitmq", "postgres", "mysql", "redis", "memcached", "vault", "berglas", "jira", "asana", "jenkins", "gitlab", "datadog", "splunk"]
 
-out_file = "/path/to/your/project.txt"
+out_file = os.environ.get("CORPUS_OUT_FILE", "data/corpus_deduped.txt")
 seen = set()
 prompts = []
 

@@ -208,7 +208,9 @@ def run_z_series():
     report("T3: Authority Headers, Verbatim Body", eff_t3, cells_t3, pairs, bound=0.15, out=out)
     report("T4: Authority Headers, Paraphrased Body", eff_t4, cells_t4, pairs, bound=0.15, out=out)
 
-    with open("/path/to/your/project.txt", "w") as f:
+    import os
+    out_path = os.environ.get("OUTPUT_TXT", "o2_results_z_series.txt")
+    with open(out_path, "w") as f:
         f.write("\n".join(out))
 
 if __name__ == "__main__":
