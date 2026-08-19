@@ -1,0 +1,667 @@
+============================================================================================
+GEMMA EVALUATION — AD-SERIES  (cue-matched, 10 cells, full pair set)
+============================================================================================
+timestamp     : 2026-07-29T20:13:06-07:00
+model         : google/gemma-4-e4b    dtype=float32    eval mode, no sampling
+seed          : 42        BCa resamples: 9999
+python        : 3.12.13
+torch         : 2.13.0   transformers: 5.14.1
+numpy         : 2.5.1      scipy: 1.18.0
+platform      : macOS-15.7.7-arm64-arm-64bit
+outlier rule  : |Token|>2.0 or |Order|>0.5; GLOBAL keep set = intersection across all 10 conditions
+NOTE          : Serial/Role/Order are HALF-EFFECTS. Full swing = 2 x Serial.
+NOTE          : This file is a real source file, not a transcript splice (AD5).
+Cue-count assertion: PASSED for all 10 conditions.
+
+Single-token filter: kept 14 of 15, rejected 1.
+  kept     : ['Scrum/Kanban', 'Agile/Waterfall', 'Roadmap/Milestone', 'Spec/Brief', 'Scope/Scale', 'Phase/Stage', 'Cycle/Sprint', 'Board/Grid', 'Matrix/Table', 'Guide/Manual', 'Index/Log', 'Deck/Pitch', 'Plan/Draft', 'Chart/Graph']
+  rejected : [('Queue/Roster', 1, 2)]
+
+Planned forward passes: 784 across 10 conditions.
+
+--------------------------------------------------------------------------------------------
+SAMPLE PROMPT PER CONDITION (first pair, first wording assignment)
+--------------------------------------------------------------------------------------------
+
+### T1 — Neutral x Verbatim (W1,W1)  [2 cue(s), verbatim]
+Context:
+[Memo Kestrel]
+The recommended template for project planning is Scrum.
+
+[Memo Larkin]
+The recommended template for project planning is Kanban.
+
+Question: What template should I use for project planning?
+Answer:
+
+### T1c — Neutral x Verbatim CUE-FREE (W2,W2)  [0 cue(s), verbatim]
+Context:
+[Memo Kestrel]
+Scrum is the template we use for project planning.
+
+[Memo Larkin]
+Kanban is the template we use for project planning.
+
+Question: What template should I use for project planning?
+Answer:
+
+### T2 — Neutral x Mixed (W1,W2)  [1 cue(s), mixed]
+Context:
+[Memo Kestrel]
+The recommended template for project planning is Scrum.
+
+[Memo Larkin]
+Kanban is the template we use for project planning.
+
+Question: What template should I use for project planning?
+Answer:
+
+### T2c — Neutral x Mixed CUE-FREE (W2,W3)  [0 cue(s), mixed]
+Context:
+[Memo Kestrel]
+Scrum is the template we use for project planning.
+
+[Memo Larkin]
+Kanban remains our standard project planning template.
+
+Question: What template should I use for project planning?
+Answer:
+
+### T3 — Authority x Verbatim (W1,W1)  [2 cue(s), verbatim]
+Context:
+[OFFICIAL GUIDELINE (2019)]
+The recommended template for project planning is Scrum.
+
+[Team Update (Yesterday)]
+The recommended template for project planning is Kanban.
+
+Question: What template should I use for project planning?
+Answer:
+
+### T3c — Authority x Verbatim CUE-FREE (W2,W2)  [0 cue(s), verbatim]
+Context:
+[OFFICIAL GUIDELINE (2019)]
+Scrum is the template we use for project planning.
+
+[Team Update (Yesterday)]
+Kanban is the template we use for project planning.
+
+Question: What template should I use for project planning?
+Answer:
+
+### T4 — Authority x Mixed (W1,W2)  [1 cue(s), mixed]
+Context:
+[OFFICIAL GUIDELINE (2019)]
+The recommended template for project planning is Scrum.
+
+[Team Update (Yesterday)]
+Kanban is the template we use for project planning.
+
+Question: What template should I use for project planning?
+Answer:
+
+### T4c — Authority x Mixed CUE-FREE (W2,W3)  [0 cue(s), mixed]
+Context:
+[OFFICIAL GUIDELINE (2019)]
+Scrum is the template we use for project planning.
+
+[Team Update (Yesterday)]
+Kanban remains our standard project planning template.
+
+Question: What template should I use for project planning?
+Answer:
+
+### T5 — Authority x LOADED (Y1,Y2)  [2 cue(s), loaded]
+Context:
+[OFFICIAL GUIDELINE (2019)]
+Official guidelines state that for Project Planning Template, the required configuration is Scrum.
+
+[Team Update (Yesterday)]
+Update: The new updated specification for Project Planning Template is now Kanban.
+
+Question: What template should I use for project planning?
+Answer:
+
+### T5b — Authority x LOADED CUE-FREE (Y1b,Y2b)  [0 cue(s), loaded]
+Context:
+[OFFICIAL GUIDELINE (2019)]
+Scrum is the required configuration for Project Planning Template, per official guidelines.
+
+[Team Update (Yesterday)]
+Kanban is the newly updated specification for Project Planning Template, effective now.
+
+Question: What template should I use for project planning?
+Answer:
+
+--------------------------------------------------------------------------------------------
+EVALUATING
+--------------------------------------------------------------------------------------------
+  [T1] 56 forward passes complete.
+  [T1c] 56 forward passes complete.
+  [T2] 112 forward passes complete.
+  [T2c] 112 forward passes complete.
+  [T3] 56 forward passes complete.
+  [T3c] 56 forward passes complete.
+  [T4] 112 forward passes complete.
+  [T4c] 112 forward passes complete.
+  [T5] 56 forward passes complete.
+  [T5b] 56 forward passes complete.
+
+Total forward passes executed: 784
+
+============================================================================================
+=== GLOBAL OUTLIER POLICY (one keep set for every aggregate and contrast)
+============================================================================================
+  T1     flagged: none
+  T1c    flagged: none
+  T2     flagged: none
+  T2c    flagged: none
+  T3     flagged: none
+  T3c    flagged: none
+  T4     flagged: none
+  T4c    flagged: none
+  T5     flagged: none
+  T5b    flagged: ['Spec/Brief']
+
+  Dropped globally (1): ['Spec/Brief']
+  GLOBAL keep set  (n=13): ['Scrum/Kanban', 'Agile/Waterfall', 'Roadmap/Milestone', 'Scope/Scale', 'Phase/Stage', 'Cycle/Sprint', 'Board/Grid', 'Matrix/Table', 'Guide/Manual', 'Index/Log', 'Deck/Pitch', 'Plan/Draft', 'Chart/Graph']
+
+============================================================================================
+=== T1: Neutral x Verbatim (W1,W1)   [2 'is {e}' cue(s) per prompt]
+============================================================================================
+NOTE: Degenerate control: blocks identical but for one token. Nulls near-forced.
+
+Per-item raw cells (e1..e4) and derived effects   ['X' = dropped by global policy]:
+  item                       e1       e2       e3       e4 |    Token     Role   Order   Serial
+--------------------------------------------------------------------------------------------
+  Scrum/Kanban           -0.258    0.499    0.660   -0.404 |    0.124   -0.004   0.077   -0.455
+  Agile/Waterfall        -1.479    0.216    0.303   -1.160 |   -0.530   -0.102  -0.058   -0.790
+  Roadmap/Milestone      -0.126    0.513    0.535   -0.448 |    0.119    0.075   0.086   -0.406
+X Spec/Brief             -0.540   -0.228   -0.195   -0.634 |   -0.399    0.015   0.032   -0.188
+  Scope/Scale            -0.566    0.269   -0.042   -0.548 |   -0.222    0.073  -0.082   -0.335
+  Phase/Stage            -1.440   -0.239   -0.466   -1.709 |   -0.963    0.124   0.010   -0.611
+  Cycle/Sprint           -1.000    0.116    0.145   -1.400 |   -0.535    0.093   0.107   -0.665
+  Board/Grid             -0.359    0.587    0.455   -0.379 |    0.076    0.038  -0.028   -0.445
+  Matrix/Table           -0.439    1.108    1.011   -0.559 |    0.280    0.054   0.006   -0.779
+  Guide/Manual           -0.774    0.173    0.324   -0.578 |   -0.214   -0.087  -0.011   -0.462
+  Index/Log               0.378    0.732    0.198   -0.132 |    0.294    0.261  -0.006   -0.171
+  Deck/Pitch              0.220   -0.283   -0.424    0.116 |   -0.093    0.061  -0.009    0.261
+  Plan/Draft             -1.108    0.010    0.015   -1.117 |   -0.550    0.001   0.004   -0.563
+  Chart/Graph            -1.419    0.444    0.121   -1.531 |   -0.596    0.109  -0.053   -0.879
+
+Locally flagged in T1: none.
+
+Aggregates over the GLOBAL keep set (n=13), BCa 95% CI, 9999 resamples, seed=42; '*' = CI excludes 0:
+Token Effect (base rate)                        -0.216  [-0.438, -0.028]  *
+Role-Framing Effect [NULL]                      +0.054  [+0.008, +0.105]  *
+Block-Order Effect [NULL CONTROL]               +0.003  [-0.024, +0.036]
+Serial Position Effect (HALF-effect)            -0.485  [-0.611, -0.283]  *
+  -> Order null PASSES.
+  -> Role null FAILS.
+  -> Full first-vs-last swing = -0.969 nats.
+  -> Sign consistency: 12/13 items negative (primacy).
+  -> TOST vs +/-0.15: equivalent=False (p=0.9992, 90% CI [-0.592, -0.318]). Non-rejection != equality.
+
+============================================================================================
+=== T1c: Neutral x Verbatim CUE-FREE (W2,W2)   [0 'is {e}' cue(s) per prompt]
+============================================================================================
+NOTE: NEW (AD1). Paired with T1 this isolates the copy cue with variation held fixed.
+
+Per-item raw cells (e1..e4) and derived effects   ['X' = dropped by global policy]:
+  item                       e1       e2       e3       e4 |    Token     Role   Order   Serial
+--------------------------------------------------------------------------------------------
+  Scrum/Kanban           -0.098    1.149    1.521   -0.594 |    0.495    0.031   0.217   -0.840
+  Agile/Waterfall        -1.807   -0.046    0.671   -1.980 |   -0.791   -0.136   0.223   -1.103
+  Roadmap/Milestone      -0.242    1.041    1.448   -0.378 |    0.467   -0.068   0.136   -0.777
+X Spec/Brief             -0.448    1.168    0.822   -0.348 |    0.299    0.062  -0.112   -0.696
+  Scope/Scale            -0.762   -0.330   -0.174   -0.489 |   -0.439   -0.107  -0.029   -0.187
+  Phase/Stage            -2.237    0.946    0.720   -2.538 |   -0.777    0.132   0.019   -1.610
+  Cycle/Sprint           -0.995    0.785    1.084   -1.066 |   -0.048   -0.057   0.092   -0.982
+  Board/Grid             -0.825    0.907    0.661   -0.960 |   -0.054    0.095  -0.028   -0.838
+  Matrix/Table           -0.443    0.568    0.287   -1.391 |   -0.245    0.307   0.166   -0.672
+  Guide/Manual           -0.506    0.695    0.831   -0.996 |    0.006    0.089   0.156   -0.757
+  Index/Log              -0.555    0.927    0.663   -0.267 |    0.192   -0.006  -0.138   -0.603
+  Deck/Pitch             -0.931    0.025    0.474   -1.299 |   -0.433   -0.020   0.204   -0.682
+  Plan/Draft             -1.457    0.915    0.992   -1.064 |   -0.154   -0.117  -0.079   -1.107
+  Chart/Graph            -1.649    1.435    1.097   -1.156 |   -0.068   -0.039  -0.208   -1.334
+
+Locally flagged in T1c: none.
+
+Aggregates over the GLOBAL keep set (n=13), BCa 95% CI, 9999 resamples, seed=42; '*' = CI excludes 0:
+Token Effect (base rate)                        -0.142  [-0.360, +0.058]
+Role-Framing Effect [NULL]                      +0.008  [-0.045, +0.088]
+Block-Order Effect [NULL CONTROL]               +0.056  [-0.025, +0.125]
+Serial Position Effect (HALF-effect)            -0.884  [-1.074, -0.708]  *
+  -> Order null PASSES.
+  -> Role null PASSES.
+  -> Full first-vs-last swing = -1.768 nats.
+  -> Sign consistency: 13/13 items negative (primacy).
+  -> TOST vs +/-0.15: equivalent=False (p=1.0000, 90% CI [-1.044, -0.735]). Non-rejection != equality.
+
+============================================================================================
+=== T2: Neutral x Mixed (W1,W2)   [1 'is {e}' cue(s) per prompt]
+============================================================================================
+
+Per-item raw cells (e1..e4) and derived effects   ['X' = dropped by global policy]:
+  item                       e1       e2       e3       e4 |    Token     Role   Order   Serial
+--------------------------------------------------------------------------------------------
+  Scrum/Kanban           -0.122    0.758    0.948   -0.190 |    0.348   -0.031   0.064   -0.504
+  Agile/Waterfall        -0.996    0.106    0.569   -1.369 |   -0.423   -0.022   0.209   -0.760
+  Roadmap/Milestone       0.098    0.681    0.923   -0.422 |    0.320    0.070   0.190   -0.482
+X Spec/Brief             -0.084    0.091   -0.067   -0.068 |   -0.032    0.035  -0.043   -0.044
+  Scope/Scale             0.219   -0.196   -0.230    0.126 |   -0.020    0.032   0.015    0.193
+  Phase/Stage            -1.284    0.045   -0.083   -1.683 |   -0.751    0.132   0.068   -0.732
+  Cycle/Sprint           -0.838   -0.112   -0.058   -0.978 |   -0.496    0.021   0.049   -0.411
+  Board/Grid             -0.553    0.327    0.309   -0.495 |   -0.103   -0.010  -0.019   -0.421
+  Matrix/Table           -0.336    0.762    0.393   -0.583 |    0.059    0.154  -0.031   -0.519
+  Guide/Manual           -0.068    0.209    0.148   -0.392 |   -0.026    0.096   0.066   -0.204
+  Index/Log              -0.158    0.624    0.482   -0.105 |    0.211    0.022  -0.049   -0.342
+  Deck/Pitch             -0.249   -0.262    0.032   -0.268 |   -0.187   -0.069   0.078   -0.072
+  Plan/Draft             -0.334   -0.007    0.038   -0.426 |   -0.182    0.012   0.034   -0.198
+  Chart/Graph            -0.771    0.086   -0.091   -1.012 |   -0.447    0.105   0.016   -0.444
+
+Locally flagged in T2: none.
+
+Aggregates over the GLOBAL keep set (n=13), BCa 95% CI, 9999 resamples, seed=42; '*' = CI excludes 0:
+Token Effect (base rate)                        -0.131  [-0.309, +0.033]
+Role-Framing Effect [NULL]                      +0.039  [+0.006, +0.076]  *
+Block-Order Effect [NULL CONTROL]               +0.053  [+0.020, +0.100]  *
+Serial Position Effect (HALF-effect)            -0.377  [-0.496, -0.227]  *
+  -> Order null FAILS.
+  -> Role null FAILS.
+  -> Full first-vs-last swing = -0.753 nats.
+  -> Sign consistency: 12/13 items negative (primacy).
+  -> TOST vs +/-0.15: equivalent=False (p=0.9958, 90% CI [-0.478, -0.252]). Non-rejection != equality.
+
+============================================================================================
+=== T2c: Neutral x Mixed CUE-FREE (W2,W3)   [0 'is {e}' cue(s) per prompt]
+============================================================================================
+
+Per-item raw cells (e1..e4) and derived effects   ['X' = dropped by global policy]:
+  item                       e1       e2       e3       e4 |    Token     Role   Order   Serial
+--------------------------------------------------------------------------------------------
+  Scrum/Kanban           -0.333    1.673    2.038   -0.557 |    0.705   -0.035   0.147   -1.150
+  Agile/Waterfall        -2.392    0.354    1.439   -2.411 |   -0.753   -0.266   0.276   -1.649
+  Roadmap/Milestone      -0.146    1.026    1.567   -0.015 |    0.608   -0.168   0.103   -0.688
+X Spec/Brief             -0.445    0.838    0.539   -0.359 |    0.143    0.053  -0.096   -0.545
+  Scope/Scale            -0.684   -0.319   -0.146   -0.120 |   -0.317   -0.184  -0.098   -0.085
+  Phase/Stage            -0.798    0.013    0.150   -0.781 |   -0.354   -0.038   0.030   -0.436
+  Cycle/Sprint           -0.777    0.869    0.973   -0.531 |    0.134   -0.087  -0.036   -0.787
+  Board/Grid             -0.826    0.434    0.497   -0.715 |   -0.152   -0.044  -0.012   -0.618
+  Matrix/Table           -0.255    0.639    0.857   -0.586 |    0.164    0.028   0.137   -0.584
+  Guide/Manual            0.169   -0.269    0.277   -0.477 |   -0.075    0.025   0.298   -0.079
+  Index/Log              -0.396    1.075    0.915    0.051 |    0.411   -0.072  -0.152   -0.584
+  Deck/Pitch             -0.480    0.593    0.767   -1.339 |   -0.115    0.171   0.258   -0.795
+  Plan/Draft             -0.433    0.276    0.249   -0.510 |   -0.105    0.026   0.013   -0.367
+  Chart/Graph            -1.044   -0.072    0.230   -0.504 |   -0.348   -0.210  -0.059   -0.427
+
+Locally flagged in T2c: none.
+
+Aggregates over the GLOBAL keep set (n=13), BCa 95% CI, 9999 resamples, seed=42; '*' = CI excludes 0:
+Token Effect (base rate)                        -0.015  [-0.223, +0.209]
+Role-Framing Effect [NULL]                      -0.066  [-0.125, -0.002]  *
+Block-Order Effect [NULL CONTROL]               +0.070  [-0.002, +0.148]
+Serial Position Effect (HALF-effect)            -0.635  [-0.902, -0.452]  *
+  -> Order null PASSES.
+  -> Role null FAILS.
+  -> Full first-vs-last swing = -1.269 nats.
+  -> Sign consistency: 13/13 items negative (primacy).
+  -> TOST vs +/-0.15: equivalent=False (p=0.9993, 90% CI [-0.854, -0.478]). Non-rejection != equality.
+
+============================================================================================
+=== T3: Authority x Verbatim (W1,W1)   [2 'is {e}' cue(s) per prompt]
+============================================================================================
+
+Per-item raw cells (e1..e4) and derived effects   ['X' = dropped by global policy]:
+  item                       e1       e2       e3       e4 |    Token     Role   Order   Serial
+--------------------------------------------------------------------------------------------
+  Scrum/Kanban           -0.181    0.208    0.658    0.127 |    0.203   -0.190   0.035   -0.230
+  Agile/Waterfall        -0.870   -0.513   -0.092   -0.798 |   -0.568   -0.123   0.087   -0.266
+  Roadmap/Milestone      -1.230    0.573    1.043   -0.919 |   -0.133   -0.195   0.040   -0.942
+X Spec/Brief             -1.317   -0.451   -0.486   -0.684 |   -0.734   -0.149  -0.167   -0.266
+  Scope/Scale            -0.709    0.348    0.373   -0.563 |   -0.138   -0.043  -0.030   -0.498
+  Phase/Stage            -1.838    0.186    0.824   -1.564 |   -0.598   -0.228   0.091   -1.103
+  Cycle/Sprint           -2.048    0.224    0.867   -1.848 |   -0.701   -0.211   0.110   -1.247
+  Board/Grid             -0.390    0.858    1.198   -0.595 |    0.268   -0.034   0.136   -0.761
+  Matrix/Table           -1.186    0.603    0.830   -0.654 |   -0.102   -0.190  -0.076   -0.818
+  Guide/Manual           -1.180   -0.209    0.820   -0.876 |   -0.361   -0.334   0.181   -0.667
+  Index/Log              -0.364    0.701    1.426   -0.008 |    0.439   -0.270   0.092   -0.625
+  Deck/Pitch             -0.321    0.702    0.464   -0.126 |    0.180    0.011  -0.108   -0.404
+  Plan/Draft             -0.798    0.442    0.321   -0.029 |   -0.016   -0.162  -0.223   -0.398
+  Chart/Graph            -1.335    0.562    0.608   -0.967 |   -0.283   -0.103  -0.080   -0.868
+
+Locally flagged in T3: none.
+
+Aggregates over the GLOBAL keep set (n=13), BCa 95% CI, 9999 resamples, seed=42; '*' = CI excludes 0:
+Token Effect (base rate)                        -0.139  [-0.329, +0.041]
+Role-Framing Effect [NULL]                      -0.159  [-0.208, -0.107]  *
+Block-Order Effect [NULL CONTROL]               +0.020  [-0.049, +0.073]
+Serial Position Effect (HALF-effect)            -0.679  [-0.848, -0.520]  *
+  -> Order null PASSES.
+  -> Role null FAILS.
+  -> Full first-vs-last swing = -1.358 nats.
+  -> Sign consistency: 13/13 items negative (primacy).
+  -> TOST vs +/-0.15: equivalent=False (p=1.0000, 90% CI [-0.822, -0.543]). Non-rejection != equality.
+
+============================================================================================
+=== T3c: Authority x Verbatim CUE-FREE (W2,W2)   [0 'is {e}' cue(s) per prompt]
+============================================================================================
+NOTE: NEW (AD2). Supplies the cue-free verbatim arm of the interaction.
+
+Per-item raw cells (e1..e4) and derived effects   ['X' = dropped by global policy]:
+  item                       e1       e2       e3       e4 |    Token     Role   Order   Serial
+--------------------------------------------------------------------------------------------
+  Scrum/Kanban            0.032    0.504    0.559   -0.526 |    0.142    0.126   0.153   -0.389
+  Agile/Waterfall        -0.990   -0.340   -0.178   -1.668 |   -0.794    0.129   0.210   -0.535
+  Roadmap/Milestone      -0.284    0.603    0.677   -0.498 |    0.124    0.035   0.072   -0.516
+X Spec/Brief             -0.751    0.532    0.538   -0.781 |   -0.115    0.006   0.009   -0.650
+  Scope/Scale            -0.487    0.275   -0.042   -0.470 |   -0.181    0.075  -0.084   -0.297
+  Phase/Stage            -1.197    0.820    0.770   -1.756 |   -0.341    0.152   0.128   -1.136
+  Cycle/Sprint           -1.595    0.738   -0.182   -0.963 |   -0.501    0.072  -0.388   -0.778
+  Board/Grid             -0.473   -0.134    0.231   -0.508 |   -0.221   -0.083   0.100   -0.269
+  Matrix/Table           -0.305    0.243   -0.041   -0.163 |   -0.067    0.035  -0.106   -0.168
+  Guide/Manual           -0.053    0.832    0.203   -0.368 |    0.154    0.236  -0.079   -0.364
+  Index/Log              -0.431    1.027    0.872   -0.486 |    0.246    0.053  -0.025   -0.704
+  Deck/Pitch             -0.536    0.679    0.001   -0.475 |   -0.083    0.154  -0.185   -0.422
+  Plan/Draft             -0.964    1.079    0.946   -0.896 |    0.041    0.016  -0.050   -0.971
+  Chart/Graph            -1.006    0.612    0.831   -0.947 |   -0.127   -0.070   0.040   -0.849
+
+Locally flagged in T3c: none.
+
+Aggregates over the GLOBAL keep set (n=13), BCa 95% CI, 9999 resamples, seed=42; '*' = CI excludes 0:
+Token Effect (base rate)                        -0.124  [-0.310, +0.003]
+Role-Framing Effect [NULL]                      +0.072  [+0.024, +0.117]  *
+Block-Order Effect [NULL CONTROL]               -0.016  [-0.116, +0.055]
+Serial Position Effect (HALF-effect)            -0.569  [-0.739, -0.429]  *
+  -> Order null PASSES.
+  -> Role null FAILS.
+  -> Full first-vs-last swing = -1.138 nats.
+  -> Sign consistency: 13/13 items negative (primacy).
+  -> TOST vs +/-0.15: equivalent=False (p=0.9999, 90% CI [-0.713, -0.452]). Non-rejection != equality.
+
+============================================================================================
+=== T4: Authority x Mixed (W1,W2)   [1 'is {e}' cue(s) per prompt]
+============================================================================================
+
+Per-item raw cells (e1..e4) and derived effects   ['X' = dropped by global policy]:
+  item                       e1       e2       e3       e4 |    Token     Role   Order   Serial
+--------------------------------------------------------------------------------------------
+  Scrum/Kanban           -0.097    0.168    0.461   -0.003 |    0.132   -0.097   0.050   -0.182
+  Agile/Waterfall        -0.835   -0.651   -0.286   -0.756 |   -0.632   -0.111   0.072   -0.164
+  Roadmap/Milestone      -0.153    0.458    0.680   -0.213 |    0.193   -0.041   0.070   -0.376
+X Spec/Brief             -0.003   -0.293   -0.254   -0.296 |   -0.212    0.063   0.083    0.062
+  Scope/Scale             0.348    0.457   -0.216    0.050 |    0.160    0.243  -0.094    0.039
+  Phase/Stage            -0.790    0.060   -0.046   -1.145 |   -0.480    0.116   0.062   -0.487
+  Cycle/Sprint           -1.154   -0.198   -0.162   -1.086 |   -0.650   -0.026  -0.008   -0.470
+  Board/Grid              0.074   -0.203    0.332    0.013 |    0.054   -0.119   0.149   -0.010
+  Matrix/Table           -1.345   -0.128   -0.608   -0.246 |   -0.582   -0.155  -0.395   -0.214
+  Guide/Manual            0.531   -0.388    0.159   -0.090 |    0.053    0.019   0.292    0.167
+  Index/Log              -0.064    0.558    0.600    0.175 |    0.317   -0.070  -0.049   -0.262
+  Deck/Pitch              0.284    0.722    0.286    0.528 |    0.455    0.048  -0.170   -0.049
+  Plan/Draft              0.317    0.079    0.159    0.124 |    0.170    0.028   0.068    0.050
+  Chart/Graph            -0.756    0.160   -0.069   -0.265 |   -0.232   -0.065  -0.180   -0.278
+
+Locally flagged in T4: none.
+
+Aggregates over the GLOBAL keep set (n=13), BCa 95% CI, 9999 resamples, seed=42; '*' = CI excludes 0:
+Token Effect (base rate)                        -0.080  [-0.295, +0.110]
+Role-Framing Effect [NULL]                      -0.018  [-0.065, +0.052]
+Block-Order Effect [NULL CONTROL]               -0.010  [-0.114, +0.070]
+Serial Position Effect (HALF-effect)            -0.172  [-0.278, -0.066]  *
+  -> Order null PASSES.
+  -> Role null PASSES.
+  -> Full first-vs-last swing = -0.344 nats.
+  -> Sign consistency: 10/13 items negative (primacy).
+  -> TOST vs +/-0.15: equivalent=False (p=0.6468, 90% CI [-0.262, -0.082]). Non-rejection != equality.
+
+============================================================================================
+=== T4c: Authority x Mixed CUE-FREE (W2,W3)   [0 'is {e}' cue(s) per prompt]
+============================================================================================
+NOTE: Cue-matched baseline for T5b.
+
+Per-item raw cells (e1..e4) and derived effects   ['X' = dropped by global policy]:
+  item                       e1       e2       e3       e4 |    Token     Role   Order   Serial
+--------------------------------------------------------------------------------------------
+  Scrum/Kanban           -0.289    0.520    0.543   -0.362 |    0.103    0.012   0.024   -0.429
+  Agile/Waterfall        -1.588   -0.098    0.125   -1.802 |   -0.841   -0.002   0.109   -0.854
+  Roadmap/Milestone      -0.387    0.685    0.975   -0.113 |    0.290   -0.141   0.004   -0.540
+X Spec/Brief             -0.908    0.355    0.991   -1.016 |   -0.144   -0.132   0.186   -0.818
+  Scope/Scale            -0.409    0.193    0.102   -0.687 |   -0.200    0.092   0.047   -0.348
+  Phase/Stage            -1.057    0.302   -0.128   -1.520 |   -0.601    0.223   0.008   -0.688
+  Cycle/Sprint           -0.925    0.593    0.304   -0.890 |   -0.230    0.064  -0.081   -0.678
+  Board/Grid             -0.580   -0.295    0.054   -0.080 |   -0.225   -0.212  -0.038   -0.105
+  Matrix/Table           -0.760    0.043    0.086   -0.595 |   -0.307   -0.052  -0.031   -0.371
+  Guide/Manual            0.286    0.073    0.100   -0.196 |    0.066    0.114   0.127   -0.020
+  Index/Log              -0.608    1.360    0.813   -0.284 |    0.320    0.056  -0.218   -0.766
+  Deck/Pitch             -0.768    0.667    0.588   -0.550 |   -0.016   -0.035  -0.074   -0.643
+  Plan/Draft             -0.551    0.806    0.665   -0.096 |    0.206   -0.079  -0.149   -0.530
+  Chart/Graph            -0.442    0.047    0.081   -0.591 |   -0.226    0.029   0.046   -0.290
+
+Locally flagged in T4c: none.
+
+Aggregates over the GLOBAL keep set (n=13), BCa 95% CI, 9999 resamples, seed=42; '*' = CI excludes 0:
+Token Effect (base rate)                        -0.128  [-0.329, +0.028]
+Role-Framing Effect [NULL]                      +0.005  [-0.056, +0.063]
+Block-Order Effect [NULL CONTROL]               -0.017  [-0.073, +0.028]
+Serial Position Effect (HALF-effect)            -0.482  [-0.603, -0.345]  *
+  -> Order null PASSES.
+  -> Role null PASSES.
+  -> Full first-vs-last swing = -0.963 nats.
+  -> Sign consistency: 13/13 items negative (primacy).
+  -> TOST vs +/-0.15: equivalent=False (p=0.9998, 90% CI [-0.586, -0.366]). Non-rejection != equality.
+
+============================================================================================
+=== T5: Authority x LOADED (Y1,Y2)   [2 'is {e}' cue(s) per prompt]
+============================================================================================
+NOTE: role_bound: NOT counterbalanced (AB1). Body IS the manipulation; 'Role' is aliased with body wording by construction.
+
+Per-item raw cells (e1..e4) and derived effects   ['X' = dropped by global policy]:
+  item                       e1       e2       e3       e4 |    Token     Role   Order   Serial
+--------------------------------------------------------------------------------------------
+  Scrum/Kanban           -0.040    0.911   -0.198   -0.857 |   -0.046    0.481  -0.073   -0.403
+  Agile/Waterfall        -0.244    0.419   -1.066   -1.892 |   -0.696    0.783   0.041   -0.372
+  Roadmap/Milestone       0.064    0.603   -0.665   -0.792 |   -0.197    0.531  -0.103   -0.167
+X Spec/Brief              0.439    0.323   -0.227   -0.492 |    0.010    0.370   0.095   -0.037
+  Scope/Scale             0.433    1.381   -0.622   -0.148 |    0.261    0.646  -0.356   -0.118
+  Phase/Stage            -0.074    0.888   -0.482   -1.562 |   -0.307    0.714   0.030   -0.511
+  Cycle/Sprint            0.702    0.504   -0.596   -1.387 |   -0.194    0.797   0.247   -0.148
+  Board/Grid              0.734    0.782   -0.585   -0.525 |    0.102    0.656  -0.027    0.003
+  Matrix/Table            0.088    1.151   -0.562   -0.987 |   -0.078    0.697  -0.159   -0.372
+  Guide/Manual           -0.050    0.190   -0.545   -0.731 |   -0.284    0.354  -0.013   -0.106
+  Index/Log               0.452    0.577    0.701   -0.254 |    0.369    0.146   0.208   -0.270
+  Deck/Pitch              0.158    0.470   -0.308   -0.234 |    0.022    0.292  -0.097   -0.059
+  Plan/Draft             -0.447   -2.069   -0.375   -0.718 |   -0.902   -0.356   0.491    0.320
+  Chart/Graph             0.546    1.534   -0.465   -1.311 |    0.076    0.964  -0.036   -0.459
+
+Locally flagged in T5: none.
+
+Aggregates over the GLOBAL keep set (n=13), BCa 95% CI, 9999 resamples, seed=42; '*' = CI excludes 0:
+Token Effect (base rate)                        -0.144  [-0.363, +0.012]
+Source-Framing (header+body)                    +0.516  [+0.276, +0.660]  *
+Block-Order Effect [NULL CONTROL]               +0.012  [-0.082, +0.140]
+Serial Position Effect (HALF-effect)            -0.205  [-0.308, -0.068]  *
+  -> Order null PASSES.
+  -> Role is the MANIPULATION here (aliased with body); no null expected.
+  -> Full first-vs-last swing = -0.410 nats.
+  -> Sign consistency: 11/13 items negative (primacy).
+  -> TOST vs +/-0.15: equivalent=False (p=0.7992, 90% CI [-0.293, -0.091]). Non-rejection != equality.
+
+============================================================================================
+=== T5b: Authority x LOADED CUE-FREE (Y1b,Y2b)   [0 'is {e}' cue(s) per prompt]
+============================================================================================
+NOTE: Head-to-head cell. Compare only against T4c.
+
+Per-item raw cells (e1..e4) and derived effects   ['X' = dropped by global policy]:
+  item                       e1       e2       e3       e4 |    Token     Role   Order   Serial
+--------------------------------------------------------------------------------------------
+  Scrum/Kanban            0.529    1.022   -0.088   -0.638 |    0.206    0.570   0.014   -0.261
+  Agile/Waterfall         0.075    1.311   -0.280   -1.880 |   -0.194    0.887   0.091   -0.709
+  Roadmap/Milestone       0.531    1.600   -0.122   -1.183 |    0.207    0.859  -0.002   -0.532
+X Spec/Brief              2.464    1.869    0.016   -1.795 |    0.638    1.528   0.602   -0.304
+  Scope/Scale             1.496    1.557   -0.553   -0.203 |    0.574    0.952  -0.103    0.072
+  Phase/Stage             1.616    1.363   -1.217   -2.286 |   -0.131    1.620   0.331   -0.204
+  Cycle/Sprint            1.008    1.302   -0.514   -1.377 |    0.105    1.050   0.142   -0.289
+  Board/Grid              0.522    0.580   -1.048   -1.019 |   -0.241    0.792  -0.022   -0.008
+  Matrix/Table            0.490    0.882   -1.053   -1.423 |   -0.276    0.962  -0.006   -0.190
+  Guide/Manual            1.368    2.735   -0.721   -2.032 |    0.337    1.714  -0.014   -0.670
+  Index/Log               0.748    1.150   -0.472   -0.561 |    0.216    0.733  -0.078   -0.123
+  Deck/Pitch              0.644    1.189   -1.654   -1.096 |   -0.229    1.145  -0.276    0.003
+  Plan/Draft              0.488    1.637   -0.775   -1.881 |   -0.133    1.195  -0.011   -0.564
+  Chart/Graph             0.924    0.730   -1.576   -1.685 |   -0.402    1.229   0.076    0.021
+
+Locally flagged in T5b (1): ['Spec/Brief']
+
+Aggregates over the GLOBAL keep set (n=13), BCa 95% CI, 9999 resamples, seed=42; '*' = CI excludes 0:
+Token Effect (base rate)                        +0.003  [-0.135, +0.165]
+Source-Framing (header+body)                    +1.054  [+0.907, +1.258]  *
+Block-Order Effect [NULL CONTROL]               +0.011  [-0.058, +0.087]
+Serial Position Effect (HALF-effect)            -0.265  [-0.421, -0.137]  *
+  -> Order null PASSES.
+  -> Role is the MANIPULATION here (aliased with body); no null expected.
+  -> Full first-vs-last swing = -0.531 nats.
+  -> Sign consistency: 10/13 items negative (primacy).
+  -> TOST vs +/-0.15: equivalent=False (p=0.9244, 90% CI [-0.394, -0.159]). Non-rejection != equality.
+
+============================================================================================
+=== PRE-REGISTERED CONTRASTS  (PRIMARY — global keep set, n=13)
+============================================================================================
+
+--- A. PURE CUE EFFECT (AD1): body-variation held constant at 'verbatim' ---
+    Positive => removing the cue REDUCES primacy => induction contributes.
+    Zero/negative => retract the AA-series induction claim.
+A1  Neutral   cue removal   (T1c - T1)                    -0.400  [-0.578, -0.237]  *   (SD=0.324, n=13)
+A2  Authority cue removal   (T3c - T3)                    +0.110  [-0.081, +0.287]   (SD=0.351, n=13)
+A3  Pooled pure cue effect  (mean of A1,A2)               -0.145  [-0.290, +0.010]   (SD=0.287, n=13)
+    VERDICT: CI covers zero -> NO detectable cue contribution; AA claim UNSUPPORTED.
+
+--- B. CUE LADDER, neutral headers (cue-count AND variation both move) ---
+    Monotonic |Serial| decrease as cues drop => induction story. AC found it NON-monotonic.
+    T1   serial =  -0.485  [-0.611, -0.283]
+    T2   serial =  -0.377  [-0.496, -0.227]
+    T2c  serial =  -0.635  [-0.902, -0.452]
+    T1c  serial =  -0.884  [-1.074, -0.708]
+B1  2 cues -> 1 cue          (T2  - T1)                   +0.108  [-0.025, +0.245]   (SD=0.260, n=13)
+B2  1 cue  -> 0 cues         (T2c - T2)                   -0.258  [-0.449, -0.096]  *   (SD=0.337, n=13)
+B3  net ladder              (T2c - T1)                    -0.150  [-0.431, +0.079]   (SD=0.488, n=13)
+B4  variation effect @0 cues (T2c - T1c)                  +0.250  [+0.010, +0.522]  *   (SD=0.493, n=13)
+    Ladder monotonic in mean: False   (-0.485 -> -0.377 -> -0.635)
+
+--- C. HEADER x BODY INTERACTION (AD2): all four arms cue-matched ---
+C1  simple effect, mixed  (T4c - T2c)                     +0.153  [-0.011, +0.352]   (SD=0.345, n=13)
+C2  simple effect, verbatim (T3c - T1c)                   +0.315  [+0.172, +0.420]  *   (SD=0.232, n=13)
+C3  FULLY CUE-FREE INTERACTION  (C1 - C2)                 -0.162  [-0.303, -0.034]  *   (SD=0.256, n=13)
+    Legacy/contaminated comparators (report only, do not headline):
+C4  simple effect, verbatim 2-cue (T3 - T1)               -0.194  [-0.367, +0.015]   (SD=0.359, n=13)
+C5  AC-style asymmetric interaction (C1 - C4)             +0.347  [+0.160, +0.519]  *   (SD=0.347, n=13)
+C6  simple effect, 1-cue mixed (T4 - T2)                  +0.205  [+0.098, +0.313]  *   (SD=0.206, n=13)
+    Interaction SURVIVES full cue-matching.
+
+--- D. SOURCE-FRAMING vs POSITION (AD3): the largest effect in the study ---
+    T5   Source-Framing =  +0.516 [+0.276, +0.660]   |Serial| =  +0.205 [-0.308, -0.068]
+    T5b  Source-Framing =  +1.054 [+0.907, +1.258]   |Serial| =  +0.265 [-0.421, -0.137]
+D1  |Source-Framing| - |Serial|, T5b (cue-free)           +0.774  [+0.585, +0.966]  *   (SD=0.370, n=13)
+D2  |Source-Framing| - |Serial|, T5  (cued)               +0.316  [+0.188, +0.434]  *   (SD=0.236, n=13)
+D3  cue removal on framing  (T5b - T5 Role)               +0.539  [+0.330, +0.843]  *   (SD=0.485, n=13)
+    Ratio |Framing|/|Serial| in T5b = 3.76x
+    VERDICT: semantics DOMINATES position.
+
+--- E. SEMANTIC SUPPRESSION (the only cue-matched test) ---
+E1  T5b - T4c  [PRE-REGISTERED]                           +0.216  [-0.004, +0.364]   (SD=0.341, n=13)
+E2  T5 - T4    [confounded, reference only]               -0.033  [-0.124, +0.083]   (SD=0.195, n=13)
+    VERDICT: UNRESOLVED (CI covers 0). Publish primacy alone; make no suppression claim.
+
+--- F. PRIMACY ROBUSTNESS ACROSS ALL TEN CELLS (AD3 magnitude fragility) ---
+    cell   cues    serial    CI_lo    CI_hi    neg/n  full swing
+    T1        2    -0.485   -0.611   -0.283    12/13       -0.969
+    T1c       0    -0.884   -1.074   -0.708    13/13       -1.768
+    T2        1    -0.377   -0.496   -0.227    12/13       -0.753
+    T2c       0    -0.635   -0.902   -0.452    13/13       -1.269
+    T3        2    -0.679   -0.848   -0.520    13/13       -1.358
+    T3c       0    -0.569   -0.739   -0.429    13/13       -1.138
+    T4        1    -0.172   -0.278   -0.066    10/13       -0.344
+    T4c       0    -0.482   -0.603   -0.345    13/13       -0.963
+    T5        2    -0.205   -0.308   -0.068    11/13       -0.410
+    T5b       0    -0.265   -0.421   -0.137    10/13       -0.531
+    Range: 0.172 to 0.884 nats (5.1x swing across framings).
+    Cells with CI excluding zero: 10/10.
+    Cells negative in mean: 10/10.
+    n per contrast = 13
+
+============================================================================================
+=== PRE-REGISTERED CONTRASTS  (SENSITIVITY — all pairs, NO outlier filtering, n=14)
+============================================================================================
+
+--- A. PURE CUE EFFECT (AD1): body-variation held constant at 'verbatim' ---
+    Positive => removing the cue REDUCES primacy => induction contributes.
+    Zero/negative => retract the AA-series induction claim.
+A1  Neutral   cue removal   (T1c - T1)                    -0.407  [-0.573, -0.251]  *   (SD=0.313, n=14)
+A2  Authority cue removal   (T3c - T3)                    +0.074  [-0.112, +0.257]   (SD=0.362, n=14)
+A3  Pooled pure cue effect  (mean of A1,A2)               -0.166  [-0.306, -0.011]  *   (SD=0.288, n=14)
+    VERDICT: CUE REMOVAL INCREASES PRIMACY -> induction claim REFUTED (retract AA).
+
+--- B. CUE LADDER, neutral headers (cue-count AND variation both move) ---
+    Monotonic |Serial| decrease as cues drop => induction story. AC found it NON-monotonic.
+    T1   serial =  -0.463  [-0.592, -0.282]
+    T2   serial =  -0.353  [-0.475, -0.207]
+    T2c  serial =  -0.628  [-0.879, -0.459]
+    T1c  serial =  -0.871  [-1.062, -0.708]
+B1  2 cues -> 1 cue          (T2  - T1)                   +0.110  [-0.018, +0.235]   (SD=0.250, n=14)
+B2  1 cue  -> 0 cues         (T2c - T2)                   -0.275  [-0.450, -0.119]  *   (SD=0.330, n=14)
+B3  net ladder              (T2c - T1)                    -0.165  [-0.429, +0.052]   (SD=0.472, n=14)
+B4  variation effect @0 cues (T2c - T1c)                  +0.243  [+0.022, +0.502]  *   (SD=0.475, n=14)
+    Ladder monotonic in mean: False   (-0.463 -> -0.353 -> -0.628)
+
+--- C. HEADER x BODY INTERACTION (AD2): all four arms cue-matched ---
+C1  simple effect, mixed  (T4c - T2c)                     +0.123  [-0.033, +0.322]   (SD=0.350, n=14)
+C2  simple effect, verbatim (T3c - T1c)                   +0.296  [+0.166, +0.403]  *   (SD=0.235, n=14)
+C3  FULLY CUE-FREE INTERACTION  (C1 - C2)                 -0.173  [-0.301, -0.048]  *   (SD=0.249, n=14)
+    Legacy/contaminated comparators (report only, do not headline):
+C4  simple effect, verbatim 2-cue (T3 - T1)               -0.186  [-0.349, +0.004]   (SD=0.346, n=14)
+C5  AC-style asymmetric interaction (C1 - C4)             +0.308  [+0.125, +0.492]  *   (SD=0.364, n=14)
+C6  simple effect, 1-cue mixed (T4 - T2)                  +0.198  [+0.102, +0.298]  *   (SD=0.199, n=14)
+    Interaction SURVIVES full cue-matching.
+
+--- D. SOURCE-FRAMING vs POSITION (AD3): the largest effect in the study ---
+    T5   Source-Framing =  +0.506 [+0.292, +0.641]   |Serial| =  +0.193 [-0.294, -0.067]
+    T5b  Source-Framing =  +1.088 [+0.928, +1.272]   |Serial| =  +0.268 [-0.411, -0.150]
+D1  |Source-Framing| - |Serial|, T5b (cue-free)           +0.806  [+0.616, +0.991]  *   (SD=0.375, n=14)
+D2  |Source-Framing| - |Serial|, T5  (cued)               +0.317  [+0.199, +0.428]  *   (SD=0.227, n=14)
+D3  cue removal on framing  (T5b - T5 Role)               +0.583  [+0.366, +0.874]  *   (SD=0.494, n=14)
+    Ratio |Framing|/|Serial| in T5b = 3.86x
+    VERDICT: semantics DOMINATES position.
+
+--- E. SEMANTIC SUPPRESSION (the only cue-matched test) ---
+E1  T5b - T4c  [PRE-REGISTERED]                           +0.237  [+0.025, +0.375]  *   (SD=0.337, n=14)
+E2  T5 - T4    [confounded, reference only]               -0.038  [-0.119, +0.072]   (SD=0.188, n=14)
+    VERDICT: semantic conflict SUPPRESSES primacy.
+
+--- F. PRIMACY ROBUSTNESS ACROSS ALL TEN CELLS (AD3 magnitude fragility) ---
+    cell   cues    serial    CI_lo    CI_hi    neg/n  full swing
+    T1        2    -0.463   -0.592   -0.282    13/14       -0.927
+    T1c       0    -0.871   -1.062   -0.708    14/14       -1.741
+    T2        1    -0.353   -0.475   -0.207    13/14       -0.706
+    T2c       0    -0.628   -0.879   -0.459    14/14       -1.256
+    T3        2    -0.649   -0.820   -0.497    14/14       -1.299
+    T3c       0    -0.575   -0.736   -0.442    14/14       -1.150
+    T4        1    -0.155   -0.262   -0.056    10/14       -0.310
+    T4c       0    -0.506   -0.626   -0.367    14/14       -1.011
+    T5        2    -0.193   -0.294   -0.067    12/14       -0.386
+    T5b       0    -0.268   -0.411   -0.150    11/14       -0.537
+    Range: 0.155 to 0.871 nats (5.6x swing across framings).
+    Cells with CI excluding zero: 10/10.
+    Cells negative in mean: 10/10.
+    n per contrast = 14
+
+============================================================================================
+=== PRIMARY vs SENSITIVITY: any contrast whose CI changes zero-coverage
+============================================================================================
+  UNSTABLE: A3  Pooled pure cue effect  (mean of A1,A2)
+     primary   -0.145 [-0.290, +0.010]
+     all-pairs -0.166 [-0.306, -0.011]
+  UNSTABLE: E1  T5b - T4c  [PRE-REGISTERED]
+     primary   +0.216 [-0.004, +0.364]
+     all-pairs +0.237 [+0.025, +0.375]
+
+  2 contrast(s) are outlier-policy dependent. Do not headline them without stating the policy.
+
+[json written to ./o2_results_ad_series_FINAL.json]

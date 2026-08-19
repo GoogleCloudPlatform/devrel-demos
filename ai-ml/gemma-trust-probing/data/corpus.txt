@@ -1,0 +1,4 @@
+The quick brown fox jumps over the lazy dog.
+This is a test prompt for project lantern Jacobian fitting.
+We just need a few tokens to run a sanity test pass.
+Let's see if the full rank exact J works cleanly.

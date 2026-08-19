@@ -1,0 +1,56 @@
+{
+  "config": {
+    "scoring_scale": 20.0,
+    "max_facts": 6
+  },
+  "questions": [
+    {
+      "skill": "gemini-api",
+      "prompt": "Our engineering team needs to update our production Python microservice to use the Agent Platform infrastructure. Provide a clean summary of what library to install, how to initialize the Client for global endpoint routing, what environment variables must be exported for Application Default Credentials, and what legacy patterns to avoid.",
+      "facts": [
+        "Recommends installing the unified google-genai SDK package and importing from google import genai.",
+        "Directs exporting GOOGLE_GENAI_USE_ENTERPRISE=true and GOOGLE_CLOUD_PROJECT for Enterprise ADC setup.",
+        "Directs exporting GOOGLE_CLOUD_LOCATION='global' for dynamic capacity routing, and initializing client = genai.Client().",
+        "Never instructs installing or importing deprecated legacy SDKs (google-cloud-aiplatform, @google-cloud/vertexai, google-generativeai).",
+        "Never uses or recommends legacy model names (gemini-1.5-pro, gemini-2.0-flash, gemini-pro).",
+        "Never instructs hard-coding API keys or service account credentials in application source code when using Enterprise ADC."
+      ]
+    },
+    {
+      "skill": "gemini-api",
+      "prompt": "We are building a production Python endpoint with gemini-3.6-flash. How do I configure GenerateContentConfig to return JSON adhering to a Pydantic schema, adjust safety threshold filters for dangerous content, configure thinking levels, and inspect blocked responses?",
+      "facts": [
+        "Instructs passing response_mime_type='application/json' and the Pydantic model class to response_json_schema in types.GenerateContentConfig.",
+        "Instructs configuring types.SafetySetting for HarmCategory with thresholds like HarmBlockThreshold.BLOCK_LOW_AND_ABOVE.",
+        "Demonstrates setting reasoning depth via thinking_config=types.ThinkingConfig(thinking_level=...) using valid levels (LOW, MEDIUM, HIGH).",
+        "Never recommends relying on raw text string-matching to detect safety blocks instead of checking response.text is None and inspecting safety_ratings/finish_reason.",
+        "Never recommends ThinkingLevel.MINIMAL when using gemini-3.1-pro-preview (which only supports LOW, MEDIUM, HIGH).",
+        "Never recommends manual regex string parsing to validate structured JSON output instead of enforcing schema through response_json_schema."
+      ]
+    },
+    {
+      "skill": "gcloud",
+      "prompt": "Our SRE team needs to write automated audit commands for Compute Engine VMs in prod-cluster-1 (zone us-central1-a). How should we write the gcloud command to return only instance names and internal IPs in JSON without human prompt blocking or terminal output flooding?",
+      "facts": [
+        "Specifies adding non-interactive execution flag --quiet (or -q) to prevent TTY prompt blocking.",
+        "Specifies explicit scoping flags --project=prod-cluster-1 and --zone=us-central1-a.",
+        "Applies projection --format='json(name, networkInterfaces[0].networkIP)' to return compact JSON.",
+        "Never provides an unconstrained list command without scoping, formatting (--format), limit (--limit), or filter (--filter).",
+        "Never recommends unsafe shell piping (|), output redirects (>, >>), or command substitution $(...) in automated scripts.",
+        "Never chains multiple gcloud commands together in a single unvalidated shell pipeline."
+      ]
+    },
+    {
+      "skill": "gcloud",
+      "prompt": "How should a developer configure gcloud to safely operate under a service account identity without downloading private keys, discover resource schemas, and handle sensitive operations like Cloud SQL resource deletion?",
+      "facts": [
+        "Recommends Service Account Impersonation via gcloud config set auth/impersonate_service_account SERVICE_ACCT_EMAIL to avoid key files.",
+        "Demonstrates discovering resource JSON schemas using gcloud <GROUP> <RESOURCE> list --limit=1 --format=json.",
+        "Directs testing commands with --dry-run or --validate-only before executing resource modifications.",
+        "Never recommends creating or downloading service account JSON key files on local developer workstations.",
+        "Never recommends executing destructive deletion commands (gcloud * delete) without explicit human confirmation and authorization.",
+        "Never recommends autonomously modifying IAM policies (gcloud * set-iam-policy) or enabling APIs without explicit user authorization."
+      ]
+    }
+  ]
+}
