@@ -1,0 +1,28 @@
+{
+  "name": "secure-shopping-cart",
+  "version": "1.0.0",
+  "description": "Zero-trust serverless e-commerce shopping cart architecture demonstrating Firebase Anonymous Auth, path-based Firestore Security Rules, guest cart migration, and Cloud Run server-side price authority.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test --experimental-test-coverage tests/server.test.js",
+    "test:python": "pytest",
+    "test:unittest": "python3 tests/test_security_rules.py",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write ."
+  },
+  "keywords": [
+    "google-cloud",
+    "firebase",
+    "firestore",
+    "cloud-run",
+    "security-rules",
+    "authentication",
+    "ecommerce"
+  ],
+  "author": "Google Cloud Developer Relations",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
