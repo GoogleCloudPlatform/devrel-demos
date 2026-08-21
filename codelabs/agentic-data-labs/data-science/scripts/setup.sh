@@ -56,6 +56,7 @@ SPANNER_DATABASE="${SPANNER_DATABASE:-fraud-db}"
 DATASET_NAME="${DATASET_NAME:-transactions_dataset_evals}"
 RAW_BUCKET="${RAW_BUCKET:-${PROJECT_ID}-fin-clearing-raw}"
 MODELS_BUCKET="${MODELS_BUCKET:-${PROJECT_ID}-models}"
+ARTIFACTS_BUCKET="${ARTIFACTS_BUCKET:-${PROJECT_ID}-airflow-artifacts}"
 COMPOSER_SA_NAME="${COMPOSER_SA_NAME:-composer-worker-sa}"
 
 # --- Write all config to .env ---
@@ -75,6 +76,7 @@ update_env_var "PROJECT_ID" "$PROJECT_ID"
 update_env_var "REGION" "$REGION"
 update_env_var "RAW_BUCKET" "$RAW_BUCKET"
 update_env_var "MODELS_BUCKET" "$MODELS_BUCKET"
+update_env_var "ARTIFACTS_BUCKET" "$ARTIFACTS_BUCKET"
 update_env_var "DATASET_NAME" "$DATASET_NAME"
 update_env_var "SPANNER_INSTANCE" "$SPANNER_INSTANCE"
 update_env_var "SPANNER_DATABASE" "$SPANNER_DATABASE"
@@ -90,6 +92,7 @@ log_info "Project ID:            ${PROJECT_ID}"
 log_info "Region:                ${REGION}"
 log_info "GCS Ingestion Bucket:  gs://${RAW_BUCKET}"
 log_info "GCS Models Bucket:     gs://${MODELS_BUCKET}"
+log_info "GCS Artifacts Bucket:  gs://${ARTIFACTS_BUCKET}"
 log_info "BigQuery Dataset:      ${DATASET_NAME}"
 log_info "Spanner Instance:      ${SPANNER_INSTANCE}"
 log_info "Composer Environment:  ${COMPOSER_ENVIRONMENT}"
@@ -138,6 +141,15 @@ else
   log_info "Creating bucket gs://${MODELS_BUCKET} in ${REGION}..."
   gcloud storage buckets create "gs://${MODELS_BUCKET}" --project="$PROJECT_ID" --location="$REGION" --quiet
   log_ok "GCS Bucket gs://${MODELS_BUCKET} created."
+fi
+
+# Airflow pipeline artifacts bucket (used by orchestration-pipelines deploy)
+if gcloud storage buckets describe "gs://${ARTIFACTS_BUCKET}" --project="$PROJECT_ID" &>/dev/null; then
+  log_warn "GCS Bucket gs://${ARTIFACTS_BUCKET} already exists."
+else
+  log_info "Creating bucket gs://${ARTIFACTS_BUCKET} in ${REGION}..."
+  gcloud storage buckets create "gs://${ARTIFACTS_BUCKET}" --project="$PROJECT_ID" --location="$REGION" --quiet
+  log_ok "GCS Bucket gs://${ARTIFACTS_BUCKET} created."
 fi
 
 # =============================================================================
