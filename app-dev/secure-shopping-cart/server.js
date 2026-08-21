@@ -192,6 +192,7 @@ async function writeFirestoreDocument(collection, docId, fields) {
                 },
               },
               (patchRes) => {
+                patchRes.resume();
                 resolve({ success: patchRes.statusCode >= 200 && patchRes.statusCode < 300 });
               },
             );
@@ -229,22 +230,33 @@ async function clearUserCart(uid) {
           try {
             const parsed = JSON.parse(data);
             if (parsed.documents && Array.isArray(parsed.documents)) {
-              parsed.documents.forEach((doc) => {
-                const docName = doc.name;
-                const delUrl = docName.startsWith('http')
-                  ? docName
-                  : `${FIRESTORE_API_BASE}/${docName}`;
-                const delReq = client.request(
-                  delUrl,
-                  { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } },
-                  () => {},
-                );
-                delReq.on('error', () => {});
-                delReq.end();
+              const deletePromises = parsed.documents.map((doc) => {
+                return new Promise((deleteResolve) => {
+                  const docName = doc.name;
+                  const delUrl = docName.startsWith('http')
+                    ? docName
+                    : `${FIRESTORE_API_BASE}/${docName}`;
+                  const delReq = client.request(
+                    delUrl,
+                    { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } },
+                    (delRes) => {
+                      delRes.resume();
+                      deleteResolve();
+                    },
+                  );
+                  delReq.on('error', () => deleteResolve());
+                  delReq.end();
+                });
               });
+              Promise.all(deletePromises)
+                .then(() => resolve())
+                .catch(() => resolve());
+            } else {
+              resolve();
             }
-          } catch {}
-          resolve();
+          } catch {
+            resolve();
+          }
         });
       })
       .on('error', () => resolve());

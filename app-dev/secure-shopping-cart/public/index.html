@@ -902,9 +902,15 @@
       const writeBatch = db.batch();
       const entries = Object.entries(itemsToMerge);
 
-      for (const [pid, data] of entries) {
-        const itemRef = db.collection('carts').doc(targetUid).collection('items').doc(pid);
-        const existingDoc = await itemRef.get();
+      const fetchPromises = entries.map(([pid]) => {
+        return db.collection('carts').doc(targetUid).collection('items').doc(pid).get();
+      });
+      const existingDocs = await Promise.all(fetchPromises);
+
+      for (let i = 0; i < entries.length; i++) {
+        const [pid, data] = entries[i];
+        const existingDoc = existingDocs[i];
+        const itemRef = existingDoc.ref;
         const existingQty = existingDoc.exists ? (existingDoc.data().qty || 0) : 0;
         const incomingQty = typeof data === 'object' && data !== null ? (data.qty || 1) : (parseInt(data, 10) || 1);
         const safeIncoming = isNaN(incomingQty) || incomingQty < 1 ? 1 : incomingQty;
