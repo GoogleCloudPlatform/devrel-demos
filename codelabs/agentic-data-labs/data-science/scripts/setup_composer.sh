@@ -172,7 +172,7 @@ else
     gcloud composer environments create "$COMPOSER_ENVIRONMENT"
     --project="$PROJECT_ID"
     --location="$REGION"
-    --image-version="${IMAGE_VERSION:-composer-3-airflow-2.11.1}"
+    --image-version="${IMAGE_VERSION:-composer-3-airflow-3}"
     --environment-size=small
     --service-account="${COMPOSER_SA_EMAIL}"
     --quiet
@@ -186,34 +186,19 @@ else
 fi
 
 # =============================================================================
-# STEP 4: Install Required PyPI Packages
+# STEP 3: Retrieve Metadata & Update Local Environment Configuration
 # =============================================================================
-log_step "3" "Installing PyPI packages for dbt and orchestration"
+log_step "3" "Retrieving environment metadata and updating .env"
 
-log_info "Installing dbt-bigquery and orchestration-pipelines..."
-gcloud composer environments update "$COMPOSER_ENVIRONMENT" \
+log_info "Fetching DAGs bucket and Airflow URI from environment config..."
+DESCRIBE_OUTPUT=$(gcloud composer environments describe "$COMPOSER_ENVIRONMENT" \
   --project="$PROJECT_ID" \
   --location="$REGION" \
-  --update-pypi-packages-from-file=/dev/stdin --quiet <<'PYPI'
-dbt-bigquery
-orchestration-pipelines
-PYPI
-log_ok "PyPI packages installed."
+  --format="value(config.dagGcsPrefix, config.airflowUri)" 2>/dev/null || echo "")
 
-# =============================================================================
-# STEP 5: Retrieve Metadata & Update Local Environment Configuration
-# =============================================================================
-log_step "4" "Retrieving environment metadata and updating .env"
-
-COMPOSER_DAGS_BUCKET=$(gcloud composer environments describe "$COMPOSER_ENVIRONMENT" \
-  --project="$PROJECT_ID" \
-  --location="$REGION" \
-  --format="value(config.dagGcsPrefix)" 2>/dev/null || echo "")
-
-AIRFLOW_URI=$(gcloud composer environments describe "$COMPOSER_ENVIRONMENT" \
-  --project="$PROJECT_ID" \
-  --location="$REGION" \
-  --format="value(config.airflowUri)" 2>/dev/null || echo "")
+read -r COMPOSER_DAGS_BUCKET AIRFLOW_URI <<< "$DESCRIBE_OUTPUT"
+COMPOSER_DAGS_BUCKET="${COMPOSER_DAGS_BUCKET:-}"
+AIRFLOW_URI="${AIRFLOW_URI:-}"
 
 log_info "DAGs GCS Bucket: ${COMPOSER_DAGS_BUCKET}"
 log_info "Airflow Web UI:  ${AIRFLOW_URI}"
@@ -262,5 +247,3 @@ echo ""
 echo -e "To upload DAGs to this Airflow environment, copy your Python DAG files to:"
 echo -e "  ${YELLOW}gcloud storage cp path/to/dag.py ${COMPOSER_DAGS_BUCKET}/${NC}"
 echo ""
-
-
