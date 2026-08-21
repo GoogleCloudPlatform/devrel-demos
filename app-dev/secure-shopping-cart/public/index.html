@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firestore User Ownership & Cart Migration Simulator</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <!-- Official Firebase SDK (Compat Version for standalone browser execution) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <style>
+    .font-mono-code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-6 antialiased font-sans">
+  <div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- Header & Project Banner -->
+    <header class="bg-slate-800/80 backdrop-blur border border-slate-700 rounded-2xl p-4 shadow-xl space-y-2.5">
+      <!-- Top Row: Title on Left, Project Capsule on Right -->
+      <div class="flex items-center justify-between gap-4">
+        <h1 class="text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+          <span>🛒</span> Shopping Cart Simulator
+        </h1>
+        <span id="project-badge-header" class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono-code shrink-0">
+          Project: Loading...
+        </span>
+      </div>
+
+      <!-- Controls Row: Live Connection Badge on Left, User Identity & Auth on Right -->
+      <div class="flex items-center justify-between gap-2.5 pt-1.5 border-t border-slate-700/50">
+        
+        <!-- Left: Live Connection Status + Config Gear -->
+        <div class="inline-flex items-center bg-slate-900 border border-slate-700 rounded-lg p-0.5 shadow-sm">
+          <div id="connection-status-pill" class="px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="connection-status-label">Firebase Auth &amp; Firestore Live</span>
+          </div>
+          <div class="w-px h-3.5 bg-slate-700 mx-0.5"></div>
+          <button onclick="openConfigModal()" title="Firebase Settings (API Key & Config)" class="p-1 px-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-md text-xs transition">
+            ⚙️
+          </button>
+        </div>
+
+        <!-- Right: User Identity Pill & Controls -->
+        <div class="inline-flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-lg p-0.5">
+          <div class="flex items-center gap-1.5 px-2 py-0.5">
+            <span id="auth-avatar" class="text-xs">👤</span>
+            <div class="flex items-center gap-1.5 text-xs leading-none">
+              <span id="auth-type" class="font-medium text-amber-400">Anonymous Visitor</span>
+              <span id="auth-uid" class="font-mono-code text-slate-400 text-[11px]">Connecting...</span>
+            </div>
+          </div>
+          
+          <button id="btn-signin-header" onclick="openSignInModal()" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-xs font-semibold transition shadow-sm flex items-center gap-1.5">
+            <span>🔑</span>
+            <span>Sign in</span>
+          </button>
+          <button id="btn-signout" onclick="handleSignOut()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md text-xs transition border border-slate-700 hidden">
+            Sign out
+          </button>
+          <button onclick="resetToNewGuest()" class="p-1 px-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-md text-xs transition" title="Switch to a new Anonymous Identity (signInAnonymously)">
+            🔄
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- BLOCK 1: STOREFRONT OPERATIONS -->
+    <div class="space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-700/60 pb-2">
+        <div class="flex items-center gap-2">
+          <span class="p-1 rounded-lg bg-indigo-500/10 text-indigo-400 text-sm">🛍️</span>
+          <h2 class="text-base md:text-lg font-bold text-white">Storefront Operations</h2>
+        </div>
+        <span class="text-xs font-mono-code text-slate-400">Live Catalog &amp; Server-Verified Checkout</span>
+      </div>
+
+      <!-- Storefront Grid: Left (Catalog with 8 products) | Right (Cart + Orders) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- Left: Product Catalog (6 cols, dynamic products) -->
+        <div class="lg:col-span-6">
+
+          <!-- Products Section -->
+          <section class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 shadow-lg">
+            <div class="flex justify-between items-center mb-4">
+              <div>
+                <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                  <span>🛒</span> Product Catalog
+                </h3>
+                <p class="text-xs font-mono-code text-slate-400" id="catalog-path-display">Path: /products/{id} (read: true, write: false)</p>
+              </div>
+              <span id="catalog-source-badge" class="text-xs text-slate-400 font-medium">8 Items • Live Cloud Run API</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="products-grid">
+              <!-- Rendered Dynamically by JS -->
+            </div>
+          </section>
+
+        </div>
+
+        <!-- Right: Shopping Cart & Verified Orders (6 cols) -->
+        <div class="lg:col-span-6 space-y-6">
+
+          <!-- Live Cart View -->
+          <section class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 shadow-lg">
+            <div class="flex justify-between items-center mb-3">
+              <div>
+                <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                  <span>🛍️</span> Shopping Cart
+                </h3>
+                <div class="text-xs font-mono-code text-indigo-300 mt-0.5" id="cart-path-display">
+                  Path: /carts/{uid}/items/{productId}
+                </div>
+              </div>
+              <span id="cart-item-count-badge" class="px-2 py-0.5 bg-indigo-950 border border-indigo-700 text-indigo-300 text-xs rounded-full font-medium">0 items</span>
+            </div>
+
+            <!-- Cart Items List -->
+            <div id="cart-items-container" class="space-y-2.5 min-h-[140px] flex flex-col justify-center">
+              <div class="text-center py-8 text-slate-500 text-sm">
+                Your cart is empty. Add products from the catalog on the left.
+              </div>
+            </div>
+
+            <!-- Cart Footer & Checkout -->
+            <div class="mt-4 pt-4 border-t border-slate-700 flex justify-between items-center">
+              <div>
+                <span class="text-xs text-slate-400 block">Catalog-Verified Total</span>
+                <span id="cart-total-display" class="text-xl font-bold text-white">$0.00</span>
+              </div>
+              <button id="btn-checkout" onclick="performCheckout()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-semibold transition shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span>💳</span> Check Out (/api/checkout)
+              </button>
+            </div>
+          </section>
+
+          <!-- Orders Collection (Server Output - Right Below Cart) -->
+          <section class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 shadow-lg">
+            <div class="flex justify-between items-center mb-2">
+              <h3 class="text-sm font-semibold text-white flex items-center gap-1.5">
+                <span>📦</span> Verified Orders (orders/{orderId})
+              </h3>
+              <span class="text-[10px] text-emerald-400 font-mono-code">Server-Only Writes</span>
+            </div>
+
+            <div id="orders-list-container" class="space-y-2 text-xs font-mono-code">
+              <div class="text-slate-500 py-3 text-center">No orders placed yet.</div>
+            </div>
+          </section>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- BLOCK 2: SECURITY RULES VIEWER & LIVE EXPLOIT TESTING -->
+    <div id="security-section" class="space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-700/60 pb-2">
+        <div class="flex items-center gap-2">
+          <span class="p-1 rounded-lg bg-rose-500/10 text-rose-400 text-sm">🛡️</span>
+          <h2 class="text-base md:text-lg font-bold text-white">Security &amp; Access Control</h2>
+        </div>
+        <span class="text-xs font-mono-code text-slate-400">Live Client-Side Enforcement on Cloud Firestore</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- Left: Live Firestore Rules Viewer (6 cols) -->
+        <div class="lg:col-span-6">
+          <section class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 shadow-lg flex flex-col h-[320px]">
+            <div class="flex justify-between items-center mb-2">
+              <h3 class="text-sm font-semibold text-white flex items-center gap-1.5">
+                <span>📜</span> Firestore Rules (firestore.rules)
+              </h3>
+              <span id="project-badge-rules" class="text-[10px] font-mono-code text-emerald-400">Target: Active Project</span>
+            </div>
+
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono-code overflow-y-auto text-slate-300 flex-1 space-y-1" id="rules-code-container">
+              <div id="rules-project-comment" class="text-slate-500">// Rules active on current project</div>
+              <div id="rule-products" class="p-1 rounded transition">match /products/{id} { allow read; }</div>
+              <div id="rule-cart-read" class="p-1 rounded transition">match /carts/{uid}/items/{id} {</div>
+              <div id="rule-cart-allow-read" class="pl-4 p-1 rounded transition">allow read, delete: if auth.uid == uid;</div>
+              <div id="rule-cart-allow-write" class="pl-4 p-1 rounded transition">allow create, update: if auth.uid == uid</div>
+              <div id="rule-cart-has-only" class="pl-8 p-1 rounded transition">&amp;&amp; request.resource.data.keys().hasOnly(['qty'])</div>
+              <div id="rule-cart-qty-range" class="pl-8 p-1 rounded transition">&amp;&amp; qty is int &amp;&amp; qty &gt; 0 &amp;&amp; qty &lt;= 99;</div>
+              <div class="text-slate-400">}</div>
+              <div id="rule-orders" class="p-1 rounded transition">match /orders/{id} { allow get, list: if auth.uid == resource.data.ownerUid; allow write: if false; }</div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Right: Live Security Rules & Tamper Verification (6 cols) -->
+        <div class="lg:col-span-6">
+          <section class="bg-rose-950/20 border border-rose-900/50 rounded-2xl p-5 shadow-lg flex flex-col h-[320px] justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-3">
+                <span class="text-lg">🛡️</span>
+                <div>
+                  <h3 class="text-sm font-semibold text-indigo-300">Security Rule Verification Tests</h3>
+                  <p class="text-xs text-slate-400">Directly dispatches unauthorized requests to Cloud Firestore to verify rule rejection.</p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <button onclick="testTamperPrice()" class="p-2.5 bg-slate-900/80 hover:bg-indigo-900/30 border border-slate-700/60 hover:border-indigo-500 rounded-xl text-left transition group">
+                  <div class="text-xs font-semibold text-indigo-300 flex items-center justify-between">
+                    <span>1. Price Tampering</span>
+                    <span class="text-[10px] text-indigo-400 font-mono-code">TEST</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-1 leading-tight">Sends <code class="text-indigo-300">{qty:1, price:0.01}</code></p>
+                </button>
+
+                <button onclick="testUnfilteredOrdersQuery()" class="p-2.5 bg-slate-900/80 hover:bg-indigo-900/30 border border-slate-700/60 hover:border-indigo-500 rounded-xl text-left transition group">
+                  <div class="text-xs font-semibold text-indigo-300 flex items-center justify-between">
+                    <span>2. Unscoped Query</span>
+                    <span class="text-[10px] text-indigo-400 font-mono-code">TEST</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-1 leading-tight">Queries <code class="text-indigo-300">orders</code> without <code class="text-indigo-300">where()</code></p>
+                </button>
+
+                <button onclick="testHijackOtherCart()" class="p-2.5 bg-slate-900/80 hover:bg-indigo-900/30 border border-slate-700/60 hover:border-indigo-500 rounded-xl text-left transition group">
+                  <div class="text-xs font-semibold text-indigo-300 flex items-center justify-between">
+                    <span>3. Cross-User Access</span>
+                    <span class="text-[10px] text-indigo-400 font-mono-code">TEST</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-1 leading-tight">Tries write to <code class="text-indigo-300">carts/user_b</code></p>
+                </button>
+              </div>
+            </div>
+
+            <div class="p-2.5 bg-slate-900/90 border border-slate-800 rounded-xl text-[11px] text-slate-400 flex items-center gap-2">
+              <span>💡</span>
+              <span>Evaluating against active <strong class="text-slate-300">match /carts/{uid}/items/{id}</strong> and <strong class="text-slate-300">match /orders/{id}</strong> rules.</span>
+            </div>
+          </section>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- BLOCK 3: FULL-WIDTH REAL-TIME AUDIT & RULES EVALUATION LOG -->
+    <section class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 shadow-lg flex flex-col h-[280px]">
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="text-sm font-semibold text-white flex items-center gap-1.5">
+          <span>⚡</span> Real-Time Audit &amp; Rules Log
+        </h3>
+        <button onclick="clearLogs()" class="text-xs text-slate-400 hover:text-slate-200">Clear</button>
+      </div>
+
+      <div id="audit-log" class="bg-slate-950 border border-slate-800 rounded-xl p-3 overflow-y-auto flex-1 font-mono-code text-xs space-y-2">
+        <div class="text-slate-500 text-[11px]">// Initializing Firebase Authentic Anonymous Session...</div>
+      </div>
+    </section>
+
+    <!-- Firebase Config / Settings Modal -->
+    <div id="config-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+        <div class="flex justify-between items-start">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">⚙️</span>
+            <div>
+              <h3 class="text-base font-bold text-white">Firebase Project Settings</h3>
+              <p class="text-xs text-slate-400">Active Firebase connection credentials.</p>
+            </div>
+          </div>
+          <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white text-sm">✕</button>
+        </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-[11px] font-semibold text-slate-400">Web API Key</label>
+              <span class="text-[10px] text-slate-500 font-mono-code">Public Firebase Client ID</span>
+            </div>
+            <div class="relative flex items-center">
+              <input 
+                type="password" 
+                id="cfg-apiKey" 
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 pl-2.5 pr-16 text-xs font-mono-code text-slate-200 focus:border-indigo-500 focus:outline-none transition" 
+                placeholder="your-api-key">
+              <div class="absolute right-1 flex items-center gap-0.5">
+                <button 
+                  type="button" 
+                  id="btn-toggle-apikey" 
+                  onclick="toggleApiKeyVisibility()" 
+                  title="Show/Hide API Key" 
+                  class="p-1 px-1.5 text-xs text-slate-400 hover:text-white rounded transition hover:bg-slate-800">
+                  👁️
+                </button>
+                <button 
+                  type="button" 
+                  onclick="copyApiKeyToClipboard()" 
+                  title="Copy API Key" 
+                  class="p-1 px-1.5 text-xs text-slate-400 hover:text-white rounded transition hover:bg-slate-800">
+                  📋
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] font-semibold text-slate-400 block mb-1">Project ID</label>
+              <input type="text" id="cfg-projectId" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs font-mono-code text-slate-200" placeholder="your-gcp-project-id">
+            </div>
+            <div>
+              <label class="text-[11px] font-semibold text-slate-400 block mb-1">Auth Domain</label>
+              <input type="text" id="cfg-authDomain" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs font-mono-code text-slate-200" placeholder="your-project.firebaseapp.com">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] font-semibold text-slate-400 block mb-1">Storage Bucket</label>
+              <input type="text" id="cfg-storageBucket" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs font-mono-code text-slate-200" placeholder="your-project.appspot.com">
+            </div>
+            <div>
+              <label class="text-[11px] font-semibold text-slate-400 block mb-1">App ID</label>
+              <input type="text" id="cfg-appId" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs font-mono-code text-slate-200" placeholder="1:123456:web:auto">
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-700 flex flex-wrap justify-between items-center gap-2">
+          <button onclick="reloadDefaultServerConfig()" class="text-xs text-amber-400 hover:text-amber-300 underline">
+            Reload Runtime Server Config
+          </button>
+          <div class="flex gap-2">
+            <button onclick="closeConfigModal()" class="px-3 py-1.5 text-xs text-slate-400 hover:text-white">Cancel</button>
+            <button onclick="saveAndApplyConfig()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition shadow-md">
+              Save &amp; Reconnect
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sign-In Modal (Google OAuth & Email/Password with Demo Presets) -->
+    <div id="signin-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div class="flex justify-between items-start">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🔐</span>
+            <div>
+              <h3 class="text-base font-bold text-white">Sign In / Switch User</h3>
+              <p class="text-xs text-slate-400 mt-0.5">Firebase Google OAuth &amp; Email Authentication</p>
+            </div>
+          </div>
+          <button onclick="closeSignInModal()" class="text-slate-400 hover:text-white">✕</button>
+        </div>
+
+        <div class="space-y-3.5">
+          <!-- Google OAuth One-Click Sign In -->
+          <div>
+            <button 
+              id="btn-google-signin" 
+              onclick="signInWithGoogle()" 
+              class="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-800 font-semibold py-2.5 px-4 rounded-xl border border-slate-300 shadow-sm transition text-xs">
+              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+              </svg>
+              <span>Sign in with Google</span>
+            </button>
+            <div class="mt-1 text-[10px] text-center text-slate-500">
+              Note: Requires origin listed in Firebase Console <code class="text-slate-400 font-mono-code">Authorized domains</code>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div class="relative flex py-0.5 items-center">
+            <div class="flex-grow border-t border-slate-700"></div>
+            <span class="flex-shrink mx-3 text-[11px] text-slate-500 uppercase tracking-wider font-semibold">or email</span>
+            <div class="flex-grow border-t border-slate-700"></div>
+          </div>
+
+          <!-- Email / Password Form -->
+          <div class="space-y-2.5 bg-slate-900/60 p-3.5 rounded-xl border border-slate-700/60">
+            <div>
+              <label class="text-[11px] font-semibold text-slate-400 block mb-1">Email Address</label>
+              <input type="email" id="input-auth-email" placeholder="alice@example.com" value="alice@example.com" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs font-mono-code text-slate-200">
+            </div>
+            <div>
+              <label class="text-[11px] font-semibold text-slate-400 block mb-1">Password</label>
+              <input type="password" id="input-auth-password" placeholder="••••••••" value="demo123456" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs font-mono-code text-slate-200">
+            </div>
+
+            <!-- Demo Persona Presets -->
+            <div class="flex items-center gap-1.5 pt-1">
+              <span class="text-[11px] text-slate-400 font-medium">Quick Demo:</span>
+              <button onclick="fillDemoCredentials('alice@example.com', 'demo123456')" class="px-2.5 py-1 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 rounded-lg text-xs font-mono-code transition">👤 Alice</button>
+              <button onclick="fillDemoCredentials('bob@example.com', 'demo123456')" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-mono-code transition">👤 Bob</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-1.5">
+              <button onclick="signInWithEmailPassword(false)" class="p-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold text-xs transition shadow-md">
+                Sign In
+              </button>
+              <button onclick="signInWithEmailPassword(true)" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg font-semibold text-xs transition">
+                Create Account
+              </button>
+            </div>
+          </div>
+
+          <div class="p-2.5 bg-slate-900/80 border border-slate-700/80 rounded-xl text-[11px] text-slate-400 space-y-1">
+            <div class="flex items-center gap-1.5 text-indigo-400 font-medium text-xs">
+              <span>⚡</span> Automatic Cart Linking &amp; Merge
+            </div>
+            <p class="leading-relaxed">
+              When signing in from a guest session (via Google or Email), your items are automatically migrated and merged into your account's permanent cart in Cloud Firestore.
+            </p>
+          </div>
+        </div>
+
+        <div class="pt-1 flex justify-between items-center">
+          <button onclick="resetToNewGuest(); closeSignInModal();" class="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1">
+            <span>🔄</span> Fresh Anonymous Guest
+          </button>
+          <button onclick="closeSignInModal()" class="px-4 py-2 text-xs text-slate-400 hover:text-white">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Order Receipt Modal -->
+    <div id="receipt-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div class="flex justify-between items-start">
+          <div>
+            <h3 class="text-base font-bold text-white">Server Checkout Receipt</h3>
+            <p class="text-xs text-slate-400 mt-0.5" id="receipt-api-badge">POST /api/checkout (Google Cloud Run Authority)</p>
+          </div>
+          <button onclick="closeReceiptModal()" class="text-slate-400 hover:text-white">✕</button>
+        </div>
+
+        <div id="receipt-content" class="space-y-3">
+          <!-- Populated by JS -->
+        </div>
+
+        <div class="pt-2 flex justify-between items-center">
+          <button onclick="closeReceiptModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-medium transition ml-auto">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // --- RUNTIME STATE (100% REAL FIREBASE AUTH & FIRESTORE) ---
+    let activeConfig = {
+      apiKey: "",
+      projectId: "",
+      authDomain: "",
+      storageBucket: "",
+      appId: ""
+    };
+
+    let PRODUCTS = [];
+    let auth = null;
+    let db = null;
+    let currentUser = null;
+    let cartItems = {}; // Live snapshot representation of /carts/{uid}/items
+    let orders = [];
+    let unsubscribeCart = null;
+
+    // --- INITIALIZATION ---
+    document.addEventListener('DOMContentLoaded', async () => {
+      await init();
+    });
+
+    async function init() {
+      // 1. Fetch dynamic project ID & config from backend
+      await loadServerConfig();
+
+      const saved = localStorage.getItem('custom_fb_config');
+      if (saved) {
+        try { activeConfig = JSON.parse(saved); } catch (e) {}
+      }
+
+      updateProjectBadges(activeConfig.projectId);
+
+      // 2. Fetch live catalog from Cloud Run /api/products
+      await loadProductsCatalog();
+
+      // 3. Initialize Firebase SDK with genuine Anonymous Auth
+      initFirebase();
+    }
+
+    async function loadServerConfig() {
+      try {
+        const res = await fetch('/api/config');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.projectId) {
+            activeConfig.projectId = data.projectId;
+            activeConfig.authDomain = data.authDomain || `${data.projectId}.firebaseapp.com`;
+            activeConfig.storageBucket = data.storageBucket || `${data.projectId}.appspot.com`;
+            if (data.apiKey) activeConfig.apiKey = data.apiKey;
+            if (data.appId) activeConfig.appId = data.appId;
+            updateProjectBadges(data.projectId);
+          }
+        }
+      } catch (e) {
+        console.log("Could not load /api/config:", e.message);
+      }
+    }
+
+    function updateProjectBadges(projectId) {
+      const pId = projectId || activeConfig.projectId || 'demo-project';
+      const headerEl = document.getElementById('project-badge-header');
+      if (headerEl) headerEl.textContent = `Project: ${pId}`;
+      const rulesEl = document.getElementById('project-badge-rules');
+      if (rulesEl) rulesEl.textContent = `Target: ${pId}`;
+      const rulesCommentEl = document.getElementById('rules-project-comment');
+      if (rulesCommentEl) rulesCommentEl.textContent = `// Rules active on project ${pId}`;
+    }
+
+    async function loadProductsCatalog() {
+      try {
+        const res = await fetch('/api/products');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.products && Array.isArray(data.products) && data.products.length > 0) {
+            PRODUCTS = data.products;
+            renderProductsGrid();
+            document.getElementById('catalog-source-badge').textContent = `${PRODUCTS.length} Items • Live Cloud Run API`;
+            logAudit('CATALOG', 'GET /api/products', `Loaded ${PRODUCTS.length} products dynamically from live server catalog.`, true);
+          }
+        }
+      } catch (err) {
+        console.log("Catalog load error:", err.message);
+      }
+    }
+
+    function renderProductsGrid() {
+      const grid = document.getElementById('products-grid');
+      if (!grid) return;
+
+      grid.innerHTML = PRODUCTS.map(p => `
+        <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-3.5 flex items-center justify-between hover:border-slate-600 transition">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">${p.icon}</span>
+            <div>
+              <h4 class="text-xs font-semibold text-white">${p.name}</h4>
+              <div class="text-xs text-indigo-400 font-mono-code font-bold">$${p.price.toFixed(2)}</div>
+            </div>
+          </div>
+          <button onclick="addToCart('${p.id}')" class="px-2.5 py-1.5 bg-indigo-600/80 hover:bg-indigo-600 text-white text-xs font-medium rounded-lg transition flex items-center gap-1">
+            <span>+</span> Add
+          </button>
+        </div>
+      `).join('');
+    }
+
+    // --- GENUINE FIREBASE ANONYMOUS AUTH & FIRESTORE INIT ---
+    function initFirebase() {
+      if (!window.firebase || !activeConfig.projectId) return;
+
+      try {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(activeConfig);
+        }
+        auth = firebase.auth();
+        db = firebase.firestore();
+
+        // Listen for genuine Firebase Auth state changes
+        auth.onAuthStateChanged(async (user) => {
+          if (user) {
+            currentUser = {
+              uid: user.uid,
+              isAnonymous: user.isAnonymous,
+              email: user.email,
+              displayName: user.displayName || (user.isAnonymous ? 'Anonymous Visitor' : 'User')
+            };
+
+            const statusDesc = user.isAnonymous 
+              ? `Anonymous Guest UID: "${user.uid}" (Google cryptographic token)`
+              : `Signed-In User: "${user.email}" (UID: ${user.uid})`;
+
+            logAudit('AUTH_STATE', 'User Session Active', statusDesc, true);
+            renderAuthHeader();
+            listenToUserCart(user.uid);
+            fetchUserOrders(user.uid);
+          } else {
+            // No session active: request genuine Anonymous identity from Firebase Auth
+            logAudit('AUTH_INIT', 'signInAnonymously()', 'Requesting genuine Anonymous Identity from Google Firebase Auth...', true);
+            try {
+              const cred = await auth.signInAnonymously();
+              logAudit('AUTH_ANON_OK', 'signInAnonymously()', `Received genuine cryptographic Anonymous UID: ${cred.user.uid}`, true);
+            } catch (authErr) {
+              if (authErr.code === 'auth/admin-restricted-operation' || authErr.code === 'auth/operation-not-allowed') {
+                logAudit('AUTH_ACTION_REQUIRED', 'Enable Anonymous Auth', 'Firebase reports Anonymous Provider is disabled. Enable in Firebase Console > Authentication > Sign-in method > Anonymous.', false);
+              } else {
+                logAudit('AUTH_ERROR', 'signInAnonymously Failed', `${authErr.code}: ${authErr.message}`, false);
+              }
+            }
+          }
+        });
+
+      } catch (err) {
+        logAudit('FIREBASE_ERR', 'SDK Init Error', err.message, false);
+      }
+    }
+
+    // --- LIVE FIRESTORE CART LISTENER ---
+    function listenToUserCart(uid) {
+      if (!db) return;
+      if (unsubscribeCart) unsubscribeCart();
+
+      cartItems = {};
+      renderCart();
+
+      try {
+        unsubscribeCart = db.collection('carts').doc(uid).collection('items').onSnapshot((snapshot) => {
+          const updated = {};
+          snapshot.forEach((doc) => {
+            updated[doc.id] = doc.data();
+          });
+          cartItems = updated;
+          renderCart();
+          logAudit('FIRESTORE_SYNC', `onSnapshot(/carts/${uid}/items)`, `Real-time snapshot synced (${Object.keys(cartItems).length} item types in cart)`, true);
+        }, (err) => {
+          logAudit('FIRESTORE_DENY', `Listener on /carts/${uid}/items`, `Denied by Security Rules: ${err.message}`, false);
+        });
+      } catch (e) {
+        console.warn("Cart listener error:", e);
+      }
+    }
+
+    // --- FETCH ORDER HISTORY ---
+    async function fetchUserOrders(uid) {
+      if (!db) return;
+      orders = [];
+      renderOrders();
+      try {
+        const snap = await db.collection('orders').where('ownerUid', '==', uid).get();
+        orders = snap.docs.map(doc => {
+          const d = doc.data();
+          let ts = 0;
+          if (d.createdAt && typeof d.createdAt.toMillis === 'function') {
+            ts = d.createdAt.toMillis();
+          } else if (d.createdAt) {
+            ts = new Date(d.createdAt).getTime();
+          }
+          return {
+            orderId: doc.id,
+            total: d.total || 0,
+            ownerUid: d.ownerUid,
+            status: d.status || 'PAID_VERIFIED',
+            lines: d.lines || [],
+            ts: ts
+          };
+        });
+        orders.sort((a,b) => b.ts - a.ts);
+        renderOrders();
+        if (orders.length > 0) {
+          logAudit('ALLOW (HTTP 200)', 'getDocs(/orders)', `Successfully fetched ${orders.length} past orders for ${uid}`, true);
+        }
+      } catch (err) {
+        logAudit('DENY (HTTP 403)', 'Cloud Firestore', `Blocked fetching orders: ${err.message}`, false);
+      }
+    }
+
+    // --- RENDER FUNCTIONS ---
+    function renderAuthHeader() {
+      const typeEl = document.getElementById('auth-type');
+      const uidEl = document.getElementById('auth-uid');
+      const avatarEl = document.getElementById('auth-avatar');
+      const signinBtn = document.getElementById('btn-signin-header');
+      const signoutBtn = document.getElementById('btn-signout');
+      const cartPathEl = document.getElementById('cart-path-display');
+
+      if (!currentUser) {
+        uidEl.textContent = 'Connecting...';
+        return;
+      }
+
+      if (currentUser.isAnonymous) {
+        typeEl.textContent = 'Anonymous Visitor';
+        typeEl.className = 'text-xs font-medium text-amber-400';
+        avatarEl.textContent = '👤';
+        signinBtn.classList.remove('hidden');
+        signoutBtn.classList.add('hidden');
+      } else {
+        typeEl.textContent = (currentUser.displayName || 'User') + (currentUser.email ? ` (${currentUser.email})` : '');
+        typeEl.className = 'text-xs font-medium text-emerald-400';
+        avatarEl.textContent = '✨';
+        signinBtn.classList.add('hidden');
+        signoutBtn.classList.remove('hidden');
+      }
+      uidEl.textContent = currentUser.uid;
+      cartPathEl.textContent = `Path: /carts/${currentUser.uid}/items/{productId}`;
+    }
+
+    function renderCart() {
+      const container = document.getElementById('cart-items-container');
+      const countBadge = document.getElementById('cart-item-count-badge');
+      const totalEl = document.getElementById('cart-total-display');
+      const checkoutBtn = document.getElementById('btn-checkout');
+
+      const productIds = Object.keys(cartItems);
+
+      let totalItems = 0;
+      let totalPrice = 0;
+
+      if (productIds.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-slate-500 text-sm">
+            Your cart is empty. Add products from the catalog on the left.
+          </div>
+        `;
+        countBadge.textContent = '0 items';
+        totalEl.textContent = '$0.00';
+        checkoutBtn.disabled = true;
+        return;
+      }
+
+      container.innerHTML = productIds.map(pid => {
+        const product = PRODUCTS.find(p => p.id === pid) || { name: pid, price: 0, icon: '📦' };
+        const item = cartItems[pid];
+        const qty = item.qty || 1;
+        totalItems += qty;
+        totalPrice += product.price * qty;
+
+        return `
+          <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-xl">${product.icon}</span>
+              <div>
+                <div class="text-xs font-semibold text-white">${product.name}</div>
+                <div class="text-[11px] font-mono-code text-slate-400">
+                  $${product.price.toFixed(2)} × ${qty} = <span class="text-slate-200 font-semibold">$${(product.price * qty).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="updateQty('${pid}', ${qty - 1})" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center justify-center font-bold">-</button>
+              <span class="text-xs font-mono-code font-bold w-5 text-center text-white">${qty}</span>
+              <button onclick="updateQty('${pid}', ${qty + 1})" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center justify-center font-bold">+</button>
+              <button onclick="removeFromCart('${pid}')" class="ml-1 text-slate-500 hover:text-rose-400 text-xs p-1" title="Remove item">🗑️</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      countBadge.textContent = `${totalItems} item${totalItems === 1 ? '' : 's'}`;
+      totalEl.textContent = `$${totalPrice.toFixed(2)}`;
+      checkoutBtn.disabled = false;
+    }
+
+    // --- REAL FIRESTORE WRITES (ENFORCED BY CLOUD FIRESTORE SECURITY RULES) ---
+    async function addToCart(productId) {
+      if (!auth?.currentUser || !db) {
+        logAudit('WARN', 'Auth', 'Waiting for Firebase Anonymous Auth session...', false);
+        return;
+      }
+      const uid = auth.currentUser.uid;
+      const currentQty = cartItems[productId]?.qty || 0;
+      const nextQty = currentQty + 1;
+
+      logAudit('FIRESTORE_WRITE', `setDoc(/carts/${uid}/items/${productId})`, `Writing { qty: ${nextQty} } directly to Google Cloud Firestore...`, true);
+
+      try {
+        await db.collection('carts').doc(uid).collection('items').doc(productId).set({ qty: nextQty });
+        logAudit('ALLOW (HTTP 200)', 'Cloud Firestore', `Written to /carts/${uid}/items/${productId} (Authorized by match /carts/{uid}/items/{id})`, true);
+        highlightRule('rule-cart-allow-write');
+      } catch (err) {
+        logAudit('DENY (HTTP 403)', 'Cloud Firestore', `BLOCKED BY SECURITY RULES: ${err.message}`, false);
+        highlightRule('rule-cart-allow-write');
+      }
+    }
+
+    async function updateQty(productId, newQty) {
+      if (!auth?.currentUser || !db) return;
+      const uid = auth.currentUser.uid;
+      if (newQty <= 0) {
+        await removeFromCart(productId);
+        return;
+      }
+
+      try {
+        await db.collection('carts').doc(uid).collection('items').doc(productId).set({ qty: newQty });
+        logAudit('ALLOW (HTTP 200)', 'Cloud Firestore', `Updated /carts/${uid}/items/${productId} qty to ${newQty}`, true);
+        highlightRule('rule-cart-qty-range');
+      } catch (err) {
+        logAudit('DENY (HTTP 403)', 'Cloud Firestore', `Update rejected by rules: ${err.message}`, false);
+      }
+    }
+
+    async function removeFromCart(productId) {
+      if (!auth?.currentUser || !db) return;
+      const uid = auth.currentUser.uid;
+      try {
+        await db.collection('carts').doc(uid).collection('items').doc(productId).delete();
+        logAudit('ALLOW (HTTP 200)', 'Cloud Firestore', `Deleted /carts/${uid}/items/${productId} (Authorized by allow delete: if auth.uid == uid)`, true);
+        highlightRule('rule-cart-allow-read');
+      } catch (err) {
+        logAudit('DENY (HTTP 403)', 'Cloud Firestore', `Delete rejected by rules: ${err.message}`, false);
+      }
+    }
+
+    // --- SECURITY RULES VERIFICATION TEST SUITE ---
+    async function testTamperPrice() {
+      if (!auth?.currentUser || !db) return;
+      const userUid = auth.currentUser.uid;
+
+      logAudit('SECURITY_TEST', `write /carts/${userUid}/items/prod_honey`, `Testing unauthorized payload with forbidden field: { qty: 1, price: 0.01 }...`, false);
+
+      try {
+        const t0 = performance.now();
+        // Client attempts to inject custom price into cart document
+        await db.collection('carts').doc(userUid).collection('items').doc('prod_honey').set({
+          qty: 1,
+          price: 0.01
+        });
+        logAudit('WARN', 'Cloud Firestore', 'Write succeeded unexpectedly. Check firestore.rules!', false);
+      } catch (err) {
+        logAudit('DENY (HTTP 403)', 'Google Cloud Firestore', `BLOCKED BY FIRESTORE SECURITY RULES: ${err.message} — request.resource.data.keys().hasOnly(['qty']) rejected forbidden 'price' field!`, false);
+        highlightRule('rule-cart-has-only');
+      }
+    }
+
+    async function testUnfilteredOrdersQuery() {
+      if (!db) return;
+      logAudit('SECURITY_TEST', `list /orders`, `Executing unfiltered getDocs(collection(db, "orders")) without where("ownerUid", "==", auth.uid)...`, false);
+
+      try {
+        const snap = await db.collection('orders').get();
+        logAudit('WARN', 'Cloud Firestore', `Unfiltered query returned ${snap.size} orders unexpectedly!`, false);
+      } catch (err) {
+        logAudit('DENY (HTTP 403)', 'Google Cloud Firestore', `BLOCKED BY FIRESTORE SECURITY RULES: ${err.message} — Rules are not filters! Client queries must specify where("ownerUid", "==", auth.uid).`, false);
+        highlightRule('rule-orders');
+      }
+    }
+
+    async function testHijackOtherCart() {
+      if (!db) return;
+      const otherUserUid = 'usr_other_user_992';
+      logAudit('SECURITY_TEST', `write /carts/${otherUserUid}/items/prod_honey`, `Testing cross-user write to another user's cart (/carts/${otherUserUid}/...)...`, false);
+
+      try {
+        await db.collection('carts').doc(otherUserUid).collection('items').doc('prod_honey').set({ qty: 1 });
+        logAudit('WARN', 'Cloud Firestore', 'Cross-user write succeeded unexpectedly!', false);
+      } catch (err) {
+        logAudit('DENY (HTTP 403)', 'Google Cloud Firestore', `BLOCKED BY FIRESTORE SECURITY RULES: ${err.message} — request.auth.uid ("${auth.currentUser?.uid}") != path uid ("${otherUserUid}")`, false);
+        highlightRule('rule-cart-allow-read');
+      }
+    }
+
+    async function runAllSecurityTests() {
+      logAudit('TEST_RUNNER', 'Security Test Suite', 'Executing full client-side exploit verification test suite...', true);
+      await testTamperPrice();
+      await new Promise(r => setTimeout(r, 600));
+      await testUnfilteredOrdersQuery();
+      await new Promise(r => setTimeout(r, 600));
+      await testHijackOtherCart();
+    }
+
+    // --- AUTH FLOWS: GOOGLE OAUTH, EMAIL/PASSWORD & CONFLICT MIGRATION ---
+    function openSignInModal() {
+      document.getElementById('signin-modal').classList.remove('hidden');
+      document.getElementById('signin-modal').classList.add('flex');
+    }
+
+    function closeSignInModal() {
+      document.getElementById('signin-modal').classList.add('hidden');
+      document.getElementById('signin-modal').classList.remove('flex');
+    }
+
+    function fillDemoCredentials(email, password) {
+      document.getElementById('input-auth-email').value = email;
+      document.getElementById('input-auth-password').value = password;
+    }
+
+    // --- REUSABLE FIRESTORE CART MIGRATION HELPERS (DRY) ---
+    async function deleteGuestCartDocuments(guestUid) {
+      if (!db || !guestUid) return 0;
+      try {
+        const guestSnap = await db.collection('carts').doc(guestUid).collection('items').get();
+        if (guestSnap.empty) return 0;
+        const delBatch = db.batch();
+        guestSnap.forEach((d) => {
+          delBatch.delete(d.ref);
+        });
+        await delBatch.commit();
+        logAudit('MIGRATE_DELETE', `deleteCart("${guestUid}")`, `Deleted ${guestSnap.size} guest cart documents in Firestore (authorized as ${guestUid})`, true);
+        return guestSnap.size;
+      } catch (err) {
+        console.warn('deleteGuestCartDocuments error:', err);
+        return 0;
+      }
+    }
+
+    async function mergeCartItemsToFirestore(targetUid, itemsToMerge) {
+      if (!db || !targetUid || !itemsToMerge || Object.keys(itemsToMerge).length === 0) return;
+      const writeBatch = db.batch();
+      const entries = Object.entries(itemsToMerge);
+
+      const fetchPromises = entries.map(([pid]) => {
+        return db.collection('carts').doc(targetUid).collection('items').doc(pid).get();
+      });
+      const existingDocs = await Promise.all(fetchPromises);
+
+      for (let i = 0; i < entries.length; i++) {
+        const [pid, data] = entries[i];
+        const existingDoc = existingDocs[i];
+        const itemRef = existingDoc.ref;
+        const existingQty = existingDoc.exists ? (existingDoc.data().qty || 0) : 0;
+        const incomingQty = typeof data === 'object' && data !== null ? (data.qty || 1) : (parseInt(data, 10) || 1);
+        const safeIncoming = isNaN(incomingQty) || incomingQty < 1 ? 1 : incomingQty;
+        const mergedQty = Math.max(1, Math.min(99, existingQty + safeIncoming));
+        writeBatch.set(itemRef, { qty: mergedQty });
+      }
+
+      await writeBatch.commit();
+      logAudit('MIGRATE_MERGE', `mergeCartItems("${targetUid}")`, `Successfully merged ${entries.length} item types into /carts/${targetUid}/items in Cloud Firestore!`, true);
+    }
+
+    async function executeCartMigrationPipeline(guestUid, returningUid, cartSnapshot) {
+      if (!guestUid || guestUid === returningUid || !cartSnapshot || Object.keys(cartSnapshot).length === 0) {
+        return;
+      }
+
+      logAudit('MIGRATE_START', 'Cart Migration Started', `Migrating ${Object.keys(cartSnapshot).length} guest items from "${guestUid}" to "${returningUid}"...`, true);
+
+      // Step 1: Delete old guest cart documents in Firestore
+      await deleteGuestCartDocuments(guestUid);
+
+      // Step 2: Merge items into returning user cart in Firestore
+      await mergeCartItemsToFirestore(returningUid, cartSnapshot);
+
+      logAudit('MIGRATE_DONE', 'Cart Migration Complete', `Guest items successfully merged into /carts/${returningUid}/items!`, true);
+    }
+
+    // --- AUTHENTICATION FLOWS: GOOGLE OAUTH & EMAIL/PASSWORD ---
+    async function signInWithGoogle() {
+      if (!auth) return;
+      closeSignInModal();
+
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.addScope('profile');
+      provider.addScope('email');
+
+      const isAnonymous = auth.currentUser?.isAnonymous;
+      const guestUid = isAnonymous ? auth.currentUser.uid : null;
+      const guestCartSnapshot = JSON.parse(JSON.stringify(cartItems || {}));
+
+      logAudit('AUTH_OAUTH', 'Google Sign-In', 'Launching Google OAuth popup...', true);
+
+      try {
+        if (isAnonymous && auth.currentUser) {
+          try {
+            // Flow A: Link existing anonymous session directly with Google credential (in-place upgrade)
+            const userCred = await auth.currentUser.linkWithPopup(provider);
+            logAudit('AUTH_LINK_OK', 'Anonymous Account Upgraded', `Linked Google account ${userCred.user.email} directly to UID "${userCred.user.uid}" without cart migration needed.`, true);
+          } catch (linkErr) {
+            if (linkErr.code === 'auth/credential-already-in-use' || linkErr.code === 'auth/account-exists-with-different-credential') {
+              // Flow B: Google account belongs to existing user -> trigger conflict migration
+              logAudit('AUTH_CONFLICT', 'Existing Account Detected', 'Google account already exists. Migrating guest cart to permanent account...', true);
+              await handleLiveConflictMigration(linkErr.credential, guestCartSnapshot);
+            } else {
+              throw linkErr;
+            }
+          }
+        } else {
+          // Flow C: Standard popup sign-in for new / switching sessions
+          const userCred = await auth.signInWithPopup(provider);
+          logAudit('AUTH_SUCCESS', 'signInWithPopup()', `Signed in as ${userCred.user.email} (UID: ${userCred.user.uid})`, true);
+          if (guestUid && guestUid !== userCred.user.uid) {
+            await executeCartMigrationPipeline(guestUid, userCred.user.uid, guestCartSnapshot);
+          }
+        }
+      } catch (err) {
+        handleAuthError(err, 'Google Sign-In');
+      }
+    }
+
+    async function signInWithEmailPassword(isSignUp = false) {
+      const email = document.getElementById('input-auth-email').value.trim();
+      const password = document.getElementById('input-auth-password').value;
+
+      if (!email || !password) {
+        alert('Please enter an email and password.');
+        return;
+      }
+
+      closeSignInModal();
+      if (!auth) return;
+
+      const guestUid = auth.currentUser?.isAnonymous ? auth.currentUser.uid : null;
+      const guestCartSnapshot = JSON.parse(JSON.stringify(cartItems || {}));
+
+      logAudit('AUTH', 'Authenticating...', `Attempting sign-in for ${email}...`, true);
+
+      try {
+        let userCred;
+        if (isSignUp) {
+          userCred = await auth.createUserWithEmailAndPassword(email, password);
+          logAudit('AUTH_SUCCESS', 'createUserWithEmailAndPassword()', `Created new account for ${userCred.user.email} (UID: ${userCred.user.uid})`, true);
+        } else {
+          try {
+            userCred = await auth.signInWithEmailAndPassword(email, password);
+            logAudit('AUTH_SUCCESS', 'signInWithEmailAndPassword()', `Signed in as ${userCred.user.email} (UID: ${userCred.user.uid})`, true);
+          } catch (signInErr) {
+            if (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential' || signInErr.code === 'auth/invalid-login-credentials') {
+              // Auto-create for demo convenience if user does not exist yet!
+              logAudit('AUTH_INFO', 'Auto-Creating Demo User', `Account ${email} does not exist yet. Initializing new account...`, true);
+              userCred = await auth.createUserWithEmailAndPassword(email, password);
+              logAudit('AUTH_SUCCESS', 'createUserWithEmailAndPassword()', `Created and signed in as ${userCred.user.email} (UID: ${userCred.user.uid})`, true);
+            } else {
+              throw signInErr;
+            }
+          }
+        }
+
+        // Execute unified cart migration pipeline (DRY)
+        const returningUid = userCred.user.uid;
+        if (guestUid && guestUid !== returningUid) {
+          await executeCartMigrationPipeline(guestUid, returningUid, guestCartSnapshot);
+        }
+      } catch (err) {
+        handleAuthError(err, 'Email Authentication');
+      }
+    }
+
+    async function handleLiveConflictMigration(pendingCred, inMemorySnapshot = null) {
+      if (!auth?.currentUser || !db) return;
+      const guestUid = auth.currentUser.uid;
+      const snapshot = inMemorySnapshot || JSON.parse(JSON.stringify(cartItems || {}));
+
+      try {
+        // Step 1: Read guest items from Firestore / snapshot
+        const guestSnap = await db.collection('carts').doc(guestUid).collection('items').get();
+        const guestItems = Object.keys(snapshot).length > 0 ? snapshot : {};
+        guestSnap.forEach((doc) => {
+          guestItems[doc.id] = doc.data();
+        });
+        logAudit('MIGRATE_1/4', `readCart("${guestUid}")`, `Saved ${Object.keys(guestItems).length} guest items from Firestore to memory`, true);
+
+        // Step 2: Delete guest cart documents in Firestore before auth state switch
+        await deleteGuestCartDocuments(guestUid);
+        logAudit('MIGRATE_2/4', `deleteCart("${guestUid}")`, `Deleted guest cart documents in Firestore (authorized as ${guestUid})`, true);
+
+        // Step 3: Sign in as returning user
+        let userCred;
+        if (pendingCred) {
+          userCred = await auth.signInWithCredential(pendingCred);
+        } else {
+          const provider = new firebase.auth.GoogleAuthProvider();
+          userCred = await auth.signInWithPopup(provider);
+        }
+        const returningUid = userCred.user.uid;
+        logAudit('MIGRATE_3/4', `signInWithCredential()`, `Authenticated as returning user UID "${returningUid}"`, true);
+
+        // Step 4: Batch merge items into returning user's cart in Firestore
+        await mergeCartItemsToFirestore(returningUid, guestItems);
+        logAudit('MIGRATE_4/4', `mergeCartItems("${returningUid}")`, `Merged guest items into /carts/${returningUid}/items in Cloud Firestore!`, true);
+      } catch (err) {
+        logAudit('MIGRATE_ERR', 'Migration Error', err.message, false);
+      }
+    }
+
+    function handleAuthError(err, context = 'Authentication') {
+      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+        logAudit('AUTH_INFO', 'Popup Closed', `${context} popup was closed before completion.`, true);
+      } else if (err.code === 'auth/popup-blocked') {
+        logAudit('AUTH_WARN', 'Popup Blocked', 'Popup was blocked by the browser. Please allow popups for this origin.', false);
+      } else if (err.code === 'auth/unauthorized-domain' || (err.message && err.message.toLowerCase().includes('authorized domain'))) {
+        const domain = window.location.hostname;
+        const project = activeConfig.projectId || 'your-project';
+        logAudit('AUTH_CONFIG_REQUIRED', 'Domain Not Authorized', `Domain "${domain}" is not authorized for OAuth operations. Add "${domain}" in Firebase Console > Authentication > Settings > Authorized domains (https://console.firebase.google.com/project/${project}/authentication/settings).`, false);
+        alert(`OAuth Domain Notice:\n\nThe domain "${domain}" must be added to your Firebase Authorized Domains list to use Google Sign-In.\n\nGo to: Firebase Console > Authentication > Settings > Authorized domains tab.\n\nTip: You can also use the Email/Password buttons (Alice/Bob presets) which do not require OAuth domain whitelisting!`);
+      } else if (err.code === 'auth/operation-not-allowed') {
+        logAudit('AUTH_CONFIG_REQUIRED', 'Provider Disabled', `${context} provider is disabled. Enable it in Firebase Console > Authentication > Sign-in method.`, false);
+      } else if (err.code === 'auth/weak-password') {
+        logAudit('AUTH_ERROR', 'Weak Password', 'Password must be at least 6 characters.', false);
+      } else {
+        logAudit('AUTH_ERROR', `${context} Failed`, `${err.code || 'Error'}: ${err.message}`, false);
+      }
+    }
+
+    async function handleSignOut() {
+      if (auth) {
+        try {
+          if (unsubscribeCart) { unsubscribeCart(); unsubscribeCart = null; }
+          await auth.signOut();
+          logAudit('AUTH', 'signOut()', 'Signed out from Firebase.', true);
+        } catch (e) {}
+      }
+    }
+
+    async function resetToNewGuest() {
+      if (!auth) return;
+      if (unsubscribeCart) { unsubscribeCart(); unsubscribeCart = null; }
+      logAudit('AUTH', 'Switch Anonymous User', 'Signing out current session to generate brand new Firebase Anonymous Identity...', true);
+      try {
+        await auth.signOut();
+        const cred = await auth.signInAnonymously();
+        logAudit('AUTH_ANON_OK', 'signInAnonymously()', `New authentic cryptographic Anonymous UID: ${cred.user.uid}`, true);
+      } catch (err) {
+        logAudit('AUTH_ERROR', 'signInAnonymously Failed', err.message, false);
+      }
+    }
+
+    // --- REAL SERVER CHECKOUT (/api/checkout) & IMMUTABLE ORDER CREATION ---
+    async function performCheckout() {
+      if (!auth?.currentUser) return;
+      const userUid = auth.currentUser.uid;
+      const itemKeys = Object.keys(cartItems);
+
+      if (itemKeys.length === 0) return;
+
+      logAudit('API_DISPATCH', 'POST /api/checkout', `Sending cart payload to Cloud Run backend (User: ${userUid})...`, true);
+
+      try {
+        const t0 = performance.now();
+        const res = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            uid: userUid,
+            items: cartItems
+          })
+        });
+
+        const latencyMs = Math.round(performance.now() - t0);
+
+        if (res.ok) {
+          const data = await res.json();
+          const order = data.order;
+
+          orders.unshift(order);
+          renderOrders();
+
+          logAudit('SERVER_200_OK', `Order ${order.orderId} Confirmed`, `Cloud Run server verified catalog total: $${order.total.toFixed(2)} (${latencyMs}ms). Order written to Cloud Firestore /orders/{orderId}.`, true);
+          highlightRule('rule-orders');
+          showOrderReceiptModal(order, latencyMs, data.serverMode);
+          return;
+        } else {
+          const errData = await res.json();
+          logAudit('SERVER_ERR', 'Checkout Failed', `HTTP ${res.status}: ${errData.error || 'Server error'}`, false);
+        }
+      } catch (err) {
+        logAudit('API_ERR', 'Checkout API Error', err.message, false);
+      }
+    }
+
+    function showOrderReceiptModal(order, latencyMs = 0, serverMode = 'Cloud Run Firebase Admin Authority') {
+      const modal = document.getElementById('receipt-modal');
+      const content = document.getElementById('receipt-content');
+      if (!modal || !content) return;
+
+      content.replaceChildren();
+
+      // Top confirmation card
+      const topCard = document.createElement('div');
+      topCard.className = 'bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3.5 text-center space-y-1';
+
+      const emojiDiv = document.createElement('div');
+      emojiDiv.className = 'text-2xl';
+      emojiDiv.textContent = '🎉';
+
+      const titleH4 = document.createElement('h4');
+      titleH4.className = 'text-sm font-bold text-emerald-300';
+      titleH4.textContent = `Order Confirmed: ${order.orderId}`;
+
+      const totalP = document.createElement('p');
+      totalP.className = 'text-xs text-slate-300';
+      totalP.textContent = `Total: $${order.total.toFixed(2)} (${order.status})`;
+
+      const modeP = document.createElement('p');
+      modeP.className = 'text-[10.5px] font-mono-code text-emerald-400';
+      modeP.textContent = `Processed by ${serverMode} (${latencyMs}ms)`;
+
+      topCard.appendChild(emojiDiv);
+      topCard.appendChild(titleH4);
+      topCard.appendChild(totalP);
+      topCard.appendChild(modeP);
+
+      // Line items card
+      const itemsCard = document.createElement('div');
+      itemsCard.className = 'bg-slate-900 border border-slate-700/80 rounded-xl p-3 space-y-2';
+
+      const itemsHeader = document.createElement('div');
+      itemsHeader.className = 'text-xs font-semibold text-slate-300 border-b border-slate-800 pb-1.5 flex justify-between';
+      
+      const headerLabel1 = document.createElement('span');
+      headerLabel1.textContent = 'Server-Priced Items';
+      const headerLabel2 = document.createElement('span');
+      headerLabel2.textContent = 'Qty × Unit';
+      itemsHeader.appendChild(headerLabel1);
+      itemsHeader.appendChild(headerLabel2);
+      itemsCard.appendChild(itemsHeader);
+
+      (order.lines || []).forEach((l) => {
+        const lineDiv = document.createElement('div');
+        lineDiv.className = 'flex justify-between text-xs text-slate-300 font-mono-code';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = l.name;
+
+        const priceSpan = document.createElement('span');
+        priceSpan.className = 'text-slate-400';
+        priceSpan.textContent = `${l.qty} × $${l.unitPrice.toFixed(2)} = $${(l.qty * l.unitPrice).toFixed(2)}`;
+
+        lineDiv.appendChild(nameSpan);
+        lineDiv.appendChild(priceSpan);
+        itemsCard.appendChild(lineDiv);
+      });
+
+      // Bottom info card
+      const infoCard = document.createElement('div');
+      infoCard.className = 'bg-indigo-950/30 border border-indigo-900/50 rounded-xl p-3 text-xs text-indigo-300 space-y-1';
+      
+      const infoTitle = document.createElement('div');
+      infoTitle.className = 'font-semibold flex items-center gap-1.5';
+      infoTitle.textContent = '🛡️ Backend Authority Enforcement';
+
+      const infoDesc = document.createElement('p');
+      infoDesc.className = 'text-slate-400 text-[11px] leading-relaxed';
+      infoDesc.textContent = 'Client writes to /orders/{id} are blocked by security rules. The /api/checkout backend verifies prices against the catalog and creates the immutable order with IAM Admin privileges.';
+
+      infoCard.appendChild(infoTitle);
+      infoCard.appendChild(infoDesc);
+
+      content.appendChild(topCard);
+      content.appendChild(itemsCard);
+      content.appendChild(infoCard);
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeReceiptModal() {
+      document.getElementById('receipt-modal').classList.add('hidden');
+      document.getElementById('receipt-modal').classList.remove('flex');
+    }
+
+    function renderOrders() {
+      const container = document.getElementById('orders-list-container');
+      if (!container) return;
+      container.replaceChildren();
+
+      if (orders.length === 0) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'text-slate-500 py-3 text-center';
+        emptyDiv.textContent = 'No orders placed yet.';
+        container.appendChild(emptyDiv);
+        return;
+      }
+
+      orders.forEach((o) => {
+        const orderDiv = document.createElement('div');
+        orderDiv.className = 'p-2.5 bg-slate-900/90 border border-emerald-500/30 rounded-xl flex items-center justify-between';
+
+        const infoDiv = document.createElement('div');
+        const idDiv = document.createElement('div');
+        idDiv.className = 'text-emerald-400 font-bold text-xs';
+        idDiv.textContent = o.orderId;
+
+        const totalDiv = document.createElement('div');
+        totalDiv.className = 'text-[11px] text-slate-400';
+        totalDiv.textContent = `Total: $${o.total.toFixed(2)} (${o.lines?.length || 0} items)`;
+
+        const ownerDiv = document.createElement('div');
+        ownerDiv.className = 'text-[10px] text-slate-500';
+        ownerDiv.textContent = `ownerUid: ${o.ownerUid}`;
+
+        infoDiv.appendChild(idDiv);
+        infoDiv.appendChild(totalDiv);
+        infoDiv.appendChild(ownerDiv);
+
+        const badgeSpan = document.createElement('span');
+        badgeSpan.className = 'px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[10px] font-medium font-mono-code';
+        badgeSpan.textContent = o.status;
+
+        orderDiv.appendChild(infoDiv);
+        orderDiv.appendChild(badgeSpan);
+        container.appendChild(orderDiv);
+      });
+    }
+
+    // --- AUDIT LOG UTILITIES (SAFE DOM CONSTRUCTION) ---
+    function logAudit(type, title, message, success = true) {
+      const logContainer = document.getElementById('audit-log');
+      if (!logContainer) return;
+
+      const time = new Date().toLocaleTimeString();
+      let colorClass = 'text-indigo-400';
+      if (type.includes('ALLOW') || type.includes('OK') || type.includes('SUCCESS') || type.includes('LINK')) colorClass = 'text-emerald-400';
+      if (type.includes('DENY') || type.includes('ERR') || type.includes('FAIL') || type.includes('BLOCKED')) colorClass = 'text-rose-400 font-bold';
+      if (type.includes('SECURITY_TEST') || type.includes('TEST')) colorClass = 'text-amber-400 font-bold';
+      if (type.includes('MIGRATE')) colorClass = 'text-purple-400 font-bold';
+
+      const entry = document.createElement('div');
+      entry.className = 'border-l-2 border-slate-700 pl-2 py-1 text-slate-300 text-xs';
+
+      const headerDiv = document.createElement('div');
+      headerDiv.className = 'flex items-center justify-between text-[10.5px]';
+
+      const titleSpan = document.createElement('span');
+      titleSpan.className = colorClass;
+      titleSpan.textContent = `[${type}] ${title}`;
+
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'text-slate-500';
+      timeSpan.textContent = time;
+
+      headerDiv.appendChild(titleSpan);
+      headerDiv.appendChild(timeSpan);
+
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'text-slate-300 text-[11px] mt-0.5 leading-snug break-words';
+      msgDiv.textContent = message;
+
+      entry.appendChild(headerDiv);
+      entry.appendChild(msgDiv);
+
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    function highlightRule(elementId) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      el.classList.add('bg-indigo-900/50', 'text-indigo-200', 'border-l-4', 'border-indigo-400', 'pl-2');
+      setTimeout(() => {
+        el.classList.remove('bg-indigo-900/50', 'text-indigo-200', 'border-l-4', 'border-indigo-400', 'pl-2');
+      }, 2500);
+    }
+
+    function clearLogs() {
+      const container = document.getElementById('audit-log');
+      if (!container) return;
+      container.replaceChildren();
+      const placeholderDiv = document.createElement('div');
+      placeholderDiv.className = 'text-slate-500 text-[11px]';
+      placeholderDiv.textContent = '// Log cleared. Ready.';
+      container.appendChild(placeholderDiv);
+    }
+
+    // --- CONFIG MODAL HELPERS ---
+    function toggleApiKeyVisibility() {
+      const input = document.getElementById('cfg-apiKey');
+      const btn = document.getElementById('btn-toggle-apikey');
+      if (!input || !btn) return;
+
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🙈';
+        btn.title = 'Hide Web API Key';
+      } else {
+        input.type = 'password';
+        btn.textContent = '👁️';
+        btn.title = 'Show Web API Key';
+      }
+    }
+
+    async function copyApiKeyToClipboard() {
+      const input = document.getElementById('cfg-apiKey');
+      if (!input || !input.value) return;
+
+      try {
+        await navigator.clipboard.writeText(input.value);
+        logAudit('CLIPBOARD', 'API Key Copied', 'Firebase Web API Key copied to clipboard.', true);
+      } catch {
+        input.select();
+        document.execCommand('copy');
+        logAudit('CLIPBOARD', 'API Key Copied', 'Firebase Web API Key copied to clipboard.', true);
+      }
+    }
+
+    function openConfigModal() {
+      const keyInput = document.getElementById('cfg-apiKey');
+      const toggleBtn = document.getElementById('btn-toggle-apikey');
+      if (keyInput) {
+        keyInput.value = activeConfig.apiKey || '';
+        keyInput.type = 'password';
+      }
+      if (toggleBtn) {
+        toggleBtn.textContent = '👁️';
+        toggleBtn.title = 'Show Web API Key';
+      }
+
+      document.getElementById('cfg-projectId').value = activeConfig.projectId || '';
+      document.getElementById('cfg-authDomain').value = activeConfig.authDomain || '';
+      document.getElementById('cfg-storageBucket').value = activeConfig.storageBucket || '';
+      document.getElementById('cfg-appId').value = activeConfig.appId || '';
+
+      document.getElementById('config-modal').classList.remove('hidden');
+      document.getElementById('config-modal').classList.add('flex');
+    }
+
+    function closeConfigModal() {
+      document.getElementById('config-modal').classList.add('hidden');
+      document.getElementById('config-modal').classList.remove('flex');
+    }
+
+    async function reloadDefaultServerConfig() {
+      localStorage.removeItem('custom_fb_config');
+      await loadServerConfig();
+      openConfigModal();
+      logAudit('SYSTEM', 'Config Reset', 'Reloaded GCP server metadata config.', true);
+    }
+
+    function saveAndApplyConfig() {
+      activeConfig.apiKey = document.getElementById('cfg-apiKey').value.trim();
+      activeConfig.projectId = document.getElementById('cfg-projectId').value.trim();
+      activeConfig.authDomain = document.getElementById('cfg-authDomain').value.trim();
+      activeConfig.storageBucket = document.getElementById('cfg-storageBucket').value.trim();
+      activeConfig.appId = document.getElementById('cfg-appId').value.trim();
+
+      localStorage.setItem('custom_fb_config', JSON.stringify(activeConfig));
+      closeConfigModal();
+      updateProjectBadges(activeConfig.projectId);
+      location.reload();
+    }
+
+    // --- AUTOMATED DEMO & SCREENSHOT VIEW HELPER ---
+    window.addEventListener('load', () => {
+      const params = new URLSearchParams(window.location.search);
+      const view = params.get('view');
+      if (view === 'config') {
+        setTimeout(() => openConfigModal(), 400);
+      } else if (view === 'signin') {
+        setTimeout(() => openSignInModal(), 400);
+      } else if (view === 'receipt') {
+        setTimeout(() => {
+          showOrderReceiptModal({
+            orderId: 'ord_9f82a1c4b73e',
+            createdAt: new Date().toISOString(),
+            total: 41.75,
+            status: 'PAID_VERIFIED',
+            lines: [
+              { productId: 'prod_honey', name: 'Raw Clover Honey', unitPrice: 14.50, qty: 1, lineTotal: 14.50 },
+              { productId: 'prod_bread', name: 'Artisan Sourdough Loaf', unitPrice: 9.25, qty: 1, lineTotal: 9.25 },
+              { productId: 'prod_olive_oil', name: 'Cold-Pressed Olive Oil', unitPrice: 18.00, qty: 1, lineTotal: 18.00 }
+            ]
+          }, 85, 'Cloud Run Firebase Admin Authority');
+        }, 400);
+      } else if (view === 'cart') {
+        setTimeout(() => {
+          cartItems = {
+            prod_honey: { qty: 2 },
+            prod_bread: { qty: 1 },
+            prod_olive_oil: { qty: 1 }
+          };
+          renderCart();
+        }, 500);
+      } else if (view === 'tests') {
+        setTimeout(() => {
+          const sec = document.getElementById('security-section');
+          if (sec) sec.scrollIntoView();
+          runAllSecurityTests();
+        }, 500);
+      }
+    });
+  </script>
+</body>
+</html>
