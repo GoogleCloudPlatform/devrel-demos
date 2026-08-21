@@ -172,7 +172,7 @@ else
     gcloud composer environments create "$COMPOSER_ENVIRONMENT"
     --project="$PROJECT_ID"
     --location="$REGION"
-    --image-version="${IMAGE_VERSION:-composer-3-airflow-3}"
+    --image-version="${IMAGE_VERSION:-composer-3-airflow-2}"
     --environment-size=small
     --service-account="${COMPOSER_SA_EMAIL}"
     --quiet
