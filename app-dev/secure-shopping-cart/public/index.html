@@ -684,13 +684,13 @@
       if (currentUser.isAnonymous) {
         typeEl.textContent = 'Anonymous Visitor';
         typeEl.className = 'text-xs font-medium text-amber-400';
-        avatarEl.innerHTML = '👤';
+        avatarEl.textContent = '👤';
         signinBtn.classList.remove('hidden');
         signoutBtn.classList.add('hidden');
       } else {
         typeEl.textContent = (currentUser.displayName || 'User') + (currentUser.email ? ` (${currentUser.email})` : '');
         typeEl.className = 'text-xs font-medium text-emerald-400';
-        avatarEl.innerHTML = '✨';
+        avatarEl.textContent = '✨';
         signinBtn.classList.add('hidden');
         signoutBtn.classList.remove('hidden');
       }
@@ -1148,37 +1148,84 @@
     function showOrderReceiptModal(order, latencyMs = 0, serverMode = 'Cloud Run Firebase Admin Authority') {
       const modal = document.getElementById('receipt-modal');
       const content = document.getElementById('receipt-content');
+      if (!modal || !content) return;
+
+      content.replaceChildren();
+
+      // Top confirmation card
+      const topCard = document.createElement('div');
+      topCard.className = 'bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3.5 text-center space-y-1';
+
+      const emojiDiv = document.createElement('div');
+      emojiDiv.className = 'text-2xl';
+      emojiDiv.textContent = '🎉';
+
+      const titleH4 = document.createElement('h4');
+      titleH4.className = 'text-sm font-bold text-emerald-300';
+      titleH4.textContent = `Order Confirmed: ${order.orderId}`;
+
+      const totalP = document.createElement('p');
+      totalP.className = 'text-xs text-slate-300';
+      totalP.textContent = `Total: $${order.total.toFixed(2)} (${order.status})`;
+
+      const modeP = document.createElement('p');
+      modeP.className = 'text-[10.5px] font-mono-code text-emerald-400';
+      modeP.textContent = `Processed by ${serverMode} (${latencyMs}ms)`;
+
+      topCard.appendChild(emojiDiv);
+      topCard.appendChild(titleH4);
+      topCard.appendChild(totalP);
+      topCard.appendChild(modeP);
+
+      // Line items card
+      const itemsCard = document.createElement('div');
+      itemsCard.className = 'bg-slate-900 border border-slate-700/80 rounded-xl p-3 space-y-2';
+
+      const itemsHeader = document.createElement('div');
+      itemsHeader.className = 'text-xs font-semibold text-slate-300 border-b border-slate-800 pb-1.5 flex justify-between';
       
-      content.innerHTML = `
-        <div class="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3.5 text-center space-y-1">
-          <div class="text-2xl">🎉</div>
-          <h4 class="text-sm font-bold text-emerald-300">Order Confirmed: ${order.orderId}</h4>
-          <p class="text-xs text-slate-300">Total: <strong class="text-white font-mono-code">$${order.total.toFixed(2)}</strong> (${order.status})</p>
-          <p class="text-[10.5px] font-mono-code text-emerald-400">Processed by ${serverMode} (${latencyMs}ms)</p>
-        </div>
+      const headerLabel1 = document.createElement('span');
+      headerLabel1.textContent = 'Server-Priced Items';
+      const headerLabel2 = document.createElement('span');
+      headerLabel2.textContent = 'Qty × Unit';
+      itemsHeader.appendChild(headerLabel1);
+      itemsHeader.appendChild(headerLabel2);
+      itemsCard.appendChild(itemsHeader);
 
-        <div class="bg-slate-900 border border-slate-700/80 rounded-xl p-3 space-y-2">
-          <div class="text-xs font-semibold text-slate-300 border-b border-slate-800 pb-1.5 flex justify-between">
-            <span>Server-Priced Items</span>
-            <span>Qty × Unit</span>
-          </div>
-          ${order.lines.map(l => `
-            <div class="flex justify-between text-xs text-slate-300 font-mono-code">
-              <span>${l.name}</span>
-              <span class="text-slate-400">${l.qty} × $${l.unitPrice.toFixed(2)} = <strong class="text-white">$${(l.qty * l.unitPrice).toFixed(2)}</strong></span>
-            </div>
-          `).join('')}
-        </div>
+      (order.lines || []).forEach((l) => {
+        const lineDiv = document.createElement('div');
+        lineDiv.className = 'flex justify-between text-xs text-slate-300 font-mono-code';
 
-        <div class="bg-indigo-950/30 border border-indigo-900/50 rounded-xl p-3 text-xs text-indigo-300 space-y-1">
-          <div class="font-semibold flex items-center gap-1.5">
-            <span>🛡️</span> Backend Authority Enforcement
-          </div>
-          <p class="text-slate-400 text-[11px] leading-relaxed">
-            Client writes to <code class="text-indigo-300">/orders/{id}</code> are blocked by <code class="text-indigo-300">allow write: if false</code>. The <code class="text-indigo-300">/api/checkout</code> backend verifies prices against the catalog and creates the immutable order with IAM Admin privileges.
-          </p>
-        </div>
-      `;
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = l.name;
+
+        const priceSpan = document.createElement('span');
+        priceSpan.className = 'text-slate-400';
+        priceSpan.textContent = `${l.qty} × $${l.unitPrice.toFixed(2)} = $${(l.qty * l.unitPrice).toFixed(2)}`;
+
+        lineDiv.appendChild(nameSpan);
+        lineDiv.appendChild(priceSpan);
+        itemsCard.appendChild(lineDiv);
+      });
+
+      // Bottom info card
+      const infoCard = document.createElement('div');
+      infoCard.className = 'bg-indigo-950/30 border border-indigo-900/50 rounded-xl p-3 text-xs text-indigo-300 space-y-1';
+      
+      const infoTitle = document.createElement('div');
+      infoTitle.className = 'font-semibold flex items-center gap-1.5';
+      infoTitle.textContent = '🛡️ Backend Authority Enforcement';
+
+      const infoDesc = document.createElement('p');
+      infoDesc.className = 'text-slate-400 text-[11px] leading-relaxed';
+      infoDesc.textContent = 'Client writes to /orders/{id} are blocked by security rules. The /api/checkout backend verifies prices against the catalog and creates the immutable order with IAM Admin privileges.';
+
+      infoCard.appendChild(infoTitle);
+      infoCard.appendChild(infoDesc);
+
+      content.appendChild(topCard);
+      content.appendChild(itemsCard);
+      content.appendChild(infoCard);
 
       modal.classList.remove('hidden');
       modal.classList.add('flex');
@@ -1191,24 +1238,49 @@
 
     function renderOrders() {
       const container = document.getElementById('orders-list-container');
+      if (!container) return;
+      container.replaceChildren();
+
       if (orders.length === 0) {
-        container.innerHTML = `<div class="text-slate-500 py-3 text-center">No orders placed yet.</div>`;
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'text-slate-500 py-3 text-center';
+        emptyDiv.textContent = 'No orders placed yet.';
+        container.appendChild(emptyDiv);
         return;
       }
 
-      container.innerHTML = orders.map((o) => `
-        <div class="p-2.5 bg-slate-900/90 border border-emerald-500/30 rounded-xl flex items-center justify-between">
-          <div>
-            <div class="text-emerald-400 font-bold text-xs">${o.orderId}</div>
-            <div class="text-[11px] text-slate-400">Total: <strong class="text-slate-200">$${o.total.toFixed(2)}</strong> (${o.lines?.length || 0} items)</div>
-            <div class="text-[10px] text-slate-500">ownerUid: ${o.ownerUid}</div>
-          </div>
-          <span class="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[10px] font-medium font-mono-code">${o.status}</span>
-        </div>
-      `).join('');
+      orders.forEach((o) => {
+        const orderDiv = document.createElement('div');
+        orderDiv.className = 'p-2.5 bg-slate-900/90 border border-emerald-500/30 rounded-xl flex items-center justify-between';
+
+        const infoDiv = document.createElement('div');
+        const idDiv = document.createElement('div');
+        idDiv.className = 'text-emerald-400 font-bold text-xs';
+        idDiv.textContent = o.orderId;
+
+        const totalDiv = document.createElement('div');
+        totalDiv.className = 'text-[11px] text-slate-400';
+        totalDiv.textContent = `Total: $${o.total.toFixed(2)} (${o.lines?.length || 0} items)`;
+
+        const ownerDiv = document.createElement('div');
+        ownerDiv.className = 'text-[10px] text-slate-500';
+        ownerDiv.textContent = `ownerUid: ${o.ownerUid}`;
+
+        infoDiv.appendChild(idDiv);
+        infoDiv.appendChild(totalDiv);
+        infoDiv.appendChild(ownerDiv);
+
+        const badgeSpan = document.createElement('span');
+        badgeSpan.className = 'px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[10px] font-medium font-mono-code';
+        badgeSpan.textContent = o.status;
+
+        orderDiv.appendChild(infoDiv);
+        orderDiv.appendChild(badgeSpan);
+        container.appendChild(orderDiv);
+      });
     }
 
-    // --- AUDIT LOG UTILITIES ---
+    // --- AUDIT LOG UTILITIES (SAFE DOM CONSTRUCTION) ---
     function logAudit(type, title, message, success = true) {
       const logContainer = document.getElementById('audit-log');
       if (!logContainer) return;
@@ -1222,13 +1294,27 @@
 
       const entry = document.createElement('div');
       entry.className = 'border-l-2 border-slate-700 pl-2 py-1 text-slate-300 text-xs';
-      entry.innerHTML = `
-        <div class="flex items-center justify-between text-[10.5px]">
-          <span class="${colorClass}">[${type}] ${title}</span>
-          <span class="text-slate-500">${time}</span>
-        </div>
-        <div class="text-slate-300 text-[11px] mt-0.5 leading-snug">${message}</div>
-      `;
+
+      const headerDiv = document.createElement('div');
+      headerDiv.className = 'flex items-center justify-between text-[10.5px]';
+
+      const titleSpan = document.createElement('span');
+      titleSpan.className = colorClass;
+      titleSpan.textContent = `[${type}] ${title}`;
+
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'text-slate-500';
+      timeSpan.textContent = time;
+
+      headerDiv.appendChild(titleSpan);
+      headerDiv.appendChild(timeSpan);
+
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'text-slate-300 text-[11px] mt-0.5 leading-snug break-words';
+      msgDiv.textContent = message;
+
+      entry.appendChild(headerDiv);
+      entry.appendChild(msgDiv);
 
       logContainer.appendChild(entry);
       logContainer.scrollTop = logContainer.scrollHeight;
@@ -1245,7 +1331,12 @@
 
     function clearLogs() {
       const container = document.getElementById('audit-log');
-      if (container) container.innerHTML = `<div class="text-slate-500 text-[11px]">// Log cleared. Ready.</div>`;
+      if (!container) return;
+      container.replaceChildren();
+      const placeholderDiv = document.createElement('div');
+      placeholderDiv.className = 'text-slate-500 text-[11px]';
+      placeholderDiv.textContent = '// Log cleared. Ready.';
+      container.appendChild(placeholderDiv);
     }
 
     // --- CONFIG MODAL HELPERS ---
