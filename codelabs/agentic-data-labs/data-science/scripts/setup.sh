@@ -219,7 +219,7 @@ log_ok "Loaded dim_payees."
 log_step "5" "Creating Serverless Runtime Template (fraud-pipeline-runtime)"
 
 log_info "Configuring runtime session template with Spanner connector..."
-cat <<EOF | gcloud beta dataproc session-templates import fraud-pipeline-runtime --source=- --location="$REGION" --project="$PROJECT_ID" --quiet 2>/dev/null || log_warn "Session template 'fraud-pipeline-runtime' already exists or import failed."
+cat <<EOF | gcloud beta dataproc session-templates import fraud-pipeline-runtime --location="$REGION" --project="$PROJECT_ID" --quiet 2>/dev/null || log_warn "Session template 'fraud-pipeline-runtime' already exists or import failed."
 jupyterSession:
   displayName: fraud-pipeline-runtime
   kernel: PYTHON
