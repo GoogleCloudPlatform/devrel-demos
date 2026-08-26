@@ -26,7 +26,8 @@ gcloud services enable \
     container.googleapis.com \
     generativelanguage.googleapis.com \
     cloudresourcemanager.googleapis.com \
-    logging.googleapis.com
+    logging.googleapis.com \
+    aiplatform.googleapis.com
 echo -e "${GREEN}✅ APIs enabled successfully.${NC}"
 
 # 3. Check for required tools
