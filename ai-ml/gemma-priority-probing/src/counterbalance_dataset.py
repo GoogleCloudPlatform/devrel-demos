@@ -77,7 +77,7 @@ if __name__ == "__main__":
         q = d["prompt"].split("Question: ")[1]
     data_dir = Path(__file__).resolve().parent.parent / "data"
     if not data_dir.exists():
-        data_dir = Path("gemma-trust-probing/data") if Path("gemma-trust-probing/data").exists() else Path("data") if Path("data").exists() else Path(".")
+        data_dir = Path("gemma-priority-probing/data") if Path("gemma-priority-probing/data").exists() else Path("data") if Path("data").exists() else Path(".")
     dst = data_dir / "conflict_dataset_counterbalanced.json"
     json.dump(ds, open(dst, "w"), indent=2)
     n = sum(1 for d in ds if d["id"].endswith("_conflict"))

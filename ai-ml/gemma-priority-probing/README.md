@@ -1,6 +1,6 @@
-# Gemma Trust Probing: Mechanistic Interpretability & Agent Trust Evaluation
+# Gemma Priority Probing: Mechanistic Interpretability & In-Context Priority Evaluation
 
-> **Tracing Autonomous Agent Information Needs & Probing Mechanistic Trust Circuits on Google Gemma 4-e4b**
+> **Tracing Autonomous Agent Information Needs & Probing Mechanistic Priority Circuits on Google Gemma 4-e4b**
 
 This repository is an open-source research toolkit for probing and visualizing layer-by-layer neural representations in Transformer models (specifically **Google Gemma 4-e4b**) when evaluating empirical conflict prompts (**Authority Bias vs. Recency Bias**).
 
@@ -9,7 +9,7 @@ This repository is an open-source research toolkit for probing and visualizing l
 ## 📁 Repository Structure
 
 ```
-gemma-trust-probing/
+gemma-priority-probing/
 ├── .gitattributes                    # Git LFS configuration for *.pt tensors
 ├── data/                             # Datasets, Stimuli & Results
 │   ├── benchmark_seed_expanded.json
@@ -91,7 +91,7 @@ python src/run_ad_series.py --txt o2_results_ad_series.txt --json o2_results_ad_
 * **Jacobian Matrices**: The precomputed Jacobian matrices (`jacobians_google_gemma-4-e4b.pt`) are included in the `data/` directory. If you need to regenerate this file locally, you can run `fit_j_lens.py`. For security, always load this tensor file using `torch.load(..., weights_only=True)`.
 
 * **Jacobian Lens (J-Lens) Probing**: Project hidden residual stream activations $h_\ell$ through the Jacobian matrix $J_\ell = \mathbb{E}\left[\frac{\partial h_{\text{final}}}{\partial h_\ell}\right]$ to inspect unspoken intermediate representations in the Global Workspace.
-* **Activation Patching**: Perform causal interventions on intermediate layer activations to verify trust circuit mechanisms.
+* **Activation Patching**: Perform causal interventions on intermediate layer activations to verify priority circuit mechanisms.
 * **Counterbalanced Evaluation**: TOST-validated evaluation of authority vs. position bias across 10 prompt conditions.
 
 ---

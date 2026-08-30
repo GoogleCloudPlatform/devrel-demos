@@ -230,7 +230,7 @@ def main():
     parser.add_argument("--fit_layers", type=str, default="12,22,30,36", help="Comma-separated list of layers to fit exact J")
     parser.add_argument("--allow_bad_fit", action="store_true", help="Allow J fit to fail monotonicity without crashing")
     parser.add_argument("--device", type=str, default="mps" if torch.backends.mps.is_available() else "cpu")
-    parser.add_argument("--out_dir", type=str, default="gemma-trust-probing/data")
+    parser.add_argument("--out_dir", type=str, default="gemma-priority-probing/data")
     args = parser.parse_args()
 
     print(f"=== Project Lantern: Jacobian Lens Fitter ===")
