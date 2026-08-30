@@ -28,7 +28,7 @@ def main():
     
     from pathlib import Path
     data_candidate = Path(__file__).resolve().parent.parent / "data" / "conflict_dataset.json"
-    ds_path = str(data_candidate) if data_candidate.exists() else "gemma-priority-probing/data/conflict_dataset.json"
+    ds_path = str(data_candidate) if data_candidate.exists() else ("ai-ml/gemma-priority-probing/data/conflict_dataset.json" if Path("ai-ml/gemma-priority-probing/data/conflict_dataset.json").exists() else "gemma-priority-probing/data/conflict_dataset.json")
     items = [d for d in json.load(open(ds_path)) if d["id"].endswith("_conflict")]
     
     for it in items:
