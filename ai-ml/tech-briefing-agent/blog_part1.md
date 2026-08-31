@@ -24,7 +24,7 @@ Here is what the agent does:
 - **Runs continuously as a background daemon:** Wakes up automatically every 6 hours to collect fresh news. Note that Cloud Run instances restart automatically up to every 7 days, so your agent just needs to gracefully resume its schedule when restarted.
 - **Scans Hacker News and other curated AI and agent engineering sources.**
 - **Filters the noise:** Strips out paywalls, ads, and low-substance articles.
-- **Summarizes with Gemini 2.5 Flash:** We use Gemini 2.5 Flash because it is fast, very cost-effective, and strong enough to extract clear technical takeaways and discussion sentiment.
+- **Summarizes with Gemini 2.5 Flash:** We use Gemini 2.5 Flash to keep costs low. You can swap in the newer Gemini 3.5 or 3.6 Flash models if you need advanced reasoning, but note that their input tokens cost 5x as much compared to 2.5 Flash ($1.50 vs $0.30 per 1M tokens). For simple daily summarization, 2.5 Flash (or the equally cheap Gemini 3.5 Flash-Lite) is fast, highly capable, and keeps the monthly API bill to just a few cents.
 - **Saves data safely:** Stores the daily markdown briefing and seen URLs directly in a mounted cloud storage folder (`/data`).
 - **Serves a clean web dashboard:** Gives an instant web page to read your briefing or trigger a fresh run whenever you want.
 
@@ -150,6 +150,9 @@ gcloud services enable \
     cloudbuild.googleapis.com \
     secretmanager.googleapis.com
 ```
+
+> [!NOTE]
+> Cloud Run instances are not available in every region yet. Please pick a supported region near you from the [Cloud Run instances locations](https://docs.cloud.google.com/run/docs/locations#instances) page.
 
 ### 2. Create a storage bucket for your data
 
