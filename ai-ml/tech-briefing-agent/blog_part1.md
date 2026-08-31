@@ -47,7 +47,6 @@ A tech briefing agent is just one example. Because Cloud Run instances give you 
 The whole application runs inside one Cloud Run instance:
 
 ```mermaid
-%%{init: {'theme': 'neutral', 'themeVariables': { 'fontSize': '32px', 'fontFamily': 'sans-serif' }}}%%
 flowchart TD
     User["👤 Developer (Web Browser)"]
 
@@ -56,18 +55,18 @@ flowchart TD
         Cron["⏰ Background Daemon (Every 6h)"]
         Agent["🤖 Briefing Agent (ADK 2.0 Workflow)"]
 
-        UI -->|Manual Trigger| Agent
-        Cron -->|Scheduled Trigger| Agent
+        UI -->|"Manual Trigger"| Agent
+        Cron -->|"Scheduled Trigger"| Agent
     end
 
     Feeds["🌐 Hacker News, Engineering Blogs & Threads"]
     Gemini["✨ Gemini 2.5 Flash (Google GenAI)"]
     Bucket[("🪣 Cloud Storage (Mounted at /data)")]
 
-    User <===>|Instant UI (HTTPS)| UI
-    Agent <--->|1. Fetch Articles| Feeds
-    Agent <--->|2. Summarize & Rank| Gemini
-    Agent <--->|3. Save / Read Briefing| Bucket
+    User == "Instant UI (HTTPS)" ==> UI
+    Agent -- "1. Fetch Articles" --> Feeds
+    Agent -- "2. Summarize & Rank" --> Gemini
+    Agent -- "3. Save / Read Briefing" --> Bucket
 ```
 
 ---

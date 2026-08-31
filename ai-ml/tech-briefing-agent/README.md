@@ -21,7 +21,6 @@ A production-ready, autonomous AI digest agent built with the **Google Agent Dev
 The entire application runs inside a single Cloud Run Instance containing the web dashboard, background daemon, execution mutex, and the ADK 2.0 workflow engine:
 
 ```mermaid
-%%{init: {'theme': 'neutral', 'themeVariables': { 'fontSize': '28px', 'fontFamily': 'sans-serif' }}}%%
 flowchart TD
     User["👤 Developer / Reader (Browser)"]
 
@@ -31,8 +30,8 @@ flowchart TD
         Mutex["🔒 In-Memory Execution Mutex (asyncio.Lock)"]
         Workflow["🤖 ADK 2.0 Graph Workflow Engine"]
 
-        UI -->|Manual Trigger / API| Mutex
-        Daemon -->|Scheduled Run (6h)| Mutex
+        UI -->|"Manual Trigger / API"| Mutex
+        Daemon -->|"Scheduled Run (6h)"| Mutex
         Mutex --> Workflow
     end
 
@@ -40,10 +39,10 @@ flowchart TD
     Gemini["✨ Gemini 2.5 Flash (Google GenAI SDK)"]
     Bucket[("🪣 Cloud Storage FUSE Mount (/data)")]
 
-    User <===>|HTTPS / Live Dashboard| UI
-    Workflow <--->|1. Ingest & Scrape| Feeds
-    Workflow <--->|2. Filter & Summarize| Gemini
-    Workflow <--->|3. Persist State & Digests| Bucket
+    User == "HTTPS / Live Dashboard" ==> UI
+    Workflow -- "1. Ingest & Scrape" --> Feeds
+    Workflow -- "2. Filter & Summarize" --> Gemini
+    Workflow -- "3. Persist State & Digests" --> Bucket
 ```
 
 ---
@@ -53,7 +52,6 @@ flowchart TD
 The core intelligence is modeled as an 8-node ADK 2.0 workflow graph with two self-correcting reflection loops:
 
 ```mermaid
-%%{init: {'theme': 'neutral', 'themeVariables': { 'fontSize': '28px', 'fontFamily': 'sans-serif' }}}%%
 flowchart TD
     Start([START]) --> Fetch[1. fetch_feeds_node]
     Fetch --> Filter[2. filter_articles_node]

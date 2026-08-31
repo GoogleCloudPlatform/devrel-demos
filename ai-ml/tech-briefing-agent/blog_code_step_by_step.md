@@ -149,7 +149,6 @@ def atomic_save_json(path: Path, data: Any) -> None:
 The core intelligence is modeled as an ADK 2.0 workflow graph:
 
 ```mermaid
-%%{init: {'theme': 'neutral', 'themeVariables': { 'fontSize': '28px', 'fontFamily': 'sans-serif' }}}%%
 flowchart TD
     Start([START]) --> Fetch[1. fetch_feeds_node]
     Fetch --> Filter[2. filter_articles_node]
