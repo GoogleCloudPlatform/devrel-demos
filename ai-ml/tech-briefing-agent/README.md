@@ -14,6 +14,17 @@ A production-ready, autonomous AI digest agent built with the **Google Agent Dev
 - **Built-in HTTPS & Custom Domains:** Provides a static HTTPS URL and built-in certificate management without additional load balancers.
 - **7-Day Automatic Lifecycle Rotation:** Runs continuously for up to 7 days before Google Cloud gracefully restarts the instance. State is safely stored on the mounted GCS volume, allowing the agent to resume immediately upon restart.
 
+### Architecture Comparison: All-in-One Instance vs. Decoupled Job + Service
+
+| Factor | All-in-One Instance (This Project) | Decoupled Job + Service |
+| :--- | :--- | :--- |
+| **Monthly Compute Cost** | ~$5.70 flat (Always-on) *Using the smallest instance size* | ~$0.00 (Scale-to-zero free tier) |
+| **Cloud Resources to Manage** | 1 (Single Cloud Run container) | 4 (Scheduler, Job, Service, Storage) |
+| **Web Dashboard Cold Starts** | None (Always hot, 0ms latency) | Yes (Cold start after idle periods) |
+| **Write Lock Synchronization** | In-memory mutex (`asyncio.Lock`) | External distributed locking required |
+| **Fault Isolation** | Shared container process | Fully isolated (Job crash won't affect UI) |
+| **Best For** | Personal agents, internal tools, fast setup | High-traffic, multi-tenant enterprise apps |
+
 ---
 
 ## 2. System Architecture
