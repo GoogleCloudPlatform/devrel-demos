@@ -9,7 +9,7 @@ A production-ready, autonomous AI digest agent built with the **Google Agent Dev
 [Cloud Run Instances](https://docs.cloud.google.com/run/docs/instances/create-and-manage-instances) is a container runtime primitive designed for long-running, stateful, and singleton workloads:
 
 - **Always-On Singleton Worker:** Guarantees exactly one container instance (no scale-to-zero killing background loops, no multi-replica write collisions).
-- **Predictable, Low-Cost Compute:** Runs 24/7 for **$5.70/month** using the smallest instance size (1 shared vCPU, 1 GiB memory) with burst capacity. Omitting CPU/memory flags uses the default instance size (2 vCPUs, 2 GiB) which costs ~$11.40/month.
+- **Predictable, Low-Cost Compute:** Runs 24/7 for **$5.70/month** using 1 vCPU and 1 GiB instance size with burst capacity. Omitting CPU/memory flags uses the default instance size (2 vCPUs, 2 GiB) which costs ~$11.40/month.
 - **Direct Cloud Storage Volume Mounting:** Mounts GCS buckets directly to `/data` via Cloud Storage FUSE for zero-ops local file persistence.
 - **Built-in HTTPS & Custom Domains:** Provides a static HTTPS URL and built-in certificate management without additional load balancers.
 - **7-Day Automatic Lifecycle Rotation:** Runs continuously for up to 7 days before Google Cloud gracefully restarts the instance. State is safely stored on the mounted GCS volume, allowing the agent to resume immediately upon restart.
@@ -18,7 +18,7 @@ A production-ready, autonomous AI digest agent built with the **Google Agent Dev
 
 | Factor | All-in-One Instance (This Project) | Decoupled Job + Service |
 | :--- | :--- | :--- |
-| **Monthly Compute Cost** | ~$5.70 flat (Always-on) *Using the smallest instance size* | ~$0.00 (Scale-to-zero free tier) |
+| **Monthly Compute Cost** | ~$5.70 flat (Always-on) *Using 1 vCPU and 1 GiB instance size* | ~$0.00 (Scale-to-zero free tier) |
 | **Cloud Resources to Manage** | 1 (Single Cloud Run container) | 4 (Scheduler, Job, Service, Storage) |
 | **Web Dashboard Cold Starts** | None (Always hot, 0ms latency) | Yes (Cold start after idle periods) |
 | **Write Lock Synchronization** | In-memory mutex (`asyncio.Lock`) | External distributed locking required |
@@ -36,7 +36,7 @@ flowchart TD
     User["👤 Developer / Reader (Browser)"]
     WebhookSender["📲 Real-Time Webhook / Mobile Shortcut (X/Twitter, iOS, GitHub)"]
 
-    subgraph Instance ["Google Cloud Run Instance ($5.70/mo, Smallest Size)"]
+    subgraph Instance ["Google Cloud Run Instance ($5.70/mo, 1 vCPU / 1 GiB)"]
         UI["⚡ FastAPI Web Reader & REST API"]
         Daemon["⏰ Asyncio Background Daemon (Every 6h)"]
         Mutex["🔒 In-Memory Execution Mutex (asyncio.Lock)"]
@@ -255,7 +255,7 @@ gcloud beta run instances create tech-briefing-agent \
 ```
 
 > [!IMPORTANT]
-> Explicitly setting `--cpu=1` and `--memory=1Gi` selects the **smallest instance size** to lock the compute cost to **$5.70/month**. If you omit these flags, Cloud Run defaults to 2 vCPUs and 2 GiB memory (~$11.40/month). The `mount-options="uid=1000;gid=1000;file-mode=0700;dir-mode=0700"` matches the non-root `appuser` in the Dockerfile.
+> Explicitly setting `--cpu=1` and `--memory=1Gi` configures a **1 vCPU and 1 GiB instance size** to set the compute cost to **$5.70/month**. If you omit these flags, Cloud Run defaults to 2 vCPUs and 2 GiB memory (~$11.40/month). The `mount-options="uid=1000;gid=1000;file-mode=0700;dir-mode=0700"` matches the non-root `appuser` in the Dockerfile.
 
 ---
 
@@ -341,7 +341,7 @@ You can turn your iPhone or Mac into a 1-tap ingest tool:
 
 | Component | Usage Profile | Monthly Cost |
 | :--- | :--- | :--- |
-| **Cloud Run Instance** | Smallest instance size (1 shared vCPU, 1 GiB memory, not default 2 vCPU / 2 GiB), 24/7 continuous uptime | $5.70 |
+| **Cloud Run Instance** | 1 shared vCPU, 1 GiB memory (not default 2 vCPU / 2 GiB), 24/7 continuous uptime | $5.70 |
 | **Gemini 2.5 Flash** | ~6 articles summarized 4 times per day (~720 LLM calls/month) | $0.07 |
 | **Cloud Storage** | Storing markdown briefings and JSON cache files (< 50 MB) | $0.01 |
 | **Network Egress** | Feed polling and web reader traffic | $0.00 |
