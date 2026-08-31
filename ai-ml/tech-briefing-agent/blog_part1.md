@@ -123,7 +123,7 @@ You can deploy this setup to Google Cloud in about five minutes.
 
 ```bash
 export PROJECT_ID="your-project-id"
-export REGION="us-central1"
+export REGION="us-west1"
 export BUCKET_NAME="${PROJECT_ID}-agent-data"
 export REPO_NAME="agent-repo"
 

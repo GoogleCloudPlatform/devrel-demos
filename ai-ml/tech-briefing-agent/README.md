@@ -177,7 +177,7 @@ Once you have verified the agent locally, follow these 6 steps to deploy it to G
 ### Step 1: Enable Cloud Services
 ```bash
 export PROJECT_ID="your-project-id"
-export REGION="us-central1"
+export REGION="us-west1"
 export BUCKET_NAME="${PROJECT_ID}-agent-data"
 export REPO_NAME="agent-repo"
 

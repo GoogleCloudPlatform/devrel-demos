@@ -120,7 +120,7 @@ def _get_genai_client() -> Any:
             return genai.Client(api_key=api_key)
         
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("PROJECT_ID") or os.getenv("GCP_PROJECT") or "shir-training"
-        location = os.getenv("GOOGLE_CLOUD_REGION") or os.getenv("LOCATION", "us-central1")
+        location = os.getenv("GOOGLE_CLOUD_REGION") or os.getenv("LOCATION", "us-west1")
         if project:
             return genai.Client(vertexai=True, project=project, location=location)
         
