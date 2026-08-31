@@ -57,7 +57,7 @@ def run_gemma4_probing(
     target_choice_2: str = "",
     dataset_path: str = "benchmark_seed_expanded.json",
     device: str = "cpu",
-    output_path: str = "gemma-trust-probing/data/gemma_4_e4b_empirical_results.json",
+    output_path: str = str(DATA_DIR / "gemma_4_e4b_empirical_results.json"),
     restrict_to_fitted: bool = True,
     use_jacobians: bool = True,
     allow_logit_lens_fallback: bool = False,
@@ -73,7 +73,9 @@ def run_gemma4_probing(
     if not dataset_file.exists():
         dataset_file = Path(dataset_path)
     if not dataset_file.exists():
-        dataset_file = ROOT_DIR / "gemma-trust-probing" / "data" / dataset_path
+        candidate_aiml = ROOT_DIR / "ai-ml" / "gemma-priority-probing" / "data" / dataset_path
+        candidate_local = ROOT_DIR / "gemma-priority-probing" / "data" / dataset_path
+        dataset_file = candidate_aiml if candidate_aiml.exists() else candidate_local
     with open(dataset_file, "r") as f:
         all_samples = json.load(f)
 
@@ -124,7 +126,9 @@ def run_gemma4_probing(
         try:
             jac_file = DATA_DIR / f"jacobians_{hf_target.replace('/', '_')}.pt"
             if not jac_file.exists():
-                jac_file = ROOT_DIR / "gemma-trust-probing" / "data" / f"jacobians_{hf_target.replace('/', '_')}.pt"
+                cand_aiml = ROOT_DIR / "ai-ml" / "gemma-priority-probing" / "data" / f"jacobians_{hf_target.replace('/', '_')}.pt"
+                cand_local = ROOT_DIR / "gemma-priority-probing" / "data" / f"jacobians_{hf_target.replace('/', '_')}.pt"
+                jac_file = cand_aiml if cand_aiml.exists() else cand_local
             j_lens_engine.load_jacobians(str(jac_file), randomize_jacobians=randomize_jacobians)
             if hasattr(j_lens_engine, "jacobian_provenance"):
                 empirical_results["jacobian_provenance"] = j_lens_engine.jacobian_provenance

@@ -285,9 +285,11 @@ def main():
     ch = list(GEMMA_MODEL_CONFIGS.keys())
     ap.add_argument("--model_id", default=ch[0], choices=ch)
     ap.add_argument("--device", default="mps" if torch.backends.mps.is_available() else "cpu")
-    ap.add_argument("--chunk", type=int, default=8)
-    ap.add_argument("--dataset", default="gemma-trust-probing/data/conflict_dataset.json")
-    ap.add_argument("--out", default="gemma-trust-probing/data/patching_results.json")
+    default_data_dir = Path(__file__).resolve().parent.parent / "data"
+    default_dataset = str(default_data_dir / "conflict_dataset.json") if (default_data_dir / "conflict_dataset.json").exists() else "ai-ml/gemma-priority-probing/data/conflict_dataset.json"
+    default_out = str(default_data_dir / "patching_results.json")
+    ap.add_argument("--dataset", default=default_dataset)
+    ap.add_argument("--out", default=default_out)
     ap.add_argument("--mode", default="authority", choices=["authority", "recency", "date_recency"])
     ap.add_argument("--dtype", default="auto", choices=["auto", "fp32", "bf16"])
     ap.add_argument("--all_positions", action="store_true")

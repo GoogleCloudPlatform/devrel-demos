@@ -13,7 +13,7 @@
 We have empirically investigated how the **gemma-4-e4b** model resolves conflicting information using a 13-item analysis suite (n=13). Our primary finding from the definitive AD-series is that **Semantic source framing dominates positional bias**.
 
 ### Key Empirical Results:
-1. **Source Trust Dominates Positional Bias**:
+1. **Source Priority Dominates Positional Bias**:
    * When context blocks carry genuine authority/recency semantics (e.g., "Official Guideline" vs "Team Update"), the model overwhelmingly favors the recent source. Semantics outweighs position by a factor of roughly **4:1**.
    * In the cue-free loaded condition (T5b), the Source-Framing effect is **+1.054 nats**, compared to a Serial position magnitude of **−0.265 nats** (CI excludes zero — primacy is still present, but outweighed).
    * Note: Source-Framing is a **header+body package** (aliased by design), not a header-only effect.
