@@ -28,6 +28,7 @@ from pydantic import BaseModel, Field
 from digest_agent.agent import execute_digest_workflow, summarize_single_alert
 from digest_agent.config import (
     DIGESTS_DIR,
+    POLL_INTERVAL_MINUTES,
     RETENTION_DAYS,
     SCHEDULE_INTERVAL_HOURS,
     SEEN_URLS_FILE,
@@ -1352,14 +1353,14 @@ def _render_html_page(title: str, markdown_text: str) -> str:
 
 
 async def _background_digest_loop() -> None:
-    """Periodic background task that generates digests every SCHEDULE_INTERVAL_HOURS.
+    """Periodic background task that generates digests every POLL_INTERVAL_MINUTES.
     
     Cloud Run instances automatically restart up to every 7 days by default.
     The background loop handles this gracefully by operating as a resilient daemon
     that reads persisted state from /data and resumes its periodic schedule on startup.
     """
-    interval_seconds = SCHEDULE_INTERVAL_HOURS * 3600
-    logger.info("Starting background digest loop with interval %d hours (7-day restart lifecycle resilient)", SCHEDULE_INTERVAL_HOURS)
+    interval_seconds = POLL_INTERVAL_MINUTES * 60
+    logger.info("Starting background digest loop with interval %d minutes (7-day restart lifecycle resilient)", POLL_INTERVAL_MINUTES)
 
     while not _is_shutting_down:
         try:

@@ -213,3 +213,11 @@ def test_webhook_endpoint_bad_request():
     assert response.status_code == 400
     assert "At least 'url' or 'text' must be provided" in response.json()["detail"]
 
+
+def test_polling_interval_config():
+    """Verify POLL_INTERVAL_MINUTES config and defaults."""
+    from digest_agent import config
+    assert config.POLL_INTERVAL_MINUTES >= 1
+    assert config.SCHEDULE_INTERVAL_HOURS == config.POLL_INTERVAL_MINUTES / 60.0
+
+

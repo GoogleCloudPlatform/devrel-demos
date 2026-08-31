@@ -15,7 +15,13 @@ SEEN_URLS_FILE = STATE_DIR / "seen_urls.json"
 # Concurrency & retention settings
 MAX_CONCURRENCY: int = int(os.getenv("MAX_CONCURRENCY", "4"))
 RETENTION_DAYS: int = int(os.getenv("RETENTION_DAYS", "30"))
-SCHEDULE_INTERVAL_HOURS: int = int(os.getenv("SCHEDULE_INTERVAL_HOURS", "6"))
+
+# Polling schedule settings (defaults to 30 minutes for near real-time curation)
+# Easily configurable via POLL_INTERVAL_MINUTES environment variable
+POLL_INTERVAL_MINUTES: int = int(os.getenv("POLL_INTERVAL_MINUTES", "30"))
+if "SCHEDULE_INTERVAL_HOURS" in os.environ and "POLL_INTERVAL_MINUTES" not in os.environ:
+    POLL_INTERVAL_MINUTES = int(os.environ["SCHEDULE_INTERVAL_HOURS"]) * 60
+SCHEDULE_INTERVAL_HOURS: float = POLL_INTERVAL_MINUTES / 60.0
 
 # Model configuration
 DEFAULT_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")

@@ -38,13 +38,13 @@ flowchart TD
 
     subgraph Instance ["Google Cloud Run Instance ($5.70/mo, 1 vCPU / 1 GiB)"]
         UI["⚡ FastAPI Web Reader & REST API"]
-        Daemon["⏰ Asyncio Background Daemon (Every 6h)"]
+        Daemon["⏰ Asyncio Background Daemon (Every 30m)"]
         Mutex["🔒 In-Memory Execution Mutex (asyncio.Lock)"]
         Workflow["🤖 ADK 2.0 Graph Workflow Engine"]
 
         UI -->|"Manual Trigger / API"| Mutex
         UI -->|"Inbound Webhook Alert"| Mutex
-        Daemon -->|"Scheduled Run (6h)"| Mutex
+        Daemon -->|"Scheduled Run (30m)"| Mutex
         Mutex --> Workflow
     end
 
@@ -253,7 +253,7 @@ gcloud beta run instances create tech-briefing-agent \
     --service-account=briefing-agent-sa@${PROJECT_ID}.iam.gserviceaccount.com \
     --add-volume mount-path=/data,type=cloud-storage,mount-options="uid=1000;gid=1000;file-mode=0700;dir-mode=0700",bucket=$BUCKET_NAME \
     --set-secrets "GEMINI_API_KEY=gemini-api-key:latest" \
-    --set-env-vars "DATA_DIR=/data"
+    --set-env-vars "DATA_DIR=/data,POLL_INTERVAL_MINUTES=30"
 ```
 
 > [!IMPORTANT]
@@ -261,7 +261,22 @@ gcloud beta run instances create tech-briefing-agent \
 
 ---
 
-## 7. Real-Time Webhooks & Mobile Shortcuts (X / Twitter, GitHub, iOS)
+## 7. Runtime Configuration (Environment Variables)
+
+The agent behavior and schedule are easily customized using environment variables passed during deployment or local runs:
+
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `POLL_INTERVAL_MINUTES` | `30` | Polling frequency in minutes for the background daemon loop. Easily adjusted (e.g. `15`, `30`, `60`). |
+| `DATA_DIR` | `/data` | Path to persistent storage directory (mounted GCS bucket). |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model used for filtering and summarization (e.g., `gemini-2.5-flash`, `gemini-3.5-flash-lite`). |
+| `MAX_CONCURRENCY` | `4` | Maximum parallel worker nodes for concurrent article summarization. |
+| `RETENTION_DAYS` | `30` | Number of days to retain seen URLs in `seen_urls.json` to prevent re-processing. |
+| `WEBHOOK_SECRET` | `""` | Optional authentication token. If set, inbound requests to `/api/webhook` require the `X-Agent-Secret` header. |
+
+---
+
+## 8. Real-Time Webhooks & Mobile Shortcuts (X / Twitter, GitHub, iOS)
 
 Because Cloud Run Instances provides an **always-hot HTTPS endpoint with 0ms cold-start latency**, your agent is not limited to periodic polling. You can push breaking news, research papers, GitHub releases, or tweet alerts directly into your running agent in real time.
 
@@ -316,7 +331,7 @@ You can turn your iPhone or Mac into a 1-tap ingest tool:
 
 ---
 
-## 8. Security & Reliability Engineering
+## 9. Security & Reliability Engineering
 
 - **Server-Side Request Forgery (SSRF) Defense:** Multi-layer DNS and IP validator (`is_safe_url`) blocking cloud metadata endpoints (`169.254.169.254`), RFC 1918 private subnets (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), loopbacks (`127.0.0.0/8`, `::1`), and link-local ranges.
 - **Indirect Prompt Injection Defense:** All scraped third-party HTML text is encapsulated in `<untrusted_content>` XML tags. Prompts instruct Gemini to treat enclosed text strictly as passive input.
@@ -326,7 +341,7 @@ You can turn your iPhone or Mac into a 1-tap ingest tool:
 
 ---
 
-## 9. API Reference
+## 10. API Reference
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
@@ -339,12 +354,14 @@ You can turn your iPhone or Mac into a 1-tap ingest tool:
 
 ---
 
-## 10. Monthly Production Bill Breakdown
+## 11. Monthly Production Bill Breakdown
+
+Because Cloud Run Instances run as an always-on container, compute cost is a flat **$5.70/month** regardless of how frequently you poll. Deduplication via `seen_urls.json` ensures you only pay to summarize each article once:
 
 | Component | Usage Profile | Monthly Cost |
 | :--- | :--- | :--- |
 | **Cloud Run Instance** | 1 shared vCPU, 1 GiB memory (not default 2 vCPU / 2 GiB), 24/7 continuous uptime | $5.70 |
-| **Gemini 2.5 Flash** | ~6 articles summarized 4 times per day (~720 LLM calls/month) | $0.07 |
+| **Gemini 2.5 Flash** | 30-min candidate filtering (48x/day) + ~15 unique article summaries/day | ~$0.45 |
 | **Cloud Storage** | Storing markdown briefings and JSON cache files (< 50 MB) | $0.01 |
 | **Network Egress** | Feed polling and web reader traffic | $0.00 |
-| **Total Monthly Cost** | | **$5.78** |
+| **Total Monthly Cost** | | **~$6.16** |
