@@ -52,22 +52,21 @@ flowchart TD
 The core intelligence is modeled as an 8-node ADK 2.0 workflow graph with two self-correcting reflection loops:
 
 ```mermaid
-flowchart TD
-    Start([START]) --> Fetch[1. fetch_feeds_node]
-    Fetch --> Filter[2. filter_articles_node]
-    Filter --> Extract[3. extract_content_node]
-    Extract --> Summarize[4. summarize_article_node]
-    Summarize --> QualityJudge{5. verify_and_reflect_quality_node}
-    
-    %% Loop 1: Article Quality & Grounding
-    QualityJudge -- "⚠️ Quota Unmet / Rejections (Loop 1)" --> Filter
-    QualityJudge -- "✅ Quality & Depth Approved" --> Compile[6. compile_briefing_node]
-    
-    %% Loop 2: Whole-Document Editorial Coherence
-    Compile --> EditorialJudge{7. verify_editorial_coherence_node}
-    EditorialJudge -- "⚠️ Formatting / Coherence Flaw (Loop 2)" --> Compile
-    EditorialJudge -- "✅ Digest Coherence Verified" --> Save[8. save_digest_node]
-    Save --> End([END])
+flowchart LR
+    Start([Start]) --> Fetch["1. fetch_feeds"]
+    Fetch --> Filter["2. filter_articles"]
+    Filter --> Extract["3. extract_content"]
+    Extract --> Summarize["4. summarize_article<br/>(Parallel Workers)"]
+    Summarize --> QualityJudge{"5. verify_quality"}
+
+    %% Reflection Loops
+    QualityJudge -- "⚠️ Loop 1: Retry Candidates" --> Filter
+    QualityJudge -- "✅ Approved" --> Compile["6. compile_briefing"]
+
+    Compile --> EditorialJudge{"7. verify_coherence"}
+    EditorialJudge -- "⚠️ Loop 2: Fix Layout" --> Compile
+    EditorialJudge -- "✅ Verified" --> Save["8. save_digest"]
+    Save --> EndNode([End])
 ```
 
 ### Graph Node Breakdown:
