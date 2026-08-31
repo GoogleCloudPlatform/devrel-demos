@@ -26,3 +26,4 @@ Demos in this folder primarily focus on Google Cloud's AI/ML  products. Below is
 *   **[devfest2025-bletchley](./devfest2025-bletchley)**: Resources for DevFest Bletchley Park 2025.
 *   **[mcp-servers/godoctor](./mcp-servers/godoctor)**: GoDoctor - AI Code Reviewer MCP Server.
 *   **[mcp-servers/speedgrapher](./mcp-servers/speedgrapher)**: Speedgrapher - AI Writing Assistant MCP Server.
+*   **[tech-briefing-agent](./tech-briefing-agent)**: Autonomous Personal Tech-Briefing Digest Agent on Google Cloud Run Instances and ADK 2.0.
