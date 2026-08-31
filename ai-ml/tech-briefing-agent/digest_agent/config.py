@@ -20,6 +20,9 @@ SCHEDULE_INTERVAL_HOURS: int = int(os.getenv("SCHEDULE_INTERVAL_HOURS", "6"))
 # Model configuration
 DEFAULT_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
+# Inbound Webhook Authentication Secret (optional: if set, requests must pass X-Agent-Secret header)
+WEBHOOK_SECRET: str = os.getenv("WEBHOOK_SECRET", "")
+
 # Default developer interests profile focusing on Agents, AI, and Cloud Applications
 DEFAULT_INTERESTS: list[str] = [
     "AI Agents & Multi-Agent Frameworks",

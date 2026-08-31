@@ -1026,3 +1026,74 @@ async def execute_digest_workflow(
 
     return state["daily_digest"]
 
+
+async def summarize_single_alert(
+    url: str | None = None,
+    text: str | None = None,
+    title: str | None = None,
+    author: str | None = None,
+    source: str = "webhook",
+    model: str = DEFAULT_MODEL,
+) -> ArticleSummary:
+    """Summarize an individual incoming alert, tweet, or article URL on demand."""
+    raw_content = ""
+    resolved_title = title or "Inbound Notification"
+    resolved_url = url or "https://inbound.alert/local"
+
+    if url:
+        raw_content = await safe_extract_webpage(url)
+        clean_extracted = raw_content.replace("<untrusted_content>", "").replace("</untrusted_content>", "").strip()
+        if not title and len(clean_extracted.split()) >= 3:
+            first_line = clean_extracted.splitlines()[0][:100].strip()
+            if first_line and not first_line.startswith("<"):
+                resolved_title = first_line
+
+    if text:
+        if raw_content:
+            raw_content = f"{text}\n\nLinked Content:\n{raw_content}"
+        else:
+            raw_content = text
+        if not title:
+            resolved_title = text.splitlines()[0][:80].strip()
+
+    source_label = f"{source.title()} ({author})" if author else source.title()
+    art = ArticleMetadata(
+        title=resolved_title,
+        url=resolved_url,
+        source=source_label,
+        score=100,
+        comments_count=0,
+        read_time="1 min read",
+        is_webpage_only=len(raw_content.split()) < 150,
+    )
+
+    dummy_state = {
+        "extracted_articles": [(art, raw_content)],
+        "session_memory": SessionShortTermMemory(),
+        "model": model,
+    }
+    summaries_state = await summarize_article_node(dummy_state)
+    summaries = summaries_state.get("summarized_articles", [])
+    if summaries:
+        return summaries[0]
+
+    # Deterministic fallback synthesis
+    tldr, takeaways, relevance, is_tech = synthesize_technical_summary(
+        title=resolved_title,
+        text=raw_content,
+        source=source_label,
+        is_webpage_only=art.is_webpage_only,
+    )
+    return ArticleSummary(
+        title=resolved_title,
+        url=resolved_url,
+        source=source_label,
+        tldr=tldr or (raw_content[:200] if raw_content else "No content available."),
+        key_takeaways=takeaways,
+        quality_score=8,
+        read_time="1 min read",
+        has_genuine_technical_content=is_tech,
+        is_webpage_only=art.is_webpage_only,
+    )
+
+

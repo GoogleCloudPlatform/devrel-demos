@@ -49,13 +49,14 @@ The whole application runs inside one Cloud Run instance:
 ```mermaid
 flowchart TD
     User["👤 Developer (Web Browser)"]
+    Webhook["📲 Mobile / Zapier (X Alerts, iOS Shortcut)"]
 
     subgraph Instance ["Cloud Run Instance ($5.70/mo, Smallest Size)"]
-        UI["⚡ Web Dashboard (FastAPI)"]
+        UI["⚡ Web Dashboard & Webhooks (FastAPI)"]
         Cron["⏰ Background Daemon (Every 6h)"]
         Agent["🤖 Briefing Agent (ADK 2.0 Workflow)"]
 
-        UI -->|"Manual Trigger"| Agent
+        UI -->|"Manual Trigger / Webhook"| Agent
         Cron -->|"Scheduled Trigger"| Agent
     end
 
@@ -64,6 +65,7 @@ flowchart TD
     Bucket[("🪣 Cloud Storage (Mounted at /data)")]
 
     User == "Instant UI (HTTPS)" ==> UI
+    Webhook == "POST /api/webhook" ==> UI
     Agent -- "1. Fetch Articles" --> Feeds
     Agent -- "2. Summarize & Rank" --> Gemini
     Agent -- "3. Save / Read Briefing" --> Bucket
@@ -85,7 +87,21 @@ Long-running background agents have different needs:
 | **Persistent disk?** | Difficult or expensive | Yes | **Yes (mounts a bucket)** |
 | **Monthly compute cost** | $0 when idle, $15+ if forced on | $15 to $25, ~$7 for a fractional VM | **$5.70 flat (smallest size)** |
 
-With an instance, you get the simplicity of serverless with the stability of a VM.
+With an instance, you get the simplicity of serverless with the stability of a VM. Because your instance is always hot with a public HTTPS endpoint, it easily handles **three trigger styles in one container**:
+1. **Periodic Background Polling:** Runs autonomously on an internal `asyncio` schedule without needing external cron services.
+2. **Instant Web Dashboard:** Zero cold starts when you open the reading dashboard.
+3. **Real-Time Push Webhooks:** An inbound `POST /api/webhook` route that lets you push breaking tweets, iOS share sheet links, or GitHub release alerts straight into the agent for immediate summarization.
+
+---
+
+## What else can you build with a long-running instance?
+
+The pattern of an always-on container with persistent storage and a web interface unlocks many real-world workloads:
+
+- **App Uptime & Health Monitor:** Continuously poll your microservices or APIs every 30 seconds, record response time metrics to disk, and visit a live web dashboard at any time to inspect historical uptime without paying for an external SaaS monitoring tool.
+- **Breaking News & Tweet Ingestion Agent:** Connect an iOS Shortcut or Zapier trigger to post breaking AI research tweets directly to `POST /api/webhook`, instantly synthesizing key takeaways and appending them to today's digest.
+- **GitHub PR Review Daemon:** Listen for webhook events, clone changed files, run static analysis and Gemini code reviews, and post structured review comments back to GitHub.
+- **Local RAG Memory Assistant:** Keep a lightweight vector index in memory, continually ingesting bookmarks and notes from your devices.
 
 ---
 

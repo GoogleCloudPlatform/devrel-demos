@@ -190,13 +190,39 @@ flowchart LR
 
 ---
 
-## 5. Web Server and Daemon (`digest_agent/server.py`)
+## 5. Web Server, Daemons & Real-Time Webhooks (`digest_agent/server.py`)
 
-The FastAPI application provides:
-- **Responsive Web Dashboard (`GET /` & `GET /digest/latest`):** Dark-mode interface with dynamic Table of Contents, status badges, one-click link copying, and on-demand generation.
-- **Execution Mutex (`asyncio.Lock`):** Serializes manual web requests and scheduled background jobs to prevent file write contention on Cloud Storage FUSE.
-- **Background Scheduler:** An asynchronous loop running inside FastAPI lifespan that runs every 6 hours (`SCHEDULE_INTERVAL_HOURS=6`).
-- **Graceful Shutdown:** Traps SIGTERM to allow in-flight workflows to flush state before container rotation.
+The FastAPI application implements a **hybrid serving pattern** that unifies three trigger styles in one persistent container:
+
+- **Responsive Web Dashboard (`GET /` & `GET /digest/latest`):** Dark-mode reader interface with dynamic Table of Contents, status badges, one-click link copying, and on-demand generation.
+- **Real-Time Inbound Webhook (`POST /api/webhook`):** Accepts real-time alerts from iOS Shortcuts, X/Twitter relays (Zapier/Make), or GitHub webhooks. It instantly summarizes incoming links or tweet texts using Gemini 2.5 Flash and atomically appends them to today's active briefing.
+- **Background Scheduler:** An asynchronous daemon loop running inside the FastAPI lifespan context that executes every 6 hours (`SCHEDULE_INTERVAL_HOURS=6`).
+- **Execution Mutex (`asyncio.Lock`):** Serializes manual web requests, scheduled background jobs, and inbound webhook bursts to prevent file write contention on Cloud Storage FUSE.
+- **Graceful Shutdown:** Traps `SIGTERM` to allow in-flight workflows to flush state before 7-day container rotations.
+
+```python
+@app.post("/api/webhook")
+async def handle_incoming_webhook(
+    payload: WebhookPayload,
+    x_agent_secret: str | None = Header(default=None, alias="X-Agent-Secret"),
+):
+    """Accept real-time incoming alerts (e.g. tweet notifications, GitHub releases, iOS Shortcuts)
+    and immediately extract, summarize, and incorporate them into the active briefing."""
+    if WEBHOOK_SECRET and x_agent_secret != WEBHOOK_SECRET:
+        raise HTTPException(status_code=401, detail="Invalid X-Agent-Secret header")
+
+    async with workflow_mutex:
+        summary = await summarize_single_alert(
+            url=payload.url,
+            text=payload.text,
+            title=payload.title,
+            author=payload.author,
+            source=payload.source,
+        )
+        # Atomically append/prepend to latest.md and date digest
+        ...
+        return {"status": "success", "summary": summary}
+```
 
 ---
 

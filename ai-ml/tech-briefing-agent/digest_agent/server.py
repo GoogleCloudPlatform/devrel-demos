@@ -21,18 +21,22 @@ import re
 import signal
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request, Response, status
+from fastapi import FastAPI, Header, HTTPException, Request, Response, status
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-from digest_agent.agent import execute_digest_workflow
+from digest_agent.agent import execute_digest_workflow, summarize_single_alert
 from digest_agent.config import (
     DIGESTS_DIR,
+    RETENTION_DAYS,
     SCHEDULE_INTERVAL_HOURS,
+    SEEN_URLS_FILE,
     STATE_DIR,
+    WEBHOOK_SECRET,
     ensure_directories,
 )
 from digest_agent.schemas import DailyDigest, UserInterests
+from digest_agent.utils import atomic_save_text, record_seen_urls
 
 logger = logging.getLogger("digest_agent.server")
 logging.basicConfig(
@@ -55,6 +59,15 @@ class GenerateRequest(BaseModel):
     max_articles: int = Field(default=5, ge=1, le=20, description="Max articles to curate")
     feeds: list[str] | None = Field(default=None, description="Custom RSS/Atom feed URLs")
     force_refresh: bool = Field(default=False, description="Ignore seen URLs cache")
+
+
+class WebhookPayload(BaseModel):
+    """Payload for real-time inbound notification alerts (tweets, GitHub releases, custom links)."""
+    url: str | None = Field(default=None, description="Direct URL to article, tweet, or GitHub release")
+    text: str | None = Field(default=None, description="Direct text or tweet message body")
+    title: str | None = Field(default=None, description="Optional title or headline")
+    author: str | None = Field(default=None, description="Optional author or handle (e.g. @GoogleDeepMind)")
+    source: str = Field(default="webhook", description="Notification origin (e.g. tweet, github, alert, manual)")
 
 
 def _format_inline(text: str) -> str:
@@ -1538,3 +1551,81 @@ async def generate_digest_endpoint(payload: GenerateRequest | None = None):
         except Exception as e:
             logger.error("Manual digest generation failed: %s", e, exc_info=True)
             raise HTTPException(status_code=500, detail=f"Workflow execution failed: {e}")
+
+
+@app.post("/api/webhook")
+async def handle_incoming_webhook(
+    payload: WebhookPayload,
+    x_agent_secret: str | None = Header(default=None, alias="X-Agent-Secret"),
+):
+    """Accept real-time incoming alerts (e.g. tweet notifications, GitHub releases, iOS Shortcuts)
+    and immediately extract, summarize, and incorporate them into the active briefing."""
+    if WEBHOOK_SECRET and x_agent_secret != WEBHOOK_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing X-Agent-Secret header"
+        )
+
+    if not payload.url and not payload.text:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least 'url' or 'text' must be provided in the webhook payload."
+        )
+
+    async with workflow_mutex:
+        try:
+            summary = await summarize_single_alert(
+                url=payload.url,
+                text=payload.text,
+                title=payload.title,
+                author=payload.author,
+                source=payload.source,
+            )
+
+            # Record seen URL if provided
+            if payload.url:
+                record_seen_urls(SEEN_URLS_FILE, [payload.url], RETENTION_DAYS)
+
+            # Atomically update latest.md and date digest
+            ensure_directories()
+            latest_file = DIGESTS_DIR / "latest.md"
+            today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            today_file = DIGESTS_DIR / f"{today_str}-digest.md"
+
+            card_md = f"\n\n### [{summary.title}]({summary.url})\n"
+            card_md += f"**Source:** {summary.source} • **Read time:** {summary.read_time}\n\n"
+            card_md += f"**TL;DR:** {summary.tldr}\n"
+            if summary.key_takeaways:
+                card_md += "\n**Key Technical Takeaways:**\n"
+                for t in summary.key_takeaways:
+                    card_md += f"- {t}\n"
+
+            if latest_file.exists():
+                existing = latest_file.read_text(encoding="utf-8")
+                if "## Curated Articles" in existing:
+                    parts = existing.split("## Curated Articles", 1)
+                    new_content = parts[0] + "## Curated Articles" + card_md + parts[1]
+                else:
+                    new_content = existing + "\n\n## Real-Time Alerts" + card_md
+            else:
+                new_content = f"# Personal Tech Briefing — {today_str}\n\n## Curated Articles" + card_md
+
+            atomic_save_text(latest_file, new_content)
+            atomic_save_text(today_file, new_content)
+
+            return {
+                "status": "success",
+                "message": f"Successfully processed {payload.source} alert",
+                "summary": {
+                    "title": summary.title,
+                    "url": summary.url,
+                    "source": summary.source,
+                    "tldr": summary.tldr,
+                    "key_takeaways": summary.key_takeaways,
+                    "quality_score": summary.quality_score,
+                }
+            }
+        except Exception as e:
+            logger.error("Webhook alert processing failed: %s", e, exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed processing alert: {e}")
+

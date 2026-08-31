@@ -151,3 +151,65 @@ async def test_generate_endpoint_mutex_conflict():
         response = client.post("/api/generate", json={})
         assert response.status_code == 409
         assert "already in progress" in response.json()["detail"]
+
+
+def test_webhook_endpoint_success(tmp_path: Path):
+    """Verify POST /api/webhook summarizes an incoming alert and saves it to disk."""
+    dummy_summary = ArticleSummary(
+        title="Gemini 2.5 Announcement",
+        url="https://x.com/GoogleDeepMind/status/12345",
+        source="Tweet (@GoogleDeepMind)",
+        tldr="Google DeepMind announces Gemini 2.5 Flash model.",
+        key_takeaways=["Faster inference speeds and lower token latencies."],
+        quality_score=9,
+        read_time="1 min read",
+    )
+
+    digests_dir = tmp_path / "digests"
+    state_dir = tmp_path / "state"
+    digests_dir.mkdir(parents=True, exist_ok=True)
+    state_dir.mkdir(parents=True, exist_ok=True)
+
+    with patch("digest_agent.server.DIGESTS_DIR", digests_dir), \
+         patch("digest_agent.server.STATE_DIR", state_dir), \
+         patch("digest_agent.server.SEEN_URLS_FILE", state_dir / "seen_urls.json"), \
+         patch("digest_agent.server.summarize_single_alert", new_callable=AsyncMock) as mock_sum:
+        mock_sum.return_value = dummy_summary
+
+        payload = {
+            "url": "https://x.com/GoogleDeepMind/status/12345",
+            "text": "Introducing Gemini 2.5 Flash for agent workflows.",
+            "author": "@GoogleDeepMind",
+            "source": "tweet"
+        }
+        response = client.post("/api/webhook", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+        assert data["summary"]["title"] == "Gemini 2.5 Announcement"
+        assert (digests_dir / "latest.md").exists()
+
+
+def test_webhook_endpoint_unauthorized():
+    """Verify 401 Unauthorized when WEBHOOK_SECRET is set and header is invalid."""
+    with patch("digest_agent.server.WEBHOOK_SECRET", "super-secret-token"):
+        payload = {"text": "Breaking news"}
+        # Missing header
+        res_missing = client.post("/api/webhook", json=payload)
+        assert res_missing.status_code == 401
+
+        # Wrong header
+        res_wrong = client.post(
+            "/api/webhook",
+            json=payload,
+            headers={"X-Agent-Secret": "wrong-secret"}
+        )
+        assert res_wrong.status_code == 401
+
+
+def test_webhook_endpoint_bad_request():
+    """Verify 400 Bad Request when neither url nor text is provided."""
+    response = client.post("/api/webhook", json={"source": "tweet"})
+    assert response.status_code == 400
+    assert "At least 'url' or 'text' must be provided" in response.json()["detail"]
+

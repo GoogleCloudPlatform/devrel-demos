@@ -34,6 +34,7 @@ The entire application runs inside a single Cloud Run Instance containing the we
 ```mermaid
 flowchart TD
     User["👤 Developer / Reader (Browser)"]
+    WebhookSender["📲 Real-Time Webhook / Mobile Shortcut (X/Twitter, iOS, GitHub)"]
 
     subgraph Instance ["Google Cloud Run Instance ($5.70/mo, Smallest Size)"]
         UI["⚡ FastAPI Web Reader & REST API"]
@@ -42,6 +43,7 @@ flowchart TD
         Workflow["🤖 ADK 2.0 Graph Workflow Engine"]
 
         UI -->|"Manual Trigger / API"| Mutex
+        UI -->|"Inbound Webhook Alert"| Mutex
         Daemon -->|"Scheduled Run (6h)"| Mutex
         Mutex --> Workflow
     end
@@ -51,6 +53,7 @@ flowchart TD
     Bucket[("🪣 Cloud Storage FUSE Mount (/data)")]
 
     User == "HTTPS / Live Dashboard" ==> UI
+    WebhookSender == "POST /api/webhook" ==> UI
     Workflow -- "1. Ingest & Scrape" --> Feeds
     Workflow -- "2. Filter & Summarize" --> Gemini
     Workflow -- "3. Persist State & Digests" --> Bucket
@@ -256,16 +259,72 @@ gcloud beta run instances create tech-briefing-agent \
 
 ---
 
-## 7. Security & Reliability Engineering
+## 7. Real-Time Webhooks & Mobile Shortcuts (X / Twitter, GitHub, iOS)
+
+Because Cloud Run Instances provides an **always-hot HTTPS endpoint with 0ms cold-start latency**, your agent is not limited to periodic polling. You can push breaking news, research papers, GitHub releases, or tweet alerts directly into your running agent in real time.
+
+```mermaid
+flowchart LR
+    A["📱 iOS Share Sheet / Shortcut"] -->|POST /api/webhook| B["⚡ Cloud Run Instance"]
+    C["⚡ Zapier / Make (X Trigger)"] -->|POST /api/webhook| B
+    D["💻 CLI / cURL"] -->|POST /api/webhook| B
+    B --> E["✨ Gemini 2.5 Flash Summarizer"]
+    E --> F["🪣 /data/digests/latest.md (Instant Update)"]
+```
+
+### 1. Ingest via cURL / CLI
+```bash
+curl -X POST https://your-agent-url.run.app/api/webhook \
+  -H "Content-Type: application/json" \
+  -H "X-Agent-Secret: your-secret-token" \
+  -d '{
+    "url": "https://github.com/google/adk-python",
+    "text": "Google released ADK 2.0 with graph workflows and parallel nodes.",
+    "author": "@GoogleDeepMind",
+    "source": "tweet"
+  }'
+```
+
+### 2. 1-Minute iOS / macOS Share Sheet Shortcut
+You can turn your iPhone or Mac into a 1-tap ingest tool:
+1. Open the **Shortcuts** app $\rightarrow$ Create new Shortcut: *"Send to AI Briefing"*.
+2. Enable **"Show in Share Sheet"** (Accepts URLs and Text).
+3. Add a **"Get Contents of URL"** action:
+   - **URL:** `https://your-agent-url.run.app/api/webhook`
+   - **Method:** `POST`
+   - **Headers:** `X-Agent-Secret` = `your-secret-token`
+   - **Request Body (JSON):**
+     - `url`: Shortcut Input
+     - `source`: `"mobile-share"`
+4. Add **"Show Notification"**: *"Article summarized and added to today's briefing!"*
+
+### 3. Automated X (Twitter) Alert Relay via Zapier / Make / IFTTT
+1. Set Trigger: **"New Tweet from Search / User"** (e.g. `from:GoogleDeepMind` or `from:ylecun`).
+2. Set Action: **"Webhooks by Zapier (Custom Request / POST)"**
+3. URL: `https://your-agent-url.run.app/api/webhook`
+4. JSON Payload:
+   ```json
+   {
+     "url": "{{tweet_url}}",
+     "text": "{{tweet_text}}",
+     "author": "{{user_name}}",
+     "source": "tweet"
+   }
+   ```
+
+---
+
+## 8. Security & Reliability Engineering
 
 - **Server-Side Request Forgery (SSRF) Defense:** Multi-layer DNS and IP validator (`is_safe_url`) blocking cloud metadata endpoints (`169.254.169.254`), RFC 1918 private subnets (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), loopbacks (`127.0.0.0/8`, `::1`), and link-local ranges.
 - **Indirect Prompt Injection Defense:** All scraped third-party HTML text is encapsulated in `<untrusted_content>` XML tags. Prompts instruct Gemini to treat enclosed text strictly as passive input.
 - **Cloud Storage FUSE Atomic Persistence:** Cloud Storage FUSE does not support POSIX advisory locks required by SQLite. All file writes (`seen_urls.json` and Markdown digests) use atomic temporary files with `os.replace` to prevent data corruption.
-- **In-Memory Mutex (`asyncio.Lock`):** Serializes manual web requests and scheduled daemon jobs, preventing file write contention.
+- **In-Memory Mutex (`asyncio.Lock`):** Serializes manual web requests, scheduled daemon jobs, and real-time webhook ingestion to prevent file write contention.
+- **Webhook Authentication (`X-Agent-Secret`):** Secures public ingestion endpoints against unauthorized traffic.
 
 ---
 
-## 8. API Reference
+## 9. API Reference
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
@@ -273,11 +332,12 @@ gcloud beta run instances create tech-briefing-agent \
 | `GET` | `/api/digests` | Returns JSON metadata and filenames for all archived historical digests. |
 | `GET` | `/api/digest/{filename}` | Returns raw Markdown content for a specific historical digest file. |
 | `POST` | `/api/generate` | Triggers an on-demand briefing generation run (supports `force_refresh=true` and custom `topics`). |
+| `POST` | `/api/webhook` | Accepts real-time alert/tweet payloads (`url` or `text`), summarizes them with Gemini 2.5 Flash, and immediately integrates them into the active briefing. |
 | `GET` | `/healthz` | Health check endpoint for uptime probes and load balancers. |
 
 ---
 
-## 9. Monthly Production Bill Breakdown
+## 10. Monthly Production Bill Breakdown
 
 | Component | Usage Profile | Monthly Cost |
 | :--- | :--- | :--- |
