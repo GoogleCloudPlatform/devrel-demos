@@ -1,6 +1,6 @@
-# Personal Tech-Briefing Digest Agent
+# Personal Tech-Briefing Agent: Autonomous Loop Engineering with ADK 2.0 on Cloud Run Instances
 
-A production-ready, autonomous AI digest agent built with the **Google Agent Development Kit 2.0 (ADK 2.0)** and deployed on **Google Cloud Run Instances** (singleton compute container) with persistent storage backed by **Google Cloud Storage (GCS) FUSE Volume Mounts**.
+A production-ready reference architecture showcasing **Graph-Based Loop Engineering** with the **Google Agent Development Kit 2.0 (ADK 2.0)** and deployed on **Google Cloud Run Instances** (singleton compute container for $5.70/month) with persistent storage backed by **Google Cloud Storage (GCS) FUSE Volume Mounts**.
 
 ---
 
@@ -61,7 +61,11 @@ flowchart TD
 
 ---
 
-## 3. ADK 2.0 Agent Workflow Architecture
+## 3. ADK 2.0 Agent Workflow & Loop Engineering
+
+Traditional linear LLM chains (`fetch -> summarize -> save`) are brittle in production: web crawlers hit paywalls, summaries can hallucinate, and navigation boilerplate leaks into output files.
+
+ADK 2.0 replaces linear chains with **Graph-Driven Loop Engineering**—a stateful, cyclic execution graph where specialized LLM reflection nodes evaluate intermediate outputs against strict quality constraints and dynamically route execution backward through self-correcting loops until high-confidence results are achieved.
 
 The core intelligence is modeled as an 8-node ADK 2.0 workflow graph with two self-correcting reflection loops:
 
@@ -124,8 +128,6 @@ flowchart LR
 ├── Dockerfile                  # Multi-stage container build with non-root appuser (UID 1000)
 ├── pyproject.toml              # Dependencies (adk, google-genai, fastapi, trafilatura, uvicorn)
 ├── README.md                   # System documentation and deployment guide
-├── blog_part1.md               # Conceptual guide: Building long-running agents for $5.70/mo
-├── blog_code_step_by_step.md   # Step-by-step code and architecture walkthrough
 ├── digest_agent/
 │   ├── __init__.py             # Exports root_agent and FastAPI app
 │   ├── config.py               # Path discovery, feed registry, and runtime configuration
