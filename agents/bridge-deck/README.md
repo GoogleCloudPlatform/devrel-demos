@@ -20,7 +20,7 @@ in-process agent-to-agent delegation, and fail-closed security governance.
 ## 🌟 Key features
 
 - **Multi-vendor frontier model orchestration**:
-  Supports Google Gemini 3.7 Flash and Pro, Anthropic Claude
+  Supports Google Gemini, Anthropic Claude
   (through Vertex AI Model Garden), Google ADK runtime,
   and local open-weights backends.
 - **Autonomous Agent-to-Agent (A2A) cascades**:
@@ -48,9 +48,9 @@ in-process agent-to-agent delegation, and fail-closed security governance.
 | Avatar | Role | Model or engine | Default access scope |
 | :--- | :--- | :--- | :--- |
 | **🧭 Team Lead** | Project Lead and Coordinator | Human Leader | Full Workspace Access |
-| **🏗️ Systems Architect** | Systems Architect | Vertex Gemini 3.7 Flash (`global`) | Full Workspace Access |
-| **⚙️ Implementation Engineer** | Implementation Engineer | Vertex Gemini 3.7 Flash (`global`) | Full Workspace Access |
-| **💡 Technical Advisor** | Technical Advisor | Vertex Anthropic Claude Opus 5 (`global`) | Read-Only Advisory Access |
+| **🏗️ Systems Architect** | Systems Architect | Gemini (`global`) | Full Workspace Access |
+| **⚙️ Implementation Engineer** | Implementation Engineer | Gemini (`global`) | Full Workspace Access |
+| **💡 Technical Advisor** | Technical Advisor | Vertex Anthropic Claude (`global`) | Read-Only Advisory Access |
 
 ---
 
