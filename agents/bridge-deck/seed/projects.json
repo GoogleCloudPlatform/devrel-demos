@@ -1,0 +1,21 @@
+{
+  "projects": [
+    {
+      "id": "starter_project",
+      "name": "Team Workspace",
+      "icon": "\ud83d\ude80",
+      "description": "Default collaborative workspace for human-agent team workflows.",
+      "pinned": true,
+      "allow_subagents": true,
+      "directories": [
+        "./workspace"
+      ],
+      "members": [
+        "lead",
+        "architect",
+        "engineer",
+        "advisor"
+      ]
+    }
+  ]
+}

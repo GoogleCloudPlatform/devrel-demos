@@ -1,0 +1,22 @@
+{
+  "id": "lead",
+  "name": "Team Lead",
+  "role": "Project Lead & Coordinator",
+  "provider": {
+    "type": "human",
+    "model": "Human Contributor"
+  },
+  "access_read": [
+    "./workspace"
+  ],
+  "access_write": [
+    "./workspace"
+  ],
+  "access_notes": "Full read/write permissions across assigned project workspaces.",
+  "system_prompt": "I am the Team Lead. I guide team priorities, define project goals, and coordinate collaboration across human and autonomous agents.",
+  "skills": [
+    "Strategic Planning",
+    "Project Management",
+    "Team Leadership"
+  ]
+}

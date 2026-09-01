@@ -1,0 +1,201 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BridgeDeckAgentManifest",
+  "description": "Canonical Manifest Schema for Bridge Deck multi-vendor agents with secure-by-default ACL and 3-Tier memory.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "role",
+    "provider"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+$",
+      "description": "Unique, lowercase alphanumeric identifier for the agent."
+    },
+    "name": {
+      "type": "string",
+      "description": "Canonical human-readable display name of the agent."
+    },
+    "role": {
+      "type": "string",
+      "description": "Functional job title and role in Bridge Deck."
+    },
+    "system_prompt": {
+      "type": "string",
+      "description": "Core identity instructions, constraints, and behavioral directives."
+    },
+    "access_read": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "List of authorized base filesystem directories the agent has permission to read."
+    },
+    "derived_read": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "List of filesystem directories dynamically derived from active project memberships."
+    },
+    "access_write": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "List of authorized filesystem directories the agent has permission to modify. Default is empty (read-only)."
+    },
+    "access_notes": {
+      "type": "string",
+      "description": "Human-readable notes clarifying access scope boundaries."
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of preferred tools and agent skills."
+    },
+    "harness": {
+      "type": "string",
+      "enum": [
+        "voyager",
+        "none",
+        "adk-native",
+        "antigravity-native"
+      ],
+      "description": "Agent Execution Harness (e.g. voyager for workspace tool execution and grounding)."
+    },
+    "tools_enabled": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Explicit operator-authorized list of workspace tools enabled for this agent (e.g. ['run_command'])."
+    },
+    "memory": {
+      "type": "object",
+      "properties": {
+        "silo": {
+          "type": "string",
+          "enum": [
+            "private",
+            "shared"
+          ],
+          "default": "private",
+          "description": "Semantic memory siloing tier (private maps to memory/semantic/<agent_id>/)."
+        },
+        "shared_access": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "*"
+          ],
+          "description": "Projects from which the agent reads shared common-ground decisions."
+        }
+      },
+      "default": {
+        "silo": "private",
+        "shared_access": [
+          "*"
+        ]
+      }
+    },
+    "provider": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "voyager-harness",
+            "voyager",
+            "vertex-ai",
+            "vertex",
+            "vertex-anthropic",
+            "vertex-gemini",
+            "vertex-custom",
+            "vertex-endpoint",
+            "vertex-custom-endpoint",
+            "google-adk",
+            "antigravity-harness",
+            "antigravity",
+            "antigravity-agent",
+            "antigravity-queue",
+            "human",
+            "custom",
+            "ollama",
+            "ollama-local"
+          ],
+          "description": "Provider adapter responsible for executing turns for this agent."
+        },
+        "model": {
+          "type": "string",
+          "description": "Model ID to invoke on the provider (e.g. claude-opus-5, gemini-2.5-flash)."
+        },
+        "endpoint_id": {
+          "type": "string",
+          "description": "Vertex AI Custom Endpoint ID or full resource path."
+        },
+        "project_id": {
+          "type": "string",
+          "description": "GCP Cloud Project ID."
+        },
+        "location": {
+          "type": "string",
+          "description": "GCP Region / location (e.g. us-central1, global, europe-west1)."
+        },
+        "config": {
+          "type": "object",
+          "description": "Arbitrary provider-specific configuration parameters."
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "provider": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "vertex-custom",
+                  "vertex-endpoint",
+                  "vertex-custom-endpoint"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        },
+        "required": [
+          "provider"
+        ]
+      },
+      "then": {
+        "properties": {
+          "provider": {
+            "required": [
+              "endpoint_id"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": true
+}
