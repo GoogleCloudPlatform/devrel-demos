@@ -48,7 +48,7 @@ she helps repair the platform, expand features, and answer questions.
 
 1.  Prompt your agent to clone the repository and embody Astra:
 
-    > *"Please clone `https://github.com/example-org/bridge_deck.git`, create a Python virtual environment, install dependencies, and initialize yourself as Astra using `agents/bridge_deck_lead.json`."*
+    > *"Please clone `https://github.com/GoogleCloudPlatform/devrel-demos/tree/main/agents/bridge-deck`, create a Python virtual environment, install dependencies, and initialize yourself as Astra using `agents/bridge_deck_lead.json`."*
 
     Your agent reads `agents/bridge_deck_lead.json`, adopts Astra's personality,
     directives, and tool permissions, and connects to the workspace.
