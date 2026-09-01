@@ -1,0 +1,5 @@
+anthropic>=0.18.0
+arize-phoenix>=3.0.0
+google-genai>=0.1.0
+google-cloud-aiplatform>=1.38.0
+requests>=2.31.0

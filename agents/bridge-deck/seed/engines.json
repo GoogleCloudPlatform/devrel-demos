@@ -1,0 +1,164 @@
+{
+  "engines": [
+    {
+      "id": "vertex-ai",
+      "name": "Google Model Garden",
+      "category": "model",
+      "type": "vertex-ai",
+      "icon": "\ud83d\udd35",
+      "location": "us-central1",
+      "description": "Google Cloud Model Garden on Vertex AI hosting frontier Gemini models and Anthropic Claude partner models under shared GCP infrastructure.",
+      "provider_types": [
+        "vertex-ai",
+        "vertex",
+        "vertex-anthropic",
+        "vertex-gemini",
+        "vertex-custom",
+        "vertex-endpoint",
+        "vertex-custom-endpoint",
+        "google-genai"
+      ],
+      "models": [
+        {
+          "id": "gemini-3.7-flash",
+          "name": "Gemini 3.7 Flash",
+          "model_id": "gemini-3.7-flash",
+          "location": "global",
+          "description": "Google Vertex AI foundation model: Gemini 3.7 Flash"
+        },
+        {
+          "id": "claude-opus-5",
+          "name": "Claude Opus 5",
+          "model_id": "claude-opus-5",
+          "location": "global",
+          "description": "Anthropic flagship model for deep scientific reasoning, theorem proving, and code review on Vertex AI."
+        },
+        {
+          "id": "claude-sonnet-5",
+          "name": "Claude Sonnet 5",
+          "model_id": "claude-sonnet-5",
+          "location": "global",
+          "description": "Anthropic high-capability reasoning and coding model with extended thinking on Vertex AI."
+        },
+        {
+          "id": "gemini-2.5-pro",
+          "name": "Gemini 2.5 Pro",
+          "model_id": "gemini-2.5-pro",
+          "location": "us-central1",
+          "description": "Google Vertex AI foundation model: Gemini 2.5 Pro"
+        },
+        {
+          "id": "gemini-2.5-flash",
+          "name": "Gemini 2.5 Flash",
+          "model_id": "gemini-2.5-flash",
+          "location": "us-central1",
+          "description": "Google Vertex AI foundation model: Gemini 2.5 Flash"
+        }
+      ]
+    },
+    {
+      "id": "google-adk",
+      "name": "Google ADK Runtime",
+      "category": "agent",
+      "type": "google-adk",
+      "icon": "\ud83d\udd2e",
+      "location": "global",
+      "description": "Google Agent Development Kit (ADK) autonomous agent runtime powering adaptive multi-step agent loops with lazy initialization.",
+      "provider_types": [
+        "google-adk",
+        "adk",
+        "adk-native"
+      ],
+      "models": [
+        {
+          "id": "gemini-3.7-flash",
+          "name": "Gemini 3.7 Flash (ADK Loop)",
+          "model_id": "gemini-3.7-flash",
+          "location": "global",
+          "description": "Gemini 3.7 Flash agent loop with multi-step tool reasoning under ADK runtime."
+        },
+        {
+          "id": "gemini-2.5-pro",
+          "name": "Gemini 2.5 Pro (ADK Loop)",
+          "model_id": "gemini-2.5-pro",
+          "location": "us-central1",
+          "description": "Gemini 2.5 Pro agent loop with deep task deliberation under ADK runtime."
+        }
+      ]
+    },
+    {
+      "id": "antigravity-queue",
+      "name": "Antigravity Engine",
+      "category": "model",
+      "type": "antigravity-queue",
+      "icon": "\u2699\ufe0f",
+      "location": "local",
+      "description": "Interactive Google Antigravity Agentic IDE runtime providing system coordination, terminal agency, and direct human-agent collaboration.",
+      "provider_types": [
+        "antigravity-queue",
+        "antigravity",
+        "antigravity-native"
+      ],
+      "models": [
+        {
+          "id": "antigravity-hybrid",
+          "name": "Google Antigravity Assistant",
+          "model_id": "antigravity-hybrid",
+          "location": "local",
+          "description": "Official Antigravity IDE assistant model for full-stack architecture and terminal agency."
+        }
+      ]
+    },
+    {
+      "id": "human",
+      "name": "Human Contributor",
+      "category": "contributor",
+      "type": "human",
+      "icon": "\ud83e\udded",
+      "location": "physical",
+      "description": "Human team members, product managers, and researchers contributing directly to project workspaces.",
+      "provider_types": [
+        "human",
+        "contributor"
+      ],
+      "models": [
+        {
+          "id": "human-contributor",
+          "name": "Human Contributor",
+          "model_id": "human-contributor",
+          "location": "physical",
+          "description": "Human author with direct workspace agency and strategic project oversight."
+        }
+      ]
+    },
+    {
+      "id": "ollama-local",
+      "name": "Ollama Local Runtime",
+      "category": "model",
+      "type": "ollama-local",
+      "icon": "\ud83e\udd99",
+      "location": "http://127.0.0.1:11434",
+      "description": "Local offline inference runtime running open-weights models (Llama, Gemma, DeepSeek, Qwen) directly on local GPU/CPU hardware.",
+      "provider_types": [
+        "ollama-local",
+        "ollama"
+      ],
+      "models": [
+        {
+          "id": "gemma2:9b",
+          "name": "Gemma 2 9B (Local)",
+          "model_id": "gemma2:9b",
+          "location": "http://127.0.0.1:11434",
+          "description": "Google Gemma 2 9B running locally via Ollama."
+        },
+        {
+          "id": "llama3.3:latest",
+          "name": "Llama 3.3 70B (Local)",
+          "model_id": "llama3.3:latest",
+          "location": "http://127.0.0.1:11434",
+          "description": "Meta Llama 3.3 70B running locally via Ollama."
+        }
+      ]
+    }
+  ]
+}

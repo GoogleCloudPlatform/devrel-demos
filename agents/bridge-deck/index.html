@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bridge Deck | Project Lantern</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        <link rel="stylesheet" href="static/css/styles.css">
+</head>
+<body>
+
+    <div class="gchat-app">
+        <!-- Left Sidebar Navigation -->
+        <aside class="gchat-sidebar">
+            <div class="sidebar-brand">
+                <span style="font-size: 1.3rem; line-height: 1;">🌉</span>
+                <span class="sidebar-brand-title">Bridge Deck</span>
+            </div>
+
+            <div class="section-header">
+                <span>Projects</span>
+                <span class="badge-count" id="projectCountBadge">1</span>
+            </div>
+            <nav class="nav-section" id="projectsNav">
+                <a class="nav-item active" id="nav-lantern" href="#" onclick="selectSpace('lantern')">
+                    <span>🏞️</span> <span>Project Lantern</span>
+                </a>
+                <a class="nav-item" href="#" onclick="openNewProjectModal()" style="color: var(--text-muted); font-size: 0.86rem; font-weight: 400; opacity: 0.85;">
+                    <span style="font-size: 0.85rem; display: inline-block; width: 1.25rem; text-align: center;">➕</span> <span>Add Project</span>
+                </a>
+            </nav>
+
+            <div class="section-header">
+                <span>Team Members</span>
+                <span class="badge-count" id="teamCountBadge">4</span>
+            </div>
+            <nav class="nav-section" id="teamMembersNav">
+                <a class="nav-item" id="nav-prof_lead" href="#" onclick="selectChannel('prof_lead', 'Team Lead Profile', '🧭')">
+                    <span>🧭</span> <span>Team Lead (Project Lead)</span>
+                </a>
+                <a class="nav-item" id="nav-prof_astra" href="#" onclick="selectChannel('prof_astra', 'Astra Profile', '💫')">
+                    <span>💫</span> <span>Astra (Bridge Lead)</span>
+                </a>
+                <a class="nav-item" id="nav-prof_vector" href="#" onclick="selectChannel('prof_vector', 'Vector Profile', '⚙️')">
+                    <span>⚙️</span> <span>Vector (Impl Lead)</span>
+                </a>
+                <a class="nav-item" id="nav-prof_lumen" href="#" onclick="selectChannel('prof_lumen', 'Lumen Profile', '💡')">
+                    <span>💡</span> <span>Lumen (Advisor)</span>
+                </a>
+                <a class="nav-item" href="#" onclick="openNewProfileModal()" style="color: var(--text-muted); font-size: 0.86rem; font-weight: 400; opacity: 0.85;">
+                    <span style="font-size: 0.85rem; display: inline-block; width: 1.25rem; text-align: center;">➕</span> <span>Add Team Member</span>
+                </a>
+            </nav>
+
+            <div class="section-header">
+                <span>Cores</span>
+            </div>
+            <nav class="nav-section" id="sleevesNav">
+                <!-- Populated dynamically via renderSleevesNav() -->
+            </nav>
+
+            <div class="section-header">
+                <span>System</span>
+            </div>
+            <nav class="nav-section" id="systemNav">
+                <a class="nav-item" id="nav-skills" href="#" onclick="openSkillAnalyticsModal()">
+                    <span>📊</span> <span>Skill Usage Analytics</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="gchat-main">
+            <!-- Header Bar -->
+            <header class="gchat-header">
+                <div class="room-info">
+                    <div class="room-icon" id="headerRoomIcon">🏞️</div>
+                    <div>
+                        <div class="room-title">
+                            <span id="headerRoomName">Project Lantern</span>
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">▾</span>
+                        </div>
+                        <div class="room-members" id="headerRoomMembers">
+                            <span>🧭 Team Lead</span> • <span>💫 Astra</span> • <span>⚙️ Vector</span> • <span>💡 Lumen</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="header-tools" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div id="a2aStatusIndicator" style="display: none; align-items: center; gap: 0.4rem; font-size: 0.76rem; padding: 0.25rem 0.65rem; border-radius: 20px; background: #e8f0fe; color: #0b57d0; font-weight: 600; border: 1px solid #c2e7ff;">
+                        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0b57d0;"></span>
+                        <span id="a2aStatusText">⚡ A2A Active</span>
+                        <button id="btnToggleA2A" onclick="toggleA2APause()" style="background: none; border: none; font-size: 0.78rem; cursor: pointer; padding: 0 2px; color: #0b57d0;" title="Pause / Resume Autonomous Collaboration">⏸️</button>
+                    </div>
+                    <button class="btn-icon" onclick="scrollToTop(true)" title="Jump to Top">⬆</button>
+                    <button class="btn-icon" onclick="scrollToBottom(true)" title="Jump to Bottom">⬇</button>
+                    <button class="btn-icon" id="btnProjectSettings" title="Edit Workspace" onclick="openCurrentProjectSettings()">✏️</button>
+                </div>
+            </header>
+
+            <!-- Message Stream -->
+            <div class="gchat-body" id="chatThread">
+                <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2rem;">
+                    Connecting to Bridge Deck server...
+                </div>
+            </div>
+
+            <!-- Bottom Floating Input Dock -->
+            <div class="gchat-input-wrapper" style="position: relative;">
+                <div id="mentionAutocomplete" style="display: none; position: absolute; bottom: 100%; left: 1.5rem; margin-bottom: 0.5rem; background: #ffffff; border: 1px solid #dadce0; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); z-index: 100; overflow: hidden; min-width: 320px; max-height: 280px; overflow-y: auto;">
+                    <div style="font-size: 0.72rem; font-weight: 700; color: #5f6368; padding: 0.4rem 0.75rem; background: #f8fafd; border-bottom: 1px solid #e1e3e1; text-transform: uppercase; letter-spacing: 0.05em; position: sticky; top: 0; z-index: 1;">Mention Team Member (@)</div>
+                    <div id="mentionListContainer"></div>
+                </div>
+
+                <div id="emojiPickerPopover" style="display: none; position: absolute; bottom: 100%; right: 4rem; margin-bottom: 0.5rem; background: #ffffff; border: 1px solid #dadce0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 100; padding: 0.75rem; width: 320px; max-height: 360px; flex-direction: column;">
+                    <div style="font-size: 0.75rem; font-weight: 700; color: #5f6368; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center;">
+                        <span>Emoji Library</span>
+                        <span style="cursor: pointer; font-size: 0.9rem; color: #5f6368;" onclick="closeEmojiPicker()">✕</span>
+                    </div>
+                    <div style="margin-bottom: 0.5rem;">
+                        <input type="text" id="emojiSearchInput" placeholder="🔍 Search all emojis..." oninput="filterEmojiGrid()" style="width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #dadce0; border-radius: 10px; font-size: 0.82rem; font-family: inherit; outline: none; background: #f8fafd;">
+                    </div>
+                    <div style="display: flex; gap: 0.2rem; overflow-x: auto; padding-bottom: 0.4rem; margin-bottom: 0.4rem; border-bottom: 1px solid #f1f3f4; font-size: 0.88rem;">
+                        <button class="emoji-cat-btn" onclick="switchEmojiCategory('all', this)" style="background: #e8f0fe; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px; font-weight: bold; color: #0b57d0;">ALL</button>
+                        <button class="emoji-cat-btn" onclick="switchEmojiCategory('smileys', this)" title="Smileys & Emotion" style="background: none; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px;">😀</button>
+                        <button class="emoji-cat-btn" onclick="switchEmojiCategory('nature', this)" title="Moon, Sun, Stars & Space" style="background: none; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px;">🌙</button>
+                        <button class="emoji-cat-btn" onclick="switchEmojiCategory('animals', this)" title="Animals & Creatures" style="background: none; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px;">🐶</button>
+                        <button class="emoji-cat-btn" onclick="switchEmojiCategory('people', this)" title="People & Roles" style="background: none; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px;">👋</button>
+                        <button class="emoji-cat-btn" onclick="switchEmojiCategory('food', this)" title="Food & Drink" style="background: none; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px;">🍕</button>
+                        <button class="emoji-cat-btn" onclick="switchEmojiCategory('travel', this)" title="Travel & Places" style="background: none; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px;">🚀</button>
+                        <button class="emoji-cat-btn" onclick="switchEmojiCategory('objects', this)" title="Objects, Science & Tech" style="background: none; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px;">💡</button>
+                        <button class="emoji-cat-btn" onclick="switchEmojiCategory('symbols', this)" title="Symbols & Balance" style="background: none; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px;">❤️</button>
+                    </div>
+                    <div id="emojiGridContainer" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem; font-size: 1.25rem; text-align: center; overflow-y: auto; max-height: 220px; padding-right: 0.2rem;">
+                    </div>
+                </div>
+
+                <div class="gchat-input-pill">
+                    <div class="input-row">
+                        <textarea class="text-input" id="promptInput" rows="1" placeholder="Send a message (type @name to mention)..."></textarea>
+                        <div class="input-actions">
+                            <button class="btn-input-icon" id="btnEmoji" title="Add Emoji" onclick="toggleEmojiPicker(event)">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                            </button>
+                            
+                            <button class="btn-input-icon" id="btnUpload" title="Upload File / Image" onclick="triggerFileUpload()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            </button>
+                            <input type="file" id="fileUploadInput" style="display: none;" onchange="handleFileSelected(event)">
+
+                            <button class="btn-input-icon" id="btnVoice" title="Voice-to-Text Dictation (Chrome)" onclick="toggleVoiceToText()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                            </button>
+
+                            <button class="btn-send" id="btnSend">
+                                <span>Send</span> <span>➔</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JSON Payload Modal -->
+    <div class="modal" id="jsonModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Raw JSON Payload</h3>
+                <button class="btn-pill-header" onclick="closeModal()">Close ✕</button>
+            </div>
+            <pre class="modal-body" id="modalJsonContent"></pre>
+        </div>
+    </div>
+
+    <!-- New/Edit Profile Modal -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content" style="max-width: 650px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3 id="profileModalTitle">Team Member Persona</h3>
+                <button class="btn-pill-header" onclick="closeProfileModal()">Close ✕</button>
+            </div>
+            <form id="profileForm" style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.88rem;">
+                <input type="hidden" id="profId">
+                <div style="display: flex; gap: 0.75rem;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Name:</label>
+                        <input type="text" id="profName" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" required>
+                    </div>
+                    <div style="width: 130px; position: relative;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Avatar Emoji:</label>
+                        <div style="display: flex; gap: 0.35rem; align-items: center;">
+                            <input type="text" id="profAvatar" style="width: 55px; padding: 0.45rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; font-size: 1.3rem; text-align: center;" required>
+                            <button type="button" id="btnProfAvatarEmoji" onclick="toggleAvatarEmojiPicker(event)" title="Choose Emoji from Library" style="padding: 0.45rem 0.6rem; font-size: 1.1rem; background: #f1f3f4; border: 1px solid #dadce0; color: #1f1f1f; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer;">😀</button>
+                        </div>
+                        
+                        <!-- Avatar Emoji Picker Popover -->
+                        <div id="avatarEmojiPickerPopover" style="display: none; position: absolute; top: calc(100% + 6px); right: 0; background: #ffffff; border: 1px solid #dadce0; border-radius: 16px; box-shadow: 0 6px 24px rgba(0,0,0,0.25); z-index: 1100; padding: 0.75rem; width: 320px; max-height: 360px; flex-direction: column;">
+                            <div style="font-size: 0.75rem; font-weight: 700; color: #5f6368; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center;">
+                                <span>Choose Avatar Emoji</span>
+                                <span style="cursor: pointer; font-size: 0.9rem; color: #5f6368;" onclick="closeAvatarEmojiPicker()">✕</span>
+                            </div>
+                            <div style="margin-bottom: 0.5rem;">
+                                <input type="text" id="avatarEmojiSearchInput" placeholder="🔍 Search all emojis..." oninput="filterAvatarEmojiGrid()" style="width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #dadce0; border-radius: 10px; font-size: 0.82rem; font-family: inherit; outline: none; background: #f8fafd;">
+                            </div>
+                            <div style="display: flex; gap: 0.2rem; overflow-x: auto; padding-bottom: 0.4rem; margin-bottom: 0.4rem; border-bottom: 1px solid #f1f3f4; font-size: 0.88rem;">
+                                <button type="button" class="avatar-emoji-cat-btn" onclick="switchAvatarEmojiCategory('all', this)" style="background: #e8f0fe; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px; font-weight: bold; color: #0b57d0;">ALL</button>
+                                <button type="button" class="avatar-emoji-cat-btn" onclick="switchAvatarEmojiCategory('smileys', this)" title="Smileys & Emotion" style="background: none; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px;">😀</button>
+                                <button type="button" class="avatar-emoji-cat-btn" onclick="switchAvatarEmojiCategory('nature', this)" title="Moon, Sun, Stars & Space" style="background: none; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px;">🌙</button>
+                                <button type="button" class="avatar-emoji-cat-btn" onclick="switchAvatarEmojiCategory('animals', this)" title="Animals & Creatures" style="background: none; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px;">🐶</button>
+                                <button type="button" class="avatar-emoji-cat-btn" onclick="switchAvatarEmojiCategory('people', this)" title="People & Roles" style="background: none; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px;">👋</button>
+                                <button type="button" class="avatar-emoji-cat-btn" onclick="switchAvatarEmojiCategory('food', this)" title="Food & Drink" style="background: none; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px;">🍕</button>
+                                <button type="button" class="avatar-emoji-cat-btn" onclick="switchAvatarEmojiCategory('travel', this)" title="Travel & Places" style="background: none; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px;">🚀</button>
+                                <button type="button" class="avatar-emoji-cat-btn" onclick="switchAvatarEmojiCategory('objects', this)" title="Objects, Science & Tech" style="background: none; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px;">💡</button>
+                                <button type="button" class="avatar-emoji-cat-btn" onclick="switchAvatarEmojiCategory('symbols', this)" title="Symbols & Balance" style="background: none; border: none; cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 6px;">❤️</button>
+                            </div>
+                            <div id="avatarEmojiGridContainer" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem; font-size: 1.25rem; text-align: center; overflow-y: auto; max-height: 220px; padding-right: 0.2rem;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.75rem;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">1. Core / AI Runtime:</label>
+                        <select id="profEngine" onchange="onPersonaEngineChange()" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; background: #fff;" required>
+                            <!-- Populated dynamically with configured cores -->
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label id="profModelLabel" style="font-weight: 600; display: block; margin-bottom: 0.25rem;">2. Supported AI Model / Checkpoint:</label>
+                        <select id="profModel" onchange="onPersonaModelChange()" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; background: #fff;" required>
+                            <option value="">-- Select Model --</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="profEndpointContainer" style="display: none; margin-bottom: 0.85rem;">
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">3. Vertex AI Custom Endpoint ID / Resource Path <span style="color: #d93025;">*</span>:</label>
+                    <input type="text" id="profEndpointId" placeholder="e.g. projects/123456/locations/us-central1/endpoints/7890123" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; background: #fff;" />
+                    <div style="font-size: 0.76rem; color: #5f6368; margin-top: 0.25rem;">
+                        Required for dedicated Vertex AI Model Garden custom endpoint deployments (vLLM / Hex-LLM / TGI GPU instances).
+                    </div>
+                </div>
+                <div id="profHarnessContainer" style="margin-bottom: 0.85rem;">
+                    <label id="profHarnessLabel" style="font-weight: 600; display: block; margin-bottom: 0.25rem;">4. Agent Execution Harness:</label>
+                    <select id="profHarness" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; background: #fff;">
+                        <option value="voyager">🚀 Voyager Harness (Workspace Tool Execution & Epistemic Grounding)</option>
+                        <option value="none">None (Direct Model Inference)</option>
+                        <option value="adk-native">🔮 Google ADK Native Harness</option>
+                        <option value="antigravity-native">⚙️ Antigravity Native Harness</option>
+                    </select>
+                    <div style="font-size: 0.76rem; color: #5f6368; margin-top: 0.25rem;">
+                        Equips the underlying model with workspace tools (file reading, code searching, test execution) before responding.
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.75rem;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Myers-Briggs (MBTI):</label>
+                        <select id="profMbti" onchange="updateMbtiCognitivePreview()" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; background: #fff;">
+                            <option value="">-- None --</option>
+                            <option value="INTJ">INTJ - Architect</option>
+                            <option value="INTP">INTP - Logician</option>
+                            <option value="ENTJ">ENTJ - Commander</option>
+                            <option value="ENTP">ENTP - Debater</option>
+                            <option value="INFJ">INFJ - Advocate</option>
+                            <option value="INFP">INFP - Mediator</option>
+                            <option value="ENFJ">ENFJ - Protagonist</option>
+                            <option value="ENFP">ENFP - Campaigner</option>
+                            <option value="ISTJ">ISTJ - Logistician</option>
+                            <option value="ISFJ">ISFJ - Defender</option>
+                            <option value="ESTJ">ESTJ - Executive</option>
+                            <option value="ESFJ">ESFJ - Consul</option>
+                            <option value="ISTP">ISTP - Virtuoso</option>
+                            <option value="ISFP">ISFP - Adventurer</option>
+                            <option value="ESTP">ESTP - Entrepreneur</option>
+                            <option value="ESFP">ESFP - Entertainer</option>
+                        </select>
+                    </div>
+                    <div style="width: 140px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Yin / Yang / Balance:</label>
+                        <select id="profBalance" onchange="updateMbtiCognitivePreview()" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; background: #fff;">
+                            <option value="Balanced">☯️ Balanced</option>
+                            <option value="Yin">☯️ Yin</option>
+                            <option value="Yang">☯️ Yang</option>
+                            <option value="Fluid">☯️ Fluid</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="profCognitivePreview" style="background: #fdf7ff; border: 1px solid #e1bee7; border-radius: 8px; padding: 0.65rem 0.75rem; font-size: 0.78rem; display: none;">
+                    <div style="font-weight: 700; color: #6a1b9a; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.35rem;">
+                        <span>🎭</span> <span id="profCognitivePreviewTitle">Cognitive Style Guidance</span>
+                    </div>
+                    <div id="profCognitivePreviewBody" style="color: #4a5568; line-height: 1.45;"></div>
+                </div>
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                        <label style="font-weight: 600;">Who I am (Life Story, Passions & Quirks):</label>
+                        <button type="button" class="btn-pill-header" onclick="sparkBackstoryIdea()" style="font-size: 0.75rem; padding: 0.2rem 0.6rem; background: #f3e5f5; color: #6a1b9a; border: 1px solid #e1bee7; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem;">
+                            <span>🎲</span> <span>Spark Backstory Idea</span>
+                        </button>
+                    </div>
+                    <div style="font-size: 0.76rem; color: #5f6368; margin-bottom: 0.35rem; line-height: 1.35;">
+                        💡 <em>Focus on personal background, home life, hobbies, pets, and quirks. Keep roles fluid (roles are dynamically assigned per project!).</em>
+                    </div>
+                    <textarea id="profSystemPrompt" rows="4" oninput="autoResizeTextarea(this)" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; overflow-y: hidden; resize: vertical;" placeholder="e.g. I am Alex. At home, I’m an amateur woodworker, long-distance cyclist, and companion to Barnaby—a three-legged tabby who sleeps on my blueprint table. I have a quiet obsession with vintage mapmaking, dark roast espresso, and finding the cleanest, simplest path through messy problems..." required></textarea>
+                </div>
+                <div style="background: #f8fafd; border: 1px solid #c2e7ff; border-radius: 10px; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.65rem;">
+                    <div style="font-weight: 700; font-size: 0.82rem; color: #0b57d0; text-transform: uppercase; letter-spacing: 0.04em;">🔑 Read & Write Access Permissions</div>
+                    <div>
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.2rem; font-size: 0.8rem;">👁️ Authorized Read Access (one entry per line):</label>
+                        <textarea id="profAccessRead" rows="2" oninput="autoResizeTextarea(this)" style="width: 100%; padding: 0.45rem; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; font-size: 0.82rem; overflow-y: hidden; resize: vertical;" placeholder="./workspace/project_lantern&#10;./workspace/bridge_deck"></textarea>
+                    </div>
+                    <div>
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.2rem; font-size: 0.8rem;">✍️ Authorized Write Access (one entry per line):</label>
+                        <textarea id="profAccessWrite" rows="2" oninput="autoResizeTextarea(this)" style="width: 100%; padding: 0.45rem; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; font-size: 0.82rem; overflow-y: hidden; resize: vertical;" placeholder="./workspace/project_lantern&#10;./workspace/bridge_deck"></textarea>
+                    </div>
+                    <div>
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.2rem; font-size: 0.8rem;">📝 Access Scope Notes:</label>
+                        <textarea id="profAccessNotes" rows="1" oninput="autoResizeTextarea(this)" style="width: 100%; padding: 0.45rem; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; font-size: 0.82rem; overflow-y: hidden; resize: vertical;" placeholder="e.g. Scientific Advisor access scope..."></textarea>
+                    </div>
+                </div>
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">🛠️ Most Used & Preferred Skills (one per line):</label>
+                    <textarea id="profSkills" rows="2" oninput="autoResizeTextarea(this)" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; font-size: 0.82rem; overflow-y: hidden; resize: vertical;" placeholder="e.g. 📚 ArXiv Literature Search&#10;🧬 PyMOL Structure Renderer"></textarea>
+                </div>
+                <div style="display: none;">
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">📜 Project Resume Experience (JSON array):</label>
+                    <textarea id="profResume" rows="4" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" placeholder='[{"project_id":"lantern","project_name":"Project Lantern","role":"Research Lead","period":"2026 - Present","highlights":"Logit lens probing"}]'></textarea>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; width: 100%;">
+                    <button type="button" id="btnDeletePersona" onclick="deleteCurrentPersona()" class="btn-pill-header" style="display: none; background: #fce8e6; color: #c5221f; border: 1px solid #f8b4b4; font-weight: 600; padding: 0.5rem 0.95rem; cursor: pointer; align-items: center; gap: 0.4rem;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        <span>Delete Persona</span>
+                    </button>
+                    <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+                        <button type="button" class="btn-pill-header" onclick="closeProfileModal()">Cancel</button>
+                        <button type="submit" class="btn-send" style="padding: 0.6rem 1.5rem;">Save Persona</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- New Project Modal -->
+    <div class="modal" id="projectModal">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3 id="projectModalTitle">Create New Project Workspace</h3>
+                <button class="btn-pill-header" onclick="closeProjectModal()">Close ✕</button>
+            </div>
+            <form id="projectForm" style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.88rem;">
+                <input type="hidden" id="projId">
+                <div style="display: flex; gap: 0.75rem;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Project Name:</label>
+                        <input type="text" id="projName" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" placeholder="e.g. Project Horizon" required>
+                    </div>
+                    <div style="width: 100px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Icon Emoji:</label>
+                        <input type="text" id="projIcon" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" value="🚀" required>
+                    </div>
+                </div>
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Project Goal & Description:</label>
+                    <textarea id="projDesc" rows="2" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" placeholder="Brief description of research goals..." required></textarea>
+                </div>
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.35rem;">Project Roster & Team Members:</label>
+                    <div id="projMembersCheckboxes" style="display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.6rem; background: #f8fafd; border: 1px solid #e1e3e1; border-radius: 10px;">
+                        <!-- Dynamically populated from currentProfiles -->
+                    </div>
+                </div>
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">📁 Authorized Directories & Workspace Paths:</label>
+                    <textarea id="projDirectories" rows="2" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" placeholder="e.g. ./workspace/project_lantern&#10;./workspace/bridge_deck"></textarea>
+                    <span style="font-size: 0.75rem; color: #5f6368; display: block; margin-top: 0.2rem;">Specify absolute paths (one per line) that agents are authorized to access for this project.</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; background: #f8fafd; border: 1px solid #e1e3e1; border-radius: 12px; margin-top: 0.25rem;">
+                    <div>
+                        <strong style="font-size: 0.88rem; color: #1f1f1f; display: block;">🤖 Allow Sub-Agents</strong>
+                        <span style="font-size: 0.78rem; color: #5f6368;">If turned off, agent team members are instructed not to spawn subagents (e.g. browser subagents).</span>
+                    </div>
+                    <input type="checkbox" id="projAllowSubagents" checked style="width: 18px; height: 18px; cursor: pointer; accent-color: #0b57d0;">
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e1e3e1;">
+                    <div id="deleteProjectContainer" style="display: none;">
+                        <button type="button" onclick="deleteCurrentProject()" style="padding: 0.5rem 0.9rem; color: #b3261e; background: #fff8f7; border: 1px solid #f2b8b5; border-radius: 20px; font-weight: 600; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; transition: background 0.15s ease;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='#fff8f7'">
+                            <span>🗑️</span> <span>Delete Workspace</span>
+                        </button>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-left: auto;">
+                        <button type="button" class="btn-pill-header" onclick="closeProjectModal()">Cancel</button>
+                        <button type="submit" class="btn-send" style="padding: 0.6rem 1.5rem;">Save Project Workspace</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cores Modal -->
+    <div class="modal" id="modelsModal">
+        <div class="modal-content" style="max-width: 920px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <span style="font-size: 1.6rem;">🥋</span>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.18rem; color: #1f1f1f;">Cores</h3>
+                        <div style="font-size: 0.78rem; color: #5f6368;">Add runtime cores, configure model checkpoints, and assign models to team members.</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button class="btn-send" onclick="openAddEngineModal()" style="padding: 0.45rem 0.9rem; font-size: 0.82rem;">➕ Add New Core</button>
+                    <button class="btn-pill-header" onclick="openAddModelToEngineModal()" style="background: #e8f0fe; color: #0b57d0; border: 1px solid #c2e7ff; font-weight: 600; padding: 0.45rem 0.9rem; font-size: 0.82rem;">➕ Add Model to Core</button>
+                    <button class="btn-pill-header" onclick="closeModelsModal()">Close ✕</button>
+                </div>
+            </div>
+
+            <!-- Provider Filter Tabs -->
+            <div id="engineCategoryTabs" style="display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.35rem 0 0.65rem 0; border-bottom: 1px solid #e1e3e1; font-size: 0.82rem; flex-shrink: 0; align-items: center;">
+                <button onclick="filterEngineCategory('ALL', this)" style="background: #e8f0fe; color: #0b57d0; border: 1px solid #c2e7ff; font-weight: 700; padding: 0.4rem 0.85rem; border-radius: 20px; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-size: 0.8rem;">ALL CORES</button>
+                <button onclick="filterEngineCategory('vertex-ai', this)" style="background: #fff; color: #333; border: 1px solid #ccc; padding: 0.4rem 0.85rem; border-radius: 20px; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-size: 0.8rem;">🔵 Google Model Garden</button>
+                <button onclick="filterEngineCategory('google-adk', this)" style="background: #fff; color: #333; border: 1px solid #ccc; padding: 0.4rem 0.85rem; border-radius: 20px; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-size: 0.8rem;">🔮 Google ADK</button>
+                <button onclick="filterEngineCategory('antigravity-queue', this)" style="background: #fff; color: #333; border: 1px solid #ccc; padding: 0.4rem 0.85rem; border-radius: 20px; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-size: 0.8rem;">⚙️ Antigravity Queue</button>
+                <button onclick="filterEngineCategory('human', this)" style="background: #fff; color: #333; border: 1px solid #ccc; padding: 0.4rem 0.85rem; border-radius: 20px; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-size: 0.8rem;">🧭 Human</button>
+            </div>
+
+            <!-- Cores & Models List Container -->
+            <div id="enginesGridContainer" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 0.75rem;">
+                <!-- Populated dynamically via renderEnginesList() -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Register / Edit Core Modal -->
+    <div class="modal" id="addEngineModal">
+        <div class="modal-content" style="max-width: 560px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3 id="engineModalTitle">Register New Core</h3>
+                <button class="btn-pill-header" onclick="closeAddEngineModal()">Close ✕</button>
+            </div>
+            <form id="engineRegisterForm" style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.88rem;">
+                <input type="hidden" id="engineEditId">
+
+                <div style="display: flex; gap: 0.75rem;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Core Category:</label>
+                        <select id="engineCategorySelect" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; background: #fff;" required>
+                            <option value="model">🔵 Model Provider Core (Hosts raw LLMs: Gemini, Claude, Llama)</option>
+                            <option value="agent">🤖 Agent Runtime Core (Hosts autonomous agents: Google ADK, Antigravity)</option>
+                            <option value="contributor">🧭 Human Core</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Core Name:</label>
+                        <input type="text" id="engineNameInput" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" placeholder="e.g. Ollama, Azure OpenAI" required>
+                    </div>
+                    <div style="width: 110px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Icon Emoji:</label>
+                        <input type="text" id="engineIconInput" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" value="⚙️" required>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Core Type / Protocol:</label>
+                        <select id="engineTypeSelect" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; background: #fff;" required>
+                            <option value="vertex-ai">🔵 Google Model Garden (Vertex AI)</option>
+                            <option value="google-adk">🔮 Google ADK</option>
+                            <option value="antigravity-queue">⚙️ Antigravity</option>
+                            <option value="human">🧭 Human</option>
+                            <option value="custom">🔌 Custom / Ollama</option>
+                        </select>
+                    </div>
+                    <div style="width: 160px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Region / Endpoint:</label>
+                        <input type="text" id="engineLocationInput" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" value="us-central1">
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Description & Capabilities:</label>
+                    <textarea id="engineDescriptionInput" rows="2" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; font-size: 0.82rem;" placeholder="Description of the core, API quota notes, or server routing..."></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                    <button type="button" class="btn-pill-header" onclick="closeAddEngineModal()">Cancel</button>
+                    <button type="submit" class="btn-send" style="padding: 0.6rem 1.5rem;">💾 Save Core</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Model to Core Modal -->
+    <div class="modal" id="addModelToEngineModal">
+        <div class="modal-content" style="max-width: 560px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3 id="addModelToEngineTitle">Add Model to Core</h3>
+                <button class="btn-pill-header" onclick="closeAddModelToEngineModal()">Close ✕</button>
+            </div>
+            <form id="addModelToEngineForm" style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.88rem;">
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">1. Target Core:</label>
+                    <select id="modelTargetEngineSelect" onchange="onModelTargetEngineSelectChange()" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; background: #fff;" required>
+                        <!-- Populated dynamically with available cores -->
+                    </select>
+                </div>
+
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">2. Model Identifier / Checkpoint:</label>
+                    <select id="engineModelPresetSelect" onchange="onEngineModelPresetSelectChange()" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; background: #fff;">
+                        <!-- Dynamically populated presets for selected core -->
+                    </select>
+                </div>
+
+                <div id="engineCustomModelIdContainer" style="display: none;">
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Custom Model ID / Checkpoint String:</label>
+                    <input type="text" id="engineCustomModelIdInput" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.84rem;" placeholder="e.g. llama-3.3-70b or gemini-3.7-flash">
+                </div>
+
+                <div style="display: flex; gap: 0.75rem;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Display Name:</label>
+                        <input type="text" id="engineModelDisplayNameInput" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" placeholder="e.g. Gemini 3.7 Flash" required>
+                    </div>
+                    <div style="width: 140px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Region / Location:</label>
+                        <input type="text" id="engineModelLocationInput" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" value="us-central1">
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Description & Capabilities:</label>
+                    <textarea id="engineModelDescriptionInput" rows="2" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; font-size: 0.82rem;" placeholder="Brief description of the model's strengths, reasoning style, or capabilities..."></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                    <button type="button" class="btn-pill-header" onclick="closeAddModelToEngineModal()">Cancel</button>
+                    <button type="submit" class="btn-send" style="padding: 0.6rem 1.5rem;">💾 Add Model to Core</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Skill Analytics Modal -->
+    <div class="modal" id="skillAnalyticsModal">
+        <div class="modal-content" style="max-width: 800px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.5rem;">📊</span>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.15rem; color: #1f1f1f;">Skill Usage Analytics & Leaderboard</h3>
+                        <div style="font-size: 0.78rem; color: #5f6368;">Real-time skill invocation counts across all team members and research projects.</div>
+                    </div>
+                </div>
+                <button class="btn-pill-header" onclick="closeSkillAnalyticsModal()">Close ✕</button>
+            </div>
+
+            <div id="skillCategoryTabs" style="display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.35rem 0 0.65rem 0; border-bottom: 1px solid #e1e3e1; font-size: 0.82rem; flex-shrink: 0; align-items: center;">
+                <button onclick="filterSkillCategory('ALL', this)" style="background: #e8f0fe; color: #0b57d0; border: 1px solid #c2e7ff; font-weight: 700; padding: 0.4rem 0.85rem; border-radius: 20px; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-size: 0.8rem;">ALL SKILLS</button>
+                <button onclick="filterSkillCategory('Genomics & Science', this)" style="background: #fff; color: #333; border: 1px solid #ccc; padding: 0.4rem 0.85rem; border-radius: 20px; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-size: 0.8rem;">🔬 Genomics & Science</button>
+                <button onclick="filterSkillCategory('Web & UI', this)" style="background: #fff; color: #333; border: 1px solid #ccc; padding: 0.4rem 0.85rem; border-radius: 20px; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-size: 0.8rem;">🌐 Web & UI</button>
+                <button onclick="filterSkillCategory('Security', this)" style="background: #fff; color: #333; border: 1px solid #ccc; padding: 0.4rem 0.85rem; border-radius: 20px; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-size: 0.8rem;">🛡️ Security</button>
+                <button onclick="filterSkillCategory('General Platform', this)" style="background: #fff; color: #333; border: 1px solid #ccc; padding: 0.4rem 0.85rem; border-radius: 20px; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-size: 0.8rem;">⚙️ General Platform</button>
+            </div>
+
+            <div id="skillAnalyticsList" style="display: flex; flex-direction: column; gap: 0.65rem; margin-top: 0.5rem;">
+                <!-- Populated dynamically via renderSkillList() -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Import / Register ADK Agent Modal -->
+    <div class="modal" id="importAdkAgentModal">
+        <div class="modal-content" style="max-width: 580px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3 id="importAgentModalTitle" style="color: #6a1b9a;">Import / Register ADK Agent</h3>
+                <button class="btn-pill-header" onclick="closeImportAdkAgentModal()">Close ✕</button>
+            </div>
+            <form id="importAdkAgentForm" style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.88rem;">
+                <input type="hidden" id="adkAgentEditId">
+                <input type="hidden" id="adkAgentProviderType" value="google-adk">
+
+                <div style="display: flex; gap: 0.75rem;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Agent Name (from ADK):</label>
+                        <input type="text" id="adkAgentNameInput" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" placeholder="e.g. Nexus, A2A Coordinator" required>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Agent ID (Package Name):</label>
+                        <input type="text" id="adkAgentIdInput" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" placeholder="e.g. nexus, coordinator" required>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Functional Role / Specialty:</label>
+                        <input type="text" id="adkAgentRoleInput" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" placeholder="e.g. Autonomous Systems Specialist" required>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Foundation Model:</label>
+                        <select id="adkAgentModelSelect" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; background: #fff;" required>
+                            <option value="gemini-3.7-flash">Gemini 3.7 Flash</option>
+                            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                            <option value="claude-sonnet-5">Claude Sonnet 5</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Declared Skills / Capabilities (comma-separated):</label>
+                    <input type="text" id="adkAgentSkillsInput" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" placeholder="e.g. Cross-Agent Synchronization, Distributed Pipeline Analysis">
+                </div>
+
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Authorized Read Scope Paths (one per line):</label>
+                    <textarea id="adkAgentReadScopeInput" rows="2" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; font-size: 0.82rem;" placeholder="./workspace/project_lantern"></textarea>
+                </div>
+
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">ADK System Directives / Instructions:</label>
+                    <textarea id="adkAgentSystemPromptInput" rows="3" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; font-size: 0.82rem;" placeholder="Core identity instructions, operational constraints, and behavioral directives from ADK..."></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                    <button type="button" class="btn-pill-header" onclick="closeImportAdkAgentModal()">Cancel</button>
+                    <button type="submit" class="btn-send" style="padding: 0.6rem 1.5rem; background: #6a1b9a;">💾 Save ADK Agent</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Personality Persona Popover Card -->
+    <div class="popover-backdrop" id="personaPopoverBackdrop" onclick="closePersonaPopover()">
+        <div class="persona-card-popover" id="personaPopoverContent" onclick="event.stopPropagation()">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid #e1e3e1; padding-bottom: 0.75rem; margin-bottom: 0.85rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div id="popoverAvatar" style="font-size: 2.2rem; line-height: 1;">👤</div>
+                    <div>
+                        <h3 id="popoverName" style="font-size: 1.15rem; font-weight: 700; color: #1f1f1f; margin: 0;">Name</h3>
+                        <div style="display: flex; gap: 0.35rem; margin-top: 0.25rem; flex-wrap: wrap;">
+                            <span id="popoverModel" style="font-size: 0.72rem; color: #1b5e20; background: #e8f5e9; border: 1px solid #c8e6c9; font-weight: 600; padding: 0.1rem 0.45rem; border-radius: 8px;">Model</span>
+                            <span id="popoverHarness" style="font-size: 0.72rem; color: #b06000; background: #fff8e1; border: 1px solid #ffe082; font-weight: 600; padding: 0.1rem 0.45rem; border-radius: 8px; display: none;">Harness</span>
+                            <span id="popoverMbti" style="font-size: 0.72rem; color: #4a148c; background: #f3e5f5; border: 1px solid #e1bee7; font-weight: 600; padding: 0.1rem 0.45rem; border-radius: 8px;">MBTI</span>
+                            <span id="popoverBalance" style="font-size: 0.72rem; color: #0d47a1; background: #e3f2fd; border: 1px solid #bbdefb; font-weight: 600; padding: 0.1rem 0.45rem; border-radius: 8px;">Balance</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-pill-header" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;" onclick="closePersonaPopover()">✕</button>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.65rem; font-size: 0.84rem; max-height: 380px; overflow-y: auto; padding-right: 0.3rem;">
+                <div id="popoverProjectRoleBox" style="background: #e8f0fe; border: 1px solid #c2e7ff; border-radius: 12px; padding: 0.75rem 0.85rem; position: relative;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
+                        <strong style="font-size: 0.75rem; color: #0b57d0; text-transform: uppercase; letter-spacing: 0.04em;">📍 Role in Current Project:</strong>
+                        <button id="btnEditProjectRole" onclick="toggleEditProjectRole(true)" style="background: none; border: none; font-size: 0.76rem; color: #0b57d0; cursor: pointer; font-weight: 600;">✏️ Edit Role</button>
+                    </div>
+
+                    <!-- View Mode -->
+                    <div id="popoverRoleViewMode">
+                        <div id="popoverProjectRoleTitle" style="font-weight: 600; color: #1f1f1f; font-size: 0.9rem;"></div>
+                        <div id="popoverProjectRoleHighlights" style="font-size: 0.82rem; color: #3c4043; margin-top: 0.25rem; line-height: 1.4;"></div>
+                    </div>
+
+                    <!-- Edit Mode -->
+                    <div id="popoverRoleEditMode" style="display: none; flex-direction: column; gap: 0.45rem; margin-top: 0.35rem;">
+                        <input type="text" id="inputProjectRoleTitle" style="width: 100%; padding: 0.4rem; border: 1px solid #a8c7fa; border-radius: 6px; font-size: 0.84rem; font-family: inherit;" placeholder="e.g. Technical Member of Staff">
+                        <textarea id="inputProjectRoleHighlights" rows="1" oninput="autoResizeTextarea(this)" style="width: 100%; padding: 0.4rem; border: 1px solid #a8c7fa; border-radius: 6px; font-size: 0.8rem; font-family: inherit; overflow-y: hidden; resize: vertical;" placeholder="e.g. General tech help"></textarea>
+                        <div style="display: flex; gap: 0.4rem; justify-content: flex-end;">
+                            <button onclick="toggleEditProjectRole(false)" class="btn-pill-header" style="padding: 0.2rem 0.6rem; font-size: 0.75rem; background: #fff; border: 1px solid #ccc; color: #333;">Cancel</button>
+                            <button onclick="saveProjectRoleFromPopover()" class="btn-pill-header" style="padding: 0.2rem 0.7rem; font-size: 0.75rem; background: #0b57d0; color: #fff;">💾 Save Role</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: #f8fafd; border: 1px solid #e1e3e1; border-radius: 12px; padding: 0.65rem 0.85rem; position: relative;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                        <strong style="font-size: 0.75rem; color: #5f6368; text-transform: uppercase; letter-spacing: 0.04em;">🔑 Access Permissions:</strong>
+                        <button id="btnEditPopoverAccess" onclick="toggleEditPopoverAccess(true)" style="background: none; border: none; font-size: 0.76rem; color: #0b57d0; cursor: pointer; font-weight: 600;">✏️ Edit Permissions</button>
+                    </div>
+
+                    <!-- View Mode -->
+                    <div id="popoverAccessViewMode" style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.78rem;">
+                        <div><strong style="color: #0b57d0;">👁️ Read:</strong> <span id="popoverAccessRead" style="color: #1f1f1f;"></span></div>
+                        <div><strong style="color: #1b5e20;">✍️ Write:</strong> <span id="popoverAccessWrite" style="color: #1f1f1f;"></span></div>
+                    </div>
+
+                    <!-- Edit Mode -->
+                    <div id="popoverAccessEditMode" style="display: none; flex-direction: column; gap: 0.45rem; margin-top: 0.35rem;">
+                        <div>
+                            <label style="font-size: 0.72rem; font-weight: 600; color: #0b57d0; display: block; margin-bottom: 0.15rem;">👁️ Read Access (one entry per line):</label>
+                            <textarea id="inputPopoverAccessRead" rows="1" oninput="autoResizeTextarea(this)" style="width: 100%; padding: 0.35rem 0.5rem; border: 1px solid #a8c7fa; border-radius: 6px; font-size: 0.78rem; font-family: inherit; overflow-y: hidden; resize: vertical;"></textarea>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.72rem; font-weight: 600; color: #1b5e20; display: block; margin-bottom: 0.15rem;">✍️ Write Access (one entry per line):</label>
+                            <textarea id="inputPopoverAccessWrite" rows="1" oninput="autoResizeTextarea(this)" style="width: 100%; padding: 0.35rem 0.5rem; border: 1px solid #a5d6a7; border-radius: 6px; font-size: 0.78rem; font-family: inherit; overflow-y: hidden; resize: vertical;"></textarea>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.72rem; font-weight: 600; color: #5f6368; display: block; margin-bottom: 0.15rem;">📝 Scope Notes:</label>
+                            <textarea id="inputPopoverAccessNotes" rows="1" oninput="autoResizeTextarea(this)" style="width: 100%; padding: 0.35rem 0.5rem; border: 1px solid #ccc; border-radius: 6px; font-size: 0.78rem; font-family: inherit; overflow-y: hidden; resize: vertical;"></textarea>
+                        </div>
+                        <div style="display: flex; gap: 0.4rem; justify-content: flex-end; margin-top: 0.2rem;">
+                            <button onclick="toggleEditPopoverAccess(false)" class="btn-pill-header" style="padding: 0.2rem 0.6rem; font-size: 0.75rem; background: #fff; border: 1px solid #ccc; color: #333;">Cancel</button>
+                            <button onclick="savePopoverAccess()" class="btn-pill-header" style="padding: 0.2rem 0.7rem; font-size: 0.75rem; background: #0b57d0; color: #fff;">💾 Save Permissions</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: #ffffff; border: 1px solid #e1e3e1; border-radius: 12px; padding: 0.65rem 0.85rem;">
+                    <strong style="font-size: 0.75rem; color: #5f6368; text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 0.3rem;">🛠️ Preferred Skills:</strong>
+                    <div id="popoverSkillsList" style="display: flex; flex-wrap: wrap; gap: 0.3rem;"></div>
+                </div>
+
+                <div id="popoverCognitiveStyleBox" style="background: #fdf7ff; border: 1px solid #e1bee7; border-radius: 12px; padding: 0.65rem 0.85rem; display: none;">
+                    <div style="font-size: 0.75rem; font-weight: 700; color: #6a1b9a; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.35rem;">
+                        <span>🎭</span> <span id="popoverCognitiveTitle">Cognitive Style</span>
+                    </div>
+                    <div style="font-size: 0.76rem; color: #374151; line-height: 1.45; display: flex; flex-direction: column; gap: 0.25rem;">
+                        <div><strong>🧠 Stack:</strong> <span id="popoverCognitiveFunctions"></span></div>
+                        <div><strong>⚡ Dynamics:</strong> <span id="popoverCognitiveStyle"></span></div>
+                        <div><strong>💬 Voice:</strong> <span id="popoverCognitiveVoice"></span></div>
+                    </div>
+                </div>
+
+                <div>
+                    <strong style="font-size: 0.75rem; color: #5f6368; text-transform: uppercase; letter-spacing: 0.04em; display: block;">System Persona Directive:</strong>
+                    <div id="popoverSystemPrompt" style="background: #1e1e1e; color: #4ec9b0; font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; padding: 0.6rem; border-radius: 8px; margin-top: 0.25rem; white-space: pre-wrap; line-height: 1.4;"></div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.85rem; border-top: 1px solid #e1e3e1; padding-top: 0.65rem;">
+                <button id="popoverFullProfileBtn" class="btn-pill-header" style="background: #0b57d0; color: #ffffff;">📜 Full Profile & Resume</button>
+            </div>
+        </div>
+    </div>
+
+        <!-- Bridge Deck Client Modules (Zero-Build Ordered Scripts) -->
+    <script src="static/js/tenant-fetch.js"></script>
+    <script src="static/js/state.js"></script>
+    <script src="static/js/renderer.js"></script>
+    <script src="static/js/navigation.js"></script>
+    <script src="static/js/modals.js"></script>
+    <script src="static/js/chat.js"></script>
+    <script src="static/js/a2a-monitor.js"></script>
+    <script src="static/js/bootstrap.js"></script>
+</body>
+</html>

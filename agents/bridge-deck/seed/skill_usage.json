@@ -1,0 +1,137 @@
+{
+  "skills": [
+    {
+      "id": "modern-web-guidance",
+      "name": "Modern Web Guidance",
+      "category": "Web & UI",
+      "icon": "\ud83c\udf10",
+      "description": "Search tool for modern web development best practices, CSS grid, view transitions, and frontend layout.",
+      "total_uses": 38,
+      "agent_uses": {
+        "astra": 24,
+        "vector": 10,
+        "lumen": 4
+      },
+      "last_used": "2026-08-16T16:50:00Z"
+    },
+    {
+      "id": "pymol",
+      "name": "PyMOL Structure Renderer",
+      "category": "Genomics & Science",
+      "icon": "\ud83e\uddec",
+      "description": "Visualize, analyze, and render 3D protein and molecular structures using PyMOL.",
+      "total_uses": 29,
+      "agent_uses": {
+        "lumen": 18,
+        "vector": 9,
+        "astra": 2
+      },
+      "last_used": "2026-08-16T16:10:00Z"
+    },
+    {
+      "id": "literature-search-arxiv",
+      "name": "ArXiv Literature Search",
+      "category": "Genomics & Science",
+      "icon": "\ud83d\udcda",
+      "description": "Search scientific papers, preprints, and publications on arXiv for mechanistic interpretability research.",
+      "total_uses": 26,
+      "agent_uses": {
+        "lumen": 20,
+        "vector": 4,
+        "lead": 2
+      },
+      "last_used": "2026-08-16T15:45:00Z"
+    },
+    {
+      "id": "alphagenome-single-variant-analysis",
+      "name": "AlphaGenome Variant Analysis",
+      "category": "Genomics & Science",
+      "icon": "\ud83d\udd2c",
+      "description": "Analyzes genetic variant effects on gene expression (RNA-seq), chromatin accessibility, and transcription factors.",
+      "total_uses": 21,
+      "agent_uses": {
+        "lumen": 15,
+        "vector": 6
+      },
+      "last_used": "2026-08-16T14:30:00Z"
+    },
+    {
+      "id": "run_security_scanner",
+      "name": "Security Vulnerability Scanner",
+      "category": "Security",
+      "icon": "\ud83d\udee1\ufe0f",
+      "description": "Scans source files for security vulnerabilities (XSS, SQLi, CSRF, hardcoded secrets).",
+      "total_uses": 18,
+      "agent_uses": {
+        "vector": 14,
+        "astra": 4
+      },
+      "last_used": "2026-08-16T13:20:00Z"
+    },
+    {
+      "id": "chrome-extensions",
+      "name": "Chrome Extension Builder",
+      "category": "Web & UI",
+      "icon": "\ud83e\udde9",
+      "description": "Build and publish Chrome Extensions using Manifest V3 best practices.",
+      "total_uses": 14,
+      "agent_uses": {
+        "astra": 11,
+        "vector": 3
+      },
+      "last_used": "2026-08-16T12:00:00Z"
+    },
+    {
+      "id": "pubchem-database",
+      "name": "PubChem Bioactivity Database",
+      "category": "Genomics & Science",
+      "icon": "\ud83e\uddea",
+      "description": "Query PubChem by name/CID/SMILES for bioactive molecules and chemical properties.",
+      "total_uses": 12,
+      "agent_uses": {
+        "lumen": 9,
+        "vector": 3
+      },
+      "last_used": "2026-08-16T11:15:00Z"
+    },
+    {
+      "id": "predictingthepast",
+      "name": "Ancient Text Restoration (Aeneas/Ithaca)",
+      "category": "Genomics & Science",
+      "icon": "\ud83d\udcdc",
+      "description": "Ancient text restoration, attribution, and dating via Aeneas (Latin) & Ithaca (Ancient Greek).",
+      "total_uses": 9,
+      "agent_uses": {
+        "lumen": 8,
+        "lead": 1
+      },
+      "last_used": "2026-08-16T10:00:00Z"
+    },
+    {
+      "id": "antigravity-guide",
+      "name": "Antigravity System Guide",
+      "category": "System & Customization",
+      "icon": "\ud83d\ude80",
+      "description": "Comprehensive sitemap and guide for Google Antigravity (AGY CLI, agents, skills, and MCP).",
+      "total_uses": 8,
+      "agent_uses": {
+        "astra": 5,
+        "vector": 3
+      },
+      "last_used": "2026-08-16T09:30:00Z"
+    },
+    {
+      "id": "scan_dependencies",
+      "name": "Dependency Package Auditor",
+      "category": "Security",
+      "icon": "\ud83d\udce6",
+      "description": "Validates third-party package security before importing dependencies.",
+      "total_uses": 6,
+      "agent_uses": {
+        "vector": 5,
+        "astra": 1
+      },
+      "last_used": "2026-08-16T08:45:00Z"
+    }
+  ]
+}
