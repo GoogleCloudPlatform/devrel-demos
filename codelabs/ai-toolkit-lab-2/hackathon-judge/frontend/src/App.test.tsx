@@ -15,15 +15,28 @@
  */
 
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 
-vi.mock('swr');
+vi.mock('swr', () => {
+  const mockMutate = vi.fn();
+  return {
+    default: vi.fn(),
+    useSWRConfig: vi.fn(() => ({ mutate: mockMutate })),
+  };
+});
+
 const mockUseSWR = useSWR as unknown as ReturnType<typeof vi.fn>;
+const mockUseSWRConfig = useSWRConfig as unknown as ReturnType<typeof vi.fn>;
 
 describe('App Component', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    mockUseSWRConfig.mockReturnValue({ mutate: vi.fn() });
+  });
+
   it('renders the layout and home page', () => {
     mockUseSWR.mockReturnValue({ data: undefined, error: undefined, isLoading: true });
     render(
@@ -46,12 +59,13 @@ describe('App Component', () => {
 
   it('renders the dashboard page', () => {
     mockUseSWR.mockReturnValue({ data: undefined, error: undefined, isLoading: true });
-    render(
+    const { container } = render(
       <MemoryRouter initialEntries={['/dashboard']}>
         <App />
       </MemoryRouter>
     );
-    expect(screen.getByText(/Loading hackathons\.\.\./i)).toBeInTheDocument();
+    const skeleton = container.querySelector('.animate-pulse');
+    expect(skeleton).toBeInTheDocument();
   });
 
   it('renders the hackathon detail page', async () => {
