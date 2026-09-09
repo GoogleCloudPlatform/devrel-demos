@@ -1,0 +1,30 @@
+version: 2
+
+sources:
+  - name: cymbal_pets
+    # TODO: Replace YOUR_PROJECT_ID with your Google Cloud Project ID
+    database: YOUR_PROJECT_ID
+    schema: cymbal_pets
+    description: "Raw product reviews and transactional customer feedback for Cymbal Pets."
+    tables:
+      - name: reviews
+        description: "Raw customer reviews table containing unstructured review text, order IDs, and product IDs."
+        columns:
+          - name: order_item_id
+            description: "Primary key identifier for each review item."
+          - name: order_id
+            description: "Foreign key identifier linking review to the order."
+          - name: product_id
+            description: "Identifier of the pet product being reviewed."
+          - name: review
+            description: "Unstructured free-form text feedback provided by the customer."
+
+      - name: orders
+        description: "Raw customer orders table containing order dates and customer IDs."
+        columns:
+          - name: order_id
+            description: "Primary key identifier for each order."
+          - name: customer_id
+            description: "Identifier of the customer who placed the order."
+          - name: order_date
+            description: "Date when the order was placed."

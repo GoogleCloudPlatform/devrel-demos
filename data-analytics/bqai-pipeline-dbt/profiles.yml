@@ -1,0 +1,12 @@
+bigquery:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: oauth
+      # TODO: Replace YOUR_PROJECT_ID with your Google Cloud Project ID
+      project: YOUR_PROJECT_ID
+      dataset: cymbal_pets_dbt
+      threads: 4
+      timeout_seconds: 1200
+      location: US

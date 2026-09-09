@@ -1,0 +1,31 @@
+name: 'dbt_sql_first_ai_demo'
+version: '1.0.0'
+config-version: 2
+
+# Profile configuration for BigQuery connection
+profile: 'bigquery'
+
+# Model directory structure
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Configure materialization strategies across project layers
+models:
+  dbt_sql_first_ai_demo:
+    # Staging Layer: Lightweight views over source data for schema standardization
+    staging:
+      +materialized: view
+    # Intermediate Layer: Incremental materialization to optimize LLM cost & latency
+    intermediate:
+      +materialized: incremental
+    # Marts Layer: Aggregated tables for BI reporting & semantic summarization
+    marts:
+      +materialized: table
