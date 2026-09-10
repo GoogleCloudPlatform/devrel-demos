@@ -29,7 +29,7 @@ renamed as (
 
     select
         cast(r.order_item_id as string) as review_id,
-        cast(coalesce(o.customer_id, r.order_id) as string) as customer_id,
+        cast(o.customer_id as string) as customer_id,
         cast(r.product_id as string) as product_id,
         cast(r.review as string) as review_text,
         cast(o.order_date as timestamp) as review_date
