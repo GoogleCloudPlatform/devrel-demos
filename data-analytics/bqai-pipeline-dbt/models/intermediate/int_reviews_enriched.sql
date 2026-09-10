@@ -149,7 +149,7 @@ ai_enriched as (
 
         -- Observability column: Track status and mark dead-letter rows after max retries
         case
-            when gen_struct.status is null or gen_struct.status = '' then 'SUCCESS'
+            when gen_struct is not null and (gen_struct.status is null or gen_struct.status = '') then 'SUCCESS'
             when ai_retry_count >= 3 then 'MAX_RETRIES_EXCEEDED'
             else coalesce(gen_struct.status, 'FAILED_PENDING_RETRY')
         end as ai_generation_status
