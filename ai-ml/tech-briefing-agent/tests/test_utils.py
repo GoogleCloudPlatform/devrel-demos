@@ -192,7 +192,10 @@ class TestFeedFetching:
 
     @pytest.mark.asyncio
     async def test_fetch_rss_feeds(self):
-        sample_rss = """<?xml version="1.0" encoding="UTF-8"?>
+        import email.utils
+        import time
+        now_rfc822 = email.utils.formatdate(time.time(), usegmt=True)
+        sample_rss = f"""<?xml version="1.0" encoding="UTF-8"?>
         <rss version="2.0">
             <channel>
                 <title>Google Cloud Blog</title>
@@ -200,7 +203,7 @@ class TestFeedFetching:
                     <title>Cloud Run Instances Launched</title>
                     <link>https://cloud.google.com/blog/instances</link>
                     <comments>https://cloud.google.com/blog/instances#comments</comments>
-                    <pubDate>Thu, 27 Aug 2026 12:00:00 GMT</pubDate>
+                    <pubDate>{now_rfc822}</pubDate>
                     <description>Singleton containers with persistent volume mounts for reliable background workers.</description>
                 </item>
             </channel>
