@@ -1,0 +1,13 @@
+# Build an Agentic Pitch Generator: Orchestration, Evaluation, and Analytics with Google Cloud
+
+## Welcome to the Agent Masterclass
+
+![agent masterclass banner](img/banner.png)
+
+## Overview
+
+Learn how to build a multimodal multi-agent engine that takes a raw topic brief and orchestrates the creation of highly engaging social assets. Using Google's Agent Development Kit (ADK) and the Agent2Agent (A2A) protocol, you'll compose autonomous micro-agents, package brand rules as a reusable agent skill, deploy the services to Cloud Run, and score the generated key visuals for brand compliance with BigQuery AI functions.
+
+## Deploy
+
+This is a companion repository for an amazing Google Skills lab. Point your agent at the deployment instructions and profit!
