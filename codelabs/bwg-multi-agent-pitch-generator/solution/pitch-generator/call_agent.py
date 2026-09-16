@@ -21,7 +21,6 @@ import subprocess
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import httpx
 from a2a.client import Client, ClientConfig, ClientFactory
@@ -72,7 +71,9 @@ class PitchGeneratorClient:
             ) from e
 
     async def _create_a2a_client(self, token: str) -> tuple[Client, httpx.AsyncClient]:
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = None
+        if token:
+            headers = {"Authorization": f"Bearer {token}"}
         async_client = httpx.AsyncClient(headers=headers, timeout=self.timeout)
         config = ClientConfig(streaming=False, httpx_client=async_client)
         factory = ClientFactory(config=config)
@@ -133,7 +134,7 @@ class PitchGeneratorClient:
 
     async def generate_pitch_async(self, prompt: str, auto_approve: bool = False) -> PitchResult:
         """Send a prompt to pitch-generator using a2a-sdk primitives and return result."""
-        token = self._get_id_token()
+        token = self._get_id_token() if self.service_url.startswith("https") else None
         client, async_client = await self._create_a2a_client(token)
 
         try:
@@ -231,6 +232,12 @@ def main():
         help="Path to save the generated key visual image (e.g., ./pitch.jpg)",
     )
     parser.add_argument(
+        "--agent-url",
+        type=str,
+        default=None,
+        help="Pitch Generator agent URL",
+    )
+    parser.add_argument(
         "-y",
         "--auto-approve",
         action="store_true",
@@ -239,7 +246,9 @@ def main():
     args = parser.parse_args()
 
     try:
-        service_url = (
+        service_url = args.agent_url or os.getenv("PITCH_GENERATOR_URL")
+        if not service_url:
+            service_url = (
             subprocess.check_output(
                 [
                     "gcloud",
