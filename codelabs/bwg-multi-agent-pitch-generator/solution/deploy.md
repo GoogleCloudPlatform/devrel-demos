@@ -6,11 +6,16 @@ Export the environment first. `setenv.sh` derives everything from `PROJECT_ID` a
 export PROJECT_ID="your-qwiklabs-project-id"
 export REGION="your-lab-region"
 source ./setenv.sh
+export LOGS_BUCKET_NAME="${PROJECT_ID}-bwg"
 ```
 
-> Create a Google Cloud Storage bucket `$PROJECT_ID-bwg` using `gcloud storage buckets create gs://$PROJECT_ID-bwg --uniform-bucket-level-access --location=$REGION --project=$PROJECT_ID` command.
+Create logs and artifacts bucket:
 
-Deploy `visual-director` agent
+```bash
+gcloud storage buckets create gs://${PROJECT_ID}-bwg --uniform-bucket-level-access --location=$REGION --project=$PROJECT_ID
+```
+
+Deploy `visual-director` agent:
 
 ```bash
 pushd visual-director
