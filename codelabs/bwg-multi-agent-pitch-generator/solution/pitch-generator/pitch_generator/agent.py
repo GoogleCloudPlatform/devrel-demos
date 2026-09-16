@@ -16,6 +16,7 @@ import asyncio
 import mimetypes
 import os
 
+import subprocess
 import google.auth.transport.requests
 import google.oauth2.id_token
 import httpx
@@ -48,23 +49,34 @@ VISUAL_DIRECTOR_URL = os.getenv("VISUAL_DIRECTOR_URL", "http://localhost:8801")
 
 ## For deployment on Cloud Run
 def _cloud_run_client() -> httpx.AsyncClient | None:
-    """An httpx client that signs each request with a Cloud Run ID token.
+   """An httpx client that signs each request with a Cloud Run ID token.
 
-    Cloud Run deploys private, so both the agent-card fetch and the A2A calls
-    need one.
-    """
-    if not VISUAL_DIRECTOR_URL.startswith("https://"):
-        return None
+   Cloud Run deploys private, so both the agent-card fetch and the A2A calls
+   need one.
+   """
+   if not VISUAL_DIRECTOR_URL.startswith("https://"):
+      return None
 
-    async def sign(request: httpx.Request) -> None:
-        token = await asyncio.to_thread(
-            google.oauth2.id_token.fetch_id_token,
-            google.auth.transport.requests.Request(),
-            VISUAL_DIRECTOR_URL,
-        )
-        request.headers["Authorization"] = f"Bearer {token}"
+   async def sign(request: httpx.Request) -> None:
+      token = None
 
-    return httpx.AsyncClient(event_hooks={"request": [sign]}, timeout=600)
+      try:
+         token = await asyncio.to_thread(
+               google.oauth2.id_token.fetch_id_token,
+               google.auth.transport.requests.Request(),
+               VISUAL_DIRECTOR_URL,
+         )
+      except Exception:
+         token = subprocess.check_output(
+            ["gcloud", "auth", "print-identity-token", "-q"],
+            stderr=subprocess.PIPE
+         ).decode().strip()
+      if not token:
+            raise Exception("Failed to fetch ID token")
+      request.headers["Authorization"] = f"Bearer {token}"
+
+   return httpx.AsyncClient(event_hooks={"request": [sign]}, timeout=600)
+
 
 visual_director = RemoteA2aAgent(
     name="visual_director",
