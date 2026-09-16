@@ -59,9 +59,6 @@ export GOOGLE_CLOUD_REGION="$REGION"
 export GOOGLE_CLOUD_LOCATION="global"
 export GOOGLE_GENAI_USE_VERTEXAI="true"
 
-# Cloud Storage bucket for persisting agent artifacts and logs.
-export LOGS_BUCKET_NAME="${LOGS_BUCKET_NAME:-$GOOGLE_CLOUD_PROJECT-bwg}"
-
 # Where the coordinator looks for the Visual Director. Left as the local address
 # for the build-and-test tasks; the deploy task replaces it with a Cloud Run URL.
 export VISUAL_DIRECTOR_URL="${VISUAL_DIRECTOR_URL:-http://localhost:8801}"
@@ -70,5 +67,4 @@ echo "  🎉  🦄  Environment configured:"
 echo "  GOOGLE_CLOUD_PROJECT:  $GOOGLE_CLOUD_PROJECT"
 echo "  GOOGLE_CLOUD_REGION:   $GOOGLE_CLOUD_REGION"
 echo "  GOOGLE_CLOUD_LOCATION: $GOOGLE_CLOUD_LOCATION"
-echo "  LOGS_BUCKET_NAME:      $LOGS_BUCKET_NAME"
 echo "  VISUAL_DIRECTOR_URL:   $VISUAL_DIRECTOR_URL"
