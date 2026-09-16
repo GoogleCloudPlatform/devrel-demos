@@ -232,6 +232,12 @@ def main():
         help="Path to save the generated key visual image (e.g., ./pitch.jpg)",
     )
     parser.add_argument(
+        "--agent-url",
+        type=str,
+        default=None,
+        help="Pitch Generator agent URL",
+    )
+    parser.add_argument(
         "-y",
         "--auto-approve",
         action="store_true",
@@ -240,7 +246,7 @@ def main():
     args = parser.parse_args()
 
     try:
-        service_url = os.getenv("PITCH_GENERATOR_URL")
+        service_url = args.agent_url or os.getenv("PITCH_GENERATOR_URL")
         if not service_url:
             service_url = (
             subprocess.check_output(
