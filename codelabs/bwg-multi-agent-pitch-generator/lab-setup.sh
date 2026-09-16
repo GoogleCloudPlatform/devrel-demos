@@ -88,9 +88,11 @@ if ! command -v uv >/dev/null 2>&1; then
   source "$HOME/.local/bin/env" 2>/dev/null || export PATH="$HOME/.local/bin:$PATH"
 fi
 
-uv tool install "google-agents-cli==1.5.0"
+uv tool install --force "google-agents-cli==1.5.0"
+
 export PATH="$HOME/.local/bin:$PATH"
-if ! grep -q 'export PATH=.*\.local/bin' ~/.bashrc 2>/dev/null; then
+hash -r 2>/dev/null || true
+if ! grep -q 'export PATH="\$HOME/\.local/bin:\$PATH"' ~/.bashrc 2>/dev/null; then
   echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 fi
 
