@@ -51,6 +51,10 @@ if [ -z "$PROJECT_ID" ] || [ -z "$REGION" ]; then
   return 1 2>/dev/null || exit 1
 fi
 
+# Ensure user-local binaries (like uv and agents-cli 1.5.0) take precedence over pre-installed system tools.
+export PATH="$HOME/.local/bin:$PATH"
+hash -r 2>/dev/null || true
+
 export PROJECT_ID
 export REGION
 
@@ -58,6 +62,11 @@ export GOOGLE_CLOUD_PROJECT="$PROJECT_ID"
 export GOOGLE_CLOUD_REGION="$REGION"
 export GOOGLE_CLOUD_LOCATION="global"
 export GOOGLE_GENAI_USE_VERTEXAI="true"
+
+gcloud config set project "$PROJECT_ID"
+
+# Cloud Storage bucket for persisting agent artifacts and logs.
+export LOGS_BUCKET_NAME="${LOGS_BUCKET_NAME:-$GOOGLE_CLOUD_PROJECT-bwg}"
 
 # Where the coordinator looks for the Visual Director. Left as the local address
 # for the build-and-test tasks; the deploy task replaces it with a Cloud Run URL.
@@ -67,4 +76,5 @@ echo "  🎉  🦄  Environment configured:"
 echo "  GOOGLE_CLOUD_PROJECT:  $GOOGLE_CLOUD_PROJECT"
 echo "  GOOGLE_CLOUD_REGION:   $GOOGLE_CLOUD_REGION"
 echo "  GOOGLE_CLOUD_LOCATION: $GOOGLE_CLOUD_LOCATION"
+echo "  LOGS_BUCKET_NAME:      $LOGS_BUCKET_NAME"
 echo "  VISUAL_DIRECTOR_URL:   $VISUAL_DIRECTOR_URL"
