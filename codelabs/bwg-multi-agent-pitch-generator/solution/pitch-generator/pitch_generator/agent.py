@@ -21,6 +21,7 @@ import google.auth.transport.requests
 import google.oauth2.id_token
 import httpx
 from dotenv import load_dotenv
+from google.adk.a2a.converters.part_converter import convert_genai_part_to_a2a_part
 from google.adk.agents import Agent
 from google.adk.agents.context import Context
 from google.adk.agents.remote_a2a_agent import (
@@ -78,6 +79,21 @@ def _cloud_run_client() -> httpx.AsyncClient | None:
    return httpx.AsyncClient(event_hooks={"request": [sign]}, timeout=600)
 
 
+## Keep the approval's tool traffic out of the A2A request
+def _pitch_parts_only(part: types.Part):
+    """Sends the Visual Director text and media only.
+
+    RemoteA2aAgent replays the session on every call, and the Visual Director
+    runs downstream of the human approval, so the approval's function_response
+    would travel alongside the concept text. An ADK server reads a function
+    response as "resume the paused invocation" and rejects a message that also
+    carries text, so drop the tool parts here.
+    """
+    if part.function_call or part.function_response:
+        return None
+    return convert_genai_part_to_a2a_part(part)
+
+
 visual_director = RemoteA2aAgent(
     name="visual_director",
     description="Turns a campaign concept into art direction for one key visual.",
@@ -85,6 +101,7 @@ visual_director = RemoteA2aAgent(
         f"{VISUAL_DIRECTOR_URL}/a2a/visual_director{AGENT_CARD_WELL_KNOWN_PATH}"
     ),
     httpx_client=_cloud_run_client(),
+    genai_part_converter=_pitch_parts_only,
 )
 
 creative_director = Agent(
