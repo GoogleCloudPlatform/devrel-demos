@@ -10,7 +10,7 @@ import os
 # Ensure local directory is importable
 sys.path.insert(0, os.path.dirname(__file__))
 
-from harness_optimization_gists import (
+from harness_opt import (
     CacheInvariantPromptBuilder,
     ASTAwareFileReader,
     DynamicMCPRegistry,
