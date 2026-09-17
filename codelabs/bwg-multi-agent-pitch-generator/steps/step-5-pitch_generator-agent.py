@@ -1,17 +1,3 @@
-# Copyright 2026 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import asyncio
 import mimetypes
 import os
@@ -45,10 +31,10 @@ def _model() -> Gemini:
         retry_options=types.HttpRetryOptions(attempts=3),
     )
 
-## Configure visual-director RemoteA2aAgent agent below this comment
+""" ⬇️ Configure visual-director RemoteA2aAgent agent below this comment """
 VISUAL_DIRECTOR_URL = os.getenv("VISUAL_DIRECTOR_URL", "http://localhost:8801")
 
-## For deployment on Cloud Run
+""" For deployment on Cloud Run """
 def _cloud_run_client() -> httpx.AsyncClient | None:
    """An httpx client that signs each request with a Cloud Run ID token.
 
@@ -79,7 +65,7 @@ def _cloud_run_client() -> httpx.AsyncClient | None:
    return httpx.AsyncClient(event_hooks={"request": [sign]}, timeout=600)
 
 
-## Keep the approval's tool traffic out of the A2A request
+""" ⬇️ Keep the approval's tool traffic out of the A2A request """
 def _pitch_parts_only(part: types.Part):
     """Sends the Visual Director text and media only.
 
@@ -112,7 +98,7 @@ creative_director = Agent(
       "You are the Creative Director. Turn the idea you are given into ONE "
       "punchy campaign concept line with the rationale explanation behind it."
    ),
-   output_key="creative_director"
+   output_key="creative_director",
 )
 
 copywriter = Agent(
@@ -125,7 +111,7 @@ copywriter = Agent(
    ),
 )
 
-## Waits for every node wired into it, then hands their outputs on together.
+""" Waits for every node wired into it, then hands their outputs on together."""
 assemble = JoinNode(name="assemble")
 
 async def package(ctx: Context, node_input: dict):
@@ -179,7 +165,7 @@ async def approve_concept(ctx: Context):
 async def user_approval(ctx: Context):
    user_response = await ctx.run_node(approve_concept)
    if str(user_response).lower() in ("yes", "y"):
-      approved_concept = f"# Approved Concept\n\n{ctx.session.state['creative_director']}"
+      approved_concept = f"## Approved Concept\n\n{ctx.session.state['creative_director']}"
       yield Event(
          content=types.Content(
             role="model",
@@ -192,11 +178,11 @@ async def user_approval(ctx: Context):
 root_agent = Workflow(
    name="pitch_generator",
    edges=[
-        ("START", creative_director),
-        (creative_director, user_approval, (copywriter, visual_director)),
-        ((creative_director, copywriter, visual_director), assemble),
-        (assemble, package),
-    ],
+      ("START", creative_director),
+      (creative_director, user_approval, (copywriter, visual_director)),
+      ((creative_director, copywriter, visual_director), assemble),
+      (assemble, package),
+   ],
 )
 
 app = App(

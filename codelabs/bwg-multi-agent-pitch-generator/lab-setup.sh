@@ -75,6 +75,25 @@ echo " "
 # script's own shell, so the learner sources setenv.sh again in their terminal.
 source setenv.sh
 
+# Cloud Storage bucket for the agents' artifacts and logs. The lab instructions
+# tell the learner this bucket already exists, and the deploy task passes its
+# name to Cloud Run as LOGS_BUCKET_NAME, so create it up front.
+LOGS_BUCKET_NAME="$PROJECT_ID-bwg"
+echo "  🔄   Creating Cloud Storage bucket gs://$LOGS_BUCKET_NAME..."
+if gcloud storage buckets describe "gs://$LOGS_BUCKET_NAME" --project="$PROJECT_ID" >/dev/null 2>&1; then
+  echo "  ✅   Bucket gs://$LOGS_BUCKET_NAME already exists."
+elif gcloud storage buckets create "gs://$LOGS_BUCKET_NAME" \
+  --project="$PROJECT_ID" \
+  --location="$REGION" \
+  --uniform-bucket-level-access >/dev/null 2>&1; then
+  echo "  ✅   Bucket gs://$LOGS_BUCKET_NAME created."
+else
+  echo "⚠️   Could not create gs://$LOGS_BUCKET_NAME."
+  echo "👉  Create it manually before the Cloud Storage task:"
+  echo "       gcloud storage buckets create gs://$LOGS_BUCKET_NAME --uniform-bucket-level-access --location=$REGION --project=$PROJECT_ID"
+fi
+echo " "
+
 # Create BigQuery connection if it does not exist
 echo "  🔄   Creating BigQuery connection..."
 bq mk --connection --location="$REGION" --project_id="$PROJECT_ID" --connection_type=CLOUD_RESOURCE pitch-connection 2>/dev/null || true
@@ -88,9 +107,10 @@ if ! command -v uv >/dev/null 2>&1; then
   source "$HOME/.local/bin/env" 2>/dev/null || export PATH="$HOME/.local/bin:$PATH"
 fi
 
-uv tool install "google-agents-cli==1.5.0"
 export PATH="$HOME/.local/bin:$PATH"
-if ! grep -q 'export PATH=.*\.local/bin' ~/.bashrc 2>/dev/null; then
+agents-cli >/dev/null 2>&1 || uv tool install "google-agents-cli==1.6.*"
+hash -r 2>/dev/null || true
+if ! grep -q 'export PATH="\$HOME/\.local/bin:\$PATH"' ~/.bashrc 2>/dev/null; then
   echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 fi
 
