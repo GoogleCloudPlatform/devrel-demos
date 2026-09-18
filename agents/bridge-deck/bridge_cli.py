@@ -80,9 +80,9 @@ def _post_message_direct(prompt: str, sender: str = "Vector (Implementation Lead
             "raw_response_json": {"status": "success"}
         }
 
-        data = load_history()
+        data, gen = load_history(return_gen=True)
         data.setdefault("transactions", []).append(new_tx)
-        save_history(data)
+        save_history(data, expected_generation=gen)
 
         print(f"[✓] DIRECT BRIDGE TRANSACTION SUCCESS ({tx_id})")
         print(f"Sender: {sender} | Mode: {mode}")

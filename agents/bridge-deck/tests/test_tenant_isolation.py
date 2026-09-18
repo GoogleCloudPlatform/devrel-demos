@@ -9,6 +9,8 @@ import sys
 import json
 import shutil
 import tempfile
+import io
+import fnmatch
 import unittest
 import unittest.mock
 from pathlib import Path
@@ -162,19 +164,6 @@ class TestTenantIsolation(unittest.TestCase):
         2. Seed templates (seed/) contain zero specific agent identities (Astra, Vector, Lumen, Nexus, Orion).
         3. Legacy persona references in bridge_runner.py are explicitly inventoried and guarded by a non-growth ratchet.
         """
-        scan_targets = [
-            ROOT_DIR / "seed",
-            ROOT_DIR / "core",
-            ROOT_DIR / "providers",
-            ROOT_DIR / "bridge_runner.py",
-            ROOT_DIR / "bridge_cli.py",
-            ROOT_DIR / "bridge_listener.py",
-            ROOT_DIR / "index.html",
-            ROOT_DIR / "README.md",
-            ROOT_DIR / "LICENSE",
-            ROOT_DIR / "docs",
-            ROOT_DIR / "tests"
-        ]
         self.assertTrue((ROOT_DIR / "seed").exists(), "Repository seed/ directory must exist")
         self.assertTrue((ROOT_DIR / "seed" / "models.json").exists(), "seed/models.json must exist")
 
@@ -187,23 +176,54 @@ class TestTenantIsolation(unittest.TestCase):
         ]
         SEED_IDENTITY_DENYLIST = ["Astra", "Vector", "Lumen", "Nexus", "Orion"]
 
-        for target in scan_targets:
-            if target.is_file():
-                files = [target]
-            else:
-                files = [p for p in target.glob("**/*") if p.is_file() and not p.name.endswith(".pyc")]
+        # Dynamically enumerate repository files, deriving exclusions strictly from .gitignore
+        gitignore_patterns = [".git"]
+        gi_file = ROOT_DIR / ".gitignore"
+        if gi_file.exists():
+            for line in gi_file.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    pat = line.rstrip("/")
+                    if pat not in gitignore_patterns:
+                        gitignore_patterns.append(pat)
 
-            for p in files:
+        def is_ignored(path: Path) -> bool:
+            try:
+                rel = path.relative_to(ROOT_DIR)
+            except ValueError:
+                return False
+            for part in rel.parts:
+                for pat in gitignore_patterns:
+                    if fnmatch.fnmatch(part, pat) or fnmatch.fnmatch(str(rel), pat) or fnmatch.fnmatch(str(rel), pat + "/*"):
+                        return True
+            return False
+
+        files_to_scan = []
+        for root, dirs, files in os.walk(ROOT_DIR):
+            root_path = Path(root)
+            if is_ignored(root_path):
+                dirs[:] = []
+                continue
+            dirs[:] = [d for d in dirs if not is_ignored(root_path / d)]
+            for f in files:
+                fp = root_path / f
+                if not is_ignored(fp):
+                    files_to_scan.append(fp)
+
+        for p in files_to_scan:
+            try:
                 text = p.read_text(encoding="utf-8")
-                text_folded = text.casefold()
-                # Invariant 1: Operator personal identifiers must never exist anywhere in product code, tests, docs, or seed templates (case-insensitive)
-                for lit in OPERATOR_DENYLIST:
-                    self.assertNotIn(lit.casefold(), text_folded, f"Found prohibited operator literal '{lit}' in {p.relative_to(ROOT_DIR)}")
+            except (UnicodeDecodeError, PermissionError):
+                continue
+            text_folded = text.casefold()
+            # Invariant 1: Operator personal identifiers must never exist anywhere in product code, tests, docs, or seed templates (case-insensitive)
+            for lit in OPERATOR_DENYLIST:
+                self.assertNotIn(lit.casefold(), text_folded, f"Found prohibited operator literal '{lit}' in {p.relative_to(ROOT_DIR)}")
 
-                # Invariant 2: Seed templates must be completely neutral archetypes
-                if target == ROOT_DIR / "seed":
-                    for lit in SEED_IDENTITY_DENYLIST:
-                        self.assertNotIn(lit, text, f"Found prohibited agent identity literal '{lit}' in seed template {p.relative_to(ROOT_DIR)}")
+            # Invariant 2: Seed templates must be completely neutral archetypes
+            if p.is_relative_to(ROOT_DIR / "seed"):
+                for lit in SEED_IDENTITY_DENYLIST:
+                    self.assertNotIn(lit, text, f"Found prohibited agent identity literal '{lit}' in seed template {p.relative_to(ROOT_DIR)}")
 
         # Invariant 3 (Ratchet): Legacy agent persona references in bridge_runner.py must not grow beyond current inventory
         # Carve-out inventory: Astra (5), Vector (6), Lumen (5), Nexus (2), Orion (2) = 20 total
@@ -254,8 +274,33 @@ class TestTenantIsolation(unittest.TestCase):
 
         # Invariant 5: Verify .gitignore ignores local instance artifacts and secrets
         gitignore = (ROOT_DIR / ".gitignore").read_text(encoding="utf-8")
-        for ignored in ["server.log", "data/tenants/", ".env"]:
+        for ignored in ["server.log", "data/", "data/tenants/", ".env", "deploy.env", "logs/"]:
             self.assertIn(ignored, gitignore, f".gitignore must contain '{ignored}'")
+
+    def test_git_tracked_files_respect_gitignore(self):
+        """
+        Verify that no tracked file in git matches any pattern in .gitignore
+        (ensures private directories like data/, logs/, deploy.env, .env are never tracked in git).
+        """
+        import subprocess
+        gi_file = ROOT_DIR / ".gitignore"
+        self.assertTrue(gi_file.exists(), ".gitignore must exist")
+        gi_patterns = [line.strip().rstrip("/") for line in gi_file.read_text(encoding="utf-8").splitlines() if line.strip() and not line.startswith("#")]
+
+        try:
+            res = subprocess.run(["git", "ls-files"], cwd=str(ROOT_DIR), capture_output=True, text=True, check=True)
+            tracked_files = res.stdout.splitlines()
+        except (FileNotFoundError, subprocess.CalledProcessError) as e:
+            self.skipTest(f"git unavailable: {e}")
+
+        for f in tracked_files:
+            p = Path(f)
+            for pat in gi_patterns:
+                for part in p.parts:
+                    self.assertFalse(
+                        fnmatch.fnmatch(part, pat) or fnmatch.fnmatch(f, pat) or fnmatch.fnmatch(f, pat + "/*"),
+                        f"Tracked git file '{f}' violates .gitignore pattern '{pat}'"
+                    )
 
     def test_sanitize_tenant_id_slugification(self):
         self.assertEqual(sanitize_tenant_id("Acme Corp!"), "acme_corp")
@@ -304,14 +349,14 @@ class TestTenantIsolation(unittest.TestCase):
         self.assertNotIn("cipher", beta_ids)
 
         # 2. Mutate Alpha Projects (Add 'quantum_core' project to Alpha only)
-        alpha_projects = bridge_runner.load_projects(bridge_dir=alpha_dir)
+        alpha_projects, a_gen = bridge_runner.load_projects(bridge_dir=alpha_dir, return_gen=True)
         alpha_projects["projects"].append({
             "id": "quantum_core",
             "name": "Quantum Core Probing",
             "directories": ["./workspaces/quantum"],
             "members": ["cipher"]
         })
-        bridge_runner.save_projects(alpha_projects, bridge_dir=alpha_dir)
+        bridge_runner.save_projects(alpha_projects, bridge_dir=alpha_dir, expected_generation=a_gen)
 
         beta_projects = bridge_runner.load_projects(bridge_dir=beta_dir)
         beta_proj_ids = [p["id"] for p in beta_projects["projects"]]
@@ -502,7 +547,7 @@ class TestTenantIsolation(unittest.TestCase):
         }
         
         # Save history into tenant_omega
-        bridge_runner.save_history(hist_payload, project_id="proj_omega", bridge_dir=omega_dir)
+        bridge_runner.save_history(hist_payload, project_id="proj_omega", bridge_dir=omega_dir, expected_generation=bridge_runner.UNCONDITIONAL)
         
         # Assert written into tenant history directory
         self.assertTrue((omega_dir / "history" / "history_proj_omega.json").exists())
@@ -565,7 +610,7 @@ class TestTenantIsolation(unittest.TestCase):
                 }
             ]
         }
-        bridge_runner.save_history(initial_history, project_id="test_project", bridge_dir=t_dir)
+        bridge_runner.save_history(initial_history, project_id="test_project", bridge_dir=t_dir, expected_generation=bridge_runner.UNCONDITIONAL)
         
         # 1. Exercise POST /api/reactions through HTTP Handler boundary
         react_payload = {
@@ -827,6 +872,99 @@ class TestTenantIsolation(unittest.TestCase):
 
             # Assert root projects.json does not exist
             self.assertFalse((ROOT_DIR / "projects.json").exists())
+
+    def test_check_auth_dual_channel(self):
+        """Verify _check_auth enforcement: constant-time comparison via hmac, headers, cookies, query params."""
+        class AuthDummyHandler(bridge_runner.BridgeRequestHandler):
+            def __init__(self, path, headers=None, server_host="0.0.0.0"):
+                self.path = path
+                self.headers = headers or {}
+                self.rfile = io.BytesIO(b"")
+                self.wfile = io.BytesIO()
+                self.status_code = None
+                self.response_headers = {}
+                self.server = unittest.mock.MagicMock()
+                self.server.server_address = (server_host, 8080)
+                self.client_address = ("192.168.1.100", 12345)
+
+            def send_response(self, code, message=None):
+                self.status_code = code
+
+            def send_header(self, keyword, value):
+                self.response_headers[keyword] = value
+
+            def end_headers(self):
+                pass
+
+        test_token = "secret-token-test-12345"
+        with unittest.mock.patch.dict(os.environ, {"BRIDGE_AUTH_TOKEN": test_token}):
+            # 1. No token provided -> 401 Unauthorized
+            h_no_token = AuthDummyHandler("/api/profiles")
+            self.assertFalse(h_no_token._check_auth())
+            self.assertEqual(h_no_token.status_code, 401)
+
+            # 2. Invalid token provided -> 401 Unauthorized
+            h_bad_token = AuthDummyHandler("/api/profiles", headers={"X-Bridge-Auth": "wrong-token"})
+            self.assertFalse(h_bad_token._check_auth())
+            self.assertEqual(h_bad_token.status_code, 401)
+
+            # 3. Valid X-Bridge-Auth header -> 200 OK (returns True)
+            h_valid_header = AuthDummyHandler("/api/profiles", headers={"X-Bridge-Auth": test_token})
+            self.assertTrue(h_valid_header._check_auth())
+
+            # 4. Valid bridge_auth cookie -> returns True
+            h_valid_cookie = AuthDummyHandler("/api/profiles", headers={"Cookie": f"foo=bar; bridge_auth={test_token}; baz=qux"})
+            self.assertTrue(h_valid_cookie._check_auth())
+
+            # 5. Valid Authorization: Bearer -> returns True
+            h_valid_bearer = AuthDummyHandler("/api/profiles", headers={"Authorization": f"Bearer {test_token}"})
+            self.assertTrue(h_valid_bearer._check_auth())
+
+            # 6. Valid query parameter ?token= on root -> returns True
+            h_valid_query = AuthDummyHandler(f"/?token={test_token}")
+            self.assertTrue(h_valid_query._check_auth())
+
+            # 7. Query parameter ?token= on non-root API endpoint -> disallowed for security, returns 401
+            h_invalid_query_path = AuthDummyHandler(f"/api/profiles?token={test_token}")
+            self.assertFalse(h_invalid_query_path._check_auth())
+            self.assertEqual(h_invalid_query_path.status_code, 401)
+
+        # 8. Loopback without BRIDGE_AUTH_TOKEN -> allowed without auth
+        with unittest.mock.patch.dict(os.environ, {}, clear=True):
+            h_loopback = AuthDummyHandler("/api/profiles", server_host="127.0.0.1")
+            self.assertTrue(h_loopback._check_auth())
+
+    def test_exclusion_lists_contain_data_dir(self):
+        """Verify Lumen P3: .gitignore, .dockerignore, and .gcloudignore all exclude data/."""
+        for fname in [".gitignore", ".dockerignore", ".gcloudignore"]:
+            p = ROOT_DIR / fname
+            self.assertTrue(p.exists(), f"Expected exclusion file {fname} to exist")
+            lines = [line.strip() for line in p.read_text(encoding="utf-8").splitlines()]
+            self.assertIn("data/", lines, f"Expected 'data/' to be explicitly excluded in {fname}")
+
+    def test_bridge_data_dir_env_override(self):
+        """Verify D1: BRIDGE_DATA_DIR environment variable decouples tenant data from ROOT_DIR."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            custom_data = Path(tmp_dir) / "custom_data"
+            custom_data.mkdir()
+            with unittest.mock.patch.dict(os.environ, {"BRIDGE_DATA_DIR": str(custom_data)}):
+                from core.tenant import get_data_root, get_tenant_dir, LocalStorageAdapter
+                self.assertEqual(get_data_root(), custom_data)
+                t_dir = get_tenant_dir("tenant_test")
+                self.assertEqual(t_dir, custom_data / "tenants" / "tenant_test")
+                
+                # Test LocalStorageAdapter resolution
+                adapter = LocalStorageAdapter()
+                resolved = adapter._resolve_path("tenant_test", "profiles.json")
+                self.assertEqual(resolved, custom_data / "tenants" / "tenant_test" / "profiles.json")
+
+    def test_explicit_base_dir_precedence_over_env(self):
+        """Verify N2: Explicit base_dir argument takes precedence over BRIDGE_DATA_DIR env var."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            explicit_dir = Path(tmp_dir) / "explicit_dir"
+            with unittest.mock.patch.dict(os.environ, {"BRIDGE_DATA_DIR": "/tmp/envroot"}):
+                from core.tenant import get_data_root
+                self.assertEqual(get_data_root(explicit_dir), explicit_dir / "data")
 
 
 if __name__ == "__main__":

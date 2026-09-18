@@ -766,3 +766,106 @@
             border-radius: 10px; overflow-y: auto; font-family: 'JetBrains Mono', monospace;
             font-size: 0.82rem; flex: 1; max-height: 60vh;
         }
+
+        /* Gate Evaluation Verdict Status Banner */
+        .verdict-banner {
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            border-width: 1px;
+            border-style: solid;
+            font-size: 0.85rem;
+        }
+        .verdict-approved {
+            background-color: #e6f4ea;
+            border-color: #a8dab5;
+            color: #137333;
+        }
+        .verdict-blocked {
+            background-color: #fce8e6;
+            border-color: #f5c2c7;
+            color: #c5221f;
+        }
+        .verdict-needs-revision, .verdict-conditionally-approved {
+            background-color: #fef7e0;
+            border-color: #feefc3;
+            color: #b06000;
+        }
+        .verdict-info {
+            background-color: #e8f0fe;
+            border-color: #c2e7ff;
+            color: #1a73e8;
+        }
+        .verdict-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .verdict-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 0.01em;
+        }
+        .verdict-chips {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.75rem;
+        }
+        .verdict-chip {
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 8px;
+            padding: 0.18rem 0.5rem;
+            font-weight: 600;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            color: inherit;
+        }
+        .verdict-issues {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            color: #b3261e;
+            border: 1px solid rgba(179, 38, 30, 0.2);
+            font-size: 0.82rem;
+        }
+        .verdict-raw-toggle {
+            margin-top: 0.25rem;
+            font-size: 0.72rem;
+            cursor: pointer;
+        }
+        .verdict-raw-toggle summary {
+            color: var(--text-muted);
+            user-select: none;
+            outline: none;
+            cursor: pointer;
+        }
+        .verdict-raw-toggle summary:hover {
+            color: var(--text-main);
+        }
+        .verdict-raw-toggle pre {
+            margin-top: 0.35rem;
+            padding: 0.6rem 0.8rem;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            line-height: 1.45;
+            color: var(--text-main) !important;
+        }
+        .verdict-raw-toggle pre code {
+            color: var(--text-main) !important;
+            background: transparent;
+            padding: 0;
+            font-family: inherit;
+        }
+
