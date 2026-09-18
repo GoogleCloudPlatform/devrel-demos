@@ -1,0 +1,164 @@
+# ==============================================================================
+# Bridge Deck: Google Cloud Build CI/CD Pipeline
+# ==============================================================================
+# Architecture & Governance Policy:
+# - Trigger Policy: Triggered strictly on push-to-main (branch: ^main$).
+#   Never configured for pull requests from forks.
+# - Gate G1: Enforces authenticated access (--no-allow-unauthenticated).
+# - Gate G2: Permanently enforces single-writer safe storage (--max-instances=1) to ensure in-process cascade controls remain authoritative.
+# - Cleanliness: Validates zero tenant data or secret files in container image.
+# ==============================================================================
+
+steps:
+  # ----------------------------------------------------------------------------
+  # Stage 1: Pre-flight Test Gate
+  # ----------------------------------------------------------------------------
+  - name: 'python:3.11-slim'
+    id: 'unit-tests'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+        echo "=================================================="
+        echo "=== [1/4] Running Pre-flight Test Suite Gate ==="
+        echo "=================================================="
+        apt-get update && apt-get install -y --no-install-recommends git curl
+        pip install --no-cache-dir -r requirements.txt
+        python -m unittest discover -s tests
+        echo "✅ All unit, governance, and isolation tests passed."
+
+  # ----------------------------------------------------------------------------
+  # Stage 2: Container Image Build & Cleanliness Verification
+  # ----------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'docker-build'
+    waitFor: ['unit-tests']
+    args:
+      - 'build'
+      - '-t'
+      - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:${COMMIT_SHA}'
+      - '-t'
+      - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:latest'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'verify-container-hygiene'
+    waitFor: ['docker-build']
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+        echo "=================================================="
+        echo "=== [2/4] Verifying Container Isolation Invariants ==="
+        echo "=================================================="
+        docker run --rm --entrypoint sh \
+          ${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:${COMMIT_SHA} \
+          -c 'test ! -e /app/data && test ! -e /app/.env && test ! -e /app/deploy.env && echo "✅ CONTAINER_CLEAN"'
+
+  # ----------------------------------------------------------------------------
+  # Stage 3: Push Image to Artifact Registry
+  # ----------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'docker-push'
+    waitFor: ['verify-container-hygiene']
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}'
+
+  # ----------------------------------------------------------------------------
+  # Stage 4: Deploy to Cloud Run (Preserving G1 & G2 Invariants)
+  # ----------------------------------------------------------------------------
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'cloud-run-deploy'
+    waitFor: ['docker-push']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+        if [[ "${_DEPLOY}" != "true" ]]; then
+          echo "Notice: _DEPLOY is '${_DEPLOY}' — skipping Cloud Run deployment step."
+          exit 0
+        fi
+
+        if [[ -z "${_DEFAULT_TENANT}" || "${_DEFAULT_TENANT}" == "default" ]]; then
+          echo "❌ ERROR: _DEFAULT_TENANT must be explicitly specified (refusing to deploy to empty or default tenant)."
+          exit 1
+        fi
+
+        BUCKET="${_GCS_DATA_BUCKET:-${PROJECT_ID}-bridge-deck-data}"
+        SA_EMAIL="${_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
+
+        echo "=================================================="
+        echo "=== [4/4] Deploying Service to Cloud Run ==="
+        echo " Service:  ${_SERVICE_NAME}"
+        echo " Region:   ${_LOCATION}"
+        echo " SA Email: ${SA_EMAIL}"
+        echo " Bucket:   gs://${BUCKET}"
+        echo " Tenant:   ${_DEFAULT_TENANT}"
+        echo "=================================================="
+
+        gcloud run deploy "${_SERVICE_NAME}" \
+          --project="${PROJECT_ID}" \
+          --region="${_LOCATION}" \
+          --quiet \
+          --image="${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:${COMMIT_SHA}" \
+          --no-allow-unauthenticated \
+          --max-instances=1 \
+          --concurrency=20 \
+          --no-cpu-throttling \
+          --min-instances=1 \
+          --timeout=3600 \
+          --memory=2Gi \
+          --service-account="${SA_EMAIL}" \
+          --set-secrets="BRIDGE_AUTH_TOKEN=BRIDGE_AUTH_TOKEN:latest" \
+          --set-env-vars="BRIDGE_DEFAULT_TENANT=${_DEFAULT_TENANT},CLOUD_RUN=true,GCS_DATA_BUCKET=${BUCKET},BRIDGE_DATA_DIR=/mnt/bridge-data,A2A_QUEUE_BACKEND=${_A2A_QUEUE_BACKEND},CLOUD_TASKS_QUEUE=${_CLOUD_TASKS_QUEUE},CLOUD_TASKS_LOCATION=${_LOCATION},CLOUD_TASKS_SERVICE_ACCOUNT=${SA_EMAIL},GOOGLE_CLOUD_PROJECT=${PROJECT_ID},CLOUD_TASKS_PROJECT=${PROJECT_ID},CLOUD_TASKS_SERVICE_URL=https://pending-bootstrap.internal" \
+          --remove-volume-mount=/app/data \
+          --add-volume="name=data,type=cloud-storage,bucket=${BUCKET}" \
+          --add-volume-mount="volume=data,mount-path=/mnt/bridge-data"
+
+        SERVICE_URL=$(gcloud run services describe "${_SERVICE_NAME}" --project="${PROJECT_ID}" --region="${_LOCATION}" --format="value(status.url)")
+        if [[ -n "${SERVICE_URL}" ]]; then
+          echo "Updating Cloud Run service with self-referential CLOUD_TASKS_SERVICE_URL..."
+          gcloud run services update "${_SERVICE_NAME}" \
+            --project="${PROJECT_ID}" \
+            --region="${_LOCATION}" \
+            --quiet \
+            --update-env-vars="CLOUD_TASKS_SERVICE_URL=${SERVICE_URL},SERVICE_URL=${SERVICE_URL}"
+
+          echo "Verifying live CLOUD_TASKS_SERVICE_URL configuration..."
+          LIVE=$(gcloud run services describe "${_SERVICE_NAME}" --project="${PROJECT_ID}" --region="${_LOCATION}" \
+            --format="json(spec.template.spec.containers[0].env)" | grep -A1 '"name": "CLOUD_TASKS_SERVICE_URL"' | grep '"value":' | sed 's/.*"value": "\(.*\)".*/\1/' | tr -d '[:space:]')
+          if [[ "${LIVE}" != "${SERVICE_URL}" ]]; then
+            echo "❌ ERROR: URL injection did not take (expected: ${SERVICE_URL}, got: ${LIVE})" >&2
+            exit 1
+          fi
+        else
+          echo "❌ ERROR: Could not resolve SERVICE_URL; A2A dispatch will fail. Refusing to report success." >&2
+          exit 1
+        fi
+
+        echo "✅ Cloud Run deployment succeeded."
+
+substitutions:
+  _LOCATION: 'us-central1'
+  _REPOSITORY: 'cloud-run-source-deploy'
+  _IMAGE: 'bridge-deck'
+  _SERVICE_NAME: 'bridge-deck'
+  _SERVICE_ACCOUNT: 'bridge-deck-sa'
+  _DEFAULT_TENANT: ''
+  _GCS_DATA_BUCKET: ''
+  _DEPLOY: 'true'
+  _A2A_QUEUE_BACKEND: 'cloud_tasks'
+  _CLOUD_TASKS_QUEUE: 'a2a-tasks'
+
+images:
+  - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:${COMMIT_SHA}'
+  - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE}:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  substitution_option: ALLOW_LOOSE

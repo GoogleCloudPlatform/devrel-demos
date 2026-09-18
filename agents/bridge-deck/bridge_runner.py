@@ -10,6 +10,8 @@ Supports 2 Direct Discussion Modes:
 import os
 import sys
 import json
+import hashlib
+import hmac
 import time
 import argparse
 from pathlib import Path
@@ -20,6 +22,7 @@ import glob
 import subprocess
 import jsonschema
 import uuid
+from typing import Tuple, Optional, List, Dict, Any, Callable
 
 ROOT_DIR = Path(__file__).resolve().parent
 if str(ROOT_DIR) not in sys.path:
@@ -37,7 +40,27 @@ PHOENIX_SESSION = None
 
 from core.router import AgentRouter, DEFAULT_MODEL, MODEL_ALIASES, resolve_model_location
 from memory.store import MemoryStore
-from core.tenant import sanitize_tenant_id, get_tenant_dir, ensure_tenant_initialized, tenant_manager, DEFAULT_TENANT_ID
+from core.tenant import (
+    sanitize_tenant_id,
+    get_tenant_dir,
+    ensure_tenant_initialized,
+    tenant_manager,
+    DEFAULT_TENANT_ID,
+    StorageAdapter,
+    LocalStorageAdapter,
+    GCSStorageAdapter,
+    StorageConflictError,
+    StorageCorruptError,
+    get_storage_adapter,
+    is_cloud,
+    UNCONDITIONAL,
+)
+from core.identity import (
+    TenantAccessDeniedError,
+    get_identity_manager,
+    IdentityManager,
+    Principal
+)
 
 def resolve_project_id(explicit=None):
     """Resolves GCP Project ID from explicit argument or environment variables."""
@@ -65,6 +88,49 @@ def init_phoenix_tracer():
         print(f"[!] Arize Phoenix warning: {e}")
 
 
+def get_active_storage(bridge_dir=None) -> Tuple[StorageAdapter, str]:
+    """
+    Resolves the appropriate (StorageAdapter, tenant_id) tuple.
+    Preserves exact tenant isolation and supports custom directory fixtures.
+    """
+    if bridge_dir is not None:
+        b_path = Path(bridge_dir)
+        if b_path.parent.name == "tenants":
+            t_id = sanitize_tenant_id(b_path.name)
+            from core.tenant import use_gcs_storage, get_data_root
+            if use_gcs_storage():
+                return tenant_manager.get_storage_adapter(t_id), t_id
+            try:
+                data_root = get_data_root()
+                if b_path.parent == data_root / "tenants":
+                    return LocalStorageAdapter(), t_id
+                base_dir = b_path.parent.parent.parent
+                return LocalStorageAdapter(base_dir=base_dir), t_id
+            except Exception:
+                return tenant_manager.get_storage_adapter(t_id), t_id
+        else:
+            return LocalStorageAdapter(base_dir=b_path), "__direct__"
+    return tenant_manager.get_storage_adapter(), DEFAULT_TENANT_ID
+
+
+def get_history_rel_key(project_id="lantern") -> str:
+    if not project_id or project_id == "lantern":
+        return "history/bridge_history.json"
+    clean_id = "".join(c for c in str(project_id) if c.isalnum() or c in ['_', '-'])
+    if clean_id.startswith("prof_"):
+        return f"history/notes_{clean_id}.json"
+    return f"history/history_{clean_id}.json"
+
+
+def get_legacy_history_rel_key(project_id="lantern") -> Optional[str]:
+    if not project_id or project_id == "lantern":
+        return "bridge_history.json"
+    clean_id = "".join(c for c in str(project_id) if c.isalnum() or c in ['_', '-'])
+    if clean_id.startswith("prof_"):
+        return f"notes_{clean_id}.json"
+    return f"history_{clean_id}.json"
+
+
 def get_history_file(project_id="lantern", bridge_dir=None):
     b_dir = bridge_dir or get_tenant_dir()
     h_dir = b_dir / "history"
@@ -89,12 +155,21 @@ def get_history_file(project_id="lantern", bridge_dir=None):
     return target
 
 
-def load_history(project_id="lantern", bridge_dir=None):
-    hfile = get_history_file(project_id, bridge_dir=bridge_dir)
-    if hfile.exists():
-        with open(hfile, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {"transactions": []}
+def load_history(project_id="lantern", bridge_dir=None, *, return_gen=False):
+    adapter, t_id = get_active_storage(bridge_dir)
+    rel_key = get_history_rel_key(project_id)
+    doc, gen = adapter.read_json_with_gen(t_id, rel_key)
+    if doc is not None:
+        return (doc, gen) if return_gen else doc
+    # Check legacy flat location if adapter is LocalStorageAdapter
+    if isinstance(adapter, LocalStorageAdapter):
+        legacy_key = get_legacy_history_rel_key(project_id)
+        if legacy_key:
+            doc, gen = adapter.read_json_with_gen(t_id, legacy_key)
+            if doc is not None:
+                return (doc, gen) if return_gen else doc
+    empty = {"transactions": []}
+    return (empty, 0) if return_gen else empty
 
 
 # file_io_lock: Guards atomic file writes and serializes the complete read-modify-write history cycle.
@@ -103,90 +178,100 @@ def load_history(project_id="lantern", bridge_dir=None):
 file_io_lock = threading.RLock()
 
 
-def save_history(data, project_id="lantern", bridge_dir=None):
-    hfile = get_history_file(project_id, bridge_dir=bridge_dir)
-    temp_file = hfile.with_name(hfile.name + ".tmp")
+def save_history(data, project_id="lantern", bridge_dir=None, *, expected_generation: int):
+    adapter, t_id = get_active_storage(bridge_dir)
+    rel_key = get_history_rel_key(project_id)
     with file_io_lock:
-        with open(temp_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-        os.replace(temp_file, hfile)
+        return adapter.replace_json(
+            t_id,
+            rel_key,
+            data,
+            default={"transactions": []},
+            expected_generation=expected_generation
+        )
 
 
 def append_transaction(project_id, tx_record, bridge_dir=None):
     """
-    Atomically loads history, appends or updates tx_record in-place, and commits to disk under file_io_lock.
+    Atomically loads history, appends or updates tx_record in-place, and commits to disk or GCS under CAS.
     Guarantees that concurrent HTTP handlers, queue resolutions, and A2A worker threads cannot duplicate or clobber turns.
     """
-    hfile = get_history_file(project_id, bridge_dir=bridge_dir)
-    temp_file = hfile.with_name(hfile.name + ".tmp")
+    adapter, t_id = get_active_storage(bridge_dir)
+    rel_key = get_history_rel_key(project_id)
+    default_doc = None
+    if isinstance(adapter, LocalStorageAdapter) and not adapter.exists(t_id, rel_key):
+        legacy_key = get_legacy_history_rel_key(project_id)
+        if legacy_key and adapter.exists(t_id, legacy_key):
+            default_doc = adapter.read_json(t_id, legacy_key)
+    if default_doc is None:
+        default_doc = {"transactions": []}
+
     with file_io_lock:
-        history = load_history(project_id, bridge_dir=bridge_dir)
-        txs = history.setdefault("transactions", [])
-        tx_id = tx_record.get("id")
-        existing_idx = next((i for i, t in enumerate(txs) if t.get("id") == tx_id), -1) if tx_id else -1
-        if existing_idx >= 0:
-            # Preserve existing reactions if new record doesn't specify them
-            if "reactions" in txs[existing_idx] and "reactions" not in tx_record:
-                tx_record["reactions"] = txs[existing_idx]["reactions"]
-            txs[existing_idx] = tx_record
-        else:
-            txs.append(tx_record)
-        with open(temp_file, "w", encoding="utf-8") as f:
-            json.dump(history, f, indent=2)
-        os.replace(temp_file, hfile)
-        return history
+        doc, _ = adapter.append_json_list(
+            t_id,
+            rel_key,
+            list_field="transactions",
+            item=tx_record,
+            id_field="id",
+            default=default_doc
+        )
+        return doc
 
 
-def load_profiles(bridge_dir=None):
-    b_dir = bridge_dir or get_tenant_dir()
-    p_file = b_dir / "profiles.json"
-    if not p_file.exists():
-        seed_p = ROOT_DIR / "seed" / "profiles.json"
-        if seed_p.exists():
-            p_file = seed_p
-        else:
-            return {"profiles": []}
-    try:
-        with open(p_file, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {"profiles": []}
+def load_profiles(bridge_dir=None, *, return_gen=False):
+    adapter, t_id = get_active_storage(bridge_dir)
+    doc, gen = adapter.read_json_with_gen(t_id, "profiles.json")
+    if doc is not None:
+        return (doc, gen) if return_gen else doc
+    seed_p = ROOT_DIR / "seed" / "profiles.json"
+    if seed_p.exists():
+        try:
+            with open(seed_p, "r", encoding="utf-8") as f:
+                return (json.load(f), 0) if return_gen else json.load(f)
+        except Exception:
+            pass
+    empty = {"profiles": []}
+    return (empty, 0) if return_gen else empty
 
 
-def save_profiles(data, bridge_dir=None):
-    b_dir = bridge_dir or get_tenant_dir()
-    p_file = b_dir / "profiles.json"
-    temp_file = p_file.with_name(p_file.name + ".tmp")
+def save_profiles(data, bridge_dir=None, *, expected_generation: int):
+    adapter, t_id = get_active_storage(bridge_dir)
     with file_io_lock:
-        with open(temp_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-        os.replace(temp_file, p_file)
+        return adapter.replace_json(
+            t_id,
+            "profiles.json",
+            data,
+            default={"profiles": []},
+            expected_generation=expected_generation
+        )
 
 
-def load_projects(bridge_dir=None):
-    b_dir = bridge_dir or get_tenant_dir()
-    p_file = b_dir / "projects.json"
-    if not p_file.exists():
-        seed_p = ROOT_DIR / "seed" / "projects.json"
-        if seed_p.exists():
-            p_file = seed_p
-        else:
-            return {"projects": []}
-    try:
-        with open(p_file, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {"projects": []}
+def load_projects(bridge_dir=None, *, return_gen=False):
+    adapter, t_id = get_active_storage(bridge_dir)
+    doc, gen = adapter.read_json_with_gen(t_id, "projects.json")
+    if doc is not None:
+        return (doc, gen) if return_gen else doc
+    seed_p = ROOT_DIR / "seed" / "projects.json"
+    if seed_p.exists():
+        try:
+            with open(seed_p, "r", encoding="utf-8") as f:
+                return (json.load(f), 0) if return_gen else json.load(f)
+        except Exception:
+            pass
+    empty = {"projects": []}
+    return (empty, 0) if return_gen else empty
 
 
-def save_projects(data, bridge_dir=None):
-    b_dir = bridge_dir or get_tenant_dir()
-    p_file = b_dir / "projects.json"
-    temp_file = p_file.with_name(p_file.name + ".tmp")
+def save_projects(data, bridge_dir=None, *, expected_generation: int):
+    adapter, t_id = get_active_storage(bridge_dir)
     with file_io_lock:
-        with open(temp_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-        os.replace(temp_file, p_file)
+        return adapter.replace_json(
+            t_id,
+            "projects.json",
+            data,
+            default={"projects": []},
+            expected_generation=expected_generation
+        )
 
 
 def write_manifest(manifest, agents_dir=None, router=None, bridge_dir=None):
@@ -214,6 +299,12 @@ def write_manifest(manifest, agents_dir=None, router=None, bridge_dir=None):
         with open(temp_mf, "w", encoding="utf-8") as mf:
             json.dump(norm_manifest, mf, indent=2)
         os.replace(temp_mf, manifest_file)
+        try:
+            adapter, t_id = get_active_storage(b_dir)
+            if not isinstance(adapter, LocalStorageAdapter):
+                adapter.replace_json(t_id, f"agents/{agent_id}.agent.json", norm_manifest, expected_generation=UNCONDITIONAL)  # single-writer: agent-specific manifest creation under file_io_lock
+        except Exception:
+            pass
 
     return norm_manifest
 
@@ -357,16 +448,7 @@ def save_persona(payload, profiles_file=None, agents_dir=None, router=None, brid
     # Synchronize both stores atomically under file_io_lock (D51)
     with file_io_lock:
         norm_manifest = write_manifest(manifest, agents_dir=a_dir, router=r_inst)
-
-        if p_file.exists():
-            with open(p_file, "r", encoding="utf-8") as f:
-                try:
-                    profiles_data = json.load(f)
-                except Exception:
-                    profiles_data = {"profiles": []}
-        else:
-            profiles_data = {"profiles": []}
-
+        profiles_data, prof_gen = load_profiles(bridge_dir=b_dir, return_gen=True)
         profiles_list = profiles_data.get("profiles", [])
         idx = next((i for i, p in enumerate(profiles_list) if p.get("id") == prof_id), -1)
         if idx >= 0:
@@ -375,10 +457,7 @@ def save_persona(payload, profiles_file=None, agents_dir=None, router=None, brid
             profiles_list.append(payload)
         profiles_data["profiles"] = profiles_list
         
-        temp_prof = p_file.with_name(p_file.name + ".tmp")
-        with open(temp_prof, "w", encoding="utf-8") as f:
-            json.dump(profiles_data, f, indent=2)
-        os.replace(temp_prof, p_file)
+        save_profiles(profiles_data, bridge_dir=b_dir, expected_generation=prof_gen)
 
     # Reload router registry immediately and assert agent joined fleet
     r_inst.reload_registry(force=True)
@@ -400,7 +479,7 @@ def sync_all_project_member_permissions(bridge_dir=None):
     b_dir = bridge_dir or get_tenant_dir()
     agents_dir = b_dir / "agents"
     projects_data = load_projects(bridge_dir=b_dir)
-    profiles_data = load_profiles(bridge_dir=b_dir)
+    profiles_data, prof_gen = load_profiles(bridge_dir=b_dir, return_gen=True)
     profiles_list = profiles_data.get("profiles", [])
     profiles_changed = False
 
@@ -434,15 +513,12 @@ def sync_all_project_member_permissions(bridge_dir=None):
                 m_data.setdefault("access_write", [])
                 if m_data.get("derived_read") != current_derived:
                     m_data["derived_read"] = current_derived
-                    temp_mf = manifest_file.with_name(manifest_file.name + ".tmp")
-                    with open(temp_mf, "w", encoding="utf-8") as mf:
-                        json.dump(m_data, mf, indent=2)
-                    os.replace(temp_mf, manifest_file)
+                    write_manifest(m_data, agents_dir=agents_dir, bridge_dir=b_dir)
             except Exception as me:
                 print(f"Error syncing manifest access for {p_id}: {me}")
 
     if profiles_changed:
-        save_profiles(profiles_data, bridge_dir=b_dir)
+        save_profiles(profiles_data, bridge_dir=b_dir, expected_generation=prof_gen)
         try:
             t_id = sanitize_tenant_id(b_dir.name if b_dir.parent.name == "tenants" else DEFAULT_TENANT_ID)
             tenant_manager.get_router(t_id).reload_registry(force=True)
@@ -497,53 +573,50 @@ def sync_project_membership(payload, profiles_data):
     return profiles_data, profiles_changed
 
 
-def load_skill_usage(bridge_dir=None):
-    b_dir = bridge_dir or get_tenant_dir()
-    skill_file = b_dir / "skill_usage.json"
-    if not skill_file.exists():
-        seed_file = ROOT_DIR / "seed" / "skill_usage.json"
-        if seed_file.exists():
-            try:
-                with open(seed_file, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except Exception:
-                pass
-    if skill_file.exists():
+def load_skill_usage(bridge_dir=None, *, return_gen=False):
+    adapter, t_id = get_active_storage(bridge_dir)
+    doc, gen = adapter.read_json_with_gen(t_id, "skill_usage.json")
+    if doc is not None:
+        return (doc, gen) if return_gen else doc
+    seed_file = ROOT_DIR / "seed" / "skill_usage.json"
+    if seed_file.exists():
         try:
-            with open(skill_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"Error loading skill_usage.json: {e}")
-    return {"skills": []}
+            with open(seed_file, "r", encoding="utf-8") as f:
+                return (json.load(f), 0) if return_gen else json.load(f)
+        except Exception:
+            pass
+    empty = {"skills": []}
+    return (empty, 0) if return_gen else empty
 
 
-def save_skill_usage(data, bridge_dir=None):
-    b_dir = bridge_dir or get_tenant_dir()
-    skill_file = b_dir / "skill_usage.json"
-    try:
-        with open(skill_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-    except Exception as e:
-        print(f"Error saving skill_usage.json: {e}")
+def save_skill_usage(data, bridge_dir=None, *, expected_generation: int):
+    adapter, t_id = get_active_storage(bridge_dir)
+    with file_io_lock:
+        return adapter.replace_json(
+            t_id,
+            "skill_usage.json",
+            data,
+            default={"skills": []},
+            expected_generation=expected_generation
+        )
 
 
 ENGINES_SCHEMA_FILE = ROOT_DIR / "engines" / "_schema.json"
 
 
 def load_engines(bridge_dir=None):
-    b_dir = bridge_dir or get_tenant_dir()
-    e_file = b_dir / "engines.json"
-    if not e_file.exists():
+    adapter, t_id = get_active_storage(bridge_dir)
+    data = adapter.read_json(t_id, "engines.json")
+    if data is None:
         seed_e = ROOT_DIR / "seed" / "engines.json"
         if seed_e.exists():
-            e_file = seed_e
+            try:
+                with open(seed_e, "r", encoding="utf-8") as sf:
+                    data = json.load(sf)
+            except Exception as e:
+                raise ValueError(f"Failed to parse seed engines: {e}")
         else:
             return {"engines": []}
-    try:
-        with open(e_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except Exception as e:
-        raise ValueError(f"Failed to parse {e_file}: {e}")
         
     s_file = ENGINES_SCHEMA_FILE
     if not s_file.exists():
@@ -554,7 +627,7 @@ def load_engines(bridge_dir=None):
             schema = json.load(sf)
         jsonschema.validate(instance=data, schema=schema)
     except jsonschema.ValidationError as ve:
-        raise ValueError(f"Schema validation failed for {e_file}: {ve.message}")
+        raise ValueError(f"Schema validation failed for engines: {ve.message}")
         
     # Invariant enforcement (E6): Ensure provider_types across all Cores are mutually disjoint
     seen_types = {}
@@ -571,11 +644,10 @@ def load_engines(bridge_dir=None):
 
 
 def save_engines(data, bridge_dir=None):
-    b_dir = bridge_dir or get_tenant_dir()
-    e_file = b_dir / "engines.json"
+    adapter, t_id = get_active_storage(bridge_dir)
     try:
-        with open(e_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+        with file_io_lock:
+            adapter.replace_json(t_id, "engines.json", data, default={"engines": []}, expected_generation=UNCONDITIONAL)  # single-writer: operator-only admin catalogue route under file_io_lock
         # Synchronize flat models list for legacy compatibility
         flat_models = []
         for eng in data.get("engines", []):
@@ -584,7 +656,7 @@ def save_engines(data, bridge_dir=None):
                 m_copy.setdefault("provider_type", eng.get("type", eng.get("id")))
                 m_copy.setdefault("provider_label", eng.get("name"))
                 flat_models.append(m_copy)
-        save_models({"models": flat_models}, bridge_dir=b_dir)
+        save_models({"models": flat_models}, bridge_dir=bridge_dir)
         return True
     except Exception as e:
         print(f"Error saving engines.json: {e}")
@@ -592,23 +664,18 @@ def save_engines(data, bridge_dir=None):
 
 
 def load_models(bridge_dir=None):
-    b_dir = bridge_dir or get_tenant_dir()
-    m_file = b_dir / "models.json"
-    if m_file.exists():
-        try:
-            with open(m_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"Error loading models.json: {e}")
+    adapter, t_id = get_active_storage(bridge_dir)
+    data = adapter.read_json(t_id, "models.json")
+    if data is not None:
+        return data
     return {"models": []}
 
 
 def save_models(data, bridge_dir=None):
-    b_dir = bridge_dir or get_tenant_dir()
-    m_file = b_dir / "models.json"
+    adapter, t_id = get_active_storage(bridge_dir)
     try:
-        with open(m_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+        with file_io_lock:
+            adapter.replace_json(t_id, "models.json", data, default={"models": []}, expected_generation=UNCONDITIONAL)  # single-writer: operator-only admin catalogue route under file_io_lock
         return True
     except Exception as e:
         print(f"Error saving models.json: {e}")
@@ -1192,8 +1259,7 @@ def sync_antigravity_models_to_engine(models_to_sync=None, docs_url="https://ant
                     "provider_label": "Antigravity"
                 })
             mdata["models"] = non_ag_models
-            with open(m_file, "w", encoding="utf-8") as mf:
-                json.dump(mdata, mf, indent=2)
+            save_models(mdata, bridge_dir=b_dir)
     except Exception as me:
         print(f"Error updating models.json for Antigravity: {me}")
         
@@ -1222,7 +1288,7 @@ def update_skills_from_telemetry(bridge_dir=None):
     print("[+] Running Daily Skill Telemetry & Preferred Skill Updater...")
     try:
         b_dir = bridge_dir or get_tenant_dir()
-        profiles_data = load_profiles(bridge_dir=b_dir)
+        profiles_data, prof_gen = load_profiles(bridge_dir=b_dir, return_gen=True)
         t_hist_dir = b_dir / "history"
         history_files = glob.glob(str(t_hist_dir / "history*.json"))
         
@@ -1273,7 +1339,7 @@ def update_skills_from_telemetry(bridge_dir=None):
             merged = list(dict.fromkeys(sorted_skills + existing))[:5]
             p["skills"] = merged
 
-        save_profiles(profiles_data, bridge_dir=b_dir)
+        save_profiles(profiles_data, bridge_dir=b_dir, expected_generation=prof_gen)
         print("[+] Daily Skill Sync Complete! Updated profiles.json with telemetry top skills.")
     except Exception as err:
         print(f"[!] Daily Skill Sync Error: {err}")
@@ -1617,34 +1683,231 @@ def build_anthropic_messages_and_system(prompt, sender="User", max_turns=6, proj
 
 
 def load_pending(bridge_dir=None):
-    b_dir = bridge_dir or get_tenant_dir()
-    p_file = b_dir / "pending_queries.json"
-    if p_file.exists():
-        try:
-            with open(p_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
+    adapter, t_id = get_active_storage(bridge_dir)
+    doc = adapter.read_json(t_id, "pending_queries.json")
+    if doc is not None:
+        return doc
     return {"pending": {}}
 
 
 def save_pending(data, bridge_dir=None):
-    b_dir = bridge_dir or get_tenant_dir()
-    p_file = b_dir / "pending_queries.json"
-    temp_file = p_file.with_name(p_file.name + ".tmp")
-    with open(temp_file, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
-    os.replace(temp_file, p_file)
+    adapter, t_id = get_active_storage(bridge_dir)
+    with file_io_lock:
+        adapter.replace_json(t_id, "pending_queries.json", data, default={"pending": {}}, expected_generation=UNCONDITIONAL)  # single-writer: synchronous query state under file_io_lock; non-blocking advisory
+
+
+def update_pending(mutator_fn, bridge_dir=None):
+    adapter, t_id = get_active_storage(bridge_dir)
+    return adapter.update_json(t_id, "pending_queries.json", mutator_fn, default={"pending": {}})
+
+
+def lease_pending_task(worker_id: str = "relay-local", lease_seconds: int = 60, bridge_dir=None) -> Optional[dict]:
+    """
+    Atomically acquires a lease on the oldest waiting (or expired leased) task.
+    Returns the leased task dict with updated status, lease_id, lease_expires_at, or None.
+    """
+    now = time.time()
+    leased_task = None
+
+    def _lease_mutator(doc):
+        nonlocal leased_task
+        pending = doc.setdefault("pending", {})
+        candidates = []
+        for qid, q in pending.items():
+            status = q.get("status", "waiting")
+            exp = q.get("lease_expires_at")
+            if status == "waiting" or (status == "leased" and exp and exp < now):
+                candidates.append(q)
+
+        if not candidates:
+            leased_task = None
+            return doc
+
+        # Pick oldest task
+        chosen = candidates[0]
+        lease_id = f"lease_{int(now * 1000)}_{uuid.uuid4().hex[:6]}"
+        chosen["status"] = "leased"
+        chosen["lease_id"] = lease_id
+        chosen["lease_expires_at"] = now + lease_seconds
+        chosen["leased_by"] = worker_id
+        chosen["leased_at"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+        leased_task = dict(chosen)
+        return doc
+
+    update_pending(_lease_mutator, bridge_dir=bridge_dir)
+    return leased_task
+
+
+def renew_pending_lease(tx_id: str, lease_id: str, lease_seconds: int = 60, bridge_dir=None) -> Tuple[bool, Optional[dict], str]:
+    """Renews an active lease for task tx_id."""
+    now = time.time()
+    renewed_task = None
+    err = ""
+
+    def _renew_mutator(doc):
+        nonlocal renewed_task, err
+        pending = doc.setdefault("pending", {})
+        if tx_id not in pending:
+            err = f"Task '{tx_id}' not found in pending queue"
+            return doc
+        task = pending[tx_id]
+        if task.get("lease_id") != lease_id:
+            err = f"Task '{tx_id}' lease mismatch: active lease is '{task.get('lease_id')}', provided '{lease_id}'"
+            return doc
+        task["lease_expires_at"] = now + lease_seconds
+        renewed_task = dict(task)
+        return doc
+
+    update_pending(_renew_mutator, bridge_dir=bridge_dir)
+    return (renewed_task is not None), renewed_task, err
+
+
+def release_pending_lease(tx_id: str, lease_id: Optional[str] = None, bridge_dir=None) -> Tuple[bool, str]:
+    """Releases an active lease for task tx_id, resetting status to 'waiting'."""
+    released = False
+    err = ""
+
+    def _release_mutator(doc):
+        nonlocal released, err
+        pending = doc.setdefault("pending", {})
+        if tx_id not in pending:
+            err = f"Task '{tx_id}' not found in pending queue"
+            return doc
+        task = pending[tx_id]
+        if lease_id and task.get("lease_id") and task.get("lease_id") != lease_id:
+            err = f"Task '{tx_id}' lease mismatch"
+            return doc
+        task["status"] = "waiting"
+        task["lease_id"] = None
+        task["lease_expires_at"] = None
+        task["leased_by"] = None
+        released = True
+        return doc
+
+    update_pending(_release_mutator, bridge_dir=bridge_dir)
+    return released, err
+
+
+def resolve_pending_task(
+    tx_id: str,
+    response_text: str,
+    lease_id: Optional[str] = None,
+    project_id: Optional[str] = None,
+    sender: str = "Active Agent",
+    sender_role: str = "Chat Agent",
+    bridge_dir=None
+) -> Tuple[bool, dict, str]:
+    """
+    Atomically resolves a pending query:
+    1. Removes task from pending_queries.json (validating lease if held).
+    2. Updates transaction in project history with response_text via CAS.
+    3. Appends entry to claude_bridge.md.
+    4. Triggers A2ADispatcher if response_text mentions further agents.
+    """
+    adapter, t_id = get_active_storage(bridge_dir)
+    now = time.time()
+    task_meta = None
+    err = ""
+
+    def _resolve_mutator(doc):
+        nonlocal task_meta, err
+        pending = doc.setdefault("pending", {})
+        if tx_id in pending:
+            curr = pending[tx_id]
+            curr_lease = curr.get("lease_id")
+            curr_exp = curr.get("lease_expires_at")
+            if curr_lease and curr_exp and curr_exp > now:
+                if lease_id and lease_id != curr_lease:
+                    err = f"Task '{tx_id}' lease conflict: held by '{curr.get('leased_by', 'worker')}'"
+                    return doc
+            task_meta = dict(curr)
+            del pending[tx_id]
+        return doc
+
+    update_pending(_resolve_mutator, bridge_dir=bridge_dir)
+
+    if err:
+        return False, {}, err
+
+    target_project = project_id or (task_meta.get("project_id") if task_meta else None) or "lantern"
+
+    # Update project history with CAS
+    found_in_history = False
+    already_resolved = False
+
+    def _history_mutator(doc):
+        nonlocal found_in_history, already_resolved
+        txs = doc.setdefault("transactions", [])
+        for tx in txs:
+            if tx.get("id") == tx_id:
+                found_in_history = True
+                curr_resp = tx.get("antigravity_response") or ""
+                if curr_resp and not curr_resp.startswith("⏳"):
+                    already_resolved = True
+                    return doc
+                tx["antigravity_response"] = response_text
+                tx["response_text"] = response_text
+                tx["is_pending"] = False
+                if tx.get("raw_response_json"):
+                    tx["raw_response_json"]["status_code"] = 200
+                    tx["raw_response_json"]["resolved_at"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+                return doc
+        return doc
+
+    adapter.update_json(t_id, f"history/history_{target_project}.json", _history_mutator, default={"transactions": []})
+
+    if not found_in_history and not task_meta:
+        return False, {}, f"Task '{tx_id}' not found in pending queries or project '{target_project}' history"
+
+    # Append to markdown log
+    prompt_text = task_meta.get("prompt", "") if task_meta else ""
+    orig_sender = task_meta.get("sender", "User") if task_meta else "User"
+    try:
+        append_to_bridge_md(
+            prompt=prompt_text,
+            antigravity_resp=response_text,
+            claude_resp=None,
+            mode="antigravity_direct",
+            claude_model=sender,
+            sender=orig_sender,
+            bridge_dir=bridge_dir
+        )
+    except Exception as me:
+        print(f"[!] Warning: failed to append resolution to claude_bridge.md: {me}")
+
+    # Enqueue A2A mentions if response mentions other agents
+    if response_text:
+        try:
+            from core.tenant import TenantRegistry
+            b_base = None
+            if bridge_dir is not None:
+                bp = Path(bridge_dir)
+                if bp.parent.name == "tenants":
+                    b_base = bp.parent.parent.parent if bp.parent.parent.name == "data" else bp.parent.parent
+            reg = TenantRegistry(base_dir=b_base) if b_base else tenant_manager
+            disp = reg.get_dispatcher(t_id)
+            if disp:
+                disp.enqueue_if_mentions(
+                    text=response_text,
+                    sender_id="astra",
+                    sender_name=sender,
+                    sender_role=sender_role,
+                    project_id=target_project,
+                    cascade_depth=0,
+                    original_root_tx=tx_id
+                )
+        except Exception as de:
+            print(f"[!] Warning: failed to trigger A2A dispatcher on resolution: {de}")
+
+    return True, {
+        "tx_id": tx_id,
+        "project_id": target_project,
+        "status": "resolved",
+        "already_resolved": already_resolved
+    }, ""
 
 
 def append_to_bridge_md(prompt, antigravity_resp, claude_resp, mode, claude_model, sender="User", bridge_dir=None):
-    b_dir = bridge_dir or get_tenant_dir()
-    md_file = b_dir / "claude_bridge.md"
-    if not md_file.exists():
-        md_file = ROOT_DIR / "claude_bridge.md"
-    if not md_file.exists():
-        return
-
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
     sender_title = "Antigravity (Implementation Lead)" if sender == "Antigravity" else "User Inquiry"
     
@@ -1657,8 +1920,11 @@ def append_to_bridge_md(prompt, antigravity_resp, claude_resp, mode, claude_mode
 
     entry = f"\n\n---\n\n{header}\n\n{body}\n"
 
-    with open(md_file, "a", encoding="utf-8") as f:
-        f.write(entry)
+    adapter, t_id = get_active_storage(bridge_dir)
+    try:
+        adapter.append_line(t_id, "claude_bridge.md", entry)
+    except Exception as e:
+        print(f"[!] Error appending to claude_bridge.md: {e}")
 
 
 # Per-tenant A2ADispatcher instances are created and cached dynamically via tenant_manager.get_dispatcher(t_id)
@@ -1668,34 +1934,66 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(BRIDGE_DIR), **kwargs)
 
+    def _get_identity_manager(self) -> IdentityManager:
+        return get_identity_manager()
+
+    def _get_principal(self) -> Principal:
+        headers_dict = {k: v for k, v in self.headers.items()}
+        client_host = getattr(self, "client_address", (None, None))[0] or "127.0.0.1"
+        is_loopback = client_host in ["127.0.0.1", "localhost", "::1"]
+        im = self._get_identity_manager()
+        return im.extract_principal(headers_dict, is_loopback=is_loopback)
+
     def _get_tenant_id(self, payload=None) -> str:
-        header_tenant = (
+        requested_tenant = (
             self.headers.get("X-Bridge-Tenant-ID")
+            or self.headers.get("X-Bridge-Tenant")
             or self.headers.get("X-Tenant-ID")
             or self.headers.get("X-Tenant")
         )
-        if header_tenant:
-            return sanitize_tenant_id(header_tenant)
-        if hasattr(self, "path"):
+        if not requested_tenant and hasattr(self, "path"):
             parsed = urllib.parse.urlparse(self.path)
             q_tenant = urllib.parse.parse_qs(parsed.query).get("tenant", [None])[0]
             if q_tenant:
-                return sanitize_tenant_id(q_tenant)
-        if payload and isinstance(payload, dict):
+                requested_tenant = q_tenant
+        if not requested_tenant and payload and isinstance(payload, dict):
             p_tenant = payload.get("tenant_id") or payload.get("tenant")
             if p_tenant:
-                return sanitize_tenant_id(p_tenant)
-        return DEFAULT_TENANT_ID
+                requested_tenant = p_tenant
+
+        principal = self._get_principal()
+        im = self._get_identity_manager()
+
+        if is_cloud():
+            # In cloud mode, if explicit principal bindings are configured, enforce them
+            if im._bindings:
+                return im.resolve_tenant_for_principal(principal, requested_tenant=requested_tenant)
+            # Default cloud fallback: single principal, single tenant
+            return DEFAULT_TENANT_ID
+
+        return im.resolve_tenant_for_principal(principal, requested_tenant=requested_tenant)
 
     def _get_tenant_dir(self, payload=None) -> Path:
         t_id = self._get_tenant_id(payload)
-        return ensure_tenant_initialized(t_id, base_dir=BRIDGE_DIR)
+        base_dir = BRIDGE_DIR if BRIDGE_DIR != ROOT_DIR else None
+        return ensure_tenant_initialized(t_id, base_dir=base_dir)
+
+    def _get_tenant_manager(self):
+        base_dir = BRIDGE_DIR if BRIDGE_DIR != ROOT_DIR else None
+        if base_dir:
+            from core.tenant import TenantRegistry
+            return TenantRegistry(base_dir=base_dir)
+        return tenant_manager
 
     def _check_auth(self) -> bool:
         """
-        Validates bearer token against BRIDGE_AUTH_TOKEN.
+        Validates access against BRIDGE_AUTH_TOKEN.
+        Supports auth channels:
+        1. X-Bridge-Auth header (preferred in cloud to avoid collision with Google IAM Authorization: Bearer header)
+        2. bridge_auth cookie (for browser sessions)
+        3. Authorization: Bearer / Token (direct/legacy callers)
+        4. One-shot ?token=... query param (bootstraps bridge_auth cookie on root/index)
         If running on loopback without BRIDGE_AUTH_TOKEN, access is allowed without auth.
-        If BRIDGE_AUTH_TOKEN is set or server is bound non-loopback, valid auth is enforced.
         """
         auth_token = os.environ.get("BRIDGE_AUTH_TOKEN")
         server_host = getattr(self.server, "server_address", (None, None))[0]
@@ -1705,30 +2003,72 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
         if not auth_token:
             return True
 
-        auth_header = self.headers.get("Authorization", "")
         token = ""
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:].strip()
-        elif auth_header.startswith("Token "):
-            token = auth_header[6:].strip()
-        elif "token=" in self.path:
+
+        # 1. Check X-Bridge-Auth header
+        x_auth = self.headers.get("X-Bridge-Auth", "").strip()
+        if x_auth:
+            token = x_auth
+
+        # 2. Check bridge_auth cookie
+        if not token:
+            cookie_header = self.headers.get("Cookie", "")
+            if cookie_header:
+                for cookie in cookie_header.split(";"):
+                    cookie = cookie.strip()
+                    if cookie.startswith("bridge_auth="):
+                        token = cookie[len("bridge_auth="):].strip()
+                        break
+
+        # 3. Check legacy Authorization header if not matching Google IAM token
+        if not token:
+            auth_header = self.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer "):
+                candidate = auth_header[7:].strip()
+                if hmac.compare_digest(candidate, auth_token):
+                    token = candidate
+            elif auth_header.startswith("Token "):
+                candidate = auth_header[6:].strip()
+                if hmac.compare_digest(candidate, auth_token):
+                    token = candidate
+
+        # 4. Check one-shot ?token= URL query param (strictly scoped to root and index to avoid logging secrets)
+        if not token and hasattr(self, "path") and "token=" in self.path:
             parsed = urllib.parse.urlparse(self.path)
-            token = urllib.parse.parse_qs(parsed.query).get("token", [""])[0]
+            if parsed.path in ["/", "/index.html"]:
+                candidate = urllib.parse.parse_qs(parsed.query).get("token", [""])[0]
+                if candidate and hmac.compare_digest(candidate, auth_token):
+                    token = candidate
 
         if token and hmac.compare_digest(token, auth_token):
             return True
 
         self.send_response(401)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(json.dumps({"success": False, "error": "Unauthorized: Missing or invalid BRIDGE_AUTH_TOKEN"}).encode("utf-8"))
         return False
 
+    def _get_allowed_origin(self) -> str | None:
+        origin = self.headers.get("Origin", "").strip()
+        if not origin:
+            return None
+        parsed = urllib.parse.urlparse(origin)
+        if parsed.hostname in ["localhost", "127.0.0.1"]:
+            return origin
+        return None
+
     def send_error_json(self, msg, status=400):
+        if isinstance(msg, StorageConflictError):
+            status = 409
+            msg = "concurrent modification, retry"
+        elif isinstance(msg, TenantAccessDeniedError):
+            status = 403
+            msg = str(msg)
+        elif isinstance(msg, Exception):
+            msg = str(msg)
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(json.dumps({"success": False, "error": msg}).encode("utf-8"))
 
@@ -1736,19 +2076,50 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
         self.send_header("Pragma", "no-cache")
         self.send_header("Expires", "0")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        allowed_origin = self._get_allowed_origin()
+        if allowed_origin:
+            self.send_header("Access-Control-Allow-Origin", allowed_origin)
+            self.send_header("Vary", "Origin")
         super().end_headers()
 
     def do_GET(self):
+        try:
+            self._dispatch_GET()
+        except TenantAccessDeniedError as tae:
+            self.send_error_json(tae, 403)
+        except StorageConflictError as sce:
+            self.send_error_json(sce, 409)
+        except Exception as e:
+            self.send_error_json(e, 500)
+
+    def _dispatch_GET(self):
         parsed = urllib.parse.urlparse(self.path)
+        # If token query param is provided on root/index, set a secure cookie and redirect to strip token from URL
+        auth_token = os.environ.get("BRIDGE_AUTH_TOKEN")
+        if auth_token and parsed.path in ["/", "/index.html"]:
+            q_token = urllib.parse.parse_qs(parsed.query).get("token", [""])[0]
+            if q_token and hmac.compare_digest(q_token, auth_token):
+                host_header = self.headers.get("Host", "")
+                is_direct_https = self.headers.get("X-Forwarded-Proto") == "https" and not host_header.startswith("127.0.0.1") and not host_header.startswith("localhost")
+                secure_flag = "; Secure" if is_direct_https else ""
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Set-Cookie", f"bridge_auth={q_token}; Path=/; HttpOnly; SameSite=Lax{secure_flag}")
+                self.end_headers()
+                index_file = BRIDGE_DIR / "index.html"
+                if index_file.exists():
+                    self.wfile.write(index_file.read_bytes())
+                return
+
         if parsed.path.startswith("/api/"):
             if not self._check_auth():
                 return
 
         t_dir = self._get_tenant_dir()
         t_id = self._get_tenant_id()
-        r_inst = tenant_manager.get_router(t_id)
-        m_store = tenant_manager.get_memory_store(t_id)
+        t_mgr = self._get_tenant_manager()
+        r_inst = t_mgr.get_router(t_id)
+        m_store = t_mgr.get_memory_store(t_id)
 
         if parsed.path == "/api/history":
             query_params = urllib.parse.parse_qs(parsed.query)
@@ -1758,12 +2129,40 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             history = load_history(project_id, bridge_dir=t_dir)
             self.wfile.write(json.dumps(history).encode("utf-8"))
-        elif parsed.path == "/api/pending":
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            pending = load_pending(bridge_dir=t_dir)
-            self.wfile.write(json.dumps(pending).encode("utf-8"))
+        elif parsed.path in ["/api/antigravity/pending", "/api/pending"]:
+            query_params = urllib.parse.parse_qs(parsed.query)
+            should_lease = query_params.get("lease", ["false"])[0].lower() in ["true", "1", "yes"]
+            if should_lease:
+                lease_sec = int(query_params.get("lease_seconds", [60])[0])
+                worker_id = query_params.get("worker_id", ["local-relay"])[0]
+                task = lease_pending_task(worker_id=worker_id, lease_seconds=lease_sec, bridge_dir=t_dir)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": True, "task": task, "count": 1 if task else 0}).encode("utf-8"))
+            else:
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                pending = load_pending(bridge_dir=t_dir)
+                p_map = pending.get("pending", {})
+                status_filter = query_params.get("status", [None])[0]
+                now = time.time()
+                if status_filter:
+                    filtered = {}
+                    for qid, q in p_map.items():
+                        st = q.get("status", "waiting")
+                        exp = q.get("lease_expires_at")
+                        effective_status = "waiting" if (st == "waiting" or (st == "leased" and exp and exp < now)) else st
+                        if status_filter == "all" or effective_status == status_filter:
+                            filtered[qid] = q
+                    p_map = filtered
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "pending": p_map,
+                    "tasks": list(p_map.values()),
+                    "count": len(p_map)
+                }).encode("utf-8"))
         elif parsed.path == "/api/profiles":
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -1983,17 +2382,50 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
             t_dispatcher = tenant_manager.get_dispatcher(t_id)
             status_data = t_dispatcher.get_status() if t_dispatcher else {"running": False}
             self.wfile.write(json.dumps({"success": True, "status": status_data}).encode("utf-8"))
+        elif parsed.path == "/api/identity":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            principal = self._get_principal()
+            im = self._get_identity_manager()
+            binding = im.get_binding(principal.id)
+            self.wfile.write(json.dumps({
+                "success": True,
+                "principal": {
+                    "id": principal.id,
+                    "email": principal.email,
+                    "provider": principal.provider,
+                    "roles": principal.roles,
+                    "metadata": principal.metadata,
+                },
+                "current_tenant": t_id,
+                "authorized_tenants": binding.tenant_ids if binding else [t_id],
+                "default_tenant": binding.default_tenant_id if binding else t_id,
+            }).encode("utf-8"))
         else:
             super().do_GET()
 
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        allowed_origin = self._get_allowed_origin()
+        if allowed_origin:
+            self.send_header("Access-Control-Allow-Origin", allowed_origin)
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Bridge-Auth")
+            self.send_header("Vary", "Origin")
         self.end_headers()
 
     def do_POST(self):
+        try:
+            self._dispatch_POST()
+        except TenantAccessDeniedError as tae:
+            self.send_error_json(tae, 403)
+        except StorageConflictError as sce:
+            self.send_error_json(sce, 409)
+        except Exception as e:
+            self.send_error_json(e, 500)
+
+    def _dispatch_POST(self):
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path.startswith("/api/"):
             if not self._check_auth():
@@ -2021,7 +2453,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                     "models": models_to_sync
                 }).encode("utf-8"))
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
 
         if parsed.path == "/api/adk/sync":
@@ -2049,7 +2481,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                     "agents": list(r_inst.manifests.values())
                 }).encode("utf-8"))
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
 
         if parsed.path == "/api/vertex/sync":
@@ -2097,7 +2529,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                     "engines": updated_engines.get("engines", [])
                 }).encode("utf-8"))
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
 
         if parsed.path == "/api/agents":
@@ -2117,7 +2549,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
             except ValueError as ve:
                 self.send_error_json(str(ve), 400)
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
 
         if parsed.path == "/api/projects":
@@ -2129,7 +2561,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 proj_id = payload.get("id") or f"proj_{int(time.time())}"
                 payload["id"] = proj_id
                 
-                projects_data = load_projects(bridge_dir=t_dir)
+                projects_data, prj_gen = load_projects(bridge_dir=t_dir, return_gen=True)
                 projects_list = projects_data.get("projects", [])
                 
                 idx = next((i for i, p in enumerate(projects_list) if p["id"] == proj_id), -1)
@@ -2139,13 +2571,13 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                     projects_list.append(payload)
                 
                 projects_data["projects"] = projects_list
-                save_projects(projects_data, bridge_dir=t_dir)
+                save_projects(projects_data, bridge_dir=t_dir, expected_generation=prj_gen)
 
                 # Sync project members with profiles and resumes (Q1 governance compliant)
-                profiles_data = load_profiles(bridge_dir=t_dir)
+                profiles_data, prof_gen = load_profiles(bridge_dir=t_dir, return_gen=True)
                 profiles_data, profiles_changed = sync_project_membership(payload, profiles_data)
                 if profiles_changed:
-                    save_profiles(profiles_data, bridge_dir=t_dir)
+                    save_profiles(profiles_data, bridge_dir=t_dir, expected_generation=prof_gen)
                 
                 # Perform global permission sync
                 sync_all_project_member_permissions(bridge_dir=t_dir)
@@ -2155,7 +2587,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True, "project": payload}).encode("utf-8"))
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
 
         if parsed.path == "/api/delete-project":
@@ -2173,7 +2605,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                     return
 
                 # 1. Check projects.json and verify pinned status from disk
-                projects_data = load_projects(bridge_dir=t_dir)
+                projects_data, prj_gen = load_projects(bridge_dir=t_dir, return_gen=True)
                 projects_list = projects_data.get("projects", [])
                 target_proj = next((p for p in projects_list if p.get("id") == proj_id), None)
                 if not target_proj:
@@ -2185,10 +2617,10 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
 
                 # 2. Remove from projects.json
                 projects_data["projects"] = [p for p in projects_list if p.get("id") != proj_id]
-                save_projects(projects_data, bridge_dir=t_dir)
+                save_projects(projects_data, bridge_dir=t_dir, expected_generation=prj_gen)
 
                 # 3. Remove from member resumes in profiles.json
-                profiles_data = load_profiles(bridge_dir=t_dir)
+                profiles_data, prof_gen = load_profiles(bridge_dir=t_dir, return_gen=True)
                 profiles_changed = False
                 for prof in profiles_data.get("profiles", []):
                     if "resume" in prof and isinstance(prof["resume"], list):
@@ -2197,22 +2629,22 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                         if len(prof["resume"]) != old_len:
                             profiles_changed = True
                 if profiles_changed:
-                    save_profiles(profiles_data, bridge_dir=t_dir)
+                    save_profiles(profiles_data, bridge_dir=t_dir, expected_generation=prof_gen)
 
                 # 4. Clean up history file if exists
-                hfile = get_history_file(proj_id, bridge_dir=t_dir)
-                if hfile.exists():
-                    try:
-                        hfile.unlink()
-                    except Exception as he:
-                        print(f"Error removing project history for {proj_id}: {he}")
+                try:
+                    rel_key = get_history_rel_key(proj_id)
+                    adapter, t_id = get_active_storage(t_dir)
+                    adapter.delete(t_id, rel_key)
+                except Exception as de:
+                    print(f"Error removing project history from storage for {proj_id}: {de}")
 
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True, "deleted_id": proj_id}).encode("utf-8"))
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
 
         if parsed.path == "/api/update-project-role":
@@ -2231,7 +2663,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                     self.send_error_json("Missing member_id or project_id", 400)
                     return
 
-                profiles_data = load_profiles(bridge_dir=t_dir)
+                profiles_data, prof_gen = load_profiles(bridge_dir=t_dir, return_gen=True)
                 profiles_list = profiles_data.get("profiles", [])
                 p = next((x for x in profiles_list if x.get("id") == member_id), None)
                 if not p:
@@ -2260,13 +2692,13 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                         "highlights": highlights
                     })
 
-                save_profiles(profiles_data, bridge_dir=t_dir)
+                save_profiles(profiles_data, bridge_dir=t_dir, expected_generation=prof_gen)
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True, "profiles": profiles_list}).encode("utf-8"))
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
 
         if parsed.path == "/api/engines":
@@ -2326,7 +2758,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True, "engines": engines_list}).encode("utf-8"))
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
 
         if parsed.path == "/api/models":
@@ -2357,7 +2789,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True, "model": payload, "models": models_list}).encode("utf-8"))
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
 
         if parsed.path == "/api/profiles":
@@ -2380,13 +2812,13 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                         return
                         
                     # 1. Remove from profiles.json
-                    profiles_data = load_profiles(bridge_dir=t_dir)
+                    profiles_data, prof_gen = load_profiles(bridge_dir=t_dir, return_gen=True)
                     profiles_list = profiles_data.get("profiles", [])
                     profiles_data["profiles"] = [p for p in profiles_list if p.get("id") != prof_id]
-                    save_profiles(profiles_data, bridge_dir=t_dir)
+                    save_profiles(profiles_data, bridge_dir=t_dir, expected_generation=prof_gen)
                     
                     # 2. Remove member from projects.json rosters
-                    projects_data = load_projects(bridge_dir=t_dir)
+                    projects_data, prj_gen = load_projects(bridge_dir=t_dir, return_gen=True)
                     projects_list = projects_data.get("projects", [])
                     projects_changed = False
                     for prj in projects_list:
@@ -2394,15 +2826,14 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                             prj["members"] = [m for m in prj["members"] if m != prof_id]
                             projects_changed = True
                     if projects_changed:
-                        save_projects(projects_data, bridge_dir=t_dir)
+                        save_projects(projects_data, bridge_dir=t_dir, expected_generation=prj_gen)
                         
                     # 3. Clean up agent manifest file if exists
-                    manifest_file = t_dir / "agents" / f"{prof_id}.agent.json"
-                    if manifest_file.exists():
-                        try:
-                            manifest_file.unlink()
-                        except Exception as me:
-                            print(f"Error removing agent manifest for {prof_id}: {me}")
+                    try:
+                        adapter, t_id = get_active_storage(t_dir)
+                        adapter.delete(t_id, f"agents/{prof_id}.agent.json")
+                    except Exception as me:
+                        print(f"Error removing agent manifest for {prof_id}: {me}")
                             
                     # 4. Reload agent router registry
                     try:
@@ -2442,7 +2873,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                     router.load_errors.append(err_record)
                     self.send_error_json(str(ve), 400)
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
 
         if parsed.path == "/api/upload":
@@ -2466,7 +2897,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True, "filename": filename, "filepath": str(file_path)}).encode("utf-8"))
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
 
         if parsed.path == "/api/skill-analytics":
@@ -2478,7 +2909,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 skill_id = payload.get("skill_id")
                 agent_id = (payload.get("agent_id") or "lead").lower()
 
-                data = load_skill_usage(bridge_dir=t_dir)
+                data, skill_gen = load_skill_usage(bridge_dir=t_dir, return_gen=True)
                 found = False
                 for s in data.get("skills", []):
                     if s.get("id") == skill_id:
@@ -2502,14 +2933,14 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                         "last_used": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
                     })
 
-                save_skill_usage(data, bridge_dir=t_dir)
+                save_skill_usage(data, bridge_dir=t_dir, expected_generation=skill_gen)
                 data["skills"].sort(key=lambda s: s.get("total_uses", 0), reverse=True)
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True, "skills": data["skills"]}).encode("utf-8"))
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
         if parsed.path == "/api/memory":
             content_length = int(self.headers.get("Content-Length", 0))
@@ -2530,7 +2961,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True, "record": rec}).encode("utf-8"))
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
 
         if parsed.path in ["/api/reactions", "/api/react"]:
@@ -2551,7 +2982,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
 
                 reactions_out = None
                 with file_io_lock:
-                    history = load_history(project_id, bridge_dir=t_dir)
+                    history, gen = load_history(project_id, bridge_dir=t_dir, return_gen=True)
                     txs = history.get("transactions", [])
                     tx = next((t for t in txs if t.get("id") == tx_id), None)
 
@@ -2577,7 +3008,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                             user_list.append(user_id)
                             target_dict[emoji] = user_list
                         
-                        save_history(history, project_id, bridge_dir=t_dir)
+                        save_history(history, project_id, bridge_dir=t_dir, expected_generation=gen)
                         reactions_out = tx["reactions"]
 
                 if reactions_out is not None:
@@ -2588,7 +3019,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 else:
                     self.send_error_json(f"Transaction {tx_id} not found in project {project_id}", 404)
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
 
         if parsed.path == "/api/delete-message":
@@ -2607,7 +3038,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
 
                 deleted_id = None
                 with file_io_lock:
-                    history = load_history(project_id, bridge_dir=t_dir)
+                    history, gen = load_history(project_id, bridge_dir=t_dir, return_gen=True)
                     txs = history.get("transactions", [])
                     tx_idx = next((i for i, t in enumerate(txs) if t.get("id") == tx_id), -1)
 
@@ -2628,7 +3059,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                                     txs.pop(tx_idx)
 
                         history["transactions"] = txs
-                        save_history(history, project_id, bridge_dir=t_dir)
+                        save_history(history, project_id, bridge_dir=t_dir, expected_generation=gen)
                         deleted_id = tx_id
 
                         # Also prune from pending_queries.json if this transaction was queued
@@ -2648,7 +3079,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 else:
                     self.send_error_json("Transaction not found", 404)
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
 
         if parsed.path.endswith("/api/run-execution"):
@@ -2713,7 +3144,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True, "paused": True, "project_id": project_id}).encode("utf-8"))
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
 
         if parsed.path == "/api/a2a/resume":
@@ -2731,17 +3162,154 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True, "paused": False, "project_id": project_id}).encode("utf-8"))
             except Exception as e:
-                self.send_error_json(str(e), 500)
+                self.send_error_json(e, 500)
             return
 
         if parsed.path == "/api/a2a/clear":
             t_id = self._get_tenant_id()
             t_dispatcher = tenant_manager.get_dispatcher(t_id)
             count = t_dispatcher.clear_queue() if t_dispatcher else 0
+            if count is None:
+                self.send_response(501)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": False, "error": "Queue purging is unsupported on distributed Cloud Tasks backend"}).encode("utf-8"))
+                return
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({"success": True, "cleared_count": count}).encode("utf-8"))
+            return
+
+        if parsed.path in ("/api/a2a/task", "/api/a2a/execute"):
+            content_length = int(self.headers.get("Content-Length", 0))
+            post_data = self.rfile.read(content_length).decode("utf-8") if content_length > 0 else "{}"
+            try:
+                payload = json.loads(post_data) if post_data else {}
+                t_id = self._get_tenant_id(payload)
+                t_dispatcher = self._get_tenant_manager().get_dispatcher(t_id)
+                task_data = payload.get("task", payload)
+                if not task_data or not isinstance(task_data, dict) or "id" not in task_data:
+                    self.send_response(400)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": False, "error": "Missing or invalid 'task' payload"}).encode("utf-8"))
+                    return
+
+                if not t_dispatcher:
+                    self.send_response(500)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": False, "error": f"No dispatcher for tenant '{t_id}'"}).encode("utf-8"))
+                    return
+
+                result = t_dispatcher.process_task(task_data)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "task_id": task_data.get("id"),
+                    "status": result.get("status", "completed"),
+                    "result": result
+                }).encode("utf-8"))
+            except StorageConflictError as sce:
+                # Storage CAS race condition -> return 409 Conflict so Cloud Tasks automatically retries
+                self.send_response(409)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": False, "retryable": True, "error": str(sce)}).encode("utf-8"))
+            except Exception as e:
+                self.send_error_json(e, 500)
+            return
+
+        if parsed.path == "/api/antigravity/pending":
+            content_length = int(self.headers.get("Content-Length", 0))
+            post_data = self.rfile.read(content_length).decode("utf-8")
+            payload = json.loads(post_data) if post_data else {}
+            t_id = self._get_tenant_id(payload)
+            t_dir = self._get_tenant_dir(payload)
+
+            action = payload.get("action", "lease")
+            if action == "lease":
+                lease_sec = int(payload.get("lease_seconds", 60))
+                worker_id = payload.get("worker_id", "local-relay")
+                task = lease_pending_task(worker_id=worker_id, lease_seconds=lease_sec, bridge_dir=t_dir)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": True, "task": task, "count": 1 if task else 0}).encode("utf-8"))
+            elif action == "renew":
+                tx_id = payload.get("tx_id")
+                lease_id = payload.get("lease_id")
+                lease_sec = int(payload.get("lease_seconds", 60))
+                if not tx_id or not lease_id:
+                    self.send_error_json("tx_id and lease_id required for renewal", 400)
+                    return
+                ok, renewed, err = renew_pending_lease(tx_id, lease_id, lease_seconds=lease_sec, bridge_dir=t_dir)
+                if not ok:
+                    status_code = 409 if "mismatch" in err else 404
+                    self.send_error_json(err, status_code)
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": True, "task": renewed}).encode("utf-8"))
+            elif action == "release":
+                tx_id = payload.get("tx_id")
+                lease_id = payload.get("lease_id")
+                if not tx_id:
+                    self.send_error_json("tx_id required for release", 400)
+                    return
+                ok, err = release_pending_lease(tx_id, lease_id=lease_id, bridge_dir=t_dir)
+                if not ok:
+                    status_code = 409 if "mismatch" in err else 404
+                    self.send_error_json(err, status_code)
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": True, "tx_id": tx_id, "status": "waiting"}).encode("utf-8"))
+            else:
+                self.send_error_json(f"Unknown pending action '{action}'", 400)
+            return
+
+        if parsed.path == "/api/antigravity/resolve":
+            content_length = int(self.headers.get("Content-Length", 0))
+            post_data = self.rfile.read(content_length).decode("utf-8")
+            payload = json.loads(post_data) if post_data else {}
+            t_id = self._get_tenant_id(payload)
+            t_dir = self._get_tenant_dir(payload)
+
+            tx_id = payload.get("tx_id")
+            response_text = payload.get("response") or payload.get("response_text")
+            if not tx_id or response_text is None:
+                self.send_error_json("tx_id and response are required to resolve a pending task", 400)
+                return
+
+            lease_id = payload.get("lease_id")
+            project_id = payload.get("project_id")
+            sender = payload.get("sender", "Active Agent")
+            sender_role = payload.get("sender_role", "Chat Agent")
+
+            ok, res, err = resolve_pending_task(
+                tx_id=tx_id,
+                response_text=response_text,
+                lease_id=lease_id,
+                project_id=project_id,
+                sender=sender,
+                sender_role=sender_role,
+                bridge_dir=t_dir
+            )
+            if not ok:
+                status_code = 409 if "conflict" in err else 404
+                self.send_error_json(err, status_code)
+                return
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"success": True, **res}).encode("utf-8"))
             return
 
         if parsed.path == "/api/chat":
@@ -2768,6 +3336,15 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 active_proj = next((p for p in projects_data.get("projects", []) if p.get("id") == project_id), None)
                 allow_subagents = active_proj.get("allow_subagents", True) if active_proj else True
                 directories = active_proj.get("directories", []) if active_proj else []
+                from core.tenant import is_cloud
+                resolved_dirs = []
+                for d in directories:
+                    p = Path(d)
+                    if (is_cloud() or not p.exists()) and (p.name == "bridge_deck" or "bridge_deck" in p.parts):
+                        resolved_dirs.append(str(BRIDGE_DIR))
+                    else:
+                        resolved_dirs.append(d)
+                directories = resolved_dirs or [str(BRIDGE_DIR)]
 
                 tx_id = f"tx_{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}"
                 timestamp = time.strftime("%Y-%m-%dT%H:%M:%S%z")
@@ -2892,20 +3469,25 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                             context={"self_context": agent_self_hdr, "self_name": recipient, "directories": directories, "bridge_dir": t_dir}
                         )
                         if inv_res.get("is_pending"):
-                            pending = load_pending(bridge_dir=t_dir)
-                            pending["pending"][tx_id] = {
-                                "id": tx_id,
-                                "timestamp": timestamp,
-                                "sender": sender,
-                                "sender_role": sender_role,
-                                "recipient": recipient,
-                                "recipient_role": recipient_role,
-                                "prompt": effective_prompt,
-                                "allow_subagents": allow_subagents,
-                                "directories": directories,
-                                "status": "waiting"
-                            }
-                            save_pending(pending, bridge_dir=t_dir)
+                            def _enqueue_mutator(doc):
+                                doc.setdefault("pending", {})[tx_id] = {
+                                    "id": tx_id,
+                                    "timestamp": timestamp,
+                                    "sender": sender,
+                                    "sender_role": sender_role,
+                                    "recipient": recipient,
+                                    "recipient_role": recipient_role,
+                                    "prompt": effective_prompt,
+                                    "allow_subagents": allow_subagents,
+                                    "directories": directories,
+                                    "status": "waiting",
+                                    "project_id": project_id,
+                                    "lease_id": None,
+                                    "lease_expires_at": None,
+                                    "leased_by": None
+                                }
+                                return doc
+                            update_pending(_enqueue_mutator, bridge_dir=t_dir)
                             antigravity_resp = inv_res.get("response")
                             claude_resp = None
                             status_code = 200
@@ -3055,15 +3637,13 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
 
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
-                self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True, "transaction": tx_record}).encode("utf-8"))
 
+            except StorageConflictError as sce:
+                self.send_error_json(sce, 409)
             except Exception as e:
-                self.send_response(500)
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+                self.send_error_json(e, 500)
         else:
             self.send_response(404)
             self.end_headers()
@@ -3078,6 +3658,21 @@ def run_server(port=8080, host="127.0.0.1"):
     if port < 1 or port > 65535:
         print(f"⚠️ Warning: Invalid port {port}. Port must be between 1 and 65535. Defaulting to 8080.")
         port = 8080
+
+    # Fail-Fast Backend Configuration Assertions
+    if is_cloud():
+        if not os.environ.get("GCS_DATA_BUCKET"):
+            print("\n❌ STARTUP ERROR: GCS_DATA_BUCKET is required when running in cloud mode.")
+            sys.exit(1)
+        if os.environ.get("A2A_QUEUE_BACKEND") == "cloud_tasks":
+            proj = os.environ.get("CLOUD_TASKS_PROJECT") or os.environ.get("GOOGLE_CLOUD_PROJECT")
+            if not proj:
+                print("\n❌ STARTUP ERROR: CLOUD_TASKS_PROJECT (or GOOGLE_CLOUD_PROJECT) is required when A2A_QUEUE_BACKEND='cloud_tasks'.")
+                sys.exit(1)
+            service_url = os.environ.get("CLOUD_TASKS_SERVICE_URL") or os.environ.get("SERVICE_URL")
+            if not service_url:
+                print("\n❌ STARTUP ERROR: CLOUD_TASKS_SERVICE_URL (or SERVICE_URL) is required when A2A_QUEUE_BACKEND='cloud_tasks'.")
+                sys.exit(1)
 
     if host not in ["127.0.0.1", "localhost"]:
         auth_token = os.environ.get("BRIDGE_AUTH_TOKEN")
@@ -3094,8 +3689,16 @@ def run_server(port=8080, host="127.0.0.1"):
 
     print("==================================================")
     print("=== BRIDGE DECK SERVER ===")
-    print(f" Port: http://{host}:{port}")
-    print(f" Default Tenant: configured ({'custom' if os.environ.get('BRIDGE_DEFAULT_TENANT') else 'default'})")
+    t_raw = os.environ.get("BRIDGE_DEFAULT_TENANT", "default_workspace")
+    auth_token = os.environ.get("BRIDGE_AUTH_TOKEN")
+    if auth_token:
+        t_hash = hmac.new(auth_token.encode("utf-8"), t_raw.encode("utf-8"), hashlib.sha256).hexdigest()[:8]
+        t_label = f"hmac-sha256:{t_hash}"
+    else:
+        t_hash = hashlib.sha256(t_raw.encode("utf-8")).hexdigest()[:8]
+        t_label = f"sha256:{t_hash}"
+    print(f" Default Tenant: {t_label}")
+    print(f" Storage Adapter: {type(get_storage_adapter()).__name__}")
     print(f" Multi-Tenant Partitioning: Active")
     print(f" Base Directory: {BASE_DIR.name if BASE_DIR else 'bridge_deck'}")
     print(f" Ignored Patterns: {_gi_patterns}")
@@ -3107,7 +3710,10 @@ def run_server(port=8080, host="127.0.0.1"):
     except Exception as se:
         print(f"Notice on startup permission sync: {se}")
 
-    schedule_daily_skill_sync()
+    try:
+        schedule_daily_skill_sync()
+    except Exception as se:
+        print(f"Notice on startup skill sync scheduling: {se}")
     server_address = (host, port)
     
     try:
@@ -3129,7 +3735,9 @@ def run_server(port=8080, host="127.0.0.1"):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Bridge Deck Server")
-    parser.add_argument("--host", type=str, default="127.0.0.1", help="Host address to bind (default: 127.0.0.1)")
-    parser.add_argument("--port", type=int, default=8080, help="Port to serve web dashboard")
+    default_host = os.environ.get("HOST", "127.0.0.1")
+    default_port = int(os.environ.get("PORT", "8080"))
+    parser.add_argument("--host", type=str, default=default_host, help="Host address to bind (default: 127.0.0.1 or $HOST)")
+    parser.add_argument("--port", type=int, default=default_port, help="Port to serve web dashboard (default: 8080 or $PORT)")
     args = parser.parse_args()
     run_server(port=args.port, host=args.host)
