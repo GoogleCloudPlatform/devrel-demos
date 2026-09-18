@@ -14,9 +14,6 @@ in-process agent-to-agent delegation, and fail-closed security governance.
 - 🤖 [**Agent Operational & Architecture Guide**](docs/agent_user_guide.md):
   Comprehensive system architecture reference, JSON schema manifests,
   3-tier memory engine, and background daemon execution rules.
-- ☁️ [**Google Cloud Migration Plan**](docs/CLOUD_MIGRATION_PLAN.md):
-  Full specification for Google Cloud Run deployment, GCS FUSE storage CAS,
-  Cloud Tasks durable queue, Gate G1/G2 governance, and disaster recovery.
 
 ---
 
@@ -231,9 +228,7 @@ bridge_deck/
 │   └── store.py           # 3-tier persistent memory engine
 ├── seed/                  # Clean template fixtures for initial tenant provisioning
 ├── docs/
-│   ├── CLOUD_MIGRATION_PLAN.md # Full architecture & migration specification
-│   ├── PHASE1_CAS_REPORT.md    # Optimistic concurrency CAS verification report
 │   ├── human_user_guide.md     # Practical operator & human user how-to guide
 │   └── agent_user_guide.md     # Comprehensive platform architecture & agent guide
-└── tests/                 # Comprehensive unit & integration suite (109 tests)
+└── tests/                 # Comprehensive unit & integration suite (110 tests)
 ```

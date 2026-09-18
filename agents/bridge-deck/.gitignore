@@ -12,3 +12,5 @@ scratch/
 deploy.env
 claude_bridge.md
 .bridge_relay/
+docs/internal/
+internal/

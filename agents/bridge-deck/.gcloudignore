@@ -11,3 +11,5 @@ claude_bridge.md
 .bridge_relay/
 .DS_Store
 *.log
+docs/internal/
+internal/
