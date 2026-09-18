@@ -468,6 +468,23 @@ class A2ADispatcher:
                 "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             }
 
+        try:
+            return self._run_task_turn(task, project_id, target_agent_id, sender_name, sender_role, prompt, cascade_depth)
+        finally:
+            with self._lock:
+                if self.active_task and self.active_task.get("id") == task.get("id"):
+                    self.active_task = None
+
+    def _run_task_turn(
+        self,
+        task: Dict[str, Any],
+        project_id: str,
+        target_agent_id: str,
+        sender_name: str,
+        sender_role: str,
+        prompt: str,
+        cascade_depth: int
+    ) -> Dict[str, Any]:
         # Check cascade depth budget
         if cascade_depth >= self.max_depth:
             self._post_depth_limit_notice(project_id, target_agent_id, cascade_depth)
@@ -688,12 +705,20 @@ class A2ADispatcher:
         except Exception as ne:
             print(f"[!] Notice failure append error: {ne}")
 
+    def reset_active_task(self):
+        """Clears current active task indicator state."""
+        with self._lock:
+            self.active_task = None
+
     def pause(self, project_id: Optional[str] = None):
         with self._lock:
             if project_id:
                 self.paused_projects.add(project_id)
+                if self.active_task and (self.active_task.get("project_id") == project_id or self.active_task.get("project_id") == project_id.replace("proj_", "")):
+                    self.active_task = None
             else:
                 self.global_paused = True
+                self.active_task = None
 
     def resume(self, project_id: Optional[str] = None):
         with self._lock:
@@ -711,6 +736,7 @@ class A2ADispatcher:
             return False
 
     def clear_queue(self) -> Optional[int]:
+        self.reset_active_task()
         if hasattr(self, "queue_backend") and self.queue_backend:
             return self.queue_backend.clear()
         return 0

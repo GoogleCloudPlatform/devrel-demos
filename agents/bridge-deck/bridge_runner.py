@@ -3175,17 +3175,24 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/a2a/clear":
             t_id = self._get_tenant_id()
             t_dispatcher = tenant_manager.get_dispatcher(t_id)
+            if t_dispatcher:
+                t_dispatcher.reset_active_task()
             count = t_dispatcher.clear_queue() if t_dispatcher else 0
             if count is None:
-                self.send_response(501)
+                self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
-                self.wfile.write(json.dumps({"success": False, "error": "Queue purging is unsupported on distributed Cloud Tasks backend"}).encode("utf-8"))
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "cleared_count": None,
+                    "active_task_cleared": True,
+                    "note": "Active task indicator reset. Remote Cloud Tasks queue retains server-side items."
+                }).encode("utf-8"))
                 return
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"success": True, "cleared_count": count}).encode("utf-8"))
+            self.wfile.write(json.dumps({"success": True, "cleared_count": count, "active_task_cleared": True}).encode("utf-8"))
             return
 
         if parsed.path in ("/api/a2a/task", "/api/a2a/execute"):
