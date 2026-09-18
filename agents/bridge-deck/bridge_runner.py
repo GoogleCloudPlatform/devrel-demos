@@ -2639,6 +2639,10 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                     rel_key = get_history_rel_key(proj_id)
                     adapter, t_id = get_active_storage(t_dir)
                     adapter.delete(t_id, rel_key)
+                    if isinstance(adapter, LocalStorageAdapter):
+                        legacy_key = get_legacy_history_rel_key(proj_id)
+                        if legacy_key:
+                            adapter.delete(t_id, legacy_key)
                 except Exception as de:
                     print(f"Error removing project history from storage for {proj_id}: {de}")
 
