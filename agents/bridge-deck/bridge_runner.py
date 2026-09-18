@@ -1574,10 +1574,10 @@ def build_agent_self_context(agent_id, project_id="lantern", bridge_dir=None):
     )
 
 
-def build_anthropic_messages_and_system(prompt, sender="User", max_turns=6, project_id="lantern", target_agent_id="lumen", bridge_dir=None):
+def build_agent_messages_and_system(prompt, sender="User", max_turns=6, project_id="lantern", target_agent_id="lumen", bridge_dir=None):
     """
-    Builds proper multi-turn messages array and system prompt for any agent on Vertex AI.
-    Ensures strict alternating user/assistant role sequence required by Anthropic API.
+    Builds proper multi-turn messages array and system prompt for any agent on Vertex AI or local engine.
+    Ensures strict alternating user/assistant role sequence required across frontier chat models.
     """
     b_dir = bridge_dir or get_tenant_dir()
     t_id = sanitize_tenant_id(b_dir.name if b_dir.parent.name == "tenants" else DEFAULT_TENANT_ID)
@@ -1680,7 +1680,10 @@ def build_anthropic_messages_and_system(prompt, sender="User", max_turns=6, proj
     messages.append({"role": "user", "speaker": sender, "content": curr_content})
 
     return messages, system_prompt
-
+ 
+ 
+# Backwards-compatibility alias
+build_anthropic_messages_and_system = build_agent_messages_and_system
 
 def load_pending(bridge_dir=None):
     adapter, t_id = get_active_storage(bridge_dir)
@@ -3453,17 +3456,17 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                     start_time = time.time()
                     antigravity_resp = None
                     if mode == "antigravity_impl":
-                        prompt_to_claude = f"Vector (Implementation Lead) has posted the following update for your review:\n\n{prompt}"
+                        prompt_to_agent = f"Vector (Implementation Lead) has posted the following update for your review:\n\n{prompt}"
                     else:
-                        prompt_to_claude = prompt
+                        prompt_to_agent = prompt
 
                     provider = resolved.get("provider")
                     project_id = payload.get("project_id") or payload.get("project_room") or "lantern"
-                    messages_list, system_prompt = build_anthropic_messages_and_system(prompt_to_claude, sender=sender, max_turns=6, project_id=project_id, target_agent_id=target_agent_id, bridge_dir=t_dir)
+                    messages_list, system_prompt = build_agent_messages_and_system(prompt_to_agent, sender=sender, max_turns=6, project_id=project_id, target_agent_id=target_agent_id, bridge_dir=t_dir)
 
                     if provider:
                         inv_res = provider.invoke(
-                            prompt=prompt_to_claude,
+                            prompt=prompt_to_agent,
                             system_prompt=system_prompt,
                             messages=messages_list,
                             context={"self_context": agent_self_hdr, "self_name": recipient, "directories": directories, "bridge_dir": t_dir}
@@ -3513,7 +3516,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                                 model_name=model_name
                             )
                             claude_resp = client.generate(
-                                prompt=prompt_to_claude,
+                                prompt=prompt_to_agent,
                                 max_output_tokens=8192,
                                 messages_list=messages_list,
                                 system_prompt=system_prompt
@@ -3702,7 +3705,7 @@ def run_server(port=8080, host="127.0.0.1"):
     print(f" Multi-Tenant Partitioning: Active")
     print(f" Base Directory: {BASE_DIR.name if BASE_DIR else 'bridge_deck'}")
     print(f" Ignored Patterns: {_gi_patterns}")
-    print(" Transparent Errors & Native Anthropic Multi-Turn Memory")
+    print(" Transparent Errors & Native Multi-Turn Memory")
     print("==================================================")
     # Ensure all project member directory permissions are synchronized
     try:

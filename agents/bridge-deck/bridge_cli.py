@@ -43,7 +43,7 @@ def _post_message_direct(prompt: str, sender: str = "Vector (Implementation Lead
         sys.path.insert(0, str(root / "src"))
         sys.path.insert(0, str(root.parent / "internal" / "bridge"))
         from model_client import GCPModelClient
-        from bridge_runner import build_anthropic_messages_and_system, load_history, save_history
+        from bridge_runner import build_agent_messages_and_system, load_history, save_history
 
         tx_id = f"tx_{int(time.time())}"
         now_iso = time.strftime("%Y-%m-%dT%H:%M:%S%z")
@@ -54,14 +54,14 @@ def _post_message_direct(prompt: str, sender: str = "Vector (Implementation Lead
 
         if mode == "antigravity_impl":
             antigravity_resp = prompt
-            prompt_to_claude = f"Vector (Implementation Lead) has posted the following update for your review:\n\n{prompt}"
+            prompt_to_agent = f"Vector (Implementation Lead) has posted the following update for your review:\n\n{prompt}"
         else:
             antigravity_resp = None
-            prompt_to_claude = prompt
+            prompt_to_agent = prompt
 
         client = GCPModelClient(project_id="YOUR_GCP_PROJECT_ID", location="global", model_name=model)
-        msgs, sys_p = build_anthropic_messages_and_system(prompt_to_claude, sender=sender, max_turns=6)
-        claude_resp = client.generate(prompt=prompt_to_claude, max_output_tokens=8192, messages_list=msgs, system_prompt=sys_p)
+        msgs, sys_p = build_agent_messages_and_system(prompt_to_agent, sender=sender, max_turns=6)
+        claude_resp = client.generate(prompt=prompt_to_agent, max_output_tokens=8192, messages_list=msgs, system_prompt=sys_p)
 
         new_tx = {
             "id": tx_id,

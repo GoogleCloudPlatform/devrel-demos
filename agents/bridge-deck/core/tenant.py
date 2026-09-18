@@ -736,7 +736,7 @@ class TenantRegistry:
                     load_history_fn=dispatcher_kwargs.get("load_history_fn") or (lambda pid: bridge_runner.load_history(pid, bridge_dir=t_dir)),
                     save_history_fn=dispatcher_kwargs.get("save_history_fn") or (lambda data, project_id="lantern", **kw: bridge_runner.save_history(data, project_id=project_id, bridge_dir=t_dir, expected_generation=kw["expected_generation"])),
                     load_projects_fn=dispatcher_kwargs.get("load_projects_fn") or (lambda: bridge_runner.load_projects(bridge_dir=t_dir)),
-                    build_messages_fn=dispatcher_kwargs.get("build_messages_fn") or (lambda *args, **kw: bridge_runner.build_anthropic_messages_and_system(*args, bridge_dir=t_dir, **kw)),
+                    build_messages_fn=dispatcher_kwargs.get("build_messages_fn") or (lambda *args, **kw: bridge_runner.build_agent_messages_and_system(*args, bridge_dir=t_dir, **kw)),
                     build_self_context_fn=dispatcher_kwargs.get("build_self_context_fn") or (lambda *args, **kw: bridge_runner.build_agent_self_context(*args, bridge_dir=t_dir, **kw)),
                     append_transaction_fn=dispatcher_kwargs.get("append_transaction_fn") or (lambda pid, tx: bridge_runner.append_transaction(pid, tx, bridge_dir=t_dir)),
                     bridge_auth_token=dispatcher_kwargs.get("bridge_auth_token") or os.environ.get("BRIDGE_AUTH_TOKEN"),

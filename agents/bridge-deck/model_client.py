@@ -337,10 +337,10 @@ class GCPModelClient:
                 sanitized.append({"role": role, "content": clean_text if clean_text else "."})
         return sanitized
 
-    def _filter_valid_anthropic_blocks(self, blocks: Any) -> List[Dict[str, Any]]:
+    def _filter_valid_content_blocks(self, blocks: Any) -> List[Dict[str, Any]]:
         """
-        Sanitizes content blocks for Anthropic API compatibility:
-        - Strips empty text blocks (eliminating Anthropic 400: 'messages: text content blocks must be non-empty')
+        Sanitizes content blocks across frontier model APIs:
+        - Strips empty text blocks (eliminating 400 'must be non-empty' validation errors)
         - Preserves tool_use blocks and non-empty text/thinking blocks
         - Returns serialized dicts suitable for kwargs['messages']
         """
@@ -375,6 +375,9 @@ class GCPModelClient:
                         "input": getattr(b, "input", {})
                     })
         return filtered
+
+    # Backwards-compatibility alias
+    _filter_valid_anthropic_blocks = _filter_valid_content_blocks
 
     def _get_repo_context(self) -> str:
         """
@@ -517,7 +520,7 @@ class GCPModelClient:
                     if not tool_use_blocks:
                         break
 
-                    assistant_blocks = self._filter_valid_anthropic_blocks(response.content)
+                    assistant_blocks = self._filter_valid_content_blocks(response.content)
 
                     tool_results = []
                     for tub in tool_use_blocks:
@@ -550,7 +553,7 @@ class GCPModelClient:
                 # If the loop ended while model still wanted to call tools, do concluding turn without tools
                 if hasattr(response, "stop_reason") and response.stop_reason == "tool_use":
                     tool_use_blocks = [b for b in response.content if (getattr(b, "type", None) == "tool_use" or (isinstance(b, dict) and b.get("type") == "tool_use"))]
-                    assistant_blocks = self._filter_valid_anthropic_blocks(response.content)
+                    assistant_blocks = self._filter_valid_content_blocks(response.content)
                     tool_results = []
                     for tub in tool_use_blocks:
                         t_name = getattr(tub, "name", None) or (tub.get("name") if isinstance(tub, dict) else None)
@@ -598,7 +601,7 @@ class GCPModelClient:
 
                 # Fallback if model did not produce text yet
                 if not final_text_parts:
-                    assistant_blocks = self._filter_valid_anthropic_blocks(response.content) if hasattr(response, "content") and response.content else []
+                    assistant_blocks = self._filter_valid_content_blocks(response.content) if hasattr(response, "content") and response.content else []
                     unresolved_tools = [b for b in assistant_blocks if b.get("type") == "tool_use"]
                     if unresolved_tools:
                         tool_results = []
