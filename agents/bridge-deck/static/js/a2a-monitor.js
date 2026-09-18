@@ -27,7 +27,14 @@
                 const isProjectPaused = status.global_paused || (status.paused_projects && status.paused_projects.includes(activeChannel));
                 a2aPausedState = isProjectPaused;
 
-                if (status.active_task) {
+                if (isProjectPaused) {
+                    indicator.style.display = 'inline-flex';
+                    indicator.style.background = '#fef7e0';
+                    indicator.style.color = '#b06000';
+                    statusText.innerText = `⏸️ A2A Paused`;
+                    btnToggle.innerText = '▶️';
+                    btnToggle.title = 'Resume Autonomous Collaboration';
+                } else if (status.active_task) {
                     indicator.style.display = 'inline-flex';
                     indicator.style.background = '#e8f0fe';
                     indicator.style.color = '#0b57d0';
@@ -40,13 +47,6 @@
                     indicator.style.color = '#0b57d0';
                     statusText.innerText = `⚡ Queued (${status.queue_size})`;
                     btnToggle.innerText = '⏸️';
-                } else if (isProjectPaused) {
-                    indicator.style.display = 'inline-flex';
-                    indicator.style.background = '#fef7e0';
-                    indicator.style.color = '#b06000';
-                    statusText.innerText = `⏸️ A2A Paused`;
-                    btnToggle.innerText = '▶️';
-                    btnToggle.title = 'Resume Autonomous Collaboration';
                 } else {
                     indicator.style.display = 'none';
                 }

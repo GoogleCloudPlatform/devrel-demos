@@ -515,7 +515,7 @@
             });
 
             // Google Chat Live A2A Thinking / Generation Indicator
-            if (latestA2AActiveTask && (latestA2AActiveTask.project_id === activeChannel || (activeChannel === 'lantern' && latestA2AActiveTask.project_id === 'lantern') || (activeChannel.replace('proj_', '') === latestA2AActiveTask.project_id.replace('proj_', '')))) {
+            if (!a2aPausedState && latestA2AActiveTask && (latestA2AActiveTask.project_id === activeChannel || (activeChannel === 'lantern' && latestA2AActiveTask.project_id === 'lantern') || (activeChannel.replace('proj_', '') === latestA2AActiveTask.project_id.replace('proj_', '')))) {
                 const targetId = latestA2AActiveTask.target;
                 const targetProf = currentProfiles.find(x => x.id === targetId);
                 const targetName = targetProf ? targetProf.name : (targetId.charAt(0).toUpperCase() + targetId.slice(1));
