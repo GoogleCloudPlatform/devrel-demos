@@ -13,11 +13,17 @@
 # limitations under the License.
 
 metrics_to_run:
-  - custom_response_quality
+  - custom_brand_fit
 
 custom_metrics:
-  # Default: local LLM-as-judge (see response_quality.py). Runs in-process via
+  # This agent's own brand guidelines as a rubric (see brand_fit.py). The rubric
+  # is read from visual_director/skills/brand-guidelines/SKILL.md at grading
+  # time, so editing the skill also edits the eval.
+  - name: custom_brand_fit
+    custom_function_file: brand_fit.py
+  # Generic quality judge (see response_quality.py). Runs in-process via
   # google-genai on Agent Platform (ADC) or Google AI Studio (GEMINI_API_KEY).
+  # Select it with: agents-cli eval grade --metrics custom_response_quality
   - name: custom_response_quality
     custom_function_file: response_quality.py
   - name: agent_turn_count
