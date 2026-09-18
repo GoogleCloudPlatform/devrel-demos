@@ -141,6 +141,33 @@ class TestA2ADurableQueue(unittest.TestCase):
             backend.enqueue({"id": "task_fail"}, tenant_id="t1")
         self.assertIn("Cloud Tasks API returned HTTP 403", str(ctx.exception))
 
+    def test_cloud_tasks_queue_backend_session_caching(self):
+        from unittest.mock import patch
+        backend = CloudTasksQueueBackend(
+            project_id="test-proj",
+            location="us-central1",
+            queue_name="a2a-tasks",
+            service_url="https://example.run.app",
+            bridge_auth_token="test-token"
+        )
+        self.assertIsNone(backend._session)
+
+        mock_creds = MagicMock()
+        mock_creds.token = "mock-token-xyz"
+
+        with patch("google.auth.default", return_value=(mock_creds, "test-proj")), \
+             patch("google.auth.transport.requests.Request", return_value=MagicMock()):
+            s1 = backend._get_session()
+            self.assertIsNotNone(s1)
+            self.assertIs(backend._session, s1)
+            self.assertEqual(s1.headers.get("Authorization"), "Bearer mock-token-xyz")
+            self.assertEqual(mock_creds.refresh.call_count, 1)
+
+            # Second call should return cached session without refreshing credentials again
+            s2 = backend._get_session()
+            self.assertIs(s2, s1)
+            self.assertEqual(mock_creds.refresh.call_count, 1)
+
     def test_dispatcher_environment_auto_detection(self):
         old_env = dict(os.environ)
         try:

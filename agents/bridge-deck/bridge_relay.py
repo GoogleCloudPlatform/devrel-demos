@@ -392,6 +392,7 @@ class RelayDaemon:
         # Wait for reply via reply.txt, terminal input, or external resolution
         try:
             resolved = False
+            last_external_check = 0.0
             while self.running and not resolved:
                 if REPLY_FILE.exists():
                     try:
@@ -412,16 +413,19 @@ class RelayDaemon:
                     except Exception as re_err:
                         print(f"[!] Error resolving from reply.txt: {re_err}")
 
-                # Check if task was resolved externally
-                try:
-                    pending_check = self.client.list_pending(status="all")
-                    active_ids = [t.get("id") for t in pending_check.get("tasks", [])]
-                    if tx_id not in active_ids:
-                        print(f"[*] Task {tx_id} was resolved externally. Resuming polling.")
-                        resolved = True
-                        break
-                except Exception:
-                    pass
+                # Check if task was resolved externally (every 10 seconds to reduce server load)
+                now = time.time()
+                if now - last_external_check >= 10.0:
+                    last_external_check = now
+                    try:
+                        pending_check = self.client.list_pending(status="all")
+                        active_ids = [t.get("id") for t in pending_check.get("tasks", [])]
+                        if tx_id not in active_ids:
+                            print(f"[*] Task {tx_id} was resolved externally. Resuming polling.")
+                            resolved = True
+                            break
+                    except Exception:
+                        pass
 
                 time.sleep(1.0)
         finally:

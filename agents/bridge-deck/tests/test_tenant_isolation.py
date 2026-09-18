@@ -851,6 +851,9 @@ class TestTenantIsolation(unittest.TestCase):
             # Create a history entry for it
             bridge_runner.append_transaction("proj_temp_delete_test", {"id": "tx_del_1", "prompt_text": "hello"}, bridge_dir=t_dir)
             self.assertTrue(bridge_runner.get_history_file("proj_temp_delete_test", bridge_dir=t_dir).exists())
+            legacy_file = t_dir / "history_proj_temp_delete_test.json"
+            legacy_file.write_text('{"transactions": []}', encoding="utf-8")
+            self.assertTrue(legacy_file.exists())
 
             # 2. Attempt to delete default pinned project -> should fail with 400
             del_pinned_handler = DummyBridgeRequestHandler("/api/delete-project", {"project_id": "lantern"}, headers=headers)
@@ -867,8 +870,9 @@ class TestTenantIsolation(unittest.TestCase):
             p_ids = [p["id"] for p in t_projects.get("projects", [])]
             self.assertNotIn("proj_temp_delete_test", p_ids)
 
-            # Assert history file was cleaned up
+            # Assert history file and legacy history file were cleaned up
             self.assertFalse(bridge_runner.get_history_file("proj_temp_delete_test", bridge_dir=t_dir).exists())
+            self.assertFalse(legacy_file.exists())
 
             # Assert root projects.json does not exist
             self.assertFalse((ROOT_DIR / "projects.json").exists())

@@ -177,6 +177,7 @@ class CloudTasksQueueBackend(A2AQueueBackend):
             creds.refresh(auth_req)
             s = requests.Session()
             s.headers["Authorization"] = f"Bearer {creds.token}"
+            self._session = s
             return s
         except Exception as e:
             raise RuntimeError(f"Failed to obtain Google Cloud credentials for Cloud Tasks: {e}") from e
