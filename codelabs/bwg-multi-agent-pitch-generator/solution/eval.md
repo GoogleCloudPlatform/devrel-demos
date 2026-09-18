@@ -20,7 +20,7 @@ lab project is gone:
 
 | Command | Runs | Needs |
 | --- | --- | --- |
-| `eval generate` | Your agent, once per case | A Google Cloud project with Vertex AI, plus image model quota |
+| `eval generate` | Your agent, once per case | A Google Cloud project with Vertex AI, the Vertex environment variables exported, plus image model quota |
 | `eval grade` | The judge, over saved traces | Application Default Credentials **or** a free AI Studio `GEMINI_API_KEY` |
 
 So you can grade pre-generated traces with nothing but an API key, and only need a
@@ -28,12 +28,28 @@ project when you want to re-run the agent itself.
 
 ## Run it
 
-From the `visual-director` project:
+From the repository root, set up the environment and the project:
 
 ```bash
+source ./setenv.sh
 cd solution/visual-director
 uv sync --extra eval
 ```
+
+`setenv.sh` sits at the repository root and exports `GOOGLE_GENAI_USE_VERTEXAI`,
+`GOOGLE_CLOUD_PROJECT`, and `GOOGLE_CLOUD_LOCATION`. Those variables live only as
+long as the shell session, so source it again in every new Cloud Shell tab, then
+check them:
+
+```bash
+echo "$GOOGLE_GENAI_USE_VERTEXAI $GOOGLE_CLOUD_PROJECT $GOOGLE_CLOUD_LOCATION"
+```
+
+You want `true`, your project ID, and `global`. Without
+`GOOGLE_GENAI_USE_VERTEXAI` the client falls back to the Gemini API, and since the
+agent pins `location="global"`, every case fails with `Gemini API does not support
+project/location`. A `GEMINI_API_KEY` is no substitute: it grades, it cannot
+generate. Run `unset GEMINI_API_KEY` if you exported one earlier.
 
 ### Everything at once
 
@@ -46,21 +62,49 @@ agents-cli eval run --dataset tests/eval/datasets/brand-fit-dataset.json
 `eval generate` starts a local server, dispatches the cases in parallel, and tears
 it down. Each case calls the image model, so this is the slow, quota-hungry half.
 
+On a lab project, six renders at once is usually more than the image model's
+per-minute quota allows, and you get `429 RESOURCE_EXHAUSTED`. Serialize them:
+
+```bash
+agents-cli eval run --dataset tests/eval/datasets/brand-fit-dataset.json --concurrency 1
+```
+
+A throttled call can also surface as `Malformed agent event: missing content` on
+the cases either side of it, because older `agents-cli` releases treat an empty
+event as fatal. Upgrade before you debug that one:
+
+```bash
+uv tool upgrade google-agents-cli   # or: pip install --upgrade google-agents-cli
+```
+
 ### Grade only
 
-If `tests/eval/traces/` already holds traces, skip straight to judging:
+`tests/eval/traces/brand-fit-traces.json` ships with the repo: one run of the
+agent over all six briefs, captured on a working project. Judging it costs
+nothing but a key, so this path survives the lab project going away:
 
 ```bash
 export GEMINI_API_KEY="your-ai-studio-key"   # or rely on ADC
 agents-cli eval grade --traces tests/eval/traces/ --metrics custom_brand_fit
 ```
 
+This is also the honest way to read a rubric change. Edit
+`brand-guidelines/SKILL.md`, grade the same traces again, and the score moves
+because the rubric moved, not because the agent drew something different.
+
 ### Generate your own traces
+
+Keep your runs out of `tests/eval/traces/`. A directory passed to `--traces` is
+globbed for every `*.json` inside, so your run would be graded alongside the
+shipped one:
 
 ```bash
 agents-cli eval generate \
   --dataset tests/eval/datasets/brand-fit-dataset.json \
-  --output tests/eval/traces/
+  --output artifacts/traces/ \
+  --concurrency 1
+
+agents-cli eval grade --traces artifacts/traces/ --metrics custom_brand_fit
 ```
 
 ## Reading the results

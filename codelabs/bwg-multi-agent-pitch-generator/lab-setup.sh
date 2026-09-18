@@ -108,7 +108,11 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 export PATH="$HOME/.local/bin:$PATH"
-agents-cli >/dev/null 2>&1 || uv tool install "google-agents-cli==1.6.*"
+# Cloud Shell pre-installs an older agents-cli system-wide, so presence alone is
+# not enough: check the version, and let uv's copy win on PATH.
+if ! agents-cli --version 2>/dev/null | grep -q 'version 1\.6\.'; then
+  uv tool install --force "google-agents-cli==1.6.*"
+fi
 hash -r 2>/dev/null || true
 if ! grep -q 'export PATH="\$HOME/\.local/bin:\$PATH"' ~/.bashrc 2>/dev/null; then
   echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
