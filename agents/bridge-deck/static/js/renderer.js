@@ -125,11 +125,90 @@
             };
         }
 
+        function renderVerdictBanner(verdict, rawJsonText) {
+            const gate = escapeHtml(verdict.gate || 'Gate');
+            const status = escapeHtml(verdict.status || 'REVIEW');
+            const confidence = escapeHtml(verdict.confidence || 'standard');
+            const inspectedFiles = Array.isArray(verdict.inspected_files) ? verdict.inspected_files : [];
+            const blockingIssues = Array.isArray(verdict.blocking_issues) ? verdict.blocking_issues : [];
+
+            let statusClass = 'verdict-info';
+            let statusIcon = '🔵';
+            const upperStatus = status.toUpperCase();
+            if (upperStatus.includes('APPROV')) {
+                statusClass = 'verdict-approved';
+                statusIcon = '🟢';
+            } else if (upperStatus.includes('BLOCK') || upperStatus.includes('FAIL') || upperStatus.includes('REJECT')) {
+                statusClass = 'verdict-blocked';
+                statusIcon = '🔴';
+            } else if (upperStatus.includes('REVIS') || upperStatus.includes('CONDIT') || upperStatus.includes('WARN')) {
+                statusClass = 'verdict-needs-revision';
+                statusIcon = '🟡';
+            }
+
+            let filesPill = '';
+            if (inspectedFiles.length > 0) {
+                const fileNames = inspectedFiles.map(f => escapeHtml(f)).join(', ');
+                filesPill = `<span class="verdict-chip" title="Files: ${fileNames}">📁 ${inspectedFiles.length} file${inspectedFiles.length === 1 ? '' : 's'} inspected</span>`;
+            }
+
+            let confidencePill = `<span class="verdict-chip">🎯 ${confidence.charAt(0).toUpperCase() + confidence.slice(1)} confidence</span>`;
+
+            let issuesHtml = '';
+            if (blockingIssues.length > 0) {
+                const listItems = blockingIssues.map(issue => `<li>${escapeHtml(issue)}</li>`).join('');
+                issuesHtml = `
+                    <div class="verdict-issues">
+                        <strong>Blocking Issues:</strong>
+                        <ul style="margin: 0.2rem 0 0 1.2rem; padding: 0;">${listItems}</ul>
+                    </div>
+                `;
+            }
+
+            const rawDetails = rawJsonText ? `
+                <details class="verdict-raw-toggle">
+                    <summary>View raw verdict JSON</summary>
+                    <pre><code>${escapeHtml(rawJsonText.trim())}</code></pre>
+                </details>
+            ` : '';
+
+            return `
+                <div class="verdict-banner ${statusClass}">
+                    <div class="verdict-header">
+                        <div class="verdict-title">
+                            <span>${statusIcon}</span>
+                            <span>Gate ${gate.replace(/^gate\s*/i, '')}: ${status}</span>
+                        </div>
+                        <div class="verdict-chips">
+                            ${confidencePill}
+                            ${filesPill}
+                        </div>
+                    </div>
+                    ${issuesHtml}
+                    ${rawDetails}
+                </div>
+            `;
+        }
+
         function formatMarkdownText(text) {
             if (!text) return '';
+            let bannerHtml = '';
+            let textToFormat = text;
+
+            const verdictMatch = textToFormat.match(/```verdict\s*\n([\s\S]*?)\n```/i);
+            if (verdictMatch) {
+                try {
+                    const parsedJson = JSON.parse(verdictMatch[1]);
+                    bannerHtml = renderVerdictBanner(parsedJson, verdictMatch[1]);
+                    textToFormat = textToFormat.replace(verdictMatch[0], '').trim();
+                } catch (e) {
+                    console.warn("Could not parse verdict block as JSON:", e);
+                }
+            }
+
             let html = '';
             // Sanitize raw dangerous HTML tags (like <style>, <script>, <link>, <html>, <head>, <body>, <iframe>) so API error pages with embedded HTML cannot break page layout or inject styles
-            let sanitized = text.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, '')
+            let sanitized = textToFormat.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, '')
                                 .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, '')
                                 .replace(/<\/?(style|script|link|meta|title|html|head|body|iframe)[^>]*>/gi, '');
             // Sanitize decorative === and --- lines so they don't turn previous lines into H1/H2
@@ -150,7 +229,8 @@
                 console.error("Marked parsing error:", e);
                 html = escapeHtml(sanitized);
             }
-            return html.replace(/@\b(astra|vector|lumen|lead|architect|engineer|advisor|all)\b/gi, '<span class="mention-pill">@$1</span>');
+            html = html.replace(/@\b(astra|vector|lumen|lead|architect|engineer|advisor|all)\b/gi, '<span class="mention-pill">@$1</span>');
+            return bannerHtml ? (bannerHtml + html) : html;
         }
 
         function showRawJson(txId) {

@@ -28,6 +28,7 @@ class TestA2ADispatcher(unittest.TestCase):
             load_projects_fn=lambda: {"projects": []},
             build_messages_fn=lambda *args, **kwargs: ([], ""),
             build_self_context_fn=lambda *args, **kwargs: "",
+            append_transaction_fn=lambda p, tx: None,
             max_depth=5
         )
 
