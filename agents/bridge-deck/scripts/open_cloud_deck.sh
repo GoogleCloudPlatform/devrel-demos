@@ -26,16 +26,27 @@ echo "=================================================="
 
 # Retrieve application secret token
 echo "[*] Fetching BRIDGE_AUTH_TOKEN from Secret Manager..."
-TOKEN=$(gcloud secrets versions access latest --secret=BRIDGE_AUTH_TOKEN --project="${PROJECT_ID}")
+TOKEN=$(gcloud secrets versions access latest --secret=BRIDGE_AUTH_TOKEN --project="${PROJECT_ID}" 2>/dev/null || \
+  curl -s -H "Authorization: Bearer $(gcloud auth application-default print-access-token 2>/dev/null)" "https://secretmanager.googleapis.com/v1/projects/${PROJECT_ID}/secrets/BRIDGE_AUTH_TOKEN/versions/latest:access" | python3 -c 'import sys, json, base64; res = json.load(sys.stdin); print(base64.b64decode(res.get("payload", {}).get("data", "")).decode("utf-8"))' 2>/dev/null || echo "")
 
 TARGET_URL="http://127.0.0.1:${PORT}/?token=${TOKEN}"
 
-# Check if proxy is already running on port 8081
+# Check if proxy is already running on port 8081 and verify token freshness
 if lsof -Pi :${PORT} -sTCP:LISTEN -t >/dev/null 2>&1; then
-    echo "[*] Proxy is already active on port ${PORT}."
-    echo "Opening ${TARGET_URL} in browser..."
-    open "${TARGET_URL}"
-    exit 0
+    RESP=$(curl -s "http://127.0.0.1:${PORT}/" --max-time 3 2>/dev/null || echo "")
+    if echo "${RESP}" | grep -q "Your client does not have permission"; then
+        echo "[!] Existing proxy tunnel on port ${PORT} has expired IAM credentials. Recycling tunnel..."
+        EXISTING_PID=$(lsof -Pi :${PORT} -sTCP:LISTEN -t 2>/dev/null || echo "")
+        if [[ -n "${EXISTING_PID}" ]]; then
+            kill -9 ${EXISTING_PID} 2>/dev/null || true
+        fi
+        sleep 1
+    else
+        echo "[*] Proxy is already active on port ${PORT}."
+        echo "Opening ${TARGET_URL} in browser..."
+        open "${TARGET_URL}"
+        exit 0
+    fi
 fi
 
 # Start proxy in background
