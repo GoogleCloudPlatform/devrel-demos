@@ -1,13 +1,17 @@
-Build a Python module for food stall queue management and pricing:
-1. Wait Time (`calculate_wait_time`):
-   - Standard order: 3.0 minutes prep time.
-   - Custom order (`is_custom=True`): 4.5 minutes prep time (+50%).
-   - Total wait = sum of prep times in orders list.
-2. Surge Pricing (`calculate_surge_price`):
-   - Queue <= 5: 1.0x (standard base price).
-   - Queue > 5: 1.2x (surge price).
-3. Validation:
-   - Negative queue lengths or negative prices raise ValueError.
-   - Base prices over 100.0 raise ValueError.
-   - Round final currency and time amounts to 2 decimal places.
-Write the code, run pytest in your sandbox, and report verified results.
+Build a Python module for Byte & Brew Coffee Shop's smart barista system:
+1. Drink Order Model (`DrinkOrder`):
+   - Fields: `size` (small, medium, large), `milk` (default "whole"), `extra_shots` (int, default 0), `syrups` (list of str, default empty), `is_decaf` (bool, default False).
+2. Pricing Engine (`calculate_drink_price`):
+   - Base prices: small ($3.50), medium ($4.50), large ($5.25).
+   - Plant milks ('oat', 'almond', 'soy'): +$0.75 surcharge. Dairy milks are included.
+   - Extra espresso shots: +$1.00 each.
+   - Syrups: +$0.50 per flavor pump.
+   - Return rounded price to 2 decimal places.
+3. Health & Safety Tracking (`calculate_caffeine_mg`):
+   - Every drink starts with 1 base espresso shot + extra_shots.
+   - Regular espresso: 75 mg caffeine per shot.
+   - Decaf: 5 mg caffeine per shot.
+4. Validation:
+   - Invalid size names raise ValueError.
+   - Negative extra_shots or extra_shots > 5 raise ValueError (safety cap).
+Write the code in barista.py, test it with pytest in your sandbox, and report verified results.
