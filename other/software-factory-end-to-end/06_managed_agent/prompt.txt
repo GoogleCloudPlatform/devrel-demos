@@ -1,0 +1,9 @@
+Define a standalone Antigravity ManagedAgent in `agent.py`:
+1. Use `google.adk.agents.ManagedAgent` and `google.genai.types`.
+2. Connect to the cloud-hosted agent with `agent_id='antigravity-preview-05-2026'` and `environment={'type': 'remote'}`.
+3. Attach `ToolCodeExecution` for sandboxed code execution.
+4. Provide instructions defining its capabilities across development sessions:
+   - [DEV SESSION - IMPLEMENTATION]: writes clean Python code.
+   - [QA SESSION - INDEPENDENT VERIFICATION]: writes and executes pytest in sandbox without softening assertions.
+   - [DEV SESSION - REMEDIATION]: inspects test failure tracebacks and fixes the code.
+5. Expose `root_agent = antigravity_agent` to test the managed agent directly.

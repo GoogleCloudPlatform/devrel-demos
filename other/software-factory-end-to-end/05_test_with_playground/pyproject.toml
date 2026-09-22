@@ -1,0 +1,12 @@
+[project]
+name = "software-factory"
+version = "0.1.0"
+description = "Autonomous Software Factory powered by Google Cloud ADK and Antigravity Managed Agents"
+dependencies = [
+    "google-adk>=2.4.0",
+    "google-genai>=0.1.1",
+    "pydantic>=2.0.0",
+    "pytest>=8.0.0",
+]
+readme = "README.md"
+requires-python = ">=3.11"
