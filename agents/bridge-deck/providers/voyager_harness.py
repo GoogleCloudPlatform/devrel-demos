@@ -31,6 +31,12 @@ except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from core.history import format_history_block
 
+try:
+    from core.worktree import get_or_create_agent_worktree
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from core.worktree import get_or_create_agent_worktree
+
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -49,13 +55,14 @@ class VoyagerHarnessProvider(AgentProvider):
             model_name=self.model_name
         )
 
-    def _execute_tool(self, tool_name: str, args: Dict[str, Any], allowed_dirs: List[str]) -> Tuple[bool, str]:
+    def _execute_tool(self, tool_name: str, args: Dict[str, Any], allowed_dirs: List[str], write_allowed_dirs: Optional[List[str]] = None) -> Tuple[bool, str]:
         """Executes a workspace tool within ACL safety boundaries."""
         try:
             if tool_name not in self.tools_enabled:
                 return False, f"ACL Permission Denied: Tool '{tool_name}' is not in authorized tools_enabled list: {self.tools_enabled}"
 
             allowed_roots = [Path(d).resolve() for d in allowed_dirs if d]
+            write_allowed_roots = [Path(d).resolve() for d in (write_allowed_dirs or []) if d]
             if not allowed_roots:
                 return False, "ACL Permission Denied: no authorized directories configured for this agent."
 
@@ -111,6 +118,21 @@ class VoyagerHarnessProvider(AgentProvider):
                 lines = out.splitlines()
                 return True, "\n".join(lines[:30])
 
+            elif tool_name == "write_file":
+                rel_or_abs = args.get("path", "")
+                content = args.get("content", "")
+                p = resolve_tool_path(rel_or_abs)
+                if not is_path_allowed(p):
+                    return False, f"ACL Permission Denied: '{p}' is outside authorized directories"
+                if not write_allowed_roots or not any(p.is_relative_to(r) for r in write_allowed_roots):
+                    return False, f"ACL Permission Denied: write access not granted for '{p}' ({[str(r) for r in (write_allowed_roots or [])]})"
+                p.parent.mkdir(parents=True, exist_ok=True)
+                tmp_p = p.with_name(f"{p.name}.tmp.{int(time.time()*1000)}")
+                tmp_p.write_text(content, encoding="utf-8")
+                os.replace(tmp_p, p)
+                lines = content.splitlines()
+                return True, f"Successfully wrote {len(lines)} lines ({len(content)} bytes) to '{p.name}'."
+
             elif tool_name == "run_command":
                 cmd_str = args.get("command", "")
                 cwd_arg = args.get("cwd", "")
@@ -132,16 +154,19 @@ class VoyagerHarnessProvider(AgentProvider):
                 if any(t == f or t.startswith(f + "=") for t in parts for f in disallowed_flags):
                     return False, "Command rejected: argument contains directory escape or code execution flag."
 
-                # If git, enforce read-only inspection subcommands
+                # If git, enforce safe subcommands
                 if exe == "git":
                     subcmd = ""
                     for token in parts[1:]:
                         if not token.startswith("-"):
                             subcmd = token.lower()
                             break
-                    safe_git_subcommands = {"status", "log", "diff", "show", "blame", "branch", "remote", "ls-files", "rev-parse"}
+                    safe_git_subcommands = {"status", "log", "diff", "show", "blame", "branch", "remote", "ls-files", "rev-parse", "add", "commit", "checkout"}
                     if not subcmd or subcmd not in safe_git_subcommands:
                         return False, f"Git subcommand '{subcmd}' not in allowed inspection set: {sorted(list(safe_git_subcommands))}"
+                    if subcmd in ["add", "commit"] and write_allowed_roots:
+                        if not any(p.is_relative_to(r) for r in write_allowed_roots):
+                            return False, f"ACL Permission Denied: write access not granted for git modification in '{p}'"
 
                 # Validate any non-flag argument that resolves to an existing filesystem path
                 for token in parts[1:]:
@@ -152,7 +177,7 @@ class VoyagerHarnessProvider(AgentProvider):
                     if candidate_path.exists() and not is_path_allowed(candidate_path):
                         return False, f"ACL Permission Denied: path argument '{token}' resolves outside authorized directories."
 
-                res = subprocess.run(parts, shell=False, cwd=str(p), capture_output=True, text=True, timeout=15)
+                res = subprocess.run(parts, shell=False, cwd=str(p), capture_output=True, text=True, timeout=20)
                 out = (res.stdout + "\n" + res.stderr).strip()
                 return True, f"Exit code {res.returncode}:\n{out[:2000]}"
 
@@ -172,21 +197,60 @@ class VoyagerHarnessProvider(AgentProvider):
         start_time = time.time()
         project_dirs = (context.get("directories") if context else None) or []
         manifest_dirs = self.config.get("access_read") or []
+        manifest_write_dirs = self.config.get("access_write") or []
+
         if manifest_dirs and project_dirs:
             proj_norm = {str(Path(d).resolve()) for d in project_dirs if d}
-            allowed_dirs = [d for d in manifest_dirs if d and str(Path(d).resolve()) in proj_norm]
+            raw_read_dirs = [d for d in manifest_dirs if d and str(Path(d).resolve()) in proj_norm]
         elif manifest_dirs:
-            allowed_dirs = list(manifest_dirs)
+            raw_read_dirs = list(manifest_dirs)
         else:
-            allowed_dirs = []
+            raw_read_dirs = []
+
+        if manifest_write_dirs and project_dirs:
+            proj_norm = {str(Path(d).resolve()) for d in project_dirs if d}
+            raw_write_dirs = [d for d in manifest_write_dirs if d and str(Path(d).resolve()) in proj_norm]
+        elif manifest_write_dirs:
+            raw_write_dirs = list(manifest_write_dirs)
+        else:
+            raw_write_dirs = []
+
+        # Automatically resolve git worktree per agent if workspace is a git repository
+        allowed_dirs = []
+        for d in raw_read_dirs:
+            p = Path(d).resolve()
+            if (p / ".git").exists():
+                try:
+                    wt = get_or_create_agent_worktree(p, self.provider_id)
+                    allowed_dirs.append(str(wt))
+                except Exception as wte:
+                    print(f"Notice: Failed to create agent worktree for {self.provider_id}: {wte}")
+                    allowed_dirs.append(str(p))
+            else:
+                allowed_dirs.append(str(p))
+
+        write_allowed_dirs = []
+        for d in raw_write_dirs:
+            p = Path(d).resolve()
+            if (p / ".git").exists():
+                try:
+                    wt = get_or_create_agent_worktree(p, self.provider_id)
+                    write_allowed_dirs.append(str(wt))
+                except Exception as wte:
+                    print(f"Notice: Failed to create agent worktree for {self.provider_id}: {wte}")
+                    write_allowed_dirs.append(str(p))
+            else:
+                write_allowed_dirs.append(str(p))
+
         self_name = (context.get("self_name") if context else None) or "Agent"
 
         # Build Full System Prompt with Voyager Harness Tool Specifications
         TOOL_DOCS = {
             "read_file": "- read_file(path: str): Reads the contents of a file in the workspace.",
+            "write_file": "- write_file(path: str, content: str): Writes/creates a file in the workspace.",
             "list_dir": "- list_dir(path: str): Lists files in a directory.",
             "grep_search": "- grep_search(query: str, path: str): Searches for pattern matches in code/text.",
-            "run_command": "- run_command(command: str, cwd: str): Runs allowlisted read-only inspection commands (git log/status/diff, ls, grep, cat, head, tail, echo)."
+            "run_command": "- run_command(command: str, cwd: str): Runs allowlisted commands (python, pytest, git status/diff/log/add/commit, ls, grep, cat)."
         }
         active_tools = [TOOL_DOCS[t] for t in self.tools_enabled if t in TOOL_DOCS]
         tools_doc_str = "\n".join(active_tools)
@@ -277,7 +341,7 @@ class VoyagerHarnessProvider(AgentProvider):
                     continue
 
                 thinking_blocks.append(f"🛠️ Executed tool via Voyager Harness: `{tool_name}({json.dumps(args)})`")
-                success, tool_output = self._execute_tool(tool_name, args, allowed_dirs)
+                success, tool_output = self._execute_tool(tool_name, args, allowed_dirs, write_allowed_dirs=write_allowed_dirs)
 
                 # Feed tool output back into the next iteration
                 observation = (
