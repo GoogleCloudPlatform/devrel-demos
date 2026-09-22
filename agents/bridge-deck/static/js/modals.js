@@ -1351,6 +1351,141 @@
 
 
         // ==================== ADK AGENT IMPORT & MANAGEMENT MODAL ====================
+        const KNOWN_ADK_MODELS = [
+            // Google Gemini (Frontier & Flash)
+            { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash (Hybrid Reasoning & Thinking)', group: 'Google Gemini (Frontier & Flash)' },
+            { id: 'gemini-3.7-pro', name: 'Gemini 3.7 Pro (Advanced Reasoning)', group: 'Google Gemini (Frontier & Flash)' },
+            { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash (High-Speed Execution)', group: 'Google Gemini (Frontier & Flash)' },
+            { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', group: 'Google Gemini (Frontier & Flash)' },
+            { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro', group: 'Google Gemini (Frontier & Flash)' },
+            { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro (Deep Multimodal Analysis)', group: 'Google Gemini (Frontier & Flash)' },
+            { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', group: 'Google Gemini (Frontier & Flash)' },
+            { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', group: 'Google Gemini (Frontier & Flash)' },
+            { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', group: 'Google Gemini (Frontier & Flash)' },
+            { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', group: 'Google Gemini (Frontier & Flash)' },
+
+            // Anthropic Claude on Vertex AI
+            { id: 'claude-opus-5', name: 'Claude Opus 5 (Frontier Reasoning)', group: 'Anthropic Claude on Vertex AI' },
+            { id: 'claude-sonnet-5', name: 'Claude Sonnet 5 (Frontier Coding & Synthesis)', group: 'Anthropic Claude on Vertex AI' },
+            { id: 'claude-opus-4-6', name: 'Claude Opus 4.6 (Extended Deliberation)', group: 'Anthropic Claude on Vertex AI' },
+            { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6 (Extended Deliberation)', group: 'Anthropic Claude on Vertex AI' },
+            { id: 'claude-3-7-sonnet', name: 'Claude 3.7 Sonnet (Hybrid Thinking)', group: 'Anthropic Claude on Vertex AI' },
+            { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet v2', group: 'Anthropic Claude on Vertex AI' },
+            { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', group: 'Anthropic Claude on Vertex AI' },
+
+            // Google Gemma (Open Weights)
+            { id: 'gemma-4-26b-a4b-it-maas', name: 'Gemma 4 26B (MaaS)', group: 'Google Gemma (Open Weights)' },
+            { id: 'gemma-4-12b-it', name: 'Gemma 4 12B', group: 'Google Gemma (Open Weights)' },
+            { id: 'gemma-3-27b-it', name: 'Gemma 3 27B', group: 'Google Gemma (Open Weights)' },
+            { id: 'gemma-2-27b-it', name: 'Gemma 2 27B', group: 'Google Gemma (Open Weights)' },
+            { id: 'gemma-2-9b-it', name: 'Gemma 2 9B', group: 'Google Gemma (Open Weights)' },
+
+            // Meta Llama on Vertex AI
+            { id: 'llama-3.3-70b-instruct-maas', name: 'Llama 3.3 70B Instruct (MaaS)', group: 'Meta Llama on Vertex AI' },
+            { id: 'llama-3.1-405b-instruct-maas', name: 'Llama 3.1 405B Instruct', group: 'Meta Llama on Vertex AI' },
+            { id: 'llama-3.1-70b-instruct-maas', name: 'Llama 3.1 70B Instruct', group: 'Meta Llama on Vertex AI' },
+            { id: 'llama-3.1-8b-instruct-maas', name: 'Llama 3.1 8B Instruct', group: 'Meta Llama on Vertex AI' },
+
+            // Mistral on Vertex AI
+            { id: 'mistral-large-2411', name: 'Mistral Large 2411', group: 'Mistral on Vertex AI' },
+            { id: 'codestral-2501', name: 'Codestral 2501 (Code Reasoning)', group: 'Mistral on Vertex AI' },
+
+            // Google Antigravity Runtime
+            { id: 'gpt-oss-120b', name: 'GPT-OSS-120b', group: 'Google Antigravity Runtime' },
+            { id: 'gemini-3.1-flash-lite-image', name: 'Gemini 3.1 Flash Lite Image', group: 'Google Antigravity Runtime' }
+        ];
+
+        function populateAdkModelOptions(selectedModel = 'gemini-3.7-flash') {
+            const selectEl = document.getElementById('adkAgentModelSelect');
+            const customContainer = document.getElementById('adkCustomModelContainer');
+            const customInput = document.getElementById('adkCustomModelInput');
+            const badgeEl = document.getElementById('adkModelCountBadge');
+            if (!selectEl) return;
+
+            selectEl.innerHTML = '';
+            const allModels = [...KNOWN_ADK_MODELS];
+            const seenIds = new Set(allModels.map(m => m.id));
+
+            // Dynamically merge discovered models from currentEnginesData (e.g. Vertex Model Garden sync or Antigravity)
+            (currentEnginesData || []).forEach(eng => {
+                (eng.models || []).forEach(m => {
+                    const mid = m.id || m.model_id;
+                    if (mid && !seenIds.has(mid)) {
+                        seenIds.add(mid);
+                        let grp = 'Vertex AI Model Garden (Discovered)';
+                        if (mid.includes('gemini')) grp = 'Google Gemini (Frontier & Flash)';
+                        else if (mid.includes('claude')) grp = 'Anthropic Claude on Vertex AI';
+                        else if (mid.includes('gemma')) grp = 'Google Gemma (Open Weights)';
+                        else if (mid.includes('llama')) grp = 'Meta Llama on Vertex AI';
+                        else if (mid.includes('mistral') || mid.includes('codestral')) grp = 'Mistral on Vertex AI';
+                        else if (eng.id === 'antigravity-queue') grp = 'Google Antigravity Runtime';
+                        allModels.push({ id: mid, name: m.name || mid, group: grp });
+                    }
+                });
+            });
+
+            // Group by category
+            const groups = {};
+            allModels.forEach(m => {
+                if (!groups[m.group]) groups[m.group] = [];
+                groups[m.group].push(m);
+            });
+
+            let isKnown = false;
+            Object.keys(groups).forEach(grpName => {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = grpName;
+                groups[grpName].forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.innerText = m.name;
+                    if (selectedModel && (m.id === selectedModel || m.id.toLowerCase() === selectedModel.toLowerCase())) {
+                        opt.selected = true;
+                        isKnown = true;
+                    }
+                    optgroup.appendChild(opt);
+                });
+                selectEl.appendChild(optgroup);
+            });
+
+            // Add Custom Option
+            const customGroup = document.createElement('optgroup');
+            customGroup.label = 'Custom & Dedicated Deployments';
+            const customOpt = document.createElement('option');
+            customOpt.value = '__custom__';
+            customOpt.innerText = '⚙️ Custom Model ID or Vertex Endpoint...';
+            customGroup.appendChild(customOpt);
+            selectEl.appendChild(customGroup);
+
+            if (badgeEl) {
+                badgeEl.innerText = `${allModels.length} Models Available`;
+            }
+
+            if (selectedModel && !isKnown && selectedModel !== '__custom__') {
+                selectEl.value = '__custom__';
+                if (customContainer) customContainer.style.display = 'block';
+                if (customInput) customInput.value = selectedModel;
+            } else if (selectEl.value === '__custom__') {
+                if (customContainer) customContainer.style.display = 'block';
+            } else {
+                if (customContainer) customContainer.style.display = 'none';
+                if (customInput) customInput.value = '';
+            }
+        }
+
+        function onAdkModelSelectChange(val) {
+            const customContainer = document.getElementById('adkCustomModelContainer');
+            const customInput = document.getElementById('adkCustomModelInput');
+            if (val === '__custom__') {
+                if (customContainer) customContainer.style.display = 'block';
+                if (customInput) customInput.focus();
+            } else {
+                if (customContainer) customContainer.style.display = 'none';
+            }
+        }
+        window.onAdkModelSelectChange = onAdkModelSelectChange;
+        window.populateAdkModelOptions = populateAdkModelOptions;
+
         const ADK_CATALOG_PRESETS = {
             nexus: {
                 name: "Nexus",
@@ -1409,7 +1544,7 @@
             const idInput = document.getElementById('adkAgentIdInput');
             idInput.value = preset.id;
             document.getElementById('adkAgentRoleInput').value = preset.role;
-            document.getElementById('adkAgentModelSelect').value = preset.model;
+            populateAdkModelOptions(preset.model);
             document.getElementById('adkAgentSkillsInput').value = preset.skills;
             document.getElementById('adkAgentSystemPromptInput').value = preset.system_prompt;
         }
@@ -1429,7 +1564,7 @@
             idInput.disabled = false;
             idInput.style.backgroundColor = '#fff';
             document.getElementById('adkAgentRoleInput').value = '';
-            document.getElementById('adkAgentModelSelect').value = 'gemini-3.7-flash';
+            populateAdkModelOptions('gemini-3.7-flash');
             document.getElementById('adkAgentSkillsInput').value = '';
             document.getElementById('adkAgentReadScopeInput').value = '';
             document.getElementById('adkAgentSystemPromptInput').value = '';
@@ -1458,7 +1593,8 @@
             idInput.disabled = true;
             idInput.style.backgroundColor = '#f1f3f4';
             document.getElementById('adkAgentRoleInput').value = agent.role || '';
-            document.getElementById('adkAgentModelSelect').value = (agent.provider && agent.provider.model) || 'gemini-3.7-flash';
+            const curModel = (agent.provider && agent.provider.model) || 'gemini-3.7-flash';
+            populateAdkModelOptions(curModel);
             document.getElementById('adkAgentSkillsInput').value = (agent.skills || []).join(', ');
             document.getElementById('adkAgentReadScopeInput').value = (agent.access_read || []).join('\n');
             document.getElementById('adkAgentSystemPromptInput').value = agent.system_prompt || '';
@@ -1509,7 +1645,14 @@
             const name = document.getElementById('adkAgentNameInput').value.trim();
             const rawId = document.getElementById('adkAgentIdInput').value.trim() || name.toLowerCase().replace(/[^a-z0-9_-]/g, '-');
             const role = document.getElementById('adkAgentRoleInput').value.trim();
-            const model = document.getElementById('adkAgentModelSelect').value;
+            let model = document.getElementById('adkAgentModelSelect').value;
+            if (model === '__custom__') {
+                model = (document.getElementById('adkCustomModelInput').value || '').trim();
+                if (!model) {
+                    alert('Please enter a custom model ID or Vertex endpoint.');
+                    return;
+                }
+            }
             const skillsRaw = document.getElementById('adkAgentSkillsInput').value.trim();
             const skills = skillsRaw ? skillsRaw.split(',').map(s => s.trim()).filter(Boolean) : ["General Capabilities"];
             const readScopeRaw = document.getElementById('adkAgentReadScopeInput').value.trim();

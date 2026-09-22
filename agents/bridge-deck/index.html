@@ -615,12 +615,16 @@
                         <input type="text" id="adkAgentRoleInput" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit;" placeholder="e.g. Autonomous Systems Specialist" required>
                     </div>
                     <div style="flex: 1;">
-                        <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Foundation Model:</label>
-                        <select id="adkAgentModelSelect" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; background: #fff;" required>
-                            <option value="gemini-3.7-flash">Gemini 3.7 Flash</option>
-                            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                            <option value="claude-sonnet-5">Claude Sonnet 5</option>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                            <label style="font-weight: 600;">Foundation Model:</label>
+                            <span id="adkModelCountBadge" style="font-size: 0.7rem; background: #ede7f6; color: #6a1b9a; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 6px;">Available Models</span>
+                        </div>
+                        <select id="adkAgentModelSelect" onchange="onAdkModelSelectChange(this.value)" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; background: #fff;" required>
+                            <!-- Populated dynamically via populateAdkModelOptions() -->
                         </select>
+                        <div id="adkCustomModelContainer" style="display: none; margin-top: 0.4rem;">
+                            <input type="text" id="adkCustomModelInput" placeholder="Enter custom model ID (e.g. gemini-4.0-flash or projects/.../endpoints/...)" style="width: 100%; padding: 0.45rem; border: 1px solid #ce93d8; border-radius: 6px; font-size: 0.82rem; font-family: monospace;">
+                        </div>
                     </div>
                 </div>
 

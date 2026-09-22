@@ -83,8 +83,9 @@ class GoogleADKProvider(AgentProvider):
             if history_block:
                 full_system = f"{full_system}\n\n{history_block}"
 
-            # 4. Generate with Google GenAI
-            client = self._get_client()
+            # 4. Generate with Google GenAI or Vertex AI
+            is_gemini = "gemini" in self.model_name.lower()
+            client = self._get_client() if is_gemini else None
             if client is None:
                 from model_client import GCPModelClient
                 fallback_client = GCPModelClient(project_id=self.project_id, location=self.location, model_name=self.model_name)
