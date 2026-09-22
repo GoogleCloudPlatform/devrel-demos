@@ -1395,23 +1395,86 @@
             }
         }
 
-        // ==================== ADK AGENT IMPORT MODAL ====================
+        // ==================== ADK AGENT IMPORT & MANAGEMENT MODAL ====================
         function openImportAdkAgentModal(sleeveId = 'google-adk') {
             document.getElementById('adkAgentEditId').value = '';
             document.getElementById('adkAgentProviderType').value = sleeveId || 'google-adk';
             document.getElementById('adkAgentNameInput').value = '';
-            document.getElementById('adkAgentIdInput').value = '';
+            const idInput = document.getElementById('adkAgentIdInput');
+            idInput.value = '';
+            idInput.disabled = false;
+            idInput.style.backgroundColor = '#fff';
             document.getElementById('adkAgentRoleInput').value = '';
             document.getElementById('adkAgentModelSelect').value = 'gemini-3.7-flash';
             document.getElementById('adkAgentSkillsInput').value = '';
             document.getElementById('adkAgentReadScopeInput').value = '';
             document.getElementById('adkAgentSystemPromptInput').value = '';
+            const titleEl = document.getElementById('importAgentModalTitle');
+            if (titleEl) titleEl.innerText = 'Import / Register ADK Agent';
+            document.getElementById('importAdkAgentModal').style.display = 'flex';
+        }
+
+        function openEditAdkAgentModal(agentId) {
+            const agentList = (typeof currentAgentsData !== 'undefined' && currentAgentsData.length > 0)
+                ? currentAgentsData
+                : (window.currentAgentsData || []);
+            const agent = agentList.find(a => a.id === agentId);
+            if (!agent) {
+                alert('Agent not found: ' + agentId);
+                return;
+            }
+            document.getElementById('adkAgentEditId').value = agent.id;
+            document.getElementById('adkAgentProviderType').value = (agent.provider && agent.provider.type) || 'google-adk';
+            document.getElementById('adkAgentNameInput').value = agent.name || '';
+            const idInput = document.getElementById('adkAgentIdInput');
+            idInput.value = agent.id || '';
+            idInput.disabled = true;
+            idInput.style.backgroundColor = '#f1f3f4';
+            document.getElementById('adkAgentRoleInput').value = agent.role || '';
+            document.getElementById('adkAgentModelSelect').value = (agent.provider && agent.provider.model) || 'gemini-3.7-flash';
+            document.getElementById('adkAgentSkillsInput').value = (agent.skills || []).join(', ');
+            document.getElementById('adkAgentReadScopeInput').value = (agent.access_read || []).join('\n');
+            document.getElementById('adkAgentSystemPromptInput').value = agent.system_prompt || '';
+            const titleEl = document.getElementById('importAgentModalTitle');
+            if (titleEl) titleEl.innerText = `Edit ADK Agent: ${agent.name || agent.id}`;
             document.getElementById('importAdkAgentModal').style.display = 'flex';
         }
 
         function closeImportAdkAgentModal() {
             document.getElementById('importAdkAgentModal').style.display = 'none';
         }
+
+        async function removeAdkAgent(agentId, agentName) {
+            const displayName = agentName || agentId;
+            if (!confirm(`Are you sure you want to remove the Google ADK agent "${displayName}" (${agentId})? This will unregister the agent manifest from Bridge Deck.`)) {
+                return;
+            }
+            try {
+                const resp = await fetch('/api/agents', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete', id: agentId })
+                });
+                const res = await resp.json();
+                if (res.success) {
+                    await fetchAgents();
+                    if (typeof fetchProfiles === 'function') await fetchProfiles();
+                    await fetchEngines();
+                    if (typeof activeChannel !== 'undefined' && activeChannel.startsWith('sleeve_')) {
+                        renderChatThread();
+                    }
+                } else {
+                    alert('Error removing ADK agent: ' + (res.error || 'Unknown error'));
+                }
+            } catch (err) {
+                alert('Network error removing ADK agent: ' + err);
+            }
+        }
+
+        window.openImportAdkAgentModal = openImportAdkAgentModal;
+        window.openEditAdkAgentModal = openEditAdkAgentModal;
+        window.closeImportAdkAgentModal = closeImportAdkAgentModal;
+        window.removeAdkAgent = removeAdkAgent;
 
         document.getElementById('importAdkAgentForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1429,23 +1492,31 @@
 
             const agentId = editId || rawId;
 
+            // Preserve any existing fields if editing (like icon, access_write, memory)
+            const agentList = (typeof currentAgentsData !== 'undefined' && currentAgentsData.length > 0)
+                ? currentAgentsData
+                : (window.currentAgentsData || []);
+            const existingAgent = editId ? (agentList.find(a => a.id === editId) || {}) : {};
+
             const manifestPayload = {
+                ...existingAgent,
                 id: agentId,
                 name: name,
                 role: role,
                 system_prompt: sysPrompt || `You are ${name}, an autonomous agent powered by the Google ADK runtime.`,
                 access_read: accessRead,
-                access_write: [],
-                access_notes: "Read-only access by default under Bridge Deck governance.",
+                access_write: existingAgent.access_write || [],
+                access_notes: existingAgent.access_notes || "Read-only access by default under Bridge Deck governance.",
                 skills: skills,
-                memory: {
+                memory: existingAgent.memory || {
                     silo: "private",
                     shared_access: ["*"]
                 },
                 provider: {
+                    ...(existingAgent.provider || {}),
                     type: providerType,
                     model: model,
-                    location: "us-central1"
+                    location: (existingAgent.provider && existingAgent.provider.location) || "us-central1"
                 }
             };
 
@@ -1459,8 +1530,9 @@
                 if (res.success) {
                     closeImportAdkAgentModal();
                     await fetchAgents();
+                    if (typeof fetchProfiles === 'function') await fetchProfiles();
                     await fetchEngines();
-                    if (activeChannel.startsWith('sleeve_')) {
+                    if (typeof activeChannel !== 'undefined' && activeChannel.startsWith('sleeve_')) {
                         renderChatThread();
                     }
                 } else {

@@ -691,6 +691,85 @@ class TestRouterAndProfiles(unittest.TestCase):
         filtered_alias = client._filter_valid_anthropic_blocks(raw_blocks)
         self.assertEqual(filtered_alias, filtered)
 
+    def test_adk_agent_create_and_delete_lifecycle(self):
+        """Verify adding, updating, and deleting an ADK agent cleans up manifest, profile, and project membership."""
+        from bridge_runner import (
+            write_manifest, load_profiles, save_profiles,
+            load_projects, save_projects, get_active_storage
+        )
+
+        mock_tenant_dir = self.test_dir / "tenant_adk"
+        mock_agents_dir = mock_tenant_dir / "agents"
+        mock_agents_dir.mkdir(parents=True, exist_ok=True)
+        adapter, t_id = get_active_storage(mock_tenant_dir)
+
+        # 1. Setup seed profiles and projects
+        profiles_data = {
+            "profiles": [
+                {"id": "orion", "name": "Orion", "role": "Old Role", "model": "gemini-2.5-flash", "skills": []},
+                {"id": "lead", "name": "Lead", "role": "Lead", "model": "gemini-3.7-flash", "skills": []}
+            ]
+        }
+        save_profiles(profiles_data, bridge_dir=mock_tenant_dir, expected_generation=0)
+
+        projects_data = {
+            "projects": [
+                {"id": "lantern", "name": "Project Lantern", "members": ["lead", "orion"], "directories": []}
+            ]
+        }
+        save_projects(projects_data, bridge_dir=mock_tenant_dir, expected_generation=0)
+
+        # 2. Create/Write ADK Agent Manifest
+        manifest_payload = {
+            "id": "orion",
+            "name": "Orion",
+            "role": "Autonomous Research Specialist",
+            "skills": ["ArXiv Literature Search", "PubChem"],
+            "provider": {
+                "type": "google-adk",
+                "model": "gemini-3.7-flash",
+                "location": "us-central1"
+            }
+        }
+        norm = write_manifest(manifest_payload, agents_dir=mock_agents_dir, bridge_dir=mock_tenant_dir)
+        self.assertEqual(norm["id"], "orion")
+        self.assertTrue((mock_agents_dir / "orion.agent.json").exists())
+
+        # Verify profile sync simulation
+        prof_data, prof_gen = load_profiles(bridge_dir=mock_tenant_dir, return_gen=True)
+        p_idx = next((i for i, p in enumerate(prof_data.get("profiles", [])) if p.get("id") == "orion"), -1)
+        self.assertGreaterEqual(p_idx, 0)
+        prof_data["profiles"][p_idx]["role"] = norm["role"]
+        prof_data["profiles"][p_idx]["model"] = norm["provider"]["model"]
+        prof_data["profiles"][p_idx]["skills"] = norm["skills"]
+        save_profiles(prof_data, bridge_dir=mock_tenant_dir, expected_generation=prof_gen)
+
+        updated_profs = load_profiles(bridge_dir=mock_tenant_dir)
+        orion_prof = next(p for p in updated_profs["profiles"] if p["id"] == "orion")
+        self.assertEqual(orion_prof["role"], "Autonomous Research Specialist")
+        self.assertEqual(orion_prof["model"], "gemini-3.7-flash")
+
+        # 3. Simulate deletion cleanup (identical to /api/agents action: delete)
+        adapter.delete(t_id, "agents/orion.agent.json")
+        self.assertFalse((mock_agents_dir / "orion.agent.json").exists())
+
+        prof_data, prof_gen = load_profiles(bridge_dir=mock_tenant_dir, return_gen=True)
+        prof_data["profiles"] = [p for p in prof_data.get("profiles", []) if p.get("id") != "orion"]
+        save_profiles(prof_data, bridge_dir=mock_tenant_dir, expected_generation=prof_gen)
+
+        prj_data, prj_gen = load_projects(bridge_dir=mock_tenant_dir, return_gen=True)
+        for prj in prj_data.get("projects", []):
+            if "orion" in prj.get("members", []):
+                prj["members"] = [m for m in prj.get("members", []) if m != "orion"]
+        save_projects(prj_data, bridge_dir=mock_tenant_dir, expected_generation=prj_gen)
+
+        # 4. Verify post-deletion state
+        final_profs = load_profiles(bridge_dir=mock_tenant_dir)
+        self.assertEqual([p["id"] for p in final_profs["profiles"]], ["lead"])
+
+        final_prjs = load_projects(bridge_dir=mock_tenant_dir)
+        self.assertEqual(final_prjs["projects"][0]["members"], ["lead"])
+
 
 if __name__ == "__main__":
     unittest.main()

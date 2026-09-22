@@ -207,8 +207,11 @@
                                 <div style="text-align: center; color: #5f6368; padding: 2.5rem 1rem; border: 2px dashed #ce93d8; border-radius: 14px; background: #ffffff;">
                                     <div style="font-size: 2rem; margin-bottom: 0.3rem;">🔮</div>
                                     <div style="font-weight: 700; font-size: 1rem; color: #1f1f1f;">No ADK Agents Registered to this Core</div>
-                                    <div style="font-size: 0.82rem; color: #5f6368; margin-top: 0.25rem;">Sync or discover autonomous agent harnesses powered by the Google ADK runtime.</div>
-                                    <button class="btn-send" onclick="syncGoogleAdkDirectly(this)" style="margin-top: 0.9rem; padding: 0.45rem 1.1rem; font-size: 0.84rem; background: #673ab7;">🔄 Sync with Google ADK</button>
+                                    <div style="font-size: 0.82rem; color: #5f6368; margin-top: 0.25rem;">Create a custom ADK agent or discover agents from the template catalog.</div>
+                                    <div style="display: flex; gap: 0.6rem; justify-content: center; margin-top: 0.9rem;">
+                                        <button class="btn-send" onclick="openImportAdkAgentModal('google-adk')" style="padding: 0.45rem 1.1rem; font-size: 0.84rem; background: #2e7d32;">➕ Add ADK Agent</button>
+                                        <button class="btn-send" onclick="syncGoogleAdkDirectly(this)" style="padding: 0.45rem 1.1rem; font-size: 0.84rem; background: #673ab7;">🔄 Sync with Google ADK</button>
+                                    </div>
                                 </div>
                             `;
                         } else {
@@ -233,6 +236,10 @@
                                                             <strong style="font-size: 1.05rem; color: #1f1f1f;">${escapeHtml(a.name)}</strong>
                                                             <div style="font-size: 0.76rem; color: #6a1b9a; font-weight: 600;">${escapeHtml(a.role || 'Autonomous Systems Specialist')}</div>
                                                         </div>
+                                                    </div>
+                                                    <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                                        <button onclick="openEditAdkAgentModal('${escapeHtml(a.id)}')" title="Edit Agent" style="background: #f3e5f5; border: 1px solid #e1bee7; border-radius: 6px; padding: 0.25rem 0.55rem; font-size: 0.75rem; color: #6a1b9a; cursor: pointer; font-weight: 600;">✏️ Edit</button>
+                                                        <button onclick="removeAdkAgent('${escapeHtml(a.id)}', '${escapeHtml(a.name)}')" title="Remove Agent" style="background: #fce8e6; border: 1px solid #fad2cf; border-radius: 6px; padding: 0.25rem 0.55rem; font-size: 0.75rem; color: #c5221f; cursor: pointer; font-weight: 600;">🗑️ Remove</button>
                                                     </div>
                                                 </div>
 
@@ -295,7 +302,10 @@
                             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                                 ${(s.id === 'vertex-ai' || s.type === 'vertex-ai') ? `<button class="btn-send" style="padding: 0.45rem 0.9rem; font-size: 0.82rem; background: #1a73e8;" onclick="syncVertexDirectly(this)">🔄 Sync with Google Model Garden</button>` : ''}
                                 ${(s.id === 'antigravity-queue' || s.type === 'antigravity-queue') ? `<button class="btn-send" style="padding: 0.45rem 0.9rem; font-size: 0.82rem; background: #202124; color: #ffffff;" onclick="syncAntigravityDirectly(this)">🔄 Sync with Antigravity</button>` : ''}
-                                ${(s.id === 'google-adk' || s.type === 'google-adk') ? `<button class="btn-send" style="padding: 0.45rem 0.9rem; font-size: 0.82rem; background: #673ab7;" onclick="syncGoogleAdkDirectly(this)">🔄 Sync with Google ADK</button>` : ''}
+                                ${(s.id === 'google-adk' || s.type === 'google-adk') ? `
+                                    <button class="btn-send" style="padding: 0.45rem 0.9rem; font-size: 0.82rem; background: #2e7d32;" onclick="openImportAdkAgentModal('google-adk')">➕ Add ADK Agent</button>
+                                    <button class="btn-send" style="padding: 0.45rem 0.9rem; font-size: 0.82rem; background: #673ab7;" onclick="syncGoogleAdkDirectly(this)">🔄 Sync with Google ADK</button>
+                                ` : ''}
                                 ${(isModelCore && s.id !== 'vertex-ai' && s.type !== 'vertex-ai' && s.id !== 'antigravity-queue' && s.type !== 'antigravity-queue') ? `<button class="btn-send" style="padding: 0.45rem 0.9rem; font-size: 0.82rem;" onclick="${primaryActionHandler}">${primaryActionText}</button>` : ''}
                             </div>
                         </div>

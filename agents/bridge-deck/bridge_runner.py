@@ -2540,7 +2540,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 self.send_error_json(e, 500)
             return
 
-        if parsed.path == "/api/agents":
+        if parsed.path in ["/api/agents", "/api/delete-agent"]:
             content_length = int(self.headers.get("Content-Length", 0))
             post_data = self.rfile.read(content_length).decode("utf-8") if content_length > 0 else "{}"
             try:
@@ -2548,7 +2548,66 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 t_dir = self._get_tenant_dir(payload)
                 t_id = self._get_tenant_id(payload)
                 router = tenant_manager.get_router(t_id)
+
+                if payload.get("action") == "delete" or parsed.path == "/api/delete-agent":
+                    agent_id = (payload.get("id") or payload.get("agent_id") or "").lower().strip()
+                    if not agent_id:
+                        raise ValueError("Missing agent ID to delete")
+
+                    adapter, _ = get_active_storage(t_dir)
+                    # 1. Delete manifest file
+                    try:
+                        adapter.delete(t_id, f"agents/{agent_id}.agent.json")
+                    except Exception as de:
+                        print(f"Notice deleting agent manifest: {de}")
+
+                    # 2. Remove from profiles.json if present
+                    try:
+                        prof_data, prof_gen = load_profiles(bridge_dir=t_dir, return_gen=True)
+                        orig_len = len(prof_data.get("profiles", []))
+                        prof_data["profiles"] = [p for p in prof_data.get("profiles", []) if p.get("id") != agent_id]
+                        if len(prof_data["profiles"]) != orig_len:
+                            save_profiles(prof_data, bridge_dir=t_dir, expected_generation=prof_gen)
+                    except Exception as pe:
+                        print(f"Notice updating profiles: {pe}")
+
+                    # 3. Remove from project memberships if present
+                    try:
+                        prj_data, prj_gen = load_projects(bridge_dir=t_dir, return_gen=True)
+                        prj_changed = False
+                        for prj in prj_data.get("projects", []):
+                            if agent_id in prj.get("members", []):
+                                prj["members"] = [m for m in prj.get("members", []) if m != agent_id]
+                                prj_changed = True
+                        if prj_changed:
+                            save_projects(prj_data, bridge_dir=t_dir, expected_generation=prj_gen)
+                    except Exception as je:
+                        print(f"Notice updating project memberships: {je}")
+
+                    router.reload_registry(force=True)
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": True, "deleted_id": agent_id}).encode("utf-8"))
+                    return
+
                 norm_manifest = write_manifest(payload, agents_dir=t_dir / "agents", router=router)
+                # Keep profiles.json in sync if this agent exists in profiles
+                try:
+                    prof_data, prof_gen = load_profiles(bridge_dir=t_dir, return_gen=True)
+                    p_idx = next((i for i, p in enumerate(prof_data.get("profiles", [])) if p.get("id") == norm_manifest["id"]), -1)
+                    if p_idx >= 0:
+                        prof_data["profiles"][p_idx]["name"] = norm_manifest.get("name", prof_data["profiles"][p_idx]["name"])
+                        prof_data["profiles"][p_idx]["role"] = norm_manifest.get("role", prof_data["profiles"][p_idx]["role"])
+                        p_model = (norm_manifest.get("provider") or {}).get("model")
+                        if p_model:
+                            prof_data["profiles"][p_idx]["model"] = p_model
+                        if "skills" in norm_manifest:
+                            prof_data["profiles"][p_idx]["skills"] = norm_manifest["skills"]
+                        save_profiles(prof_data, bridge_dir=t_dir, expected_generation=prof_gen)
+                except Exception as pe:
+                    print(f"Notice updating profiles on agent write: {pe}")
+
                 router.reload_registry(force=True)
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
