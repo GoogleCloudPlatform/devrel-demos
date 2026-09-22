@@ -12,54 +12,46 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Reference implementation for Starlight Hainan Kitchen Queue & Surge Engine."""
+"""Reference implementation for Hawker Food Queue Wait Time and Pricing Calculator."""
 
-from dataclasses import dataclass, field
-from typing import List
+from dataclasses import dataclass
+
 
 @dataclass
 class Order:
     order_id: str
-    base_price_sgd: float
-    customizations: List[str] = field(default_factory=list)
-    tags: List[str] = field(default_factory=list)
+    base_price: float
+    is_custom: bool = False
 
     def __post_init__(self):
-        if self.base_price_sgd < 0:
-            raise ValueError("base_price_sgd cannot be negative")
-        if self.base_price_sgd > 100.0:
-            raise ValueError("base_price_sgd exceeds maximum allowed 100.0 SGD")
+        if self.base_price < 0:
+            raise ValueError("base_price cannot be negative")
+        if self.base_price > 100.0:
+            raise ValueError("base_price exceeds maximum allowed 100.0")
 
-class HawkerQueueEngine:
-    def __init__(self, orders: List[Order] = None, table_status: str = "open"):
-        self.orders = orders or []
-        self.table_status = table_status
-        if len(self.orders) < 0:
-            raise ValueError("Queue length cannot be negative")
 
-    def calculate_wait_time(self) -> float:
-        total_time = 0.0
-        for o in self.orders:
-            prep = 3.0
-            if any(c in ['extra chili', 'no skin'] for c in o.customizations):
-                prep *= 1.5
-            total_time += prep
+def calculate_wait_time(orders: list[Order]) -> float:
+    """Calculate total wait time in minutes.
 
-        if self.table_status == "choped_with_tissue_pack":
-            total_time = max(0.0, total_time - 1.0)
+    Standard orders take 3.0 minutes. Custom orders take 4.5 minutes (3.0 * 1.5).
+    """
+    total = 0.0
+    for order in orders:
+        total += 4.5 if order.is_custom else 3.0
+    return round(total, 2)
 
-        return round(total_time, 2)
 
-    def calculate_surge_multiplier(self) -> float:
-        q_len = len(self.orders)
-        if q_len <= 10:
-            return 1.0
-        elif q_len <= 20:
-            return 1.2
-        else:
-            return 1.5
+def calculate_surge_price(base_price: float, queue_length: int) -> float:
+    """Calculate price with queue surge multiplier.
 
-    def calculate_order_price(self, order: Order) -> float:
-        multiplier = self.calculate_surge_multiplier()
-        final_price = order.base_price_sgd * multiplier
-        return round(final_price, 2)
+    - queue_length <= 5: 1.0x (standard price)
+    - queue_length > 5:  1.2x (peak surge price)
+    Raises ValueError if queue_length < 0 or base_price < 0.
+    """
+    if queue_length < 0:
+        raise ValueError("queue_length cannot be negative")
+    if base_price < 0:
+        raise ValueError("base_price cannot be negative")
+
+    multiplier = 1.2 if queue_length > 5 else 1.0
+    return round(base_price * multiplier, 2)

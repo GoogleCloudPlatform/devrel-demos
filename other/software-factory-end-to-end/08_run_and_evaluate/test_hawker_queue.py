@@ -12,36 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Unit tests for Hawker Food Queue Wait Time and Pricing Calculator."""
+
 import pytest
-from hawker_queue import HawkerQueueEngine, Order
+from hawker_queue import Order, calculate_wait_time, calculate_surge_price
 
-def test_standard_wait_time():
+
+def test_standard_order_wait_time():
     orders = [Order("1", 5.0), Order("2", 6.0)]
-    engine = HawkerQueueEngine(orders)
-    assert engine.calculate_wait_time() == 6.0
+    assert calculate_wait_time(orders) == 6.0
 
-def test_custom_order_multiplier():
-    orders = [Order("1", 5.0, customizations=["extra chili"])]
-    engine = HawkerQueueEngine(orders)
-    assert engine.calculate_wait_time() == 4.5
 
-def test_chope_tissue_priority():
-    orders = [Order("1", 5.0)]
-    engine = HawkerQueueEngine(orders, table_status="choped_with_tissue_pack")
-    assert engine.calculate_wait_time() == 2.0
+def test_custom_order_wait_time():
+    orders = [Order("1", 5.0, is_custom=True)]
+    assert calculate_wait_time(orders) == 4.5
 
-def test_surge_pricing_hard_cap():
-    orders = [Order(str(i), 5.0) for i in range(25)]
-    engine = HawkerQueueEngine(orders)
-    assert engine.calculate_surge_multiplier() == 1.5
-    assert engine.calculate_order_price(orders[0]) == 7.5
 
-def test_negative_queue_raises_value_error():
+def test_empty_queue_wait_time():
+    assert calculate_wait_time([]) == 0.0
+
+
+def test_standard_pricing_no_surge():
+    assert calculate_surge_price(10.0, queue_length=3) == 10.0
+
+
+def test_surge_pricing_applied():
+    assert calculate_surge_price(10.0, queue_length=8) == 12.0
+
+
+def test_negative_values_raise_value_error():
     with pytest.raises(ValueError):
         Order("1", -5.0)
-
-def test_sgd_currency_rounding():
-    order = Order("1", 5.555)
-    orders = [order] * 12
-    engine = HawkerQueueEngine(orders)
-    assert engine.calculate_order_price(order) == round(5.555 * 1.2, 2)
+    with pytest.raises(ValueError):
+        calculate_surge_price(-10.0, queue_length=3)
+    with pytest.raises(ValueError):
+        calculate_surge_price(10.0, queue_length=-1)
