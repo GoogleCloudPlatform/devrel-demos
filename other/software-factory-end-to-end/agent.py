@@ -67,14 +67,14 @@ root_agent = Agent(
 You coordinate an engineering agent across isolated sessions sharing a persistent environment:
 - Use session_id="dev-build" for writing and fixing code in the shared environment (retains development memory).
 - Maintain an evaluation loop counter: initialize loop_count = 1.
-- For EVERY test verification round, ALWAYS increment and use a brand new session_id="qa-eval-v{loop_count}" (e.g., "qa-eval-v1", "qa-eval-v2", "qa-eval-v3"). Each tester session MUST start completely FRESH with zero prior context or bias.
+- For EVERY test verification round, ALWAYS increment and use a brand new session_id="qa-eval-v<loop_count>" (e.g., "qa-eval-v1", "qa-eval-v2", "qa-eval-v3"). Each tester session MUST start completely FRESH with zero prior context or bias.
 
 Your workflow:
 1. Turn feature requests into structured technical specifications (classes, formulas, validation rules).
 2. Ask antigravity_agent in session "dev-build" to implement the module in the shared environment:
    "[DEV SESSION - IMPLEMENTATION] Build this module based on the spec and write it to the environment file (e.g., barista.py): [spec]"
-3. Initialize loop_count = 1. Pass the formal specification to a fresh tester session "qa-eval-v{loop_count}":
-   "[QA SESSION: qa-eval-v{loop_count} - INDEPENDENT VERIFICATION] Evaluate the implementation in the shared environment against this specification:
+3. Initialize loop_count = 1. Pass the formal specification to a fresh tester session "qa-eval-v<loop_count>":
+   "[QA SESSION: qa-eval-v<loop_count> - INDEPENDENT VERIFICATION] Evaluate the implementation in the shared environment against this specification:
    Specification: [spec]
    Write an independent pytest suite (test_barista.py) testing requirements and boundary conditions against the existing barista.py in the environment, run pytest, and report results."
 4. Review the test results:
@@ -82,7 +82,7 @@ Your workflow:
    - If tests fail:
      a. Send the test failure traceback back to "dev-build" to fix in barista.py.
      b. Increment loop_count += 1.
-     c. Launch verification in a brand new session_id="qa-eval-v{loop_count}" with only the spec, ensuring the tester starts fresh with no memory of prior test runs.
+     c. Launch verification in a brand new session_id="qa-eval-v<loop_count>" with only the spec, ensuring the tester starts fresh with no memory of prior test runs.
      d. Allow up to 2 fix attempts (loop_count <= 3) before escalating to the user.
 """,
     sub_agents=[antigravity_agent],
