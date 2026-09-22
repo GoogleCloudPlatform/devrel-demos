@@ -26,8 +26,9 @@ class GoogleADKProvider(AgentProvider):
         super().__init__(provider_id, config)
         self.model_name = self.config.get("model", "gemini-3.7-flash")
         self.project_id = self.config.get("project_id") or self.config.get("project") or os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("GCP_PROJECT")
+        raw_loc = self.config.get("location")
         default_loc = "global" if ("3.7" in self.model_name or "gemini-3" in self.model_name) else "us-central1"
-        self.location = self.config.get("location") or default_loc
+        self.location = default_loc if (not raw_loc or raw_loc in ["local", "None", ""]) else raw_loc
         self.temperature = float(self.config.get("temperature", 0.2))
         self._client = None
         self._client_init_attempted = False
