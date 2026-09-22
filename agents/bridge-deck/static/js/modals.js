@@ -423,7 +423,9 @@
                 engine: selectedEngine,
                 model: selectedModel,
                 endpoint_id: endpointId || undefined,
-                harness: document.getElementById('profHarness') ? document.getElementById('profHarness').value : (existingProf ? existingProf.harness : 'voyager'),
+                harness: (selectedEngine === 'google-adk' || selectedEngine === 'agent') 
+                    ? 'adk-native' 
+                    : (document.getElementById('profHarness') ? document.getElementById('profHarness').value : (existingProf ? existingProf.harness : 'none')),
                 mbti: document.getElementById('profMbti').value,
                 balance: document.getElementById('profBalance').value,
                 system_prompt: document.getElementById('profSystemPrompt').value,
@@ -807,19 +809,16 @@
 
             if (eng.id === 'google-adk' || eng.type === 'google-adk' || eng.category === 'agent') {
                 options = [
-                    { value: 'default', label: 'Default (Core Native - Google ADK SessionService)' },
-                    { value: 'adk-native', label: '🔮 Google ADK Native Harness' }
+                    { value: 'adk-native', label: '🔮 Google ADK Native Harness (ADK Runtime & Native Workspace Tools)' }
                 ];
             } else if (eng.id === 'antigravity-queue' || eng.type === 'antigravity-queue') {
                 options = [
-                    { value: 'default', label: 'Default (Core Native - Antigravity Daemon)' },
-                    { value: 'antigravity-native', label: '⚙️ Antigravity Native Harness' },
-                    { value: 'voyager', label: '🚀 Voyager Harness (Workspace Tool Execution & Epistemic Grounding)' }
+                    { value: 'antigravity-native', label: '⚙️ Antigravity Native Harness' }
                 ];
             } else {
                 // Google Model Garden (vertex-ai, ollama-local, etc.)
                 options = [
-                    { value: 'default', label: 'Default (Direct Model Inference)' },
+                    { value: 'none', label: 'Direct Model Inference (Conversational)' },
                     { value: 'voyager', label: '🚀 Voyager Harness (Workspace Tool Execution & Epistemic Grounding)' }
                 ];
             }
@@ -829,7 +828,11 @@
                 const opt = document.createElement('option');
                 opt.value = optData.value;
                 opt.innerText = optData.label;
-                if (targetHarness && (targetHarness === optData.value || (targetHarness === 'none' && optData.value === 'default'))) {
+                if (targetHarness && (
+                    targetHarness === optData.value || 
+                    (targetHarness === 'none' && (optData.value === 'default' || optData.value === 'none')) ||
+                    (targetHarness === 'default' && (optData.value === 'adk-native' || optData.value === 'none'))
+                )) {
                     opt.selected = true;
                     found = true;
                 }

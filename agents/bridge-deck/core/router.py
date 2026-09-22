@@ -271,7 +271,8 @@ class AgentRouter:
             return VertexCustomEndpointProvider(provider_id=manifest["id"], config=provider_cfg)
 
         # Check if manifest explicitly declares harness: "voyager" for inspection agents (e.g. Lumen)
-        if manifest.get("harness") == "voyager" or p_type in ["voyager-harness", "voyager", "antigravity-harness", "antigravity-agent"]:
+        # Note: Google ADK agents ALWAYS run on GoogleADKProvider with the ADK Native Harness.
+        if (manifest.get("harness") == "voyager" or p_type in ["voyager-harness", "voyager", "antigravity-harness", "antigravity-agent"]) and p_type != "google-adk":
             return VoyagerHarnessProvider(provider_id=manifest["id"], config=provider_cfg)
 
         # Standard Vertex AI model routing (Claude Opus -> VertexAnthropicProvider, Gemini -> VertexGeminiProvider)
