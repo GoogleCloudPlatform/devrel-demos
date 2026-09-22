@@ -1,0 +1,4 @@
+Launch and test the ADK playground with the current Tech Lead agent:
+1. Verify `agent.py` exports `root_agent`.
+2. Run `agents-cli playground --port 8080`.
+3. Provide instructions on submitting a feature request in the web UI to verify that `tech_lead` responds with requirements decomposition.

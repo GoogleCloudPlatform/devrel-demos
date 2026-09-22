@@ -1,0 +1,15 @@
+Build a Python module for Starlight Hainan Kitchen at Cyberport Food Centre:
+1. Wait Time:
+   - Base prep time: 3.0 minutes per order.
+   - Custom orders ('extra chili', 'no skin'): +50% prep time.
+   - Total wait = sum of prep times in queue.
+2. Dynamic Rush Surge Pricing:
+   - Queue <= 10: 1.0x (standard price).
+   - Queue 11-20: 1.2x base price.
+   - Queue > 20: 1.5x base price.
+   - Priority: If table is 'choped_with_tissue_pack', deduct 1 minute from wait estimate.
+   - Support tags: 'Halal-certified-supplier', 'Gluten-Free'.
+3. Validation:
+   - Negative queue lengths, negative prices, or base prices over 100.0 SGD raise ValueError.
+   - Round final SGD amounts to 2 decimal places.
+Write the code, run pytest in your sandbox, and report verified results.
