@@ -2439,12 +2439,13 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
             post_data = self.rfile.read(content_length).decode("utf-8") if content_length > 0 else "{}"
             try:
                 payload = json.loads(post_data)
+                t_dir = self._get_tenant_dir(payload)
                 docs_url = payload.get("docs_url", "https://antigravity.google/docs/models/")
                 models_to_sync = payload.get("models")
                 if not models_to_sync:
                     models_to_sync = fetch_antigravity_models_live(docs_url=docs_url)
                     
-                data = sync_antigravity_models_to_engine(models_to_sync, docs_url=docs_url)
+                data = sync_antigravity_models_to_engine(models_to_sync, docs_url=docs_url, bridge_dir=t_dir)
                 
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
@@ -2464,6 +2465,9 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
             post_data = self.rfile.read(content_length).decode("utf-8") if content_length > 0 else "{}"
             try:
                 payload = json.loads(post_data)
+                t_dir = self._get_tenant_dir(payload)
+                t_id = self._get_tenant_id(payload)
+                r_inst = tenant_manager.get_router(t_id)
                 proj = resolve_project_id(payload.get("project_id"))
                 loc = payload.get("location", "us-central1")
                 agents_to_sync = payload.get("agents")
@@ -2492,6 +2496,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
             post_data = self.rfile.read(content_length).decode("utf-8") if content_length > 0 else "{}"
             try:
                 payload = json.loads(post_data)
+                t_dir = self._get_tenant_dir(payload)
                 proj = resolve_project_id(payload.get("project_id"))
                 loc = payload.get("location", "us-central1")
                 models_to_sync = payload.get("models")
@@ -2519,7 +2524,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                         if m["id"] in frontier_keys or m.get("category") == "Gemma" or "dedicated" in m.get("publisher", "").lower()
                     ]
                     
-                updated_engines = sync_vertex_models_to_engine(models_to_sync, project_id=proj, location=loc)
+                updated_engines = sync_vertex_models_to_engine(models_to_sync, location=loc, bridge_dir=t_dir)
                 
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
