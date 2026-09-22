@@ -28,6 +28,10 @@ MODEL_ALIASES: Dict[str, str] = {
     "nexus": DEFAULT_MODEL,
     "google adk": DEFAULT_MODEL,
     "adk": DEFAULT_MODEL,
+    "vector (adk agent)": "claude-opus-5",
+    "vector (adk opus)": "claude-opus-5",
+    "jared (adk agent)": DEFAULT_MODEL,
+    "jared (adk gemini)": DEFAULT_MODEL,
     "gemini 3.7": DEFAULT_MODEL,
     "gemini-3.7": DEFAULT_MODEL,
     "gemini 2.5": "gemini-2.5-flash",
@@ -40,6 +44,32 @@ MODEL_ALIASES: Dict[str, str] = {
     "llama 3.3": "llama3.3:70b",
     "deepseek-r1": "deepseek-r1:70b",
 }
+
+
+def normalize_model_name(model_str: str) -> str:
+    """Normalizes model names, aliases, and agent labels to valid foundation models."""
+    m = (model_str or "").strip()
+    m_lower = m.lower()
+    if not m:
+        return DEFAULT_MODEL
+    if m_lower in MODEL_ALIASES:
+        return MODEL_ALIASES[m_lower]
+    known_models = {
+        "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-pro", "gemini-2.5-flash",
+        "claude-opus-5", "claude-sonnet-5", "claude-opus-4-6", "claude-sonnet-4-6", "claude-3-7-sonnet",
+        "gemma-4-26b-a4b-it", "gemma-2-27b-it", "llama3.3:70b", "deepseek-r1:70b", "human"
+    }
+    if m_lower in known_models or m.startswith("projects/") or m.startswith("publishers/"):
+        return m
+    if "opus" in m_lower:
+        return "claude-opus-5"
+    if "sonnet" in m_lower:
+        return "claude-sonnet-5"
+    if "flash" in m_lower or "gemini" in m_lower or "adk" in m_lower:
+        return DEFAULT_MODEL
+    if "gemma" in m_lower:
+        return "gemma-4-26b-a4b-it"
+    return m
 
 
 def resolve_model_location(model_str: str) -> str:
@@ -177,7 +207,7 @@ class AgentRouter:
                 pid = prof.get("id")
                 if pid and pid not in self.manifests:
                     try:
-                        model_str = MODEL_ALIASES.get((prof.get("model") or "").lower(), prof.get("model") or DEFAULT_MODEL)
+                        model_str = normalize_model_name(prof.get("model") or DEFAULT_MODEL)
                         engine = prof.get("engine", "vertex-ai")
                         endpoint_id = prof.get("endpoint_id")
                         
@@ -223,6 +253,8 @@ class AgentRouter:
 
     def _create_provider(self, manifest: Dict[str, Any]) -> Optional[AgentProvider]:
         provider_cfg = dict(manifest.get("provider", {}))
+        if "model" in provider_cfg:
+            provider_cfg["model"] = normalize_model_name(provider_cfg.get("model") or DEFAULT_MODEL)
         base_r = manifest.get("access_read") or []
         derived_r = manifest.get("derived_read") or []
         provider_cfg["access_read"] = list(dict.fromkeys(base_r + derived_r))

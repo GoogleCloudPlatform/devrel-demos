@@ -38,7 +38,7 @@ BASE_DIR = BRIDGE_DIR
 
 PHOENIX_SESSION = None
 
-from core.router import AgentRouter, DEFAULT_MODEL, MODEL_ALIASES, resolve_model_location
+from core.router import AgentRouter, DEFAULT_MODEL, MODEL_ALIASES, resolve_model_location, normalize_model_name
 from memory.store import MemoryStore
 from core.tenant import (
     sanitize_tenant_id,
@@ -464,7 +464,7 @@ def save_persona(payload, profiles_file=None, agents_dir=None, router=None, brid
             manifest["provider"]["model"] = DEFAULT_MODEL
 
         raw_mod = str(manifest["provider"].get("model", ""))
-        clean_mod = MODEL_ALIASES.get(raw_mod.lower(), raw_mod or DEFAULT_MODEL)
+        clean_mod = normalize_model_name(raw_mod)
         manifest["provider"]["model"] = clean_mod
         
         cur_loc = (found_model or {}).get("location") or (found_engine or {}).get("location")

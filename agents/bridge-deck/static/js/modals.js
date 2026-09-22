@@ -873,10 +873,10 @@
                 if (sleeveAgents.length > 0) {
                     sleeveAgents.forEach(a => {
                         const opt = document.createElement('option');
-                        opt.value = a.name; // e.g. "Nexus"
-                        const modelStr = (a.provider && a.provider.model) ? ` • ${a.provider.model}` : '';
-                        opt.innerText = `${a.name}${modelStr}`;
-                        if (targetModelId && (a.id === targetModelId || a.name.toLowerCase() === targetModelId.toLowerCase() || targetModelId.toLowerCase().includes(a.name.toLowerCase()) || (a.id && targetModelId.toLowerCase().includes(a.id.toLowerCase())))) {
+                        const actualModel = (a.provider && a.provider.model) ? a.provider.model : 'gemini-3.7-flash';
+                        opt.value = actualModel;
+                        opt.innerText = `${a.name} • ${actualModel}`;
+                        if (targetModelId && (actualModel === targetModelId || a.id === targetModelId || a.name.toLowerCase() === targetModelId.toLowerCase() || targetModelId.toLowerCase().includes(a.name.toLowerCase()) || (a.id && targetModelId.toLowerCase().includes(a.id.toLowerCase())))) {
                             opt.selected = true;
                             foundMatch = true;
                         }
@@ -887,9 +887,10 @@
                 // Fallback to any models registered to this sleeve
                 (eng.models || []).forEach(m => {
                     const opt = document.createElement('option');
-                    opt.value = m.name;
-                    opt.innerText = `${m.name} (${m.model_id || m.id})`;
-                    if (targetModelId && (m.id === targetModelId || m.name === targetModelId || m.model_id === targetModelId || targetModelId.toLowerCase().includes(m.name.toLowerCase()))) {
+                    const mId = m.model_id || m.id || m.name;
+                    opt.value = mId;
+                    opt.innerText = `${m.name} (${mId})`;
+                    if (targetModelId && (m.id === targetModelId || m.name === targetModelId || m.model_id === targetModelId || mId === targetModelId || targetModelId.toLowerCase().includes(m.name.toLowerCase()))) {
                         opt.selected = true;
                         foundMatch = true;
                     }
