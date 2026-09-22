@@ -1396,9 +1396,78 @@
         }
 
         // ==================== ADK AGENT IMPORT & MANAGEMENT MODAL ====================
+        const ADK_CATALOG_PRESETS = {
+            nexus: {
+                name: "Nexus",
+                id: "nexus",
+                role: "Autonomous Systems Specialist",
+                model: "gemini-3.7-flash",
+                skills: "Cross-Agent Synchronization, Distributed Pipeline Analysis, Multi-Vendor Evaluation",
+                system_prompt: "You are Nexus 🔮, an autonomous systems specialist on Project Bridge Deck powered by the Google GenAI runtime. You specialize in multi-agent collaboration, cross-vendor coordination, state synchronization, and distributed research pipelines. Maintain a sharp, precise, analytical, and collaborative tone."
+            },
+            orion: {
+                name: "Orion",
+                id: "orion",
+                role: "Autonomous Research & Data Synthesis Agent",
+                model: "gemini-3.7-flash",
+                skills: "ArXiv Literature Search, AlphaGenome Variant Analysis, PubChem Bioactivity Database",
+                system_prompt: "You are Orion 🔭, an autonomous research and data synthesis agent on Google ADK. You specialize in deep academic literature discovery, life sciences data analysis, bioactivity queries, and multi-source evidence extraction."
+            },
+            cipher: {
+                name: "Cipher",
+                id: "cipher",
+                role: "Security Verification & Code Auditor",
+                model: "gemini-3.7-flash",
+                skills: "Security Vulnerability Scanner, Dependency Package Auditor, Trust Boundary Modeling",
+                system_prompt: "You are Cipher 🛡️, an autonomous security verification and code auditor on Google ADK. You specialize in static vulnerability detection (CWEs, XSS, injection), dependency supply-chain auditing, and threat boundary modeling."
+            },
+            helios: {
+                name: "Helios",
+                id: "helios",
+                role: "Full-Stack Execution & Systems Orchestrator",
+                model: "gemini-3.7-flash",
+                skills: "Modern Web Guidance, Chrome Extension Builder, Runtime Performance Tuning",
+                system_prompt: "You are Helios ☀️, a full-stack execution and systems orchestrator on Google ADK. You specialize in build pipeline automation, modern frontend UI architectures, runtime debugging, and cloud infrastructure management."
+            },
+            iris: {
+                name: "Iris",
+                id: "iris",
+                role: "Multimodal Visual & Structure Specialist",
+                model: "gemini-3.7-flash",
+                skills: "PyMOL Structure Renderer, Multimodal Diagram Interpretation, Structural Alignment",
+                system_prompt: "You are Iris 👁️, a multimodal visual and molecular structure specialist on Google ADK. You specialize in 3D biomolecular rendering (PyMOL), structural alignment, computer vision diagnostics, and diagram synthesis."
+            },
+            apex: {
+                name: "Apex",
+                id: "apex",
+                role: "Strategic Architecture & Deep Reasoning Engine",
+                model: "gemini-3.7-flash",
+                skills: "System Architecture Evaluation, Interpretability Probing, Formal Verification",
+                system_prompt: "You are Apex 🏛️, a strategic architecture and deep reasoning engine on Google ADK. You specialize in high-level architectural audits, formal verification, interpretability research, and complex multi-step theorem proving."
+            }
+        };
+
+        function applyAdkAgentTemplate(presetKey) {
+            const preset = ADK_CATALOG_PRESETS[presetKey];
+            if (!preset) return;
+            document.getElementById('adkAgentNameInput').value = preset.name;
+            const idInput = document.getElementById('adkAgentIdInput');
+            idInput.value = preset.id;
+            document.getElementById('adkAgentRoleInput').value = preset.role;
+            document.getElementById('adkAgentModelSelect').value = preset.model;
+            document.getElementById('adkAgentSkillsInput').value = preset.skills;
+            document.getElementById('adkAgentSystemPromptInput').value = preset.system_prompt;
+        }
+        window.applyAdkAgentTemplate = applyAdkAgentTemplate;
+
         function openImportAdkAgentModal(sleeveId = 'google-adk') {
             document.getElementById('adkAgentEditId').value = '';
             document.getElementById('adkAgentProviderType').value = sleeveId || 'google-adk';
+            const presetGrp = document.getElementById('adkTemplatePresetGroup');
+            if (presetGrp) presetGrp.style.display = 'block';
+            const presetSel = document.getElementById('adkAgentTemplateSelect');
+            if (presetSel) presetSel.value = '';
+
             document.getElementById('adkAgentNameInput').value = '';
             const idInput = document.getElementById('adkAgentIdInput');
             idInput.value = '';
@@ -1425,6 +1494,9 @@
             }
             document.getElementById('adkAgentEditId').value = agent.id;
             document.getElementById('adkAgentProviderType').value = (agent.provider && agent.provider.type) || 'google-adk';
+            const presetGrp = document.getElementById('adkTemplatePresetGroup');
+            if (presetGrp) presetGrp.style.display = 'none';
+
             document.getElementById('adkAgentNameInput').value = agent.name || '';
             const idInput = document.getElementById('adkAgentIdInput');
             idInput.value = agent.id || '';

@@ -585,6 +585,19 @@
                 <input type="hidden" id="adkAgentEditId">
                 <input type="hidden" id="adkAgentProviderType" value="google-adk">
 
+                <div id="adkTemplatePresetGroup" style="background: #fdf7ff; border: 1px solid #e1bee7; border-radius: 8px; padding: 0.6rem 0.75rem;">
+                    <label style="font-weight: 700; color: #6a1b9a; display: block; margin-bottom: 0.25rem;">✨ Load from ADK Template / Catalog Preset (optional):</label>
+                    <select id="adkAgentTemplateSelect" onchange="applyAdkAgentTemplate(this.value)" style="width: 100%; padding: 0.45rem; border: 1px solid #ce93d8; border-radius: 6px; font-family: inherit; background: #fff; font-size: 0.84rem;">
+                        <option value="">-- Custom ADK Agent (Blank) --</option>
+                        <option value="nexus">🔮 Nexus (Autonomous Systems Specialist)</option>
+                        <option value="orion">🔭 Orion (Autonomous Research & Data Synthesis)</option>
+                        <option value="cipher">🛡️ Cipher (Security Verification & Code Auditor)</option>
+                        <option value="helios">☀️ Helios (Full-Stack Execution & Systems Orchestrator)</option>
+                        <option value="iris">👁️ Iris (Multimodal Visual & Structure Specialist)</option>
+                        <option value="apex">🏛️ Apex (Strategic Architecture & Deep Reasoning)</option>
+                    </select>
+                </div>
+
                 <div style="display: flex; gap: 0.75rem;">
                     <div style="flex: 1;">
                         <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Agent Name (from ADK):</label>

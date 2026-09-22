@@ -753,6 +753,10 @@ class TestRouterAndProfiles(unittest.TestCase):
         adapter.delete(t_id, "agents/orion.agent.json")
         self.assertFalse((mock_agents_dir / "orion.agent.json").exists())
 
+        from bridge_runner import add_deleted_agent, get_deleted_agents, remove_deleted_agent, sync_adk_agents_to_registry
+        add_deleted_agent("orion", bridge_dir=mock_tenant_dir)
+        self.assertIn("orion", get_deleted_agents(bridge_dir=mock_tenant_dir))
+
         prof_data, prof_gen = load_profiles(bridge_dir=mock_tenant_dir, return_gen=True)
         prof_data["profiles"] = [p for p in prof_data.get("profiles", []) if p.get("id") != "orion"]
         save_profiles(prof_data, bridge_dir=mock_tenant_dir, expected_generation=prof_gen)
@@ -769,6 +773,24 @@ class TestRouterAndProfiles(unittest.TestCase):
 
         final_prjs = load_projects(bridge_dir=mock_tenant_dir)
         self.assertEqual(final_prjs["projects"][0]["members"], ["lead"])
+
+        # 5. Invariant: Running ADK sync NEVER resurrects tombstoned agent
+        catalog_agents = [
+            {"id": "orion", "name": "Orion", "role": "Autonomous Research Specialist"},
+            {"id": "cipher", "name": "Cipher", "role": "Security Auditor"}
+        ]
+        synced = sync_adk_agents_to_registry(
+            catalog_agents,
+            bridge_dir=mock_tenant_dir,
+            agents_dir=mock_agents_dir,
+            only_existing=True
+        )
+        self.assertFalse((mock_agents_dir / "orion.agent.json").exists(), "Orion must NOT be resurrected on sync")
+        self.assertFalse((mock_agents_dir / "cipher.agent.json").exists(), "Cipher must not be created when only_existing=True")
+
+        # 6. Un-tombstoning when user explicitly recreates agent
+        remove_deleted_agent("orion", bridge_dir=mock_tenant_dir)
+        self.assertNotIn("orion", get_deleted_agents(bridge_dir=mock_tenant_dir))
 
 
 if __name__ == "__main__":

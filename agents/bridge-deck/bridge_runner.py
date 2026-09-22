@@ -274,6 +274,57 @@ def save_projects(data, bridge_dir=None, *, expected_generation: int):
         )
 
 
+def get_deleted_agents(bridge_dir=None) -> set:
+    """Returns the set of agent IDs that have been explicitly deleted in this tenant."""
+    try:
+        b_dir = bridge_dir or get_tenant_dir()
+        adapter, t_id = get_active_storage(b_dir)
+        doc = adapter.read_json(t_id, "deleted_agents.json")
+        if doc and isinstance(doc.get("deleted"), list):
+            return set(doc["deleted"])
+    except Exception as ex:
+        print(f"Notice reading deleted_agents: {ex}")
+    return set()
+
+
+def add_deleted_agent(agent_id: str, bridge_dir=None):
+    """Tombstones an agent ID so automatic sync never resurrects it."""
+    if not agent_id:
+        return
+    agent_id = agent_id.lower().replace(" ", "-")
+    try:
+        b_dir = bridge_dir or get_tenant_dir()
+        adapter, t_id = get_active_storage(b_dir)
+        with file_io_lock:
+            doc = adapter.read_json(t_id, "deleted_agents.json") or {"deleted": []}
+            deleted_set = set(doc.get("deleted", []))
+            deleted_set.add(agent_id)
+            doc["deleted"] = sorted(list(deleted_set))
+            adapter.replace_json(t_id, "deleted_agents.json", doc, default={"deleted": []}, expected_generation=UNCONDITIONAL)
+    except Exception as ex:
+        print(f"Notice updating deleted_agents: {ex}")
+
+
+def remove_deleted_agent(agent_id: str, bridge_dir=None):
+    """Removes an agent ID from the tombstone set when explicitly recreated/added by a user."""
+    if not agent_id:
+        return
+    agent_id = agent_id.lower().replace(" ", "-")
+    try:
+        b_dir = bridge_dir or get_tenant_dir()
+        adapter, t_id = get_active_storage(b_dir)
+        with file_io_lock:
+            doc = adapter.read_json(t_id, "deleted_agents.json") or {"deleted": []}
+            deleted_set = set(doc.get("deleted", []))
+            if agent_id in deleted_set:
+                deleted_set.remove(agent_id)
+                doc["deleted"] = sorted(list(deleted_set))
+                adapter.replace_json(t_id, "deleted_agents.json", doc, default={"deleted": []}, expected_generation=UNCONDITIONAL)
+    except Exception as ex:
+        print(f"Notice removing from deleted_agents: {ex}")
+
+
+
 def write_manifest(manifest, agents_dir=None, router=None, bridge_dir=None):
     """
     Centralized, atomic manifest writer.
@@ -1059,9 +1110,11 @@ def fetch_adk_agents_live(project_id=None, location="us-central1", bridge_dir=No
     agents_dir = b_dir / "agents"
     registered_files = list(agents_dir.glob("*.agent.json")) if agents_dir.exists() else []
     registered_ids = [f.stem.replace(".agent", "") for f in registered_files]
+    deleted_ids = get_deleted_agents(b_dir)
 
     for a in adk_catalog:
         a["registered"] = (a["id"] in registered_ids)
+        a["deleted"] = (a["id"] in deleted_ids)
         a["access_read"] = a.get("access_read", [])
         a["access_write"] = []
         a["access_notes"] = "Read-only access by default under Bridge Deck governance."
@@ -1070,10 +1123,12 @@ def fetch_adk_agents_live(project_id=None, location="us-central1", bridge_dir=No
     return adk_catalog
 
 
-def sync_adk_agents_to_registry(agents_to_sync, project_id=None, location="us-central1", router=None, agents_dir=None, bridge_dir=None):
+def sync_adk_agents_to_registry(agents_to_sync, project_id=None, location="us-central1", router=None, agents_dir=None, bridge_dir=None, only_existing=False):
     """
     Synchronizes selected ADK agents into agents/<id>.agent.json manifests with full schema validation,
     eager provider validation, and atomic disk writes under file_io_lock.
+    Respects deleted agents tombstone so deleted agents are never resurrected on sync.
+    If only_existing is True, only updates already-registered manifests without adding new catalog items.
     """
     b_dir = bridge_dir or get_tenant_dir()
     a_dir = agents_dir or (b_dir / "agents")
@@ -1082,6 +1137,7 @@ def sync_adk_agents_to_registry(agents_to_sync, project_id=None, location="us-ce
     proj = resolve_project_id(project_id)
     t_id = sanitize_tenant_id(b_dir.name if b_dir.parent.name == "tenants" else DEFAULT_TENANT_ID)
     r_inst = router or tenant_manager.get_router(t_id)
+    deleted_ids = get_deleted_agents(b_dir)
 
     for a in agents_to_sync:
         agent_id = a.get("id")
@@ -1089,26 +1145,47 @@ def sync_adk_agents_to_registry(agents_to_sync, project_id=None, location="us-ce
             continue
         agent_id = agent_id.lower().replace(" ", "-")
 
-        default_provider = {
+        # Invariant: Never resurrect an agent that was explicitly deleted by the user
+        if agent_id in deleted_ids:
+            continue
+
+        manifest_file = a_dir / f"{agent_id}.agent.json"
+        existing_manifest = {}
+        if manifest_file.exists():
+            try:
+                with open(manifest_file, "r", encoding="utf-8") as f:
+                    existing_manifest = json.load(f)
+            except Exception:
+                existing_manifest = {}
+        elif only_existing:
+            # Skip non-existing agents when only updating registered agents
+            continue
+
+        default_provider = dict(existing_manifest.get("provider") or a.get("provider") or {
             "type": "google-adk",
             "model": "gemini-3.7-flash",
             "location": location
-        }
+        })
         if proj:
             default_provider["project_id"] = proj
+        default_provider["location"] = location
 
         manifest = {
             "id": agent_id,
-            "name": a.get("name", agent_id.capitalize()),
-            "role": a.get("role", "Autonomous Systems Specialist"),
-            "system_prompt": a.get("system_prompt", f"You are {a.get('name', agent_id)}, an autonomous specialist on Google ADK."),
-            "access_read": a.get("access_read", []),
-            "access_write": a.get("access_write", []),
-            "access_notes": a.get("access_notes", "Read-only access by default under Bridge Deck governance."),
-            "skills": a.get("skills", ["Cross-Agent Synchronization"]),
-            "memory": a.get("memory", {"silo": "private", "shared_access": ["*"]}),
-            "provider": a.get("provider", default_provider)
+            "name": existing_manifest.get("name") or a.get("name", agent_id.capitalize()),
+            "role": existing_manifest.get("role") or a.get("role", "Autonomous Systems Specialist"),
+            "system_prompt": existing_manifest.get("system_prompt") or a.get("system_prompt", f"You are {a.get('name', agent_id)}, an autonomous specialist on Google ADK."),
+            "access_read": existing_manifest.get("access_read", a.get("access_read", [])),
+            "access_write": existing_manifest.get("access_write", a.get("access_write", [])),
+            "access_notes": existing_manifest.get("access_notes", a.get("access_notes", "Read-only access by default under Bridge Deck governance.")),
+            "skills": existing_manifest.get("skills", a.get("skills", ["Cross-Agent Synchronization"])),
+            "memory": existing_manifest.get("memory", a.get("memory", {"silo": "private", "shared_access": ["*"]})),
+            "provider": default_provider
         }
+        if "icon" in existing_manifest:
+            manifest["icon"] = existing_manifest["icon"]
+        elif "icon" in a:
+            manifest["icon"] = a["icon"]
 
         norm_manifest = write_manifest(manifest, agents_dir=a_dir, router=r_inst)
         synced.append(norm_manifest)
@@ -2473,9 +2550,24 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 agents_to_sync = payload.get("agents")
                 
                 if payload.get("auto_sync_specialists") or not agents_to_sync:
-                    agents_to_sync = fetch_adk_agents_live(project_id=proj, location=loc, bridge_dir=t_dir)
+                    catalog_agents = fetch_adk_agents_live(project_id=proj, location=loc, bridge_dir=t_dir)
+                    existing_adk = [
+                        m for m in r_inst.manifests.values()
+                        if (m.get("provider", {}).get("type") == "google-adk" or m.get("engine") == "google-adk")
+                    ]
+                    agents_map = {a["id"]: a for a in catalog_agents}
+                    for m in existing_adk:
+                        if m.get("id") and m["id"] not in agents_map:
+                            agents_map[m["id"]] = m
+                    agents_to_sync = list(agents_map.values())
                     
-                synced_list = sync_adk_agents_to_registry(agents_to_sync, project_id=proj, location=loc, router=r_inst, bridge_dir=t_dir)
+                synced_list = sync_adk_agents_to_registry(
+                    agents_to_sync,
+                    project_id=proj,
+                    location=loc,
+                    router=r_inst,
+                    bridge_dir=t_dir
+                )
                 
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
@@ -2584,6 +2676,9 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                     except Exception as je:
                         print(f"Notice updating project memberships: {je}")
 
+                    # 4. Record in deleted_agents tombstone so sync never resurrects it
+                    add_deleted_agent(agent_id, bridge_dir=t_dir)
+
                     router.reload_registry(force=True)
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")
@@ -2592,6 +2687,9 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                     return
 
                 norm_manifest = write_manifest(payload, agents_dir=t_dir / "agents", router=router)
+                # Un-tombstone if previously deleted
+                remove_deleted_agent(norm_manifest["id"], bridge_dir=t_dir)
+
                 # Keep profiles.json in sync if this agent exists in profiles
                 try:
                     prof_data, prof_gen = load_profiles(bridge_dir=t_dir, return_gen=True)
