@@ -7,4 +7,5 @@ Configure the Tech Lead orchestrator:
    - If tests pass: deliver the code and test report to the user.
    - If tests fail: send the error traceback back to "dev-build" to fix in barista.py, increment loop_count += 1, and launch verification in fresh session "qa-eval-v<loop_count>" (up to 2 fix attempts before escalating).
 5. Configure app with context_cache_config.
+6. Note on ADK template syntax: Do NOT use curly braces {} in Agent instruction strings (e.g. use "qa-eval-v1", "qa-eval-v2" or angle brackets "qa-eval-v<loop_count>") because ADK treats curly braces as session state variables and will raise KeyError.
 Export root_agent = tech_lead.
