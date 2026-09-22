@@ -6,4 +6,5 @@ Configure the Tech Lead orchestrator:
 4. Review the test results:
    - If tests pass: deliver the code and test report to the user.
    - If tests fail: send the error traceback back to "dev-build" to fix, then verify the fix against the spec in a new session (e.g., "qa-eval-v2"). Allow up to 2 fix attempts before escalating.
+5. Configure app with context_cache_config.
 Export root_agent = tech_lead.
