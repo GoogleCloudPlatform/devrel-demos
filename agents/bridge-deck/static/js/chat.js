@@ -210,7 +210,6 @@
                                     <div style="font-size: 0.82rem; color: #5f6368; margin-top: 0.25rem;">Create a custom ADK agent or discover agents from the template catalog.</div>
                                     <div style="display: flex; gap: 0.6rem; justify-content: center; margin-top: 0.9rem;">
                                         <button class="btn-send" onclick="openImportAdkAgentModal('google-adk')" style="padding: 0.45rem 1.1rem; font-size: 0.84rem; background: #2e7d32;">➕ Add ADK Agent</button>
-                                        <button class="btn-send" onclick="syncGoogleAdkDirectly(this)" style="padding: 0.45rem 1.1rem; font-size: 0.84rem; background: #673ab7;">🔄 Sync with Google ADK</button>
                                     </div>
                                 </div>
                             `;
@@ -304,7 +303,6 @@
                                 ${(s.id === 'antigravity-queue' || s.type === 'antigravity-queue') ? `<button class="btn-send" style="padding: 0.45rem 0.9rem; font-size: 0.82rem; background: #202124; color: #ffffff;" onclick="syncAntigravityDirectly(this)">🔄 Sync with Antigravity</button>` : ''}
                                 ${(s.id === 'google-adk' || s.type === 'google-adk') ? `
                                     <button class="btn-send" style="padding: 0.45rem 0.9rem; font-size: 0.82rem; background: #2e7d32;" onclick="openImportAdkAgentModal('google-adk')">➕ Add ADK Agent</button>
-                                    <button class="btn-send" style="padding: 0.45rem 0.9rem; font-size: 0.82rem; background: #673ab7;" onclick="syncGoogleAdkDirectly(this)">🔄 Sync with Google ADK</button>
                                 ` : ''}
                                 ${(isModelCore && s.id !== 'vertex-ai' && s.type !== 'vertex-ai' && s.id !== 'antigravity-queue' && s.type !== 'antigravity-queue') ? `<button class="btn-send" style="padding: 0.45rem 0.9rem; font-size: 0.82rem;" onclick="${primaryActionHandler}">${primaryActionText}</button>` : ''}
                             </div>

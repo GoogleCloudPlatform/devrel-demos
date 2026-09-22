@@ -1014,7 +1014,7 @@
                         <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
                             ${(eng.id === 'vertex-ai' || eng.type === 'vertex-ai') ? `<button onclick="syncVertexDirectly(this)" class="btn-pill-header" style="font-size: 0.76rem; background: #1a73e8; color: #ffffff; font-weight: 600; border: none;">🔄 Sync with Google Model Garden</button>` : ''}
                             ${(eng.id === 'antigravity-queue' || eng.type === 'antigravity-queue') ? `<button onclick="syncAntigravityDirectly(this)" class="btn-pill-header" style="font-size: 0.76rem; background: #202124; color: #ffffff; font-weight: 600; border: none;">🔄 Sync with Antigravity</button>` : ''}
-                            ${(eng.id === 'google-adk' || eng.type === 'google-adk') ? `<button onclick="syncGoogleAdkDirectly(this)" class="btn-pill-header" style="font-size: 0.76rem; background: #673ab7; color: #ffffff; font-weight: 600; border: none;">🔄 Sync with Google ADK</button>` : ''}
+                            ${(eng.id === 'google-adk' || eng.type === 'google-adk') ? `<button onclick="openImportAdkAgentModal('google-adk')" class="btn-pill-header" style="font-size: 0.76rem; background: #2e7d32; color: #ffffff; font-weight: 600; border: none;">➕ Add ADK Agent</button>` : ''}
                             ${(eng.category === 'model' || (!eng.category && eng.id === 'ollama-local')) && (eng.id !== 'vertex-ai' && eng.type !== 'vertex-ai' && eng.id !== 'antigravity-queue' && eng.type !== 'antigravity-queue') ? `<button onclick="openAddModelToEngineModal('${eng.id}')" class="btn-pill-header" style="font-size: 0.76rem; background: #e8f0fe; color: #0b57d0; border: 1px solid #c2e7ff; font-weight: 600;">➕ Add Model</button>` : ''}
                             <button onclick="openAddEngineModal('${eng.id}')" class="btn-pill-header" style="font-size: 0.76rem;">✏️ Edit</button>
                         </div>
@@ -1349,51 +1349,6 @@
             }
         }
 
-        // ==========================================
-        // GOOGLE ADK DIRECT 1-CLICK CLOUD AGENT SYNC
-        // ==========================================
-        async function syncGoogleAdkDirectly(btnEl = null) {
-            let origHtml = '';
-            if (btnEl) {
-                origHtml = btnEl.innerHTML;
-                btnEl.innerHTML = '🔄 Syncing ADK...';
-                btnEl.disabled = true;
-            }
-            try {
-                const resp = await fetch('/api/adk/sync', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        location: 'us-central1',
-                        auto_sync_specialists: true
-                    })
-                });
-                const res = await resp.json();
-                if (res.success) {
-                    await fetchAgents();
-                    await fetchEngines();
-                    renderChatThread();
-                    if (btnEl) {
-                        btnEl.innerHTML = '✅ Synced!';
-                        setTimeout(() => {
-                            btnEl.innerHTML = origHtml || '🔄 Sync with Google ADK';
-                            btnEl.disabled = false;
-                        }, 1800);
-                        return;
-                    }
-                } else {
-                    alert("⚠️ Problem syncing Google ADK agents: " + (res.error || "Unknown error occurred"));
-                }
-            } catch (err) {
-                console.error("Error during ADK sync:", err);
-                alert("⚠️ Network / API error during Google ADK sync: " + err.message);
-            } finally {
-                if (btnEl && !btnEl.innerHTML.includes('✅')) {
-                    btnEl.innerHTML = origHtml || '🔄 Sync with Google ADK';
-                    btnEl.disabled = false;
-                }
-            }
-        }
 
         // ==================== ADK AGENT IMPORT & MANAGEMENT MODAL ====================
         const ADK_CATALOG_PRESETS = {
