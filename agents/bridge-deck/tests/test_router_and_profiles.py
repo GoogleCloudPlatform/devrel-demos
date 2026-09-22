@@ -214,6 +214,45 @@ class TestRouterAndProfiles(unittest.TestCase):
         self.assertEqual(m_data["access_write"], [])
         self.assertEqual(m_data["provider"]["model"], "gemini-3.7-flash")
 
+    def test_save_persona_without_explicit_role_synthesizes_schema_compliant_role(self):
+        """Verify that saving a new persona without an explicit 'role' synthesizes a valid schema role."""
+        mock_profiles_file = self.test_dir / "profiles.json"
+        mock_agents_dir = self.agents_dir
+        
+        with open(mock_profiles_file, "w", encoding="utf-8") as pf:
+            json.dump({"profiles": []}, pf)
+
+        iris_payload = {
+            "id": "irisadk",
+            "name": "Iris (ADK)",
+            "avatar": "👁️",
+            "engine": "google-adk",
+            "model": "gemini-3.7-flash",
+            "harness": "voyager",
+            "system_prompt": "I am Iris (ADK).",
+            "skills": ["PyMOL Structure Renderer"],
+            "access_read": [],
+            "access_write": []
+        }
+        res = bridge_runner.save_persona(
+            iris_payload,
+            profiles_file=mock_profiles_file,
+            agents_dir=mock_agents_dir,
+            router=self.router
+        )
+        self.assertEqual(res["id"], "irisadk")
+        self.assertIn("role", res)
+        self.assertTrue(len(res["role"]) > 0)
+
+        # Check agent manifest file on disk
+        mf_path = mock_agents_dir / "irisadk.agent.json"
+        self.assertTrue(mf_path.exists())
+        with open(mf_path, "r", encoding="utf-8") as mf:
+            m_data = json.load(mf)
+        self.assertEqual(m_data["id"], "irisadk")
+        self.assertIn("role", m_data)
+        self.assertEqual(m_data["role"], res["role"])
+
     def test_save_persona_vertex_custom_endpoint_validation(self):
         """Verify D38: saving a custom endpoint persona without endpoint_id fails before writing to disk."""
         mock_profiles_file = self.test_dir / "profiles.json"

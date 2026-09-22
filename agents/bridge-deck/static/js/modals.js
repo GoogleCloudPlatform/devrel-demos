@@ -410,9 +410,15 @@
                 return;
             }
 
+            const profNameVal = (document.getElementById('profName').value || '').trim();
+            const profRoleInput = document.getElementById('profRole');
+            const profRoleVal = (profRoleInput ? profRoleInput.value : '').trim();
+            const finalRole = profRoleVal || (existingProf && existingProf.role) || `${profNameVal || profId} Specialist`;
+
             const profData = {
                 id: profId,
-                name: document.getElementById('profName').value,
+                name: profNameVal,
+                role: finalRole,
                 avatar: document.getElementById('profAvatar').value,
                 engine: selectedEngine,
                 model: selectedModel,

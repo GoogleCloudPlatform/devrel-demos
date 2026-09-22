@@ -239,6 +239,8 @@
             document.getElementById('profileModalTitle').innerText = "Create New Team Member Persona";
             document.getElementById('profId').value = "";
             document.getElementById('profName').value = "";
+            const profRoleInput = document.getElementById('profRole');
+            if (profRoleInput) profRoleInput.value = "";
             document.getElementById('profAvatar').value = "🤖";
             document.getElementById('profMbti').value = "";
             document.getElementById('profBalance').value = "Balanced";
@@ -270,6 +272,10 @@
             document.getElementById('profileModalTitle').innerText = `Edit Persona: ${p.name}`;
             document.getElementById('profId').value = p.id;
             document.getElementById('profName').value = p.name;
+            const editRoleInput = document.getElementById('profRole');
+            if (editRoleInput) {
+                editRoleInput.value = p.role || (p.resume && p.resume[0] && p.resume[0].role) || '';
+            }
             document.getElementById('profAvatar').value = p.avatar || '👤';
             document.getElementById('profEndpointId').value = endpointVal;
 

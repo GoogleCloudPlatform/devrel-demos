@@ -385,10 +385,23 @@ def save_persona(payload, profiles_file=None, agents_dir=None, router=None, brid
             manifest = {}
     
     manifest["id"] = prof_id
-    if payload.get("name"):
-        manifest["name"] = payload["name"]
+    manifest["name"] = payload.get("name") or manifest.get("name") or prof_id.replace("-", " ").title()
+    
+    # Ensure role is always populated for schema compliance (D51)
     if payload.get("role"):
         manifest["role"] = payload["role"]
+    elif not manifest.get("role"):
+        # Check existing profiles in profiles.json
+        profiles_data_pre = load_profiles(bridge_dir=b_dir)
+        existing_prof = next((p for p in profiles_data_pre.get("profiles", []) if p.get("id") == prof_id), None)
+        manifest["role"] = (
+            (existing_prof or {}).get("role")
+            or (payload.get("resume") and payload["resume"][0].get("role") if isinstance(payload.get("resume"), list) and payload["resume"] else None)
+            or (f"{manifest['name']} Specialist" if manifest.get("name") else "Technical Specialist")
+        )
+    if not payload.get("role"):
+        payload["role"] = manifest["role"]
+
     if payload.get("avatar"):
         manifest["avatar"] = payload["avatar"]
     if payload.get("harness"):
