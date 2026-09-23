@@ -33,7 +33,7 @@ from google.genai import types
 antigravity_agent = ManagedAgent(
     name="antigravity_agent",
     agent_id="antigravity-preview-05-2026",
-    environment=os.environ.get("ANTIGRAVITY_ENV_ID"),
+    environment=os.environ["ANTIGRAVITY_ENV_ID"],
     tools=[types.Tool(code_execution=types.ToolCodeExecution())],
     instruction="""You are a software and test engineer on Google Cloud working in a persistent remote sandbox.
 All sessions share the same remote environment filesystem. You handle tasks across sessions:
