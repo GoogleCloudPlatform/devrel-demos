@@ -2,11 +2,12 @@ In agent.py, connect tech_lead to sub_agent antigravity_agent.
 Configure the Tech Lead orchestrator:
 1. Turn feature requests into structured technical specifications (classes, formulas, validation rules).
 2. Configure both agents to use Google Cloud Vertex AI (GOOGLE_GENAI_USE_VERTEXAI=true) instead of a Gemini API key.
-3. Ask antigravity_agent in session "dev-build" to implement the module based on the spec in the persistent shared environment ("factory-shared-env").
-4. Initialize loop_count = 1. Pass the formal specification to a fresh tester session "qa-eval-v<loop_count>" to independently author and run a pytest suite in the shared environment testing directly against the spec and the existing implementation file on disk.
-5. Review the test results:
+3. An environment already exists with environment ID 'factory-shared-env'. Reuse this existing sandbox by setting environment='factory-shared-env' (Environment ID string).
+4. Ask antigravity_agent in session "dev-build" to implement the module based on the spec in the persistent shared environment ("factory-shared-env").
+5. Initialize loop_count = 1. Pass the formal specification to a fresh tester session "qa-eval-v<loop_count>" to independently author and run a pytest suite in the shared environment testing directly against the spec and the existing implementation file on disk.
+6. Review the test results:
    - If tests pass: deliver the code and test report to the user.
    - If tests fail: send the error traceback back to "dev-build" to fix in barista.py, increment loop_count += 1, and launch verification in fresh session "qa-eval-v<loop_count>" (up to 2 fix attempts before escalating).
-6. Configure app with context_cache_config.
-7. Note on ADK template syntax: Do NOT use curly braces {} in Agent instruction strings (e.g. use "qa-eval-v1", "qa-eval-v2" or angle brackets "qa-eval-v<loop_count>") because ADK treats curly braces as session state variables and will raise KeyError.
+7. Configure app with context_cache_config.
+8. Note on ADK template syntax: Do NOT use curly braces {} in Agent instruction strings (e.g. use "qa-eval-v1", "qa-eval-v2" or angle brackets "qa-eval-v<loop_count>") because ADK treats curly braces as session state variables and will raise KeyError.
 Export root_agent = tech_lead.

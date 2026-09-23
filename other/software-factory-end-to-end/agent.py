@@ -26,15 +26,13 @@ from google.adk.agents import Agent, ManagedAgent
 from google.genai import types
 
 # Configure the Antigravity Managed Agent.
-# In the Gemini Agent Environment, 'environment' specifies the remote sandbox container / filesystem,
-# while the session header (e.g., [DEV SESSION: dev-build] vs [QA SESSION: qa-eval-v1]) defines
-# the prompt context. By using the same persistent environment (e.g. environment_id or named environment),
-# the files on disk (like barista.py) are preserved across interactions, while fresh sessions provide
-# an unbiased prompt context with zero memory of dev trade-offs.
+# An environment already exists with ID 'factory-shared-env'.
+# By passing the Environment ID string ('factory-shared-env'), the agent reuses the
+# existing sandbox with all installed packages and files (barista.py) preserved across sessions.
 antigravity_agent = ManagedAgent(
     name="antigravity_agent",
     agent_id="antigravity-preview-05-2026",
-    environment={"type": "remote", "id": "factory-shared-env"},
+    environment="factory-shared-env",
     tools=[types.Tool(code_execution=types.ToolCodeExecution())],
     instruction="""You are a software and test engineer on Google Cloud working in a persistent remote sandbox.
 All sessions share the same remote environment filesystem. You handle tasks across sessions:

@@ -1,7 +1,7 @@
 Define a standalone Antigravity ManagedAgent in `agent.py`:
 1. Use `google.adk.agents.ManagedAgent` and `google.genai.types`.
-2. Connect to the cloud-hosted agent with `agent_id='antigravity-preview-05-2026'` and a persistent remote environment (`environment={'type': 'remote', 'id': 'factory-shared-env'}`) so generated files remain preserved on disk across separate sessions.
-3. Configure the agent to use Google Cloud Vertex AI (GOOGLE_GENAI_USE_VERTEXAI=true) instead of a Gemini API key.
+2. Connect to the cloud-hosted agent with `agent_id='antigravity-preview-05-2026'` and configure it to use Google Cloud Vertex AI (GOOGLE_GENAI_USE_VERTEXAI=true with ADC) instead of a Gemini API key.
+3. On this initial provisioning occasion, provision the remote environment using a config object (`environment={'type': 'remote'}`).
 4. Attach `ToolCodeExecution` for sandboxed code execution.
 5. Provide instructions defining its capabilities across development sessions:
    - [DEV SESSION - IMPLEMENTATION]: writes clean Python code directly to the environment file.
