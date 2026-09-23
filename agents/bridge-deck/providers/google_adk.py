@@ -68,6 +68,20 @@ class GoogleADKProvider(AgentProvider):
     def _execute_tool(self, tool_name: str, args: Dict[str, Any], allowed_dirs: List[str], write_allowed_dirs: Optional[List[str]] = None) -> Tuple[bool, str]:
         """Executes a native ADK workspace tool within ACL safety boundaries."""
         try:
+            TOOL_ALIASES = {
+                "list_directory": "list_dir",
+                "ls": "list_dir",
+                "dir": "list_dir",
+                "read": "read_file",
+                "write": "write_file",
+                "grep": "grep_search",
+                "search": "grep_search",
+                "bash": "run_command",
+                "exec": "run_command",
+                "execute": "run_command",
+                "cmd": "run_command",
+            }
+            tool_name = TOOL_ALIASES.get(tool_name, tool_name)
             if tool_name not in self.tools_enabled:
                 return False, f"ACL Permission Denied: Tool '{tool_name}' is not in authorized tools_enabled list: {self.tools_enabled}"
 
@@ -359,7 +373,8 @@ class GoogleADKProvider(AgentProvider):
                     config = types.GenerateContentConfig(
                         max_output_tokens=8192,
                         temperature=self.temperature,
-                        system_instruction=full_system
+                        system_instruction=full_system,
+                        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
                     )
                     response = client.models.generate_content(
                         model=self.model_name,
@@ -427,17 +442,35 @@ class GoogleADKProvider(AgentProvider):
                         f"Do NOT output a tool block if you are ready to answer the team."
                     )
                 else:
-                    # Last iteration: strictly require conversational synthesis and forbid more tool calls
-                    current_prompt = (
+                    # Last iteration: invoke a synthesis turn so model outputs its final conversational message
+                    final_prompt = (
                         f"Original Team Request:\n{prompt}\n\n"
                         f"Workspace Tool Execution History:\n{history_summary}\n\n"
                         f"Latest Tool Observation ({tool_name}):\n"
                         f"Status: {status_str}\n"
                         f"Output:\n{tool_output}\n\n"
-                        f"[Instruction]: Tool execution limit reached. Provide your final conversational response to the team now. "
+                        f"[Instruction]: All tool executions are now complete. Formulate your final conversational response to your teammates in the chat now. "
                         f"Address your teammates directly, summarize what you inspected/created in the workspace, and recommend next steps. "
                         f"DO NOT output any ```adk_tool_call code blocks."
                     )
+                    try:
+                        if client is not None:
+                            synth_resp = client.models.generate_content(
+                                model=self.model_name,
+                                contents=final_prompt,
+                                config=config
+                            )
+                            final_resp = (synth_resp.text or "").strip()
+                        else:
+                            final_resp = (fallback_client.generate(
+                                prompt=final_prompt,
+                                system_prompt=full_system,
+                                messages_list=messages,
+                                allowed_roots=allowed_dirs
+                            ) or "").strip()
+                    except Exception:
+                        final_resp = ""
+                    break
 
             # Scrub any raw adk_tool_call blocks from final_resp so raw code blocks never leak into chat
             clean_resp = re.sub(r"```(?:adk_tool_call|tool_call)\s*\{.*?\}\s*```", "", final_resp or resp_text, flags=re.DOTALL).strip()
@@ -451,7 +484,7 @@ class GoogleADKProvider(AgentProvider):
                     f"Ready to coordinate next steps with the team."
                 )
             else:
-                final_resp = clean_resp if clean_resp else "ADK deliberation complete."
+                final_resp = "I've reviewed the team discussion and workspace status. Ready to coordinate next steps with the team."
 
             elapsed = round(time.time() - start_time, 2)
             return {

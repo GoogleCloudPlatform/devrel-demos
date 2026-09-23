@@ -16,6 +16,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application source code (exclusions defined in .dockerignore)
 COPY . .
 
+# Provision container root /workspaces directory for autonomous agent project sandboxes
+RUN mkdir -p /workspaces && if [ -d "/app/workspaces" ]; then cp -r /app/workspaces/* /workspaces/ 2>/dev/null || true; fi
+
 # Cloud Run defaults
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
