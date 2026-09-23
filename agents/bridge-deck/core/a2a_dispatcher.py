@@ -256,7 +256,7 @@ class A2ADispatcher:
         build_messages_fn: Any,
         build_self_context_fn: Any,
         append_transaction_fn: Any,
-        max_depth: int = 5,
+        max_depth: Optional[int] = None,
         tenant_id: Optional[str] = None,
         queue_backend: Optional[A2AQueueBackend] = None,
         bridge_auth_token: Optional[str] = None
@@ -381,11 +381,12 @@ class A2ADispatcher:
                 self._seen_tasks = {k for k in self._seen_tasks if k[0] not in old_roots}
 
             for target_id in targets:
-                # Check fan-out budget (max 20 autonomous turns per root_tx)
                 current_count = self._root_task_counts.get(root_tx, 0)
-                if current_count >= 20:
-                    print(f"[*] A2A fan-out limit reached for root_tx {root_tx} (count: {current_count}). Skipping @{target_id}.")
-                    continue
+                # Check fan-out budget only if depth limiting is explicitly configured
+                if self.max_depth is not None and self.max_depth > 0:
+                    if current_count >= 20:
+                        print(f"[*] A2A fan-out limit reached for root_tx {root_tx} (count: {current_count}). Skipping @{target_id}.")
+                        continue
 
                 # Task deduplication (A2A-1: key on read-set identity to preserve sibling turns)
                 text_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()[:8]
@@ -490,8 +491,8 @@ class A2ADispatcher:
         prompt: str,
         cascade_depth: int
     ) -> Dict[str, Any]:
-        # Check cascade depth budget
-        if cascade_depth >= self.max_depth:
+        # Check cascade depth budget only if explicitly configured
+        if self.max_depth is not None and self.max_depth > 0 and cascade_depth >= self.max_depth:
             self._post_depth_limit_notice(project_id, target_agent_id, cascade_depth)
             return {
                 "status": "depth_limited",
@@ -718,8 +719,11 @@ class A2ADispatcher:
     def pause(self, project_id: Optional[str] = None):
         with self._lock:
             if project_id:
+                norm_pid = project_id.replace("proj_", "")
                 self.paused_projects.add(project_id)
-                if self.active_task and (self.active_task.get("project_id") == project_id or self.active_task.get("project_id") == project_id.replace("proj_", "")):
+                self.paused_projects.add(norm_pid)
+                self.paused_projects.add(f"proj_{norm_pid}")
+                if self.active_task and (self.active_task.get("project_id") in [project_id, norm_pid, f"proj_{norm_pid}"]):
                     self.active_task = None
             else:
                 self.global_paused = True
@@ -728,7 +732,10 @@ class A2ADispatcher:
     def resume(self, project_id: Optional[str] = None):
         with self._lock:
             if project_id:
+                norm_pid = project_id.replace("proj_", "")
                 self.paused_projects.discard(project_id)
+                self.paused_projects.discard(norm_pid)
+                self.paused_projects.discard(f"proj_{norm_pid}")
             else:
                 self.global_paused = False
 
@@ -736,8 +743,19 @@ class A2ADispatcher:
         with self._lock:
             if self.global_paused:
                 return True
-            if project_id and project_id in self.paused_projects:
-                return True
+            if project_id:
+                norm_pid = project_id.replace("proj_", "")
+                if project_id in self.paused_projects or norm_pid in self.paused_projects or f"proj_{norm_pid}" in self.paused_projects:
+                    return True
+                if hasattr(self, "load_projects") and self.load_projects:
+                    try:
+                        p_data = self.load_projects()
+                        for p in p_data.get("projects", []):
+                            if p.get("id") == project_id or p.get("id") == norm_pid:
+                                if p.get("a2a_paused", False):
+                                    return True
+                    except Exception:
+                        pass
             return False
 
     def clear_queue(self) -> Optional[int]:
@@ -750,11 +768,23 @@ class A2ADispatcher:
         with self._lock:
             q_size = self.queue_backend.qsize if hasattr(self, "queue_backend") and self.queue_backend else 0
             is_durable = self.queue_backend.is_durable if hasattr(self, "queue_backend") and self.queue_backend else False
+            paused = set(self.paused_projects)
+            if hasattr(self, "load_projects") and self.load_projects:
+                try:
+                    p_data = self.load_projects()
+                    for p in p_data.get("projects", []):
+                        if p.get("a2a_paused", False):
+                            pid = p.get("id")
+                            if pid:
+                                paused.add(pid)
+                                paused.add(f"proj_{pid}" if not str(pid).startswith("proj_") else pid)
+                except Exception:
+                    pass
             return {
                 "running": self._running,
                 "durable": is_durable,
                 "global_paused": self.global_paused,
-                "paused_projects": list(self.paused_projects),
+                "paused_projects": list(paused),
                 "queue_size": q_size,
                 "queue_size_known": q_size is not None,
                 "active_task": self.active_task,

@@ -3317,10 +3317,28 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
             try:
                 payload = json.loads(post_data) if post_data else {}
                 t_id = self._get_tenant_id(payload)
+                t_dir = self._get_tenant_dir(payload)
                 t_dispatcher = tenant_manager.get_dispatcher(t_id)
                 project_id = payload.get("project_id")
                 if t_dispatcher:
                     t_dispatcher.pause(project_id)
+
+                if project_id:
+                    for _ in range(5):
+                        try:
+                            projects_data, prj_gen = load_projects(bridge_dir=t_dir, return_gen=True)
+                            norm_id = project_id.replace("proj_", "")
+                            for p in projects_data.get("projects", []):
+                                if p.get("id") == project_id or p.get("id") == norm_id:
+                                    p["a2a_paused"] = True
+                            save_projects(projects_data, bridge_dir=t_dir, expected_generation=prj_gen)
+                            break
+                        except StorageConflictError:
+                            time.sleep(0.05)
+                        except Exception as pe:
+                            print(f"[!] Notice: Failed to persist a2a_paused flag on project: {pe}")
+                            break
+
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
@@ -3335,10 +3353,28 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
             try:
                 payload = json.loads(post_data) if post_data else {}
                 t_id = self._get_tenant_id(payload)
+                t_dir = self._get_tenant_dir(payload)
                 t_dispatcher = tenant_manager.get_dispatcher(t_id)
                 project_id = payload.get("project_id")
                 if t_dispatcher:
                     t_dispatcher.resume(project_id)
+
+                if project_id:
+                    for _ in range(5):
+                        try:
+                            projects_data, prj_gen = load_projects(bridge_dir=t_dir, return_gen=True)
+                            norm_id = project_id.replace("proj_", "")
+                            for p in projects_data.get("projects", []):
+                                if p.get("id") == project_id or p.get("id") == norm_id:
+                                    p["a2a_paused"] = False
+                            save_projects(projects_data, bridge_dir=t_dir, expected_generation=prj_gen)
+                            break
+                        except StorageConflictError:
+                            time.sleep(0.05)
+                        except Exception as pe:
+                            print(f"[!] Notice: Failed to persist a2a_paused flag on project: {pe}")
+                            break
+
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()

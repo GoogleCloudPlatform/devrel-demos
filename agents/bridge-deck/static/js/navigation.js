@@ -16,6 +16,9 @@
                 const data = await resp.json();
                 currentProjects = data.projects || [];
                 renderProjectsNav();
+                if (typeof updateA2AHeaderOnRoomSwitch === 'function') {
+                    updateA2AHeaderOnRoomSwitch();
+                }
             } catch (err) {
                 console.error("Error fetching projects:", err);
             }
@@ -440,6 +443,9 @@
                 scrollToTop(false);
             } else {
                 scrollToBottom(false);
+            }
+            if (typeof updateA2AHeaderOnRoomSwitch === 'function') {
+                updateA2AHeaderOnRoomSwitch();
             }
             fetchHistory(true);
         }

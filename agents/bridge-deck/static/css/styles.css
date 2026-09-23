@@ -229,6 +229,93 @@
             color: var(--text-main);
         }
 
+        /* A2A Play / Pause Control Group */
+        .a2a-control-group {
+            display: inline-flex;
+            align-items: center;
+            background: #f1f3f4;
+            border: 1px solid #dadce0;
+            border-radius: 20px;
+            padding: 2px;
+            gap: 2px;
+            font-size: 0.78rem;
+            box-shadow: 0 1px 2px rgba(60,64,67,0.06);
+        }
+
+        .a2a-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.26rem 0.65rem;
+            border-radius: 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.76rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            user-select: none;
+        }
+
+        .a2a-toggle-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text-main);
+        }
+
+        .a2a-toggle-btn.active.play-active {
+            background: #e6f4ea;
+            color: #137333;
+            font-weight: 700;
+            box-shadow: 0 1px 2px rgba(19, 115, 51, 0.15);
+        }
+
+        .a2a-toggle-btn.active.pause-active {
+            background: #fef7e0;
+            color: #b06000;
+            font-weight: 700;
+            box-shadow: 0 1px 2px rgba(176, 96, 0, 0.15);
+        }
+
+        .a2a-live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.22rem 0.6rem;
+            border-radius: 16px;
+            background: #e8f0fe;
+            color: #0b57d0;
+            font-size: 0.72rem;
+            font-weight: 600;
+            margin-left: 0.25rem;
+            border: 1px solid #c2e7ff;
+            max-width: 280px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .a2a-pulse-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #1a73e8;
+            display: inline-block;
+            flex-shrink: 0;
+            animation: a2a-pulse 1.4s infinite ease-in-out;
+        }
+
+        @keyframes a2a-pulse {
+            0%, 100% {
+                transform: scale(0.85);
+                opacity: 0.6;
+            }
+            50% {
+                transform: scale(1.25);
+                opacity: 1;
+            }
+        }
+
         /* Chat Stream Area */
         .gchat-body {
             flex: 1;

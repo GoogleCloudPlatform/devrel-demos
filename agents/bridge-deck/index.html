@@ -90,10 +90,17 @@
                 </div>
 
                 <div class="header-tools" style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div id="a2aStatusIndicator" style="display: none; align-items: center; gap: 0.4rem; font-size: 0.76rem; padding: 0.25rem 0.65rem; border-radius: 20px; background: #e8f0fe; color: #0b57d0; font-weight: 600; border: 1px solid #c2e7ff;">
-                        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0b57d0;"></span>
-                        <span id="a2aStatusText">⚡ A2A Active</span>
-                        <button id="btnToggleA2A" onclick="toggleA2APause()" style="background: none; border: none; font-size: 0.78rem; cursor: pointer; padding: 0 2px; color: #0b57d0;" title="Pause / Resume Autonomous Collaboration">⏸️</button>
+                    <div id="a2aControlGroup" class="a2a-control-group" style="display: none;">
+                        <button id="btnA2APlay" class="a2a-toggle-btn active play-active" onclick="setA2AMode(false)" title="Enable autonomous agent turns (Play)">
+                            <span>▶</span> Play
+                        </button>
+                        <button id="btnA2APause" class="a2a-toggle-btn" onclick="setA2AMode(true)" title="Pause autonomous agent turns (Pause)">
+                            <span>⏸</span> Pause
+                        </button>
+                        <div id="a2aLiveIndicator" class="a2a-live-indicator" style="display: none;">
+                            <span class="a2a-pulse-dot"></span>
+                            <span id="a2aLiveText">Agent Working...</span>
+                        </div>
                     </div>
                     <button class="btn-icon" onclick="scrollToTop(true)" title="Jump to Top">⬆</button>
                     <button class="btn-icon" onclick="scrollToBottom(true)" title="Jump to Bottom">⬇</button>
