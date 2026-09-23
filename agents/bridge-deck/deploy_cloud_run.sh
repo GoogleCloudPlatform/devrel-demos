@@ -151,15 +151,15 @@ gcloud projects add-iam-policy-binding "${GOOGLE_CLOUD_PROJECT}" \
     --role="roles/cloudtasks.enqueuer" >/dev/null
 
 # Setup Cloud Tasks queue for Phase 4 durable A2A dispatch
-A2A_QUEUE_NAME="${A2A_QUEUE_NAME:-a2a-tasks}"
+A2A_QUEUE_NAME="${A2A_QUEUE_NAME:-bridge-a2a-tasks}"
 echo "Verifying Cloud Tasks queue ${A2A_QUEUE_NAME}..."
 gcloud tasks queues describe "${A2A_QUEUE_NAME}" --location="${GCP_REGION}" --project="${GOOGLE_CLOUD_PROJECT}" >/dev/null 2>&1 || \
 gcloud tasks queues create "${A2A_QUEUE_NAME}" --location="${GCP_REGION}" --project="${GOOGLE_CLOUD_PROJECT}" \
-    --max-attempts=5 --max-retry-duration=1800s
+    --max-attempts=3 --max-retry-duration=1800s --max-dispatches-per-second=2 --max-concurrent-dispatches=3
 
 echo "Updating retry bounds on Cloud Tasks queue ${A2A_QUEUE_NAME}..."
 gcloud tasks queues update "${A2A_QUEUE_NAME}" --location="${GCP_REGION}" --project="${GOOGLE_CLOUD_PROJECT}" \
-    --max-attempts=5 --max-retry-duration=1800s
+    --max-attempts=3 --max-retry-duration=1800s --max-dispatches-per-second=2 --max-concurrent-dispatches=3
 
 # Setup BRIDGE_AUTH_TOKEN secret
 if ! gcloud secrets describe BRIDGE_AUTH_TOKEN --project="${GOOGLE_CLOUD_PROJECT}" >/dev/null 2>&1; then

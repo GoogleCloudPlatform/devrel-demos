@@ -288,6 +288,7 @@ class A2ADispatcher:
         # Collaboration Modes (paused, mentions, pulse) and Pulse State
         self.project_modes: Dict[str, str] = {}
         self.last_project_pulse: Dict[str, float] = {}
+        self.last_open_floor_handoff: Dict[str, float] = {}
         self.pulse_interval = float(os.environ.get("BRIDGE_A2A_PULSE_INTERVAL_SECONDS", "300"))
 
         # Initialize Queue Backend
@@ -617,6 +618,14 @@ class A2ADispatcher:
             target_agent_id = eligible[0]
             root_tx = original_root_tx or f"tx_openfloor_{int(time.time() * 1000)}"
             now = time.time()
+
+            # Throttle open floor handoffs to prevent rapid cascades
+            last_hf = self.last_open_floor_handoff.get(project_id, 0)
+            if (now - last_hf) < 15.0:
+                print(f"[*] Open Floor handoff throttled for {project_id} (last was {now - last_hf:.1f}s ago).")
+                return
+            self.last_open_floor_handoff[project_id] = now
+
             proj_name = proj.get("name", project_id)
 
             handoff_prompt = (
@@ -639,7 +648,8 @@ class A2ADispatcher:
                 "cascade_depth": cascade_depth,
                 "original_root_tx": root_tx,
                 "enqueued_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                "is_pulse": True
+                "is_pulse": True,
+                "is_open_floor": True
             }
 
             self.queue_backend.enqueue(task, tenant_id=self.tenant_id)
@@ -899,8 +909,11 @@ class A2ADispatcher:
             )
 
         # Open Floor Handoff: if no specific agent was mentioned and mode is open_floor / ambient
+        # Anti-Loop Invariant: Never trigger open floor if current turn was already an open floor or pulse turn
+        is_already_open_floor = bool(task.get("is_pulse") or task.get("is_open_floor"))
         if (
             not enqueued_mentions
+            and not is_already_open_floor
             and response_text
             and status_code == 200
             and self.get_mode(project_id) in ("open_floor", "ambient", "pulse")
