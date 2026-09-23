@@ -126,7 +126,11 @@ class GoogleADKProvider(AgentProvider):
                 content = args.get("content", "")
                 if not write_allowed_roots:
                     return False, "ACL Permission Denied: write access is not authorized for this agent."
-                p = resolve_tool_path(rel_or_abs)
+                if not rel_or_abs or rel_or_abs.strip() in [".", "./"]:
+                    p = write_allowed_roots[0]
+                else:
+                    raw_p = Path(rel_or_abs.strip())
+                    p = raw_p.resolve() if raw_p.is_absolute() else (write_allowed_roots[0] / raw_p).resolve()
                 if not is_write_allowed(p):
                     return False, f"ACL Permission Denied: '{p}' is outside authorized write directories ({[str(r) for r in write_allowed_roots]})"
                 p.parent.mkdir(parents=True, exist_ok=True)
@@ -288,15 +292,14 @@ class GoogleADKProvider(AgentProvider):
             allowed_dirs = []
             for d in raw_read_dirs:
                 p = Path(d).resolve()
+                allowed_dirs.append(str(p))
                 if (p / ".git").exists():
                     try:
                         wt = get_or_create_agent_worktree(p, self.provider_id)
-                        allowed_dirs.append(str(wt))
+                        if str(wt) not in allowed_dirs:
+                            allowed_dirs.append(str(wt))
                     except Exception as wte:
                         print(f"Notice: Failed to create agent worktree for {self.provider_id}: {wte}")
-                        allowed_dirs.append(str(p))
-                else:
-                    allowed_dirs.append(str(p))
 
             write_allowed_dirs = []
             for d in raw_write_dirs:
@@ -420,12 +423,13 @@ class GoogleADKProvider(AgentProvider):
                     "output": tool_output
                 })
 
-                # Build ongoing tool execution summary
+                # Build ongoing tool execution summary without raw function-call syntax
                 tool_history = []
                 for ex in executed_tools:
                     out_snippet = ex["output"][:400] + "..." if len(ex["output"]) > 400 else ex["output"]
+                    args_display = ", ".join([f"{k}={repr(v)}" for k, v in ex["args"].items()]) if isinstance(ex["args"], dict) else str(ex["args"])
                     tool_history.append(
-                        f"- Executed `{ex['tool']}({json.dumps(ex['args'])})`\n  Observation: {out_snippet}"
+                        f"- Executed tool `{ex['tool']}` with {args_display}\n  Observation: {out_snippet}"
                     )
                 history_summary = "\n".join(tool_history)
 
@@ -434,7 +438,7 @@ class GoogleADKProvider(AgentProvider):
                     current_prompt = (
                         f"Original Team Request:\n{prompt}\n\n"
                         f"Workspace Tool Execution History:\n{history_summary}\n\n"
-                        f"Latest Tool Observation ({tool_name}):\n"
+                        f"Latest Observation from `{tool_name}`:\n"
                         f"Status: {status_str}\n"
                         f"Output:\n{tool_output}\n\n"
                         f"[Instruction]: Review this observation. You may invoke another tool if you still need to inspect or write files, "
@@ -446,7 +450,7 @@ class GoogleADKProvider(AgentProvider):
                     final_prompt = (
                         f"Original Team Request:\n{prompt}\n\n"
                         f"Workspace Tool Execution History:\n{history_summary}\n\n"
-                        f"Latest Tool Observation ({tool_name}):\n"
+                        f"Latest Observation from `{tool_name}`:\n"
                         f"Status: {status_str}\n"
                         f"Output:\n{tool_output}\n\n"
                         f"[Instruction]: All tool executions are now complete. Formulate your final conversational response to your teammates in the chat now. "
@@ -461,6 +465,13 @@ class GoogleADKProvider(AgentProvider):
                                 config=config
                             )
                             final_resp = (synth_resp.text or "").strip()
+                            if not final_resp and synth_resp.candidates:
+                                for cand in synth_resp.candidates:
+                                    if cand.content and cand.content.parts:
+                                        for part in cand.content.parts:
+                                            if getattr(part, "text", None):
+                                                final_resp += part.text
+                                final_resp = final_resp.strip()
                         else:
                             final_resp = (fallback_client.generate(
                                 prompt=final_prompt,

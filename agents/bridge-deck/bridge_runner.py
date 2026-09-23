@@ -3718,10 +3718,13 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
 
                     elapsed_sec = round(time.time() - start_time, 2)
                 
-                thinking_blocks = [
-                    "Evaluated residual stream deliberation and architectural parameters.",
-                    f"Execution completed in {elapsed_sec}s."
-                ] if claude_resp and not claude_resp.startswith("⚠️") else []
+                if not thinking_blocks:
+                    thinking_blocks = [
+                        "Evaluated residual stream deliberation and architectural parameters.",
+                        f"Execution completed in {elapsed_sec}s."
+                    ] if claude_resp and not claude_resp.startswith("⚠️") else []
+
+                actual_model = (inv_res.get("model") if "inv_res" in locals() and isinstance(inv_res, dict) else None) or manifest.get("provider", {}).get("model") or model_name
 
                 tx_record = {
                     "id": tx_id,
@@ -3736,7 +3739,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                     "prompt_text": prompt,
                     "antigravity_response": antigravity_resp,
                     "claude_response": claude_resp,
-                    "claude_model": model_name if claude_resp else None,
+                    "claude_model": actual_model if claude_resp else None,
                     "thinking_blocks": thinking_blocks,
                     "raw_request_json": {
                         "mode": mode,
