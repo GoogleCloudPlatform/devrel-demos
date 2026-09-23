@@ -21,7 +21,7 @@ lab project is gone:
 | Command | Runs | Needs |
 | --- | --- | --- |
 | `eval generate` | Your agent, once per case | A Google Cloud project with Vertex AI, the Vertex environment variables exported, plus image model quota |
-| `eval grade` | The judge, over saved traces | Application Default Credentials **or** a free AI Studio `GEMINI_API_KEY` |
+| `eval grade` | The judge, over saved traces | Application Default Credentials **or** a free AI Studio `GEMINI_API_KEY` — one or the other, never both |
 
 So you can grade pre-generated traces with nothing but an API key, and only need a
 project when you want to re-run the agent itself.
@@ -80,13 +80,37 @@ uv tool upgrade google-agents-cli   # or: pip install --upgrade google-agents-cl
 ### Grade only
 
 `tests/eval/traces/brand-fit-traces.json` ships with the repo: one run of the
-agent over all six briefs, captured on a working project. Judging it costs
-nothing but a key, so this path survives the lab project going away:
+agent over all six briefs, captured on a working project. Judging it needs no
+project of your own, so this path survives the lab project going away.
+
+The judge builds a bare `genai.Client()`, which reads whatever the environment
+offers. The two ways to feed it are exclusive, and having both is not "either
+works" — the Vertex variables win and the key is ignored. Pick one.
+
+With an AI Studio key and no Google Cloud at all:
 
 ```bash
-export GEMINI_API_KEY="your-ai-studio-key"   # or rely on ADC
+unset GOOGLE_GENAI_USE_VERTEXAI GOOGLE_CLOUD_PROJECT GOOGLE_CLOUD_LOCATION
+export GEMINI_API_KEY="your-ai-studio-key"
 agents-cli eval grade --traces tests/eval/traces/ --metrics custom_brand_fit
 ```
+
+Or, inside the lab, on Application Default Credentials:
+
+```bash
+source ./setenv.sh   # from the repository root
+unset GEMINI_API_KEY
+agents-cli eval grade --traces tests/eval/traces/ --metrics custom_brand_fit
+```
+
+Run it from the `visual-director` project root either way: the judge reads the
+rubric from `visual_director/skills/brand-guidelines/SKILL.md`, relative to the
+project. A `.env` in the project is loaded too, so a stale
+`GOOGLE_GENAI_USE_VERTEXAI=true` in there quietly overrides the key.
+
+`--metrics custom_brand_fit` is what keeps a project optional. The metric runs
+in the CLI's own process, so nothing reaches the Vertex eval service. Select a
+metric that is not local and a configured project becomes mandatory.
 
 This is also the honest way to read a rubric change. Edit
 `brand-guidelines/SKILL.md`, grade the same traces again, and the score moves
