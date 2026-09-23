@@ -859,6 +859,3 @@
             }
         });
 
-        let a2aPausedState = false;
-        let latestA2AActiveTask = null;
-

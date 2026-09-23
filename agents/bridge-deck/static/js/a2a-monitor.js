@@ -3,9 +3,6 @@
  * A2A Autonomous Collaboration Play | Pause Controller & Live Monitor
  */
 
-let a2aPausedState = false;
-let latestA2AActiveTask = null;
-
 async function pollA2AStatus() {
     try {
         const res = await fetch('/api/a2a/status');
