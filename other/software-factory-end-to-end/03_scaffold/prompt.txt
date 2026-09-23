@@ -1,1 +1,0 @@
-Scaffold an ADK project in the current directory with pyproject.toml, requirements.txt, agents-cli-manifest.yaml, and a .gitignore.

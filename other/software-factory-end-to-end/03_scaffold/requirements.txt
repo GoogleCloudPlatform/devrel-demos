@@ -1,4 +1,0 @@
-google-adk==2.9.2
-google-genai==2.22.0
-pydantic
-pytest
