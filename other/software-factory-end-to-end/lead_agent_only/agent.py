@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Step 3: Test Tech Lead Agent with Playground.
+"""Basic Standalone ADK Agent (Tech Lead).
 
-This checkpoint verifies that our basic Tech Lead agent can be loaded
-interactively in the ADK playground web interface.
+Defines an ADK Agent using gemini-3.8-flash that acts as the Tech Lead.
+At this stage, the Tech Lead operates standalone to analyze requirements
+and draft implementation specs before delegating to managed agents.
 """
 
 from google.adk.agents import Agent

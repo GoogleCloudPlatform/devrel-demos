@@ -1,5 +1,0 @@
-Create a simple, standalone ADK agent in `agent.py`:
-1. Use `google.adk.agents.Agent`.
-2. Name the agent 'tech_lead' using model 'gemini-3.8-flash'.
-3. Assign it the role of a Senior Technical Lead. Give it instructions to analyze software requirements, outline architecture, and generate module specifications (classes, data schemas, validation rules).
-4. Expose the agent as `root_agent` so ADK tools can load it directly.
