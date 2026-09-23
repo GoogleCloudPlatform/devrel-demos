@@ -283,6 +283,7 @@ class A2ADispatcher:
         self._seen_tasks: Set[Tuple[str, str, int]] = set()
         self._lock = threading.RLock()
         self._running = True
+        self.pacing_delay = float(os.environ.get("BRIDGE_A2A_PACING_SECONDS", "1.5"))
 
         # Initialize Queue Backend
         if queue_backend is not None:
@@ -500,6 +501,10 @@ class A2ADispatcher:
                 "project_id": project_id,
                 "reason": f"cascade depth {cascade_depth} >= max {self.max_depth}"
             }
+
+        # Smooth pacing delay for autonomous cascades (depth > 0) to avoid 429 quota exhaustion
+        if cascade_depth > 0 and self.pacing_delay > 0:
+            time.sleep(self.pacing_delay)
 
         # Check project settings
         projects_data = self.load_projects()

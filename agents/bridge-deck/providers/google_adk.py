@@ -65,6 +65,56 @@ class GoogleADKProvider(AgentProvider):
                 self._init_error = str(e)
         return self._client
 
+    def _generate_content_resilient(self, client: Any, prompt_contents: Any, config: Any, thinking_blocks: List[str]) -> Tuple[str, Any]:
+        """
+        Executes generate_content with exponential backoff and jitter for 429 RESOURCE_EXHAUSTED.
+        If the primary model quota is completely exhausted across all retries, seamlessly falls back
+        to gemini-2.5-flash which has a distinct quota pool.
+        """
+        import random
+        models_to_try = [self.model_name]
+        if "3.7" in str(self.model_name) and "gemini-2.5-flash" not in models_to_try:
+            models_to_try.append("gemini-2.5-flash")
+
+        max_retries = 3
+        last_err = None
+
+        for m in models_to_try:
+            for attempt in range(max_retries + 1):
+                try:
+                    response = client.models.generate_content(
+                        model=m,
+                        contents=prompt_contents,
+                        config=config
+                    )
+                    resp_text = response.text or ""
+                    if not resp_text and response.candidates:
+                        for cand in response.candidates:
+                            if cand.content and cand.content.parts:
+                                for part in cand.content.parts:
+                                    if getattr(part, "text", None):
+                                        resp_text += part.text
+                    return resp_text, response
+                except Exception as e:
+                    last_err = e
+                    err_str = str(e)
+                    is_rate_limit = ("429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "Resource exhausted" in err_str or "rate limit" in err_str.lower())
+                    if is_rate_limit and attempt < max_retries:
+                        backoff = (2.0 ** (attempt + 1)) + random.uniform(0.5, 1.5)
+                        thinking_blocks.append(f"⏳ Vertex AI 429 rate limit hit on `{m}`. Backing off for {backoff:.1f}s (retry {attempt+1}/{max_retries})...")
+                        print(f"[*] Vertex AI 429 rate limit on {m}. Backing off for {backoff:.1f}s...")
+                        time.sleep(backoff)
+                        continue
+                    elif is_rate_limit and m != models_to_try[-1]:
+                        thinking_blocks.append(f"⚠️ Model `{m}` quota exhausted after retries. Failing over to `{models_to_try[-1]}`...")
+                        print(f"[!] Model {m} quota exhausted. Falling back to {models_to_try[-1]}...")
+                        break
+                    else:
+                        raise e
+        if last_err:
+            raise last_err
+        return "", None
+
     def _execute_tool(self, tool_name: str, args: Dict[str, Any], allowed_dirs: List[str], write_allowed_dirs: Optional[List[str]] = None) -> Tuple[bool, str]:
         """Executes a native ADK workspace tool within ACL safety boundaries."""
         try:
@@ -379,12 +429,12 @@ class GoogleADKProvider(AgentProvider):
                         system_instruction=full_system,
                         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
                     )
-                    response = client.models.generate_content(
-                        model=self.model_name,
-                        contents=current_prompt,
-                        config=config
+                    resp_text, response = self._generate_content_resilient(
+                        client=client,
+                        prompt_contents=current_prompt,
+                        config=config,
+                        thinking_blocks=thinking_blocks
                     )
-                    resp_text = response.text or ""
                 else:
                     resp_text = fallback_client.generate(
                         prompt=current_prompt,
@@ -459,19 +509,13 @@ class GoogleADKProvider(AgentProvider):
                     )
                     try:
                         if client is not None:
-                            synth_resp = client.models.generate_content(
-                                model=self.model_name,
-                                contents=final_prompt,
-                                config=config
+                            final_resp, synth_resp = self._generate_content_resilient(
+                                client=client,
+                                prompt_contents=final_prompt,
+                                config=config,
+                                thinking_blocks=thinking_blocks
                             )
-                            final_resp = (synth_resp.text or "").strip()
-                            if not final_resp and synth_resp.candidates:
-                                for cand in synth_resp.candidates:
-                                    if cand.content and cand.content.parts:
-                                        for part in cand.content.parts:
-                                            if getattr(part, "text", None):
-                                                final_resp += part.text
-                                final_resp = final_resp.strip()
+                            final_resp = (final_resp or "").strip()
                         else:
                             final_resp = (fallback_client.generate(
                                 prompt=final_prompt,

@@ -685,24 +685,35 @@ class GCPModelClient:
             except Exception as e:
                 raise RuntimeError(f"Anthropic Vertex API Error ({self.anthropic_model_id}): {e}")
         else:
-            try:
-                client = self._get_client()
-                from google.genai import types
-                config = types.GenerateContentConfig(
-                    max_output_tokens=max_output_tokens,
-                    temperature=temperature,
-                )
-                if system_prompt:
-                    config.system_instruction = system_prompt
+            client = self._get_client()
+            from google.genai import types
+            import random
+            import time
+            config = types.GenerateContentConfig(
+                max_output_tokens=max_output_tokens,
+                temperature=temperature,
+            )
+            if system_prompt:
+                config.system_instruction = system_prompt
 
-                response = client.models.generate_content(
-                    model=self.gemini_model_id,
-                    contents=prompt,
-                    config=config,
-                )
-                return response.text
-            except Exception as e:
-                raise RuntimeError(f"Google GenAI API Error ({self.gemini_model_id}): {e}")
+            max_retries = 3
+            for attempt in range(max_retries + 1):
+                try:
+                    response = client.models.generate_content(
+                        model=self.gemini_model_id,
+                        contents=prompt,
+                        config=config,
+                    )
+                    return response.text
+                except Exception as e:
+                    err_str = str(e)
+                    is_rate_limit = ("429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "rate limit" in err_str.lower())
+                    if is_rate_limit and attempt < max_retries:
+                        backoff = (2.0 ** (attempt + 1)) + random.uniform(0.5, 1.5)
+                        print(f"[*] Vertex AI 429 rate limit on {self.gemini_model_id}. Backing off for {backoff:.1f}s (retry {attempt+1}/{max_retries})...")
+                        time.sleep(backoff)
+                        continue
+                    raise RuntimeError(f"Google GenAI API Error ({self.gemini_model_id}): {e}")
 
 if __name__ == "__main__":
     print("Testing GCPModelClient with multi-turn messages...")
