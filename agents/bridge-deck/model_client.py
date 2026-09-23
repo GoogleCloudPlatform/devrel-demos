@@ -38,8 +38,10 @@ class GCPModelClient:
         model_name_clean = MODEL_ALIASES.get(raw_name.lower(), raw_name)
         self.model_name = model_name_clean
 
-        if not self.location or self.location in ["local", "None", ""]:
-            self.location = "global" if any(tag in model_name_clean.lower() for tag in ["3.7", "gemini-3", "claude", "maas"]) else "us-central1"
+        if any(tag in model_name_clean.lower() for tag in ["3.7", "gemini-3", "claude", "maas"]):
+            self.location = "global"
+        elif not self.location or self.location in ["local", "None", ""]:
+            self.location = "us-central1"
 
         if "claude" in model_name_clean.lower():
             self.provider = "anthropic"

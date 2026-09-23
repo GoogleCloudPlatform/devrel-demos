@@ -256,8 +256,10 @@ class AgentRouter:
         if "model" in provider_cfg:
             provider_cfg["model"] = normalize_model_name(provider_cfg.get("model") or DEFAULT_MODEL)
         p_type = provider_cfg.get("type", "").lower()
-        if provider_cfg.get("location") in ["local", "None", "", None] and p_type not in ["ollama", "ollama-local", "human"]:
-            provider_cfg["location"] = resolve_model_location(provider_cfg.get("model", ""))
+        forced_loc = resolve_model_location(provider_cfg.get("model", ""))
+        if p_type not in ["ollama", "ollama-local", "human"]:
+            if forced_loc == "global" or provider_cfg.get("location") in ["local", "None", "", None]:
+                provider_cfg["location"] = forced_loc
         base_r = manifest.get("access_read") or []
         derived_r = manifest.get("derived_read") or []
         provider_cfg["access_read"] = list(dict.fromkeys(base_r + derived_r))

@@ -182,6 +182,90 @@ class TestGoogleADKNativeTools(unittest.TestCase):
         self.assertIsInstance(provider, GoogleADKProvider)
         self.assertEqual(provider.provider_id, "jared_test")
 
+    def test_iris_location_forced_to_global_for_gemini_37(self):
+        """Even if manifest declares us-central1, Gemini 3.7 Flash models force location to global."""
+        agents_dir = self.test_dir / "agents"
+        agents_dir.mkdir(parents=True, exist_ok=True)
+
+        manifest_data = {
+            "id": "iris_test",
+            "name": "Iris",
+            "role": "Multimodal Visual Specialist",
+            "provider": {
+                "type": "google-adk",
+                "model": "gemini-3.7-flash",
+                "location": "us-central1",
+                "project_id": "test-project"
+            }
+        }
+        (agents_dir / "iris_test.agent.json").write_text(json.dumps(manifest_data), encoding="utf-8")
+
+        router = AgentRouter(bridge_dir=self.test_dir)
+        provider = router.providers.get("iris_test")
+        self.assertIsNotNone(provider)
+        self.assertEqual(provider.location, "global")
+
+    def test_adk_tool_call_never_leaks_raw_json_into_response(self):
+        """When the model emits raw adk_tool_call until max_iterations, raw JSON is scrubbed and clean summary produced."""
+        repo_dir = self.test_dir / "test_workspace"
+        repo_dir.mkdir(parents=True, exist_ok=True)
+        (repo_dir / "README.md").write_text("Test readme content", encoding="utf-8")
+
+        config = {
+            "model": "gemini-3.7-flash",
+            "project_id": "test-project",
+            "tools_enabled": ["list_dir"],
+            "access_read": [str(repo_dir)],
+            "max_iterations": 2
+        }
+        prov = GoogleADKProvider(provider_id="test_worker_scrub", config=config)
+
+        mock_call = MagicMock()
+        mock_call.text = '```adk_tool_call\n{"tool": "list_dir", "args": {"path": "."}}\n```'
+
+        with patch.object(prov, "_get_client") as mock_get_client:
+            mock_client = MagicMock()
+            # Returns tool call for both iterations
+            mock_client.models.generate_content.side_effect = [mock_call, mock_call]
+            mock_get_client.return_value = mock_client
+
+            result = prov.invoke(prompt="List directory", context={"directories": [str(repo_dir)]})
+
+        self.assertTrue(result["success"])
+        # Ensure no raw adk_tool_call block leaked
+        self.assertNotIn("```adk_tool_call", result["response"])
+        self.assertNotIn('"tool": "list_dir"', result["response"])
+        self.assertIn("inspecting the workspace", result["response"])
+
+    def test_adk_tool_call_scrubs_code_blocks_when_narrative_present(self):
+        """When model outputs narrative text alongside a tool block, the tool block is scrubbed cleanly."""
+        repo_dir = self.test_dir / "test_workspace_2"
+        repo_dir.mkdir(parents=True, exist_ok=True)
+
+        config = {
+            "model": "gemini-3.7-flash",
+            "project_id": "test-project",
+            "tools_enabled": ["list_dir"],
+            "access_read": [str(repo_dir)],
+            "max_iterations": 1
+        }
+        prov = GoogleADKProvider(provider_id="test_worker_narrative", config=config)
+
+        mock_mixed = MagicMock()
+        mock_mixed.text = 'I found the repository is empty.\n```adk_tool_call\n{"tool": "list_dir", "args": {"path": "."}}\n```\nAll set for next steps!'
+
+        with patch.object(prov, "_get_client") as mock_get_client:
+            mock_client = MagicMock()
+            mock_client.models.generate_content.return_value = mock_mixed
+            mock_get_client.return_value = mock_client
+
+            result = prov.invoke(prompt="Status check", context={"directories": [str(repo_dir)]})
+
+        self.assertTrue(result["success"])
+        self.assertNotIn("```adk_tool_call", result["response"])
+        self.assertIn("I found the repository is empty.", result["response"])
+        self.assertIn("All set for next steps!", result["response"])
+
 
 if __name__ == "__main__":
     unittest.main()

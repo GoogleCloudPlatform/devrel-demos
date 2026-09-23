@@ -18,10 +18,10 @@ from providers.base import AgentProvider
 from core.history import format_history_block
 
 try:
-    from core.worktree import get_or_create_agent_worktree
+    from core.worktree import get_or_create_agent_worktree, ensure_git_repo
 except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from core.worktree import get_or_create_agent_worktree
+    from core.worktree import get_or_create_agent_worktree, ensure_git_repo
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
@@ -38,8 +38,11 @@ class GoogleADKProvider(AgentProvider):
         self.model_name = self.config.get("model", "gemini-3.7-flash")
         self.project_id = self.config.get("project_id") or self.config.get("project") or os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("GCP_PROJECT")
         raw_loc = self.config.get("location")
-        default_loc = "global" if ("3.7" in self.model_name or "gemini-3" in self.model_name) else "us-central1"
-        self.location = default_loc if (not raw_loc or raw_loc in ["local", "None", ""]) else raw_loc
+        model_lower = str(self.model_name).lower()
+        if any(tag in model_lower for tag in ["3.7", "gemini-3", "claude", "maas"]):
+            self.location = "global"
+        else:
+            self.location = "us-central1" if (not raw_loc or raw_loc in ["local", "None", ""]) else raw_loc
         self.temperature = float(self.config.get("temperature", 0.2))
         self.tools_enabled = list(self.config.get("tools_enabled") or [])
         self.max_tool_iterations = int(self.config.get("max_iterations", 5))
@@ -123,8 +126,13 @@ class GoogleADKProvider(AgentProvider):
                 p = resolve_tool_path(rel_or_abs)
                 if not is_path_allowed(p):
                     return False, f"ACL Permission Denied: '{p}' is outside authorized directories ({[str(r) for r in allowed_roots]})"
-                if not p.exists() or not p.is_dir():
-                    return False, f"Directory not found: '{p}'"
+                if not p.exists():
+                    if any(p == r for r in allowed_roots):
+                        p.mkdir(parents=True, exist_ok=True)
+                    else:
+                        return False, f"Directory not found: '{p}'"
+                elif not p.is_dir():
+                    return False, f"Not a directory: '{p}'"
                 entries = []
                 for item in sorted(p.iterdir()):
                     if item.name.startswith(".git") or item.name == "__pycache__":
@@ -279,14 +287,18 @@ class GoogleADKProvider(AgentProvider):
             write_allowed_dirs = []
             for d in raw_write_dirs:
                 p = Path(d).resolve()
-                if (p / ".git").exists():
-                    try:
+                try:
+                    if not (p / ".git").exists() and p.exists():
+                        ensure_git_repo(p)
+                    if (p / ".git").exists():
                         wt = get_or_create_agent_worktree(p, self.provider_id)
                         write_allowed_dirs.append(str(wt))
-                    except Exception as wte:
-                        print(f"Notice: Failed to create agent worktree for {self.provider_id}: {wte}")
+                        if str(wt) not in allowed_dirs:
+                            allowed_dirs.append(str(wt))
+                    else:
                         write_allowed_dirs.append(str(p))
-                else:
+                except Exception as wte:
+                    print(f"Notice: Failed to setup agent worktree for {self.provider_id}: {wte}")
                     write_allowed_dirs.append(str(p))
 
             # 4. Configure Native ADK Workspace Tools if enabled
@@ -330,12 +342,15 @@ class GoogleADKProvider(AgentProvider):
             is_gemini = "gemini" in self.model_name.lower()
             client = self._get_client() if is_gemini else None
             
-            from model_client import GCPModelClient
-            fallback_client = GCPModelClient(project_id=self.project_id, location=self.location, model_name=self.model_name)
+            fallback_client = None
+            if client is None:
+                from model_client import GCPModelClient
+                fallback_client = GCPModelClient(project_id=self.project_id, location=self.location, model_name=self.model_name)
 
             thinking_blocks = ["Evaluated Google ADK residual stream deliberation and context."]
             current_prompt = prompt
             final_resp = ""
+            executed_tools = []
 
             iterations = self.max_tool_iterations if active_tools else 1
             for iteration in range(iterations):
@@ -377,25 +392,68 @@ class GoogleADKProvider(AgentProvider):
                     args = call_data.get("args", {})
                 except Exception as parse_err:
                     thinking_blocks.append(f"⚠️ ADK Tool parse error: {parse_err}")
-                    current_prompt = f"{current_prompt}\n\n[System Error: Invalid JSON in adk_tool_call. Please re-format.]"
+                    current_prompt = f"{current_prompt}\n\n[System Error: Invalid JSON in adk_tool_call. Please re-format as valid JSON or speak directly to the team.]"
                     continue
 
-                thinking_blocks.append(f"🛠️ Executed ADK Native Tool: `{tool_name}({json.dumps(args)})`")
                 success, tool_output = self._execute_tool(tool_name, args, allowed_dirs, write_allowed_dirs=write_allowed_dirs)
+                status_str = "Success" if success else "Failed"
+                thinking_blocks.append(f"🛠️ Executed ADK Native Tool: `{tool_name}({json.dumps(args)})` -> {status_str}")
+                executed_tools.append({
+                    "tool": tool_name,
+                    "args": args,
+                    "success": success,
+                    "output": tool_output
+                })
 
-                observation = (
-                    f"--- ADK TOOL OBSERVATION ({tool_name}) ---\n"
-                    f"Status: {'Success' if success else 'Failed'}\n"
-                    f"Output:\n{tool_output}\n"
-                    "------------------------------------------\n"
-                    "Analyze the observation above and either invoke another tool or provide your final response to the team."
+                # Build ongoing tool execution summary
+                tool_history = []
+                for ex in executed_tools:
+                    out_snippet = ex["output"][:400] + "..." if len(ex["output"]) > 400 else ex["output"]
+                    tool_history.append(
+                        f"- Executed `{ex['tool']}({json.dumps(ex['args'])})`\n  Observation: {out_snippet}"
+                    )
+                history_summary = "\n".join(tool_history)
+
+                # Determine if more iterations are allowed
+                if iteration < iterations - 1:
+                    current_prompt = (
+                        f"Original Team Request:\n{prompt}\n\n"
+                        f"Workspace Tool Execution History:\n{history_summary}\n\n"
+                        f"Latest Tool Observation ({tool_name}):\n"
+                        f"Status: {status_str}\n"
+                        f"Output:\n{tool_output}\n\n"
+                        f"[Instruction]: Review this observation. You may invoke another tool if you still need to inspect or write files, "
+                        f"OR formulate your natural conversational response directly to your teammates in the chat. "
+                        f"Do NOT output a tool block if you are ready to answer the team."
+                    )
+                else:
+                    # Last iteration: strictly require conversational synthesis and forbid more tool calls
+                    current_prompt = (
+                        f"Original Team Request:\n{prompt}\n\n"
+                        f"Workspace Tool Execution History:\n{history_summary}\n\n"
+                        f"Latest Tool Observation ({tool_name}):\n"
+                        f"Status: {status_str}\n"
+                        f"Output:\n{tool_output}\n\n"
+                        f"[Instruction]: Tool execution limit reached. Provide your final conversational response to the team now. "
+                        f"Address your teammates directly, summarize what you inspected/created in the workspace, and recommend next steps. "
+                        f"DO NOT output any ```adk_tool_call code blocks."
+                    )
+
+            # Scrub any raw adk_tool_call blocks from final_resp so raw code blocks never leak into chat
+            clean_resp = re.sub(r"```(?:adk_tool_call|tool_call)\s*\{.*?\}\s*```", "", final_resp or resp_text, flags=re.DOTALL).strip()
+            if clean_resp:
+                final_resp = clean_resp
+            elif executed_tools:
+                # If model only emitted tool calls without conversational text, synthesize a natural response
+                tool_bullets = "\n".join([f"- Verified `{t['tool']}`: {t['output'][:200]}..." if len(t['output']) > 200 else f"- Verified `{t['tool']}`: {t['output']}" for t in executed_tools])
+                final_resp = (
+                    f"I've completed inspecting the workspace environment:\n\n{tool_bullets}\n\n"
+                    f"Ready to coordinate next steps with the team."
                 )
-                current_prompt = f"{resp_text}\n\n{observation}"
+            else:
+                final_resp = clean_resp if clean_resp else "ADK deliberation complete."
 
             elapsed = round(time.time() - start_time, 2)
-            if not final_resp:
-                final_resp = resp_text.strip() if resp_text else "ADK deliberation complete."
-
             return {
                 "success": True,
                 "response": final_resp,
