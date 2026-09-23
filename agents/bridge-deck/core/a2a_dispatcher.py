@@ -171,14 +171,10 @@ class CloudTasksQueueBackend(A2AQueueBackend):
             return self._session
         try:
             import google.auth
-            import google.auth.transport.requests
+            from google.auth.transport.requests import AuthorizedSession
             creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
-            auth_req = google.auth.transport.requests.Request()
-            creds.refresh(auth_req)
-            s = requests.Session()
-            s.headers["Authorization"] = f"Bearer {creds.token}"
-            self._session = s
-            return s
+            self._session = AuthorizedSession(creds)
+            return self._session
         except Exception as e:
             raise RuntimeError(f"Failed to obtain Google Cloud credentials for Cloud Tasks: {e}") from e
 
