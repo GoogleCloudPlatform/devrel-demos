@@ -3448,6 +3448,56 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"success": False, "error": str(e)}).encode("utf-8"))
             return
 
+        if parsed.path == "/api/a2a/mode":
+            content_length = int(self.headers.get("Content-Length", 0))
+            post_data = self.rfile.read(content_length).decode("utf-8") if content_length > 0 else "{}"
+            try:
+                payload = json.loads(post_data) if post_data else {}
+                t_id = self._get_tenant_id(payload)
+                t_dir = self._get_tenant_dir(payload)
+                t_dispatcher = tenant_manager.get_dispatcher(t_id)
+                project_id = payload.get("project_id")
+                mode = payload.get("mode", "mentions")
+                if mode in ("ambient", "pulse", "open_floor"):
+                    mode = "open_floor"
+                elif mode not in ("paused", "mentions"):
+                    self.send_error_json(f"Invalid mode '{mode}'. Must be 'paused', 'mentions', or 'open_floor'.", 400)
+                    return
+
+                if t_dispatcher:
+                    t_dispatcher.set_mode(project_id, mode)
+
+                is_paused = (mode == "paused")
+                if project_id:
+                    for _ in range(5):
+                        try:
+                            projects_data, prj_gen = load_projects(bridge_dir=t_dir, return_gen=True)
+                            norm_id = project_id.replace("proj_", "")
+                            for p in projects_data.get("projects", []):
+                                if p.get("id") == project_id or p.get("id") == norm_id:
+                                    p["a2a_mode"] = mode
+                                    p["a2a_paused"] = is_paused
+                            save_projects(projects_data, bridge_dir=t_dir, expected_generation=prj_gen)
+                            break
+                        except StorageConflictError:
+                            time.sleep(0.05)
+                        except Exception as pe:
+                            print(f"[!] Notice: Failed to persist a2a_mode flag on project: {pe}")
+                            break
+
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "project_id": project_id,
+                    "mode": mode,
+                    "paused": is_paused
+                }).encode("utf-8"))
+            except Exception as e:
+                self.send_error_json(e, 500)
+            return
+
         if parsed.path == "/api/a2a/pause":
             content_length = int(self.headers.get("Content-Length", 0))
             post_data = self.rfile.read(content_length).decode("utf-8") if content_length > 0 else "{}"
@@ -3467,6 +3517,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                             norm_id = project_id.replace("proj_", "")
                             for p in projects_data.get("projects", []):
                                 if p.get("id") == project_id or p.get("id") == norm_id:
+                                    p["a2a_mode"] = "paused"
                                     p["a2a_paused"] = True
                             save_projects(projects_data, bridge_dir=t_dir, expected_generation=prj_gen)
                             break
@@ -3479,7 +3530,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
-                self.wfile.write(json.dumps({"success": True, "paused": True, "project_id": project_id}).encode("utf-8"))
+                self.wfile.write(json.dumps({"success": True, "paused": True, "mode": "paused", "project_id": project_id}).encode("utf-8"))
             except Exception as e:
                 self.send_error_json(e, 500)
             return
@@ -3503,6 +3554,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                             norm_id = project_id.replace("proj_", "")
                             for p in projects_data.get("projects", []):
                                 if p.get("id") == project_id or p.get("id") == norm_id:
+                                    p["a2a_mode"] = "mentions"
                                     p["a2a_paused"] = False
                             save_projects(projects_data, bridge_dir=t_dir, expected_generation=prj_gen)
                             break
@@ -3515,7 +3567,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
-                self.wfile.write(json.dumps({"success": True, "paused": False, "project_id": project_id}).encode("utf-8"))
+                self.wfile.write(json.dumps({"success": True, "paused": False, "mode": "mentions", "project_id": project_id}).encode("utf-8"))
             except Exception as e:
                 self.send_error_json(e, 500)
             return
@@ -3980,7 +4032,7 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 if t_dispatcher and not str(project_id).startswith("prof_"):
                     final_resp = claude_resp or antigravity_resp
                     if final_resp and not final_resp.startswith("⚠️"):
-                        t_dispatcher.enqueue_if_mentions(
+                        enqueued = t_dispatcher.enqueue_if_mentions(
                             text=final_resp,
                             sender_id=target_agent_id or "agent",
                             sender_name=recipient or "Agent",
@@ -3989,8 +4041,22 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                             cascade_depth=1,
                             original_root_tx=tx_id
                         )
+                        if (
+                            not enqueued
+                            and t_dispatcher.get_mode(project_id) in ("open_floor", "ambient", "pulse")
+                            and not t_dispatcher.is_paused(project_id)
+                        ):
+                            t_dispatcher._trigger_open_floor_handoff(
+                                project_id=project_id,
+                                last_speaker_id=target_agent_id or "agent",
+                                last_speaker_name=recipient or "Agent",
+                                last_speaker_role=recipient_role or "Collaborator",
+                                message_text=final_resp,
+                                cascade_depth=1,
+                                original_root_tx=tx_id
+                            )
                     elif (sender in ["User", "Human", "Team Member"] or not target_agent_id) and prompt:
-                        t_dispatcher.enqueue_if_mentions(
+                        enqueued = t_dispatcher.enqueue_if_mentions(
                             text=prompt,
                             sender_id="lead",
                             sender_name=sender or "User",
@@ -3999,6 +4065,20 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                             cascade_depth=0,
                             original_root_tx=tx_id
                         )
+                        if (
+                            not enqueued
+                            and t_dispatcher.get_mode(project_id) in ("open_floor", "ambient", "pulse")
+                            and not t_dispatcher.is_paused(project_id)
+                        ):
+                            t_dispatcher._trigger_open_floor_handoff(
+                                project_id=project_id,
+                                last_speaker_id="lead",
+                                last_speaker_name=sender or "User",
+                                last_speaker_role=sender_role or "Research Manager",
+                                message_text=prompt,
+                                cascade_depth=0,
+                                original_root_tx=tx_id
+                            )
 
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")

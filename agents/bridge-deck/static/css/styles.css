@@ -263,6 +263,14 @@
             color: var(--text-main);
         }
 
+        .a2a-toggle-btn.active.pause-active {
+            background: #fef7e0;
+            color: #b06000;
+            font-weight: 700;
+            box-shadow: 0 1px 2px rgba(176, 96, 0, 0.15);
+        }
+
+        .a2a-toggle-btn.active.mentions-active,
         .a2a-toggle-btn.active.play-active {
             background: #e6f4ea;
             color: #137333;
@@ -270,11 +278,12 @@
             box-shadow: 0 1px 2px rgba(19, 115, 51, 0.15);
         }
 
-        .a2a-toggle-btn.active.pause-active {
-            background: #fef7e0;
-            color: #b06000;
+        .a2a-toggle-btn.active.open-floor-active,
+        .a2a-toggle-btn.active.pulse-active {
+            background: #f3e8fd;
+            color: #7b1fa2;
             font-weight: 700;
-            box-shadow: 0 1px 2px rgba(176, 96, 0, 0.15);
+            box-shadow: 0 1px 2px rgba(123, 31, 162, 0.15);
         }
 
         .a2a-live-indicator {

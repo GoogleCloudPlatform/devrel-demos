@@ -285,6 +285,11 @@ class A2ADispatcher:
         self._running = True
         self.pacing_delay = float(os.environ.get("BRIDGE_A2A_PACING_SECONDS", "1.5"))
 
+        # Collaboration Modes (paused, mentions, pulse) and Pulse State
+        self.project_modes: Dict[str, str] = {}
+        self.last_project_pulse: Dict[str, float] = {}
+        self.pulse_interval = float(os.environ.get("BRIDGE_A2A_PULSE_INTERVAL_SECONDS", "300"))
+
         # Initialize Queue Backend
         if queue_backend is not None:
             self.queue_backend = queue_backend
@@ -310,6 +315,14 @@ class A2ADispatcher:
             self.task_queue = self.queue_backend.queue
         else:
             self.task_queue = queue.Queue()
+
+        # Start ambient pulse monitor thread
+        self._pulse_thread = threading.Thread(
+            target=self._pulse_loop,
+            daemon=True,
+            name=f"A2A-Pulse-Monitor-{self.tenant_id}"
+        )
+        self._pulse_thread.start()
 
     def parse_mentions(self, text: str, sender_id: Optional[str] = None) -> List[str]:
         """
@@ -422,6 +435,217 @@ class A2ADispatcher:
         self._running = False
         if hasattr(self, "queue_backend") and self.queue_backend:
             self.queue_backend.stop()
+        if hasattr(self, "_pulse_thread") and self._pulse_thread and self._pulse_thread.is_alive():
+            self._pulse_thread.join(timeout=0.5)
+
+    def _pulse_loop(self):
+        while self._running:
+            # Wake every 1s across 5s cycle to check for shutdown
+            for _ in range(50):
+                if not self._running:
+                    return
+                time.sleep(0.1)
+
+            if not self._running or self.global_paused:
+                continue
+
+            try:
+                self.check_and_trigger_ambient_pulses()
+            except Exception as pe:
+                print(f"[!] Error in ambient pulse monitor: {pe}")
+
+    def check_and_trigger_ambient_pulses(self):
+        """
+        Inspects active project workspaces. For projects configured in 'pulse' mode,
+        evaluates elapsed quiet time. If >= pulse_interval (default 5m) has elapsed with no active tasks,
+        dispatches an ambient check-in turn to an assigned agent.
+        """
+        if not hasattr(self, "load_projects") or not self.load_projects:
+            return
+        try:
+            p_data = self.load_projects()
+        except Exception:
+            return
+
+        now = time.time()
+        for p in p_data.get("projects", []):
+            pid = p.get("id")
+            if not pid:
+                continue
+
+            mode = self.get_mode(pid)
+            if mode != "pulse" or self.is_paused(pid):
+                continue
+
+            norm_pid = pid.replace("proj_", "")
+            with self._lock:
+                if self.active_task and (self.active_task.get("project_id") in [pid, norm_pid, f"proj_{norm_pid}"]):
+                    continue
+                qsize = getattr(self.queue_backend, "qsize", 0)
+                if qsize and qsize > 0:
+                    continue
+
+            last_pulse = self.last_project_pulse.get(pid, 0)
+            if last_pulse == 0:
+                # First time seeing this project in pulse mode: anchor to current time to begin 5m cycle
+                self.last_project_pulse[pid] = now
+                self.last_project_pulse[norm_pid] = now
+                self.last_project_pulse[f"proj_{norm_pid}"] = now
+                continue
+
+            if (now - last_pulse) < self.pulse_interval:
+                continue
+
+            self._trigger_pulse_turn(p)
+
+    def _trigger_pulse_turn(self, project: Dict[str, Any]):
+        """Dispatches an ambient pulse check-in to an eligible assigned agent."""
+        pid = project.get("id")
+        if not pid:
+            return
+        norm_pid = pid.replace("proj_", "")
+        now = time.time()
+
+        # Update last pulse timestamp immediately to prevent duplicate enqueues
+        self.last_project_pulse[pid] = now
+        self.last_project_pulse[norm_pid] = now
+        self.last_project_pulse[f"proj_{norm_pid}"] = now
+
+        members = [m for m in project.get("members", []) if m not in ("lead", "operator", "user")]
+        manifests = getattr(self.agent_router, "manifests", {})
+        eligible = []
+        for m in members:
+            man = manifests.get(m, {})
+            p_info = man.get("provider", {})
+            if str(p_info.get("type", "")).lower() == "human" or str(p_info.get("model", "")).lower() == "human":
+                continue
+            eligible.append(m)
+
+        if not eligible:
+            return
+
+        # Check last speaker to rotate or pick teammate
+        last_speaker = None
+        try:
+            hist = self.load_history(pid)
+            msgs = hist.get("messages", [])
+            txs = hist.get("transactions", [])
+            if msgs:
+                last_speaker = (msgs[-1].get("sender_id") or msgs[-1].get("sender", "")).lower()
+            elif txs:
+                last_speaker = (txs[-1].get("target_agent_id") or txs[-1].get("recipient", "")).lower()
+        except Exception:
+            pass
+
+        candidates = [m for m in eligible if m.lower() != last_speaker] if len(eligible) > 1 else eligible
+        if not candidates:
+            candidates = eligible
+
+        target_agent_id = candidates[0]
+        proj_name = project.get("name", pid)
+
+        pulse_prompt = (
+            f"This is an automated 5-minute ambient check-in for Project {proj_name}.\n"
+            "Review recent discussion and current workspace progress.\n"
+            "- If you have substantive insights, suggestions, next actions, code review, or need to consult a teammate, provide a concise contribution.\n"
+            "- If no contribution is needed at this time, respond with ONLY: [NO_CONTRIBUTION_NEEDED]"
+        )
+
+        task = {
+            "id": f"pulse_{int(now * 1000)}_{target_agent_id}",
+            "target_agent_id": target_agent_id,
+            "sender_id": "system_pulse",
+            "sender_name": "Ambient Pulse",
+            "sender_role": "Collaboration Supervisor",
+            "project_id": pid,
+            "prompt": pulse_prompt,
+            "cascade_depth": 0,
+            "original_root_tx": f"tx_pulse_{int(now * 1000)}",
+            "enqueued_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "is_pulse": True
+        }
+
+        try:
+            self.queue_backend.enqueue(task, tenant_id=self.tenant_id)
+            print(f"[*] Enqueued ambient pulse for @{target_agent_id} in {pid}")
+        except Exception as e:
+            print(f"[!] Failed to enqueue ambient pulse task: {e}")
+
+    def _trigger_open_floor_handoff(
+        self,
+        project_id: str,
+        last_speaker_id: str,
+        last_speaker_name: str,
+        last_speaker_role: str,
+        message_text: str,
+        cascade_depth: int,
+        original_root_tx: Optional[str]
+    ):
+        """
+        When working in 'open_floor' / 'ambient' mode and an agent does not call out
+        a teammate specifically with @AgentName, prompts the next assigned teammate
+        to review the open floor update and decide whether to contribute or emit [NO_CONTRIBUTION_NEEDED].
+        """
+        if self.is_paused(project_id):
+            return
+
+        if self.max_depth is not None and self.max_depth > 0 and cascade_depth >= self.max_depth:
+            return
+
+        try:
+            p_data = self.load_projects() if hasattr(self, "load_projects") and self.load_projects else {}
+            norm_pid = project_id.replace("proj_", "")
+            proj = next((p for p in p_data.get("projects", []) if p.get("id") in (project_id, norm_pid, f"proj_{norm_pid}")), None)
+            if not proj:
+                return
+
+            members = [m for m in proj.get("members", []) if m not in ("lead", "operator", "user")]
+            manifests = getattr(self.agent_router, "manifests", {})
+            eligible = []
+            for m in members:
+                if m.lower() == last_speaker_id.lower():
+                    continue
+                man = manifests.get(m, {})
+                p_info = man.get("provider", {})
+                if str(p_info.get("type", "")).lower() == "human" or str(p_info.get("model", "")).lower() == "human":
+                    continue
+                eligible.append(m)
+
+            if not eligible:
+                return
+
+            target_agent_id = eligible[0]
+            root_tx = original_root_tx or f"tx_openfloor_{int(time.time() * 1000)}"
+            now = time.time()
+            proj_name = proj.get("name", project_id)
+
+            handoff_prompt = (
+                f"[Open Floor Collaboration]\n"
+                f"{last_speaker_name} ({last_speaker_role}) just shared an update with the team without tagging a specific person:\n\n"
+                f"\"{message_text}\"\n\n"
+                f"As a collaborator on this workspace ({proj_name}), review their update.\n"
+                f"- If you have helpful feedback, code verification, next steps, or a question, contribute concisely to keep progress moving.\n"
+                f"- If no action or response is needed from you right now, reply with ONLY: [NO_CONTRIBUTION_NEEDED]"
+            )
+
+            task = {
+                "id": f"openfloor_{int(now * 1000)}_{target_agent_id}",
+                "target_agent_id": target_agent_id,
+                "sender_id": last_speaker_id,
+                "sender_name": last_speaker_name,
+                "sender_role": last_speaker_role,
+                "project_id": project_id,
+                "prompt": handoff_prompt,
+                "cascade_depth": cascade_depth,
+                "original_root_tx": root_tx,
+                "enqueued_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "is_pulse": True
+            }
+
+            self.queue_backend.enqueue(task, tenant_id=self.tenant_id)
+            print(f"[*] Open Floor handoff triggered from {last_speaker_name} to @{target_agent_id} in {project_id}")
+        except Exception as e:
+            print(f"[!] Error in open floor handoff: {e}")
 
     def _worker_process_wrapper(self, task: Dict[str, Any]):
         try:
@@ -581,6 +805,19 @@ class A2ADispatcher:
                 "reason": "room_paused_during_inference"
             }
 
+        # Check if this is an ambient pulse turn with no contribution needed
+        is_pulse = bool(task.get("is_pulse", False))
+        clean_resp = (response_text or "").strip()
+        if is_pulse and ("[NO_CONTRIBUTION_NEEDED]" in clean_resp or not clean_resp):
+            print(f"[*] Ambient pulse for @{target_agent_id} in {project_id} produced [NO_CONTRIBUTION_NEEDED]. Suppressed from chat.")
+            return {
+                "status": "suppressed_no_contribution",
+                "task_id": task.get("id"),
+                "project_id": project_id,
+                "target": target_name,
+                "elapsed": elapsed_sec
+            }
+
         # Determine response attribution derived from provider type rather than hardcoded name list
         p_type = str(manifest.get("provider", {}).get("type", "")).lower()
         is_antigravity = (p_type == "antigravity-queue" or p_type.startswith("antigravity"))
@@ -649,13 +886,32 @@ class A2ADispatcher:
                 self.recent_dispatches.pop(0)
 
         # Enqueue next cascade hop if the new response mentions further agents
+        enqueued_mentions = []
         if response_text and status_code == 200:
-            self.enqueue_if_mentions(
+            enqueued_mentions = self.enqueue_if_mentions(
                 text=response_text,
                 sender_id=target_agent_id,
                 sender_name=target_name,
                 sender_role=target_role,
                 project_id=project_id,
+                cascade_depth=cascade_depth + 1,
+                original_root_tx=task.get("original_root_tx")
+            )
+
+        # Open Floor Handoff: if no specific agent was mentioned and mode is open_floor / ambient
+        if (
+            not enqueued_mentions
+            and response_text
+            and status_code == 200
+            and self.get_mode(project_id) in ("open_floor", "ambient", "pulse")
+            and not self.is_paused(project_id)
+        ):
+            self._trigger_open_floor_handoff(
+                project_id=project_id,
+                last_speaker_id=target_agent_id,
+                last_speaker_name=target_name,
+                last_speaker_role=target_role,
+                message_text=response_text,
                 cascade_depth=cascade_depth + 1,
                 original_root_tx=task.get("original_root_tx")
             )
@@ -721,28 +977,79 @@ class A2ADispatcher:
         with self._lock:
             self.active_task = None
 
-    def pause(self, project_id: Optional[str] = None):
+    def set_mode(self, project_id: Optional[str], mode: str):
+        """Sets collaboration mode: 'paused', 'mentions', or 'open_floor'."""
+        if mode in ("ambient", "pulse", "open_floor"):
+            mode = "open_floor"
+        elif mode not in ("paused", "mentions"):
+            mode = "mentions"
+
         with self._lock:
             if project_id:
                 norm_pid = project_id.replace("proj_", "")
-                self.paused_projects.add(project_id)
-                self.paused_projects.add(norm_pid)
-                self.paused_projects.add(f"proj_{norm_pid}")
-                if self.active_task and (self.active_task.get("project_id") in [project_id, norm_pid, f"proj_{norm_pid}"]):
-                    self.active_task = None
+                self.project_modes[project_id] = mode
+                self.project_modes[norm_pid] = mode
+                self.project_modes[f"proj_{norm_pid}"] = mode
+
+                if mode == "paused":
+                    self.paused_projects.add(project_id)
+                    self.paused_projects.add(norm_pid)
+                    self.paused_projects.add(f"proj_{norm_pid}")
+                    if self.active_task and (self.active_task.get("project_id") in [project_id, norm_pid, f"proj_{norm_pid}"]):
+                        self.active_task = None
+                else:
+                    self.paused_projects.discard(project_id)
+                    self.paused_projects.discard(norm_pid)
+                    self.paused_projects.discard(f"proj_{norm_pid}")
+                    if mode == "open_floor":
+                        now = time.time()
+                        self.last_project_pulse[project_id] = now
+                        self.last_project_pulse[norm_pid] = now
+                        self.last_project_pulse[f"proj_{norm_pid}"] = now
             else:
-                self.global_paused = True
-                self.active_task = None
+                if mode == "paused":
+                    self.global_paused = True
+                    self.active_task = None
+                else:
+                    self.global_paused = False
+
+    def get_mode(self, project_id: Optional[str]) -> str:
+        """Returns effective collaboration mode: 'paused', 'mentions', or 'open_floor'."""
+        with self._lock:
+            if self.global_paused:
+                return "paused"
+            if not project_id:
+                return "mentions"
+
+            norm_pid = project_id.replace("proj_", "")
+            if project_id in self.project_modes:
+                return self.project_modes[project_id]
+            if norm_pid in self.project_modes:
+                return self.project_modes[norm_pid]
+            if f"proj_{norm_pid}" in self.project_modes:
+                return self.project_modes[f"proj_{norm_pid}"]
+
+        if hasattr(self, "load_projects") and self.load_projects:
+            try:
+                p_data = self.load_projects()
+                for p in p_data.get("projects", []):
+                    if p.get("id") == project_id or p.get("id") == norm_pid:
+                        if p.get("a2a_mode"):
+                            return p.get("a2a_mode")
+                        if p.get("a2a_paused", False):
+                            return "paused"
+            except Exception:
+                pass
+
+        if self.is_paused(project_id):
+            return "paused"
+        return "mentions"
+
+    def pause(self, project_id: Optional[str] = None):
+        self.set_mode(project_id, "paused")
 
     def resume(self, project_id: Optional[str] = None):
-        with self._lock:
-            if project_id:
-                norm_pid = project_id.replace("proj_", "")
-                self.paused_projects.discard(project_id)
-                self.paused_projects.discard(norm_pid)
-                self.paused_projects.discard(f"proj_{norm_pid}")
-            else:
-                self.global_paused = False
+        self.set_mode(project_id, "mentions")
 
     def is_paused(self, project_id: Optional[str] = None) -> bool:
         with self._lock:
@@ -752,16 +1059,19 @@ class A2ADispatcher:
                 norm_pid = project_id.replace("proj_", "")
                 if project_id in self.paused_projects or norm_pid in self.paused_projects or f"proj_{norm_pid}" in self.paused_projects:
                     return True
-                if hasattr(self, "load_projects") and self.load_projects:
-                    try:
-                        p_data = self.load_projects()
-                        for p in p_data.get("projects", []):
-                            if p.get("id") == project_id or p.get("id") == norm_pid:
-                                if p.get("a2a_paused", False):
-                                    return True
-                    except Exception:
-                        pass
-            return False
+                if self.project_modes.get(project_id) == "paused" or self.project_modes.get(norm_pid) == "paused":
+                    return True
+
+        if hasattr(self, "load_projects") and self.load_projects:
+            try:
+                p_data = self.load_projects()
+                for p in p_data.get("projects", []):
+                    if p.get("id") == project_id or p.get("id") == norm_pid:
+                        if p.get("a2a_mode") == "paused" or p.get("a2a_paused", False):
+                            return True
+            except Exception:
+                pass
+        return False
 
     def clear_queue(self) -> Optional[int]:
         self.reset_active_task()
@@ -774,22 +1084,34 @@ class A2ADispatcher:
             q_size = self.queue_backend.qsize if hasattr(self, "queue_backend") and self.queue_backend else 0
             is_durable = self.queue_backend.is_durable if hasattr(self, "queue_backend") and self.queue_backend else False
             paused = set(self.paused_projects)
+            modes = dict(self.project_modes)
+
             if hasattr(self, "load_projects") and self.load_projects:
                 try:
                     p_data = self.load_projects()
                     for p in p_data.get("projects", []):
-                        if p.get("a2a_paused", False):
-                            pid = p.get("id")
-                            if pid:
+                        pid = p.get("id")
+                        if pid:
+                            if p.get("a2a_mode"):
+                                modes[pid] = p.get("a2a_mode")
+                                if p.get("a2a_mode") == "paused":
+                                    paused.add(pid)
+                                    paused.add(f"proj_{pid}" if not str(pid).startswith("proj_") else pid)
+                            elif p.get("a2a_paused", False):
+                                modes[pid] = "paused"
                                 paused.add(pid)
                                 paused.add(f"proj_{pid}" if not str(pid).startswith("proj_") else pid)
+                            else:
+                                modes.setdefault(pid, "mentions")
                 except Exception:
                     pass
+
             return {
                 "running": self._running,
                 "durable": is_durable,
                 "global_paused": self.global_paused,
                 "paused_projects": list(paused),
+                "project_modes": modes,
                 "queue_size": q_size,
                 "queue_size_known": q_size is not None,
                 "active_task": self.active_task,
