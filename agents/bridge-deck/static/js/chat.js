@@ -376,6 +376,52 @@
                 turnDiv.id = tx.id;
                 const formattedTime = formatLocalTimestamp(tx.timestamp);
 
+                // --- ATOMIC MESSAGE RENDERING ---
+                if (typeof tx.text === 'string') {
+                    const msgText = tx.text.trim();
+                    const isUser = (tx.type === 'user_message' || tx.sender_id === 'lead' || tx.sender_name === 'Team Lead');
+                    const authorMeta = getAgentMeta(tx.sender_name || (isUser ? 'Team Lead' : 'Agent'), tx.sender_role || (isUser ? 'Project Lead' : 'Collaborator'));
+                    const isPending = Boolean(tx.is_pending || (msgText && (msgText.includes('⏳') || msgText.includes('Awaiting'))));
+                    const bubbleClass = isUser ? authorMeta.bubbleClass : (isPending ? 'bubble-agent bubble-pending' : 'bubble-agent');
+
+                    let thinkingHtml = '';
+                    if (tx.thinking_blocks && tx.thinking_blocks.length > 0) {
+                        const blockText = tx.thinking_blocks.join('\n');
+                        thinkingHtml = `
+                            <details class="thinking-accordion" style="margin-bottom: 0.5rem; font-size: 0.76rem; background: rgba(0,0,0,0.03); border: 1px solid #dadce0; border-radius: 8px; padding: 0.35rem 0.6rem;">
+                                <summary style="cursor: pointer; font-weight: 600; color: #5f6368; outline: none; user-select: none;">🧠 Thinking & Observation Log (${tx.thinking_blocks.length})</summary>
+                                <div style="margin-top: 0.35rem; color: #3c4043; white-space: pre-wrap; font-family: monospace; font-size: 0.74rem; line-height: 1.4;">${escapeHtml(blockText)}</div>
+                            </details>
+                        `;
+                    }
+
+                    let modelBadge = '';
+                    if (tx.model) {
+                        modelBadge = `<span style="font-size: 0.72rem; color: #0b57d0; background: #e8f0fe; border: 1px solid #c2e7ff; font-weight: 600; padding: 0.1rem 0.45rem; border-radius: 8px; margin-left: 0.4rem;">🤖 ${escapeHtml(tx.model)}</span>`;
+                    }
+
+                    turnDiv.innerHTML = `
+                        <div class="chat-row">
+                            <div class="chat-avatar" onclick="showMemberPersonaPopover(event, '${authorMeta.id}', '${activeChannel}')" title="Click to view ${escapeHtml(authorMeta.name)}'s personality persona">${authorMeta.avatar}</div>
+                            <div class="chat-content">
+                                <div class="chat-meta">
+                                    <span class="author-name" onclick="showMemberPersonaPopover(event, '${authorMeta.id}', '${activeChannel}')" style="cursor: pointer;" title="Click to view ${escapeHtml(authorMeta.name)}'s personality persona">${escapeHtml(authorMeta.name)}</span>
+                                    <span class="chat-timestamp">${formattedTime}</span>
+                                    <span class="role-badge ${authorMeta.badgeClass}">${escapeHtml(authorMeta.role)}</span>
+                                    ${modelBadge}
+                                </div>
+                                <div class="chat-bubble ${bubbleClass}">
+                                    ${thinkingHtml}
+                                    <div class="msg-formatted">${formatMarkdownText(msgText)}</div>
+                                </div>
+                                ${renderReactionsHtml(tx, 'message')}
+                            </div>
+                        </div>
+                    `;
+                    threadEl.appendChild(turnDiv);
+                    return;
+                }
+
                 const isAutoDispatched = Boolean(tx.a2a_meta && tx.a2a_meta.auto_dispatched);
                 const hasAgentResponse = Boolean(tx.claude_response || tx.antigravity_response || tx.response_text);
                 const promptBodyTrimmed = (tx.prompt_text || '').trim();

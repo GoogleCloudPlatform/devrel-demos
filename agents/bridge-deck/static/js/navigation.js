@@ -590,7 +590,7 @@
                 }
                 const resp = await fetch('/api/history?project_id=' + encodeURIComponent(projId));
                 const data = await resp.json();
-                let newTransactions = data.transactions || [];
+                let newTransactions = (data.messages && data.messages.length > 0) ? data.messages : (data.transactions || []);
 
                 // Preserve any active optimistic pending messages while waiting for server response
                 const pendingTxs = (currentHistory || []).filter(tx => tx && tx.is_pending);
@@ -599,10 +599,12 @@
                     const remainingPending = pendingTxs.filter(pt => {
                         if (serverTxIds.has(pt.id)) return false;
                         const ptTime = new Date(pt.timestamp).getTime();
-                        // Only drop if server has a NEW transaction with matching prompt created after ptTime - 5s
+                        // Only drop if server has a NEW item with matching text created after ptTime - 5s
                         const matchedServerTx = newTransactions.find(st => {
                             const stTime = new Date(st.timestamp).getTime();
-                            return stTime >= (ptTime - 5000) && (st.prompt_text || '').trim() === (pt.prompt_text || '').trim();
+                            const stText = (st.text || st.prompt_text || '').trim();
+                            const ptText = (pt.text || pt.prompt_text || '').trim();
+                            return stTime >= (ptTime - 5000) && stText === ptText;
                         });
                         return !matchedServerTx;
                     });
@@ -710,15 +712,17 @@
             const tx = currentHistory.find(t => t.id === txId);
             if (!tx) return;
             
-            let textToCopy = '';
-            if (targetSub === 'prompt') {
-                textToCopy = tx.prompt_text || '';
-            } else if (targetSub === 'antigravity') {
-                textToCopy = tx.antigravity_response || '';
-            } else if (targetSub === 'claude') {
-                textToCopy = tx.claude_response || tx.response_text || '';
-            } else {
-                textToCopy = tx.prompt_text || tx.antigravity_response || tx.claude_response || '';
+            let textToCopy = tx.text || '';
+            if (!textToCopy) {
+                if (targetSub === 'prompt') {
+                    textToCopy = tx.prompt_text || '';
+                } else if (targetSub === 'antigravity') {
+                    textToCopy = tx.antigravity_response || '';
+                } else if (targetSub === 'claude') {
+                    textToCopy = tx.claude_response || tx.response_text || '';
+                } else {
+                    textToCopy = tx.prompt_text || tx.antigravity_response || tx.claude_response || '';
+                }
             }
 
             if (!textToCopy) return;

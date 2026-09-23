@@ -155,21 +155,127 @@ def get_history_file(project_id="lantern", bridge_dir=None):
     return target
 
 
+def unpack_transactions_to_messages(transactions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Converts legacy compound turn transactions ({prompt_text, claude_response})
+    into a chronological sequence of atomic messages.
+    """
+    if not transactions:
+        return []
+    messages = []
+    seen_message_texts = set()
+
+    for tx in transactions:
+        tx_id = tx.get("id") or f"tx_{int(time.time() * 1000)}"
+        ts = tx.get("timestamp") or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        p_text = (tx.get("prompt_text") or "").strip()
+        cl_resp = (tx.get("claude_response") or "").strip()
+        ag_resp = (tx.get("antigravity_response") or "").strip()
+        resp_text = cl_resp or ag_resp
+        sender_name = tx.get("sender") or "Team Lead"
+        sender_role = tx.get("sender_role") or "Collaborator"
+        sender_id = tx.get("sender_id") or tx.get("author_id") or ("lead" if "lead" in sender_name.lower() else sender_name.lower().replace(" ", "_"))
+        target_id = tx.get("target_agent_id")
+        rec_name = tx.get("recipient") or "Assistant"
+        rec_role = tx.get("recipient_role") or "Assistant"
+        is_auto_dispatched = bool(tx.get("a2a_meta", {}).get("auto_dispatched"))
+
+        # 1. User / Prompt Message (if present and not already emitted by previous turn)
+        if p_text and p_text not in seen_message_texts and (not is_auto_dispatched or not resp_text):
+            seen_message_texts.add(p_text)
+            messages.append({
+                "id": f"{tx_id}_p" if resp_text else tx_id,
+                "tx_id": tx_id,
+                "timestamp": ts,
+                "type": "user_message",
+                "sender_id": sender_id,
+                "sender_name": sender_name,
+                "sender_role": sender_role,
+                "text": p_text,
+                "reactions": (tx.get("reactions") or {}).get("prompt", {}),
+                "attachments": tx.get("attachments", [])
+            })
+
+        # 2. Agent Response Message (if present)
+        if resp_text and resp_text not in seen_message_texts:
+            seen_message_texts.add(resp_text)
+            messages.append({
+                "id": f"{tx_id}_r" if p_text else tx_id,
+                "tx_id": tx_id,
+                "timestamp": ts,
+                "type": "agent_message",
+                "sender_id": target_id or rec_name.lower().replace(" ", "_"),
+                "sender_name": rec_name,
+                "sender_role": rec_role,
+                "text": resp_text,
+                "model": tx.get("claude_model") or tx.get("model"),
+                "thinking_blocks": tx.get("thinking_blocks", []),
+                "reactions": (tx.get("reactions") or {}).get("response", {}) or (tx.get("reactions") or {}).get("claude", {}) or (tx.get("reactions") or {}).get("antigravity", {}),
+                "a2a_meta": tx.get("a2a_meta", {})
+            })
+
+    return messages
+
+
+def pack_messages_to_transactions(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Transforms atomic messages into legacy transaction records for backward compatibility.
+    """
+    if not messages:
+        return []
+    transactions = []
+    for msg in messages:
+        m_id = msg.get("id") or f"msg_{int(time.time() * 1000)}"
+        is_agent = (msg.get("type") == "agent_message" or msg.get("model") or msg.get("thinking_blocks") or msg.get("sender_id") not in ["lead", "user", "human"])
+        tx = {
+            "id": msg.get("tx_id", m_id),
+            "timestamp": msg.get("timestamp") or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "mode": msg.get("channel_id") or "lantern",
+            "target_agent_id": msg.get("sender_id") if is_agent else None,
+            "sender": msg.get("sender_name", "User"),
+            "sender_role": msg.get("sender_role", "Collaborator"),
+            "recipient": msg.get("sender_name") if is_agent else "Assistant",
+            "recipient_role": msg.get("sender_role") if is_agent else "Assistant",
+            "prompt_text": "" if is_agent else msg.get("text", ""),
+            "claude_response": msg.get("text", "") if is_agent else None,
+            "antigravity_response": None,
+            "claude_model": msg.get("model"),
+            "thinking_blocks": msg.get("thinking_blocks", []),
+            "reactions": msg.get("reactions", {}),
+            "a2a_meta": msg.get("a2a_meta", {})
+        }
+        transactions.append(tx)
+    return transactions
+
+
 def load_history(project_id="lantern", bridge_dir=None, *, return_gen=False):
     adapter, t_id = get_active_storage(bridge_dir)
     rel_key = get_history_rel_key(project_id)
     doc, gen = adapter.read_json_with_gen(t_id, rel_key)
-    if doc is not None:
-        return (doc, gen) if return_gen else doc
-    # Check legacy flat location if adapter is LocalStorageAdapter
-    if isinstance(adapter, LocalStorageAdapter):
+    if doc is None and isinstance(adapter, LocalStorageAdapter):
         legacy_key = get_legacy_history_rel_key(project_id)
         if legacy_key:
             doc, gen = adapter.read_json_with_gen(t_id, legacy_key)
-            if doc is not None:
-                return (doc, gen) if return_gen else doc
-    empty = {"transactions": []}
-    return (empty, 0) if return_gen else empty
+
+    if doc is None:
+        empty = {"messages": [], "transactions": []}
+        return (empty, 0) if return_gen else empty
+
+    # Ensure both messages and transactions keys are synchronized
+    has_msgs = "messages" in doc and isinstance(doc["messages"], list)
+    has_txs = "transactions" in doc and isinstance(doc["transactions"], list)
+
+    if has_txs and not has_msgs:
+        doc["messages"] = unpack_transactions_to_messages(doc["transactions"])
+    elif has_msgs and not has_txs:
+        doc["transactions"] = pack_messages_to_transactions(doc["messages"])
+    elif has_txs and has_msgs:
+        if not doc["messages"] and doc["transactions"]:
+            doc["messages"] = unpack_transactions_to_messages(doc["transactions"])
+        elif not doc["transactions"] and doc["messages"]:
+            doc["transactions"] = pack_messages_to_transactions(doc["messages"])
+
+    return (doc, gen) if return_gen else doc
 
 
 # file_io_lock: Guards atomic file writes and serializes the complete read-modify-write history cycle.
@@ -186,36 +292,75 @@ def save_history(data, project_id="lantern", bridge_dir=None, *, expected_genera
             t_id,
             rel_key,
             data,
-            default={"transactions": []},
+            default={"messages": [], "transactions": []},
             expected_generation=expected_generation
         )
 
 
 def append_transaction(project_id, tx_record, bridge_dir=None):
     """
-    Atomically loads history, appends or updates tx_record in-place, and commits to disk or GCS under CAS.
+    Atomically loads history, appends or updates tx_record in-place, synchronizes atomic messages,
+    and commits to disk or GCS under CAS.
     Guarantees that concurrent HTTP handlers, queue resolutions, and A2A worker threads cannot duplicate or clobber turns.
     """
     adapter, t_id = get_active_storage(bridge_dir)
     rel_key = get_history_rel_key(project_id)
-    default_doc = None
-    if isinstance(adapter, LocalStorageAdapter) and not adapter.exists(t_id, rel_key):
-        legacy_key = get_legacy_history_rel_key(project_id)
-        if legacy_key and adapter.exists(t_id, legacy_key):
-            default_doc = adapter.read_json(t_id, legacy_key)
-    if default_doc is None:
-        default_doc = {"transactions": []}
 
     with file_io_lock:
-        doc, _ = adapter.append_json_list(
-            t_id,
-            rel_key,
-            list_field="transactions",
-            item=tx_record,
-            id_field="id",
-            default=default_doc
-        )
-        return doc
+        for attempt in range(5):
+            try:
+                doc, gen = load_history(project_id, bridge_dir=bridge_dir, return_gen=True)
+                txs = doc.get("transactions", [])
+
+                existing_tx_idx = next((i for i, t in enumerate(txs) if t.get("id") == tx_record.get("id")), None)
+                if existing_tx_idx is not None:
+                    txs[existing_tx_idx] = tx_record
+                else:
+                    txs.append(tx_record)
+
+                doc["transactions"] = txs
+                doc["messages"] = unpack_transactions_to_messages(txs)
+
+                save_history(doc, project_id=project_id, bridge_dir=bridge_dir, expected_generation=gen)
+                return doc
+            except StorageConflictError:
+                time.sleep(0.05 * (2 ** attempt))
+            except Exception as e:
+                print(f"[!] Error appending transaction to {project_id}: {e}")
+                break
+        return load_history(project_id, bridge_dir=bridge_dir)
+
+
+def append_message(project_id, msg_record, bridge_dir=None):
+    """
+    Atomically appends an atomic message record to history under CAS concurrency.
+    Synchronizes both messages and transactions for seamless interop.
+    """
+    adapter, t_id = get_active_storage(bridge_dir)
+    rel_key = get_history_rel_key(project_id)
+
+    if not msg_record.get("id"):
+        msg_record["id"] = f"msg_{int(time.time() * 1000)}"
+    if not msg_record.get("timestamp"):
+        msg_record["timestamp"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+    with file_io_lock:
+        for attempt in range(5):
+            try:
+                doc, gen = load_history(project_id, bridge_dir=bridge_dir, return_gen=True)
+                msgs = doc.get("messages", [])
+                msgs.append(msg_record)
+                doc["messages"] = msgs
+                doc["transactions"] = pack_messages_to_transactions(msgs)
+
+                save_history(doc, project_id=project_id, bridge_dir=bridge_dir, expected_generation=gen)
+                return doc
+            except StorageConflictError:
+                time.sleep(0.05 * (2 ** attempt))
+            except Exception as e:
+                print(f"[!] Error appending message to {project_id}: {e}")
+                break
+        return load_history(project_id, bridge_dir=bridge_dir)
 
 
 def load_profiles(bridge_dir=None, *, return_gen=False):
@@ -1737,34 +1882,26 @@ def build_agent_messages_and_system(prompt, sender="User", max_turns=6, project_
     )
 
     data = load_history(project_id, bridge_dir=b_dir)
-    txs = data.get("transactions", [])[-max_turns:]
+    hist_messages = data.get("messages", [])[-max_turns * 2:]
     
     messages = []
-    seen_turn_texts = set()
-    for tx in txs:
-        s_name = tx.get("sender", "User")
-        p_text = (tx.get("prompt_text") or "").strip()
-        ag_resp = (tx.get("antigravity_response") or "").strip()
-        cl_resp = (tx.get("claude_response") or "").strip()
-        rec_name = tx.get("recipient") or "Assistant"
+    for msg in hist_messages:
+        s_name = msg.get("sender_name") or msg.get("sender") or "User"
+        s_id = msg.get("sender_id") or s_name.lower().replace(" ", "_")
+        txt = (msg.get("text") or "").strip()
+        if not txt or txt.startswith("⏳") or txt.startswith("⚠️"):
+            continue
 
-        if p_text and p_text not in seen_turn_texts:
-            seen_turn_texts.add(p_text)
-            user_content = f"[{s_name}]: {p_text}"
-            if ag_resp and not ag_resp.startswith("⏳"):
-                user_content += f"\n\n[Antigravity's Note]: {ag_resp}"
-            messages.append({"role": "user", "speaker": s_name, "content": user_content})
+        # Truncate synthetic postscripts from past turns to prevent loop priming
+        for stop_marker in ["\n**Deep Breath", "\n**Closing Note", "\n**End:", "\n**P.S.", "\n**P.P.S."]:
+            if stop_marker in txt:
+                txt = txt.split(stop_marker)[0].strip()
 
-        if cl_resp and not cl_resp.startswith("⚠️") and not cl_resp.startswith("⏳") and cl_resp not in seen_turn_texts:
-            seen_turn_texts.add(cl_resp)
-            # Truncate synthetic postscripts from past turns to prevent loop priming
-            for stop_marker in ["\n**Deep Breath", "\n**Closing Note", "\n**End:", "\n**P.S.", "\n**P.P.S."]:
-                if stop_marker in cl_resp:
-                    cl_resp = cl_resp.split(stop_marker)[0].strip()
-            messages.append({"role": "assistant", "speaker": rec_name, "content": cl_resp})
-        elif ag_resp and not ag_resp.startswith("⏳") and ag_resp not in seen_turn_texts:
-            seen_turn_texts.add(ag_resp)
-            messages.append({"role": "assistant", "speaker": rec_name, "content": ag_resp})
+        is_self = (s_id == target_agent_id.lower() or s_name.lower() == agent_name.lower())
+        if is_self:
+            messages.append({"role": "assistant", "speaker": s_name, "content": txt})
+        else:
+            messages.append({"role": "user", "speaker": s_name, "content": f"[{s_name}]: {txt}"})
 
     curr_content = f"[{sender}]: {prompt}"
     messages.append({"role": "user", "speaker": sender, "content": curr_content})
