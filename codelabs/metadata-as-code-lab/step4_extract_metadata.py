@@ -62,13 +62,14 @@ discovered_candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
 MODEL_NAME = None
 for is_ga_channel, ver_tuple, candidate_model_id in discovered_candidates:
     try:
-        genai_client.models.generate_content(
+        probe_resp = genai_client.models.generate_content(
             model=candidate_model_id,
             contents="ping",
             config=types.GenerateContentConfig(
                 http_options=types.HttpOptions(timeout=15000)
             ),
         )
+        assert probe_resp is not None
         MODEL_NAME = candidate_model_id
         print(f"Dynamically discovered active GA model currency : {MODEL_NAME} (version {ver_tuple})")
         break
@@ -172,11 +173,21 @@ df_extracted = pd.DataFrame(
     list(validated_extraction.model_dump().items()),
     columns=["Extracted Attribute", "Multimodal Value"],
 )
-print(df_extracted.to_string(index=False))
+print("Extracted Attribute       Multimodal Value")
+for attr_k, attr_v in df_extracted.itertuples(index=False):
+    val_str = str(attr_v).replace("\n", " ")
+    if len(val_str) > 52:
+        val_str = val_str[:49] + "..."
+    print(f"{attr_k:<24}  {val_str}")
 
 print("\n--- Extracted Governance & Lakehouse Lineage Metadata ---")
 df_governance = pd.DataFrame(
     list(validated_governance.model_dump().items()),
     columns=["Governance Attribute", "Classification Value"],
 )
-print(df_governance.to_string(index=False))
+print("Governance Attribute        Classification Value")
+for gov_k, gov_v in df_governance.itertuples(index=False):
+    val_str = str(gov_v).replace("\n", " ")
+    if len(val_str) > 50:
+        val_str = val_str[:47] + "..."
+    print(f"{gov_k:<26}  {val_str}")

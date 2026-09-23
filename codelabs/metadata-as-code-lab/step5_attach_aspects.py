@@ -76,5 +76,10 @@ for key, aspect_obj in live_governed_entry.aspects.items():
         list(dict(aspect_obj.data).items()),
         columns=["Catalog Field", "Authoritative Stored Value"],
     )
-    print(df_live_aspect.to_string(index=False))
+    print("Catalog Field               Authoritative Stored Value")
+    for fld_k, fld_v in df_live_aspect.itertuples(index=False):
+        val_str = str(fld_v).replace("\n", " ")
+        if len(val_str) > 50:
+            val_str = val_str[:47] + "..."
+        print(f"{fld_k:<26}  {val_str}")
     print()
