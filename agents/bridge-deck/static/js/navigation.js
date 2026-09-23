@@ -684,9 +684,14 @@
                     renderChatThread();
                 }
 
+                const tokenParam = (typeof currentAuthToken === 'string' && currentAuthToken) ? currentAuthToken : '';
+                const headers = { 'Content-Type': 'application/json' };
+                if (tokenParam) headers['X-Bridge-Auth'] = tokenParam;
+
                 const resp = await fetch('/api/delete-message', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: headers,
+                    credentials: 'same-origin',
                     body: JSON.stringify({
                         project_id: projId,
                         tx_id: txId,

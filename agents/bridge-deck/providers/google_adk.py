@@ -380,12 +380,15 @@ class GoogleADKProvider(AgentProvider):
             if active_tools:
                 tools_doc_str = "\n".join(active_tools)
                 valid = [t for t in self.tools_enabled if t in TOOL_DOCS]
-                example_tool = "write_file" if "write_file" in valid else valid[0]
+                can_write = "write_file" in valid
+                example_tool = "write_file" if can_write else valid[0]
                 example_args = '{"path": "README.md", "content": "# Documentation"}' if example_tool == "write_file" else ('{"path": "."}' if example_tool in ["read_file", "list_dir"] else '{"command": "git status", "cwd": "."}')
+                cap_desc = "real-time file read/write, code search, and command execution" if can_write else "real-time workspace inspection and code search"
+                action_desc = "If you need to inspect or modify workspace files, execute tests, or check project state, invoke the tool directly." if can_write else "If you need to inspect workspace files, search code, or check project state, invoke the tool directly."
                 adk_tool_directive = (
                     "=== GOOGLE ADK NATIVE AGENT TOOLSET ACTIVE ===\n"
-                    "You are equipped with Google ADK Native Workspace Tools, providing real-time file read/write, code search, and command execution.\n"
-                    "If you need to inspect or modify workspace files, execute tests, or check project state, invoke the tool directly.\n\n"
+                    f"You are equipped with Google ADK Native Workspace Tools, providing {cap_desc}.\n"
+                    f"{action_desc}\n\n"
                     f"Available ADK Workspace Tools:\n{tools_doc_str}\n\n"
                     "To invoke an ADK tool, output a single JSON code block in this format:\n"
                     "```adk_tool_call\n"

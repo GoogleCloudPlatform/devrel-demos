@@ -226,7 +226,8 @@ def pack_messages_to_transactions(messages: List[Dict[str, Any]]) -> List[Dict[s
     transactions = []
     for msg in messages:
         m_id = msg.get("id") or f"msg_{int(time.time() * 1000)}"
-        is_agent = (msg.get("type") == "agent_message" or msg.get("model") or msg.get("thinking_blocks") or msg.get("sender_id") not in ["lead", "user", "human"])
+        is_user = (msg.get("type") == "user_message") or (msg.get("sender_id") in ["lead", "user", "human"])
+        is_agent = not is_user and (msg.get("type") == "agent_message" or bool(msg.get("model")) or bool(msg.get("thinking_blocks")) or (msg.get("sender_id") and msg.get("sender_id") not in ["lead", "user", "human"]))
         tx = {
             "id": msg.get("tx_id", m_id),
             "timestamp": msg.get("timestamp") or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -3358,34 +3359,87 @@ class BridgeRequestHandler(SimpleHTTPRequestHandler):
                 deleted_id = None
                 with file_io_lock:
                     history, gen = load_history(project_id, bridge_dir=t_dir, return_gen=True)
+                    msgs = history.get("messages", [])
                     txs = history.get("transactions", [])
-                    tx_idx = next((i for i, t in enumerate(txs) if t.get("id") == tx_id), -1)
+                    modified = False
 
+                    # 1. Match and remove in atomic messages
+                    new_msgs = []
+                    for m in msgs:
+                        m_id = m.get("id")
+                        m_tx_id = m.get("tx_id")
+
+                        # Direct match on message id
+                        if m_id == tx_id:
+                            modified = True
+                            deleted_id = tx_id
+                            continue
+
+                        # Match on transaction id
+                        if m_tx_id == tx_id:
+                            if target_sub == "all":
+                                modified = True
+                                deleted_id = tx_id
+                                continue
+                            elif target_sub == "prompt" and m.get("type") == "user_message":
+                                modified = True
+                                deleted_id = tx_id
+                                continue
+                            elif target_sub in ["claude", "antigravity", "response"] and m.get("type") == "agent_message":
+                                modified = True
+                                deleted_id = tx_id
+                                continue
+
+                        new_msgs.append(m)
+
+                    if modified:
+                        history["messages"] = new_msgs
+                        history["transactions"] = pack_messages_to_transactions(new_msgs)
+
+                    # 2. Match in legacy transactions
+                    clean_tx_id = tx_id
+                    if tx_id.endswith("_p") or tx_id.endswith("_r"):
+                        clean_tx_id = tx_id[:-2]
+
+                    tx_idx = next((i for i, t in enumerate(txs) if t.get("id") in [tx_id, clean_tx_id]), -1)
                     if tx_idx >= 0:
                         target_tx = txs[tx_idx]
-                        if target_sub == "claude":
+                        if (target_sub == "claude" or tx_id.endswith("_r")) and (target_tx.get("claude_response") or target_tx.get("antigravity_response")):
                             target_tx["claude_response"] = None
-                        elif target_sub == "antigravity":
                             target_tx["antigravity_response"] = None
-                        elif target_sub == "prompt":
+                            modified = True
+                            deleted_id = tx_id
+                        elif target_sub == "antigravity" and target_tx.get("antigravity_response"):
+                            target_tx["antigravity_response"] = None
+                            modified = True
+                            deleted_id = tx_id
+                        elif (target_sub == "prompt" or tx_id.endswith("_p")) and target_tx.get("prompt_text"):
                             target_tx["prompt_text"] = None
-                        else:
+                            modified = True
+                            deleted_id = tx_id
+                        elif target_sub not in ["claude", "antigravity", "prompt"] and not tx_id.endswith("_p") and not tx_id.endswith("_r"):
                             txs.pop(tx_idx)
+                            modified = True
+                            deleted_id = tx_id
 
-                        if target_sub in ["claude", "antigravity", "prompt"]:
-                            if not target_tx.get("prompt_text") and not target_tx.get("antigravity_response") and not target_tx.get("claude_response"):
-                                if tx_idx < len(txs) and txs[tx_idx].get("id") == tx_id:
-                                    txs.pop(tx_idx)
+                        if tx_idx < len(txs):
+                            cur = txs[tx_idx]
+                            if not cur.get("prompt_text") and not cur.get("antigravity_response") and not cur.get("claude_response"):
+                                txs.pop(tx_idx)
+                                modified = True
 
-                        history["transactions"] = txs
+                        if not history.get("messages"):
+                            history["transactions"] = txs
+
+                    if modified:
                         save_history(history, project_id, bridge_dir=t_dir, expected_generation=gen)
-                        deleted_id = tx_id
 
                         # Also prune from pending_queries.json if this transaction was queued
                         try:
                             pending_data = load_pending(bridge_dir=t_dir)
-                            if "pending" in pending_data and tx_id in pending_data["pending"]:
-                                del pending_data["pending"][tx_id]
+                            if "pending" in pending_data and (tx_id in pending_data["pending"] or clean_tx_id in pending_data["pending"]):
+                                pending_data["pending"].pop(tx_id, None)
+                                pending_data["pending"].pop(clean_tx_id, None)
                                 save_pending(pending_data, bridge_dir=t_dir)
                         except Exception:
                             pass

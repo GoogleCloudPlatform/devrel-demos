@@ -254,6 +254,81 @@ class TestA2AOpenFloorMode(unittest.TestCase):
             server.shutdown()
             server.server_close()
 
+    def test_http_api_delete_atomic_message(self):
+        """Verify POST /api/delete-message deletes atomic messages from history."""
+        from http.server import ThreadingHTTPServer
+        import threading
+        import requests
+        import bridge_runner
+
+        bridge_runner.BRIDGE_AUTH_TOKEN = "test-token"
+        bridge_runner.BRIDGE_DIR = self.test_dir
+        bridge_runner.BASE_DIR = self.test_dir
+
+        t_dir = bridge_runner.ensure_tenant_initialized("default", base_dir=self.test_dir)
+        hist_dir = t_dir / "history"
+        hist_dir.mkdir(parents=True, exist_ok=True)
+        hist_file = hist_dir / "history_proj_flow.json"
+
+        # Populate with atomic message pair
+        initial_history = {
+            "messages": [
+                {
+                    "id": "tx_test_user_p",
+                    "tx_id": "tx_test_user",
+                    "type": "user_message",
+                    "sender_id": "lead",
+                    "sender_name": "Team Lead",
+                    "text": "@jared what's blocking you?"
+                },
+                {
+                    "id": "tx_test_agent_r",
+                    "tx_id": "tx_test_user",
+                    "type": "agent_message",
+                    "sender_id": "jared",
+                    "sender_name": "Jared",
+                    "text": "Investigating write surfaces."
+                }
+            ],
+            "transactions": [
+                {
+                    "id": "tx_test_user",
+                    "prompt_text": "@jared what's blocking you?",
+                    "claude_response": "Investigating write surfaces."
+                }
+            ]
+        }
+        hist_file.write_text(json.dumps(initial_history))
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), bridge_runner.BridgeRequestHandler)
+        port = server.server_address[1]
+        server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+        server_thread.start()
+
+        try:
+            url = f"http://127.0.0.1:{port}/api/delete-message"
+            headers = {"X-Bridge-Auth": "test-token", "Content-Type": "application/json"}
+
+            # Delete the user message by its atomic id
+            res = requests.post(url, headers=headers, json={"project_id": "proj_flow", "tx_id": "tx_test_user_p", "target_sub": "message"})
+            self.assertEqual(res.status_code, 200)
+            data = res.json()
+            self.assertTrue(data["success"])
+            self.assertEqual(data["deleted_tx_id"], "tx_test_user_p")
+
+            # Verify history file updated
+            updated = json.loads(hist_file.read_text())
+            msg_ids = [m["id"] for m in updated.get("messages", [])]
+            self.assertNotIn("tx_test_user_p", msg_ids)
+            self.assertIn("tx_test_agent_r", msg_ids)
+
+            # Deleting again returns 404
+            res2 = requests.post(url, headers=headers, json={"project_id": "proj_flow", "tx_id": "tx_test_user_p", "target_sub": "message"})
+            self.assertEqual(res2.status_code, 404)
+        finally:
+            server.shutdown()
+            server.server_close()
+
 
 if __name__ == "__main__":
     unittest.main()
