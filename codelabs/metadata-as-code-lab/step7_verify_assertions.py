@@ -48,19 +48,33 @@ verify_entry = catalog_client.get_entry(
     )
 )
 bound_extracted = next(
-    (asp for k, asp in verify_entry.aspects.items() if k.endswith(f".{REGION}.{EXTRACTED_ASPECT_TYPE_ID}")),
+    (
+        asp for k, asp in verify_entry.aspects.items()
+        if k.endswith(f".{REGION}.{EXTRACTED_ASPECT_TYPE_ID}")
+    ),
     None,
 )
 bound_governance = next(
-    (asp for k, asp in verify_entry.aspects.items() if k.endswith(f".{REGION}.{GOVERNANCE_ASPECT_TYPE_ID}")),
+    (
+        asp for k, asp in verify_entry.aspects.items()
+        if k.endswith(f".{REGION}.{GOVERNANCE_ASPECT_TYPE_ID}")
+    ),
     None,
 )
 
 assert bound_extracted is not None, f"Aspect '{EXTRACTED_ASPECT_TYPE_ID}' not found on live Entry."
-assert bound_governance is not None, f"Aspect '{GOVERNANCE_ASPECT_TYPE_ID}' not found on live Entry."
-assert bound_extracted.data.get("document_title") == expected_extraction["document_title"], "Extracted title mismatch."
-assert 0.0 <= float(bound_extracted.data.get("confidence_score", -1.0)) <= 1.0, "Invalid confidence score in catalog."
-assert "lakehouse" in str(bound_governance.data.get("lakehouse_cross_ref_table", "")).lower(), "Missing Lakehouse cross-reference."
+assert bound_governance is not None, (
+    f"Aspect '{GOVERNANCE_ASPECT_TYPE_ID}' not found on live Entry."
+)
+assert (
+    bound_extracted.data.get("document_title") == expected_extraction["document_title"]
+), "Extracted title mismatch."
+assert (
+    0.0 <= float(bound_extracted.data.get("confidence_score", -1.0)) <= 1.0
+), "Invalid confidence score in catalog."
+assert (
+    "lakehouse" in str(bound_governance.data.get("lakehouse_cross_ref_table", "")).lower()
+), "Missing Lakehouse cross-reference."
 
 # 5. Verify search index discoverability
 search_query = f"entrygroup={entry_group_resource_name} name:{FILESET_ENTRY_ID}"
