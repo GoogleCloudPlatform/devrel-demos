@@ -1,0 +1,5 @@
+google-cloud-dataplex>=2.15.0
+google-cloud-bigquery>=3.25.0
+google-genai>=1.16.0
+pydantic>=2.0.0
+pandas>=2.2.0

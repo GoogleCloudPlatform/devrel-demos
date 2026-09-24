@@ -1,0 +1,70 @@
+import json
+import os
+from google.api_core.exceptions import GoogleAPICallError, NotFound
+from google.cloud import bigquery, dataplex_v1
+from google.protobuf import field_mask_pb2
+from schemas import (
+    ASPECT_TYPE_ID,
+    COLUMN_GOVERNANCE_RULES,
+    DATASET_ID,
+    PROJECT_ID,
+    STATE_FILE,
+)
+
+catalog_client = dataplex_v1.CatalogServiceClient()
+bq_client = bigquery.Client(project=PROJECT_ID)
+
+state = {}
+if os.path.exists(STATE_FILE):
+    with open(STATE_FILE, "r", encoding="utf-8") as f:
+        state = json.load(f)
+
+users_entry_name = state.get("users_entry_name", "")
+aspect_key_prefix = state.get("aspect_key_prefix", "")
+aspect_type_path = state.get(
+    "aspect_type_path",
+    f"projects/{PROJECT_ID}/locations/global/aspectTypes/{ASPECT_TYPE_ID}",
+)
+
+print("Starting reverse-dependency resource cleanup...")
+
+# 1. Detach column-level aspects from the users entry first
+if users_entry_name and aspect_key_prefix:
+    aspect_keys = [
+        f"{aspect_key_prefix}@Schema.fields.{col}"
+        for col in COLUMN_GOVERNANCE_RULES
+    ]
+    try:
+        catalog_client.update_entry(
+            request=dataplex_v1.UpdateEntryRequest(
+                entry=dataplex_v1.Entry(name=users_entry_name, aspects={}),
+                update_mask=field_mask_pb2.FieldMask(paths=["aspects"]),
+                delete_aspects=True,
+                aspect_keys=aspect_keys,
+            )
+        )
+        print(f"Detached column aspects  : {len(aspect_keys)} keys removed")
+    except (NotFound, GoogleAPICallError) as exc:
+        print(f"Entry aspect detach note : {type(exc).__name__}")
+
+# 2. Delete global AspectType (pii-governance)
+try:
+    del_op = catalog_client.delete_aspect_type(name=aspect_type_path)
+    del_op.result()
+    print(f"Deleted AspectType       : {aspect_type_path}")
+except NotFound:
+    print(f"AspectType already absent: {aspect_type_path}")
+
+# 3. Delete BigQuery sandbox dataset and all copied tables
+dataset_full_id = f"{PROJECT_ID}.{DATASET_ID}"
+bq_client.delete_dataset(
+    dataset_full_id, delete_contents=True, not_found_ok=True
+)
+print(f"Deleted BigQuery dataset : {dataset_full_id}")
+
+# 4. Remove local state file
+if os.path.exists(STATE_FILE):
+    os.remove(STATE_FILE)
+    print(f"Removed local state file : {STATE_FILE}")
+
+print("✓ Standalone teardown complete. Environment cleanly reset.")
