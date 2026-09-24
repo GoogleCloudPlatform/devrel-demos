@@ -2,6 +2,7 @@ import json
 import time
 from google.api_core.exceptions import (
     AlreadyExists,
+    InvalidArgument,
     NotFound,
     PermissionDenied,
 )
@@ -54,15 +55,17 @@ try:
         ),
     )
     create_op.result()
-    print(f"Created AspectType ID: {ASPECT_TYPE_ID} (global)")
 except AlreadyExists:
-    print(f"AspectType ready: {ASPECT_TYPE_ID} (global)")
+    pass
+
+live_aspect_type = catalog_client.get_aspect_type(name=aspect_type_path)
+print(f"Verified AspectType ID: {live_aspect_type.name.split('/')[-1]} (global)")
 
 # 3. Poll Knowledge Catalog search until auto-ingested users entry is ready
 search_scope = f"projects/{PROJECT_ID}/locations/global"
 users_query = f"name:users AND system=BIGQUERY AND parent:{DATASET_ID}"
 users_entry = None
-for attempt in range(1, 16):
+for attempt in range(1, 18):
     hits = list(
         catalog_client.search_entries(
             request=dataplex_v1.SearchEntriesRequest(
@@ -99,7 +102,7 @@ for col_name, payload in COLUMN_GOVERNANCE_RULES.items():
     )
 
 updated_entry = None
-for sync_attempt in range(1, 12):
+for sync_attempt in range(1, 20):
     try:
         updated_entry = catalog_client.update_entry(
             request=dataplex_v1.UpdateEntryRequest(
@@ -112,8 +115,8 @@ for sync_attempt in range(1, 12):
             )
         )
         break
-    except (PermissionDenied, NotFound):
-        if sync_attempt == 11:
+    except (PermissionDenied, NotFound, InvalidArgument):
+        if sync_attempt == 19:
             raise
         time.sleep(5)
 
@@ -122,7 +125,7 @@ print(f"Aspect Key Prefix: {aspect_key_prefix}")
 print(f"Attached Column Aspects: {len(aspect_keys)} columns on users")
 
 # 5. Wait for all 4 tables to appear in search index and save state
-for poll_idx in range(1, 12):
+for poll_idx in range(1, 15):
     table_hits = list(
         catalog_client.search_entries(
             request=dataplex_v1.SearchEntriesRequest(

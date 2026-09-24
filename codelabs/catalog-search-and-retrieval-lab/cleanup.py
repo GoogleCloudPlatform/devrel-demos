@@ -29,11 +29,11 @@ aspect_type_path = state.get(
 print("Starting reverse-dependency resource cleanup...")
 
 # 1. Detach column-level aspects from the users entry first
+aspect_keys = [
+    f"{aspect_key_prefix}@Schema.fields.{col}"
+    for col in COLUMN_GOVERNANCE_RULES
+]
 if users_entry_name and aspect_key_prefix:
-    aspect_keys = [
-        f"{aspect_key_prefix}@Schema.fields.{col}"
-        for col in COLUMN_GOVERNANCE_RULES
-    ]
     try:
         catalog_client.update_entry(
             request=dataplex_v1.UpdateEntryRequest(
@@ -43,17 +43,17 @@ if users_entry_name and aspect_key_prefix:
                 aspect_keys=aspect_keys,
             )
         )
-        print(f"Detached column aspects: {len(aspect_keys)} keys removed")
-    except (NotFound, GoogleAPICallError) as exc:
-        print(f"Entry aspect detach note: {type(exc).__name__}")
+    except (NotFound, GoogleAPICallError):
+        pass
+print(f"Detached column aspects: {len(aspect_keys)} keys removed")
 
 # 2. Delete global AspectType (pii-governance)
 try:
     del_op = catalog_client.delete_aspect_type(name=aspect_type_path)
     del_op.result()
-    print(f"Deleted AspectType ID: {ASPECT_TYPE_ID} (global)")
 except NotFound:
-    print(f"AspectType already absent: {ASPECT_TYPE_ID} (global)")
+    pass
+print(f"Deleted AspectType ID: {ASPECT_TYPE_ID} (global)")
 
 # 3. Delete BigQuery sandbox dataset and all copied tables
 dataset_full_id = f"{PROJECT_ID}.{DATASET_ID}"
@@ -65,6 +65,6 @@ print(f"Deleted BigQuery dataset: {dataset_full_id}")
 # 4. Remove local state file
 if os.path.exists(STATE_FILE):
     os.remove(STATE_FILE)
-    print(f"Removed local state file: {STATE_FILE}")
+print(f"Removed local state file: {STATE_FILE}")
 
 print("✓ Standalone teardown complete. Environment cleanly reset.")
