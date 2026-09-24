@@ -170,8 +170,8 @@
                 }
             }
 
-            const rRead = (p.access_read || []).join(', ') || 'Standard Read Access';
-            const rWrite = (p.access_write || []).join(', ') || 'Standard Write Access';
+            const rRead = (p.access_read || []).filter(Boolean).join(', ');
+            const rWrite = (p.access_write || []).filter(Boolean).join(', ');
             const popRead = document.getElementById('popoverAccessRead');
             const popWrite = document.getElementById('popoverAccessWrite');
             if (popRead) popRead.innerText = rRead;
