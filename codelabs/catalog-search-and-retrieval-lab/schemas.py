@@ -186,11 +186,11 @@ def discover_gemini_flash_model(genai_client: genai.Client) -> str:
 
 
 if __name__ == "__main__":
-    print(f"Configured Project ID    : {PROJECT_ID}")
+    print(f"Configured Project ID: {PROJECT_ID}")
     print(f"Catalog Data Plane Region: {DATAPLEX_LOCATION}")
-    print(f"Gemini Endpoint Location : {GEMINI_LOCATION}")
-    print(f"Target BigQuery Dataset  : {DATASET_ID}")
-    print(f"Custom AspectType ID     : {ASPECT_TYPE_ID}")
+    print(f"Gemini Endpoint Location: {GEMINI_LOCATION}")
+    print(f"Target BigQuery Dataset: {DATASET_ID}")
+    print(f"Custom AspectType ID: {ASPECT_TYPE_ID}")
     print("✓ Validated PiiColumnFinding, ComplianceAuditReport, and")
     print("  GroundedAgentDecision Pydantic schemas.")
     print("✓ Prepared pii-governance AspectType metadata template.")

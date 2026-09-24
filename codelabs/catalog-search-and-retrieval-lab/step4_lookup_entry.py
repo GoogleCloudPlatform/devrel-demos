@@ -64,9 +64,9 @@ if len(audit_report.high_sensitivity_columns) != 4:
     )
 
 print("=== lookup_entry (EntryView.CUSTOM) Hydration Report ===")
-print(f"Hydrated Entry ID        : {hydrated_entry.name.split('/')[-1]}")
-print(f"Total Aspects Returned   : {len(hydrated_entry.aspects)}")
-print(f"Column Aspects Matched   : {audit_report.total_annotated_columns}")
-print(f"HIGH Sensitivity Columns : {len(audit_report.high_sensitivity_columns)}")
+print(f"Hydrated Entry ID: {hydrated_entry.name.split('/')[-1]}")
+print(f"Total Aspects Returned: {len(hydrated_entry.aspects)}")
+print(f"Column Aspects Matched: {audit_report.total_annotated_columns}")
+print(f"HIGH Sensitivity Columns: {len(audit_report.high_sensitivity_columns)}")
 for item in audit_report.high_sensitivity_columns:
-    print(f"  - {item.column_name:<14} | PII={item.is_pii} | {item.governance_note}")
+    print(f"  - {item.column_name} (PII={item.is_pii}): {item.governance_note}")

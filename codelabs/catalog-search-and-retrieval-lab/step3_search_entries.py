@@ -18,14 +18,14 @@ if not semantic_results:
     raise RuntimeError("Semantic search returned 0 results.")
 
 print("=== Mode A: Semantic Search (semantic_search=True) ===")
-print(f"Query                    : {semantic_query}")
-print(f"Matched Candidates       : {len(semantic_results)}")
+print(f"Query: {semantic_query}")
+print(f"Matched Candidates: {len(semantic_results)}")
 for idx, res in enumerate(semantic_results[:3], start=1):
     entry = res.dataplex_entry
     display_name = entry.entry_source.display_name or entry.name.split("/")[-1]
-    print(f"  Hit #{idx} Display Name    : {display_name}")
-    print(f"  Hit #{idx} System          : {entry.entry_source.system}")
-    print(f"  Hit #{idx} Aspects Count   : {len(entry.aspects)}")
+    print(f"  Hit #{idx} Display Name: {display_name}")
+    print(f"  Hit #{idx} System: {entry.entry_source.system}")
+    print(f"  Hit #{idx} Aspects Count: {len(entry.aspects)}")
 
 # 2. Structured predicate search filtering on custom aspect values
 structured_query = (
@@ -64,6 +64,6 @@ if len(top_entry.aspects) != 0:
     raise AssertionError("Expected search_entries to omit aspect payloads.")
 
 print("=== Mode B: Structured Predicate Search ===")
-print(f"Matched Entry ID         : {top_entry.name.split('/')[-1]}")
-print(f"Fully Qualified Name     : {top_entry.fully_qualified_name}")
-print(f"Returned Aspects Payload : {dict(top_entry.aspects)} (omitted)")
+print(f"Matched Entry ID: {top_entry.name.split('/')[-1]}")
+print(f"Fully Qualified Name: {top_entry.fully_qualified_name}")
+print(f"Returned Aspects Payload: {dict(top_entry.aspects)} (omitted)")

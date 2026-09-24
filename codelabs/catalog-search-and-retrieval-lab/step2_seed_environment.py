@@ -24,7 +24,7 @@ catalog_client = dataplex_v1.CatalogServiceClient()
 dataset_ref = bigquery.Dataset(f"{PROJECT_ID}.{DATASET_ID}")
 dataset_ref.location = "US"
 bq_client.create_dataset(dataset_ref, exists_ok=True)
-print(f"BigQuery dataset ready   : {PROJECT_ID}.{DATASET_ID} (location=US)")
+print(f"BigQuery dataset ready: {PROJECT_ID}.{DATASET_ID} (US)")
 
 PUBLIC_SOURCE = "bigquery-public-data.thelook_ecommerce"
 TABLES = ["users", "orders", "order_items", "products"]
@@ -38,7 +38,7 @@ for table_name in TABLES:
         src_table, dst_table, job_config=copy_config
     )
     copy_job.result()
-    print(f"Copied public table      : {dst_table}")
+    print(f"Copied public table: {DATASET_ID}.{table_name}")
 
 # 2. Create or retrieve global AspectType (pii-governance)
 parent_global = f"projects/{PROJECT_ID}/locations/global"
@@ -54,9 +54,9 @@ try:
         ),
     )
     create_op.result()
-    print(f"Created AspectType       : {aspect_type_path}")
+    print(f"Created AspectType ID: {ASPECT_TYPE_ID} (global)")
 except AlreadyExists:
-    print(f"AspectType exists        : {aspect_type_path}")
+    print(f"AspectType ready: {ASPECT_TYPE_ID} (global)")
 
 # 3. Poll Knowledge Catalog search until auto-ingested users entry is ready
 search_scope = f"projects/{PROJECT_ID}/locations/global"
@@ -117,9 +117,9 @@ for sync_attempt in range(1, 12):
             raise
         time.sleep(5)
 
-print(f"Resolved Entry Path      : {updated_entry.name}")
-print(f"Aspect Key Prefix        : {aspect_key_prefix}")
-print(f"Attached Column Aspects  : {len(aspect_keys)} columns on users")
+print(f"Resolved Entry ID: {updated_entry.name.split('/')[-1]}")
+print(f"Aspect Key Prefix: {aspect_key_prefix}")
+print(f"Attached Column Aspects: {len(aspect_keys)} columns on users")
 
 # 5. Wait for all 4 tables to appear in search index and save state
 for poll_idx in range(1, 12):
@@ -151,4 +151,4 @@ with open(STATE_FILE, "w", encoding="utf-8") as f:
         f,
         indent=2,
     )
-print(f"Saved state manifest     : {STATE_FILE} ({len(table_hits)} tables)")
+print(f"Saved state manifest: {STATE_FILE} ({len(table_hits)} tables)")

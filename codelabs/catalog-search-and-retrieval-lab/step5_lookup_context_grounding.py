@@ -35,7 +35,8 @@ def validate_context_candidates(
             )
             valid_names.append(entry_name)
         except (InvalidArgument, GoogleAPICallError) as exc:
-            print(f"Filtered invalid candidate: {entry_name} ({type(exc).__name__})")
+            short_id = entry_name.split("/")[-1]
+            print(f"Filtered invalid candidate: {short_id} ({type(exc).__name__})")
     return valid_names
 
 
@@ -113,9 +114,9 @@ df = bq_client.query(decision.sql_query).to_dataframe()
 if df.empty:
     raise AssertionError("Grounded BigQuery SQL returned 0 rows.")
 
-print(f"Selected Gemini Model    : {model_id}")
-print(f"Excluded PII Columns     : {', '.join(decision.excluded_pii_columns)}")
+print(f"Selected Gemini Model: {model_id}")
+print(f"Excluded PII Columns: {', '.join(decision.excluded_pii_columns)}")
 print("=== Executed Grounded BigQuery Result (Top 5 Rows) ===")
 for idx, row in df.head(5).iterrows():
     items = [f"{col}={row[col]}" for col in df.columns]
-    print(f"  Row {idx + 1}: " + " | ".join(items)[:68])
+    print(f"  Row {idx + 1}: " + " | ".join(items)[:65])

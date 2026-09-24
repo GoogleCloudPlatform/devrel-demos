@@ -43,28 +43,28 @@ if users_entry_name and aspect_key_prefix:
                 aspect_keys=aspect_keys,
             )
         )
-        print(f"Detached column aspects  : {len(aspect_keys)} keys removed")
+        print(f"Detached column aspects: {len(aspect_keys)} keys removed")
     except (NotFound, GoogleAPICallError) as exc:
-        print(f"Entry aspect detach note : {type(exc).__name__}")
+        print(f"Entry aspect detach note: {type(exc).__name__}")
 
 # 2. Delete global AspectType (pii-governance)
 try:
     del_op = catalog_client.delete_aspect_type(name=aspect_type_path)
     del_op.result()
-    print(f"Deleted AspectType       : {aspect_type_path}")
+    print(f"Deleted AspectType ID: {ASPECT_TYPE_ID} (global)")
 except NotFound:
-    print(f"AspectType already absent: {aspect_type_path}")
+    print(f"AspectType already absent: {ASPECT_TYPE_ID} (global)")
 
 # 3. Delete BigQuery sandbox dataset and all copied tables
 dataset_full_id = f"{PROJECT_ID}.{DATASET_ID}"
 bq_client.delete_dataset(
     dataset_full_id, delete_contents=True, not_found_ok=True
 )
-print(f"Deleted BigQuery dataset : {dataset_full_id}")
+print(f"Deleted BigQuery dataset: {dataset_full_id}")
 
 # 4. Remove local state file
 if os.path.exists(STATE_FILE):
     os.remove(STATE_FILE)
-    print(f"Removed local state file : {STATE_FILE}")
+    print(f"Removed local state file: {STATE_FILE}")
 
 print("✓ Standalone teardown complete. Environment cleanly reset.")
