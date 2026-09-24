@@ -157,7 +157,7 @@ fi
 
 echo "  ✅   Found Connection Service Account: $SA_ID"
 
-# The connection reads key visuals from Cloud Storage and calls Vertex AI for
+# The connection reads key visuals from Cloud Storage and calls Agent Platform for
 # AI.SCORE, so its service agent needs these two roles.
 #
 # Best-effort, not fatal. In the Qwiklabs environment these bindings are already
@@ -166,7 +166,7 @@ echo "  ✅   Found Connection Service Account: $SA_ID"
 # the lab environment grant itself owner. Outside Qwiklabs, where you are running
 # in your own project against a connection this script just created, the grants
 # happen here.
-echo "  🔄   Ensuring Storage Object Viewer and Vertex AI User permissions..."
+echo "  🔄   Ensuring Storage Object Viewer and Agent Platform User permissions..."
 grants_applied=true
 for role in "roles/storage.objectViewer" "roles/aiplatform.user"; do
   if gcloud projects add-iam-policy-binding "$PROJECT_ID" \
