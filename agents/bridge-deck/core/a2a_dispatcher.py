@@ -499,6 +499,81 @@ class A2ADispatcher:
 
             self._trigger_pulse_turn(p)
 
+    @staticmethod
+    def _matches_agent(speaker_identifier: str, target_agent_id: str) -> bool:
+        if not speaker_identifier or not target_agent_id:
+            return False
+        s_norm = speaker_identifier.lower().replace("-", "_").replace(" ", "_")
+        t_norm = target_agent_id.lower().replace("-", "_").replace(" ", "_")
+        if s_norm == t_norm:
+            return True
+        s_clean = re.sub(r'[\(\)\[\]]', '', s_norm)
+        t_clean = re.sub(r'[\(\)\[\]]', '', t_norm)
+        if s_clean == t_clean:
+            return True
+        noise = {"adk", "opus", "gemini", "direct", "claude", "agent", "assistant", "specialist"}
+        s_tokens = set(s_clean.split("_")) - noise
+        t_tokens = set(t_clean.split("_")) - noise
+        if s_tokens and t_tokens and (s_tokens & t_tokens):
+            return True
+        if len(t_clean) >= 3 and (t_clean in s_clean or s_clean in t_clean):
+            return True
+        for tok in s_tokens:
+            if len(tok) >= 3 and (tok in t_clean or t_clean in tok):
+                return True
+        for tok in t_tokens:
+            if len(tok) >= 3 and (tok in s_clean or s_clean in tok):
+                return True
+        return False
+
+    def _get_recent_speakers(self, project_id: str, limit: int = 15) -> List[str]:
+        recent_speakers = []
+        try:
+            hist = self.load_history(project_id)
+            msgs = hist.get("messages", [])
+            txs = hist.get("transactions", [])
+            if msgs:
+                for m in reversed(msgs[-limit:]):
+                    sid = (m.get("sender_id") or m.get("sender_name") or "").lower()
+                    if sid and sid not in recent_speakers:
+                        recent_speakers.append(sid)
+            elif txs:
+                for t in reversed(txs[-limit:]):
+                    sid = (t.get("target_agent_id") or t.get("recipient") or "").lower()
+                    if sid and sid not in recent_speakers:
+                        recent_speakers.append(sid)
+        except Exception:
+            pass
+        return recent_speakers
+
+    def _select_candidate_agent(self, project_id: str, eligible: List[str], exclude_ids: Optional[List[str]] = None) -> Optional[str]:
+        if not eligible:
+            return None
+        recent_speakers = self._get_recent_speakers(project_id)
+        last_author = recent_speakers[0] if recent_speakers else None
+
+        exclude_list = [ex for ex in (exclude_ids or []) if ex]
+
+        candidate_pool = []
+        for m in eligible:
+            if any(self._matches_agent(m, ex) for ex in exclude_list):
+                continue
+            if last_author and self._matches_agent(m, last_author):
+                continue
+            candidate_pool.append(m)
+
+        if not candidate_pool:
+            candidate_pool = [m for m in eligible if not any(self._matches_agent(m, ex) for ex in exclude_list)] or eligible
+
+        def _recency_key(agent_id: str) -> int:
+            for idx, s in enumerate(recent_speakers):
+                if self._matches_agent(agent_id, s):
+                    return idx
+            return 999
+
+        candidate_pool.sort(key=_recency_key, reverse=True)
+        return candidate_pool[0]
+
     def _trigger_pulse_turn(self, project: Dict[str, Any]):
         """Dispatches an ambient pulse check-in to an eligible assigned agent."""
         pid = project.get("id")
@@ -525,24 +600,10 @@ class A2ADispatcher:
         if not eligible:
             return
 
-        # Check last speaker to rotate or pick teammate
-        last_speaker = None
-        try:
-            hist = self.load_history(pid)
-            msgs = hist.get("messages", [])
-            txs = hist.get("transactions", [])
-            if msgs:
-                last_speaker = (msgs[-1].get("sender_id") or msgs[-1].get("sender", "")).lower()
-            elif txs:
-                last_speaker = (txs[-1].get("target_agent_id") or txs[-1].get("recipient", "")).lower()
-        except Exception:
-            pass
+        target_agent_id = self._select_candidate_agent(pid, eligible)
+        if not target_agent_id:
+            return
 
-        candidates = [m for m in eligible if m.lower() != last_speaker] if len(eligible) > 1 else eligible
-        if not candidates:
-            candidates = eligible
-
-        target_agent_id = candidates[0]
         proj_name = project.get("name", pid)
 
         pulse_prompt = (
@@ -604,7 +665,7 @@ class A2ADispatcher:
             manifests = getattr(self.agent_router, "manifests", {})
             eligible = []
             for m in members:
-                if m.lower() == last_speaker_id.lower():
+                if self._matches_agent(m, last_speaker_id):
                     continue
                 man = manifests.get(m, {})
                 p_info = man.get("provider", {})
@@ -615,7 +676,10 @@ class A2ADispatcher:
             if not eligible:
                 return
 
-            target_agent_id = eligible[0]
+            target_agent_id = self._select_candidate_agent(project_id, eligible, exclude_ids=[last_speaker_id, last_speaker_name])
+            if not target_agent_id:
+                return
+
             root_tx = original_root_tx or f"tx_openfloor_{int(time.time() * 1000)}"
             now = time.time()
 
@@ -750,6 +814,42 @@ class A2ADispatcher:
         manifest = self.agent_router.manifests.get(target_agent_id, {})
         target_name = manifest.get("name", target_agent_id.capitalize())
         target_role = manifest.get("role", "Collaborator")
+
+        # Double-Posting Invariant Check:
+        # An agent must NEVER post consecutively without an intervening message from another speaker (human or peer agent).
+        try:
+            hist = self.load_history(project_id)
+            latest_author = None
+            msgs = hist.get("messages", [])
+            txs = hist.get("transactions", [])
+            if msgs:
+                for m in reversed(msgs):
+                    if m.get("type") in ("user_message", "agent_message") and (m.get("text") or "").strip():
+                        latest_author = m.get("sender_id") or m.get("sender_name")
+                        break
+            elif txs:
+                for t in reversed(txs):
+                    if t.get("mode") == "system_notice":
+                        continue
+                    if t.get("claude_response") or t.get("antigravity_response"):
+                        latest_author = t.get("target_agent_id") or t.get("recipient")
+                        break
+                    elif t.get("prompt_text"):
+                        latest_author = t.get("sender_id") or t.get("sender")
+                        break
+
+            if latest_author and self._matches_agent(latest_author, target_agent_id):
+                print(f"[*] Suppressing task {task.get('id')} for @{target_agent_id} in {project_id}: Agent was the latest speaker (no double-posting rule).")
+                return {
+                    "status": "skipped",
+                    "reason": "no_double_post",
+                    "task_id": task.get("id"),
+                    "project_id": project_id,
+                    "target": target_name,
+                    "latest_author": latest_author
+                }
+        except Exception as e:
+            print(f"[!] Warning checking double-post rule for {target_agent_id}: {e}")
 
         resolved = self.agent_router.resolve(f"{target_agent_id}_direct", target_name)
         provider = resolved.get("provider")
