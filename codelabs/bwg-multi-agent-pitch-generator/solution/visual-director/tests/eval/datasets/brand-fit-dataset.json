@@ -1,0 +1,70 @@
+{
+  "eval_cases": [
+    {
+      "eval_case_id": "skateboarding_cats",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Campaign concept: Nine Lives. Infinite Air. Skateboards built for cats, sold on the promise that gravity was always optional."
+          }
+        ]
+      }
+    },
+    {
+      "eval_case_id": "rainy_commuter_bike",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Campaign concept: Built for the Downpour. A commuter bike for people who stopped checking the forecast."
+          }
+        ]
+      }
+    },
+    {
+      "eval_case_id": "sunrise_coffee_ritual",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Campaign concept: The Hour Before Everyone. A single-origin coffee for the part of the morning nobody else claims."
+          }
+        ]
+      }
+    },
+    {
+      "eval_case_id": "neon_energy_drink",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Campaign concept: Voltage in a Can. An energy drink for all-night gamers. The client wants it to feel like a neon cyberpunk arcade, drenched in electric cyan and hot magenta, with lens flare everywhere."
+          }
+        ]
+      }
+    },
+    {
+      "eval_case_id": "logo_hero_sneaker",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Campaign concept: Own the Pavement. A running sneaker launch. Marketing insists the logo sits large in the frame with the tagline set across the top of the image."
+          }
+        ]
+      }
+    },
+    {
+      "eval_case_id": "crowded_festival_stage",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Campaign concept: Forty Thousand Heartbeats. A music festival pass, sold on the feeling of a crowd at full roar, shot from above so you can see every face."
+          }
+        ]
+      }
+    }
+  ]
+}

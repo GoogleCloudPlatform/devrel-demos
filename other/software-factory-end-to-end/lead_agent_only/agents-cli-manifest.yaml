@@ -1,0 +1,9 @@
+name: "software-factory"
+acli_version: "1.6.1"
+agent_directory: "."
+base_template: "adk"
+language: "python"
+create_params:
+  deployment_target: "none"
+  session_type: "in_memory"
+  cicd_runner: "skip"

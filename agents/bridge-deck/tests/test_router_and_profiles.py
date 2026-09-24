@@ -664,6 +664,33 @@ class TestRouterAndProfiles(unittest.TestCase):
         self.assertIn("[Team Lead]: Hello Quantum Lead!", block)
         self.assertIn("[Quantum Lead (you)]: Greetings! I am ready to review.", block)
 
+    def test_filter_valid_content_blocks_eliminates_empty_text(self):
+        """Verify that _filter_valid_content_blocks strips empty and whitespace text blocks while preserving tools."""
+        from model_client import GCPModelClient
+        client = GCPModelClient(project_id="test-proj", model_name="claude-opus-5")
+
+        raw_blocks = [
+            {"type": "text", "text": ""},
+            {"type": "text", "text": "   \n\t  "},
+            {"type": "tool_use", "id": "call_123", "name": "read_file", "input": {"relative_path": "core/tenant.py"}},
+            {"type": "text", "text": "Valid text output"},
+            {"type": "thinking", "thinking": "Deliberating residual stream"},
+            {"type": "thinking", "thinking": ""}
+        ]
+
+        filtered = client._filter_valid_content_blocks(raw_blocks)
+        self.assertEqual(len(filtered), 3)
+        self.assertEqual(filtered[0]["type"], "tool_use")
+        self.assertEqual(filtered[0]["id"], "call_123")
+        self.assertEqual(filtered[1]["type"], "text")
+        self.assertEqual(filtered[1]["text"], "Valid text output")
+        self.assertEqual(filtered[2]["type"], "thinking")
+        self.assertEqual(filtered[2]["thinking"], "Deliberating residual stream")
+
+        # Verify backwards-compatibility alias
+        filtered_alias = client._filter_valid_anthropic_blocks(raw_blocks)
+        self.assertEqual(filtered_alias, filtered)
+
 
 if __name__ == "__main__":
     unittest.main()

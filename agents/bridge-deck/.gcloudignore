@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+.git/
+scratch/
+logs/
+data/
+.env*
+deploy.env
+claude_bridge.md
+.bridge_relay/
+.DS_Store
+*.log
+docs/internal/
+internal/

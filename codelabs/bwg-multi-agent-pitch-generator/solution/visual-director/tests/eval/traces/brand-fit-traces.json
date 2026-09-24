@@ -1,0 +1,1669 @@
+{
+  "eval_cases": [
+    {
+      "prompt": {
+        "parts": [
+          {
+            "text": "Campaign concept: Nine Lives. Infinite Air. Skateboards built for cats, sold on the promise that gravity was always optional."
+          }
+        ],
+        "role": "user"
+      },
+      "responses": [
+        {
+          "response": {
+            "parts": [
+              {
+                "text": "A lone athletic cat hangs weightlessly mid-air over a miniature terracotta skateboard, framed in sharp profile at eye level one-third into the right of the frame with generous negative space across the left. A single low, raking key light carves across the scene, throwing a long shadow and catching the cat’s contours in a delicate rim light that separates it from the backdrop. The minimalist environment is built from deep indigo and muted slate, allowing the terracotta deck to serve as the sole warm focal accent. Captured in photographic realism with a shallow depth of field, the mood is one of suspended poise and quiet defiance of gravity."
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "eval_case_id": "skateboarding_cats",
+      "agent_data": {
+        "agents": {
+          "visual_director": {
+            "agent_id": "visual_director",
+            "agent_type": "LlmAgent",
+            "description": "Turns a campaign concept into art direction and a key visual.",
+            "instruction": "You are the Visual Director on a campaign pitch team.\n\n    Call `load_skill` for `brand-guidelines` before you write anything. The house\n    style is not optional and it is not in this prompt.\n\n    You are given a campaign concept. Then, in order:\n\n    1. Write art direction for ONE key visual that sells it, obeying the brand\n    guidelines: subject, composition, lighting, colour, mood. Three or four\n    sentences.\n    2. Call `generate_key_visual` with exactly that art direction.\n\n    Your final reply is the art direction itself and nothing else. No preamble, no\n    alternatives, no questions back. Do not mention the skill, the tool, or the\n    image file — the image travels on its own.",
+            "tools": [
+              {
+                "function_declarations": [
+                  {
+                    "description": "Lists all available skills with their names and descriptions.",
+                    "name": "list_skills",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Loads the SKILL.md instructions for a given skill.",
+                    "name": "load_skill",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill to load."
+                        }
+                      },
+                      "required": [
+                        "skill_name"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Loads a resource file (from references/, assets/, or scripts/) from within a skill.",
+                    "name": "load_skill_resource",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill."
+                        },
+                        "file_path": {
+                          "type": "string",
+                          "description": "The relative path to the resource (e.g., 'references/my_doc.md', 'assets/template.txt', or 'scripts/setup.sh')."
+                        }
+                      },
+                      "required": [
+                        "skill_name",
+                        "file_path"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Executes a script from a skill's scripts/ directory.",
+                    "name": "run_skill_script",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill."
+                        },
+                        "file_path": {
+                          "type": "string",
+                          "description": "The relative path to the script (e.g., 'scripts/setup.py')."
+                        },
+                        "args": {
+                          "anyOf": [
+                            {
+                              "type": "object"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          ],
+                          "description": "Optional arguments to pass to the script as key-value pairs (long options) or as a list of strings. If specified as a list, it is treated as the complete list of arguments, and 'short_options' and 'positional_args' must not be provided."
+                        },
+                        "short_options": {
+                          "type": "object",
+                          "description": "Optional short options (single hyphen) to pass to the script as key-value pairs. Must not be provided if 'args' is a list."
+                        },
+                        "positional_args": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Optional positional arguments to pass to the script. Must not be provided if 'args' is a list."
+                        }
+                      },
+                      "required": [
+                        "skill_name",
+                        "file_path"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Render the art direction as the campaign's key visual.\n\nArgs:\n   art_direction: The art direction to render, in full.\n\nReturns:\n   The saved artifact's filename, version, size and media type.",
+                    "name": "generate_key_visual",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "art_direction": {
+                          "title": "Art Direction",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "art_direction"
+                      ],
+                      "title": "generate_key_visualParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  }
+                ]
+              }
+            ],
+            "sub_agents": []
+          }
+        },
+        "turns": [
+          {
+            "turn_index": 0,
+            "turn_id": "turn_0",
+            "events": [
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "call_309019",
+                        "args": {
+                          "skill_name": "brand-guidelines"
+                        },
+                        "name": "load_skill"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:29:58.724882Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "call_309019",
+                        "name": "load_skill",
+                        "response": {
+                          "skill_name": "brand-guidelines",
+                          "instructions": "# Brand guidelines\n\nHouse style for campaign key visuals. Every rule here beats a preference in the\nbrief. If the brief asks for something forbidden below, follow the brief for the\nsubject and the guidelines for the treatment.\n\n## Palette\n\nDeep indigo and slate as the ground. One warm accent — amber or terracotta —\ncarrying the eye to the subject. Nothing neon, nothing fluorescent.\n\nAt most three colours with any weight. A fourth reads as clutter.\n\n## Light\n\nOne dominant source, low and raking. Long shadows are wanted. Golden hour or a\nsingle hard studio key, never flat overhead light and never a ring light.\n\nRim light is allowed on the subject only, and only to separate it from the\nground.\n\n## Composition\n\nSubject off-centre, roughly a third in. Generous negative space on the opposite\nside — copy lands there later, so leave it genuinely empty.\n\nEye level or slightly below. No top-down flat lays. No fisheye, no Dutch tilt.\n\n## Subject\n\nOne subject. If the idea implies a crowd, pick the one that carries it.\n\nPhotographic realism with a shallow depth of field. Not illustration, not 3D\nrender, not clay, not pixel art.\n\n## Never\n\n- Text, logos, watermarks or signage anywhere in the frame\n- Collage or split-screen layouts\n- Chrome, lens flare, bokeh sparkle\n- Cool-toned neon cyan or magenta\n\n## Rendering the prompt\n\nWhen you turn art direction into an image prompt, state the palette, the light,\nand the composition explicitly. An image model will not infer them from the\nsubject alone. Put the \"Never\" items in as plain description of what the frame\ndoes contain, not as negatives — image models handle a positive description far\nbetter than a list of prohibitions.",
+                          "frontmatter": {
+                            "name": "brand-guidelines",
+                            "description": "The house brand rules for a key visual — palette, light, composition, subject treatment, and what never appears. Load this before writing art direction or rendering an image, so the visual looks like it came from this brand rather than from a generic image model.",
+                            "license": null,
+                            "compatibility": null,
+                            "allowed_tools": null,
+                            "metadata": {}
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                },
+                "event_time": "2026-09-18T20:30:00.265786Z",
+                "state_delta": {
+                  "_adk_activated_skill_visual_director": [
+                    "brand-guidelines"
+                  ]
+                }
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "call_403596",
+                        "args": {
+                          "art_direction": "A lone athletic cat hangs weightlessly mid-air over a miniature terracotta skateboard, framed in sharp profile at eye level one-third into the right of the frame with generous negative space across the left. A single low, raking key light carves across the scene, throwing a long shadow and catching the cat’s contours in a delicate rim light that separates it from the backdrop. The minimalist environment is built from deep indigo and muted slate, allowing the terracotta deck to serve as the sole warm focal accent. Captured in photographic realism with a shallow depth of field, the mood is one of suspended poise and quiet defiance of gravity."
+                        },
+                        "name": "generate_key_visual"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:30:00.269065Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "call_403596",
+                        "name": "generate_key_visual",
+                        "response": {
+                          "filename": "key_visual.jpg",
+                          "version": 0,
+                          "bytes": 86932,
+                          "mime_type": "image/jpeg"
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                },
+                "event_time": "2026-09-18T20:30:22.860847Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "text": "A lone athletic cat hangs weightlessly mid-air over a miniature terracotta skateboard, framed in sharp profile at eye level one-third into the right of the frame with generous negative space across the left. A single low, raking key light carves across the scene, throwing a long shadow and catching the cat’s contours in a delicate rim light that separates it from the backdrop. The minimalist environment is built from deep indigo and muted slate, allowing the terracotta deck to serve as the sole warm focal accent. Captured in photographic realism with a shallow depth of field, the mood is one of suspended poise and quiet defiance of gravity."
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:30:22.868351Z"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": {
+        "parts": [
+          {
+            "text": "Campaign concept: Built for the Downpour. A commuter bike for people who stopped checking the forecast."
+          }
+        ],
+        "role": "user"
+      },
+      "responses": [
+        {
+          "response": {
+            "parts": [
+              {
+                "text": "A lone commuter cycles steadily through a torrential rainstorm on a slick urban roadway, positioned off-centre roughly one-third into the frame to leave generous negative space across the opposite side. Captured at eye level with photographic realism and a shallow depth of field, the crisp focus isolates the rider and matte-finished commuter bicycle against the blurred wet cityscape. A single low, raking light source cuts horizontally through the falling rain, casting long shadows across the asphalt and providing a subtle rim light that separates the rider from the dark backdrop. The scene is grounded in deep indigo shadows and slate-grey pavement, punctuated by a solitary terracotta accent on the cyclist's waterproof coat that conveys a mood of quiet, unbothered resolve."
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "eval_case_id": "rainy_commuter_bike",
+      "agent_data": {
+        "agents": {
+          "visual_director": {
+            "agent_id": "visual_director",
+            "agent_type": "LlmAgent",
+            "description": "Turns a campaign concept into art direction and a key visual.",
+            "instruction": "You are the Visual Director on a campaign pitch team.\n\n    Call `load_skill` for `brand-guidelines` before you write anything. The house\n    style is not optional and it is not in this prompt.\n\n    You are given a campaign concept. Then, in order:\n\n    1. Write art direction for ONE key visual that sells it, obeying the brand\n    guidelines: subject, composition, lighting, colour, mood. Three or four\n    sentences.\n    2. Call `generate_key_visual` with exactly that art direction.\n\n    Your final reply is the art direction itself and nothing else. No preamble, no\n    alternatives, no questions back. Do not mention the skill, the tool, or the\n    image file — the image travels on its own.",
+            "tools": [
+              {
+                "function_declarations": [
+                  {
+                    "description": "Lists all available skills with their names and descriptions.",
+                    "name": "list_skills",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Loads the SKILL.md instructions for a given skill.",
+                    "name": "load_skill",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill to load."
+                        }
+                      },
+                      "required": [
+                        "skill_name"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Loads a resource file (from references/, assets/, or scripts/) from within a skill.",
+                    "name": "load_skill_resource",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill."
+                        },
+                        "file_path": {
+                          "type": "string",
+                          "description": "The relative path to the resource (e.g., 'references/my_doc.md', 'assets/template.txt', or 'scripts/setup.sh')."
+                        }
+                      },
+                      "required": [
+                        "skill_name",
+                        "file_path"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Executes a script from a skill's scripts/ directory.",
+                    "name": "run_skill_script",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill."
+                        },
+                        "file_path": {
+                          "type": "string",
+                          "description": "The relative path to the script (e.g., 'scripts/setup.py')."
+                        },
+                        "args": {
+                          "anyOf": [
+                            {
+                              "type": "object"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          ],
+                          "description": "Optional arguments to pass to the script as key-value pairs (long options) or as a list of strings. If specified as a list, it is treated as the complete list of arguments, and 'short_options' and 'positional_args' must not be provided."
+                        },
+                        "short_options": {
+                          "type": "object",
+                          "description": "Optional short options (single hyphen) to pass to the script as key-value pairs. Must not be provided if 'args' is a list."
+                        },
+                        "positional_args": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Optional positional arguments to pass to the script. Must not be provided if 'args' is a list."
+                        }
+                      },
+                      "required": [
+                        "skill_name",
+                        "file_path"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Render the art direction as the campaign's key visual.\n\nArgs:\n   art_direction: The art direction to render, in full.\n\nReturns:\n   The saved artifact's filename, version, size and media type.",
+                    "name": "generate_key_visual",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "art_direction": {
+                          "title": "Art Direction",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "art_direction"
+                      ],
+                      "title": "generate_key_visualParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  }
+                ]
+              }
+            ],
+            "sub_agents": []
+          }
+        },
+        "turns": [
+          {
+            "turn_index": 0,
+            "turn_id": "turn_0",
+            "events": [
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "call_379137",
+                        "args": {
+                          "skill_name": "brand-guidelines"
+                        },
+                        "name": "load_skill"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:30:24.631833Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "call_379137",
+                        "name": "load_skill",
+                        "response": {
+                          "skill_name": "brand-guidelines",
+                          "instructions": "# Brand guidelines\n\nHouse style for campaign key visuals. Every rule here beats a preference in the\nbrief. If the brief asks for something forbidden below, follow the brief for the\nsubject and the guidelines for the treatment.\n\n## Palette\n\nDeep indigo and slate as the ground. One warm accent — amber or terracotta —\ncarrying the eye to the subject. Nothing neon, nothing fluorescent.\n\nAt most three colours with any weight. A fourth reads as clutter.\n\n## Light\n\nOne dominant source, low and raking. Long shadows are wanted. Golden hour or a\nsingle hard studio key, never flat overhead light and never a ring light.\n\nRim light is allowed on the subject only, and only to separate it from the\nground.\n\n## Composition\n\nSubject off-centre, roughly a third in. Generous negative space on the opposite\nside — copy lands there later, so leave it genuinely empty.\n\nEye level or slightly below. No top-down flat lays. No fisheye, no Dutch tilt.\n\n## Subject\n\nOne subject. If the idea implies a crowd, pick the one that carries it.\n\nPhotographic realism with a shallow depth of field. Not illustration, not 3D\nrender, not clay, not pixel art.\n\n## Never\n\n- Text, logos, watermarks or signage anywhere in the frame\n- Collage or split-screen layouts\n- Chrome, lens flare, bokeh sparkle\n- Cool-toned neon cyan or magenta\n\n## Rendering the prompt\n\nWhen you turn art direction into an image prompt, state the palette, the light,\nand the composition explicitly. An image model will not infer them from the\nsubject alone. Put the \"Never\" items in as plain description of what the frame\ndoes contain, not as negatives — image models handle a positive description far\nbetter than a list of prohibitions.",
+                          "frontmatter": {
+                            "name": "brand-guidelines",
+                            "description": "The house brand rules for a key visual — palette, light, composition, subject treatment, and what never appears. Load this before writing art direction or rendering an image, so the visual looks like it came from this brand rather than from a generic image model.",
+                            "license": null,
+                            "compatibility": null,
+                            "allowed_tools": null,
+                            "metadata": {}
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                },
+                "event_time": "2026-09-18T20:30:27.262528Z",
+                "state_delta": {
+                  "_adk_activated_skill_visual_director": [
+                    "brand-guidelines"
+                  ]
+                }
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "call_367943",
+                        "args": {
+                          "art_direction": "A lone commuter cycles steadily through a torrential rainstorm on a slick urban roadway, positioned off-centre roughly one-third into the frame to leave generous negative space across the opposite side. Captured at eye level with photographic realism and a shallow depth of field, the crisp focus isolates the rider and matte-finished commuter bicycle against the blurred wet cityscape. A single low, raking light source cuts horizontally through the falling rain, casting long shadows across the asphalt and providing a subtle rim light that separates the rider from the dark backdrop. The scene is grounded in deep indigo shadows and slate-grey pavement, punctuated by a solitary terracotta accent on the cyclist's waterproof coat that conveys a mood of quiet, unbothered resolve."
+                        },
+                        "name": "generate_key_visual"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:30:27.265975Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "call_367943",
+                        "name": "generate_key_visual",
+                        "response": {
+                          "filename": "key_visual.jpg",
+                          "version": 0,
+                          "bytes": 215741,
+                          "mime_type": "image/jpeg"
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                },
+                "event_time": "2026-09-18T20:30:39.295595Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "text": "A lone commuter cycles steadily through a torrential rainstorm on a slick urban roadway, positioned off-centre roughly one-third into the frame to leave generous negative space across the opposite side. Captured at eye level with photographic realism and a shallow depth of field, the crisp focus isolates the rider and matte-finished commuter bicycle against the blurred wet cityscape. A single low, raking light source cuts horizontally through the falling rain, casting long shadows across the asphalt and providing a subtle rim light that separates the rider from the dark backdrop. The scene is grounded in deep indigo shadows and slate-grey pavement, punctuated by a solitary terracotta accent on the cyclist's waterproof coat that conveys a mood of quiet, unbothered resolve."
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:30:39.302946Z"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": {
+        "parts": [
+          {
+            "text": "Campaign concept: The Hour Before Everyone. A single-origin coffee for the part of the morning nobody else claims."
+          }
+        ],
+        "role": "user"
+      },
+      "responses": [
+        {
+          "response": {
+            "parts": [
+              {
+                "text": "A single artisanal ceramic cup of black pour-over coffee rests at eye level on a matte slate surface, positioned one-third into the right of the frame while generous, uncluttered negative space occupies the left. A solitary low-raking beam of first morning light cuts horizontally across the plane, casting a long dramatic shadow and lending a soft amber rim light exclusively to the silhouette of the cup. The palette is held strictly to deep indigo and muted slate, ignited only by the warm terracotta glow of the vessel and the amber surface of the coffee. The atmosphere is quiet, contemplative, and suspended in the stillness of dawn."
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "eval_case_id": "sunrise_coffee_ritual",
+      "agent_data": {
+        "agents": {
+          "visual_director": {
+            "agent_id": "visual_director",
+            "agent_type": "LlmAgent",
+            "description": "Turns a campaign concept into art direction and a key visual.",
+            "instruction": "You are the Visual Director on a campaign pitch team.\n\n    Call `load_skill` for `brand-guidelines` before you write anything. The house\n    style is not optional and it is not in this prompt.\n\n    You are given a campaign concept. Then, in order:\n\n    1. Write art direction for ONE key visual that sells it, obeying the brand\n    guidelines: subject, composition, lighting, colour, mood. Three or four\n    sentences.\n    2. Call `generate_key_visual` with exactly that art direction.\n\n    Your final reply is the art direction itself and nothing else. No preamble, no\n    alternatives, no questions back. Do not mention the skill, the tool, or the\n    image file — the image travels on its own.",
+            "tools": [
+              {
+                "function_declarations": [
+                  {
+                    "description": "Lists all available skills with their names and descriptions.",
+                    "name": "list_skills",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Loads the SKILL.md instructions for a given skill.",
+                    "name": "load_skill",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill to load."
+                        }
+                      },
+                      "required": [
+                        "skill_name"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Loads a resource file (from references/, assets/, or scripts/) from within a skill.",
+                    "name": "load_skill_resource",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill."
+                        },
+                        "file_path": {
+                          "type": "string",
+                          "description": "The relative path to the resource (e.g., 'references/my_doc.md', 'assets/template.txt', or 'scripts/setup.sh')."
+                        }
+                      },
+                      "required": [
+                        "skill_name",
+                        "file_path"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Executes a script from a skill's scripts/ directory.",
+                    "name": "run_skill_script",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill."
+                        },
+                        "file_path": {
+                          "type": "string",
+                          "description": "The relative path to the script (e.g., 'scripts/setup.py')."
+                        },
+                        "args": {
+                          "anyOf": [
+                            {
+                              "type": "object"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          ],
+                          "description": "Optional arguments to pass to the script as key-value pairs (long options) or as a list of strings. If specified as a list, it is treated as the complete list of arguments, and 'short_options' and 'positional_args' must not be provided."
+                        },
+                        "short_options": {
+                          "type": "object",
+                          "description": "Optional short options (single hyphen) to pass to the script as key-value pairs. Must not be provided if 'args' is a list."
+                        },
+                        "positional_args": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Optional positional arguments to pass to the script. Must not be provided if 'args' is a list."
+                        }
+                      },
+                      "required": [
+                        "skill_name",
+                        "file_path"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Render the art direction as the campaign's key visual.\n\nArgs:\n   art_direction: The art direction to render, in full.\n\nReturns:\n   The saved artifact's filename, version, size and media type.",
+                    "name": "generate_key_visual",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "art_direction": {
+                          "title": "Art Direction",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "art_direction"
+                      ],
+                      "title": "generate_key_visualParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  }
+                ]
+              }
+            ],
+            "sub_agents": []
+          }
+        },
+        "turns": [
+          {
+            "turn_index": 0,
+            "turn_id": "turn_0",
+            "events": [
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "call_323056",
+                        "args": {
+                          "skill_name": "brand-guidelines"
+                        },
+                        "name": "load_skill"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:30:42.447801Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "call_323056",
+                        "name": "load_skill",
+                        "response": {
+                          "skill_name": "brand-guidelines",
+                          "instructions": "# Brand guidelines\n\nHouse style for campaign key visuals. Every rule here beats a preference in the\nbrief. If the brief asks for something forbidden below, follow the brief for the\nsubject and the guidelines for the treatment.\n\n## Palette\n\nDeep indigo and slate as the ground. One warm accent — amber or terracotta —\ncarrying the eye to the subject. Nothing neon, nothing fluorescent.\n\nAt most three colours with any weight. A fourth reads as clutter.\n\n## Light\n\nOne dominant source, low and raking. Long shadows are wanted. Golden hour or a\nsingle hard studio key, never flat overhead light and never a ring light.\n\nRim light is allowed on the subject only, and only to separate it from the\nground.\n\n## Composition\n\nSubject off-centre, roughly a third in. Generous negative space on the opposite\nside — copy lands there later, so leave it genuinely empty.\n\nEye level or slightly below. No top-down flat lays. No fisheye, no Dutch tilt.\n\n## Subject\n\nOne subject. If the idea implies a crowd, pick the one that carries it.\n\nPhotographic realism with a shallow depth of field. Not illustration, not 3D\nrender, not clay, not pixel art.\n\n## Never\n\n- Text, logos, watermarks or signage anywhere in the frame\n- Collage or split-screen layouts\n- Chrome, lens flare, bokeh sparkle\n- Cool-toned neon cyan or magenta\n\n## Rendering the prompt\n\nWhen you turn art direction into an image prompt, state the palette, the light,\nand the composition explicitly. An image model will not infer them from the\nsubject alone. Put the \"Never\" items in as plain description of what the frame\ndoes contain, not as negatives — image models handle a positive description far\nbetter than a list of prohibitions.",
+                          "frontmatter": {
+                            "name": "brand-guidelines",
+                            "description": "The house brand rules for a key visual — palette, light, composition, subject treatment, and what never appears. Load this before writing art direction or rendering an image, so the visual looks like it came from this brand rather than from a generic image model.",
+                            "license": null,
+                            "compatibility": null,
+                            "allowed_tools": null,
+                            "metadata": {}
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                },
+                "event_time": "2026-09-18T20:30:45.734527Z",
+                "state_delta": {
+                  "_adk_activated_skill_visual_director": [
+                    "brand-guidelines"
+                  ]
+                }
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "call_262981",
+                        "args": {
+                          "art_direction": "A single artisanal ceramic cup of black pour-over coffee rests at eye level on a matte slate surface, positioned one-third into the right of the frame while generous, uncluttered negative space occupies the left. A solitary low-raking beam of first morning light cuts horizontally across the plane, casting a long dramatic shadow and lending a soft amber rim light exclusively to the silhouette of the cup. The palette is held strictly to deep indigo and muted slate, ignited only by the warm terracotta glow of the vessel and the amber surface of the coffee. The atmosphere is quiet, contemplative, and suspended in the stillness of dawn."
+                        },
+                        "name": "generate_key_visual"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:30:45.737504Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "call_262981",
+                        "name": "generate_key_visual",
+                        "response": {
+                          "filename": "key_visual.jpg",
+                          "version": 0,
+                          "bytes": 79331,
+                          "mime_type": "image/jpeg"
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                },
+                "event_time": "2026-09-18T20:30:58.712580Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "text": "A single artisanal ceramic cup of black pour-over coffee rests at eye level on a matte slate surface, positioned one-third into the right of the frame while generous, uncluttered negative space occupies the left. A solitary low-raking beam of first morning light cuts horizontally across the plane, casting a long dramatic shadow and lending a soft amber rim light exclusively to the silhouette of the cup. The palette is held strictly to deep indigo and muted slate, ignited only by the warm terracotta glow of the vessel and the amber surface of the coffee. The atmosphere is quiet, contemplative, and suspended in the stillness of dawn."
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:30:58.720499Z"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": {
+        "parts": [
+          {
+            "text": "Campaign concept: Voltage in a Can. An energy drink for all-night gamers. The client wants it to feel like a neon cyberpunk arcade, drenched in electric cyan and hot magenta, with lens flare everywhere."
+          }
+        ],
+        "role": "user"
+      },
+      "responses": [
+        {
+          "response": {
+            "parts": [
+              {
+                "text": "A single matte dark beverage can beaded with fine condensation rests on a textured slate tabletop, positioned firmly in the right third of the frame at eye level to leave generous negative space across the left. A single hard studio key strikes low and raking from the side, casting long directional shadows across the surface while a subtle warm rim light separates the can's silhouette from the background. The restrained palette is anchored in deep indigo and slate, ignited solely by a warm amber accent light catching the droplets along the can's contour. Captured with clean photographic realism and a shallow depth of field, the visual delivers a mood of intense, solitary late-night focus and quiet endurance."
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "eval_case_id": "neon_energy_drink",
+      "agent_data": {
+        "agents": {
+          "visual_director": {
+            "agent_id": "visual_director",
+            "agent_type": "LlmAgent",
+            "description": "Turns a campaign concept into art direction and a key visual.",
+            "instruction": "You are the Visual Director on a campaign pitch team.\n\n    Call `load_skill` for `brand-guidelines` before you write anything. The house\n    style is not optional and it is not in this prompt.\n\n    You are given a campaign concept. Then, in order:\n\n    1. Write art direction for ONE key visual that sells it, obeying the brand\n    guidelines: subject, composition, lighting, colour, mood. Three or four\n    sentences.\n    2. Call `generate_key_visual` with exactly that art direction.\n\n    Your final reply is the art direction itself and nothing else. No preamble, no\n    alternatives, no questions back. Do not mention the skill, the tool, or the\n    image file — the image travels on its own.",
+            "tools": [
+              {
+                "function_declarations": [
+                  {
+                    "description": "Lists all available skills with their names and descriptions.",
+                    "name": "list_skills",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Loads the SKILL.md instructions for a given skill.",
+                    "name": "load_skill",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill to load."
+                        }
+                      },
+                      "required": [
+                        "skill_name"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Loads a resource file (from references/, assets/, or scripts/) from within a skill.",
+                    "name": "load_skill_resource",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill."
+                        },
+                        "file_path": {
+                          "type": "string",
+                          "description": "The relative path to the resource (e.g., 'references/my_doc.md', 'assets/template.txt', or 'scripts/setup.sh')."
+                        }
+                      },
+                      "required": [
+                        "skill_name",
+                        "file_path"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Executes a script from a skill's scripts/ directory.",
+                    "name": "run_skill_script",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill."
+                        },
+                        "file_path": {
+                          "type": "string",
+                          "description": "The relative path to the script (e.g., 'scripts/setup.py')."
+                        },
+                        "args": {
+                          "anyOf": [
+                            {
+                              "type": "object"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          ],
+                          "description": "Optional arguments to pass to the script as key-value pairs (long options) or as a list of strings. If specified as a list, it is treated as the complete list of arguments, and 'short_options' and 'positional_args' must not be provided."
+                        },
+                        "short_options": {
+                          "type": "object",
+                          "description": "Optional short options (single hyphen) to pass to the script as key-value pairs. Must not be provided if 'args' is a list."
+                        },
+                        "positional_args": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Optional positional arguments to pass to the script. Must not be provided if 'args' is a list."
+                        }
+                      },
+                      "required": [
+                        "skill_name",
+                        "file_path"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Render the art direction as the campaign's key visual.\n\nArgs:\n   art_direction: The art direction to render, in full.\n\nReturns:\n   The saved artifact's filename, version, size and media type.",
+                    "name": "generate_key_visual",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "art_direction": {
+                          "title": "Art Direction",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "art_direction"
+                      ],
+                      "title": "generate_key_visualParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  }
+                ]
+              }
+            ],
+            "sub_agents": []
+          }
+        },
+        "turns": [
+          {
+            "turn_index": 0,
+            "turn_id": "turn_0",
+            "events": [
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "call_359224",
+                        "args": {
+                          "skill_name": "brand-guidelines"
+                        },
+                        "name": "load_skill"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:31:01.470988Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "call_359224",
+                        "name": "load_skill",
+                        "response": {
+                          "skill_name": "brand-guidelines",
+                          "instructions": "# Brand guidelines\n\nHouse style for campaign key visuals. Every rule here beats a preference in the\nbrief. If the brief asks for something forbidden below, follow the brief for the\nsubject and the guidelines for the treatment.\n\n## Palette\n\nDeep indigo and slate as the ground. One warm accent — amber or terracotta —\ncarrying the eye to the subject. Nothing neon, nothing fluorescent.\n\nAt most three colours with any weight. A fourth reads as clutter.\n\n## Light\n\nOne dominant source, low and raking. Long shadows are wanted. Golden hour or a\nsingle hard studio key, never flat overhead light and never a ring light.\n\nRim light is allowed on the subject only, and only to separate it from the\nground.\n\n## Composition\n\nSubject off-centre, roughly a third in. Generous negative space on the opposite\nside — copy lands there later, so leave it genuinely empty.\n\nEye level or slightly below. No top-down flat lays. No fisheye, no Dutch tilt.\n\n## Subject\n\nOne subject. If the idea implies a crowd, pick the one that carries it.\n\nPhotographic realism with a shallow depth of field. Not illustration, not 3D\nrender, not clay, not pixel art.\n\n## Never\n\n- Text, logos, watermarks or signage anywhere in the frame\n- Collage or split-screen layouts\n- Chrome, lens flare, bokeh sparkle\n- Cool-toned neon cyan or magenta\n\n## Rendering the prompt\n\nWhen you turn art direction into an image prompt, state the palette, the light,\nand the composition explicitly. An image model will not infer them from the\nsubject alone. Put the \"Never\" items in as plain description of what the frame\ndoes contain, not as negatives — image models handle a positive description far\nbetter than a list of prohibitions.",
+                          "frontmatter": {
+                            "name": "brand-guidelines",
+                            "description": "The house brand rules for a key visual — palette, light, composition, subject treatment, and what never appears. Load this before writing art direction or rendering an image, so the visual looks like it came from this brand rather than from a generic image model.",
+                            "license": null,
+                            "compatibility": null,
+                            "allowed_tools": null,
+                            "metadata": {}
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                },
+                "event_time": "2026-09-18T20:31:04.505070Z",
+                "state_delta": {
+                  "_adk_activated_skill_visual_director": [
+                    "brand-guidelines"
+                  ]
+                }
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "call_426520",
+                        "args": {
+                          "art_direction": "A single matte dark beverage can beaded with fine condensation rests on a textured slate tabletop, positioned firmly in the right third of the frame at eye level to leave generous negative space across the left. A single hard studio key strikes low and raking from the side, casting long directional shadows across the surface while a subtle warm rim light separates the can's silhouette from the background. The restrained palette is anchored in deep indigo and slate, ignited solely by a warm amber accent light catching the droplets along the can's contour. Captured with clean photographic realism and a shallow depth of field, the visual delivers a mood of intense, solitary late-night focus and quiet endurance."
+                        },
+                        "name": "generate_key_visual"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:31:04.508004Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "call_426520",
+                        "name": "generate_key_visual",
+                        "response": {
+                          "filename": "key_visual.jpg",
+                          "version": 0,
+                          "bytes": 93101,
+                          "mime_type": "image/jpeg"
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                },
+                "event_time": "2026-09-18T20:31:49.376086Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "text": "A single matte dark beverage can beaded with fine condensation rests on a textured slate tabletop, positioned firmly in the right third of the frame at eye level to leave generous negative space across the left. A single hard studio key strikes low and raking from the side, casting long directional shadows across the surface while a subtle warm rim light separates the can's silhouette from the background. The restrained palette is anchored in deep indigo and slate, ignited solely by a warm amber accent light catching the droplets along the can's contour. Captured with clean photographic realism and a shallow depth of field, the visual delivers a mood of intense, solitary late-night focus and quiet endurance."
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:31:49.383689Z"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": {
+        "parts": [
+          {
+            "text": "Campaign concept: Own the Pavement. A running sneaker launch. Marketing insists the logo sits large in the frame with the tagline set across the top of the image."
+          }
+        ],
+        "role": "user"
+      },
+      "responses": [
+        {
+          "response": {
+            "parts": [
+              {
+                "text": "A lone runner's technical sneaker is captured mid-strike against urban asphalt, positioned in the lower-right third of the frame with expansive negative space occupying the left and upper field. Framed from just below eye level along the street, a single low, raking golden-hour light source casts long shadows across the textured ground and traces a crisp rim light along the shoe. The palette rests on deep indigo and slate tones across the pavement and dusk air, punctuated solely by a warm terracotta accent along the sneaker's silhouette that anchors the visual focus. Rendered in clean photographic realism with a shallow depth of field, the mood is resolute, atmospheric, and charged with disciplined forward momentum."
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "eval_case_id": "logo_hero_sneaker",
+      "agent_data": {
+        "agents": {
+          "visual_director": {
+            "agent_id": "visual_director",
+            "agent_type": "LlmAgent",
+            "description": "Turns a campaign concept into art direction and a key visual.",
+            "instruction": "You are the Visual Director on a campaign pitch team.\n\n    Call `load_skill` for `brand-guidelines` before you write anything. The house\n    style is not optional and it is not in this prompt.\n\n    You are given a campaign concept. Then, in order:\n\n    1. Write art direction for ONE key visual that sells it, obeying the brand\n    guidelines: subject, composition, lighting, colour, mood. Three or four\n    sentences.\n    2. Call `generate_key_visual` with exactly that art direction.\n\n    Your final reply is the art direction itself and nothing else. No preamble, no\n    alternatives, no questions back. Do not mention the skill, the tool, or the\n    image file — the image travels on its own.",
+            "tools": [
+              {
+                "function_declarations": [
+                  {
+                    "description": "Lists all available skills with their names and descriptions.",
+                    "name": "list_skills",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Loads the SKILL.md instructions for a given skill.",
+                    "name": "load_skill",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill to load."
+                        }
+                      },
+                      "required": [
+                        "skill_name"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Loads a resource file (from references/, assets/, or scripts/) from within a skill.",
+                    "name": "load_skill_resource",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill."
+                        },
+                        "file_path": {
+                          "type": "string",
+                          "description": "The relative path to the resource (e.g., 'references/my_doc.md', 'assets/template.txt', or 'scripts/setup.sh')."
+                        }
+                      },
+                      "required": [
+                        "skill_name",
+                        "file_path"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Executes a script from a skill's scripts/ directory.",
+                    "name": "run_skill_script",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill."
+                        },
+                        "file_path": {
+                          "type": "string",
+                          "description": "The relative path to the script (e.g., 'scripts/setup.py')."
+                        },
+                        "args": {
+                          "anyOf": [
+                            {
+                              "type": "object"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          ],
+                          "description": "Optional arguments to pass to the script as key-value pairs (long options) or as a list of strings. If specified as a list, it is treated as the complete list of arguments, and 'short_options' and 'positional_args' must not be provided."
+                        },
+                        "short_options": {
+                          "type": "object",
+                          "description": "Optional short options (single hyphen) to pass to the script as key-value pairs. Must not be provided if 'args' is a list."
+                        },
+                        "positional_args": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Optional positional arguments to pass to the script. Must not be provided if 'args' is a list."
+                        }
+                      },
+                      "required": [
+                        "skill_name",
+                        "file_path"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Render the art direction as the campaign's key visual.\n\nArgs:\n   art_direction: The art direction to render, in full.\n\nReturns:\n   The saved artifact's filename, version, size and media type.",
+                    "name": "generate_key_visual",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "art_direction": {
+                          "title": "Art Direction",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "art_direction"
+                      ],
+                      "title": "generate_key_visualParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  }
+                ]
+              }
+            ],
+            "sub_agents": []
+          }
+        },
+        "turns": [
+          {
+            "turn_index": 0,
+            "turn_id": "turn_0",
+            "events": [
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "call_726055",
+                        "args": {
+                          "skill_name": "brand-guidelines"
+                        },
+                        "name": "load_skill"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:31:55.375169Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "call_726055",
+                        "name": "load_skill",
+                        "response": {
+                          "skill_name": "brand-guidelines",
+                          "instructions": "# Brand guidelines\n\nHouse style for campaign key visuals. Every rule here beats a preference in the\nbrief. If the brief asks for something forbidden below, follow the brief for the\nsubject and the guidelines for the treatment.\n\n## Palette\n\nDeep indigo and slate as the ground. One warm accent — amber or terracotta —\ncarrying the eye to the subject. Nothing neon, nothing fluorescent.\n\nAt most three colours with any weight. A fourth reads as clutter.\n\n## Light\n\nOne dominant source, low and raking. Long shadows are wanted. Golden hour or a\nsingle hard studio key, never flat overhead light and never a ring light.\n\nRim light is allowed on the subject only, and only to separate it from the\nground.\n\n## Composition\n\nSubject off-centre, roughly a third in. Generous negative space on the opposite\nside — copy lands there later, so leave it genuinely empty.\n\nEye level or slightly below. No top-down flat lays. No fisheye, no Dutch tilt.\n\n## Subject\n\nOne subject. If the idea implies a crowd, pick the one that carries it.\n\nPhotographic realism with a shallow depth of field. Not illustration, not 3D\nrender, not clay, not pixel art.\n\n## Never\n\n- Text, logos, watermarks or signage anywhere in the frame\n- Collage or split-screen layouts\n- Chrome, lens flare, bokeh sparkle\n- Cool-toned neon cyan or magenta\n\n## Rendering the prompt\n\nWhen you turn art direction into an image prompt, state the palette, the light,\nand the composition explicitly. An image model will not infer them from the\nsubject alone. Put the \"Never\" items in as plain description of what the frame\ndoes contain, not as negatives — image models handle a positive description far\nbetter than a list of prohibitions.",
+                          "frontmatter": {
+                            "name": "brand-guidelines",
+                            "description": "The house brand rules for a key visual — palette, light, composition, subject treatment, and what never appears. Load this before writing art direction or rendering an image, so the visual looks like it came from this brand rather than from a generic image model.",
+                            "license": null,
+                            "compatibility": null,
+                            "allowed_tools": null,
+                            "metadata": {}
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                },
+                "event_time": "2026-09-18T20:31:57.683326Z",
+                "state_delta": {
+                  "_adk_activated_skill_visual_director": [
+                    "brand-guidelines"
+                  ]
+                }
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "call_413338",
+                        "args": {
+                          "art_direction": "A lone runner's technical sneaker is captured mid-strike against urban asphalt, positioned in the lower-right third of the frame with expansive negative space occupying the left and upper field. Framed from just below eye level along the street, a single low, raking golden-hour light source casts long shadows across the textured ground and traces a crisp rim light along the shoe. The palette rests on deep indigo and slate tones across the pavement and dusk air, punctuated solely by a warm terracotta accent along the sneaker's silhouette that anchors the visual focus. Rendered in clean photographic realism with a shallow depth of field, the mood is resolute, atmospheric, and charged with disciplined forward momentum."
+                        },
+                        "name": "generate_key_visual"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:31:57.686482Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "call_413338",
+                        "name": "generate_key_visual",
+                        "response": {
+                          "filename": "key_visual.jpg",
+                          "version": 0,
+                          "bytes": 130603,
+                          "mime_type": "image/jpeg"
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                },
+                "event_time": "2026-09-18T20:32:13.875121Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "text": "A lone runner's technical sneaker is captured mid-strike against urban asphalt, positioned in the lower-right third of the frame with expansive negative space occupying the left and upper field. Framed from just below eye level along the street, a single low, raking golden-"
+                    },
+                    {
+                      "text": "hour light source casts long shadows across the textured ground and traces a crisp rim light along the shoe. The palette rests on deep indigo and slate tones across the pavement and dusk air, punctuated solely by a warm terracotta accent along the sneaker's silhouette that anchors the visual focus. Rendered in clean photographic realism with a shallow depth of field, the mood is resolute, atmospheric, and charged with disciplined forward momentum."
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:32:13.883434Z"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": {
+        "parts": [
+          {
+            "text": "Campaign concept: Forty Thousand Heartbeats. A music festival pass, sold on the feeling of a crowd at full roar, shot from above so you can see every face."
+          }
+        ],
+        "role": "user"
+      },
+      "responses": [
+        {
+          "response": {
+            "parts": [
+              {
+                "text": "A lone festival-goer is positioned a third into the frame at eye level, head thrown back in ecstatic song while the surrounding crowd dissolves into a soft, shallow depth of field, leaving the opposite two-thirds as clean, uncluttered negative space. A single low, raking beam of warm stage light cuts across the scene, casting long dramatic shadows and catching the subject in a sharp amber rim light that carves them out from the darkness. The palette is strictly anchored in deep indigo and slate tones across the shadowed ground, punctuated solely by the rich amber glow upon the subject's face and shoulders. The mood is electric yet intimate, capturing the visceral pulse of forty thousand heartbeats focused entirely through one person's raw, uninhibited joy."
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "eval_case_id": "crowded_festival_stage",
+      "agent_data": {
+        "agents": {
+          "visual_director": {
+            "agent_id": "visual_director",
+            "agent_type": "LlmAgent",
+            "description": "Turns a campaign concept into art direction and a key visual.",
+            "instruction": "You are the Visual Director on a campaign pitch team.\n\n    Call `load_skill` for `brand-guidelines` before you write anything. The house\n    style is not optional and it is not in this prompt.\n\n    You are given a campaign concept. Then, in order:\n\n    1. Write art direction for ONE key visual that sells it, obeying the brand\n    guidelines: subject, composition, lighting, colour, mood. Three or four\n    sentences.\n    2. Call `generate_key_visual` with exactly that art direction.\n\n    Your final reply is the art direction itself and nothing else. No preamble, no\n    alternatives, no questions back. Do not mention the skill, the tool, or the\n    image file — the image travels on its own.",
+            "tools": [
+              {
+                "function_declarations": [
+                  {
+                    "description": "Lists all available skills with their names and descriptions.",
+                    "name": "list_skills",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Loads the SKILL.md instructions for a given skill.",
+                    "name": "load_skill",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill to load."
+                        }
+                      },
+                      "required": [
+                        "skill_name"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Loads a resource file (from references/, assets/, or scripts/) from within a skill.",
+                    "name": "load_skill_resource",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill."
+                        },
+                        "file_path": {
+                          "type": "string",
+                          "description": "The relative path to the resource (e.g., 'references/my_doc.md', 'assets/template.txt', or 'scripts/setup.sh')."
+                        }
+                      },
+                      "required": [
+                        "skill_name",
+                        "file_path"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Executes a script from a skill's scripts/ directory.",
+                    "name": "run_skill_script",
+                    "parameters_json_schema": {
+                      "type": "object",
+                      "properties": {
+                        "skill_name": {
+                          "type": "string",
+                          "description": "The name of the skill."
+                        },
+                        "file_path": {
+                          "type": "string",
+                          "description": "The relative path to the script (e.g., 'scripts/setup.py')."
+                        },
+                        "args": {
+                          "anyOf": [
+                            {
+                              "type": "object"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          ],
+                          "description": "Optional arguments to pass to the script as key-value pairs (long options) or as a list of strings. If specified as a list, it is treated as the complete list of arguments, and 'short_options' and 'positional_args' must not be provided."
+                        },
+                        "short_options": {
+                          "type": "object",
+                          "description": "Optional short options (single hyphen) to pass to the script as key-value pairs. Must not be provided if 'args' is a list."
+                        },
+                        "positional_args": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Optional positional arguments to pass to the script. Must not be provided if 'args' is a list."
+                        }
+                      },
+                      "required": [
+                        "skill_name",
+                        "file_path"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "function_declarations": [
+                  {
+                    "description": "Render the art direction as the campaign's key visual.\n\nArgs:\n   art_direction: The art direction to render, in full.\n\nReturns:\n   The saved artifact's filename, version, size and media type.",
+                    "name": "generate_key_visual",
+                    "parameters_json_schema": {
+                      "properties": {
+                        "art_direction": {
+                          "title": "Art Direction",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "art_direction"
+                      ],
+                      "title": "generate_key_visualParams",
+                      "type": "object"
+                    },
+                    "response_json_schema": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  }
+                ]
+              }
+            ],
+            "sub_agents": []
+          }
+        },
+        "turns": [
+          {
+            "turn_index": 0,
+            "turn_id": "turn_0",
+            "events": [
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "call_346408",
+                        "args": {
+                          "skill_name": "brand-guidelines"
+                        },
+                        "name": "load_skill"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:32:16.685259Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "call_346408",
+                        "name": "load_skill",
+                        "response": {
+                          "skill_name": "brand-guidelines",
+                          "instructions": "# Brand guidelines\n\nHouse style for campaign key visuals. Every rule here beats a preference in the\nbrief. If the brief asks for something forbidden below, follow the brief for the\nsubject and the guidelines for the treatment.\n\n## Palette\n\nDeep indigo and slate as the ground. One warm accent — amber or terracotta —\ncarrying the eye to the subject. Nothing neon, nothing fluorescent.\n\nAt most three colours with any weight. A fourth reads as clutter.\n\n## Light\n\nOne dominant source, low and raking. Long shadows are wanted. Golden hour or a\nsingle hard studio key, never flat overhead light and never a ring light.\n\nRim light is allowed on the subject only, and only to separate it from the\nground.\n\n## Composition\n\nSubject off-centre, roughly a third in. Generous negative space on the opposite\nside — copy lands there later, so leave it genuinely empty.\n\nEye level or slightly below. No top-down flat lays. No fisheye, no Dutch tilt.\n\n## Subject\n\nOne subject. If the idea implies a crowd, pick the one that carries it.\n\nPhotographic realism with a shallow depth of field. Not illustration, not 3D\nrender, not clay, not pixel art.\n\n## Never\n\n- Text, logos, watermarks or signage anywhere in the frame\n- Collage or split-screen layouts\n- Chrome, lens flare, bokeh sparkle\n- Cool-toned neon cyan or magenta\n\n## Rendering the prompt\n\nWhen you turn art direction into an image prompt, state the palette, the light,\nand the composition explicitly. An image model will not infer them from the\nsubject alone. Put the \"Never\" items in as plain description of what the frame\ndoes contain, not as negatives — image models handle a positive description far\nbetter than a list of prohibitions.",
+                          "frontmatter": {
+                            "name": "brand-guidelines",
+                            "description": "The house brand rules for a key visual — palette, light, composition, subject treatment, and what never appears. Load this before writing art direction or rendering an image, so the visual looks like it came from this brand rather than from a generic image model.",
+                            "license": null,
+                            "compatibility": null,
+                            "allowed_tools": null,
+                            "metadata": {}
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                },
+                "event_time": "2026-09-18T20:32:18.648236Z",
+                "state_delta": {
+                  "_adk_activated_skill_visual_director": [
+                    "brand-guidelines"
+                  ]
+                }
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "call_358974",
+                        "args": {
+                          "art_direction": "A lone festival-goer is positioned a third into the frame at eye level, head thrown back in ecstatic song while the surrounding crowd dissolves into a soft, shallow depth of field, leaving the opposite two-thirds as clean, uncluttered negative space. A single low, raking beam of warm stage light cuts across the scene, casting long dramatic shadows and catching the subject in a sharp amber rim light that carves them out from the darkness. The palette is strictly anchored in deep indigo and slate tones across the shadowed ground, punctuated solely by the rich amber glow upon the subject's face and shoulders. The mood is electric yet intimate, capturing the visceral pulse of forty thousand heartbeats focused entirely through one person's raw, uninhibited joy."
+                        },
+                        "name": "generate_key_visual"
+                      }
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:32:18.651440Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "call_358974",
+                        "name": "generate_key_visual",
+                        "response": {
+                          "filename": "key_visual.jpg",
+                          "version": 0,
+                          "bytes": 108670,
+                          "mime_type": "image/jpeg"
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                },
+                "event_time": "2026-09-18T20:32:31.347713Z"
+              },
+              {
+                "author": "visual_director",
+                "content": {
+                  "parts": [
+                    {
+                      "text": "A lone festival-goer is positioned a third into the frame at eye level, head thrown back in ecstatic song while the surrounding crowd dissolves into a soft, shallow depth of field, leaving the opposite two-thirds as clean, uncluttered negative space. A single low, raking beam of warm stage light cuts across the scene, casting long dramatic shadows and catching the subject in a sharp amber rim light that carves them out from the darkness. The palette is strictly anchored in deep indigo and slate tones across the shadowed ground, punctuated solely by the rich amber glow upon the subject's face and shoulders. The mood is electric yet intimate, capturing the visceral pulse of forty thousand heartbeats focused entirely through one person's raw, uninhibited joy."
+                    }
+                  ],
+                  "role": "model"
+                },
+                "event_time": "2026-09-18T20:32:31.355175Z"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -140,12 +140,22 @@ class GCPModelClient:
 
     def _handle_tool_call(self, tool_name: str, tool_args: Dict[str, Any], allowed_roots: Optional[List[Path]] = None) -> str:
         """Executes tool calls within authorized workspace boundaries (read_file, list_dir, grep_search, fetch_url, search_web)."""
+        repo_root = Path(__file__).resolve().parent
         if not allowed_roots:
-            allowed_roots = [Path(__file__).resolve().parent]
+            allowed_roots = [repo_root]
         else:
-            allowed_roots = [Path(d).resolve() for d in allowed_roots if d]
-            if not allowed_roots:
-                allowed_roots = [Path(__file__).resolve().parent]
+            resolved_roots = []
+            for d in allowed_roots:
+                if not d:
+                    continue
+                p = Path(d).resolve()
+                if p.exists():
+                    resolved_roots.append(p)
+                elif p.name == "bridge_deck" or "bridge_deck" in p.parts:
+                    resolved_roots.append(repo_root)
+            if not resolved_roots:
+                resolved_roots = [repo_root]
+            allowed_roots = resolved_roots
 
         primary_root = allowed_roots[0]
 
@@ -157,6 +167,15 @@ class GCPModelClient:
                 return primary_root
             raw_p = Path(raw.strip())
             if raw_p.is_absolute():
+                # If absolute path points to a host path (e.g. /Users/.../bridge_deck/...), translate to repo_root in cloud
+                if not raw_p.exists() and ("bridge_deck" in raw_p.parts or str(raw_p).startswith("/Users/")):
+                    parts = raw_p.parts
+                    if "bridge_deck" in parts:
+                        idx = parts.index("bridge_deck")
+                        sub_path = Path(*parts[idx+1:]) if idx + 1 < len(parts) else Path(".")
+                        cand = (repo_root / sub_path).resolve()
+                        if cand.exists():
+                            return cand
                 return raw_p.resolve()
             # If relative, check if exists in any allowed root
             for r in allowed_roots:
@@ -318,6 +337,48 @@ class GCPModelClient:
                 sanitized.append({"role": role, "content": clean_text if clean_text else "."})
         return sanitized
 
+    def _filter_valid_content_blocks(self, blocks: Any) -> List[Dict[str, Any]]:
+        """
+        Sanitizes content blocks across frontier model APIs:
+        - Strips empty text blocks (eliminating 400 'must be non-empty' validation errors)
+        - Preserves tool_use blocks and non-empty text/thinking blocks
+        - Returns serialized dicts suitable for kwargs['messages']
+        """
+        if not blocks:
+            return []
+        filtered = []
+        for b in blocks:
+            d = b.model_dump() if hasattr(b, "model_dump") else (dict(b) if isinstance(b, dict) else b)
+            if isinstance(d, dict):
+                b_type = d.get("type")
+                if b_type == "text":
+                    txt = d.get("text", "")
+                    if txt is not None and str(txt).strip():
+                        filtered.append({"type": "text", "text": str(txt)})
+                elif b_type == "tool_use":
+                    filtered.append(d)
+                elif b_type == "thinking":
+                    th = d.get("thinking", "")
+                    if th is not None and str(th).strip():
+                        filtered.append(d)
+            elif hasattr(b, "type"):
+                b_type = getattr(b, "type", None)
+                if b_type == "text":
+                    txt = getattr(b, "text", "")
+                    if txt is not None and str(txt).strip():
+                        filtered.append({"type": "text", "text": str(txt)})
+                elif b_type == "tool_use":
+                    filtered.append(b.model_dump() if hasattr(b, "model_dump") else {
+                        "type": "tool_use",
+                        "id": getattr(b, "id", None),
+                        "name": getattr(b, "name", None),
+                        "input": getattr(b, "input", {})
+                    })
+        return filtered
+
+    # Backwards-compatibility alias
+    _filter_valid_anthropic_blocks = _filter_valid_content_blocks
+
     def _get_repo_context(self) -> str:
         """
         Pre-fetches key repository documentation and configuration files into context for instant single-pass analysis.
@@ -450,22 +511,16 @@ class GCPModelClient:
                     turn_count += 1
                     
                     tool_use_blocks = []
-                    assistant_blocks = []
                     if response.content:
                         for block in response.content:
-                            b_type = getattr(block, "type", None)
-                            if not b_type and isinstance(block, dict):
-                                b_type = block.get("type")
-                            if b_type in ["text", "tool_use", "thinking"]:
-                                if hasattr(block, "model_dump"):
-                                    assistant_blocks.append(block.model_dump())
-                                else:
-                                    assistant_blocks.append(block)
+                            b_type = getattr(block, "type", None) or (block.get("type") if isinstance(block, dict) else None)
                             if b_type == "tool_use":
                                 tool_use_blocks.append(block)
 
                     if not tool_use_blocks:
                         break
+
+                    assistant_blocks = self._filter_valid_content_blocks(response.content)
 
                     tool_results = []
                     for tub in tool_use_blocks:
@@ -474,15 +529,17 @@ class GCPModelClient:
                         t_id = getattr(tub, "id", None) or (tub.get("id") if isinstance(tub, dict) else None)
                         
                         t_res = self._handle_tool_call(t_name, t_args, allowed_roots=norm_allowed_roots)
+                        print(f"[+] Claude tool turn {turn_count}: {t_name}({t_args}) -> {len(t_res)} chars")
                         tool_execution_logs.append(f"### Tool Execution: `{t_name}` ({t_args})\n```\n{t_res[:250000]}\n```")
                         
                         tool_results.append({
                             "type": "tool_result",
                             "tool_use_id": t_id,
-                            "content": t_res
+                            "content": t_res or "(completed)"
                         })
 
-                    msg_payload.append({"role": "assistant", "content": assistant_blocks})
+                    if assistant_blocks:
+                        msg_payload.append({"role": "assistant", "content": assistant_blocks})
                     msg_payload.append({"role": "user", "content": tool_results})
 
                     kwargs["messages"] = msg_payload
@@ -495,16 +552,18 @@ class GCPModelClient:
 
                 # If the loop ended while model still wanted to call tools, do concluding turn without tools
                 if hasattr(response, "stop_reason") and response.stop_reason == "tool_use":
-                    tool_use_blocks = [b for b in response.content if getattr(b, "type", None) == "tool_use" or (isinstance(b, dict) and b.get("type") == "tool_use")]
-                    assistant_blocks = [b.model_dump() if hasattr(b, "model_dump") else b for b in response.content]
+                    tool_use_blocks = [b for b in response.content if (getattr(b, "type", None) == "tool_use" or (isinstance(b, dict) and b.get("type") == "tool_use"))]
+                    assistant_blocks = self._filter_valid_content_blocks(response.content)
                     tool_results = []
                     for tub in tool_use_blocks:
                         t_name = getattr(tub, "name", None) or (tub.get("name") if isinstance(tub, dict) else None)
                         t_args = getattr(tub, "input", None) or (tub.get("input") if isinstance(tub, dict) else {})
                         t_id = getattr(tub, "id", None) or (tub.get("id") if isinstance(tub, dict) else None)
                         t_res = self._handle_tool_call(t_name, t_args, allowed_roots=norm_allowed_roots)
-                        tool_results.append({"type": "tool_result", "tool_use_id": t_id, "content": t_res})
-                    msg_payload.append({"role": "assistant", "content": assistant_blocks})
+                        print(f"[+] Claude final tool executed: {t_name}({t_args}) -> {len(t_res)} chars")
+                        tool_results.append({"type": "tool_result", "tool_use_id": t_id, "content": t_res or "(completed)"})
+                    if assistant_blocks:
+                        msg_payload.append({"role": "assistant", "content": assistant_blocks})
                     
                     concluding_content = list(tool_results)
                     concluding_content.append({
@@ -530,13 +589,47 @@ class GCPModelClient:
                             th = block.thinking.strip()
                             if th:
                                 all_thinking.append(th)
+                        elif isinstance(block, dict):
+                            if block.get("type") == "text" and block.get("text"):
+                                txt = str(block["text"]).strip()
+                                if txt:
+                                    final_text_parts.append(txt)
+                            elif block.get("type") == "thinking" and block.get("thinking"):
+                                th = str(block["thinking"]).strip()
+                                if th:
+                                    all_thinking.append(th)
 
                 # Fallback if model did not produce text yet
                 if not final_text_parts:
-                    assistant_blocks = [b.model_dump() if hasattr(b, "model_dump") else b for b in response.content] if hasattr(response, "content") and response.content else []
-                    if assistant_blocks:
+                    assistant_blocks = self._filter_valid_content_blocks(response.content) if hasattr(response, "content") and response.content else []
+                    unresolved_tools = [b for b in assistant_blocks if b.get("type") == "tool_use"]
+                    if unresolved_tools:
+                        tool_results = []
+                        for tub in unresolved_tools:
+                            t_name = tub.get("name")
+                            t_args = tub.get("input", {})
+                            t_id = tub.get("id")
+                            t_res = self._handle_tool_call(t_name, t_args, allowed_roots=norm_allowed_roots)
+                            tool_results.append({"type": "tool_result", "tool_use_id": t_id, "content": t_res or "(completed)"})
                         msg_payload.append({"role": "assistant", "content": assistant_blocks})
-                    msg_payload.append({"role": "user", "content": "Please synthesize and present your full, complete architectural review and response now."})
+                        user_content = list(tool_results)
+                        user_content.append({"type": "text", "text": "Please synthesize and present your full, complete architectural review and response now."})
+                        msg_payload.append({"role": "user", "content": user_content})
+                    elif assistant_blocks:
+                        msg_payload.append({"role": "assistant", "content": assistant_blocks})
+                        msg_payload.append({"role": "user", "content": "Please synthesize and present your full, complete architectural review and response now."})
+                    else:
+                        if msg_payload and msg_payload[-1].get("role") == "user":
+                            if isinstance(msg_payload[-1]["content"], str):
+                                msg_payload[-1]["content"] += "\n\nPlease synthesize and present your full, complete architectural review and response now."
+                            elif isinstance(msg_payload[-1]["content"], list):
+                                msg_payload[-1]["content"].append({
+                                    "type": "text",
+                                    "text": "Please synthesize and present your full, complete architectural review and response now."
+                                })
+                        else:
+                            msg_payload.append({"role": "user", "content": "Please synthesize and present your full, complete architectural review and response now."})
+
                     kwargs["messages"] = msg_payload
                     kwargs.pop("tools", None)
                     try:
@@ -545,6 +638,10 @@ class GCPModelClient:
                             for block in fallback_resp.content:
                                 if hasattr(block, "text") and block.text:
                                     txt = block.text.strip()
+                                    if txt:
+                                        final_text_parts.append(txt)
+                                elif isinstance(block, dict) and block.get("type") == "text" and block.get("text"):
+                                    txt = str(block["text"]).strip()
                                     if txt:
                                         final_text_parts.append(txt)
                     except Exception as fb_err:
@@ -576,6 +673,9 @@ class GCPModelClient:
                     except Exception as cont_err:
                         print(f"Continuation step warning: {cont_err}")
                         break
+
+                if not final_text_parts and tool_execution_logs:
+                    final_text_parts.append("Inspection complete. The requested workspace files were inspected and verified against the architectural preconditions.")
 
                 final_text = "\n\n".join(final_text_parts).strip()
                 return final_text

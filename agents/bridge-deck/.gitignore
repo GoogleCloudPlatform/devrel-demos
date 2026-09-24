@@ -4,8 +4,13 @@ __pycache__/
 .DS_Store
 *.log
 server.log
+logs/
+data/
 data/tenants/
 scratch/
 .env
+deploy.env
 claude_bridge.md
-
+.bridge_relay/
+docs/internal/
+internal/

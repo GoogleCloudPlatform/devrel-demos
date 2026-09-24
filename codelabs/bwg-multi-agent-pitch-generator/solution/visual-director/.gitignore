@@ -211,3 +211,6 @@ tools/a2a-inspector/
 *.pem
 *-key.json
 credentials*.json
+
+# Eval output. Reference traces live in tests/eval/traces/ and stay tracked.
+artifacts/

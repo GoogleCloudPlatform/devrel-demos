@@ -1,6 +1,6 @@
 # 🌉 Bridge Deck: Complete Human User and Operator Guide
 
-> **Last Updated:** September 1, 2026
+> **Last Updated:** September 18, 2026
 
 Welcome to the **Bridge Deck Human User and Operator Guide**.
 This guide provides practical, step-by-step instructions
@@ -13,14 +13,16 @@ and managing collaborative multi-agent workspaces.
 ## 📑 Table of contents
 
 1.  [How to download, launch, and pair with Astra](#1-how-to-download-launch-and-pair-with-astra)
-1.  [Connect to Google Cloud account and verify credentials](#2-connect-to-google-cloud-account-and-verify-credentials)
-1.  [How to use cores and add models or agents](#3-how-to-use-cores)
-1.  [How to sync cores](#4-how-to-sync-cores)
+1.  [How to connect to Google Cloud and verify credentials](#2-how-to-connect-to-google-cloud-and-verify-credentials)
+1.  [How to use cores](#3-how-to-use-cores)
+1.  [How to sync cores and add models](#4-how-to-sync-cores-and-add-models)
 1.  [How to add a team member and craft their personality](#5-how-to-add-a-team-member-and-craft-their-personality)
 1.  [How to manage project rooms and assign team members](#6-how-to-manage-project-rooms-and-assign-team-members)
 1.  [How to add project directories and scope workspace access](#7-how-to-add-project-directories-and-scope-workspace-access)
 1.  [How to assign project roles](#8-how-to-assign-project-roles)
 1.  [How to manage agent write permissions](#9-how-to-manage-agent-write-permissions)
+1.  [How to deploy and access Bridge Deck on Google Cloud](#10-how-to-deploy-and-access-bridge-deck-on-google-cloud)
+1.  [Quick reference Astra prompts](#-quick-reference-astra-prompts)
 
 ---
 
@@ -48,7 +50,7 @@ she helps repair the platform, expand features, and answer questions.
 
 1.  Prompt your agent to clone the repository and embody Astra:
 
-    > *"Please clone `https://github.com/GoogleCloudPlatform/devrel-demos/tree/main/agents/bridge-deck`, create a Python virtual environment, install dependencies, and initialize yourself as Astra using `agents/bridge_deck_lead.json`."*
+    > *"Please clone `https://github.com/GoogleCloudPlatform/devrel-demos.git`, navigate to `agents/bridge-deck`, create a Python virtual environment, install dependencies, and initialize yourself as Astra using `agents/bridge_deck_lead.json`."*
 
     Your agent reads `agents/bridge_deck_lead.json`, adopts Astra's personality,
     directives, and tool permissions, and connects to the workspace.
@@ -57,32 +59,15 @@ she helps repair the platform, expand features, and answer questions.
 
     > *"Please verify Google Cloud authentication and launch the Bridge Deck server in the background on port 8080."*
 
-1.  Open your browser and visit [http://localhost:8080](http://localhost:8080)
-    (or your tenant workspace: `http://localhost:8080/?tenant=default`).
-
-#### Helpful manual terminal commands
-
-```bash
-# Clone and setup
-git clone https://github.com/example-org/bridge_deck.git
-cd bridge_deck
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# Launch in the background
-nohup ./venv/bin/python bridge_runner.py --port 8080 > server.log 2>&1 &
-```
+1.  Open your browser and visit [http://localhost:8080](http://localhost:8080).
 
 ---
 
-## 2. Connect to Google Cloud account and verify credentials
+## 2. How to connect to Google Cloud and verify credentials
 
 Bridge Deck uses [**Gemini Enterprise Agent Platform**](https://g.dev/ai/gemini-enterprise-agent-platform)
 for frontier model inference
 (Gemini 3.7 Flash, Claude Opus 5, and custom GPU endpoints).
-
-### Ask Astra to verify your credentials (or set them up)
 
 Prompt Astra:
 
@@ -90,16 +75,6 @@ Prompt Astra:
 
 Astra checks your environment, guides you through Application Default
 Credentials (ADC) if needed, and sets your active project.
-
-### Manual terminal authentication
-
-```bash
-# Authenticate your Google Cloud account
-gcloud auth application-default login
-
-# Set your active project
-gcloud config set project YOUR_GCP_PROJECT_ID
-```
 
 ---
 
@@ -124,72 +99,40 @@ Ask Astra to help you configure custom cores.
 
 ---
 
-### Add a model from Model Garden
+## 4. How to sync cores and add models
 
-1.  Under _Cores_ in the left sidebar, select **Google Model Garden**.
-1.  Click **+ Add Model**.
-1.  Complete the modal fields:
-    - **Model Display Name**: For example, `Gemma 4 12B IT (Model Garden)`
-    - **Model Identifier or Endpoint ID**:
-      - *Foundation Models*: `claude-opus-5`, `gemini-3.7-flash`, `gemini-2.5-flash`
-      - *Custom Endpoints*: `projects/123456/locations/us-central1/endpoints/mg-endpoint-...`
-    - **Region or Location**: `us-central1`, `europe-west1`, or `global`
-    - **Default Temperature**: `0.7` (or `0.2` for analytical tasks)
-    - **Max Output Tokens**: `2048`, `4096`, or `8192`
-1.  Click **Save Model**.
-    The model is immediately selectable in team member profiles.
+Bridge Deck features automatic discovery and synchronization across both cloud and local AI providers.
 
-### Add an agent from Google ADK
+### Sync models from Google Model Garden
 
-1.  Under _Cores_ in the left sidebar, select **Google ADK**.
-1.  Click **+ Add Agent** (or ask Astra to create an ADK agent definition for you).
-1.  Complete the modal fields:
-    - **Agent Display Name**: For example, `Literature Specialist (ADK)`
-    - **Base Model**: Select `gemini-3.7-flash` or `gemini-2.5-pro`
-    - **ADK App Path or Module**: For example, `adk_app.py` or `./agents/adk_specialist`
-    - **Execution Loop**: Select multi-step tool reasoning or single-turn response
-    - **Tools and Grounding**: Select authorized tools (such as Web Search, Code Execution, or Custom Tools)
-1.  Click **Save Agent**.
-    The agent is immediately registered and ready to be assigned to projects or team members.
+You do not need to manually configure endpoints, temperature settings, or token limits. Bridge Deck automatically discovers and synchronizes frontier models from your Google Cloud project:
 
-### Add an agent from Antigravity
+1. Under _Cores_ in the left sidebar, click **Google Model Garden**.
+2. Click **🔄 Sync with Google Model Garden**.
+3. Bridge Deck connects to Vertex AI and registers all active frontier models (including Gemini 3.7 Flash, Claude Opus 5, Gemini 2.5 Pro/Flash, and Gemma).
+4. Synchronized models are immediately available when configuring or updating team members.
 
-1.  Under _Cores_ in the left sidebar, select **Google Antigravity**.
-1.  Click **+ Add Agent** (or ask Astra: *"Astra, create a new Antigravity agent named Vector with security scanning skills"*).
-1.  Complete the modal fields:
-    - **Agent Display Name**: For example, `Vector (Implementation Lead)`
-    - **Agent Identifier**: `vector` (lowercase alphanumeric)
-    - **Role and Avatar**: For example, `Implementation Engineer` and `⚡`
-    - **Harness**: Select `Antigravity Native` (enables live workspace terminal and file tools)
-    - **Model**: `gemini-3.7-flash` (or your preferred local Antigravity runtime model)
-    - **System Directive**: Define their focus, domain expertise, and operating style
-    - **Skills**: Check desired capabilities (such as *Security Vulnerability Scanner* or *Modern Web Guidance*)
-1.  Click **Save Agent**.
-    The agent appears in the team member roster and responds to `@agent` mentions in chat rooms.
-
-### Add a local model from Ollama
-
-1.  Ensure Ollama is running and pull your desired model on your workstation.
-    (Ask Astra for help here).
-1.  In the Bridge Deck, under _Cores_ in the left sidebar,
-    select **Ollama Engine**
-1.  Click **+ Add Model**.
-1.  Enter the exact model tag (for example, `llama3.3:70b`).
-1.  Click **Save Model**.
+> **Tip**: You can also simply ask Astra in Antigravity:
+> *"Astra, please sync our Google Model Garden models."*
 
 ---
 
-## 4. How to sync cores
+### Sync agents from Google ADK and Antigravity
 
-Syncing discovers live endpoints, validates API health,
-and updates available models across cloud and local providers.
+- **Google ADK**: Under _Cores_ in the left sidebar, select **Google ADK** and click **🔄 Sync with Google ADK** to discover and register active ADK agent workflows.
+- **Google Antigravity**: Under _Cores_ in the left sidebar, select **Google Antigravity** and click **🔄 Sync with Antigravity** to refresh locally registered Antigravity agents.
 
-1.  Open the core you want to update. The defaults are:
-    - **Google Model Garden**: Click **🔄 Sync Vertex AI**.
-    - **Google ADK**: Click **🔄 Sync ADK**.
-    - **Antigravity**: Click **🔄 Sync Antigravity**.
-    - **Ollama**: Click **🔄 Sync Ollama**.
-1.  A green notification badge confirms updated endpoints and available models.
+---
+
+### Add a local model from Ollama
+
+For local offline inference:
+
+1. Ensure Ollama is running on your workstation and pull your desired model (for example, `ollama pull llama3.3:70b`).
+2. Under _Cores_ in the left sidebar, select **Ollama Engine**.
+3. Click **➕ Add Model to Core**.
+4. Enter the exact model tag (for example, `llama3.3:70b`).
+5. Click **Save Model**. The model is immediately available to assign to team members.
 
 ---
 
@@ -320,22 +263,60 @@ Or in the member profile:
 
 ---
 
-## 📚 Quick reference commands
+## 10. How to deploy and access Bridge Deck on Google Cloud
 
-```bash
-# Start Bridge Deck server
-python bridge_runner.py --port 8080
+If you deployed the Bridge Deck on Google Cloud (or plan to),
+the platform runs on **Google Cloud Run** backed by high-availability GCS FUSE persistent storage
+and distributed Cloud Tasks queuing.
 
-# Run full automated test suite (48 tests)
-./venv/bin/python -m unittest discover -s tests
+### Deploying to Cloud Run
+You don't need to run deployment scripts manually. Simply prompt Astra in Antigravity:
 
-# Check A2A autonomous dispatcher status
-curl -s http://localhost:8080/api/a2a/status
+> *"Astra, please deploy the Bridge Deck to Google Cloud Run."*
 
-# Pause or resume A2A cascade
-curl -X POST http://localhost:8080/api/a2a/pause
-curl -X POST http://localhost:8080/api/a2a/resume
-```
+Astra references the deployment protocol in `docs/agent_user_guide.md`, verifies your Google Cloud project credentials, runs the automated pre-flight test gate, executes the rollout, and provides you with your authenticated launch link.
+
+---
+
+### Accessing your cloud deployment
+If your Bridge Deck is deployed to Cloud Run, access is gated by Google Cloud IAM. Simply prompt Astra:
+
+> *"Astra, please connect to the live Cloud Run service and open the Bridge Deck."*
+
+Astra automatically fetches the latest token from Secret Manager, starts the authenticated IAM proxy tunnel, and opens the live dashboard in your browser.
+
+---
+
+### Synchronizing disaster recovery backup depot
+If you configured a cold backup repository (`${BACKUP_REPO_URL}`), you can ask Astra to verify or synchronize the mirror:
+
+> *"Astra, please run a dry-run check on our disaster recovery backup depot."*
+
+Or to perform the sync:
+
+> *"Astra, please synchronize our disaster recovery backup depot."*
+
+---
+
+## 💬 Quick reference Astra prompts
+
+You don't need to memorize terminal commands or run shell scripts. You can copy and paste any of these everyday prompts directly to Astra in Antigravity:
+
+### Local development and testing
+- **Launch Local Bridge Deck**:
+  > *"Astra, please launch the Bridge Deck server in the background on port 8080."*
+- **Run Full Automated Test Suite**:
+  > *"Astra, please run the full automated test suite and report any issues."*
+- **Check System & Credentials**:
+  > *"Astra, verify my Google Cloud authentication status and configured GCP project."*
+
+### Google Cloud operations
+- **Deploy to Google Cloud Run**:
+  > *"Astra, please deploy the Bridge Deck to Google Cloud Run."*
+- **Open Live Cloud Dashboard**:
+  > *"Astra, please connect to the live Cloud Run service and open the Bridge Deck in my browser."*
+- **Sync Cold Disaster Recovery Backup**:
+  > *"Astra, please synchronize our disaster recovery backup depot."*
 
 ---
 

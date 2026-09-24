@@ -52,7 +52,7 @@ class TestRound10GovernanceRemediation(unittest.TestCase):
         }
         mock_agents_dir = self.test_dir / "agents"
         mock_agents_dir.mkdir(parents=True, exist_ok=True)
-        with unittest.mock.patch("bridge_runner.load_profiles", return_value=mock_profiles), \
+        with unittest.mock.patch("bridge_runner.load_profiles", return_value=(mock_profiles, 100)), \
              unittest.mock.patch("bridge_runner.load_projects", return_value=mock_projects), \
              unittest.mock.patch("bridge_runner.save_profiles") as mock_save:
             bridge_runner.sync_all_project_member_permissions(bridge_dir=self.test_dir)
@@ -152,6 +152,7 @@ class TestRound10GovernanceRemediation(unittest.TestCase):
             load_projects_fn=lambda *args, **kwargs: {"projects": []},
             build_messages_fn=lambda *args, **kwargs: ([], ""),
             build_self_context_fn=lambda *args, **kwargs: "",
+            append_transaction_fn=lambda p, tx: None,
             max_depth=5
         )
 
@@ -287,7 +288,7 @@ class TestRound10GovernanceRemediation(unittest.TestCase):
         }
 
         with unittest.mock.patch("bridge_runner.load_projects", return_value=mock_projects), \
-             unittest.mock.patch("bridge_runner.load_profiles", return_value=mock_profiles), \
+             unittest.mock.patch("bridge_runner.load_profiles", return_value=(mock_profiles, 100)), \
              unittest.mock.patch("bridge_runner.save_profiles") as mock_save:
             bridge_runner.sync_all_project_member_permissions()
             self.assertTrue(mock_save.called)

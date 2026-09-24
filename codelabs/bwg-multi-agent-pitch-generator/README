@@ -10,4 +10,12 @@ Learn how to build a multimodal multi-agent engine that takes a raw topic brief 
 
 ## Deploy
 
-This is a companion repository for an amazing Google Skills lab. Point your agent at the deployment instructions and profit!
+This is a companion repository for an amazing Google Skills lab. Point your agent at
+[`solution/deploy.md`](solution/deploy.md) and profit!
+
+## Evaluate
+
+[`solution/eval.md`](solution/eval.md) grades the Visual Director's art direction against
+the brand guidelines it was given, using the agent's own `SKILL.md` as the rubric. This
+goes beyond the lab: grading runs on saved traces, so it works with a free AI Studio key
+once your lab project is gone.
