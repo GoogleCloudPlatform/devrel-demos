@@ -26,14 +26,15 @@ def validate_context_candidates(
     valid_names = []
     for entry_name in candidate_names:
         try:
-            client.lookup_entry(
+            verified_entry = client.lookup_entry(
                 request=dataplex_v1.LookupEntryRequest(
                     name=scope,
                     entry=entry_name,
                     view=dataplex_v1.EntryView.BASIC,
                 )
             )
-            valid_names.append(entry_name)
+            if verified_entry.name:
+                valid_names.append(verified_entry.name)
         except (InvalidArgument, GoogleAPICallError) as exc:
             short_id = entry_name.split("/")[-1]
             print(f"Filtered invalid candidate: {short_id} ({type(exc).__name__})")
