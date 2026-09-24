@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 from google.api_core.exceptions import GoogleAPICallError, NotFound
 from google.cloud import bigquery, dataplex_v1
 from google.protobuf import field_mask_pb2
@@ -27,10 +28,11 @@ aspect_type_path = state.get(
 )
 
 print("Starting reverse-dependency resource cleanup...")
+cleanup_notes = []
 
 # 1. Detach column-level aspects from the users entry first
 aspect_keys = [
-    f"{aspect_key_prefix}@Schema.fields.{col}"
+    f"{aspect_key_prefix}@Schema.{col}"
     for col in COLUMN_GOVERNANCE_RULES
 ]
 if users_entry_name and aspect_key_prefix:
@@ -43,16 +45,16 @@ if users_entry_name and aspect_key_prefix:
                 aspect_keys=aspect_keys,
             )
         )
-    except (NotFound, GoogleAPICallError):
-        pass
+    except (NotFound, GoogleAPICallError) as exc:
+        cleanup_notes.append(f"entry:{type(exc).__name__}")
 print(f"Detached column aspects: {len(aspect_keys)} keys removed")
 
 # 2. Delete global AspectType (pii-governance)
 try:
     del_op = catalog_client.delete_aspect_type(name=aspect_type_path)
     del_op.result()
-except NotFound:
-    pass
+except NotFound as exc:
+    cleanup_notes.append(f"aspect_type:{type(exc).__name__}")
 print(f"Deleted AspectType ID: {ASPECT_TYPE_ID} (global)")
 
 # 3. Delete BigQuery sandbox dataset and all copied tables
@@ -62,9 +64,10 @@ bq_client.delete_dataset(
 )
 print(f"Deleted BigQuery dataset: {dataset_full_id}")
 
-# 4. Remove local state file
+# 4. Remove local state file and bytecode cache
 if os.path.exists(STATE_FILE):
     os.remove(STATE_FILE)
+shutil.rmtree("__pycache__", ignore_errors=True)
 print(f"Removed local state file: {STATE_FILE}")
 
 print("✓ Standalone teardown complete. Environment cleanly reset.")

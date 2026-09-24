@@ -28,7 +28,7 @@ lookup_req = dataplex_v1.LookupEntryRequest(
 hydrated_entry = catalog_client.lookup_entry(request=lookup_req)
 
 # 2. Extract column-level aspects keyed by numeric PROJECT_NUMBER
-target_suffix = f".global.{ASPECT_TYPE_ID}@Schema.fields."
+target_suffix = f".global.{ASPECT_TYPE_ID}@Schema."
 annotated_columns = 0
 high_findings = []
 
@@ -36,7 +36,7 @@ for aspect_key, aspect_obj in sorted(hydrated_entry.aspects.items()):
     if target_suffix not in aspect_key:
         continue
     annotated_columns += 1
-    col_name = aspect_key.split("@Schema.fields.")[-1]
+    col_name = aspect_key.split("@Schema.")[-1]
     data_map = dict(aspect_obj.data)
     finding = PiiColumnFinding(
         column_name=col_name,

@@ -54,11 +54,10 @@ try:
             metadata_template=pii_aspect_template,
         ),
     )
-    create_op.result()
+    live_aspect_type = create_op.result()
 except AlreadyExists:
-    pass
+    live_aspect_type = catalog_client.get_aspect_type(name=aspect_type_path)
 
-live_aspect_type = catalog_client.get_aspect_type(name=aspect_type_path)
 print(f"Verified AspectType ID: {live_aspect_type.name.split('/')[-1]} (global)")
 
 # 3. Poll Knowledge Catalog search until auto-ingested users entry is ready
@@ -87,17 +86,16 @@ if users_entry is None:
 project_number = users_entry.name.split("/")[1]
 aspect_key_prefix = f"{project_number}.global.{ASPECT_TYPE_ID}"
 
-# 4. Build and attach 7 column-level aspects (Schema.fields.<col>)
+# 4. Build and attach 7 column-level aspects (@Schema.<col>)
 aspects_map = {}
 aspect_keys = []
 for col_name, payload in COLUMN_GOVERNANCE_RULES.items():
-    aspect_key = f"{aspect_key_prefix}@Schema.fields.{col_name}"
+    aspect_key = f"{aspect_key_prefix}@Schema.{col_name}"
     aspect_keys.append(aspect_key)
     aspect_struct = struct_pb2.Struct()
     aspect_struct.update(payload)
     aspects_map[aspect_key] = dataplex_v1.Aspect(
         aspect_type=aspect_type_path,
-        path=f"Schema.fields.{col_name}",
         data=aspect_struct,
     )
 
