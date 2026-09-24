@@ -41,7 +41,7 @@ if users_entry_name and aspect_key_prefix:
             request=dataplex_v1.UpdateEntryRequest(
                 entry=dataplex_v1.Entry(name=users_entry_name, aspects={}),
                 update_mask=field_mask_pb2.FieldMask(paths=["aspects"]),
-                delete_aspects=True,
+                delete_missing_aspects=True,
                 aspect_keys=aspect_keys,
             )
         )
