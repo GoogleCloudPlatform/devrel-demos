@@ -95,16 +95,13 @@ try:
         print(f"Deleted Cloud Storage bucket : gs://{BUCKET_NAME}")
 except NotFound:
     print(f"Cloud Storage bucket already deleted: gs://{BUCKET_NAME}")
-except ResourceExhausted:
-    print("Cloud Storage rate limit encountered; skipping bucket deletion.")
 
 # 6. Remove temporary generated JSON artifacts
 for temp_file in ("extracted_metadata.json", "governance_metadata.json"):
-    if os.path.exists(temp_file):
-        try:
-            os.remove(temp_file)
-            print(f"Removed local temporary file : {temp_file}")
-        except OSError as err:
-            print(f"File cleanup note: {err}")
+    try:
+        os.remove(temp_file)
+        print(f"Removed local temporary file : {temp_file}")
+    except FileNotFoundError:
+        pass
 
 print("✓ Standalone teardown complete. Environment cleanly reset.")
