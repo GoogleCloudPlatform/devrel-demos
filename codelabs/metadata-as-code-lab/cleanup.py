@@ -98,10 +98,8 @@ except NotFound:
 
 # 6. Remove temporary generated JSON artifacts
 for temp_file in ("extracted_metadata.json", "governance_metadata.json"):
-    try:
+    if os.path.exists(temp_file):
         os.remove(temp_file)
         print(f"Removed local temporary file : {temp_file}")
-    except FileNotFoundError:
-        pass
 
 print("✓ Standalone teardown complete. Environment cleanly reset.")

@@ -100,7 +100,7 @@ class DocumentGovernanceMetadata(BaseModel):
         description="Mandatory document archival and retention schedule (e.g., 10-Year Active Product Lifecycle Archival)."
     )
     lakehouse_cross_ref_table: str = Field(
-        description="Associated Lakehouse for Apache Iceberg structured table identifier for cross-asset joins."
+        description="Associated structured inventory table identifier for cross-asset joins."
     )
     governance_status: str = Field(
         description="Catalog governance lifecycle status (e.g., VERIFIED_PRODUCTION)."
@@ -183,7 +183,7 @@ governance_aspect_template = {
             "name": "lakehouse_cross_ref_table",
             "type": "string",
             "index": 4,
-            "annotations": {"description": "Cross-referenced Lakehouse for Apache Iceberg table URI."},
+            "annotations": {"description": "Cross-referenced structured inventory table URI."},
         },
         {
             "name": "governance_status",

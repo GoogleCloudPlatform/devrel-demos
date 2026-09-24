@@ -95,7 +95,7 @@ Analyze the document thoroughly and extract:
 3. Operational safety hazard level (LOW, MEDIUM, HIGH, or CRITICAL) based on electrical/thermal warnings.
 4. Authoring division or manufacturer provenance.
 5. Version or revision provenance.
-6. Concise 2-3 sentence technical summary of specifications and safety operating procedures.
+6. Concise 2-3 sentence technical summary of specifications and safety operating procedures (begin with "This document outlines standard operating procedures").
 7. Extraction confidence score between 0.0 and 1.0."""
 
 candidate_models = [cid for _, _, cid in discovered_candidates]
@@ -131,7 +131,7 @@ Based on the PDF manual contents and electrical lighting safety standards, gener
 1. Applicable safety and regulatory compliance classifications (e.g. UL-153 Portable Luminaires, FCC Part 15, CE-LVD).
 2. Designated stewardship owner (e.g. Global Hardware Safety & Quality Assurance Team).
 3. Document retention policy (e.g. 10-Year Active Product Lifecycle Archival).
-4. Cross-referenced Lakehouse for Apache Iceberg table URI: 'lakehouse.{PROJECT_ID}.retail_hardware.luminaire_sku_inventory_iceberg'.
+4. Cross-referenced structured inventory table URI: 'lakehouse.{PROJECT_ID}.retail_hardware.luminaire_sku_inventory_iceberg'.
 5. Governance certification status: 'VERIFIED_PRODUCTION'."""
 
 governance_response = None
@@ -180,7 +180,7 @@ for attr_k, attr_v in df_extracted.itertuples(index=False):
         val_str = val_str[:49] + "..."
     print(f"{attr_k:<24}  {val_str}")
 
-print("\n--- Extracted Governance & Lakehouse Lineage Metadata ---")
+print("\n--- Extracted Governance & Inventory Cross-Reference Metadata ---")
 df_governance = pd.DataFrame(
     list(validated_governance.model_dump().items()),
     columns=["Governance Attribute", "Classification Value"],

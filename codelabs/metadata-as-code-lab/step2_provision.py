@@ -86,8 +86,8 @@ try:
         aspect_type_id=GOVERNANCE_ASPECT_TYPE_ID,
         aspect_type=AspectType(
             name=governance_aspect_type_name,
-            display_name="Document Governance & Lakehouse Lineage Aspect",
-            description="Compliance standards, stewardship ownership, and Lakehouse for Apache Iceberg cross-references.",
+            display_name="Document Governance & Inventory Cross-Reference Aspect",
+            description="Compliance standards, stewardship ownership, and structured SKU inventory cross-references.",
             metadata_template=governance_aspect_template,
         ),
     )
