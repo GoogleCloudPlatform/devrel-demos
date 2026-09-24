@@ -34,9 +34,14 @@ echo "  ✅   Authentication check passed."
 
 # The lab provisions a temporary `student-...` account. A personal or corporate
 # account will not have the permissions or quota this lab needs.
+#
+# On the Antigravity VM the IDE terminal is authenticated as the lab's own
+# service account (antigravity-sa@PROJECT.iam.gserviceaccount.com) rather than
+# as the student user, so that form is accepted too. Both are provisioned by the
+# lab; a personal or corporate account is still rejected.
 ACTIVE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)" | head -n 1)
-if [[ "${ACTIVE_ACCOUNT,,}" != *student* ]]; then
-  echo "⚠️   Logged in as '${ACTIVE_ACCOUNT:-none}', which is not the lab's student account."
+if [[ "${ACTIVE_ACCOUNT,,}" != *student* && "${ACTIVE_ACCOUNT,,}" != *.iam.gserviceaccount.com ]]; then
+  echo "⚠️   Logged in as '${ACTIVE_ACCOUNT:-none}', which is not a lab account."
   echo "👉  Close this tab, open Cloud Shell from the incognito window the lab opened, and sign in with the student credentials."
   exit 1
 fi
@@ -108,7 +113,11 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 export PATH="$HOME/.local/bin:$PATH"
-agents-cli >/dev/null 2>&1 || uv tool install "google-agents-cli==1.6.*"
+# Cloud Shell pre-installs an older agents-cli system-wide, so presence alone is
+# not enough: check the version, and let uv's copy win on PATH.
+if ! agents-cli --version 2>/dev/null | grep -q 'version 1\.6\.'; then
+  uv tool install --force "google-agents-cli==1.6.*"
+fi
 hash -r 2>/dev/null || true
 if ! grep -q 'export PATH="\$HOME/\.local/bin:\$PATH"' ~/.bashrc 2>/dev/null; then
   echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
@@ -122,44 +131,58 @@ fi
 echo " "
 
 # BigQuery Connection & IAM Setup
-echo "  🔄   Granting permissions to BQ connection..."
+echo "  🔄   Checking the BigQuery connection service account..."
 
 max_retries=5
 count=0
-success=false
+SA_ID=""
 
+# The connection's service agent is created asynchronously, so give it a moment.
 while [ $count -lt $max_retries ]; do
   ((count++))
-  echo "Attempt $count to grant IAM permissions..."
 
-  # Extract Service Account ID of the connection
-  SA_ID=$(bq show --location="$REGION" --format=json --connection pitch-connection 2>/dev/null | jq -r '.cloudResource.serviceAccountId')
-
+  SA_ID=$(bq show --location="$REGION" --format=json --connection pitch-connection 2>/dev/null | jq -r '.cloudResource.serviceAccountId // empty')
   if [ -n "$SA_ID" ]; then
-    echo "  ✅   Found Connection Service Account: $SA_ID"
-
-    echo "  🔄   Granting Storage Object Viewer and Vertex AI User permissions..."
-    gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-      --member="serviceAccount:$SA_ID" \
-      --role="roles/storage.objectViewer" >/dev/null 2>&1 && \
-    gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-      --member="serviceAccount:$SA_ID" \
-      --role="roles/aiplatform.user" >/dev/null 2>&1
-
-    if [ $? -eq 0 ]; then
-      echo "  ✅   IAM permissions successfully granted."
-      success=true
-      break
-    fi
+    break
   fi
 
-  echo "⚠️   Setup failed or service account not ready. Retrying in 20 seconds..."
+  echo "⏳   Connection service account not ready. Retrying in 20 seconds... ($count/$max_retries)"
   sleep 20
 done
 
-if [ "$success" = false ]; then
-  echo "❌ Error: Failed to setup BigQuery connection and IAM permissions after $max_retries attempts."
+if [ -z "$SA_ID" ]; then
+  echo "❌ Error: could not read the 'pitch-connection' service account after $max_retries attempts."
   exit 1
+fi
+
+echo "  ✅   Found Connection Service Account: $SA_ID"
+
+# The connection reads key visuals from Cloud Storage and calls Agent Platform for
+# AI.SCORE, so its service agent needs these two roles.
+#
+# Best-effort, not fatal. In the Qwiklabs environment these bindings are already
+# created by the lab's Terraform, and the identity running this script has no
+# permission to set IAM policy - deliberately, because that permission would let
+# the lab environment grant itself owner. Outside Qwiklabs, where you are running
+# in your own project against a connection this script just created, the grants
+# happen here.
+echo "  🔄   Ensuring Storage Object Viewer and Agent Platform User permissions..."
+grants_applied=true
+for role in "roles/storage.objectViewer" "roles/aiplatform.user"; do
+  if gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:$SA_ID" \
+    --role="$role" >/dev/null 2>&1; then
+    echo "  ✅   Granted $role"
+  else
+    grants_applied=false
+    echo "  ℹ️   Could not grant $role here - expected if it is already provisioned."
+  fi
+done
+
+if [ "$grants_applied" = false ]; then
+  echo "  ℹ️   If the brand-fit scoring step later fails with a permission error, ask"
+  echo "       your lab administrator to grant $SA_ID"
+  echo "       roles/storage.objectViewer and roles/aiplatform.user."
 fi
 
 echo " "

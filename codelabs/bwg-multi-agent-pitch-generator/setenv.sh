@@ -51,7 +51,8 @@ if [ -z "$PROJECT_ID" ] || [ -z "$REGION" ]; then
   return 1 2>/dev/null || exit 1
 fi
 
-# Ensure user-local binaries (like uv and agents-cli 1.5.0) take precedence over pre-installed system tools.
+# Ensure user-local binaries (uv, and the agents-cli it installs) take precedence
+# over the older agents-cli that Cloud Shell pre-installs system-wide.
 export PATH="$HOME/.local/bin:$PATH"
 hash -r 2>/dev/null || true
 
