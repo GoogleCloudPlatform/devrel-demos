@@ -1,8 +1,9 @@
+import time
 from typing import List
 from google import genai
 from google.api_core.exceptions import GoogleAPICallError, InvalidArgument
 from google.cloud import bigquery, dataplex_v1
-from google.genai import types
+from google.genai import errors as genai_errors, types
 from schemas import (
     DATAPLEX_LOCATION,
     DATASET_ID,
@@ -96,15 +97,24 @@ KNOWLEDGE CATALOG LOOKUP_CONTEXT YAML:
 {context_resp.context}
 """
 
-gen_response = genai_client.models.generate_content(
-    model=model_id,
-    contents=agent_prompt,
-    config=types.GenerateContentConfig(
-        response_mime_type="application/json",
-        response_schema=GroundedAgentDecision,
-        temperature=0.0,
-    ),
-)
+gen_response = None
+for gen_attempt in range(1, 5):
+    try:
+        gen_response = genai_client.models.generate_content(
+            model=model_id,
+            contents=agent_prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=GroundedAgentDecision,
+                temperature=0.0,
+            ),
+        )
+        break
+    except genai_errors.APIError:
+        if gen_attempt == 4:
+            raise
+        time.sleep(3)
+
 decision = GroundedAgentDecision.model_validate_json(gen_response.text)
 
 sql_upper = decision.sql_query.upper()
