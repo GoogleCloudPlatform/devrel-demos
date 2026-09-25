@@ -26,6 +26,11 @@ const firebaseConfig = {
 // Initialize Firebase
 export const app = initializeApp(firebaseConfig);
 
+// Set FIREBASE_APPCHECK_DEBUG_TOKEN to true to output a debug token to the
+// browser developer console. See https://firebase.google.com/docs/app-check/web/debug-provider
+
+// (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+
 // Initialize App Check
 initializeAppCheck(app, {
   provider: new ReCaptchaEnterpriseProvider('YOUR_RECAPTCHA_ENTERPRISE_SITE_KEY'),
