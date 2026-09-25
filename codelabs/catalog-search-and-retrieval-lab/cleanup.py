@@ -1,7 +1,7 @@
 import json
 import os
 import shutil
-from google.api_core.exceptions import GoogleAPICallError, NotFound
+from google.api_core.exceptions import NotFound
 from google.cloud import bigquery, dataplex_v1
 from google.protobuf import field_mask_pb2
 from schemas import (
@@ -45,7 +45,7 @@ if users_entry_name and aspect_key_prefix:
                 aspect_keys=aspect_keys,
             )
         )
-    except (NotFound, GoogleAPICallError) as exc:
+    except NotFound as exc:
         cleanup_notes.append(f"entry:{type(exc).__name__}")
 print(f"Detached column aspects: {len(aspect_keys)} keys removed")
 
