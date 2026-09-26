@@ -105,6 +105,8 @@ EOF
   fi
 }
 
+echo -e "\n\nConfiguring Antigravity CLI...\n\n"
+
 if __agy_lab_setup; then
   unset -f __agy_lab_setup
   # `return` succeeds at the top level only when this file is sourced.
