@@ -28,13 +28,13 @@ aspect_type_path = state.get(
 )
 
 print("Starting reverse-dependency resource cleanup...")
-cleanup_notes = []
 
 # 1. Detach column-level aspects from the users entry first
 aspect_keys = [
     f"{aspect_key_prefix}@Schema.{col}"
     for col in COLUMN_GOVERNANCE_RULES
 ]
+detached_count = 0
 if users_entry_name and aspect_key_prefix:
     try:
         catalog_client.update_entry(
@@ -45,17 +45,19 @@ if users_entry_name and aspect_key_prefix:
                 aspect_keys=aspect_keys,
             )
         )
-    except NotFound as exc:
-        cleanup_notes.append(f"entry:{type(exc).__name__}")
-print(f"Detached column aspects: {len(aspect_keys)} keys removed")
+        detached_count = len(aspect_keys)
+    except NotFound:
+        detached_count = 0
+print(f"Detached column aspects: {detached_count} keys removed")
 
 # 2. Delete global AspectType (pii)
+aspect_scope = "global"
 try:
     del_op = catalog_client.delete_aspect_type(name=aspect_type_path)
     del_op.result()
-except NotFound as exc:
-    cleanup_notes.append(f"aspect_type:{type(exc).__name__}")
-print(f"Deleted AspectType ID: {ASPECT_TYPE_ID} (global)")
+except NotFound:
+    aspect_scope = "global, already absent"
+print(f"Deleted AspectType ID: {ASPECT_TYPE_ID} ({aspect_scope})")
 
 # 3. Delete BigQuery sandbox dataset and all copied tables
 dataset_full_id = f"{PROJECT_ID}.{DATASET_ID}"

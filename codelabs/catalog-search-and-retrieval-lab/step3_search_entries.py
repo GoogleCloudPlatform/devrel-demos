@@ -35,7 +35,7 @@ structured_query = (
     f"AND aspect:{PROJECT_ID}.global.{ASPECT_TYPE_ID}"
 )
 structured_results = []
-for poll_attempt in range(1, 18):
+for poll_attempt in range(1, 25):
     structured_results = list(
         catalog_client.search_entries(
             request=dataplex_v1.SearchEntriesRequest(
@@ -51,16 +51,8 @@ for poll_attempt in range(1, 18):
     time.sleep(5)
 
 if not structured_results:
-    fallback_query = f"name:users AND system=BIGQUERY AND parent:{DATASET_ID}"
-    structured_results = list(
-        catalog_client.search_entries(
-            request=dataplex_v1.SearchEntriesRequest(
-                name=search_scope,
-                scope=project_scope,
-                query=fallback_query,
-                page_size=5,
-            )
-        )
+    raise RuntimeError(
+        "Structured predicate search returned 0 results after polling."
     )
 
 top_entry = structured_results[0].dataplex_entry
