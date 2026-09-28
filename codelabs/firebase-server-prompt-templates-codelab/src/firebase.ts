@@ -26,6 +26,9 @@ const firebaseConfig = {
 // Initialize Firebase
 export const app = initializeApp(firebaseConfig);
 
+// Uncomment the line below to enable App Check debug mode
+// (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+
 // Initialize App Check
 initializeAppCheck(app, {
   provider: new ReCaptchaEnterpriseProvider('YOUR_RECAPTCHA_ENTERPRISE_SITE_KEY'),
