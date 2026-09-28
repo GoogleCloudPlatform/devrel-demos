@@ -10,7 +10,7 @@ PROJECT_ID = os.environ.get("PROJECT_ID", "").strip()
 DATAPLEX_LOCATION = os.environ.get("DATAPLEX_LOCATION", "us").strip()
 GEMINI_LOCATION = os.environ.get("GEMINI_LOCATION", "global").strip()
 DATASET_ID = os.environ.get("DATASET_ID", "kc_ecommerce_sandbox").strip()
-ASPECT_TYPE_ID = os.environ.get("ASPECT_TYPE_ID", "pii-governance").strip()
+ASPECT_TYPE_ID = os.environ.get("ASPECT_TYPE_ID", "pii").strip()
 STATE_FILE = "catalog_state.json"
 
 if not PROJECT_ID or PROJECT_ID == "your-project-id":
@@ -25,16 +25,13 @@ if not DATAPLEX_LOCATION or DATAPLEX_LOCATION == "your-location":
 
 class PiiColumnFinding(BaseModel):
     column_name: str = Field(
-        description="BigQuery column name bound to the pii-governance aspect."
+        description="BigQuery column name bound to the pii aspect."
     )
-    is_pii: bool = Field(
-        description="True when the column contains personal information."
+    pii_type: str = Field(
+        description="Classified PII category (EMAIL, NAME, ADDRESS, etc.)."
     )
-    sensitivity_level: str = Field(
-        description="Sensitivity classification: HIGH, MEDIUM, or LOW."
-    )
-    governance_note: str = Field(
-        description="Mandatory handling rule attached to the column aspect."
+    masked: bool = Field(
+        description="True when column values are masked or de-identified."
     )
 
 
@@ -46,10 +43,13 @@ class ComplianceAuditReport(BaseModel):
         description="Numeric project-number aspect key prefix."
     )
     total_annotated_columns: int = Field(
-        description="Count of columns annotated with pii-governance aspects."
+        description="Count of columns annotated with pii aspects."
     )
-    high_sensitivity_columns: List[PiiColumnFinding] = Field(
-        description="Columns classified with sensitivity_level=HIGH."
+    unmasked_violations: List[PiiColumnFinding] = Field(
+        description="Columns where masked=False requiring remediation."
+    )
+    masked_compliant_columns: List[str] = Field(
+        description="Column names where masked=True."
     )
 
 
@@ -57,102 +57,75 @@ class GroundedAgentDecision(BaseModel):
     selected_tables: List[str] = Field(
         description="Tables chosen from lookup_context YAML."
     )
-    excluded_pii_columns: List[str] = Field(
-        description="PII columns excluded from SELECT due to governance rules."
+    join_conditions: List[str] = Field(
+        description="Cross-table join predicates extracted from context."
     )
     sql_query: str = Field(
-        description="Standard SQL query safe for unmasked execution."
+        description="Synthesized BigQuery Standard SQL query."
     )
-    governance_rationale: str = Field(
-        description="Explanation of how lookup_context guided SQL generation."
+    grounding_rationale: str = Field(
+        description="Explanation of how lookup_context guided SQL synthesis."
     )
 
 
 # Matching Knowledge Catalog AspectType metadata template (1-based indices)
 pii_aspect_template = dataplex_v1.AspectType.MetadataTemplate(
-    name="PiiGovernanceTemplate",
+    name="pii_metadata",
     type_="record",
     record_fields=[
         dataplex_v1.AspectType.MetadataTemplate(
-            name="is_pii",
-            type_="bool",
-            index=1,
-            annotations=dataplex_v1.AspectType.MetadataTemplate.Annotations(
-                description="Indicates if the column stores personal data."
-            ),
-            constraints=dataplex_v1.AspectType.MetadataTemplate.Constraints(
-                required=True
-            ),
-        ),
-        dataplex_v1.AspectType.MetadataTemplate(
-            name="sensitivity_level",
+            name="pii_type",
             type_="enum",
-            index=2,
+            index=1,
             enum_values=[
                 dataplex_v1.AspectType.MetadataTemplate.EnumValue(
-                    name="HIGH", index=1
+                    name="EMAIL", index=1
                 ),
                 dataplex_v1.AspectType.MetadataTemplate.EnumValue(
-                    name="MEDIUM", index=2
+                    name="NAME", index=2
                 ),
                 dataplex_v1.AspectType.MetadataTemplate.EnumValue(
-                    name="LOW", index=3
+                    name="ADDRESS", index=3
+                ),
+                dataplex_v1.AspectType.MetadataTemplate.EnumValue(
+                    name="PHONE_NUMBER", index=4
+                ),
+                dataplex_v1.AspectType.MetadataTemplate.EnumValue(
+                    name="DEMOGRAPHIC", index=5
+                ),
+                dataplex_v1.AspectType.MetadataTemplate.EnumValue(
+                    name="OTHER", index=6
                 ),
             ],
             annotations=dataplex_v1.AspectType.MetadataTemplate.Annotations(
-                description="Data sensitivity classification level."
+                description="Classified category of personal information."
             ),
             constraints=dataplex_v1.AspectType.MetadataTemplate.Constraints(
                 required=True
             ),
         ),
         dataplex_v1.AspectType.MetadataTemplate(
-            name="governance_note",
-            type_="string",
-            index=3,
+            name="masked",
+            type_="bool",
+            index=2,
             annotations=dataplex_v1.AspectType.MetadataTemplate.Annotations(
-                description="Mandatory handling note for AI agents and SQL."
+                description="Indicates whether column values are masked."
+            ),
+            constraints=dataplex_v1.AspectType.MetadataTemplate.Constraints(
+                required=True
             ),
         ),
     ],
 )
 
 COLUMN_GOVERNANCE_RULES = {
-    "email": {
-        "is_pii": True,
-        "sensitivity_level": "HIGH",
-        "governance_note": "Direct identifier; exclude from unmasked SELECT.",
-    },
-    "first_name": {
-        "is_pii": True,
-        "sensitivity_level": "HIGH",
-        "governance_note": "Personal name; restrict from analytics output.",
-    },
-    "last_name": {
-        "is_pii": True,
-        "sensitivity_level": "HIGH",
-        "governance_note": "Personal surname; restrict from analytics output.",
-    },
-    "street_address": {
-        "is_pii": True,
-        "sensitivity_level": "HIGH",
-        "governance_note": "Physical residential address; PII restricted.",
-    },
-    "age": {
-        "is_pii": False,
-        "sensitivity_level": "MEDIUM",
-        "governance_note": "Quasi-identifier; aggregate into brackets.",
-    },
-    "country": {
-        "is_pii": False,
-        "sensitivity_level": "LOW",
-        "governance_note": "Safe geographic dimension for group-by analytics.",
-    },
-    "traffic_source": {
-        "is_pii": False,
-        "sensitivity_level": "LOW",
-        "governance_note": "Safe acquisition channel attribute.",
-    },
+    "email": {"pii_type": "EMAIL", "masked": False},
+    "first_name": {"pii_type": "NAME", "masked": False},
+    "last_name": {"pii_type": "NAME", "masked": False},
+    "street_address": {"pii_type": "ADDRESS", "masked": False},
+    "postal_code": {"pii_type": "ADDRESS", "masked": True},
+    "age": {"pii_type": "DEMOGRAPHIC", "masked": True},
+    "gender": {"pii_type": "DEMOGRAPHIC", "masked": True},
 }
 
 
@@ -193,4 +166,4 @@ if __name__ == "__main__":
     print(f"Custom AspectType ID: {ASPECT_TYPE_ID}")
     print("✓ Validated PiiColumnFinding, ComplianceAuditReport, and")
     print("  GroundedAgentDecision Pydantic schemas.")
-    print("✓ Prepared pii-governance AspectType metadata template.")
+    print("✓ Prepared pii AspectType metadata template.")

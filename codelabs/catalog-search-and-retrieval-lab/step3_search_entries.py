@@ -4,11 +4,15 @@ from schemas import ASPECT_TYPE_ID, DATASET_ID, PROJECT_ID
 
 catalog_client = dataplex_v1.CatalogServiceClient()
 search_scope = f"projects/{PROJECT_ID}/locations/global"
+project_scope = f"projects/{PROJECT_ID}"
 
 # 1. Semantic natural-language search (semantic_search=True)
-semantic_query = "customer personal information and demographics"
+semantic_query = (
+    f"{DATASET_ID} customer personal information and demographics"
+)
 semantic_req = dataplex_v1.SearchEntriesRequest(
     name=search_scope,
+    scope=project_scope,
     query=semantic_query,
     semantic_search=True,
     page_size=5,
@@ -27,10 +31,10 @@ for idx, res in enumerate(semantic_results[:3], start=1):
     print(f"  Hit #{idx} System: {entry.entry_source.system}")
     print(f"  Hit #{idx} Aspects Count: {len(entry.aspects)}")
 
-# 2. Structured predicate search filtering on custom aspect values
+# 2. Structured predicate search filtering on custom aspect existence
 structured_query = (
     f"name:users AND system=BIGQUERY AND parent:{DATASET_ID} "
-    f"AND aspect:{PROJECT_ID}.global.{ASPECT_TYPE_ID}.sensitivity_level=HIGH"
+    f"AND aspect:{PROJECT_ID}.global.{ASPECT_TYPE_ID}"
 )
 structured_results = []
 for poll_attempt in range(1, 18):
@@ -38,6 +42,7 @@ for poll_attempt in range(1, 18):
         catalog_client.search_entries(
             request=dataplex_v1.SearchEntriesRequest(
                 name=search_scope,
+                scope=project_scope,
                 query=structured_query,
                 page_size=5,
             )
@@ -53,6 +58,7 @@ if not structured_results:
         catalog_client.search_entries(
             request=dataplex_v1.SearchEntriesRequest(
                 name=search_scope,
+                scope=project_scope,
                 query=fallback_query,
                 page_size=5,
             )

@@ -41,7 +41,7 @@ for table_name in TABLES:
     copy_job.result()
     print(f"Copied public table: {DATASET_ID}.{table_name}")
 
-# 2. Create or retrieve global AspectType (pii-governance)
+# 2. Create or retrieve global AspectType (pii)
 parent_global = f"projects/{PROJECT_ID}/locations/global"
 aspect_type_path = f"{parent_global}/aspectTypes/{ASPECT_TYPE_ID}"
 
@@ -50,7 +50,10 @@ try:
         parent=parent_global,
         aspect_type_id=ASPECT_TYPE_ID,
         aspect_type=dataplex_v1.AspectType(
-            description="Column-level PII sensitivity and SQL governance.",
+            description=(
+                "Tracks column-level PII category and masking status for "
+                "governance audits."
+            ),
             metadata_template=pii_aspect_template,
         ),
     )

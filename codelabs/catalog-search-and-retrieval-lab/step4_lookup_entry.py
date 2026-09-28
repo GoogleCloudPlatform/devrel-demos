@@ -30,7 +30,8 @@ hydrated_entry = catalog_client.lookup_entry(request=lookup_req)
 # 2. Extract column-level aspects keyed by numeric PROJECT_NUMBER
 target_suffix = f".global.{ASPECT_TYPE_ID}@Schema."
 annotated_columns = 0
-high_findings = []
+unmasked_findings = []
+masked_columns = []
 
 for aspect_key, aspect_obj in sorted(hydrated_entry.aspects.items()):
     if target_suffix not in aspect_key:
@@ -40,33 +41,40 @@ for aspect_key, aspect_obj in sorted(hydrated_entry.aspects.items()):
     data_map = dict(aspect_obj.data)
     finding = PiiColumnFinding(
         column_name=col_name,
-        is_pii=bool(data_map.get("is_pii", False)),
-        sensitivity_level=str(data_map.get("sensitivity_level", "")),
-        governance_note=str(data_map.get("governance_note", "")),
+        pii_type=str(data_map.get("pii_type", "OTHER")),
+        masked=bool(data_map.get("masked", False)),
     )
-    if finding.sensitivity_level == "HIGH":
-        high_findings.append(finding)
+    if not finding.masked:
+        unmasked_findings.append(finding)
+    else:
+        masked_columns.append(finding.column_name)
 
 audit_report = ComplianceAuditReport(
     entry_resource_name=hydrated_entry.name,
     aspect_key_prefix=aspect_key_prefix,
     total_annotated_columns=annotated_columns,
-    high_sensitivity_columns=high_findings,
+    unmasked_violations=unmasked_findings,
+    masked_compliant_columns=masked_columns,
 )
 
 if audit_report.total_annotated_columns != 7:
     raise AssertionError(
         f"Expected 7 annotated columns, got {audit_report.total_annotated_columns}"
     )
-if len(audit_report.high_sensitivity_columns) != 4:
+if len(audit_report.unmasked_violations) != 4:
     raise AssertionError(
-        f"Expected 4 HIGH PII columns, got {len(audit_report.high_sensitivity_columns)}"
+        f"Expected 4 unmasked PII columns, got {len(audit_report.unmasked_violations)}"
     )
 
 print("=== lookup_entry (EntryView.CUSTOM) Hydration Report ===")
 print(f"Hydrated Entry ID: {hydrated_entry.name.split('/')[-1]}")
 print(f"Total Aspects Returned: {len(hydrated_entry.aspects)}")
 print(f"Column Aspects Matched: {audit_report.total_annotated_columns}")
-print(f"HIGH Sensitivity Columns: {len(audit_report.high_sensitivity_columns)}")
-for item in audit_report.high_sensitivity_columns:
-    print(f"  - {item.column_name} (PII={item.is_pii}): {item.governance_note}")
+print(f"Unmasked PII Violations: {len(audit_report.unmasked_violations)}")
+for item in audit_report.unmasked_violations:
+    print(
+        f"  - {item.column_name}: pii_type={item.pii_type}, "
+        f"masked={item.masked}"
+    )
+masked_csv = ", ".join(audit_report.masked_compliant_columns)
+print(f"Masked Compliant Columns: {masked_csv}")

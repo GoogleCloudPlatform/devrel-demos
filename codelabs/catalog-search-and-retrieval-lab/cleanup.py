@@ -49,7 +49,7 @@ if users_entry_name and aspect_key_prefix:
         cleanup_notes.append(f"entry:{type(exc).__name__}")
 print(f"Detached column aspects: {len(aspect_keys)} keys removed")
 
-# 2. Delete global AspectType (pii-governance)
+# 2. Delete global AspectType (pii)
 try:
     del_op = catalog_client.delete_aspect_type(name=aspect_type_path)
     del_op.result()
