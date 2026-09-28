@@ -7,9 +7,7 @@ search_scope = f"projects/{PROJECT_ID}/locations/global"
 project_scope = f"projects/{PROJECT_ID}"
 
 # 1. Semantic natural-language search (semantic_search=True)
-semantic_query = (
-    f"{DATASET_ID} customer personal information and demographics"
-)
+semantic_query = "thelook_ecommerce sandbox tables"
 semantic_req = dataplex_v1.SearchEntriesRequest(
     name=search_scope,
     scope=project_scope,

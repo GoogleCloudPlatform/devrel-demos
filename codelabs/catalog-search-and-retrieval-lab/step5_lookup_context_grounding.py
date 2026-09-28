@@ -36,9 +36,14 @@ def validate_context_candidates(
             )
             if verified_entry.name:
                 valid_names.append(verified_entry.name)
-        except (InvalidArgument, GoogleAPICallError) as exc:
+        except (InvalidArgument, GoogleAPICallError, ValueError) as exc:
             short_id = entry_name.split("/")[-1]
-            print(f"Filtered invalid candidate: {short_id} ({type(exc).__name__})")
+            exc_name = (
+                "PermissionDenied"
+                if "PERMISSION_DENIED" in str(exc)
+                else type(exc).__name__
+            )
+            print(f"Filtered invalid candidate: {short_id} ({exc_name})")
     return valid_names
 
 
