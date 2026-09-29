@@ -64,7 +64,7 @@ validated_names = validate_context_candidates(
     catalog_client, lookup_scope, discovered_names + [stale_entry]
 )
 
-# 2. Retrieve LLM-formatted YAML context via lookup_context
+# 2. Retrieve YAML context via lookup_context
 context_resp = catalog_client.lookup_context(
     request=dataplex_v1.LookupContextRequest(
         name=lookup_scope,
@@ -76,7 +76,7 @@ if not context_resp.context:
     raise RuntimeError("lookup_context returned an empty context payload.")
 
 print(f"Validated Entry Resources: {len(validated_names)} (1 stale filtered)")
-print(f"Hydrated YAML Context Len: {len(context_resp.context)} chars")
+print(f"Retrieved YAML Context Len: {len(context_resp.context)} chars")
 
 # 3. Synthesize and execute grounded multi-table SQL with Gemini Flash
 genai_client = genai.Client(

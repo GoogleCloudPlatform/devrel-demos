@@ -1,9 +1,9 @@
-# Knowledge Catalog Search, Entry Lookup, and Context Grounding Lab
+# Knowledge Catalog search, entry lookup, and context grounding lab
 
-Companion Python scripts for the **Knowledge Catalog Search, Entry Lookup, and
-AI Agent Grounding** Google Developer Codelab (`catalog-search-and-retrieval`).
+Companion Python scripts for the **Search, inspect, and ground metadata in
+Knowledge Catalog** Google Cloud Codelab (`catalog-search-and-retrieval`).
 
-## Script Sequence
+## Script sequence
 
 1. `schemas.py` — Shared environment validation, Pydantic `BaseModel` contracts
    (`PiiColumnFinding`, `ComplianceAuditReport`, `GroundedAgentDecision`),

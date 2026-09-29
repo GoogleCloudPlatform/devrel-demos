@@ -37,7 +37,7 @@ class PiiColumnFinding(BaseModel):
 
 class ComplianceAuditReport(BaseModel):
     entry_resource_name: str = Field(
-        description="Canonical Knowledge Catalog entry resource path."
+        description="Full Knowledge Catalog entry resource path."
     )
     aspect_key_prefix: str = Field(
         description="Numeric project-number aspect key prefix."

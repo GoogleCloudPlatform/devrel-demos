@@ -85,7 +85,7 @@ for attempt in range(1, 18):
 if users_entry is None:
     raise RuntimeError(f"Timed out waiting for catalog entry: {users_query}")
 
-# Extract numeric PROJECT_NUMBER from canonical entry resource name
+# Extract numeric PROJECT_NUMBER from the entry resource name
 project_number = users_entry.name.split("/")[1]
 aspect_key_prefix = f"{project_number}.global.{ASPECT_TYPE_ID}"
 
