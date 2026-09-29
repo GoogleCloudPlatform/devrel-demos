@@ -38,12 +38,13 @@ initializeAppCheck(app, {
 const ai = getAI(app, { backend: new GoogleAIBackend() });
 
 const model = getTemplateGenerativeModel(ai);
-export const callCustomerSupportModel = async (query: string, productId?: string, history?: { role: string, contents: string }[]) => {
+export const callCustomerSupportModel = async (query: string, productId?: string, history?: { role: string, contents: string }[], productDetails?: any) => {
     // Generate content using the published 'product-agent' template
     const result = await model.generateContent('product-agent', {
         query,
         productId,
         history,
+        productDetails
     });
     return result.response.text();
 }
