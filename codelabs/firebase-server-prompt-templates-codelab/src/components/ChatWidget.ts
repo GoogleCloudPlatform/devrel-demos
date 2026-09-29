@@ -124,7 +124,7 @@ export class ChatWidget {
                 }));
 
                 const urlParams = new URLSearchParams(window.location.search);
-                const productId = urlParams.get('product') || '';
+                const productId = urlParams.get('product') || undefined;
                 const response = await callCustomerSupportModel(message, productId, history, getProductById(productId));
 
                 this.messages.push({ text: response || 'Communications silent.', isUser: false });
