@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { getAI, getTemplateGenerativeModel, AgentPlatformBackend } from "firebase/ai";
+import { getAI, getTemplateGenerativeModel, GoogleAIBackend } from "firebase/ai";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import { initializeApp } from "firebase/app";
 
@@ -35,7 +35,7 @@ initializeAppCheck(app, {
   isTokenAutoRefreshEnabled: true
 });
 
-const ai = getAI(app, { backend: new AgentPlatformBackend(), useLimitedUseAppCheckTokens: true });
+const ai = getAI(app, { backend: new GoogleAIBackend() });
 
 const model = getTemplateGenerativeModel(ai);
 export const callCustomerSupportModel = async (query: string, productId?: string, history?: { role: string, contents: string }[]) => {
