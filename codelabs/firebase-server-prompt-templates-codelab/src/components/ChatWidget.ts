@@ -20,7 +20,8 @@ import DOMPurify from 'dompurify';
 import products from '../data/products.json';
 
 // Helper function that does a mock database look up for product details
-const getProductById = (productId: string) => {
+const getProductById = (productId: string | undefined) => {
+    if (!productId) return undefined;
     return products.find(product => product.id === productId);
 }
 
