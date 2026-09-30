@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "local-db-server": {
+      "command": "python3",
+      "args": [
+        "scripts/mcp_server.py"
+      ],
+      "cwd": "${PLUGIN_ROOT}",
+      "tools": {
+        "get_inventory_eager": {
+          "eager": true
+        },
+        "get_inventory_lazy": {
+          "eager": false
+        }
+      }
+    }
+  }
+}

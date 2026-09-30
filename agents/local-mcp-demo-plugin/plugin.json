@@ -1,0 +1,9 @@
+{
+  "name": "local-mcp-demo-plugin",
+  "version": "0.0.1",
+  "description": "Demonstrates eager vs. lazy MCP tool loading, self subagent delegation, and lifecycle hook auditing.",
+  "author": {
+    "name": "Google"
+  },
+  "license": "Apache-2.0"
+}
