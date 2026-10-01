@@ -96,7 +96,7 @@ gcloud storage buckets add-iam-policy-binding gs://$BUCKET_NAME \
 ```
 
 ### Interruption-Resilience & Checkpoint Configuration
-Since serverless GPU Cloud Run Jobs can run for up to 7 days, they may occasionally be restarted due to system updates or preemption. To handle this seamlessly without losing progress, we use **application-level checkpointing** paired with Cloud Run **Task Retries** (`--max-retries`).
+Since serverless GPU Cloud Run Jobs can run for up to 12 hours, they may occasionally be restarted due to system updates or preemption. To handle this seamlessly without losing progress, we use **application-level checkpointing** paired with Cloud Run **Task Retries** (`--max-retries`).
 
 When a task restarts, it starts in a brand new container (which completely resets memory and VRAM, preventing any memory leaks). On startup, the script auto-detects existing checkpoints inside the GCS-mounted directory `/mnt/gcs/gemma4-finetuned` and automatically resumes from the last step.
 
