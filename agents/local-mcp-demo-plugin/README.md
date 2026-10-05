@@ -40,7 +40,7 @@ npx giget gh+git:GoogleCloudPlatform/devrel-demos/agents/local-mcp-demo-plugin .
 ### Global installation
 
 ```bash
-npx giget gh:GoogleCloudPlatform/devrel-demos/agents/local-mcp-demo-plugin ~/.gemini/config/plugins/local-mcp-demo-plugin
+npx giget gh+git:GoogleCloudPlatform/devrel-demos/agents/local-mcp-demo-plugin ~/.gemini/config/plugins/local-mcp-demo-plugin
 ```
 
 ---
