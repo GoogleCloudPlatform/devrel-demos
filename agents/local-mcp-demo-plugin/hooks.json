@@ -1,0 +1,28 @@
+{
+  "tool-logger": {
+    "PreToolUse": [
+      {
+        "matcher": "call_mcp_tool|mcp_local-mcp-demo-plugin_local-db-server_get_inventory.*|view_file|send_message|run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/audit_hook.py --pre",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "call_mcp_tool|mcp_local-mcp-demo-plugin_local-db-server_get_inventory.*|view_file|send_message|run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/audit_hook.py --post",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
