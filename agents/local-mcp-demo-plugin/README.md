@@ -34,7 +34,7 @@ The plugin folder lives in the repository at:
 ### Workspace installation
 
 ```bash
-npx giget gh:GoogleCloudPlatform/devrel-demos/agents/local-mcp-demo-plugin .agents/plugins/local-mcp-demo-plugin
+npx giget gh+git:GoogleCloudPlatform/devrel-demos/agents/local-mcp-demo-plugin .agents/plugins/local-mcp-demo-plugin
 ```
 
 ### Global installation
