@@ -1,0 +1,85 @@
+# /**
+#  * @file .gitignore
+#  * @description Git ignore rules for the Agentic Pitch Generator workspace.
+#  *
+#  * Why: Prevents transient Python bytecode, virtual environments, local environment
+#  * secrets, Terraform state files, and CLI-generated image artifacts from polluting
+#  * version control while preserving tracked templates (`.env.example`) and reference
+#  * solutions (`.agents/`).
+#  */
+
+# /**
+#  * Why: Exclude compiled Python bytecode and packaging metadata generated during
+#  * local execution, editable installs (`pip install -e .`), and test runs so
+#  * interpreter-specific artifacts (e.g., `.cpython-313.pyc`) are never committed.
+#  */
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.eggs/
+build/
+dist/
+wheels/
+
+# /**
+#  * Why: Isolate developer-specific Python virtual environments from the repository.
+#  */
+.venv/
+venv/
+env/
+ENV/
+
+# /**
+#  * Why: Ignore local test runner, coverage, and static analysis caches generated
+#  * by `pytest` and linter runs.
+#  */
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+**/.adk/
+
+# /**
+#  * Why: `setenv.sh` writes active `PROJECT_ID` and `REGION` settings to `.env`, and
+#  * developers may store GCP service account keys locally. Ignoring these prevents
+#  * leaking environment-specific configuration or credentials while keeping `.env.example`.
+#  */
+.env
+.env.*
+!.env.example
+*service-account*.json
+*credentials*.json
+
+# /**
+#  * Why: Terraform provider binaries and state files in `terraform/` contain large
+#  * platform-specific binaries and potentially sensitive cloud resource state.
+#  */
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.terraform.lock.hcl
+crash.log
+crash.*.log
+
+# /**
+#  * Why: `call_agent.py --save-image ./key_visual.png` writes a generated PNG to the
+#  * workspace root during manual CLI testing; excluding it keeps the working tree clean.
+#  */
+/key_visual.png
+
+# /**
+#  * Why: Ignore operating system and IDE metadata files that vary across developer machines.
+#  */
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

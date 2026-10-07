@@ -1,0 +1,293 @@
+/**
+ * @file styles.css
+ * @description Plain CSS3 stylesheet for the Agentic Pitch Generator web interface.
+ *
+ * Why: Mirrors the lab's house brand guidelines (deep indigo and slate palette with
+ * warm amber and terracotta accents, generous negative space, and WCAG AA >= 4.5:1
+ * contrast ratios) using native CSS custom properties and responsive CSS Grid without
+ * external stylesheet dependencies.
+ */
+
+:root {
+  --color-indigo-deep: #0f172a;
+  --color-slate-surface: #1e293b;
+  --color-slate-panel: #273549;
+  --color-slate-border: #334155;
+  --color-text-primary: #f8fafc;
+  --color-text-muted: #cbd5e1;
+  --color-amber-accent: #f59e0b;
+  --color-terracotta-accent: #ea580c;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/**
+ * Why: High-contrast light-on-indigo typography ensures readability across
+ * laptop and projector displays during the Learner Showcase.
+ */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-indigo-deep);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 2rem;
+  background-color: var(--color-slate-surface);
+  border-bottom: 2px solid var(--color-amber-accent);
+}
+
+.header-titles h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.header-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/**
+ * Why: Responsive two-column grid separates input controls (brief, HITL gate,
+ * routing selector) from live agent output cards and telemetry traces.
+ */
+.app-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.panel {
+  background-color: var(--color-slate-surface);
+  border: 1px solid var(--color-slate-border);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+.panel h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+  border-bottom: 1px solid var(--color-slate-border);
+  padding-bottom: 0.5rem;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.config-summary {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.checkbox-group {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+textarea,
+input[type="text"],
+select {
+  background-color: var(--color-indigo-deep);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-slate-border);
+  border-radius: 0.375rem;
+  padding: 0.625rem 0.75rem;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+}
+
+/**
+ * Why: Explicit focus-visible amber ring satisfies keyboard navigation accessibility
+ * requirements without relying on low-contrast browser defaults.
+ */
+textarea:focus-visible,
+input:focus-visible,
+select:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--color-amber-accent);
+  outline-offset: 2px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.btn {
+  cursor: pointer;
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.625rem 1.125rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: opacity 0.15s ease;
+}
+
+.btn:hover {
+  opacity: 0.92;
+}
+
+.btn-primary {
+  background-color: var(--color-amber-accent);
+  color: var(--color-indigo-deep);
+}
+
+.btn-secondary {
+  background-color: var(--color-slate-panel);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-slate-border);
+}
+
+.btn-success {
+  background-color: var(--color-success);
+  color: var(--color-indigo-deep);
+}
+
+.btn-danger {
+  background-color: var(--color-danger);
+  color: var(--color-text-primary);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.badge-neutral {
+  background-color: var(--color-slate-panel);
+  color: var(--color-text-muted);
+}
+
+.badge-ok {
+  background-color: var(--color-success);
+  color: var(--color-indigo-deep);
+}
+
+.badge-warn {
+  background-color: var(--color-amber-accent);
+  color: var(--color-indigo-deep);
+}
+
+.status-banner {
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+  background-color: var(--color-slate-panel);
+  border-left: 4px solid var(--color-amber-accent);
+}
+
+.hitl-panel {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--color-amber-accent);
+  border-radius: 0.5rem;
+  background-color: var(--color-slate-panel);
+}
+
+.pitch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.pitch-card {
+  background-color: var(--color-slate-panel);
+  border: 1px solid var(--color-slate-border);
+  border-radius: 0.375rem;
+  padding: 1rem;
+}
+
+.pitch-card h3 {
+  margin-top: 0;
+  font-size: 0.95rem;
+  color: var(--color-amber-accent);
+}
+
+.pitch-content {
+  margin: 0;
+  font-size: 0.92rem;
+  white-space: pre-wrap;
+}
+
+.subpanel {
+  margin-top: 1.25rem;
+}
+
+.subpanel h3 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.code-box {
+  background-color: var(--color-indigo-deep);
+  border: 1px solid var(--color-slate-border);
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.trace-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+}

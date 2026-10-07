@@ -1,0 +1,47 @@
+# /**
+#  * @file pyproject.toml
+#  * @description Project packaging and dependency manifest for the Pitch Generator starter app.
+#  *
+#  * Why: Centralizes Python build metadata, runtime dependencies for Google ADK and
+#  * Gemini Enterprise Agent Platform, and pytest test discovery paths so both
+#  * local offline verification and Cloud Run container builds use one contract.
+#  */
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pitch-generator"
+version = "0.2.0"
+description = "Multi-agent campaign pitch generator built with Google ADK, Gemini Enterprise Agent Platform, Memory Bank, Cloud Storage, and A2A."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "google-adk>=1.0.0",
+    "google-genai>=1.74.0",
+    "google-cloud-storage>=2.18.0",
+    "google-cloud-bigquery>=3.25.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.8.0",
+    "python-dotenv>=1.0.1",
+    "a2a-sdk>=0.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pitch_generator*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-q"
