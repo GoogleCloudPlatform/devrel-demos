@@ -115,6 +115,9 @@ for gen_attempt in range(1, 5):
                 response_mime_type="application/json",
                 response_schema=GroundedAgentDecision,
                 temperature=0.0,
+                automatic_function_calling=types.AutomaticFunctionCallingConfig(
+                    disable=True
+                ),
             ),
         )
         break
