@@ -305,6 +305,13 @@ def _extract_ast_symbols(source_code: str, filename: str) -> tuple[set[str], str
     return symbols, None
 
 
+def _strip_comment_lines(source_code: str) -> str:
+    """Remove `#` comment lines from Python source so guidepost comments do not trigger substring matches."""
+    return "\n".join(
+        line for line in source_code.splitlines() if not line.lstrip().startswith("#")
+    )
+
+
 # ==============================================================================
 # Core Verification API (Interface Contract 4)
 # ==============================================================================
@@ -415,6 +422,7 @@ def inspect_step_drift(
                 if step_id == "1e" and (ws_root / "pitch_generator/fast_api_app.py").is_file():
                     c_content = c_content + "\n" + (ws_root / "pitch_generator/fast_api_app.py").read_text(encoding="utf-8")
                 c_symbols, c_syn_err = _extract_ast_symbols(c_content, str(cand_path))
+                c_code_only = _strip_comment_lines(c_content)
                 if c_syn_err:
                     canonical_started = True
                     canonical_completed = False
@@ -422,12 +430,12 @@ def inspect_step_drift(
                     present_new = [
                         s
                         for s in step_new_syms
-                        if (s in c_symbols if s.isidentifier() else s in c_content)
+                        if (s in c_symbols if s.isidentifier() else s in c_code_only)
                     ]
                     if present_new:
                         canonical_started = True
                     req_syms = set(spec.get("required_symbols", []))
-                    all_subs = all(sub in c_content for sub in spec.get("required_substrings", []))
+                    all_subs = all(sub in c_code_only for sub in spec.get("required_substrings", []))
                     if not (req_syms.issubset(c_symbols) and all_subs):
                         canonical_completed = False
             else:
@@ -487,7 +495,9 @@ def inspect_step_drift(
             diagnostics.append(f"Failed to read file {rel_path}: {exc}")
             continue
 
+        sub_check_content = content
         if rel_path.endswith(".py"):
+            sub_check_content = _strip_comment_lines(content)
             ast_symbols, syn_err = _extract_ast_symbols(content, str(target_path))
             if syn_err:
                 syntax_errors.append(syn_err)
@@ -501,7 +511,7 @@ def inspect_step_drift(
                         diagnostics.append(f"Missing required symbol: {sym} in {rel_path}")
 
         for sub in spec.get("required_substrings", []):
-            if sub not in content:
+            if sub not in sub_check_content:
                 missing_symbols.append(sub)
                 diagnostics.append(f"Missing required pattern or keyword '{sub}' in {rel_path}")
 

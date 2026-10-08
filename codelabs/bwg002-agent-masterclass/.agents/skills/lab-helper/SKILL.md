@@ -13,7 +13,9 @@ The **Lab Helper** skill provides an interactive, pedagogical diagnosis and reco
 
 The learner interacts with this skill **entirely through natural conversation** in the Antigravity chat panel. The learner does not need to run terminal verification commands or remember CLI flags.
 
-### 1. Handling Learner Inquiries
+### 1. Handling Learner Inquiries (Strictly On-Demand)
+
+> **Important**: Only invoke this skill **on-demand** when the learner explicitly asks to verify a step, requests a hint, or asks for help fixing a stuck step. Never run verification or read `.agents/solutions/` while implementing a normal feature prompt.
 
 When the learner sends prompts such as:
 - *"I can't get step 2a working properly, can you give me a hint?"*
@@ -28,19 +30,21 @@ The assistant follows this multi-step protocol:
    - **First inquiry on a step** (e.g., *"give me a hint"* or *"verify step 1a"*): Use **Tier 1** (Conceptual Nudge).
    - **Follow-up request** (e.g., *"can I have another hint?"* or *"need more detail"*): Advance to **Tier 2** (Targeted File & Symbol Hint).
    - **Second follow-up** (e.g., *"still stuck, another hint?"*): Advance to **Tier 3** (Implementation Blueprint & Code Snippet).
-   - **Exhausted hints or explicit remediation request** (e.g., *"please bring my workspace into a working state"*): Use **Tier `remediate`** to restore reference files.
-3. **Execute the Diagnostic Tool**: Run the verification script behind the scenes using `run_command`:
-   ```bash
-   python3 .agents/skills/lab-helper/scripts/verify_workspace.py --module <M> --step <S> --tier <T> --json
-   ```
+   - **Exhausted hints or explicit remediation request** (e.g., *"please bring my workspace into a working state"*): Use **In-Place Remediation** to patch the step into `pitch_generator/`.
+3. **Execute Diagnostic & Semantic Intent Comparison**:
+   - Run the verification script using `run_command`:
+     ```bash
+     python3 .agents/skills/lab-helper/scripts/verify_workspace.py --module <M> --step <S> --tier <T> --json
+     ```
+   - **Semantic Intent Allowance**: If `verify_workspace.py` reports a missing helper symbol, compare the learner's code in `pitch_generator/` against the corresponding `.agents/solutions/` reference file. If the learner's code achieves the **same architectural intent and runtime behavior** (with only benign differences in local variable names, helper function names, or instruction phrasing), treat the step as **completed** and congratulate the learner!
 4. **Interpret Output & Formulate Response**:
-   - **If `drift_detected: false`**: Congratulate the learner, confirm that their implementation meets the step specifications, and briefly summarize what they accomplished before suggesting the next step.
-   - **If `drift_detected: true`**: Present the progressive hint corresponding to the current tier (see [TEMPLATES.md](TEMPLATES.md)). Explain the architectural rationale ("why") and encourage the learner to iterate. Remind them that they can ask for another hint anytime.
-   - **If Tier `remediate`**: Inform the learner which files were restored, explain why the canonical implementation solves the issue, and confirm that tests now pass.
+   - **If completed (`drift_detected: false` or semantically equivalent)**: Congratulate the learner, confirm that their implementation meets the step's architectural goal, and briefly summarize what they accomplished.
+   - **If substantive drift is detected**: Present the progressive hint corresponding to the current tier (see [TEMPLATES.md](TEMPLATES.md)). Explain the architectural rationale ("why") and encourage the learner to iterate.
+   - **If Remediation is requested**: Read the reference file in `.agents/solutions/` and **surgically patch `pitch_generator/` in-place** at the corresponding `# [Guidepost — Step <id>]` block. **Never overwrite** cumulative files (`pitch_generator/agent.py` or `pitch_generator/app_utils/services.py`) wholesale, so earlier steps, user customizations, and remaining guidepost comments for future steps are preserved.
 
 ---
 
-## Progressive 3-Tier Hint & Remediation Protocol
+## Progressive 3-Tier Hint & In-Place Remediation Protocol
 
 To ensure learners build genuine understanding without having solutions spoiled prematurely, Lab Helper enforces a deterministic 3-tier progressive hint protocol:
 
@@ -59,10 +63,10 @@ To ensure learners build genuine understanding without having solutions spoiled 
    - Explains parameter bindings, edge cases, and verification commands.
    - Strictly read-only: does not overwrite any learner files.
 
-4. **Workspace Auto-Remediation (`--tier remediate` or `--remediate`)**:
-   - Used when hints are exhausted or the learner explicitly asks to reset/restore a step.
-   - Atomically restores the reference files (including Python modules, SQL scripts, Markdown skills, and browser JavaScript) from `.agents/solutions/` into the workspace.
-   - Verifies that post-remediation drift is zero.
+4. **In-Place Surgical Remediation**:
+   - Used when hints are exhausted or the learner explicitly asks to fix/restore a step.
+   - For cumulative files (`pitch_generator/agent.py`, `pitch_generator/app_utils/services.py`, `pitch_generator/fast_api_app.py`), read the reference solution in `.agents/solutions/` and **patch the missing/broken step code in-place**, preserving all prior steps and future `# [Guidepost — ...]` comments.
+   - For standalone files (`pitch_generator/skills/brand-guidelines/SKILL.md`, `pitch_generator/sql/*.sql`, `frontend/webllm_router.js`), restore or create the file from `.agents/solutions/`.
 
 ---
 

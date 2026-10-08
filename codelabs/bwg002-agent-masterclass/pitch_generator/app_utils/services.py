@@ -1267,6 +1267,10 @@ def get_artifact_service(
      * @return Concrete `ArtifactServiceProtocol` instance.
      */
     """
+    # [Guidepost — Step 2b: Cloud Storage Artifact Persistence]
+    # In Step 2b, resolve `cfg = config or get_config()` and when `cfg.logs_bucket_name` is set,
+    # instantiate and return `GcsArtifactService(bucket_name=cfg.logs_bucket_name, client=client)`
+    # so generated key visuals are saved to `gs://<LOGS_BUCKET_NAME>/key-visuals/...`.
     del config, client
     return InMemoryArtifactService()
 
@@ -1594,6 +1598,15 @@ class BigQueryAnalyticsService:
             item["verdict"] = "on brand" if item["brand_fit"] >= 7.0 else "needs another pass"
             evaluated.append(item)
         return evaluated
+
+
+# [Guidepost — Steps 2a, 2c & 3b: BigQuery Analytics, Brand Drift & PII Scrubbing]
+# - In Step 2a, add `register_key_visuals` (and save the SQL query to `pitch_generator/sql/create_key_visuals.sql`)
+#   using `OBJ.MAKE_REF` and `OBJ.FETCH_METADATA` with the `pitch-connection` Cloud Resource connection.
+# - In Step 2c, add `detect_brand_drift` and `tune_prompt_and_skill` (and save the `AI.SCORE` query to
+#   `pitch_generator/sql/score_brand_fit.sql`) to identify rows where `brand_fit < 7` (`'needs another pass'`).
+# - In Step 3b, add `ScrubResult`, `PIIScrubber`, `scrub_pii`, `scrub_text`, and `scrub_payload`
+#   to redact emails (`[REDACTED_EMAIL]`), phone numbers (`[REDACTED_PHONE]`), SSNs, and API keys.
 
 
 class ServiceContainer:

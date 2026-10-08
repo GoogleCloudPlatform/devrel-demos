@@ -549,6 +549,37 @@ copywriter = Agent(
     output_key="copywriter",
 )
 
+# [Guidepost — Steps 1a & 1b: Specialist Agents & Brand Guidelines Skill]
+# Here is where we create the two additional specialist agents for our pitch team:
+#   - `brand_strategist = Agent(name="brand_strategist", model=_model(), ..., output_key="brand_strategist")`
+#     to define target audience positioning and brand alignment.
+#   - `visual_director = Agent(name="visual_director", model=_model(), ..., output_key="visual_director")`
+#     to write art direction and call `generate_key_visual`.
+#   - Also define `run_specialist_team(brief: str, services: ServiceContainer | None = None) -> dict[str, Any]`
+#     to run all four specialists (`creative_director`, `copywriter`, `brand_strategist`, `visual_director`).
+# In Step 1b, load the house style skill from `pitch_generator/skills/brand-guidelines` using
+# `brand_guidelines_skill = load_skill_from_dir(...)` and attach `[SkillToolset([brand_guidelines_skill]), generate_key_visual]`
+# to `visual_director`'s `tools`.
+
+# [Guidepost — Step 1c: Skill Evaluation Harness]
+# Here is where we add `FORBIDDEN_BRAND_PATTERNS`, `SkillEvalResult`,
+# `evaluate_brand_skill(art_direction: str, tool_calls: list[str] | None = None) -> SkillEvalResult`,
+# and `run_eval_suite(services: ServiceContainer | None = None) -> list[SkillEvalResult]`
+# to verify that `visual_director` activates `brand-guidelines` and avoids forbidden styles.
+
+# [Guidepost — Step 1d: LoopGuard & Markdown Fence Sanitizer]
+# Here is where we add `CircularLoopError(RuntimeError)`, `LoopGuard(max_iterations: int = 10)`
+# (with `check_step`, `record_step`, and `validate_graph`), and `strip_markdown_fences(text: str) -> str`
+# to prevent cyclic agent handoffs and strip ``` fences before joining branch outputs.
+
+# [Guidepost — Step 1e: Remote A2A Visual Director Service]
+# Here is where we expose `visual_director` over the A2A protocol and connect the coordinator to it:
+#   - `build_visual_director_card(rpc_url: str = "http://localhost:8801/a2a/visual_director") -> dict[str, Any]`
+#   - `build_a2a_visual_director_app(services: ServiceContainer | None = None, rpc_url: str = ...) -> Any`
+#     configured with `A2aAgentExecutorConfig(execute_interceptors=[include_artifacts_in_a2a_event_interceptor])`
+#   - `_cloud_run_client(base_url: str)` (600s timeout + OIDC token for `https://`) and `_pitch_parts_only(part: Any)`
+#   - `remote_visual_director = RemoteA2aAgent(name="visual_director", agent_card=..., httpx_client=..., genai_part_converter=_pitch_parts_only)`
+
 assemble = JoinNode(name="assemble")
 
 
@@ -613,6 +644,15 @@ def package(
     return _DualSyncAsyncEventStream(events)
 
 
+# [Guidepost — Steps 1d, 3a & 3c: Workflow Graph, PreToolUse Hooks & HITL Approval Gate]
+# - In Step 1d, update `root_agent` edges below so `creative_director` fans out in parallel to
+#   `copywriter`, `brand_strategist`, and `visual_director` (or `remote_visual_director` in Step 1e)
+#   before joining at `assemble` -> `package`.
+# - In Step 3a, add `HookDecision`, `ToolAuthorizationError`, `PreToolUseHook`, and
+#   `validate_tool_call(tool_name, tool_args, loaded_skills)` to require `load_skill("brand-guidelines")`
+#   before `generate_key_visual` can run.
+# - In Step 3c, add `approve_concept = RequestInput(...)`, `user_approval`, `evaluate_user_approval`,
+#   and `run_hitl_workflow` to pause after `creative_director` for human approval before production.
 root_agent = Workflow(
     name="pitch_generator",
     edges=[
@@ -626,6 +666,12 @@ root_agent = Workflow(
 app = App(root_agent=root_agent, name="pitch_generator")
 
 
+# [Guidepost — Steps 4a & 4b: Tokenomics & Hybrid Model Routing]
+# - In Step 4a, add `CompressedHistoryList`, `PromptCacheManager`, `TokenomicsManager`,
+#   `compress_memory(turns)`, `prune_history(turns, max_tokens)`, and `select_model_strategy(task)`.
+# - In Step 4b, add `RoutingDecision`, `HybridModelRouter`, `route_task`, and `select_route`,
+#   and expand `select_routing_decision` below to route across `webllm_browser`, `local_model` (Gemma),
+#   and `cloud_frontier` (`gemini-3.8-flash`), plus `frontend/webllm_router.js` for browser WebGPU.
 def select_routing_decision(
     brief: str = "",
     routing_mode: str = "auto",
@@ -833,6 +879,15 @@ def run_pitch_workflow(
         join_inputs["copywriter"] = copy_text
 
     brand_agent = module_globals.get("brand_strategist")
+    if brand_agent is None:
+        brand_agent = next(
+            (
+                v
+                for v in module_globals.values()
+                if isinstance(v, Agent) and getattr(v, "name", "") == "brand_strategist"
+            ),
+            None,
+        )
     if brand_agent is not None:
         brand_instruction = getattr(
             brand_agent,
@@ -852,7 +907,23 @@ def run_pitch_workflow(
             active_guard.record_step("brand_strategist")
 
     remote_vd = module_globals.get("remote_visual_director")
-    visual_agent = module_globals.get("visual_director") or remote_vd
+    if remote_vd is None:
+        remote_vd = next(
+            (v for v in module_globals.values() if isinstance(v, RemoteA2aAgent)),
+            None,
+        )
+    visual_agent = (
+        module_globals.get("visual_director")
+        or next(
+            (
+                v
+                for v in module_globals.values()
+                if isinstance(v, Agent) and getattr(v, "name", "") == "visual_director"
+            ),
+            None,
+        )
+        or remote_vd
+    )
     if visual_agent is not None:
         if remote_vd is not None:
             from pitch_generator.app_utils.services import _is_offline_test_mode
