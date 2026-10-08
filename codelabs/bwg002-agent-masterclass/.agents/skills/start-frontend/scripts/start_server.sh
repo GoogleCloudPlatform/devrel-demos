@@ -15,21 +15,37 @@
 
 # ==============================================================================
 # Script: start_server.sh
-# Description: Frees port 8080 if occupied, loads Cloud environment via setenv.sh,
-#              and starts the Pitch Generator web server.
-# Usage: ./start_server.sh [--check-only | --stop-only | --port <port>]
+# Description: Frees port 8080 (and port 8801 when --with-visual-director is set),
+#              loads .env, and starts the Pitch Generator web server (and optional
+#              standalone Visual Director A2A service).
+# Usage: ./start_server.sh [--check-only | --stop-only | --port <port> | --with-visual-director | --visual-director-only]
 # ==============================================================================
 
 set -euo pipefail
 
 PORT="${PORT:-8080}"
+VD_PORT="${VD_PORT:-8801}"
 ACTION="start"
+WITH_VISUAL_DIRECTOR=0
+VISUAL_DIRECTOR_ONLY=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --port)
       PORT="$2"
       shift 2
+      ;;
+    --vd-port)
+      VD_PORT="$2"
+      shift 2
+      ;;
+    --with-visual-director)
+      WITH_VISUAL_DIRECTOR=1
+      shift
+      ;;
+    --visual-director-only)
+      VISUAL_DIRECTOR_ONLY=1
+      shift
       ;;
     --check-only)
       ACTION="check"
@@ -83,6 +99,16 @@ free_port() {
   fi
 }
 
+load_env() {
+  if [[ -f "${REPO_ROOT}/.env" ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "${REPO_ROOT}/.env"
+    set +a
+  fi
+  export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
+}
+
 case "${ACTION}" in
   check)
     pids=$(lsof -tiTCP:"${PORT}" -sTCP:LISTEN 2>/dev/null || true)
@@ -95,17 +121,34 @@ case "${ACTION}" in
     fi
     ;;
   stop)
+    if [[ "${WITH_VISUAL_DIRECTOR}" -eq 1 || "${VISUAL_DIRECTOR_ONLY}" -eq 1 ]]; then
+      free_port "${VD_PORT}"
+    fi
     free_port "${PORT}"
     exit 0
     ;;
   start)
-    free_port "${PORT}"
-    if [[ -f "${REPO_ROOT}/setenv.sh" ]]; then
-      # shellcheck disable=SC1091
-      source "${REPO_ROOT}/setenv.sh"
+    load_env
+    if [[ "${VISUAL_DIRECTOR_ONLY}" -eq 1 ]]; then
+      free_port "${VD_PORT}"
+      echo "[start-frontend] Starting Visual Director A2A service on port ${VD_PORT}..."
+      export PORT="${VD_PORT}"
+      export SERVICE_ROLE="visual-director"
+      exec python3 -m pitch_generator.fast_api_app
     fi
+
+    if [[ "${WITH_VISUAL_DIRECTOR}" -eq 1 ]]; then
+      free_port "${VD_PORT}"
+      echo "[start-frontend] Starting Visual Director A2A service on port ${VD_PORT}..."
+      PORT="${VD_PORT}" SERVICE_ROLE="visual-director" python3 -m pitch_generator.fast_api_app &
+      export VISUAL_DIRECTOR_URL="http://127.0.0.1:${VD_PORT}"
+      sleep 1
+    fi
+
+    free_port "${PORT}"
     echo "[start-frontend] Starting Pitch Generator server on port ${PORT}..."
     export PORT="${PORT}"
-    exec python3 pitch_generator/fast_api_app.py
+    export SERVICE_ROLE="pitch-generator"
+    exec python3 -m pitch_generator.fast_api_app
     ;;
 esac

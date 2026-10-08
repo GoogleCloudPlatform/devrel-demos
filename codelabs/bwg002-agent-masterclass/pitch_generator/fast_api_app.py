@@ -30,11 +30,18 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 import json
 from pathlib import Path
+import sys
 from typing import Any
 import urllib.parse
+
+# Ensure repo root is on sys.path when executed directly
+_REPO_ROOT = str(Path(__file__).resolve().parent.parent)
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
 
 from pitch_generator.agent import (
     resume_pitch_workflow,
@@ -344,6 +351,8 @@ class PitchFastAPIApp:
                 return TestResponse(200, result)
             except ValueError as exc:
                 return TestResponse(400, {"error": str(exc), "detail": str(exc)})
+            except RuntimeError as exc:
+                return TestResponse(502, {"error": str(exc), "detail": str(exc)})
 
         # 4. Human-in-the-Loop concept approval endpoint
         if method_upper == "POST" and clean_path == "/api/approve":
@@ -374,6 +383,8 @@ class PitchFastAPIApp:
                 return TestResponse(404, {"error": str(exc), "detail": str(exc)})
             except ValueError as exc:
                 return TestResponse(400, {"error": str(exc), "detail": str(exc)})
+            except RuntimeError as exc:
+                return TestResponse(502, {"error": str(exc), "detail": str(exc)})
 
         # 5. Hybrid model routing decision endpoint
         if method_upper == "POST" and clean_path == "/api/route":
@@ -485,6 +496,8 @@ class PitchFastAPIApp:
         body_chunks: list[bytes] = []
         while True:
             message = await receive()
+            if message.get("type") == "http.disconnect":
+                return
             chunk = message.get("body", b"")
             if chunk:
                 body_chunks.append(chunk)
@@ -492,7 +505,9 @@ class PitchFastAPIApp:
                 break
         raw_body = b"".join(body_chunks)
 
-        resp = self.handle_request(method=method, path=path, json_body=raw_body)
+        resp = await asyncio.to_thread(
+            self.handle_request, method=method, path=path, json_body=raw_body
+        )
         asgi_headers = [
             (k.encode("latin-1"), v.encode("latin-1")) for k, v in resp.headers.items()
         ]

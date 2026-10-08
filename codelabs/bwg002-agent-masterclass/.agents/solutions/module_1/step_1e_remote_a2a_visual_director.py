@@ -337,6 +337,37 @@ def build_visual_director_card(
     return dict(builder.build())
 
 
+def build_a2a_visual_director_app(
+    services: ServiceContainer | None = None,
+    rpc_url: str = "http://localhost:8801/a2a/visual_director",
+) -> Any:
+    """
+    /**
+     * Construct an ASGI web application serving the Visual Director over A2A v0.3.
+     *
+     * Why: Exposes `GET /.well-known/agent-card.json` and `POST /a2a/visual_director`
+     * with `include_artifacts_in_a2a_event_interceptor` so the standalone Visual Director
+     * microservice can run on port `8801` locally or as an independent Cloud Run service.
+     *
+     * @param services Optional injected `ServiceContainer`.
+     * @param rpc_url Public JSON-RPC URL advertised in the Agent Card.
+     * @return Configured `PitchFastAPIApp` instance serving `visual_director`.
+     */
+    """
+    from pitch_generator.fast_api_app import PitchFastAPIApp
+
+    vd_app = PitchFastAPIApp(services=services)
+    card = build_visual_director_card(rpc_url=rpc_url)
+    executor = A2aAgentExecutor(config=executor_config)
+    handler = DefaultRequestHandler(
+        agent_executor=executor,
+        task_store={},
+        agent_card=card,
+    )
+    vd_app.register_a2a_handler("/a2a/visual_director", handler, card)
+    return vd_app
+
+
 class _CloudRunAuthenticatedClient:
     """
     /**
@@ -446,15 +477,36 @@ def _pitch_parts_only(part: Any) -> types.Part | None:
 
 
 _visual_director_url = os.environ.get("VISUAL_DIRECTOR_URL", "http://localhost:8801")
-remote_visual_director = RemoteA2aAgent(
-    name="visual_director",
-    description="Turns a campaign concept into art direction and a key visual.",
-    agent_card=f"{_visual_director_url}{AGENT_CARD_WELL_KNOWN_PATH}",
-    httpx_client=_cloud_run_client(_visual_director_url),
-    genai_part_converter=_pitch_parts_only,
-)
+
+
+def create_remote_visual_director_agent(
+    base_url: str | None = None,
+) -> RemoteA2aAgent:
+    """
+    /**
+     * Factory creating a `RemoteA2aAgent` bound to the Visual Director A2A endpoint.
+     *
+     * Why: Centralizes `agent_card`, `_cloud_run_client`, and `_pitch_parts_only`
+     * configuration for connecting the coordinator workflow to the remote service.
+     *
+     * @param base_url Optional Visual Director service URL (defaults to `VISUAL_DIRECTOR_URL`).
+     * @return Configured `RemoteA2aAgent` instance.
+     */
+    """
+    resolved_url = (base_url or _visual_director_url).rstrip("/")
+    return RemoteA2aAgent(
+        name="visual_director",
+        description="Turns a campaign concept into art direction and a key visual.",
+        agent_card=f"{resolved_url}{AGENT_CARD_WELL_KNOWN_PATH}",
+        httpx_client=_cloud_run_client(resolved_url),
+        genai_part_converter=_pitch_parts_only,
+    )
+
+
+remote_visual_director = create_remote_visual_director_agent(_visual_director_url)
 
 visual_director = visual_director_agent
+visual_director_app = build_a2a_visual_director_app()
 
 assemble = JoinNode(name="assemble")
 
@@ -570,9 +622,11 @@ __all__ = [
     "app",
     "assemble",
     "brand_strategist",
+    "build_a2a_visual_director_app",
     "build_visual_director_card",
     "copywriter",
     "create_mock_context_with_visual",
+    "create_remote_visual_director_agent",
     "creative_director",
     "executor_config",
     "generate_key_visual",
@@ -582,4 +636,5 @@ __all__ = [
     "root_agent",
     "visual_director",
     "visual_director_agent",
+    "visual_director_app",
 ]

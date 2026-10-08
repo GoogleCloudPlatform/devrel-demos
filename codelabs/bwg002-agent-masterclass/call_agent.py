@@ -275,7 +275,9 @@ async def generate_pitch_async(
      */
     """
     active_services = services or get_default_services()
-    resolved_url = (base_url or active_services.config.pitch_generator_url).strip()
+    default_cfg_url = active_services.config.pitch_generator_url.strip()
+    explicit_url = base_url is not None and base_url.strip() != default_cfg_url
+    resolved_url = (base_url or default_cfg_url).strip()
     use_offline = (
         force_offline
         or services is not None
@@ -292,9 +294,11 @@ async def generate_pitch_async(
             return local_client.post("/a2a/pitch_generator", json=rpc_body).json()
         try:
             return _post_a2a_http(resolved_url, rpc_body)
-        except urllib.error.URLError:
-            # If no local HTTP server is listening during an automated test invocation,
-            # fall back to the in-process ASGI app so local CLI invocations still work.
+        except urllib.error.URLError as exc:
+            if explicit_url or resolved_url.startswith("https://"):
+                raise RuntimeError(
+                    f"Could not connect to Pitch Generator server at '{resolved_url}': {exc}"
+                ) from exc
             fallback_app = create_app(services=active_services)
             return TestClient(fallback_app).post("/a2a/pitch_generator", json=rpc_body).json()
 
@@ -351,6 +355,8 @@ async def generate_pitch_async(
             },
         }
         resume_payload = _send_rpc(resume_rpc)
+        if "error" in resume_payload:
+            raise ValueError(resume_payload["error"].get("message", "A2A RPC error"))
         task_obj = resume_payload.get("result", {})
         task_state = task_obj.get("status", {}).get("state", "")
 
@@ -456,13 +462,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     """
     parser = build_parser()
     args = parser.parse_args(argv)
+    explicit_url_arg = any(a == "--url" or a.startswith("--url=") for a in (argv if argv is not None else sys.argv[1:]))
     try:
         result = run_cli_pitch(
             brief=args.brief,
             auto_approve=args.auto_approve,
             require_approval=args.require_approval,
             save_image_path=args.save_image,
-            base_url=args.url,
+            base_url=args.url if explicit_url_arg else None,
             session_id=args.session_id,
             routing_mode=args.routing_mode,
             force_offline=args.offline,

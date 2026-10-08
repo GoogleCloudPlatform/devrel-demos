@@ -39,7 +39,13 @@ _APP_ROOT = Path(__file__).resolve().parents[3]
 if str(_APP_ROOT) not in sys.path:
     sys.path.insert(0, str(_APP_ROOT))
 
-from pitch_generator.agent import Agent, App, Gemini, types  # noqa: E402
+from pitch_generator.agent import (  # noqa: E402
+    Agent,
+    App,
+    Gemini,
+    generate_key_visual,
+    types,
+)
 from pitch_generator.app_utils.services import (  # noqa: E402
     ServiceContainer,
     get_default_services,
@@ -340,6 +346,7 @@ alternatives, no questions back. Do not mention the skill, the tool, or the
 image file — the image travels on its own.""",
     tools=[
         SkillToolset(skills=[BRAND_SKILL]),
+        generate_key_visual,
     ],
     output_key="visual_director",
 )

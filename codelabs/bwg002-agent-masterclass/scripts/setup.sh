@@ -131,7 +131,16 @@ grant_connection_iam() {
 #  * @return 0 on completion.
 #  */
 main() {
-  PITCH_OFFLINE_MODE="${DRY_RUN}" source "${APP_ROOT}/setenv.sh"
+  if [[ -f "${APP_ROOT}/.env" ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "${APP_ROOT}/.env"
+    set +a
+  fi
+  export GOOGLE_CLOUD_PROJECT="${GOOGLE_CLOUD_PROJECT:-${PROJECT_ID:-offline-test-project}}"
+  export GOOGLE_CLOUD_REGION="${GOOGLE_CLOUD_REGION:-us-central1}"
+  export GOOGLE_CLOUD_LOCATION="${GOOGLE_CLOUD_LOCATION:-global}"
+  export LOGS_BUCKET_NAME="${LOGS_BUCKET_NAME:-${GOOGLE_CLOUD_PROJECT}-bwg}"
   ensure_bucket
   ensure_bigquery_dataset_and_connection
   grant_connection_iam

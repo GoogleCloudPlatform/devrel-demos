@@ -115,13 +115,13 @@ When `--json` is supplied, `verify_workspace.py` emits a single JSON object on s
 
 #### Step 1d: Graph Orchestration & Loop Prevention
 - **Target File**: `pitch_generator/agent.py` (reference: `module_1/step_1d_graph_orchestration.py`)
-- **Required AST Symbols**: `ConceptPayload`, `CopyPayload`, `ArtDirectionPayload`, `PitchPackage`, `CircularLoopError`, `LoopGuard`, `run_orchestrated_workflow`
+- **Required AST Symbols**: `CircularLoopError`, `LoopGuard`, `strip_markdown_fences`, `assemble`, `package`, `root_agent`
 - **Required Substrings**: `JoinNode`, `Why:`
 - **Rationale**: Coordinates multi-agent graph fan-out/fan-in and terminates cyclical routing loops.
 
 #### Step 1e: Remote A2A Visual Director Service
-- **Target File**: `pitch_generator/agent.py` (reference: `module_1/step_1e_remote_a2a_visual_director.py`)
-- **Required AST Symbols**: `generate_key_visual`, `build_a2a_visual_director_app`, `create_remote_visual_director_agent`, `_cloud_run_client`, `_pitch_parts_only`
+- **Target Files**: `pitch_generator/fast_api_app.py`, `pitch_generator/agent.py` (reference: `module_1/step_1e_remote_a2a_visual_director.py`)
+- **Required AST Symbols**: `generate_key_visual`, `build_visual_director_card`, `build_a2a_visual_director_app`, `remote_visual_director`, `_cloud_run_client`, `_pitch_parts_only`
 - **Required Substrings**: `include_artifacts_in_a2a_event_interceptor`, `AgentCardBuilder`
 - **Rationale**: Implements Agent2Agent (A2A) protocol over JSON-RPC with Cloud Run authentication.
 

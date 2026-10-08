@@ -1,0 +1,10 @@
+.git
+.gitignore
+.agents/
+tests/
+terraform/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+lab_instructions.md

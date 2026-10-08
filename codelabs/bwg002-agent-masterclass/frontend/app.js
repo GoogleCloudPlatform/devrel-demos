@@ -127,10 +127,13 @@ function renderPitchResult(data) {
   const statusEl = document.getElementById("pitch-status");
   const conceptEl = document.getElementById("pitch-concept");
   const copyEl = document.getElementById("pitch-copy");
+  const brandCard = document.getElementById("brand-strategy-card");
+  const brandEl = document.getElementById("pitch-brand-strategy");
   const artCard = document.getElementById("art-direction-card");
   const artEl = document.getElementById("pitch-art-direction");
   const visualCard = document.getElementById("key-visual-card");
   const visualEl = document.getElementById("pitch-key-visual");
+  const visualImgEl = document.getElementById("pitch-key-visual-img");
 
   const statusText = String(data.status || "completed");
   if (statusEl) {
@@ -144,6 +147,14 @@ function renderPitchResult(data) {
   if (copyEl) {
     copyEl.textContent = data.copy || "No social copy generated.";
   }
+  if (brandCard && brandEl) {
+    if (data.brand_strategy) {
+      brandCard.hidden = false;
+      brandEl.textContent = data.brand_strategy;
+    } else {
+      brandCard.hidden = true;
+    }
+  }
   if (artCard && artEl) {
     if (data.art_direction) {
       artCard.hidden = false;
@@ -155,9 +166,26 @@ function renderPitchResult(data) {
   if (visualCard && visualEl) {
     if (data.key_visual_uri) {
       visualCard.hidden = false;
-      visualEl.textContent = `Artifact URI: ${data.key_visual_uri}`;
+      const rawUri = String(data.key_visual_uri);
+      const sessionId = encodeURIComponent(
+        String(data.session_id || "default").trim() || "default"
+      );
+      const resolvedImgUrl =
+        data.key_visual_url ||
+        (rawUri.startsWith("gs://")
+          ? `/api/artifacts/${sessionId}/key_visual.png`
+          : rawUri);
+      if (visualImgEl) {
+        visualImgEl.src = resolvedImgUrl;
+        visualImgEl.hidden = false;
+      }
+      visualEl.textContent = `Artifact URI: ${rawUri}`;
     } else {
       visualCard.hidden = true;
+      if (visualImgEl) {
+        visualImgEl.removeAttribute("src");
+        visualImgEl.hidden = true;
+      }
     }
   }
 
@@ -214,30 +242,99 @@ async function fetchHealthAndConfig(fetchImpl) {
 }
 
 /**
+ * Toggle the loading state and spinner on `#btn-generate-pitch`.
+ *
+ * Why: Disables the submit button and renders an accessible inline spinner while
+ * the multi-agent workflow executes so users do not accidentally submit duplicate
+ * requests and have clear visual feedback that work is in progress.
+ *
+ * @param {boolean} isLoading True while the pitch request is in flight.
+ * @return {void}
+ */
+function setGenerateButtonLoading(isLoading) {
+  if (typeof document === "undefined") {
+    return;
+  }
+  const btn = document.getElementById("btn-generate-pitch");
+  const statusEl = document.getElementById("pitch-status");
+  if (!btn) {
+    return;
+  }
+  if (isLoading) {
+    btn.disabled = true;
+    btn.setAttribute("aria-busy", "true");
+    const spinnerEl = createSafeElement("span", {
+      class: "spinner",
+      "aria-hidden": "true",
+    });
+    const labelEl = createSafeElement("span", {}, "Generating Pitch...");
+    btn.replaceChildren(spinnerEl, labelEl);
+    if (statusEl) {
+      statusEl.textContent = "Generating...";
+      statusEl.className = "badge badge-warn";
+    }
+  } else {
+    btn.disabled = false;
+    btn.removeAttribute("aria-busy");
+    btn.textContent = "Generate Campaign Pitch";
+  }
+}
+
+/**
  * Submit a campaign brief to `POST /api/pitch` and render the resulting pitch package.
  *
  * Why: Drives the primary campaign generation workflow using Gemini Enterprise Agent
- * Platform cloud models.
+ * Platform cloud models while locking the submit button until completion.
  *
  * @param {Object} payload Request dictionary with `brief` and `session_id`.
  * @param {Function} fetchImpl Optional fetch implementation for testing.
  * @return {Promise<Object>} Workflow execution response.
  */
 async function submitPitchRequest(payload, fetchImpl) {
+  if (typeof document !== "undefined") {
+    const btn = document.getElementById("btn-generate-pitch");
+    if (btn && btn.disabled) {
+      return null;
+    }
+  }
   const fetcher = fetchImpl || fetch;
   setBanner("", "info");
-  const resp = await fetcher("/api/pitch", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const data = await resp.json();
-  if (!resp.ok) {
-    setBanner(data.error || "Failed to generate pitch.", "error");
+  setGenerateButtonLoading(true);
+  try {
+    const resp = await fetcher("/api/pitch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      setBanner(data.error || "Failed to generate pitch.", "error");
+      const statusEl =
+        typeof document !== "undefined"
+          ? document.getElementById("pitch-status")
+          : null;
+      if (statusEl) {
+        statusEl.textContent = "error";
+        statusEl.className = "badge badge-warn";
+      }
+      return data;
+    }
+    renderPitchResult(data);
     return data;
+  } catch (err) {
+    setBanner(`Failed to generate pitch: ${err.message || err}`, "error");
+    const statusEl =
+      typeof document !== "undefined"
+        ? document.getElementById("pitch-status")
+        : null;
+    if (statusEl) {
+      statusEl.textContent = "error";
+      statusEl.className = "badge badge-warn";
+    }
+    throw err;
+  } finally {
+    setGenerateButtonLoading(false);
   }
-  renderPitchResult(data);
-  return data;
 }
 
 /**
@@ -312,6 +409,7 @@ if (typeof module !== "undefined" && module.exports) {
     renderWorkflowTrace,
     renderPitchResult,
     fetchHealthAndConfig,
+    setGenerateButtonLoading,
     submitPitchRequest,
     inspectA2aAgentCard,
     initPitchGeneratorApp,

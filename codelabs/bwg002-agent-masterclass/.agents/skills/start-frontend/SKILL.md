@@ -1,112 +1,61 @@
 ---
 name: start-frontend
-description: Checks if port 8080 is available, terminates any processes occupying port 8080, and starts the Pitch Generator web server on port 8080 as a background daemon process. Use when asked to run, start, restart, or test the Pitch Generator web frontend or server.
+description: Manages local server ports and starts the Pitch Generator web server (port 8080) and optional standalone Visual Director A2A service (port 8801) as background daemon processes. Use when asked to run, start, restart, or test the Pitch Generator app or Visual Director service in a browser.
 ---
 
 # Pitch Generator Start Frontend Skill
 
-The **start-frontend** skill provides standardized instructions and utilities for managing the Pitch Generator web application server on port `8080`.
+The **start-frontend** skill provides standardized instructions and utilities for managing the local Pitch Generator web application server (`8080`) and the standalone Visual Director A2A microservice (`8801`). Users do not need to specify port numbers in their prompts—this skill automatically applies the canonical ports.
 
 It enforces a safe lifecycle:
-1. **Check**: Verify if port `8080` is free.
-2. **Clean**: Terminate any lingering or rogue processes occupying port `8080`.
-3. **Launch**: Start the web application server (`pitch_generator/fast_api_app.py`) on port `8080` as a background daemon process.
-4. **Verify**: Confirm the server is listening and healthy, then deliver the local URL to the user.
+1. **Check**: Verify if port `8080` (and port `8801` when launching the Visual Director service) is free.
+2. **Clean**: Terminate any lingering processes occupying the target port(s).
+3. **Launch**: Start the web application server (`pitch_generator/fast_api_app.py`) on port `8080` (and optionally the Visual Director A2A service on port `8801`) as a background process.
+4. **Verify**: Confirm the server is listening and healthy, then deliver the local URL(s) to the user.
 
 ---
 
 ## Quick Execution
 
-Agents should use the included helper script to handle port checking, cleanup, and server startup in a single idempotent step:
+### 1. Start the Pitch Generator App Only (Baseline & Module 1 Steps 1a–1d)
+When the user asks to start or test the Pitch Generator app in a browser:
 
 ```bash
-# Launch the server (automatically frees port 8080 if occupied):
 bash .agents/skills/start-frontend/scripts/start_server.sh
 ```
 
-When executing via the `run_command` tool in Antigravity:
-- Set `IsDaemon: true` so the server runs continuously in the background.
-- Set `WaitMsBeforeAsync: 3000` to allow the process to initialize and output its startup banner before going asynchronous.
+### 2. Start Both the Visual Director Service and Pitch Generator App (Module 1 Step 1e+)
+When the user asks to start the Visual Director service and the Pitch Generator app (e.g., *"Start the Visual Director service and the Pitch Generator app so I can test in a browser"*):
+
+```bash
+bash .agents/skills/start-frontend/scripts/start_server.sh --with-visual-director
+```
+
+This automatically:
+- Frees port `8801` and starts the standalone Visual Director A2A microservice (`SERVICE_ROLE=visual-director`) at `http://localhost:8801` (serving `/.well-known/agent-card.json` and `/a2a/visual_director`).
+- Frees port `8080` and starts the Pitch Generator app (`SERVICE_ROLE=pitch-generator`) at `http://localhost:8080` with `VISUAL_DIRECTOR_URL=http://127.0.0.1:8801`.
 
 ---
 
 ## Step-by-Step Procedure
 
 ### 1. Pre-Flight Port Check
-Before launching the server, inspect whether port `8080` is occupied:
-
-```bash
-# Check if port 8080 is in use:
-lsof -ti :8080
-```
-- If this returns empty, port 8080 is free. Proceed to Step 3.
-- If this returns one or more PIDs, proceed to Step 2.
-
-Alternatively, run:
 ```bash
 bash .agents/skills/start-frontend/scripts/start_server.sh --check-only
 ```
 
-### 2. Stop Processes Occupying Port 8080
-If port `8080` is in use, terminate the occupying process(es):
-
-```bash
-# Graceful termination first:
-lsof -ti :8080 | xargs kill 2>/dev/null || true
-
-# Force kill if still lingering:
-lsof -ti :8080 | xargs kill -9 2>/dev/null || true
-```
-
-Or invoke the helper script stop action:
+### 2. Stop Occupied Ports
 ```bash
 bash .agents/skills/start-frontend/scripts/start_server.sh --stop-only
+# Or stop both 8080 and 8801:
+bash .agents/skills/start-frontend/scripts/start_server.sh --with-visual-director --stop-only
 ```
 
-Verify port is released:
-```bash
-lsof -i :8080 || echo "Port 8080 is free"
-```
-
-### 3. Launch the Web Server
-Launch the server with `PORT=8080`:
-
-```bash
-PORT=8080 python3 pitch_generator/fast_api_app.py
-```
-*(or invoke `bash .agents/skills/start-frontend/scripts/start_server.sh`)*
-
-#### Antigravity Tool Call Parameters:
-```json
-{
-  "CommandLine": "PORT=8080 python3 pitch_generator/fast_api_app.py",
-  "Cwd": "/Users/jamesoreilly/Repos/pitch-generator",
-  "IsDaemon": true,
-  "WaitMsBeforeAsync": 3000,
-  "toolAction": "Starting Pitch Generator web server",
-  "toolSummary": "Start web server on 8080"
-}
-```
-
-### 4. Verify Server Health
-1. Verify the process is listening on port `8080`:
+### 3. Verify Server Health
+1. Verify the process is listening on port `8080` (and `8801` if `--with-visual-director` was used):
    ```bash
    lsof -i :8080
    ```
-2. Inspect the server task logs (e.g. using `manage_task(Action='status', TaskId=...)` or viewing the log file directly) to confirm the startup message:
-   ```text
-   ==================================================
-   Agentic Pitch Generator Web App Running Locally
-   Open in browser: http://127.0.0.1:8080
-   ==================================================
-   ```
-3. Report the URL to the user:
-   - **Local Browser URL**: `http://127.0.0.1:8080` (or `http://localhost:8080`)
-   - **Endpoints Available**:
-     - Frontend UI: `/`
-     - Health Check: `/api/health`
-     - Public Config: `/api/config`
-     - Campaign Pitch Generation: `POST /api/pitch`
-     - HITL Concept Approval: `POST /api/approve`
-     - Hybrid Router Preview: `POST /api/route`
-     - A2A Agent Card: `/.well-known/agent-card.json`
+2. Report the URL(s) to the user:
+   - **Pitch Generator Web UI**: `http://localhost:8080`
+   - **Visual Director A2A Agent Card** (when `--with-visual-director` is active): `http://localhost:8801/.well-known/agent-card.json`

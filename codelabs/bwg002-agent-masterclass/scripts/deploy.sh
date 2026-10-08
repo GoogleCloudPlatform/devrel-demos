@@ -79,11 +79,10 @@ for node in ast.walk(tree):
         defined.add(node.target.id)
 
 vd_markers = {
-    "visual_director",
     "remote_visual_director",
-    "generate_key_visual",
     "build_a2a_visual_director_app",
     "create_remote_visual_director_agent",
+    "_cloud_run_client",
 }
 sys.exit(0 if (defined & vd_markers) else 1)
 PYEOF
@@ -100,7 +99,7 @@ PYEOF
 #  */
 deploy_cloud_run_service() {
   local service_name="$1"
-  local env_vars="LOGS_BUCKET_NAME=${LOGS_BUCKET_NAME},GOOGLE_GENAI_USE_ENTERPRISE=TRUE,GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT},GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION},GOOGLE_CLOUD_REGION=${GOOGLE_CLOUD_REGION},MEMORY_BANK_ID=${MEMORY_BANK_ID},FLASH_MODEL=${FLASH_MODEL},IMAGE_MODEL=${IMAGE_MODEL},VISUAL_DIRECTOR_URL=${VISUAL_DIRECTOR_URL}"
+  local env_vars="SERVICE_ROLE=${service_name},LOGS_BUCKET_NAME=${LOGS_BUCKET_NAME},GOOGLE_GENAI_USE_ENTERPRISE=TRUE,GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT},GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION},GOOGLE_CLOUD_REGION=${GOOGLE_CLOUD_REGION},MEMORY_BANK_ID=${MEMORY_BANK_ID},FLASH_MODEL=${FLASH_MODEL},IMAGE_MODEL=${IMAGE_MODEL},VISUAL_DIRECTOR_URL=${VISUAL_DIRECTOR_URL}"
 
   if [[ "${DRY_RUN}" -eq 1 ]]; then
     echo "[DRY-RUN] Deploying ${service_name} to Cloud Run in ${GOOGLE_CLOUD_PROJECT} (${GOOGLE_CLOUD_REGION}) with env: ${env_vars}"
@@ -114,12 +113,21 @@ deploy_cloud_run_service() {
       --region "${GOOGLE_CLOUD_REGION}" \
       --no-confirm-project \
       --update-env-vars "${env_vars}"
+    if command -v gcloud >/dev/null 2>&1; then
+      gcloud run services add-iam-policy-binding "${service_name}" \
+        --project "${GOOGLE_CLOUD_PROJECT}" \
+        --region "${GOOGLE_CLOUD_REGION}" \
+        --member="allUsers" \
+        --role="roles/run.invoker" \
+        --quiet >/dev/null 2>&1 || true
+    fi
   else
     gcloud run deploy "${service_name}" \
       --source "${APP_ROOT}" \
       --project "${GOOGLE_CLOUD_PROJECT}" \
       --region "${GOOGLE_CLOUD_REGION}" \
       --set-env-vars "${env_vars}" \
+      --allow-unauthenticated \
       --quiet
   fi
 }
@@ -130,8 +138,20 @@ deploy_cloud_run_service() {
 #  * @return 0 on completion.
 #  */
 main() {
-  # shellcheck disable=SC1091
-  PITCH_OFFLINE_MODE="${DRY_RUN}" source "${APP_ROOT}/setenv.sh"
+  if [[ -f "${APP_ROOT}/.env" ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "${APP_ROOT}/.env"
+    set +a
+  fi
+  export GOOGLE_CLOUD_PROJECT="${GOOGLE_CLOUD_PROJECT:-${PROJECT_ID:-offline-test-project}}"
+  export GOOGLE_CLOUD_REGION="${GOOGLE_CLOUD_REGION:-us-central1}"
+  export GOOGLE_CLOUD_LOCATION="${GOOGLE_CLOUD_LOCATION:-global}"
+  export LOGS_BUCKET_NAME="${LOGS_BUCKET_NAME:-${GOOGLE_CLOUD_PROJECT}-bwg}"
+  export MEMORY_BANK_ID="${MEMORY_BANK_ID:-pitch-generator-memory-bank}"
+  export FLASH_MODEL="${FLASH_MODEL:-gemini-3.8-flash}"
+  export IMAGE_MODEL="${IMAGE_MODEL:-gemini-nano-banana-2.1}"
+  export VISUAL_DIRECTOR_URL="${VISUAL_DIRECTOR_URL:-http://127.0.0.1:8801}"
 
   local deploy_vd=0
   local deploy_pg=0

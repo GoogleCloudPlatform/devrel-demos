@@ -63,7 +63,6 @@ def test_f1_project_directory_and_file_layout() -> None:
         ".env.example",
         "README.md",
         "Dockerfile",
-        "setenv.sh",
         "call_agent.py",
         "scripts/setup.sh",
         "scripts/deploy.sh",
@@ -201,7 +200,9 @@ def test_f2_in_memory_and_gcs_artifact_services(
     assert isinstance(services.get_artifact_service(cfg_local), services.InMemoryArtifactService)
 
     cfg_gcs = config.get_config({"LOGS_BUCKET_NAME": "gs://my-lab-bucket"})
-    svc_gcs = services.get_artifact_service(cfg_gcs)
+    svc_default = services.get_artifact_service(cfg_gcs)
+    assert isinstance(svc_default, (services.InMemoryArtifactService, services.GcsArtifactService))
+    svc_gcs = services.GcsArtifactService(bucket_name=cfg_gcs.logs_bucket_name)
     assert isinstance(svc_gcs, services.GcsArtifactService)
     assert svc_gcs.bucket_name == "my-lab-bucket"
 
@@ -593,7 +594,6 @@ def test_f5_shell_scripts_pass_bash_syntax_check_and_dynamic_deploy() -> None:
      */
     """
     scripts = [
-        PITCH_GEN_ROOT / "setenv.sh",
         PITCH_GEN_ROOT / "scripts/setup.sh",
         PITCH_GEN_ROOT / "scripts/deploy.sh",
     ]

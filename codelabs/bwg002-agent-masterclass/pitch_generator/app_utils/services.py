@@ -33,7 +33,10 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import os
 import re
+import struct
+import sys
 from typing import Any, Protocol, runtime_checkable
+import zlib
 
 from pitch_generator.app_utils.memory_bank import MemoryBankService
 from pitch_generator.config import (
@@ -43,16 +46,64 @@ from pitch_generator.config import (
     normalize_bucket_name,
 )
 
-# Valid minimal 1x1 PNG byte sequence (67 bytes) with standard PNG signature, IHDR,
-# IDAT, and IEND chunks so image artifact tests verify real PNG headers offline.
-MINIMAL_PNG_BYTES: bytes = (
-    b"\x89PNG\r\n\x1a\n"
-    b"\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
-    b"\x08\x02\x00\x00\x00\x90wS\xde"
-    b"\x00\x00\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x03\x01\x01\x00"
-    b"\xc9\xfe\x92\xef"
-    b"\x00\x00\x00\x00IEND\xaeB`\x82"
-)
+
+def _build_house_brand_png(width: int = 320, height: int = 180) -> bytes:
+    """
+    /**
+     * Build a deterministic 16:9 house-brand PNG (deep indigo/slate with warm amber light)
+     * using only the Python standard library (`struct` and `zlib`).
+     *
+     * Why: Ensures offline fallback key visuals render as a clean 16:9 brand-compliant
+     * studio visual in the browser `<img>` preview while maintaining valid PNG chunks.
+     *
+     * @param width Image width in pixels (default `320`).
+     * @param height Image height in pixels (default `180`).
+     * @return Raw PNG image bytes.
+     */
+    """
+
+    def _chunk(chunk_type: bytes, payload: bytes) -> bytes:
+        crc = zlib.crc32(chunk_type + payload) & 0xFFFFFFFF
+        return struct.pack(">I", len(payload)) + chunk_type + payload + struct.pack(">I", crc)
+
+    raw_rows = bytearray()
+    cx, cy = int(width * 0.34), int(height * 0.54)
+    radius_sq = (min(width, height) * 0.24) ** 2
+    for y in range(height):
+        raw_rows.append(0)  # Filter type 0 (None)
+        yf = y / max(height - 1, 1)
+        for x in range(width):
+            xf = x / max(width - 1, 1)
+            # Base deep indigo (#1e1b4b) to weathered slate (#334155) gradient
+            r = int(30 + 21 * xf + 10 * yf)
+            g = int(27 + 38 * xf + 16 * yf)
+            b = int(75 + 10 * xf + 18 * yf)
+            # Off-center hero subject with warm amber (#f59e0b) raking light
+            dx, dy = x - cx, y - cy
+            dist_sq = dx * dx + dy * dy
+            if dist_sq <= radius_sq:
+                edge = 1.0 - (dist_sq / radius_sq)
+                r = min(255, int(r + 215 * edge))
+                g = min(255, int(g + 130 * edge))
+                b = max(18, int(b - 45 * edge))
+            elif y > cy and (x - cx) > 0 and abs((y - cy) - 0.32 * (x - cx)) < 14:
+                # Long raking shadow across slate ground
+                r = max(12, r - 14)
+                g = max(14, g - 14)
+                b = max(32, b - 18)
+            raw_rows.extend((r, g, b))
+
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    idat = zlib.compress(bytes(raw_rows), level=6)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + _chunk(b"IHDR", ihdr)
+        + _chunk(b"IDAT", idat)
+        + _chunk(b"IEND", b"")
+    )
+
+
+MINIMAL_PNG_BYTES: bytes = _build_house_brand_png()
 
 
 @runtime_checkable
@@ -286,6 +337,27 @@ _PLACEHOLDER_BUCKET_PREFIXES: tuple[str, ...] = (
 )
 
 
+def _is_offline_test_mode(project_id: str | None = None) -> bool:
+    """
+    /**
+     * Determine whether explicit offline/test mode is active.
+     *
+     * Why: Ensures `DeterministicMockLLMClient` is only used during `pytest` runs or
+     * when `PITCH_OFFLINE_MODE=1` (`--offline`) is explicitly set, preventing live
+     * CLI or browser runs from silently masking cloud/model errors with mock outputs.
+     */
+    """
+    if (
+        os.environ.get("PITCH_OFFLINE_MODE") == "1"
+        or "PYTEST_CURRENT_TEST" in os.environ
+        or "pytest" in sys.modules
+    ):
+        return True
+    if project_id is not None and project_id.strip() == "test-project-bwg":
+        return True
+    return False
+
+
 def _is_live_cloud_configured(
     *,
     project_id: str | None = None,
@@ -305,7 +377,7 @@ def _is_live_cloud_configured(
      * @return `True` if live Google Cloud SDK clients should be initialized.
      */
     """
-    if os.environ.get("PITCH_OFFLINE_MODE") == "1" or "PYTEST_CURRENT_TEST" in os.environ:
+    if _is_offline_test_mode(project_id):
         return False
     if project_id is not None:
         clean_proj = project_id.strip()
@@ -322,11 +394,12 @@ class EnterpriseGenAILLMClient:
     """
     /**
      * Production adapter for Gemini Enterprise Agent Platform (`google.genai.Client`)
-     * with automatic offline fallback to `DeterministicMockLLMClient`.
+     * with offline test support via `DeterministicMockLLMClient`.
      *
-     * Why: Allows the same client class to invoke live Gemini models on the Gemini
-     * Enterprise Agent Platform in Cloud Run when credentials and SDKs are present while
-     * seamlessly delegating to the injected fallback client during offline tests.
+     * Why: Invokes live Gemini models on Vertex AI when running in the CLI or Cloud Run,
+     * raising clear, actionable errors if credentials, network, or `.env` settings fail,
+     * while supporting deterministic execution when `--offline` (`PITCH_OFFLINE_MODE=1`)
+     * or `pytest` is active.
      */
     """
 
@@ -340,22 +413,18 @@ class EnterpriseGenAILLMClient:
         /**
          * Initialize the Gemini Enterprise Agent Platform LLM client wrapper.
          *
-         * Why: Automatically initializes a real `google.genai.Client` configured for
-         * Gemini Enterprise Agent Platform (`project=config.project_id`, `location=config.location`)
-         * when running in a live cloud environment, while accepting an injected `sdk_client`
-         * or `fallback_client` so unit tests can verify both live-SDK delegation and
-         * offline fallback behavior.
-         *
          * @param config Resolved `PitchConfig` instance.
          * @param sdk_client Optional `google.genai.Client` instance.
          * @param fallback_client Offline fallback `LLMClientProtocol` implementation.
          */
         """
         self.config = config or get_config()
+        self._has_custom_fallback = fallback_client is not None
         self.fallback_client: LLMClientProtocol = fallback_client or DeterministicMockLLMClient(
             self.config
         )
         self.calls: list[dict[str, Any]] = []
+        self._init_error: str | None = None
         if sdk_client is not None:
             self.sdk_client = sdk_client
         elif _is_live_cloud_configured(project_id=self.config.project_id):
@@ -369,20 +438,32 @@ class EnterpriseGenAILLMClient:
          * Instantiate a live `google.genai.Client` bound to the configured GCP project and location.
          *
          * Why: Connects `EnterpriseGenAILLMClient` to the Gemini Enterprise Agent Platform
-         * using the project and location resolved by `setenv.sh` and `PitchConfig`.
+         * using the project and location resolved by `.env` and `PitchConfig`.
          *
-         * @return Initialized `google.genai.Client` instance, or `None` if unavailable.
+         * @return Initialized `google.genai.Client` instance, or `None` if initialization fails.
          */
         """
         try:
             from google import genai
 
             return genai.Client(
+                vertexai=True,
                 project=self.config.project_id,
                 location=self.config.location,
             )
-        except Exception:
+        except Exception as exc:
+            self._init_error = str(exc)
             return None
+
+    def _raise_if_not_offline(self, operation: str, model: str, detail: str) -> None:
+        """Raise an actionable RuntimeError unless explicit offline/test mode is active."""
+        if _is_offline_test_mode(self.config.project_id) or self._has_custom_fallback:
+            return
+        raise RuntimeError(
+            f"[Vertex AI / Gemini Error] {operation} failed for model '{model}' "
+            f"(project='{self.config.project_id}', location='{self.config.location}'): {detail}. "
+            f"Check your .env configuration, network access, and GCP authentication."
+        )
 
     def generate_text(
         self,
@@ -395,16 +476,7 @@ class EnterpriseGenAILLMClient:
         """
         /**
          * Generate text via the live `google.genai.Client` (or injected SDK client), falling back
-         * to `fallback_client` when running offline.
-         *
-         * Why: Invokes `sdk_client.models.generate_content` against Gemini Enterprise Agent
-         * Platform in production while guaranteeing deterministic execution when offline.
-         *
-         * @param prompt Input prompt string.
-         * @param system_instruction System role instruction.
-         * @param model Optional model override.
-         * @param temperature Sampling temperature.
-         * @return Generated text string.
+         * to `fallback_client` only when running in explicit offline/test mode.
          */
         """
         if not isinstance(prompt, str) or not prompt.strip():
@@ -457,8 +529,25 @@ class EnterpriseGenAILLMClient:
                     text_out = getattr(response, "text", None)
                     if text_out and str(text_out).strip():
                         return str(text_out).strip()
-                except Exception:
-                    pass
+                    self._raise_if_not_offline(
+                        "generate_content",
+                        resolved_model,
+                        "Model returned an empty text response",
+                    )
+                except RuntimeError:
+                    raise
+                except Exception as exc:
+                    print(
+                        f"[EnterpriseGenAILLMClient] generate_content failed ({resolved_model}): {exc}",
+                        flush=True,
+                    )
+                    self._raise_if_not_offline("generate_content", resolved_model, str(exc))
+        else:
+            reason = (
+                self._init_error
+                or f"PROJECT_ID is set to placeholder '{self.config.project_id}' instead of a valid GCP project"
+            )
+            self._raise_if_not_offline("SDK initialization", resolved_model, reason)
 
         return self.fallback_client.generate_text(
             clean_prompt,
@@ -476,15 +565,7 @@ class EnterpriseGenAILLMClient:
         """
         /**
          * Generate an image via the live `google.genai.Client` (or injected SDK client),
-         * falling back to `fallback_client` when running offline.
-         *
-         * Why: Supports both Gemini multimodal image generation (`models.generate_content`
-         * with `response_modalities=["IMAGE"]` for `gemini-*-image` models) and Imagen
-         * (`models.generate_images`), while guaranteeing valid PNG bytes offline.
-         *
-         * @param prompt Visual description prompt.
-         * @param model Optional image model override.
-         * @return Tuple of `(image_bytes, mime_type)`.
+         * falling back to `fallback_client` only when running in explicit offline/test mode.
          */
         """
         if not isinstance(prompt, str) or not prompt.strip():
@@ -507,6 +588,7 @@ class EnterpriseGenAILLMClient:
                 )
                 return (bytes(data), str(mime))
             if hasattr(self.sdk_client, "models"):
+                last_err: str | None = None
                 if "imagen" in resolved_model.lower() and hasattr(
                     self.sdk_client.models, "generate_images"
                 ):
@@ -522,8 +604,8 @@ class EnterpriseGenAILLMClient:
                             mime = getattr(first_img, "mime_type", None) or "image/png"
                             if raw_bytes:
                                 return (bytes(raw_bytes), str(mime))
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        last_err = str(exc)
 
                 if hasattr(self.sdk_client.models, "generate_content"):
                     try:
@@ -554,8 +636,25 @@ class EnterpriseGenAILLMClient:
                                         or "image/png"
                                     )
                                     return (bytes(data_bytes), str(mime))
-                    except Exception:
-                        pass
+                        self._raise_if_not_offline(
+                            "generate_image",
+                            resolved_model,
+                            last_err or "Model response did not contain image bytes",
+                        )
+                    except RuntimeError:
+                        raise
+                    except Exception as exc:
+                        print(
+                            f"[EnterpriseGenAILLMClient] generate_image failed ({resolved_model}): {exc}",
+                            flush=True,
+                        )
+                        self._raise_if_not_offline("generate_image", resolved_model, str(exc))
+        else:
+            reason = (
+                self._init_error
+                or f"PROJECT_ID is set to placeholder '{self.config.project_id}' instead of a valid GCP project"
+            )
+            self._raise_if_not_offline("SDK initialization", resolved_model, reason)
 
         return self.fallback_client.generate_image(clean_prompt, model=resolved_model)
 
@@ -962,26 +1061,18 @@ def get_artifact_service(
 ) -> ArtifactServiceProtocol:
     """
     /**
-     * Factory selecting `GcsArtifactService` when `LOGS_BUCKET_NAME` is configured,
-     * or `InMemoryArtifactService` otherwise.
+     * Return the active artifact storage service (`InMemoryArtifactService` in starter).
      *
-     * Why: Matches the Part 1 `app_utils/services.py` factory pattern (`en.md` L1071)
-     * so setting `LOGS_BUCKET_NAME` upgrades artifact storage from ephemeral memory to
-     * durable Cloud Storage without changing agent workflow code.
+     * Why: Defaults to ephemeral `InMemoryArtifactService` in the starter application so
+     * generated key visuals stay in memory during Module 1 until learners wire
+     * `GcsArtifactService` with `LOGS_BUCKET_NAME` in Module 2 Step 2b.
      *
      * @param config Optional `PitchConfig` instance (defaults to `get_config()`).
      * @param client Optional Cloud Storage client for dependency injection.
      * @return Concrete `ArtifactServiceProtocol` instance.
      */
     """
-    raw_bucket = (
-        config.logs_bucket_name
-        if config is not None
-        else os.environ.get("LOGS_BUCKET_NAME", "")
-    )
-    bucket = normalize_bucket_name(raw_bucket)
-    if bucket:
-        return GcsArtifactService(bucket_name=bucket, client=client)
+    del config, client
     return InMemoryArtifactService()
 
 

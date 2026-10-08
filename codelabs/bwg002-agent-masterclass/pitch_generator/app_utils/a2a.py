@@ -485,12 +485,19 @@ class DefaultRequestHandler:
                 normalized_reply = text_input.strip().lower()
                 is_approved = normalized_reply in {"yes", "y", "true", "approve", "approved"}
 
-            resumed = resume_pitch_workflow(
-                session_id,
-                approved=is_approved,
-                feedback=str(params.get("feedback", text_input)),
-                services=active_services,
-            )
+            try:
+                resumed = resume_pitch_workflow(
+                    session_id,
+                    approved=is_approved,
+                    feedback=str(params.get("feedback", text_input)),
+                    services=active_services,
+                )
+            except (ValueError, RuntimeError) as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "error": {"code": -32000, "message": str(exc)},
+                }
             session_artifacts = active_services.artifacts.list_artifacts(session_id=session_id)
             enriched = include_artifacts_in_a2a_event_interceptor(resumed, session_artifacts)
             task_result = self._build_task_object(task_id, session_id, enriched)
@@ -505,14 +512,21 @@ class DefaultRequestHandler:
             }
 
         approved_param: bool | None = params.get("approved", None if require_approval else True)
-        event_data = self.agent_executor.execute(
-            text_input,
-            session_id=session_id,
-            approved=approved_param,
-            require_approval=require_approval,
-            routing_mode=routing_mode,
-            services=services,
-        )
+        try:
+            event_data = self.agent_executor.execute(
+                text_input,
+                session_id=session_id,
+                approved=approved_param,
+                require_approval=require_approval,
+                routing_mode=routing_mode,
+                services=services,
+            )
+        except (ValueError, RuntimeError) as exc:
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {"code": -32000, "message": str(exc)},
+            }
         task_result = self._build_task_object(task_id, session_id, event_data)
         self.task_store[task_id] = task_result
         return {"jsonrpc": "2.0", "id": req_id, "result": task_result}

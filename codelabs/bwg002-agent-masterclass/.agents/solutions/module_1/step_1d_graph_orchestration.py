@@ -50,6 +50,7 @@ from pitch_generator.agent import (  # noqa: E402
     Workflow,
     copywriter,
     creative_director,
+    generate_key_visual,
     types,
 )
 from pitch_generator.app_utils.services import (  # noqa: E402
@@ -665,6 +666,7 @@ visual_director = Agent(
         "composition with generous negative space, and one realistic photographic "
         "subject with shallow depth of field."
     ),
+    tools=[generate_key_visual],
     output_key="visual_director",
 )
 
@@ -706,12 +708,14 @@ def package(
         if required_key not in resolved_input:
             raise ValueError(f"nothing reached the join from: {required_key}")
 
-    concept_raw = str(resolved_input["creative_director"]).strip()
-    copy_raw = str(resolved_input["copywriter"]).strip()
-    art_raw = str(
-        resolved_input.get(
-            "visual_director",
-            "Moody studio lighting on deep indigo and slate surfaces with a warm amber rim.",
+    concept_raw = strip_markdown_fences(str(resolved_input["creative_director"])).strip()
+    copy_raw = strip_markdown_fences(str(resolved_input["copywriter"])).strip()
+    art_raw = strip_markdown_fences(
+        str(
+            resolved_input.get(
+                "visual_director",
+                "Moody studio lighting on deep indigo and slate surfaces with a warm amber rim.",
+            )
         )
     ).strip()
 
@@ -736,6 +740,8 @@ def package(
     return (ev for ev in events)
 
 
+loop_guard = LoopGuard(max_iterations=10)
+
 root_agent = Workflow(
     name="pitch_generator",
     edges=[
@@ -743,6 +749,7 @@ root_agent = Workflow(
         ((copywriter, visual_director), assemble, package),
     ],
 )
+loop_guard.validate_graph(root_agent.edges)
 
 app = App(root_agent=root_agent, name="pitch_generator")
 
@@ -863,6 +870,8 @@ __all__ = [
     "creative_director",
     "execute_workflow",
     "extract_json_payload",
+    "generate_key_visual",
+    "loop_guard",
     "package",
     "parse_json_payload",
     "parse_payload",

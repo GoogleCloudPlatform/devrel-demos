@@ -63,6 +63,11 @@ STEP_REGISTRY: dict[str, dict[str, Any]] = {
             "visual_director",
             "run_specialist_team",
         ],
+        "step_new_symbols": [
+            "brand_strategist",
+            "visual_director",
+            "run_specialist_team",
+        ],
         "required_substrings": ["output_key", "Why:"],
     },
     "1b": {
@@ -70,6 +75,7 @@ STEP_REGISTRY: dict[str, dict[str, Any]] = {
         "title": "Authoring Agent Skills",
         "files": ["module_1/step_1b_authoring_skills.py", "module_1/skills/brand-guidelines/SKILL.md"],
         "required_symbols": ["Skill", "SkillToolset", "load_skill_from_dir", "load_brand_skill"],
+        "step_new_symbols": ["Skill", "SkillToolset", "load_skill_from_dir", "load_brand_skill"],
         "required_substrings": ["brand-guidelines"],
     },
     "1c": {
@@ -77,6 +83,7 @@ STEP_REGISTRY: dict[str, dict[str, Any]] = {
         "title": "Skill Evals",
         "files": ["module_1/step_1c_skill_evals.py"],
         "required_symbols": ["SkillEvalResult", "evaluate_brand_skill", "run_eval_suite"],
+        "step_new_symbols": ["SkillEvalResult", "evaluate_brand_skill", "run_eval_suite"],
         "required_substrings": ["brand-guidelines", "FORBIDDEN_BRAND_PATTERNS"],
     },
     "1d": {
@@ -84,15 +91,19 @@ STEP_REGISTRY: dict[str, dict[str, Any]] = {
         "title": "Graph Orchestration & Circular Loop Prevention",
         "files": ["module_1/step_1d_graph_orchestration.py"],
         "required_symbols": [
-            "ConceptPayload",
-            "CopyPayload",
-            "ArtDirectionPayload",
-            "PitchPackage",
             "CircularLoopError",
             "LoopGuard",
-            "run_graph_workflow",
+            "strip_markdown_fences",
+            "assemble",
+            "package",
+            "root_agent",
         ],
-        "required_substrings": ["Why:"],
+        "step_new_symbols": [
+            "CircularLoopError",
+            "LoopGuard",
+            "strip_markdown_fences",
+        ],
+        "required_substrings": ["JoinNode", "Why:"],
     },
     "1e": {
         "module": 1,
@@ -101,17 +112,26 @@ STEP_REGISTRY: dict[str, dict[str, Any]] = {
         "required_symbols": [
             "generate_key_visual",
             "build_visual_director_card",
+            "build_a2a_visual_director_app",
             "remote_visual_director",
             "_cloud_run_client",
             "_pitch_parts_only",
         ],
-        "required_substrings": ["AgentCardBuilder", "Why:"],
+        "step_new_symbols": [
+            "build_visual_director_card",
+            "build_a2a_visual_director_app",
+            "remote_visual_director",
+            "_cloud_run_client",
+            "_pitch_parts_only",
+        ],
+        "required_substrings": ["include_artifacts_in_a2a_event_interceptor", "AgentCardBuilder", "Why:"],
     },
     "2a": {
         "module": 2,
         "title": "Agent Analytics in BigQuery & Object Tables",
         "files": ["module_2/step_2a_bigquery_analytics.py", "module_2/sql/create_key_visuals.sql"],
         "required_symbols": ["BigQueryAnalyticsService", "build_key_visuals_sql", "register_key_visuals"],
+        "step_new_symbols": ["register_key_visuals"],
         "required_substrings": ["OBJ.MAKE_REF", "OBJ.FETCH_METADATA", "pitch-connection"],
     },
     "2b": {
@@ -119,13 +139,15 @@ STEP_REGISTRY: dict[str, dict[str, Any]] = {
         "title": "Cloud Storage Artifact Persistence",
         "files": ["module_2/step_2b_cloud_storage_artifacts.py"],
         "required_symbols": ["GcsArtifactService", "get_artifact_service"],
-        "required_substrings": ["key-visuals", "gs://"],
+        "step_new_symbols": ["return GcsArtifactService("],
+        "required_substrings": ["key-visuals", "gs://", "return GcsArtifactService("],
     },
     "2c": {
         "module": 2,
         "title": "Brand/Compliance Drift Detection & Prompt Tuning",
         "files": ["module_2/step_2c_drift_detection_and_tuning.py", "module_2/sql/score_brand_fit.sql"],
         "required_symbols": ["score_brand_compliance", "detect_brand_drift", "tune_prompt_and_skill"],
+        "step_new_symbols": ["detect_brand_drift", "tune_prompt_and_skill"],
         "required_substrings": ["AI.SCORE", "brand_fit", "needs another pass"],
     },
     "3a": {
@@ -133,6 +155,7 @@ STEP_REGISTRY: dict[str, dict[str, Any]] = {
         "title": "Agent Lifecycle Hooks (PreToolUse)",
         "files": ["module_3/step_3a_pre_tool_use_hooks.py"],
         "required_symbols": ["HookDecision", "PreToolUseHook", "ToolAuthorizationError", "validate_tool_call"],
+        "step_new_symbols": ["HookDecision", "PreToolUseHook", "ToolAuthorizationError", "validate_tool_call"],
         "required_substrings": ["load_skill", "generate_key_visual", "Why:"],
     },
     "3b": {
@@ -140,6 +163,7 @@ STEP_REGISTRY: dict[str, dict[str, Any]] = {
         "title": "Sensitive PII Data Scrubbing & Redaction",
         "files": ["module_3/step_3b_pii_scrubbing.py"],
         "required_symbols": ["ScrubResult", "PIIScrubber", "scrub_pii", "scrub_text", "scrub_payload"],
+        "step_new_symbols": ["ScrubResult", "PIIScrubber", "scrub_pii", "scrub_text", "scrub_payload"],
         "required_substrings": ["[REDACTED_EMAIL]", "[REDACTED_PHONE]", "Why:"],
     },
     "3c": {
@@ -147,6 +171,7 @@ STEP_REGISTRY: dict[str, dict[str, Any]] = {
         "title": "Human-in-the-Loop (HITL) Authorizations",
         "files": ["module_3/step_3c_hitl_authorizations.py"],
         "required_symbols": ["approve_concept", "user_approval", "evaluate_user_approval", "run_hitl_workflow"],
+        "step_new_symbols": ["approve_concept", "user_approval", "evaluate_user_approval", "run_hitl_workflow"],
         "required_substrings": ["RequestInput", "Approved Concept", "Why:"],
     },
     "4a": {
@@ -161,6 +186,14 @@ STEP_REGISTRY: dict[str, dict[str, Any]] = {
             "prune_history",
             "select_model_strategy",
         ],
+        "step_new_symbols": [
+            "CompressedHistoryList",
+            "PromptCacheManager",
+            "TokenomicsManager",
+            "compress_memory",
+            "prune_history",
+            "select_model_strategy",
+        ],
         "required_substrings": ["sha256", "Why:"],
     },
     "4b": {
@@ -168,6 +201,7 @@ STEP_REGISTRY: dict[str, dict[str, Any]] = {
         "title": "Hybrid Routing (WebLLM / Local / Cloud)",
         "files": ["module_4/step_4b_hybrid_routing.py", "module_4/webllm_router.js"],
         "required_symbols": ["RoutingDecision", "HybridModelRouter", "route_task", "select_route"],
+        "step_new_symbols": ["RoutingDecision", "HybridModelRouter", "route_task", "select_route"],
         "required_substrings": ["webllm_browser", "local_model", "cloud_frontier"],
     },
 }
@@ -340,7 +374,6 @@ def inspect_step_drift(
     checked_files: list[str] = []
 
     # Proper application paths for real-world project structure
-    # Fallback to codelab exercise paths and .agents/solutions/ reference solutions
     app_file_map: dict[str, str] = {
         "module_1/skills/brand-guidelines/SKILL.md": "pitch_generator/skills/brand-guidelines/SKILL.md",
         "module_1/step_1a_specialist_agents.py": "pitch_generator/agent.py",
@@ -361,52 +394,79 @@ def inspect_step_drift(
         "module_4/webllm_router.js": "frontend/webllm_router.js",
     }
 
+    target_files: list[str] = [app_file_map.get(f, f) for f in spec["files"]]
+    step_new_syms: list[str] = list(spec.get("step_new_symbols", spec.get("required_symbols", [])))
+
+    # Determine whether the learner has started or completed this step in canonical app files
+    canonical_py_exists = False
+    canonical_started = False
+    canonical_completed = True
+
+    for rel_path in spec["files"]:
+        canonical_app_rel = app_file_map.get(rel_path)
+        if not canonical_app_rel:
+            canonical_completed = False
+            continue
+        cand_path = ws_root / canonical_app_rel
+        if cand_path.suffix == ".py":
+            if cand_path.is_file() and cand_path.stat().st_size > 0:
+                canonical_py_exists = True
+                c_content = cand_path.read_text(encoding="utf-8")
+                if step_id == "1e" and (ws_root / "pitch_generator/fast_api_app.py").is_file():
+                    c_content = c_content + "\n" + (ws_root / "pitch_generator/fast_api_app.py").read_text(encoding="utf-8")
+                c_symbols, c_syn_err = _extract_ast_symbols(c_content, str(cand_path))
+                if c_syn_err:
+                    canonical_started = True
+                    canonical_completed = False
+                else:
+                    present_new = [
+                        s
+                        for s in step_new_syms
+                        if (s in c_symbols if s.isidentifier() else s in c_content)
+                    ]
+                    if present_new:
+                        canonical_started = True
+                    req_syms = set(spec.get("required_symbols", []))
+                    all_subs = all(sub in c_content for sub in spec.get("required_substrings", []))
+                    if not (req_syms.issubset(c_symbols) and all_subs):
+                        canonical_completed = False
+            else:
+                canonical_completed = False
+        else:
+            if cand_path.is_file() and cand_path.stat().st_size > 0:
+                canonical_started = True
+                c_content = cand_path.read_text(encoding="utf-8")
+                all_subs = all(sub in c_content for sub in spec.get("required_substrings", []))
+                if not all_subs:
+                    canonical_completed = False
+            else:
+                canonical_completed = False
+
+    not_started = bool(canonical_py_exists and not canonical_started and not canonical_completed)
+
     for rel_path in spec["files"]:
         checked_files.append(rel_path)
-        # Search precedence:
-        # If learner provided an explicit file in canonical app location or learner workspace:
-        # Check canonical app location first, then learner workspace path.
-        # Fall back to reference solutions in .agents/solutions/<rel_path>.
         canonical_app_rel = app_file_map.get(rel_path)
-        candidates = []
-        # If the file exists in .agents/solutions, that's our baseline reference solution
         ref_path = ws_root / ".agents" / "solutions" / rel_path
+        canonical_path = (ws_root / canonical_app_rel) if canonical_app_rel else None
 
-        # Check learner implemented files first:
-        if canonical_app_rel and (ws_root / canonical_app_rel).is_file():
-            candidates.append(ws_root / canonical_app_rel)
-        if (ws_root / rel_path).is_file():
-            candidates.append(ws_root / rel_path)
-        if ref_path.is_file():
-            candidates.append(ref_path)
-
-        target_path = None
-        for cand in candidates:
-            if cand.is_file() and cand.stat().st_size > 0:
-                # If checking canonical app location, verify if it satisfies the symbols
-                if cand != ref_path and cand.suffix == ".py":
-                    c_content = cand.read_text(encoding="utf-8")
-                    c_symbols, _ = _extract_ast_symbols(c_content, str(cand))
-                    req = set(spec.get("required_symbols", []))
-                    # If this app file implements the required symbols for this step, use it!
-                    if req.issubset(set(c_symbols)):
-                        target_path = cand
-                        break
-                elif cand != ref_path and cand.suffix in (".md", ".sql", ".js"):
-                    c_content = cand.read_text(encoding="utf-8")
-                    all_subs = all(sub in c_content for sub in spec.get("required_substrings", []))
-                    if all_subs:
-                        target_path = cand
-                        break
-                else:
-                    target_path = cand
-                    break
-
-        if target_path is None:
-            if candidates:
-                target_path = candidates[0]
-            else:
-                target_path = ws_root / (canonical_app_rel or rel_path)
+        target_path: Path | None = None
+        if canonical_completed and canonical_path is not None and canonical_path.is_file():
+            target_path = canonical_path
+        elif canonical_started and canonical_path is not None:
+            # Learner has started modifying canonical app files for this step:
+            # inspect the canonical app file directly so partial work is flagged.
+            target_path = canonical_path
+        else:
+            # Step not started yet in canonical app files (or running in a solution-only test dir)
+            candidates: list[Path] = []
+            if (ws_root / rel_path).is_file():
+                candidates.append(ws_root / rel_path)
+            if ref_path.is_file():
+                candidates.append(ref_path)
+            if canonical_path is not None and canonical_path.is_file():
+                candidates.append(canonical_path)
+            target_path = candidates[0] if candidates else (canonical_path or (ws_root / rel_path))
 
         if not target_path.is_file() or target_path.stat().st_size == 0:
             missing_files.append(rel_path)
@@ -415,6 +475,13 @@ def inspect_step_drift(
 
         try:
             content = target_path.read_text(encoding="utf-8")
+            if (
+                step_id == "1e"
+                and canonical_path is not None
+                and target_path == canonical_path
+                and (ws_root / "pitch_generator/fast_api_app.py").is_file()
+            ):
+                content = content + "\n" + (ws_root / "pitch_generator/fast_api_app.py").read_text(encoding="utf-8")
         except Exception as exc:
             syntax_errors.append(f"{rel_path}:ReadError:{exc}")
             diagnostics.append(f"Failed to read file {rel_path}: {exc}")
@@ -435,7 +502,6 @@ def inspect_step_drift(
 
         for sub in spec.get("required_substrings", []):
             if sub not in content:
-                # Substring missing is treated as symbol/structural drift
                 missing_symbols.append(sub)
                 diagnostics.append(f"Missing required pattern or keyword '{sub}' in {rel_path}")
 
@@ -448,6 +514,15 @@ def inspect_step_drift(
         "has_drift": has_drift,
         "drifted": has_drift,
         "status": "drifted" if has_drift else "clean",
+        "not_started": not_started,
+        "completed": bool(canonical_completed and not has_drift),
+        "readiness": (
+            "ready_to_begin"
+            if not_started
+            else ("drifted" if has_drift else "completed")
+        ),
+        "target_files": target_files,
+        "pending_symbols": step_new_syms if not_started else missing_symbols,
         "missing_files": missing_files,
         "syntax_errors": syntax_errors,
         "missing_symbols": missing_symbols,
@@ -686,12 +761,26 @@ def main() -> int:
     if args.json:
         print(json.dumps(output_payload, indent=2))
     else:
-        status_banner = "⚠️ DRIFT DETECTED" if drift["has_drift"] else "✅ CLEAN (0 DRIFT)"
-        print(f"[{status_banner}] Step {step_id.upper()} (Tier {effective_tier})")
-        if drift["missing_files"]:
-            print(f"  Missing Files: {', '.join(drift['missing_files'])}")
-        if drift["missing_symbols"]:
-            print(f"  Missing Symbols: {', '.join(drift['missing_symbols'])}")
+        if drift.get("not_started"):
+            status_banner = "📋 READY TO BEGIN"
+            print(
+                f"[{status_banner}] Step {step_id.upper()} (Tier {effective_tier}) — "
+                f"You haven't started Step {step_id.upper()} ({drift.get('title', '')}) yet."
+            )
+            if drift.get("target_files"):
+                print(f"  Target File(s): {', '.join(drift['target_files'])}")
+            if drift.get("pending_symbols"):
+                print(f"  Symbols to Add: {', '.join(drift['pending_symbols'])}")
+        elif drift["has_drift"]:
+            status_banner = "⚠️ INCOMPLETE / DRIFT DETECTED"
+            print(f"[{status_banner}] Step {step_id.upper()} (Tier {effective_tier})")
+            if drift["missing_files"]:
+                print(f"  Missing Files: {', '.join(drift['missing_files'])}")
+            if drift["missing_symbols"]:
+                print(f"  Missing Symbols: {', '.join(drift['missing_symbols'])}")
+        else:
+            status_banner = "✅ COMPLETED (0 DRIFT)"
+            print(f"[{status_banner}] Step {step_id.upper()} (Tier {effective_tier})")
         print(f"\n{hint_text}\n")
 
     return 0

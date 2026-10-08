@@ -465,6 +465,68 @@ def _model() -> Gemini:
     )
 
 
+_build_model = _model
+
+
+async def generate_key_visual(
+    art_direction: str,
+    tool_context: Context | None = None,
+    *,
+    simulate_no_image: bool = False,
+) -> dict[str, Any]:
+    """
+    /**
+     * Generate a 16:9 key visual PNG from art direction notes and save it to session artifacts.
+     *
+     * Why: Attached to `visual_director` (`tools=[generate_key_visual]`) in Module 1 Step 1a
+     * so the Visual Director specialist can synthesize a key visual image via the configured
+     * `image_model` (`gemini-nano-banana-2.1`) and store it in the session artifact store.
+     *
+     * @param art_direction Art direction prompt describing palette, lighting, composition, and subject.
+     * @param tool_context Optional ADK `Context` / `ToolContext` for saving the image artifact.
+     * @param simulate_no_image If True, simulates an empty image response to test error handling.
+     * @return Metadata dictionary with `filename`, `version`, `bytes`, and `mime_type`.
+     */
+    """
+    import mimetypes
+
+    ctx = tool_context if tool_context is not None else Context()
+    cfg = ctx.services.config if hasattr(ctx, "services") and ctx.services else get_config()
+    if (
+        simulate_no_image
+        or getattr(ctx, "simulate_no_image", False)
+        or not isinstance(art_direction, str)
+        or not art_direction.strip()
+    ):
+        raise ValueError(f"{cfg.image_model} returned no image for: {str(art_direction)[:120]}")
+
+    image_bytes, mime_type = ctx.services.llm.generate_image(
+        art_direction.strip(),
+        model=cfg.image_model,
+    )
+    if not image_bytes:
+        raise ValueError(f"{cfg.image_model} returned no image for: {art_direction[:120]}")
+
+    ext = mimetypes.guess_extension(mime_type or "") or ".png"
+    filename = f"key_visual{ext}"
+    image_part = types.Part(
+        inline_data=types.Blob(data=image_bytes, mime_type=mime_type)
+    )
+    version = await ctx.save_artifact(filename, image_part)
+    ctx.session.events.append(
+        Event(
+            author="visual_director",
+            content=types.Content(role="model", parts=[image_part]),
+        )
+    )
+    return {
+        "filename": filename,
+        "version": version,
+        "bytes": len(image_bytes),
+        "mime_type": mime_type,
+    }
+
+
 creative_director = Agent(
     name="creative_director",
     model=_model(),
@@ -744,13 +806,32 @@ def run_pitch_workflow(
         "copywriter": copy_text,
     }
     nodes_executed: list[str] = ["creative_director", "copywriter"]
+    brand_text = ""
     art_direction = ""
     key_visual_uri: str | None = None
+    key_visual_url: str | None = None
     artifacts_meta: list[dict[str, Any]] = []
 
-    # Dynamic expansion: if the learner has defined brand_strategist or visual_director
-    # in agent.py (Module 1), execute them automatically.
+    # Dynamic expansion: if the learner has defined LoopGuard, strip_markdown_fences,
+    # brand_strategist, or visual_director in agent.py (Module 1), execute them automatically.
     module_globals = globals()
+    loop_guard_cls = module_globals.get("LoopGuard")
+    active_guard = None
+    if callable(loop_guard_cls):
+        active_guard = loop_guard_cls(max_iterations=10)
+        if hasattr(active_guard, "validate_graph") and hasattr(root_agent, "edges"):
+            active_guard.validate_graph(root_agent.edges)
+        if hasattr(active_guard, "record_step"):
+            active_guard.record_step("creative_director")
+            active_guard.record_step("copywriter")
+
+    strip_fn = module_globals.get("strip_markdown_fences")
+    if callable(strip_fn):
+        concept = strip_fn(concept)
+        copy_text = strip_fn(copy_text)
+        join_inputs["creative_director"] = concept
+        join_inputs["copywriter"] = copy_text
+
     brand_agent = module_globals.get("brand_strategist")
     if brand_agent is not None:
         brand_instruction = getattr(
@@ -763,13 +844,47 @@ def run_pitch_workflow(
             system_instruction=brand_instruction,
             model=active_model,
         )
+        if callable(strip_fn):
+            brand_text = strip_fn(brand_text)
         join_inputs["brand_strategist"] = brand_text
         nodes_executed.append("brand_strategist")
+        if active_guard is not None and hasattr(active_guard, "record_step"):
+            active_guard.record_step("brand_strategist")
 
-    visual_agent = module_globals.get("visual_director") or module_globals.get(
-        "remote_visual_director"
-    )
+    remote_vd = module_globals.get("remote_visual_director")
+    visual_agent = module_globals.get("visual_director") or remote_vd
     if visual_agent is not None:
+        if remote_vd is not None:
+            from pitch_generator.app_utils.services import _is_offline_test_mode
+            import urllib.request
+
+            if not _is_offline_test_mode(active_services.config.project_id):
+                vd_url = active_services.config.visual_director_url.rstrip("/")
+                card_url = f"{vd_url}/.well-known/agent-card.json"
+                headers: dict[str, str] = {"Accept": "application/json"}
+                if card_url.startswith("https://"):
+                    try:
+                        import google.auth.transport.requests
+                        import google.oauth2.id_token
+
+                        auth_req = google.auth.transport.requests.Request()
+                        id_tok = google.oauth2.id_token.fetch_id_token(auth_req, vd_url)
+                        if id_tok:
+                            headers["Authorization"] = f"Bearer {id_tok}"
+                    except Exception:
+                        pass
+                try:
+                    req = urllib.request.Request(card_url, headers=headers, method="GET")
+                    with urllib.request.urlopen(req, timeout=10.0) as resp:
+                        if resp.status >= 400:
+                            raise RuntimeError(f"HTTP {resp.status}")
+                except Exception as exc:
+                    raise RuntimeError(
+                        f"[A2A Remote Error] Could not connect to remote Visual Director service at "
+                        f"'{vd_url}' ({card_url}): {exc}. Ensure the Visual Director service is running "
+                        f"(or verify VISUAL_DIRECTOR_URL in .env)."
+                    ) from exc
+
         visual_instruction = getattr(
             visual_agent,
             "instruction",
@@ -785,6 +900,8 @@ def run_pitch_workflow(
             system_instruction=visual_instruction,
             model=active_model,
         )
+        if callable(strip_fn):
+            art_direction = strip_fn(art_direction)
         image_bytes, mime_type = active_services.llm.generate_image(
             art_direction,
             model=active_services.config.image_model,
@@ -795,6 +912,10 @@ def run_pitch_workflow(
             mime_type=mime_type,
             session_id=clean_session,
         )
+        key_visual_url = (
+            f"/api/artifacts/{clean_session}/{artifact_record.filename}"
+            f"?v={artifact_record.version}"
+        )
         key_visual_uri = (
             artifact_record.gcs_uri
             or f"/api/artifacts/{clean_session}/{artifact_record.filename}"
@@ -802,11 +923,16 @@ def run_pitch_workflow(
         artifacts_meta.append(artifact_record.to_metadata_dict())
         join_inputs["visual_director"] = art_direction
         nodes_executed.append("visual_director")
+        if active_guard is not None and hasattr(active_guard, "record_step"):
+            active_guard.record_step("visual_director")
 
     # Step 3: Assemble and Package join output validation
     join_events = list(package(join_inputs))
     pitch_text = str(join_events[-1].output or "")
     nodes_executed.extend(["assemble", "package"])
+    if active_guard is not None and hasattr(active_guard, "record_step"):
+        active_guard.record_step("assemble")
+        active_guard.record_step("package")
 
     telemetry_event = active_services.analytics.record_telemetry(
         {
@@ -826,8 +952,10 @@ def run_pitch_workflow(
         "brief": clean_brief,
         "concept": concept,
         "copy": copy_text,
+        "brand_strategy": brand_text,
         "art_direction": art_direction,
         "key_visual_uri": key_visual_uri,
+        "key_visual_url": key_visual_url,
         "routing_decision": routing_decision,
         "telemetry": telemetry_event,
         "artifacts": artifacts_meta,

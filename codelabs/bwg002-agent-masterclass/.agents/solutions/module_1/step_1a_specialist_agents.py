@@ -35,7 +35,12 @@ _APP_ROOT = Path(__file__).resolve().parents[3]
 if str(_APP_ROOT) not in sys.path:
     sys.path.insert(0, str(_APP_ROOT))
 
-from pitch_generator.agent import Agent, Gemini, types  # noqa: E402
+from pitch_generator.agent import (  # noqa: E402
+    Agent,
+    Gemini,
+    generate_key_visual,
+    types,
+)
 from pitch_generator.app_utils.services import (  # noqa: E402
     ServiceContainer,
     get_default_services,
@@ -121,6 +126,7 @@ def build_specialist_team(config: PitchConfig | None = None) -> dict[str, Agent]
                 "raking light with long shadows, off-center composition with generous "
                 "negative space, and one realistic photographic subject with shallow depth of field."
             ),
+            tools=[generate_key_visual],
             output_key="visual_director",
         ),
     }
@@ -233,6 +239,7 @@ __all__ = [
     "create_specialist_agents",
     "creative_director",
     "execute_specialists",
+    "generate_key_visual",
     "get_specialist_agent",
     "get_specialist_agents",
     "run_specialist_team",

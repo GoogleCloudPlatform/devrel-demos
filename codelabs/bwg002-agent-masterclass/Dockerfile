@@ -23,7 +23,7 @@ WORKDIR /app
 #  */
 RUN groupadd --system appgroup && useradd --system --gid appgroup --create-home appuser
 
-COPY pyproject.toml README.md setenv.sh call_agent.py ./
+COPY pyproject.toml README.md call_agent.py ./
 COPY pitch_generator ./pitch_generator
 COPY frontend ./frontend
 COPY scripts ./scripts

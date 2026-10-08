@@ -19,3 +19,10 @@
 
 5. **Provide prompts, not Python suggestions**:
    - When responding with "how to" type suggestions, provide example prompts the user can type that will accomplish the task. Avoid providing Python commandline instructions for the user to type. Assume the user is not going to use the terminal to enter commands and will only prompt you for changes.
+
+6. **Canonical CLI Testing, Setup, Local Server & Cloud Run Deployment Scripts**:
+   - **CLI Agent Testing**: Whenever asked to test or run the Pitch Generator agent with a prompt (e.g., `"Test the agent with 'Flying skateboards for cats'"`), ALWAYS execute `python3 call_agent.py "<prompt>"` (do NOT pass `--offline` unless explicitly asked).
+   - **Cloud Run Deployment**: Whenever asked to deploy the application, agents, or frontend to Cloud Run, ALWAYS execute `bash scripts/deploy.sh` (do NOT run raw `gcloud run deploy` commands directly). `scripts/deploy.sh` automatically loads `.env`, detects whether `remote_visual_director` has been implemented in `pitch_generator/agent.py`, deploys `visual-director` first when present, and wires `VISUAL_DIRECTOR_URL` into `pitch-generator`.
+   - **Cloud Infrastructure Setup**: Whenever asked to set up or provision Google Cloud prerequisites (Cloud Storage bucket, BigQuery dataset, Cloud Resource connection, or IAM bindings), ALWAYS execute `bash scripts/setup.sh`.
+   - **Local Server Lifecycle**: Whenever asked to start, restart, check, or stop the local web server or frontend, ALWAYS use `bash .agents/skills/start-frontend/scripts/start_server.sh` (see `.agents/skills/start-frontend/SKILL.md`).
+
