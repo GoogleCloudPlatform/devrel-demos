@@ -287,7 +287,44 @@ select:focus-visible,
 .pitch-content {
   margin: 0;
   font-size: 0.92rem;
-  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
+.pitch-content .md-paragraph {
+  margin: 0 0 0.625rem 0;
+}
+
+.pitch-content .md-paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.pitch-content .md-heading {
+  margin: 0.625rem 0 0.3rem 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.pitch-content .md-heading:first-child {
+  margin-top: 0;
+}
+
+.pitch-content .md-list {
+  margin: 0.35rem 0 0.625rem 0;
+  padding-left: 1.25rem;
+}
+
+.pitch-content .md-list:last-child {
+  margin-bottom: 0;
+}
+
+.pitch-content .md-list li {
+  margin-bottom: 0.25rem;
+}
+
+.pitch-content strong {
+  color: var(--color-text-primary);
+  font-weight: 700;
 }
 
 .pitch-key-visual-img {

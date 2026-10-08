@@ -197,6 +197,8 @@ class PitchFastAPIApp:
             RouteInfo(path="/styles.css", methods=("GET",), name="serve_styles_css"),
             RouteInfo(path="/app.js", methods=("GET",), name="serve_app_js"),
             RouteInfo(path="/api/health", methods=("GET",), name="api_health"),
+            RouteInfo(path="/healthz", methods=("GET",), name="healthz"),
+            RouteInfo(path="/health", methods=("GET",), name="health"),
             RouteInfo(path="/api/config", methods=("GET",), name="api_config"),
             RouteInfo(path="/api/pitch", methods=("POST",), name="api_pitch"),
             RouteInfo(path="/api/approve", methods=("POST",), name="api_approve"),
@@ -308,7 +310,7 @@ class PitchFastAPIApp:
         services = self.state.services
 
         # 1. Health check endpoint
-        if method_upper == "GET" and clean_path == "/api/health":
+        if method_upper == "GET" and clean_path in ("/api/health", "/healthz", "/health"):
             return TestResponse(
                 200,
                 {

@@ -28,13 +28,17 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import copy
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import os
+import random
 import re
 import struct
 import sys
+import threading
+import time
 from typing import Any, Protocol, runtime_checkable
 import zlib
 
@@ -397,17 +401,31 @@ class EnterpriseGenAILLMClient:
      * with offline test support via `DeterministicMockLLMClient`.
      *
      * Why: Invokes live Gemini models on Vertex AI when running in the CLI or Cloud Run,
-     * raising clear, actionable errors if credentials, network, or `.env` settings fail,
+     * applying:
+     *   - A1: Exponential backoff with jitter on `429 RESOURCE_EXHAUSTED` / transient errors,
+     *   - A2: Inter-call pacing between consecutive live requests to avoid sub-second bursts,
+     *   - A3: In-memory prompt deduplication/caching across retries and repeat briefs,
      * while supporting deterministic execution when `--offline` (`PITCH_OFFLINE_MODE=1`)
      * or `pytest` is active.
      */
     """
+
+    _RATE_LOCK = threading.Lock()
+    _last_live_call_ts: float = 0.0
+    _LIVE_TEXT_CACHE: dict[tuple[str, str, str, float], str] = {}
+    _LIVE_IMAGE_CACHE: dict[tuple[str, str], tuple[bytes, str]] = {}
+    _MAX_CACHE_ENTRIES: int = 256
 
     def __init__(
         self,
         config: PitchConfig | None = None,
         sdk_client: Any = None,
         fallback_client: LLMClientProtocol | None = None,
+        *,
+        max_retries: int | None = None,
+        base_retry_delay_sec: float | None = None,
+        min_call_interval_sec: float | None = None,
+        enable_cache: bool = True,
     ) -> None:
         """
         /**
@@ -416,21 +434,68 @@ class EnterpriseGenAILLMClient:
          * @param config Resolved `PitchConfig` instance.
          * @param sdk_client Optional `google.genai.Client` instance.
          * @param fallback_client Offline fallback `LLMClientProtocol` implementation.
+         * @param max_retries Maximum retry attempts on 429/transient errors (default 4).
+         * @param base_retry_delay_sec Initial backoff delay in seconds before exponential scaling.
+         * @param min_call_interval_sec Minimum spacing in seconds between consecutive live SDK calls.
+         * @param enable_cache Whether to deduplicate identical prompts via in-memory cache.
          */
         """
         self.config = config or get_config()
         self._has_custom_fallback = fallback_client is not None
+        self._is_custom_sdk = sdk_client is not None
         self.fallback_client: LLMClientProtocol = fallback_client or DeterministicMockLLMClient(
             self.config
         )
         self.calls: list[dict[str, Any]] = []
+        self.cache_hits: int = 0
+        self.retry_count: int = 0
         self._init_error: str | None = None
+
+        env_retries = os.environ.get("PITCH_MAX_RETRIES")
+        self.max_retries: int = (
+            max_retries
+            if max_retries is not None
+            else (int(env_retries) if env_retries and env_retries.isdigit() else 4)
+        )
+        self.base_retry_delay_sec: float = (
+            base_retry_delay_sec
+            if base_retry_delay_sec is not None
+            else (0.01 if self._is_custom_sdk else 2.0)
+        )
+        env_interval = os.environ.get("PITCH_MIN_CALL_INTERVAL_SEC")
+        if min_call_interval_sec is not None:
+            self.min_call_interval_sec = float(min_call_interval_sec)
+        elif env_interval is not None:
+            try:
+                self.min_call_interval_sec = max(0.0, float(env_interval))
+            except ValueError:
+                self.min_call_interval_sec = 1.2
+        else:
+            self.min_call_interval_sec = 0.0 if self._is_custom_sdk else 1.2
+
+        self.enable_cache: bool = enable_cache
+        # Use process-wide cache for live SDK calls so retries across HTTP requests reuse upstream turns,
+        # and an isolated dict when a custom mock SDK client is injected in unit tests.
+        self.text_cache: dict[tuple[str, str, str, float], str] = (
+            {} if self._is_custom_sdk else self._LIVE_TEXT_CACHE
+        )
+        self.image_cache: dict[tuple[str, str], tuple[bytes, str]] = (
+            {} if self._is_custom_sdk else self._LIVE_IMAGE_CACHE
+        )
+
         if sdk_client is not None:
             self.sdk_client = sdk_client
         elif _is_live_cloud_configured(project_id=self.config.project_id):
             self.sdk_client = self._init_default_sdk_client()
         else:
             self.sdk_client = None
+
+    @classmethod
+    def clear_cache(cls) -> None:
+        """Clear the process-wide in-memory text and image deduplication caches."""
+        with cls._RATE_LOCK:
+            cls._LIVE_TEXT_CACHE.clear()
+            cls._LIVE_IMAGE_CACHE.clear()
 
     def _init_default_sdk_client(self) -> Any:
         """
@@ -454,6 +519,80 @@ class EnterpriseGenAILLMClient:
         except Exception as exc:
             self._init_error = str(exc)
             return None
+
+    def _pace_live_call(self) -> None:
+        """
+        /**
+         * Enforce minimum spacing between consecutive live Vertex AI calls (A2).
+         *
+         * Why: A single pitch workflow executes 3 to 5 agent turns sequentially. Smoothing
+         * bursts with a ~1.2s minimum interval avoids tripping sub-minute Vertex AI rate buckets.
+         */
+        """
+        if self.min_call_interval_sec <= 0.0:
+            return
+        if not self._is_custom_sdk and _is_offline_test_mode(self.config.project_id):
+            return
+        with self._RATE_LOCK:
+            now = time.monotonic()
+            elapsed = now - EnterpriseGenAILLMClient._last_live_call_ts
+            if (
+                EnterpriseGenAILLMClient._last_live_call_ts > 0.0
+                and elapsed < self.min_call_interval_sec
+            ):
+                wait_sec = self.min_call_interval_sec - elapsed
+                time.sleep(wait_sec)
+            EnterpriseGenAILLMClient._last_live_call_ts = time.monotonic()
+
+    @staticmethod
+    def _is_retryable_quota_error(exc: Exception) -> bool:
+        """Return True if `exc` represents a 429 RESOURCE_EXHAUSTED or transient 503 error."""
+        msg = str(exc).lower()
+        retry_markers = (
+            "429",
+            "resource_exhausted",
+            "resource exhausted",
+            "quota",
+            "rate limit",
+            "too many requests",
+            "503",
+            "unavailable",
+        )
+        return any(marker in msg for marker in retry_markers)
+
+    def _call_with_retry(self, operation: str, model: str, fn: Callable[[], Any]) -> Any:
+        """
+        /**
+         * Execute an SDK call with inter-call pacing (A2) and exponential backoff + jitter
+         * on `429 RESOURCE_EXHAUSTED` / transient errors (A1).
+         */
+        """
+        attempt = 0
+        while True:
+            self._pace_live_call()
+            try:
+                return fn()
+            except Exception as exc:
+                if attempt < self.max_retries and self._is_retryable_quota_error(exc):
+                    attempt += 1
+                    self.retry_count += 1
+                    jitter = (
+                        random.uniform(0.1, 0.75)
+                        if self.base_retry_delay_sec >= 0.5
+                        else 0.0
+                    )
+                    delay = min(
+                        16.0,
+                        self.base_retry_delay_sec * (2 ** (attempt - 1)) + jitter,
+                    )
+                    print(
+                        f"[EnterpriseGenAILLMClient] Transient rate limit ({operation} on {model}); "
+                        f"retrying in {delay:.2f}s (attempt {attempt}/{self.max_retries})...",
+                        flush=True,
+                    )
+                    time.sleep(delay)
+                    continue
+                raise
 
     def _raise_if_not_offline(self, operation: str, model: str, detail: str) -> None:
         """Raise an actionable RuntimeError unless explicit offline/test mode is active."""
@@ -483,6 +622,7 @@ class EnterpriseGenAILLMClient:
             raise ValueError("prompt must not be empty")
 
         clean_prompt = prompt.strip()
+        clean_sys = (system_instruction or "").strip()
         resolved_model = model or self.config.flash_model
         self.calls.append(
             {
@@ -494,16 +634,30 @@ class EnterpriseGenAILLMClient:
             }
         )
 
+        cache_key = (resolved_model, clean_sys, clean_prompt, round(float(temperature), 3))
+        if self.enable_cache and cache_key in self.text_cache:
+            self.cache_hits += 1
+            return self.text_cache[cache_key]
+
         if self.sdk_client is not None:
             if hasattr(self.sdk_client, "generate_text"):
-                return str(
-                    self.sdk_client.generate_text(
-                        clean_prompt,
-                        system_instruction=system_instruction,
-                        model=resolved_model,
-                        temperature=temperature,
+                out = str(
+                    self._call_with_retry(
+                        "generate_text",
+                        resolved_model,
+                        lambda: self.sdk_client.generate_text(
+                            clean_prompt,
+                            system_instruction=system_instruction,
+                            model=resolved_model,
+                            temperature=temperature,
+                        ),
                     )
                 )
+                if self.enable_cache and out:
+                    if len(self.text_cache) >= self._MAX_CACHE_ENTRIES:
+                        self.text_cache.pop(next(iter(self.text_cache)), None)
+                    self.text_cache[cache_key] = out
+                return out
             if hasattr(self.sdk_client, "models") and hasattr(
                 self.sdk_client.models, "generate_content"
             ):
@@ -521,14 +675,23 @@ class EnterpriseGenAILLMClient:
                     except Exception:
                         pass
 
-                    response = self.sdk_client.models.generate_content(
-                        model=resolved_model,
-                        contents=clean_prompt,
-                        config=gen_config,
+                    response = self._call_with_retry(
+                        "generate_content",
+                        resolved_model,
+                        lambda: self.sdk_client.models.generate_content(
+                            model=resolved_model,
+                            contents=clean_prompt,
+                            config=gen_config,
+                        ),
                     )
                     text_out = getattr(response, "text", None)
                     if text_out and str(text_out).strip():
-                        return str(text_out).strip()
+                        clean_out = str(text_out).strip()
+                        if self.enable_cache:
+                            if len(self.text_cache) >= self._MAX_CACHE_ENTRIES:
+                                self.text_cache.pop(next(iter(self.text_cache)), None)
+                            self.text_cache[cache_key] = clean_out
+                        return clean_out
                     self._raise_if_not_offline(
                         "generate_content",
                         resolved_model,
@@ -581,21 +744,39 @@ class EnterpriseGenAILLMClient:
             }
         )
 
+        img_cache_key = (resolved_model, clean_prompt)
+        if self.enable_cache and img_cache_key in self.image_cache:
+            self.cache_hits += 1
+            return self.image_cache[img_cache_key]
+
         if self.sdk_client is not None:
             if hasattr(self.sdk_client, "generate_image"):
-                data, mime = self.sdk_client.generate_image(
-                    clean_prompt, model=resolved_model
+                data, mime = self._call_with_retry(
+                    "generate_image",
+                    resolved_model,
+                    lambda: self.sdk_client.generate_image(
+                        clean_prompt, model=resolved_model
+                    ),
                 )
-                return (bytes(data), str(mime))
+                result_pair = (bytes(data), str(mime))
+                if self.enable_cache and result_pair[0]:
+                    if len(self.image_cache) >= self._MAX_CACHE_ENTRIES:
+                        self.image_cache.pop(next(iter(self.image_cache)), None)
+                    self.image_cache[img_cache_key] = result_pair
+                return result_pair
             if hasattr(self.sdk_client, "models"):
                 last_err: str | None = None
                 if "imagen" in resolved_model.lower() and hasattr(
                     self.sdk_client.models, "generate_images"
                 ):
                     try:
-                        img_resp = self.sdk_client.models.generate_images(
-                            model=resolved_model,
-                            prompt=clean_prompt,
+                        img_resp = self._call_with_retry(
+                            "generate_images",
+                            resolved_model,
+                            lambda: self.sdk_client.models.generate_images(
+                                model=resolved_model,
+                                prompt=clean_prompt,
+                            ),
                         )
                         gen_imgs = getattr(img_resp, "generated_images", None) or []
                         if gen_imgs:
@@ -603,7 +784,12 @@ class EnterpriseGenAILLMClient:
                             raw_bytes = getattr(first_img, "image_bytes", None)
                             mime = getattr(first_img, "mime_type", None) or "image/png"
                             if raw_bytes:
-                                return (bytes(raw_bytes), str(mime))
+                                result_pair = (bytes(raw_bytes), str(mime))
+                                if self.enable_cache:
+                                    if len(self.image_cache) >= self._MAX_CACHE_ENTRIES:
+                                        self.image_cache.pop(next(iter(self.image_cache)), None)
+                                    self.image_cache[img_cache_key] = result_pair
+                                return result_pair
                     except Exception as exc:
                         last_err = str(exc)
 
@@ -620,10 +806,14 @@ class EnterpriseGenAILLMClient:
                         except Exception:
                             pass
 
-                        resp = self.sdk_client.models.generate_content(
-                            model=resolved_model,
-                            contents=clean_prompt,
-                            config=img_config,
+                        resp = self._call_with_retry(
+                            "generate_image",
+                            resolved_model,
+                            lambda: self.sdk_client.models.generate_content(
+                                model=resolved_model,
+                                contents=clean_prompt,
+                                config=img_config,
+                            ),
                         )
                         for candidate in getattr(resp, "candidates", None) or []:
                             content = getattr(candidate, "content", None)
@@ -635,7 +825,12 @@ class EnterpriseGenAILLMClient:
                                         getattr(inline_data, "mime_type", None)
                                         or "image/png"
                                     )
-                                    return (bytes(data_bytes), str(mime))
+                                    result_pair = (bytes(data_bytes), str(mime))
+                                    if self.enable_cache:
+                                        if len(self.image_cache) >= self._MAX_CACHE_ENTRIES:
+                                            self.image_cache.pop(next(iter(self.image_cache)), None)
+                                        self.image_cache[img_cache_key] = result_pair
+                                    return result_pair
                         self._raise_if_not_offline(
                             "generate_image",
                             resolved_model,

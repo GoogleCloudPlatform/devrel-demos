@@ -52,9 +52,9 @@ bash .agents/skills/start-frontend/scripts/start_server.sh --with-visual-directo
 ```
 
 ### 3. Verify Server Health
-1. Verify the process is listening on port `8080` (and `8801` if `--with-visual-director` was used):
+1. Verify the server is listening and responding to `/healthz` on port `8080` (and `8801` if `--with-visual-director` was used):
    ```bash
-   lsof -i :8080
+   curl -s http://127.0.0.1:8080/healthz
    ```
 2. Report the URL(s) to the user:
    - **Pitch Generator Web UI**: `http://localhost:8080`

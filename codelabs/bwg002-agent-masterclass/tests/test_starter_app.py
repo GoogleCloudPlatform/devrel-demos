@@ -277,6 +277,43 @@ def test_f2_enterprise_genai_llm_client_and_default_service_container(
     assert len(fake_sdk.models.calls) == 2
     assert fake_sdk.models.calls[1]["model"] == "gemini-nano-banana-2.1"
 
+    # A3: Verify in-memory prompt deduplication/caching avoids duplicate SDK calls
+    cached_text = enterprise_llm.generate_text(
+        "Eco-friendly running shoes",
+        system_instruction="You are the Creative Director.",
+    )
+    assert cached_text == text_out
+    assert enterprise_llm.cache_hits == 1
+    assert len(fake_sdk.models.calls) == 2
+
+    # A1: Verify 429 RESOURCE_EXHAUSTED automatic retry with exponential backoff
+    class _Flaky429Models:
+        def __init__(self) -> None:
+            self.attempts = 0
+
+        def generate_content(self, *, model: str, contents: str, config: Any = None) -> _FakeGenAIResponse:
+            self.attempts += 1
+            if self.attempts < 3:
+                raise Exception("429 RESOURCE_EXHAUSTED: Resource exhausted. Please try again later.")
+            return _FakeGenAIResponse()
+
+    class _Flaky429Client:
+        def __init__(self) -> None:
+            self.models = _Flaky429Models()
+
+    flaky_sdk = _Flaky429Client()
+    retry_llm = services.EnterpriseGenAILLMClient(
+        config=test_config,
+        sdk_client=flaky_sdk,
+        max_retries=3,
+        base_retry_delay_sec=0.005,
+        min_call_interval_sec=0.005,
+    )
+    recovered = retry_llm.generate_text("Retry test brief")
+    assert recovered == "Live Gemini Enterprise Agent Platform campaign concept"
+    assert flaky_sdk.models.attempts == 3
+    assert retry_llm.retry_count == 2
+
 
 def test_f2_memory_bank_session_and_long_term_memory(
     memory_bank: memory_bank.MemoryBankService,
@@ -457,6 +494,11 @@ def test_f3_fastapi_rest_and_a2a_endpoints(api_client: Any) -> None:
     health_data = health_resp.json()
     assert health_data["status"] == "ok"
     assert health_data["service"] == "pitch-generator"
+
+    for health_alias in ("/healthz", "/health"):
+        alias_resp = api_client.get(health_alias)
+        assert alias_resp.status_code == 200
+        assert alias_resp.json()["status"] == "ok"
 
     cfg_resp = api_client.get("/api/config")
     assert cfg_resp.status_code == 200

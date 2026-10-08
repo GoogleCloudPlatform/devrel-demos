@@ -597,7 +597,11 @@ root_agent = Workflow(
     ],
 )
 
-app = App(root_agent=root_agent, name="pitch_generator")
+app = (
+    visual_director_app
+    if os.environ.get("SERVICE_ROLE") == "visual-director"
+    else App(root_agent=root_agent, name="pitch_generator")
+)
 
 
 __all__ = [

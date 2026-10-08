@@ -55,6 +55,156 @@ function createSafeElement(tagName, attributes, textValue) {
 }
 
 /**
+ * Append inline Markdown tokens (`**bold**`, `*italic*`) to a parent DOM element
+ * using safe DOM APIs (`createTextNode`, `createSafeElement`).
+ *
+ * Why: Renders inline emphasis cleanly while guaranteeing that raw HTML or script
+ * tags in model output are always treated as literal text nodes (never `innerHTML`).
+ *
+ * @param {HTMLElement} parentEl Target parent DOM element.
+ * @param {string} lineText Single line of text with code spans already stripped.
+ * @return {void}
+ */
+function appendInlineMarkdown(parentEl, lineText) {
+  const tokenPattern = /(\*\*[^*\n]+\*\*|__[^_\n]+__|\*[^*\n]+\*|_[^_\n]+_)/g;
+  let lastIndex = 0;
+  let match = tokenPattern.exec(lineText);
+  while (match !== null) {
+    if (match.index > lastIndex) {
+      parentEl.appendChild(
+        document.createTextNode(lineText.slice(lastIndex, match.index))
+      );
+    }
+    const token = match[0];
+    if (
+      (token.startsWith("**") && token.endsWith("**")) ||
+      (token.startsWith("__") && token.endsWith("__"))
+    ) {
+      parentEl.appendChild(createSafeElement("strong", {}, token.slice(2, -2)));
+    } else {
+      parentEl.appendChild(createSafeElement("em", {}, token.slice(1, -1)));
+    }
+    lastIndex = tokenPattern.lastIndex;
+    match = tokenPattern.exec(lineText);
+  }
+  if (lastIndex < lineText.length) {
+    parentEl.appendChild(document.createTextNode(lineText.slice(lastIndex)));
+  }
+}
+
+/**
+ * Render basic Markdown (headings, bold, italics, lists, paragraphs, line breaks)
+ * into `containerEl` while stripping fenced/inline code and avoiding `innerHTML`.
+ *
+ * @param {HTMLElement} containerEl Target container DOM element.
+ * @param {string} rawMarkdown Raw Markdown string from an agent.
+ * @return {void}
+ */
+function renderSafeMarkdown(containerEl, rawMarkdown) {
+  if (!containerEl) {
+    return;
+  }
+  const text = String(rawMarkdown || "")
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/`([^`\n]+)`/g, "$1")
+    .trim();
+
+  if (
+    typeof document === "undefined" ||
+    typeof document.createTextNode !== "function" ||
+    typeof containerEl.replaceChildren !== "function"
+  ) {
+    containerEl.textContent = text;
+    return;
+  }
+
+  if (!text) {
+    containerEl.replaceChildren();
+    return;
+  }
+
+  const lines = text.split(/\r?\n/);
+  const blocks = [];
+  let currentParagraph = null;
+  let currentList = null;
+  let currentListType = null;
+
+  const flushParagraph = () => {
+    if (currentParagraph) {
+      blocks.push(currentParagraph);
+      currentParagraph = null;
+    }
+  };
+
+  const flushList = () => {
+    if (currentList) {
+      blocks.push(currentList);
+      currentList = null;
+      currentListType = null;
+    }
+  };
+
+  lines.forEach((rawLine) => {
+    const trimmed = rawLine.trim();
+    if (!trimmed) {
+      flushParagraph();
+      flushList();
+      return;
+    }
+
+    const headingMatch = trimmed.match(/^(#{1,4})\s+(.+)$/);
+    if (headingMatch) {
+      flushParagraph();
+      flushList();
+      const hEl = createSafeElement("h4", { class: "md-heading" });
+      appendInlineMarkdown(hEl, headingMatch[2].trim());
+      blocks.push(hEl);
+      return;
+    }
+
+    const ulMatch = trimmed.match(/^[-*•]\s+(.+)$/);
+    if (ulMatch) {
+      flushParagraph();
+      if (currentListType !== "ul") {
+        flushList();
+        currentList = createSafeElement("ul", { class: "md-list" });
+        currentListType = "ul";
+      }
+      const liEl = createSafeElement("li", {});
+      appendInlineMarkdown(liEl, ulMatch[1].trim());
+      currentList.appendChild(liEl);
+      return;
+    }
+
+    const olMatch = trimmed.match(/^\d+[.)]\s+(.+)$/);
+    if (olMatch) {
+      flushParagraph();
+      if (currentListType !== "ol") {
+        flushList();
+        currentList = createSafeElement("ol", { class: "md-list" });
+        currentListType = "ol";
+      }
+      const liEl = createSafeElement("li", {});
+      appendInlineMarkdown(liEl, olMatch[1].trim());
+      currentList.appendChild(liEl);
+      return;
+    }
+
+    flushList();
+    if (!currentParagraph) {
+      currentParagraph = createSafeElement("p", { class: "md-paragraph" });
+    } else {
+      currentParagraph.appendChild(createSafeElement("br", {}));
+    }
+    appendInlineMarkdown(currentParagraph, trimmed);
+  });
+
+  flushParagraph();
+  flushList();
+  containerEl.replaceChildren(...blocks);
+}
+
+/**
  * Display a non-blocking status message in `#status-banner`.
  *
  * Why: Avoids blocking browser modal dialogs and updates an ARIA live region
@@ -142,15 +292,15 @@ function renderPitchResult(data) {
       statusText === "completed" ? "badge badge-ok" : "badge badge-warn";
   }
   if (conceptEl) {
-    conceptEl.textContent = data.concept || "No concept generated.";
+    renderSafeMarkdown(conceptEl, data.concept || "No concept generated.");
   }
   if (copyEl) {
-    copyEl.textContent = data.copy || "No social copy generated.";
+    renderSafeMarkdown(copyEl, data.copy || "No social copy generated.");
   }
   if (brandCard && brandEl) {
     if (data.brand_strategy) {
       brandCard.hidden = false;
-      brandEl.textContent = data.brand_strategy;
+      renderSafeMarkdown(brandEl, data.brand_strategy);
     } else {
       brandCard.hidden = true;
     }
@@ -158,7 +308,7 @@ function renderPitchResult(data) {
   if (artCard && artEl) {
     if (data.art_direction) {
       artCard.hidden = false;
-      artEl.textContent = data.art_direction;
+      renderSafeMarkdown(artEl, data.art_direction);
     } else {
       artCard.hidden = true;
     }
@@ -405,6 +555,7 @@ if (typeof document !== "undefined") {
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     createSafeElement,
+    renderSafeMarkdown,
     setBanner,
     renderWorkflowTrace,
     renderPitchResult,
