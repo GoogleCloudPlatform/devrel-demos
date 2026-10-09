@@ -233,6 +233,7 @@ async function main() {
   const ff = spawn(
     "ffmpeg",
     [
+      "-loglevel", "error",
       "-y",
       "-f", "image2pipe",
       "-vcodec", "mjpeg",
@@ -250,7 +251,7 @@ async function main() {
       "-movflags", "+faststart",
       outMp4,
     ],
-    { stdio: ["pipe", "ignore", "ignore"] }
+    { stdio: ["pipe", "ignore", "inherit"] }
   );
 
   for (let frame = 0; frame < totalFrames; frame++) {

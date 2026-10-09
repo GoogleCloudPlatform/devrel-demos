@@ -433,18 +433,21 @@ def fetch_git_diff(
 ) -> dict[str, Any]:
   """Analyze files changed across a git diff range (e.g. '5984e02..HEAD' or 'HEAD~1..HEAD')."""
   local_path = local_path.resolve()
-  numstat_out = subprocess.check_output(
-      ["git", "-C", str(local_path), "diff", "--relative", "--numstat", diff_range, "--", "."],
-      text=True,
-  )
-  status_out = subprocess.check_output(
-      ["git", "-C", str(local_path), "diff", "--relative", "--name-status", diff_range, "--", "."],
-      text=True,
-  )
-  commits_out = subprocess.check_output(
-      ["git", "-C", str(local_path), "log", "--oneline", diff_range, "--", "."],
-      text=True,
-  )
+  try:
+    numstat_out = subprocess.run(
+        ["git", "-C", str(local_path), "diff", "--relative", "--numstat", diff_range, "--", "."],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    status_out = subprocess.run(
+        ["git", "-C", str(local_path), "diff", "--relative", "--name-status", diff_range, "--", "."],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    commits_out = subprocess.run(
+        ["git", "-C", str(local_path), "log", "--oneline", diff_range, "--", "."],
+        capture_output=True, text=True, check=True,
+    ).stdout
+  except subprocess.CalledProcessError as e:
+    raise RuntimeError(f"Git command failed: {e.stderr.strip() if e.stderr else e}") from e
   commits = [line.strip() for line in commits_out.splitlines() if line.strip()]
 
   status_by_path: dict[str, str] = {}

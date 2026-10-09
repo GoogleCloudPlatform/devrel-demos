@@ -168,7 +168,12 @@ async function synthesizeTts(apiKey, text, { model = DEFAULT_MODEL, voice = DEFA
       continue;
     }
 
-    const json = await resp.json();
+    let json;
+    try {
+      json = await resp.json();
+    } catch {
+      throw new Error(`Gemini TTS API returned non-JSON response (HTTP ${resp.status})`);
+    }
     if (!resp.ok || json.error) {
       throw new Error(`Gemini TTS API error (${resp.status}): ${JSON.stringify(json.error || json)}`);
     }

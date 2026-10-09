@@ -74,7 +74,17 @@ function hasGeminiKey() {
     ).trim();
     if (k) return true;
   } catch {}
-  return fs.existsSync(".env") && fs.readFileSync(".env", "utf8").includes("GEMINI_API_KEY=");
+  if (fs.existsSync(".env")) {
+    const envText = fs.readFileSync(".env", "utf8");
+    for (const line of envText.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("GEMINI_API_KEY=")) {
+        const val = trimmed.slice("GEMINI_API_KEY=".length).trim().replace(/^['"]|['"]$/g, "");
+        if (val) return true;
+      }
+    }
+  }
+  return false;
 }
 
 function checkPrereqsReport() {
