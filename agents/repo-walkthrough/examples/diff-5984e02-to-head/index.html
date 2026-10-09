@@ -1,0 +1,1505 @@
+<!--
+  Copyright 2026 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>google/adk-python · Codebase Walkthrough</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #131922;
+    --panel: #19212d;
+    --panel-hover: #222d3d;
+    --line: #283344;
+    --line-bright: #3b4c66;
+    --ink: #f1f5f9;
+    --ink-2: #cbd5e1;
+    --ink-3: #8b9bb4;
+    --g-blue: #4285F4;
+    --g-blue-light: #8AB4F8;
+    --g-red: #EA4335;
+    --g-yellow: #FBBC04;
+    --g-yellow-light: #FDD663;
+    --g-green: #34A853;
+    --g-green-light: #81C995;
+    --sans: 'Google Sans', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: 'Roboto Mono', ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100vh; width: 100vw; overflow: hidden;
+    background: var(--bg); color: var(--ink-2);
+    font: 13.5px/1.5 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { display: flex; flex-direction: column; }
+
+  /* Google Cloud 4-color top bar */
+  .gcloud-bar { height: 3px; width: 100%; display: flex; flex-shrink: 0; }
+  .gcloud-bar span:nth-child(1) { flex: 1; background: var(--g-blue); }
+  .gcloud-bar span:nth-child(2) { flex: 1; background: var(--g-red); }
+  .gcloud-bar span:nth-child(3) { flex: 1; background: var(--g-yellow); }
+  .gcloud-bar span:nth-child(4) { flex: 1; background: var(--g-green); }
+
+  /* Minimal Header */
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 18px; background: var(--surface);
+    border-bottom: 1px solid var(--line); flex-shrink: 0;
+  }
+  header h1 {
+    font: 700 14.5px var(--mono); color: var(--ink);
+  }
+  header .sub {
+    font-size: 12.5px; color: var(--ink-3);
+  }
+  header .spacer { flex: 1; }
+
+  button, .btn-link {
+    background: var(--panel); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 5px 11px; font: 500 12px var(--sans);
+    cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: background 0.14s, border-color 0.14s;
+    user-select: none; white-space: nowrap;
+  }
+  button:hover, .btn-link:hover {
+    background: var(--panel-hover); border-color: var(--line-bright);
+  }
+  button:disabled { opacity: 0.4; cursor: default; }
+  button.primary {
+    background: rgba(66, 133, 244, 0.18);
+    border-color: var(--g-blue); color: var(--g-blue-light);
+    font-weight: 600;
+  }
+  button.primary:hover { background: rgba(66, 133, 244, 0.28); }
+  button.active-toggle {
+    background: var(--g-blue); border-color: var(--g-blue); color: #fff;
+  }
+
+  /* Main Split: Left Graph + Right Inspector */
+  main {
+    flex: 1; display: flex; min-height: 0;
+  }
+
+  #graph-wrap {
+    flex: 1.65; position: relative; min-width: 0;
+    background:
+      radial-gradient(circle at 20% 15%, rgba(66, 133, 244, 0.06) 0%, transparent 45%),
+      radial-gradient(circle at 80% 85%, rgba(52, 168, 83, 0.05) 0%, transparent 45%),
+      #0d1117;
+    overflow: hidden;
+  }
+  #graph-svg {
+    width: 100%; height: 100%; display: block;
+    cursor: grab; user-select: none;
+  }
+  #graph-svg.panning {
+    cursor: grabbing;
+  }
+
+  /* Subtle floating camera controls on the canvas */
+  .cam-controls {
+    position: absolute; right: 14px; bottom: 14px;
+    display: flex; gap: 4px; z-index: 10;
+    background: rgba(19, 25, 34, 0.85);
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 4px; backdrop-filter: blur(6px);
+  }
+  .cam-controls button {
+    padding: 4px 9px; font: 600 11.5px var(--mono);
+    background: transparent; border: none; border-radius: 5px;
+    color: var(--ink-2);
+  }
+  .cam-controls button:hover {
+    background: var(--panel-hover); color: var(--ink);
+  }
+
+  /* SVG Layer Bands */
+  .layer-band-rect { rx: 10; stroke-width: 1; }
+  .layer-band-label {
+    font: 700 10.5px var(--mono); letter-spacing: 0.06em;
+    text-transform: uppercase; pointer-events: none; opacity: 0.88;
+  }
+
+  /* SVG Edges */
+  .edge-group { cursor: pointer; transition: opacity 0.35s ease; }
+  .edge-hit { fill: none; stroke: transparent; stroke-width: 14; }
+  .edge-path {
+    fill: none; stroke: #3b4c66; stroke-width: 1.85;
+    transition: stroke 0.32s ease, stroke-width 0.32s ease, opacity 0.35s ease;
+  }
+  .edge-group:hover .edge-path {
+    stroke: var(--g-blue-light); stroke-width: 2.6;
+  }
+  .edge-path.flow-walk {
+    stroke: var(--g-blue-light); stroke-width: 2.5;
+    stroke-dasharray: 7 5; animation: dash 0.55s linear infinite;
+  }
+  .edge-path.flow-in {
+    stroke: var(--g-blue-light); stroke-width: 2.5;
+    stroke-dasharray: 7 5; animation: dash 0.55s linear infinite;
+  }
+  .edge-path.flow-out {
+    stroke: var(--g-green-light); stroke-width: 2.5;
+    stroke-dasharray: 7 5; animation: dash 0.55s linear infinite;
+  }
+  .edge-path.selected-edge {
+    stroke: #ffffff; stroke-width: 2.8;
+  }
+  @keyframes dash { to { stroke-dashoffset: -12; } }
+
+  /* SVG Nodes: Single Light Blue highlight vs Dark Gray non-highlight */
+  .node-group { cursor: pointer; transition: opacity 0.32s ease; }
+  .node-rect {
+    fill: #121822; stroke: #283344; stroke-width: 1.5; rx: 8;
+    transition: fill 0.3s ease, stroke 0.3s ease, stroke-width 0.3s ease, filter 0.3s ease;
+  }
+  .node-group:hover .node-rect {
+    fill: #1a2433; stroke: #475569; stroke-width: 2;
+  }
+  .node-title {
+    fill: #94a3b8; font: 600 12.5px var(--mono); pointer-events: none;
+    transition: fill 0.25s ease;
+  }
+  .node-sub {
+    fill: #64748b; font: 400 11px var(--sans); pointer-events: none;
+    transition: fill 0.25s ease;
+  }
+  /* In-step non-highlighted context node: calm dark gray */
+  .node-group.walk-active {
+    opacity: 0.78;
+  }
+  .node-group.walk-active .node-rect {
+    fill: #141c27; stroke: #2f3d52; stroke-width: 1.5;
+    filter: none;
+  }
+  /* Highlighted node: Light Blue (#8AB4F8) with clean blue glow */
+  .node-group.selected {
+    opacity: 1;
+  }
+  .node-group.selected .node-rect {
+    fill: #1b283d; stroke: var(--g-blue-light); stroke-width: 2.8;
+    filter: drop-shadow(0 0 12px rgba(138, 180, 248, 0.65));
+  }
+  .node-group.selected .node-title {
+    fill: #ffffff;
+  }
+  .node-group.selected .node-sub {
+    fill: #cbd5e1;
+  }
+  .node-group.neighbor-in .node-rect { stroke: var(--g-blue-light); stroke-width: 2; }
+  .node-group.neighbor-out .node-rect { stroke: var(--g-green-light); stroke-width: 2; }
+  .node-group.dimmed { opacity: 0.34; }
+  .edge-group.dimmed { opacity: 0.16; }
+
+  /* Right Inspector Panel (hidden in video mode so graph fills full width) */
+  aside {
+    width: 380px; max-width: 40vw; flex-shrink: 0;
+    background: var(--surface); border-left: 1px solid var(--line);
+    padding: 20px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  body.video-mode aside,
+  body.video-mode .cam-controls,
+  body.video-mode #header-github-link {
+    display: none !important;
+  }
+  body.video-mode .node-group,
+  body.video-mode .node-rect,
+  body.video-mode .edge-group,
+  body.video-mode .edge-path,
+  body.video-mode .tl-mark {
+    transition: none !important;
+  }
+  body.video-mode .walk-desc {
+    max-width: 1020px;
+  }
+  .insp-title {
+    font: 600 13px/1.4 var(--mono); color: var(--ink);
+    overflow-wrap: anywhere; word-break: break-word;
+  }
+  .insp-title a {
+    color: var(--g-blue-light); text-decoration: none;
+  }
+  .insp-title a:hover { text-decoration: underline; }
+
+  .insp-desc {
+    font-size: 13.5px; color: var(--ink-2); line-height: 1.6;
+  }
+  .insp-desc code, .walk-desc code {
+    font-family: var(--mono); font-size: 12px;
+    background: rgba(255,255,255,0.07); padding: 1px 5px;
+    border-radius: 4px; color: var(--g-blue-light);
+  }
+
+  .node-diff {
+    font: 600 10px var(--mono); pointer-events: none;
+  }
+  .node-diff .diff-plus { fill: var(--g-green-light); }
+  .node-diff .diff-minus { fill: var(--g-red-light); }
+
+  .diff-meta {
+    display: flex; align-items: center; gap: 8px;
+    font: 600 11px var(--mono);
+  }
+  .diff-status-pill {
+    padding: 2px 7px; border-radius: 999px;
+    background: rgba(138, 180, 248, 0.14); color: var(--g-blue-light);
+    text-transform: uppercase; letter-spacing: 0.04em; font-size: 10px;
+  }
+  .diff-stat-add { color: var(--g-green-light); }
+  .diff-stat-del { color: var(--g-red-light); }
+
+  pre.code-box {
+    background: #0a0e14; border: 1px solid var(--line);
+    border-radius: 8px; padding: 12px 14px;
+    font: 11.5px/1.55 var(--mono); color: #e2e8f0;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  pre.code-box .diff-line-add {
+    display: block; background: rgba(52, 168, 83, 0.14); color: var(--g-green-light);
+    margin: 0 -14px; padding: 0 14px;
+  }
+  pre.code-box .diff-line-del {
+    display: block; background: rgba(234, 67, 53, 0.14); color: var(--g-red-light);
+    margin: 0 -14px; padding: 0 14px;
+  }
+  pre.code-box .diff-line-hunk {
+    display: block; color: var(--g-blue-light); opacity: 0.9;
+  }
+
+  /* Bottom Walkthrough & Scrubber Dock */
+  #bottom-dock {
+    background: var(--surface); border-top: 1px solid var(--line);
+    flex-shrink: 0; display: flex; flex-direction: column;
+    padding: 18px 28px 16px; gap: 14px;
+  }
+  .walk-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 28px;
+  }
+  .walk-info { flex: 1; min-width: 0; }
+  .walk-head {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
+  }
+  .step-pill {
+    background: var(--g-blue); color: #fff;
+    font: 700 11.5px var(--mono); padding: 3px 10px; border-radius: 999px;
+    letter-spacing: 0.03em; white-space: nowrap; flex-shrink: 0;
+  }
+  .walk-title {
+    font: 700 17px var(--sans); color: var(--ink);
+  }
+  .walk-title code {
+    font-family: var(--mono); font-size: 15.5px; color: var(--g-yellow-light);
+  }
+  .walk-desc {
+    font-size: 14.5px; line-height: 1.55; color: var(--ink-2);
+    max-width: 960px;
+  }
+  .walk-desc code {
+    font-size: 13px;
+  }
+  .walk-controls {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 8px; flex-shrink: 0;
+  }
+  .transport {
+    display: flex; align-items: center; justify-content: center; gap: 18px;
+  }
+  .walk-controls button.tbtn {
+    background: none; border: 0; padding: 6px; border-radius: 50%;
+    color: var(--ink); display: grid; place-items: center; position: relative;
+    cursor: pointer; transition: background 0.14s ease, color 0.14s ease;
+  }
+  .walk-controls button.tbtn:hover:not(:disabled) {
+    background: var(--panel-hover);
+  }
+  .walk-controls button.tbtn:active:not(:disabled) {
+    background: #2a3344;
+  }
+  .walk-controls button.tbtn svg { display: block; }
+  .walk-controls button.tbtn .secs {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%);
+    font-size: 8.5px; font-weight: 700; letter-spacing: 0.01em; pointer-events: none;
+  }
+  #playBtn { color: var(--g-blue-light); }
+  .speed-pills {
+    display: flex; gap: 6px; align-items: center; justify-content: center;
+  }
+  .walk-controls button.spd {
+    font: 500 13px var(--sans); color: var(--ink); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 5px 10px; text-align: center; min-width: 38px;
+    justify-content: center; cursor: pointer; white-space: nowrap;
+  }
+  .walk-controls button.spd:hover {
+    background: var(--panel-hover); border-color: var(--line-bright);
+  }
+  .walk-controls button.spd.on {
+    border-color: var(--g-blue-light); color: var(--g-blue-light);
+  }
+
+  /* Scrubbable Timeline Track */
+  #timeline {
+    position: relative; height: 12px; background: #0b0f16;
+    border: 1px solid var(--line); border-radius: 999px;
+    cursor: pointer; user-select: none; touch-action: none;
+  }
+  #tl-fill {
+    position: absolute; inset: 0 auto 0 0; width: 0%;
+    background: linear-gradient(90deg, rgba(66,133,244,0.38), rgba(66,133,244,0.9));
+    border-radius: 999px;
+    pointer-events: none;
+  }
+  #tl-thumb {
+    position: absolute; top: -3px; width: 6px; height: 16px; margin-left: -3px;
+    background: var(--g-blue-light); border-radius: 3px;
+    box-shadow: 0 0 8px rgba(138, 180, 248, 0.8);
+    pointer-events: none;
+  }
+  .tl-mark {
+    position: absolute; top: 1px; width: 8px; height: 8px; border-radius: 50%;
+    margin-left: -4px; border: 1.5px solid #0d1117; z-index: 2;
+    transition: transform 0.22s ease, border-color 0.22s ease;
+  }
+  .tl-mark:hover, .tl-mark.active {
+    transform: scale(1.45); border-color: #fff;
+  }
+  .tl-mark.passed {
+    border-color: rgba(255,255,255,0.65);
+  }
+  #tl-tip {
+    position: absolute; bottom: 20px; transform: translateX(-50%);
+    background: #0a0e14; border: 1px solid var(--line-bright); border-radius: 6px;
+    padding: 4px 10px; font: 500 11.5px var(--mono); color: var(--ink);
+    white-space: nowrap; display: none; z-index: 30; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="gcloud-bar"><span></span><span></span><span></span><span></span></div>
+
+<header>
+  <h1>google/adk-python</h1>
+  <span class="sub">Agent Development Kit · Interactive Architecture Walkthrough</span>
+  <span class="spacer"></span>
+  <a id="header-github-link" class="btn-link" href="#" target="_blank" rel="noopener" style="display: none; font-size: 12px; color: var(--ink-2);">GitHub ↗</a>
+</header>
+
+<main>
+  <div id="graph-wrap">
+    <svg id="graph-svg" viewBox="0 0 1045 615" preserveAspectRatio="xMidYMid meet" aria-label="ADK Architecture Graph"></svg>
+    <div class="cam-controls" title="Drag anywhere on the graph to pan, or scroll to zoom">
+      <button id="zoomOutBtn" title="Zoom out">−</button>
+      <button id="zoomResetBtn" title="Reset to full architecture view">Fit</button>
+      <button id="zoomInBtn" title="Zoom in">+</button>
+    </div>
+  </div>
+  <aside id="inspector"></aside>
+</main>
+
+<div id="bottom-dock">
+  <div class="walk-bar">
+    <div class="walk-info">
+      <div class="walk-head">
+        <span class="step-pill" id="stepNum">STEP 1 / 8</span>
+        <span class="walk-title" id="stepTitle"></span>
+      </div>
+      <div class="walk-desc" id="stepDesc"></div>
+    </div>
+    <div class="walk-controls">
+      <div class="transport">
+        <button class="tbtn" id="prevBtn" aria-label="Restart section or previous section" title="Restart section or go to previous section (←)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7 5.5h2.1v13H7zM19 5.5v13l-9-6.5z"/>
+          </svg>
+        </button>
+        <button class="tbtn" id="back5Btn" aria-label="Back 5 seconds" title="Back 5 seconds">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11.5 5V2.5L7.5 5.5l4 3V6a6.5 6.5 0 1 1-6.5 6.5"/>
+          </svg>
+          <span class="secs">5</span>
+        </button>
+        <button class="tbtn" id="playBtn" aria-label="Play or pause" title="Play / Pause (Space)">
+          <svg id="ppicon" width="38" height="38" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5.5v13l11-6.5z"/>
+          </svg>
+        </button>
+        <button class="tbtn" id="fwd5Btn" aria-label="Forward 5 seconds" title="Forward 5 seconds">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.5 5V2.5l4 3-4 3V6a6.5 6.5 0 1 0 6.5 6.5"/>
+          </svg>
+          <span class="secs">5</span>
+        </button>
+        <button class="tbtn" id="nextBtn" aria-label="Next section" title="Next section (→)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M14.9 5.5H17v13h-2.1zM5 5.5v13l9-6.5z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="speed-pills" title="Playback speed">
+        <button class="spd" data-s="0.8">0.8×</button>
+        <button class="spd" data-s="0.9">0.9×</button>
+        <button class="spd on" data-s="1">1×</button>
+        <button class="spd" data-s="1.1">1.1×</button>
+        <button class="spd" data-s="1.2">1.2×</button>
+      </div>
+    </div>
+  </div>
+  <div id="timeline" title="Click or drag to scrub through walkthrough steps">
+    <div id="tl-fill"></div>
+    <div id="tl-thumb"></div>
+    <div id="tl-tip"></div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+(async () => {
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const NS = "http://www.w3.org/2000/svg";
+  const params = new URLSearchParams(location.search);
+
+  if (params.has("video")) {
+    document.body.classList.add("video-mode");
+  }
+
+  const DATA = window.WALKTHROUGH_DATA || window.ADK_DATA;
+  const repoTitle = DATA.title || DATA.repo || "Repository";
+  const repoSub = DATA.subtitle || "Interactive Architecture Walkthrough";
+  document.title = `${repoTitle} · Codebase Walkthrough`;
+  $("header h1").textContent = repoTitle;
+  $("header .sub").textContent = repoSub;
+
+  const headerGithubEl = $("#header-github-link");
+  if (headerGithubEl) {
+    const rawRepo = String(DATA.repo || DATA.meta?.repo || "").trim();
+    const explicitUrl = String(DATA.githubUrl || DATA.meta?.githubUrl || "").trim();
+    let resolvedGhUrl = "";
+    if (explicitUrl.startsWith("https://github.com/")) {
+      resolvedGhUrl = explicitUrl;
+    } else if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(rawRepo) && rawRepo !== "ykdojo/repo-walkthrough") {
+      if (DATA.subpath) {
+        resolvedGhUrl = `https://github.com/${rawRepo}/tree/${DATA.branch || "main"}/${DATA.subpath.replace(/^\/+|\/+$/g, "")}`;
+      } else {
+        resolvedGhUrl = `https://github.com/${rawRepo}`;
+      }
+    }
+    if (resolvedGhUrl) {
+      headerGithubEl.href = resolvedGhUrl;
+      headerGithubEl.textContent = `${rawRepo || "GitHub"} ↗`;
+      headerGithubEl.style.display = "inline-flex";
+    }
+  }
+
+  const layerById = Object.fromEntries(DATA.layers.map(l => [l.id, l]));
+  const nodeById = Object.fromEntries(DATA.nodes.map(n => [n.id, n]));
+  const edgeById = Object.fromEntries(DATA.edges.map(e => [e.id, e]));
+
+  const svg = $("#graph-svg");
+  svg.setAttribute("aria-label", `${repoTitle} Architecture Graph`);
+  const timeline = $("#timeline");
+  const tlFill = $("#tl-fill");
+  const tlThumb = $("#tl-thumb");
+  const tlTip = $("#tl-tip");
+
+  let stepIdx = 0;
+  let activeCueNodes = null; // null means highlight all st.activeNodes; array means highlight only those cue nodes
+  let activeCueFocusId = null;
+  let selectedNodeId = null;
+  let selectedEdgeId = null;
+  let autoTimer = null;
+  let speaking = false;
+
+  const minNodeY = Math.min(...DATA.nodes.map(n => n.y));
+  const maxNodeY = Math.max(...DATA.nodes.map(n => n.y + n.h));
+  const fullTop = Math.min(-16, minNodeY - 42);
+  const bottomPad = DATA.layers.length >= 6 ? 58 : 34;
+  const fullBottom = Math.max(380, maxNodeY + bottomPad);
+  const FULL_VB = { x: -12, y: fullTop, w: 1070, h: fullBottom - fullTop };
+  let curVB = { ...FULL_VB };
+  let animRaf = null;
+  let tlAnimRaf = null;
+  let progressRaf = null;
+  let curTlPct = 0;
+  let wasDragged = false;
+
+  const nodeEls = {};
+  const edgeEls = {};
+
+  function easeInOutCubic(p) {
+    return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+  }
+
+  function setVB(vb) {
+    curVB = { ...vb };
+    svg.setAttribute("viewBox", `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`);
+  }
+
+  function animateViewBox(target, duration = 700) {
+    if (animRaf) cancelAnimationFrame(animRaf);
+    const start = { ...curVB };
+    const t0 = performance.now();
+    function tick(now) {
+      const p = Math.min(1, (now - t0) / duration);
+      const ease = easeInOutCubic(p);
+      setVB({
+        x: start.x + (target.x - start.x) * ease,
+        y: start.y + (target.y - start.y) * ease,
+        w: start.w + (target.w - start.w) * ease,
+        h: start.h + (target.h - start.h) * ease,
+      });
+      if (p < 1) animRaf = requestAnimationFrame(tick);
+      else animRaf = null;
+    }
+    animRaf = requestAnimationFrame(tick);
+  }
+
+  const layerBands = DATA.layers.map(l => {
+    const lNodes = DATA.nodes.filter(n => n.layer === l.id);
+    if (!lNodes.length) return null;
+    return {
+      id: l.id,
+      top: Math.min(...lNodes.map(n => n.y)) - 14,
+      bottom: Math.max(...lNodes.map(n => n.y + n.h)) + 14
+    };
+  }).filter(Boolean).sort((a, b) => a.top - b.top);
+
+  // In interactive website mode, keep the full overview (all layers + left headers) next to the inspector.
+  // In video mode (?video=1), Step 1 shows the full overview and Steps 2..N zoom into a 3-layer window
+  // anchored on inter-layer gaps and spanning x=188..1020 so zero nodes are ever clipped across 3-6 layers.
+  function computeStepCamera(nodeIds, focusId, sIdx = stepIdx) {
+    if (!document.body.classList.contains("video-mode") || sIdx === 0) {
+      return { ...FULL_VB };
+    }
+
+    const ids = Array.from(new Set([...(nodeIds || []), ...(focusId ? [focusId] : [])]));
+    const nodes = ids.map(id => nodeById[id]).filter(Boolean);
+    if (!nodes.length) return { ...FULL_VB };
+
+    const rawMinY = Math.min(...nodes.map(n => n.y));
+    const rawMaxY = Math.max(...nodes.map(n => n.y + n.h));
+
+    let firstBand = layerBands.findIndex(b => b.bottom >= rawMinY);
+    let lastBand = layerBands.length - 1;
+    for (let i = layerBands.length - 1; i >= 0; i--) {
+      if (layerBands[i].top <= rawMaxY) {
+        lastBand = i;
+        break;
+      }
+    }
+    if (firstBand < 0) firstBand = 0;
+
+    // If active nodes span > 3 layers or the graph has <= 3 layers, show full overview
+    if (lastBand - firstBand + 1 > 3 || layerBands.length <= 3) {
+      return { ...FULL_VB };
+    }
+
+    const svgR = svg.getBoundingClientRect();
+    const svgAspect = (svgR.width > 0 && svgR.height > 0) ? (svgR.width / svgR.height) : (FULL_VB.w / FULL_VB.h);
+
+    // Horizontal window x=188..1020 (w=832) frames all node columns (x=200..1005) while sitting in the x=182..200 gutter
+    const w = 832;
+    const h = Math.max(365, w / svgAspect);
+    const targetX = 188;
+
+    const midBand = (firstBand + lastBand) / 2;
+    const midGraph = (layerBands.length - 1) / 2;
+
+    if (midBand <= midGraph && lastBand <= 2) {
+      // Top 3 layers: anchor bottom edge in the exact center of the gap below layer 2
+      const endBand = 2;
+      const nextBand = layerBands[endBand + 1];
+      const bottomEdge = nextBand
+        ? (layerBands[endBand].bottom + nextBand.top) / 2
+        : layerBands[endBand].bottom + 24;
+      return { x: targetX, y: bottomEdge - h, w, h };
+    } else if (firstBand >= layerBands.length - 3) {
+      // Bottom 3 layers: anchor top edge in the exact center of the gap above layer (N-3)
+      const startBand = layerBands.length - 3;
+      const prevBand = layerBands[startBand - 1];
+      const topEdge = prevBand
+        ? (prevBand.bottom + layerBands[startBand].top) / 2
+        : layerBands[startBand].top - 24;
+      return { x: targetX, y: topEdge, w, h };
+    } else {
+      // Middle 3-layer window (e.g. bands 1..3 or 2..4 in a 5- or 6-layer graph):
+      // center symmetrically between the gap above startBand and the gap below endBand
+      const minStart = Math.max(0, lastBand - 2);
+      const maxStart = Math.min(firstBand, layerBands.length - 3);
+      const startBand = Math.max(minStart, Math.min(maxStart, Math.round(midBand - 1)));
+      const endBand = startBand + 2;
+      const topEdge = (layerBands[startBand - 1].bottom + layerBands[startBand].top) / 2;
+      const bottomEdge = (layerBands[endBand].bottom + layerBands[endBand + 1].top) / 2;
+      return { x: targetX, y: (topEdge + bottomEdge - h) / 2, w, h };
+    }
+  }
+
+  function stepAnchorPct(idx) {
+    const total = DATA.walkthrough.length;
+    return total > 1 ? (100 * idx / (total - 1)) : 100;
+  }
+
+  function setTimelinePct(pct) {
+    curTlPct = Math.max(0, Math.min(100, pct));
+    tlFill.style.width = curTlPct.toFixed(2) + "%";
+    tlThumb.style.left = curTlPct.toFixed(2) + "%";
+    $$(".tl-mark").forEach((m, i) => {
+      const mPct = stepAnchorPct(i);
+      m.classList.toggle("active", i === stepIdx);
+      m.classList.toggle("passed", mPct <= curTlPct + 0.5);
+    });
+  }
+
+  function animateTimelineTo(targetPct, duration = 680) {
+    if (tlAnimRaf) cancelAnimationFrame(tlAnimRaf);
+    const startPct = curTlPct;
+    const t0 = performance.now();
+    function tick(now) {
+      const p = Math.min(1, (now - t0) / duration);
+      const ease = easeInOutCubic(p);
+      setTimelinePct(startPct + (targetPct - startPct) * ease);
+      if (p < 1) tlAnimRaf = requestAnimationFrame(tick);
+      else tlAnimRaf = null;
+    }
+    tlAnimRaf = requestAnimationFrame(tick);
+  }
+
+  function spokenWeight(text = "") {
+    let w = 0;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      const next = text[i + 1] || "";
+      if ((ch === "." || ch === "!" || ch === "?" || ch === ";" || ch === ":") && /\s/.test(next)) w += 12;
+      else if ((ch === "," || ch === "-") && /\s/.test(next)) w += 6;
+      else if (/\s/.test(ch)) w += 0.3;
+      else w += 1.0;
+    }
+    return w;
+  }
+
+  function computeSpokenOffset(narration = "", phrase = "") {
+    if (!narration || !phrase) return 0;
+    const idx = narration.toLowerCase().indexOf(phrase.toLowerCase());
+    if (idx <= 0) return 0;
+    return Number((spokenWeight(narration.slice(0, idx)) / Math.max(1, spokenWeight(narration))).toFixed(2));
+  }
+
+  function resolveCue(st, progress01) {
+    if (!st.cues || !st.cues.length) {
+      return { nodes: st.activeNodes || [st.focusNode], focus: st.focusNode };
+    }
+    let chosen = st.cues[0];
+    for (const c of st.cues) {
+      const cueAt = typeof c.at === "number" ? c.at : computeSpokenOffset(st.narration, c.phrase);
+      if (progress01 >= cueAt) chosen = c;
+    }
+    const nodes = chosen.nodes || (chosen.node ? [chosen.node] : st.activeNodes);
+    const focus = chosen.focus || chosen.node || nodes[0] || st.focusNode;
+    return { nodes, focus };
+  }
+
+  function fmt(str = "") {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>");
+  }
+
+  function svgEl(tag, attrs = {}, parent = svg) {
+    const el = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    if (parent) parent.appendChild(el);
+    return el;
+  }
+
+  function computeEdgePath(src, dst) {
+    const sw = src.w, sh = src.h;
+    const dw = dst.w, dh = dst.h;
+    const scx = src.x + sw / 2, scy = src.y + sh / 2;
+    const dcx = dst.x + dw / 2, dcy = dst.y + dh / 2;
+
+    if (Math.abs(src.y - dst.y) < 25) {
+      const right = dcx > scx;
+      const x1 = right ? src.x + sw : src.x;
+      const x2 = right ? dst.x - 2 : dst.x + dw + 2;
+      return `M ${x1} ${scy} L ${x2} ${dcy}`;
+    }
+
+    const down = dcy > scy;
+    const dx = dcx - scx;
+    const portShiftSrc = Math.max(-sw * 0.26, Math.min(sw * 0.26, dx * 0.2));
+    const portShiftDst = Math.max(-dw * 0.26, Math.min(dw * 0.26, -dx * 0.2));
+
+    const x1 = scx + portShiftSrc;
+    const y1 = down ? src.y + sh : src.y;
+    const x2 = dcx + portShiftDst;
+    const y2 = down ? dst.y - 2 : dst.y + dh + 2;
+    const midY = (y1 + y2) / 2;
+    return `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+  }
+
+  function buildGraph() {
+    svg.innerHTML = "";
+    const defs = svgEl("defs");
+    for (const [id, color] of [
+      ["arr", "#475569"],
+      ["arr-walk", "#8AB4F8"],
+      ["arr-in", "#8AB4F8"],
+      ["arr-out", "#81C995"],
+      ["arr-sel", "#ffffff"]
+    ]) {
+      const m = svgEl("marker", {
+        id, viewBox: "0 0 10 10", refX: "8.5", refY: "5",
+        markerWidth: "5.5", markerHeight: "5.5", orient: "auto-start-reverse"
+      }, defs);
+      svgEl("path", { d: "M 0 1 L 10 5 L 0 9 z", fill: color }, m);
+    }
+
+    const bands = svgEl("g");
+    DATA.layers.forEach(layer => {
+      const lNodes = DATA.nodes.filter(n => n.layer === layer.id);
+      if (!lNodes.length) return;
+      const minY = Math.min(...lNodes.map(n => n.y)) - 14;
+      const maxY = Math.max(...lNodes.map(n => n.y + n.h)) + 14;
+      svgEl("rect", {
+        x: 14, y: minY, width: 1018, height: maxY - minY,
+        fill: layer.bg, stroke: layer.color, "stroke-opacity": "0.22",
+        class: "layer-band-rect"
+      }, bands);
+      const lbl = svgEl("text", {
+        x: 26, y: (minY + maxY) / 2 + 4, fill: layer.accent, class: "layer-band-label"
+      }, bands);
+      lbl.textContent = layer.name;
+      while (lbl.textContent.length > 6 && lbl.getComputedTextLength() > 164) {
+        lbl.textContent = lbl.textContent.slice(0, -2) + "…";
+      }
+    });
+
+    const edgesG = svgEl("g");
+    DATA.edges.forEach(e => {
+      const src = nodeById[e.from], dst = nodeById[e.to];
+      if (!src || !dst) return;
+      const d = computeEdgePath(src, dst);
+      const g = svgEl("g", { class: "edge-group" }, edgesG);
+      svgEl("path", { d, class: "edge-hit" }, g);
+      const path = svgEl("path", { d, class: "edge-path", "marker-end": "url(#arr)" }, g);
+      g.addEventListener("click", ev => {
+        ev.stopPropagation();
+        if (wasDragged) return;
+        selectEdge(e.id);
+      });
+      edgeEls[e.id] = { g, path, e };
+    });
+
+    const nodesG = svgEl("g");
+    DATA.nodes.forEach(n => {
+      const layer = layerById[n.layer];
+      const g = svgEl("g", { class: "node-group" }, nodesG);
+      svgEl("rect", { x: n.x, y: n.y, width: n.w, height: n.h, class: "node-rect" }, g);
+      svgEl("rect", {
+        x: n.x + 4, y: n.y + 7, width: 3.5, height: n.h - 14,
+        rx: 2, fill: layer.color
+      }, g);
+
+      const t = svgEl("text", { x: n.x + 14, y: n.y + 24, class: "node-title" }, g);
+      t.textContent = n.label;
+      const s = svgEl("text", { x: n.x + 14, y: n.y + 43, class: "node-sub" }, g);
+      s.textContent = n.sub;
+
+      let diffBadgeW = 0;
+      if (n.diff && (typeof n.diff.added === "number" || typeof n.diff.deleted === "number")) {
+        const dEl = svgEl("text", {
+          x: n.x + n.w - 8, y: n.y + 23, "text-anchor": "end", class: "node-diff"
+        }, g);
+        const pSpan = svgEl("tspan", { class: "diff-plus" }, dEl);
+        pSpan.textContent = `+${n.diff.added || 0}`;
+        const sepSpan = svgEl("tspan", {}, dEl);
+        sepSpan.textContent = " ";
+        const mSpan = svgEl("tspan", { class: "diff-minus" }, dEl);
+        mSpan.textContent = `-${n.diff.deleted || 0}`;
+        diffBadgeW = dEl.getComputedTextLength() + 10;
+      }
+
+      const maxTitleW = n.w - 24 - diffBadgeW;
+      const maxSubW = n.w - 24;
+      while (t.textContent.length > 6 && t.getComputedTextLength() > maxTitleW) {
+        t.textContent = t.textContent.slice(0, -2) + "…";
+      }
+      while (s.textContent.length > 6 && s.getComputedTextLength() > maxSubW) {
+        s.textContent = s.textContent.slice(0, -2) + "…";
+      }
+
+      g.addEventListener("click", ev => {
+        ev.stopPropagation();
+        if (wasDragged) return;
+        selectNode(n.id);
+      });
+      nodeEls[n.id] = { g, n };
+    });
+  }
+
+  function updateHighlights() {
+    for (const { g } of Object.values(nodeEls)) {
+      g.classList.remove("selected", "walk-active", "neighbor-in", "neighbor-out", "dimmed");
+    }
+    for (const { g, path } of Object.values(edgeEls)) {
+      g.classList.remove("dimmed");
+      path.classList.remove("flow-walk", "flow-in", "flow-out", "selected-edge");
+      path.setAttribute("marker-end", "url(#arr)");
+    }
+
+    if (selectedEdgeId && edgeEls[selectedEdgeId]) {
+      const { path, e } = edgeEls[selectedEdgeId];
+      for (const [id, { g }] of Object.entries(nodeEls)) {
+        if (id === e.from || id === e.to) g.classList.add("selected");
+        else g.classList.add("dimmed");
+      }
+      for (const [id, { g }] of Object.entries(edgeEls)) {
+        if (id !== selectedEdgeId) g.classList.add("dimmed");
+      }
+      path.classList.add("selected-edge");
+      path.setAttribute("marker-end", "url(#arr-sel)");
+      return;
+    }
+
+    if (selectedNodeId && nodeEls[selectedNodeId]) {
+      const inSet = new Set(), outSet = new Set();
+      for (const { g, path, e } of Object.values(edgeEls)) {
+        if (e.from === selectedNodeId) {
+          outSet.add(e.to);
+          path.classList.add("flow-out");
+          path.setAttribute("marker-end", "url(#arr-out)");
+        } else if (e.to === selectedNodeId) {
+          inSet.add(e.from);
+          path.classList.add("flow-in");
+          path.setAttribute("marker-end", "url(#arr-in)");
+        } else {
+          g.classList.add("dimmed");
+        }
+      }
+      for (const [id, { g }] of Object.entries(nodeEls)) {
+        if (id === selectedNodeId) g.classList.add("selected");
+        else if (inSet.has(id)) g.classList.add("neighbor-in");
+        else if (outSet.has(id)) g.classList.add("neighbor-out");
+        else g.classList.add("dimmed");
+      }
+      return;
+    }
+
+    const st = DATA.walkthrough[stepIdx];
+    const stepNodes = new Set(st.activeNodes || []);
+    // Single unambiguous highlight: either the active spoken cue node(s), or all step nodes when browsing statically
+    const highlightedSet = new Set(
+      activeCueNodes && activeCueNodes.length ? activeCueNodes : (st.activeNodes || [st.focusNode])
+    );
+    const activeE = new Set(st.activeEdges || []);
+
+    for (const [id, { g }] of Object.entries(nodeEls)) {
+      if (highlightedSet.has(id)) {
+        g.classList.add("selected");
+      } else if (stepNodes.has(id)) {
+        g.classList.add("walk-active");
+      } else {
+        g.classList.add("dimmed");
+      }
+    }
+    for (const [id, { g, path, e }] of Object.entries(edgeEls)) {
+      if (activeE.has(id) && (highlightedSet.has(e.from) || highlightedSet.has(e.to))) {
+        path.classList.add("flow-walk");
+        path.setAttribute("marker-end", "url(#arr-walk)");
+      } else if (!activeE.has(id)) {
+        g.classList.add("dimmed");
+      }
+    }
+  }
+
+  function formatCodeOrDiff(raw = "", isDiff = false) {
+    const lines = raw.split("\n");
+    const looksLikeDiff = isDiff || lines.some(l => l.startsWith("@@") || (l.startsWith("+") && !l.startsWith("+++")) || (l.startsWith("-") && !l.startsWith("---")));
+    const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    if (!looksLikeDiff) return esc(raw);
+    return lines.map(line => {
+      const safe = esc(line);
+      if (line.startsWith("@@")) return `<span class="diff-line-hunk">${safe}</span>`;
+      if (line.startsWith("+") && !line.startsWith("+++")) return `<span class="diff-line-add">${safe}</span>`;
+      if (line.startsWith("-") && !line.startsWith("---")) return `<span class="diff-line-del">${safe}</span>`;
+      return safe;
+    }).join("\n");
+  }
+
+  let currentInspectorNodeId = null;
+  function renderNodeInspector(n) {
+    if (!n || currentInspectorNodeId === n.id) return;
+    currentInspectorNodeId = n.id;
+    const isGitHubRepo = DATA.repo && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(DATA.repo);
+    const subPrefix = DATA.subpath ? `${DATA.subpath.replace(/^\/+|\/+$/g, "")}/` : "";
+    const fullRepoPath = (subPrefix && !n.path.startsWith(subPrefix)) ? `${subPrefix}${n.path}` : n.path;
+    const fileHref = n.url || (isGitHubRepo
+      ? `https://github.com/${DATA.repo}/blob/${DATA.branch || "main"}/${fullRepoPath}`
+      : null);
+    const titleHtml = fileHref
+      ? `<a href="${fileHref}" target="_blank" rel="noopener">${n.path} ↗</a>`
+      : `<span>${n.path}</span>`;
+    const diffMetaHtml = n.diff
+      ? `<div class="diff-meta">
+           <span class="diff-status-pill">${n.diff.status || "modified"}</span>
+           <span class="diff-stat-add">+${n.diff.added || 0}</span>
+           <span class="diff-stat-del">-${n.diff.deleted || 0}</span>
+         </div>`
+      : "";
+    $("#inspector").innerHTML = `
+      <div class="insp-title">${titleHtml}</div>
+      ${diffMetaHtml}
+      <div class="insp-desc">${fmt(n.role)}</div>
+      <pre class="code-box">${formatCodeOrDiff(n.snippet || "", Boolean(n.diff))}</pre>
+    `;
+  }
+
+  function renderEdgeInspector(e) {
+    currentInspectorNodeId = null;
+    const src = nodeById[e.from], dst = nodeById[e.to];
+    $("#inspector").innerHTML = `
+      <div class="insp-title">${src.label} → ${dst.label}</div>
+      <div class="insp-desc">${fmt(e.detail)}</div>
+    `;
+  }
+
+  function selectNode(id) {
+    pausePlayback();
+    selectedEdgeId = null;
+    selectedNodeId = id;
+    updateHighlights();
+    renderNodeInspector(nodeById[id]);
+  }
+
+  function selectEdge(id) {
+    pausePlayback();
+    selectedNodeId = null;
+    selectedEdgeId = id;
+    updateHighlights();
+    renderEdgeInspector(edgeById[id]);
+  }
+
+  function applyStep(idx, { animate = true, seek = null } = {}) {
+    const total = DATA.walkthrough.length;
+    stepIdx = Math.max(0, Math.min(total - 1, idx));
+    selectedNodeId = null;
+    selectedEdgeId = null;
+
+    if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+    stopProgressLoop();
+    liveAudio.pause();
+    liveAudio.currentTime = 0;
+    loadedStepIdx = -1;
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+
+    const st = DATA.walkthrough[stepIdx];
+    if (isPlaying || seek) {
+      const cue = resolveCue(st, 0);
+      activeCueNodes = cue.nodes;
+      activeCueFocusId = cue.focus;
+    } else {
+      activeCueNodes = st.activeNodes || [st.focusNode];
+      activeCueFocusId = st.focusNode;
+    }
+
+    $("#stepNum").textContent = `STEP ${stepIdx + 1} / ${total}`;
+    $("#stepTitle").innerHTML = fmt(st.title);
+    $("#stepDesc").innerHTML = fmt(st.summary);
+    $("#nextBtn").disabled = stepIdx === total - 1;
+
+    const targetPct = stepAnchorPct(stepIdx);
+    if (animate && !seek) animateTimelineTo(targetPct, 680);
+    else setTimelinePct(targetPct);
+
+    updateHighlights();
+    renderNodeInspector(nodeById[activeCueFocusId]);
+
+    const cam = computeStepCamera(st.activeNodes, st.focusNode, stepIdx);
+    if (animate) animateViewBox(cam, 700);
+    else setVB(cam);
+
+    if (isPlaying || seek) {
+      loadAndSeekStep(st, seek, !isPlaying);
+    }
+  }
+
+  // Manual Drag-to-Pan & Cursor-Anchored Wheel Zoom
+  let isPanning = false;
+  let panStartX = 0, panStartY = 0;
+  let panStartVB = { ...FULL_VB };
+
+  svg.addEventListener("mousedown", e => {
+    if (e.button !== 0) return;
+    if (animRaf) { cancelAnimationFrame(animRaf); animRaf = null; }
+    isPanning = true;
+    wasDragged = false;
+    panStartX = e.clientX;
+    panStartY = e.clientY;
+    panStartVB = { ...curVB };
+    svg.classList.add("panning");
+  });
+
+  window.addEventListener("mousemove", e => {
+    if (!isPanning) return;
+    const dxPx = e.clientX - panStartX;
+    const dyPx = e.clientY - panStartY;
+    if (Math.hypot(dxPx, dyPx) > 4) wasDragged = true;
+
+    const r = svg.getBoundingClientRect();
+    const scale = Math.max(panStartVB.w / r.width, panStartVB.h / r.height);
+    const nx = Math.max(-350, Math.min(FULL_VB.w - 200, panStartVB.x - dxPx * scale));
+    const ny = Math.max(-250, Math.min(FULL_VB.h - 150, panStartVB.y - dyPx * scale));
+    setVB({ x: nx, y: ny, w: panStartVB.w, h: panStartVB.h });
+  });
+
+  window.addEventListener("mouseup", () => {
+    if (!isPanning) return;
+    isPanning = false;
+    svg.classList.remove("panning");
+  });
+
+  svg.addEventListener("click", () => {
+    if (wasDragged) return;
+    if (selectedNodeId || selectedEdgeId) {
+      selectedNodeId = null;
+      selectedEdgeId = null;
+      updateHighlights();
+    }
+  });
+
+  function zoomByFactor(factor, clientX, clientY) {
+    if (animRaf) { cancelAnimationFrame(animRaf); animRaf = null; }
+    const r = svg.getBoundingClientRect();
+    const fx = clientX !== undefined ? (clientX - r.left) / r.width : 0.5;
+    const fy = clientY !== undefined ? (clientY - r.top) / r.height : 0.5;
+
+    const nw = Math.min(1450, Math.max(420, curVB.w * factor));
+    const nh = nw * (FULL_VB.h / FULL_VB.w);
+    const nx = curVB.x + (curVB.w - nw) * fx;
+    const ny = curVB.y + (curVB.h - nh) * fy;
+    setVB({ x: nx, y: ny, w: nw, h: nh });
+  }
+
+  svg.addEventListener("wheel", e => {
+    e.preventDefault();
+    const factor = e.deltaY > 0 ? 1.09 : 0.91;
+    zoomByFactor(factor, e.clientX, e.clientY);
+  }, { passive: false });
+
+  $("#zoomInBtn").onclick = () => zoomByFactor(0.84);
+  $("#zoomOutBtn").onclick = () => zoomByFactor(1.19);
+  $("#zoomResetBtn").onclick = () => animateViewBox(FULL_VB, 520);
+
+  // Timeline Scrubber
+  function buildTimelineMarks() {
+    $$(".tl-mark").forEach(m => m.remove());
+    DATA.walkthrough.forEach((st, i) => {
+      const m = document.createElement("div");
+      m.className = "tl-mark";
+      const n = nodeById[st.focusNode];
+      const layer = layerById[n.layer];
+      m.style.background = layer.color;
+      m.style.left = stepAnchorPct(i) + "%";
+      timeline.appendChild(m);
+    });
+  }
+
+  function stepFromX(clientX) {
+    const r = timeline.getBoundingClientRect();
+    const f = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
+    return Math.round(f * (DATA.walkthrough.length - 1));
+  }
+
+  let scrubbing = false;
+  timeline.addEventListener("mousedown", e => {
+    scrubbing = true;
+    const targetIdx = stepFromX(e.clientX);
+    applyStep(targetIdx);
+  });
+  window.addEventListener("mousemove", e => {
+    if (!scrubbing) return;
+    const targetIdx = stepFromX(e.clientX);
+    if (targetIdx !== stepIdx) applyStep(targetIdx);
+  });
+  window.addEventListener("mouseup", () => { scrubbing = false; });
+  timeline.addEventListener("mousemove", e => {
+    const idx = stepFromX(e.clientX);
+    const st = DATA.walkthrough[idx];
+    const r = timeline.getBoundingClientRect();
+    tlTip.textContent = `${idx + 1}/${DATA.walkthrough.length} · ${st.title.replace(/`/g, "")}`;
+    tlTip.style.left = Math.min(r.width - 120, Math.max(120, e.clientX - r.left)) + "px";
+    tlTip.style.display = "block";
+  });
+  timeline.addEventListener("mouseleave", () => { tlTip.style.display = "none"; });
+
+  // Unified Gemini TTS Audio Player, Speed Control, Live Cue Spotlighting & Smooth Timeline Progress
+  const PLAY_D = "M8 5.5v13l11-6.5z";
+  const PAUSE_D = "M7.5 5h3.2v14H7.5zM13.3 5h3.2v14h-3.2z";
+  const liveAudio = new Audio();
+  let isPlaying = false;
+  let playbackSpeed = 1.0;
+  let loadedStepIdx = -1;
+
+  function syncAudioStateAtTime() {
+    const st = DATA.walkthrough[stepIdx];
+    if (liveAudio.duration && !Number.isNaN(liveAudio.duration) && liveAudio.duration > 0) {
+      const p = Math.max(0, Math.min(1, liveAudio.currentTime / liveAudio.duration));
+      const startP = stepAnchorPct(stepIdx);
+      const endP = stepIdx < DATA.walkthrough.length - 1 ? stepAnchorPct(stepIdx + 1) : 100;
+      if (tlAnimRaf) { cancelAnimationFrame(tlAnimRaf); tlAnimRaf = null; }
+      setTimelinePct(startP + (endP - startP) * p);
+
+      const cue = resolveCue(st, p);
+      const prevKey = (activeCueNodes || []).join(",");
+      const nextKey = (cue.nodes || []).join(",");
+      if ((nextKey !== prevKey || cue.focus !== activeCueFocusId) && !selectedNodeId && !selectedEdgeId) {
+        activeCueNodes = cue.nodes;
+        activeCueFocusId = cue.focus;
+        updateHighlights();
+        renderNodeInspector(nodeById[activeCueFocusId]);
+      }
+    }
+  }
+
+  function syncAudioProgressLoop() {
+    if (!isPlaying) {
+      progressRaf = null;
+      return;
+    }
+    syncAudioStateAtTime();
+    progressRaf = requestAnimationFrame(syncAudioProgressLoop);
+  }
+
+  function startProgressLoop() {
+    if (progressRaf) cancelAnimationFrame(progressRaf);
+    progressRaf = requestAnimationFrame(syncAudioProgressLoop);
+  }
+
+  function stopProgressLoop() {
+    if (progressRaf) { cancelAnimationFrame(progressRaf); progressRaf = null; }
+  }
+
+  function updatePlayBtnUI() {
+    const pathEl = $("#ppicon path");
+    if (pathEl) pathEl.setAttribute("d", isPlaying ? PAUSE_D : PLAY_D);
+  }
+
+  function onStepAudioFinished() {
+    stopProgressLoop();
+    loadedStepIdx = -1;
+    const st = DATA.walkthrough[stepIdx];
+    activeCueNodes = st.activeNodes || [st.focusNode];
+    activeCueFocusId = st.focusNode;
+    updateHighlights();
+
+    if (isPlaying) {
+      if (stepIdx < DATA.walkthrough.length - 1) {
+        autoTimer = setTimeout(() => {
+          if (isPlaying) applyStep(stepIdx + 1, { animate: true });
+        }, Math.round(420 / playbackSpeed));
+      } else {
+        pausePlayback();
+      }
+    }
+  }
+
+  liveAudio.addEventListener("ended", onStepAudioFinished);
+
+  // seek: { time } seconds from start, or { fromEnd } seconds before end
+  function loadAndSeekStep(st, seek = null, keepPaused = false) {
+    if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+    liveAudio.pause();
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+
+    isPlaying = !keepPaused;
+    loadedStepIdx = stepIdx;
+    updatePlayBtnUI();
+
+    const cue = resolveCue(st, 0);
+    activeCueNodes = cue.nodes;
+    activeCueFocusId = cue.focus;
+    updateHighlights();
+    renderNodeInspector(nodeById[activeCueFocusId]);
+
+    if (st.audio) {
+      liveAudio.src = st.audio;
+      liveAudio.defaultPlaybackRate = playbackSpeed;
+      liveAudio.playbackRate = playbackSpeed;
+      if (seek) {
+        const onMeta = () => {
+          liveAudio.removeEventListener("loadedmetadata", onMeta);
+          const d = isFinite(liveAudio.duration) ? liveAudio.duration : 0;
+          liveAudio.currentTime = seek.fromEnd != null
+            ? Math.max(0, d - seek.fromEnd)
+            : Math.min(d, seek.time || 0);
+          syncAudioStateAtTime();
+          if (!keepPaused) {
+            liveAudio.play().then(() => {
+              liveAudio.playbackRate = playbackSpeed;
+              startProgressLoop();
+            }).catch(() => speakFallback(st.narration));
+          }
+        };
+        liveAudio.addEventListener("loadedmetadata", onMeta);
+        if (keepPaused) liveAudio.load();
+      } else {
+        liveAudio.currentTime = 0;
+        if (!keepPaused) {
+          liveAudio.play().then(() => {
+            liveAudio.playbackRate = playbackSpeed;
+            startProgressLoop();
+          }).catch(() => speakFallback(st.narration));
+        }
+      }
+    } else if (!keepPaused) {
+      speakFallback(st.narration);
+    }
+  }
+
+  function speakFallback(text) {
+    if (!("speechSynthesis" in window)) {
+      if (isPlaying) {
+        autoTimer = setTimeout(onStepAudioFinished, Math.round(5000 / playbackSpeed));
+      }
+      return;
+    }
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = playbackSpeed;
+    utter.onend = onStepAudioFinished;
+    window.speechSynthesis.speak(utter);
+  }
+
+  function pausePlayback() {
+    isPlaying = false;
+    if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+    stopProgressLoop();
+    liveAudio.pause();
+    if ("speechSynthesis" in window && window.speechSynthesis.speaking) {
+      window.speechSynthesis.pause();
+    }
+    updatePlayBtnUI();
+  }
+
+  function resumeOrStartPlayback() {
+    selectedNodeId = null;
+    selectedEdgeId = null;
+    const st = DATA.walkthrough[stepIdx];
+
+    // Resume from the exact paused position if we are still on the same step
+    if (loadedStepIdx === stepIdx && st.audio && liveAudio.src && !liveAudio.ended && liveAudio.currentTime > 0) {
+      isPlaying = true;
+      updatePlayBtnUI();
+      liveAudio.defaultPlaybackRate = playbackSpeed;
+      liveAudio.playbackRate = playbackSpeed;
+      syncAudioStateAtTime();
+      liveAudio.play().then(() => {
+        liveAudio.playbackRate = playbackSpeed;
+        startProgressLoop();
+      }).catch(() => {
+        loadAndSeekStep(st, null, false);
+      });
+      return;
+    }
+
+    if (loadedStepIdx === stepIdx && !st.audio && "speechSynthesis" in window && window.speechSynthesis.paused) {
+      isPlaying = true;
+      updatePlayBtnUI();
+      updateHighlights();
+      window.speechSynthesis.resume();
+      return;
+    }
+
+    loadAndSeekStep(st, null, false);
+  }
+
+  function togglePlay() {
+    if (isPlaying) {
+      pausePlayback();
+    } else {
+      resumeOrStartPlayback();
+    }
+  }
+
+  // Speed Control Pills (0.8x .. 1.2x, matching gemini-voice)
+  $$(".spd").forEach(btn => {
+    btn.onclick = () => {
+      $$(".spd").forEach(b => b.classList.remove("on"));
+      btn.classList.add("on");
+      playbackSpeed = parseFloat(btn.dataset.s) || 1.0;
+      liveAudio.defaultPlaybackRate = playbackSpeed;
+      liveAudio.playbackRate = playbackSpeed;
+    };
+  });
+
+  // Skip Back 5s & Forward 5s across section boundaries (matching gemini-voice)
+  $("#back5Btn").onclick = () => {
+    selectedNodeId = null;
+    selectedEdgeId = null;
+    if (loadedStepIdx !== stepIdx || !liveAudio.src) {
+      if (stepIdx > 0) applyStep(stepIdx - 1, { animate: true, seek: { fromEnd: 5 } });
+      return;
+    }
+    const t = liveAudio.currentTime - 5;
+    if (t >= 0) {
+      liveAudio.currentTime = t;
+      syncAudioStateAtTime();
+      return;
+    }
+    if (stepIdx > 0) {
+      applyStep(stepIdx - 1, { animate: true, seek: { fromEnd: -t } });
+    } else {
+      liveAudio.currentTime = 0;
+      syncAudioStateAtTime();
+    }
+  };
+
+  $("#fwd5Btn").onclick = () => {
+    selectedNodeId = null;
+    selectedEdgeId = null;
+    const st = DATA.walkthrough[stepIdx];
+    if (loadedStepIdx !== stepIdx || !liveAudio.src) {
+      loadAndSeekStep(st, { time: 5 }, !isPlaying);
+      return;
+    }
+    const t = liveAudio.currentTime + 5;
+    const d = liveAudio.duration;
+    if (!isFinite(d) || t <= d) {
+      liveAudio.currentTime = t;
+      syncAudioStateAtTime();
+      return;
+    }
+    if (stepIdx < DATA.walkthrough.length - 1) {
+      applyStep(stepIdx + 1, { animate: true, seek: { time: t - d } });
+    } else {
+      liveAudio.currentTime = d;
+      syncAudioStateAtTime();
+    }
+  };
+
+  // Track skip (matching gemini-voice): restart current section if > 0.5s in, else go back one section
+  $("#prevBtn").onclick = () => {
+    if (loadedStepIdx === stepIdx && liveAudio.src && liveAudio.currentTime > 0.5) {
+      liveAudio.currentTime = 0;
+      syncAudioStateAtTime();
+      return;
+    }
+    if (stepIdx > 0) {
+      applyStep(stepIdx - 1, { animate: true });
+    } else if (loadedStepIdx === stepIdx && liveAudio.src) {
+      liveAudio.currentTime = 0;
+      syncAudioStateAtTime();
+    }
+  };
+
+  $("#nextBtn").onclick = () => {
+    if (stepIdx < DATA.walkthrough.length - 1) applyStep(stepIdx + 1, { animate: true });
+  };
+  $("#playBtn").onclick = togglePlay;
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") {
+      if (stepIdx < DATA.walkthrough.length - 1) applyStep(stepIdx + 1, { animate: true });
+    } else if (e.key === "ArrowLeft") {
+      if (stepIdx > 0) applyStep(stepIdx - 1, { animate: true });
+    } else if (e.code === "Space") {
+      e.preventDefault();
+      togglePlay();
+    } else if (e.key === "Escape") {
+      selectedNodeId = null;
+      selectedEdgeId = null;
+      updateHighlights();
+    }
+  });
+
+  // Deterministic frame renderer for smooth 24fps MP4 video generation
+  window.renderWalkthroughFrame = ({
+    stepIndex = 0,
+    prevStepIndex = 0,
+    camTransition = 1,
+    stepProgress = 0,
+    timelinePct = 0,
+    dashOffset = 0
+  }) => {
+    if (animRaf) { cancelAnimationFrame(animRaf); animRaf = null; }
+    if (tlAnimRaf) { cancelAnimationFrame(tlAnimRaf); tlAnimRaf = null; }
+    stopProgressLoop();
+
+    const total = DATA.walkthrough.length;
+    stepIdx = Math.max(0, Math.min(total - 1, stepIndex));
+    const st = DATA.walkthrough[stepIdx];
+    const prevSt = DATA.walkthrough[Math.max(0, Math.min(total - 1, prevStepIndex))];
+
+    $("#stepNum").textContent = `STEP ${stepIdx + 1} / ${total}`;
+    $("#stepTitle").innerHTML = fmt(st.title);
+    $("#stepDesc").innerHTML = fmt(st.summary);
+    $("#nextBtn").disabled = stepIdx === total - 1;
+    const pathEl = $("#ppicon path");
+    if (pathEl) pathEl.setAttribute("d", PAUSE_D);
+
+    const cue = resolveCue(st, stepProgress);
+    activeCueNodes = cue.nodes;
+    activeCueFocusId = cue.focus;
+    updateHighlights();
+    renderNodeInspector(nodeById[activeCueFocusId]);
+
+    const camFrom = computeStepCamera(prevSt.activeNodes, prevSt.focusNode, prevStepIndex);
+    const camTo = computeStepCamera(st.activeNodes, st.focusNode, stepIdx);
+    const ease = easeInOutCubic(Math.max(0, Math.min(1, camTransition)));
+    setVB({
+      x: camFrom.x + (camTo.x - camFrom.x) * ease,
+      y: camFrom.y + (camTo.y - camFrom.y) * ease,
+      w: camFrom.w + (camTo.w - camFrom.w) * ease,
+      h: camFrom.h + (camTo.h - camFrom.h) * ease
+    });
+
+    setTimelinePct(timelinePct);
+
+    for (const { path } of Object.values(edgeEls)) {
+      if (path.classList.contains("flow-walk")) {
+        path.style.animation = "none";
+        path.style.strokeDashoffset = `${dashOffset}`;
+      } else {
+        path.style.animation = "";
+        path.style.strokeDashoffset = "";
+      }
+    }
+  };
+
+  buildGraph();
+  buildTimelineMarks();
+  applyStep(0, { animate: false });
+})();
+</script>
+</body>
+</html>

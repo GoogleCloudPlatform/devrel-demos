@@ -1,0 +1,14 @@
+# Generated audio & video artifacts
+*.mp4
+*.wav
+web/audio/
+examples/*/audio/
+
+# Dependencies, local test rules & OS/temp files
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
+poc/
+tests/local_disallowed_terms.json
+
