@@ -78,9 +78,9 @@ function resolveGeminiApiKey(repoRoot) {
     if (fs.existsSync(envPath)) {
       const envText = fs.readFileSync(envPath, "utf8");
       for (const line of envText.split(/\r?\n/)) {
-        const trimmed = line.trim();
-        if (trimmed.startsWith("GEMINI_API_KEY=")) {
-          const val = trimmed.slice("GEMINI_API_KEY=".length).trim().replace(/^['"]|['"]$/g, "");
+        const match = line.match(/^\s*GEMINI_API_KEY\s*=\s*(.*)$/);
+        if (match) {
+          const val = match[1].trim().replace(/^['"]|['"]$/g, "");
           if (val) return val;
         }
       }
@@ -456,30 +456,29 @@ async function main() {
   }
   if (apiKey) {
     console.log(`🎯 Aligning step cues to acoustic WAV segments via Gemini (gemini-3-flash-preview)...`);
-    await Promise.all(
-      stepBuffers.map(async ({ st, hash, wavBuffer, durationSec }, idx) => {
-        try {
-          const { alignedSegments } = await alignStepSegmentsWithGemini(apiKey, wavBuffer, st.narration, {
-            hash,
-            localCacheDir,
-            sharedCacheDir,
-            force,
+    for (let idx = 0; idx < stepBuffers.length; idx++) {
+      const { st, hash, wavBuffer, durationSec } = stepBuffers[idx];
+      try {
+        const { alignedSegments } = await alignStepSegmentsWithGemini(apiKey, wavBuffer, st.narration, {
+          hash,
+          localCacheDir,
+          sharedCacheDir,
+          force,
+        });
+        manifest[idx].segments = alignedSegments;
+        if (Array.isArray(st.cues)) {
+          manifest[idx].alignedCues = st.cues.map((c, cIdx) => {
+            const acousticAt = computeAcousticCueAt(alignedSegments, durationSec, c.phrase, cIdx);
+            return {
+              ...c,
+              at: acousticAt !== null ? acousticAt : c.at,
+            };
           });
-          manifest[idx].segments = alignedSegments;
-          if (Array.isArray(st.cues)) {
-            manifest[idx].alignedCues = st.cues.map((c, cIdx) => {
-              const acousticAt = computeAcousticCueAt(alignedSegments, durationSec, c.phrase, cIdx);
-              return {
-                ...c,
-                at: acousticAt !== null ? acousticAt : c.at,
-              };
-            });
-          }
-        } catch (err) {
-          console.warn(`  ⚠️ Acoustic alignment warning on Step ${st.step}: ${err.message}`);
         }
-      })
-    );
+      } catch (err) {
+        console.warn(`  ⚠️ Acoustic alignment warning on Step ${st.step}: ${err.message}`);
+      }
+    }
   }
 
   fs.writeFileSync(path.join(outDir, "manifest.json"), JSON.stringify(manifest, null, 2));

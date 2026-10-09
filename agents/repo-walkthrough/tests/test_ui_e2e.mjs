@@ -489,11 +489,6 @@ test("Flexible layer counts (3, 4, and 6 layers): visual geometry, FULL_VB scali
   const os = await import("node:os");
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "repo-walkthrough-layers-"));
   const indexHtml = fs.readFileSync(path.join(REPO_ROOT, "web", "index.html"), "utf8");
-  fs.writeFileSync(
-    path.join(tmpDir, "index.html"),
-    indexHtml.replace(/<script\s+src="data-adk\.js"><\/script>\s*\n?/g, ""),
-    "utf8"
-  );
 
   const palette = [
     { color: "#4285F4", accent: "#8AB4F8", bg: "rgba(66, 133, 244, 0.08)" },
@@ -627,6 +622,11 @@ test("Flexible layer counts (3, 4, and 6 layers): visual geometry, FULL_VB scali
       )};\n`,
       "utf8"
     );
+    fs.writeFileSync(
+      path.join(tmpDir, `index-${count}.html`),
+      indexHtml.replace('src="data-adk.js"', `src="data-${count}.js"`),
+      "utf8"
+    );
   }
 
   const browser = await launchBrowser();
@@ -639,7 +639,7 @@ test("Flexible layer counts (3, 4, and 6 layers): visual geometry, FULL_VB scali
       const page = await context.newPage();
 
       // 1. Check interactive mode
-      await page.goto(`${baseUrl}/index.html?data=data-${count}.js`, { waitUntil: "networkidle" });
+      await page.goto(`${baseUrl}/index-${count}.html`, { waitUntil: "networkidle" });
       const interactiveReport = await page.evaluate(() => {
         const [vx, vy, vw, vh] = document
           .getElementById("graph-svg")
@@ -669,7 +669,7 @@ test("Flexible layer counts (3, 4, and 6 layers): visual geometry, FULL_VB scali
       }
 
       // 2. Check video mode (?video=1) across ALL walkthrough steps (overview, top, middle, bottom)
-      await page.goto(`${baseUrl}/index.html?data=data-${count}.js&video=1`, { waitUntil: "networkidle" });
+      await page.goto(`${baseUrl}/index-${count}.html?video=1`, { waitUntil: "networkidle" });
       const sliced = await page.evaluate(() => {
         const steps = window.WALKTHROUGH_DATA.walkthrough.length;
         const errs = [];

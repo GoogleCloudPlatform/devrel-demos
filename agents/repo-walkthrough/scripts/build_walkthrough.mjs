@@ -77,9 +77,9 @@ function hasGeminiKey() {
   if (fs.existsSync(".env")) {
     const envText = fs.readFileSync(".env", "utf8");
     for (const line of envText.split(/\r?\n/)) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith("GEMINI_API_KEY=")) {
-        const val = trimmed.slice("GEMINI_API_KEY=".length).trim().replace(/^['"]|['"]$/g, "");
+      const match = line.match(/^\s*GEMINI_API_KEY\s*=\s*(.*)$/);
+      if (match) {
+        const val = match[1].trim().replace(/^['"]|['"]$/g, "");
         if (val) return true;
       }
     }

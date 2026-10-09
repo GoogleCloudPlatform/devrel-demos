@@ -40,6 +40,7 @@ import pathlib
 import re
 import shutil
 import subprocess
+import urllib.parse
 import urllib.request
 from typing import Any
 
@@ -222,7 +223,8 @@ def fetch_github_public(
     meta = json.loads(resp.read().decode("utf-8"))
 
   branch = branch_override or meta.get("default_branch", "main")
-  tree_url = f"https://api.github.com/repos/{repo}/git/trees/{branch}?recursive=1"
+  encoded_branch = urllib.parse.quote(branch, safe="")
+  tree_url = f"https://api.github.com/repos/{repo}/git/trees/{encoded_branch}?recursive=1"
   req_tree = urllib.request.Request(tree_url, headers=headers)
   with urllib.request.urlopen(req_tree, timeout=20) as resp:
     tree_data = json.loads(resp.read().decode("utf-8"))
@@ -234,7 +236,8 @@ def fetch_github_public(
   file_contents: dict[str, str] = {}
   for rel_path in selected:
     full_path = f"{prefix}{rel_path}"
-    raw_url = f"https://raw.githubusercontent.com/{repo}/{branch}/{full_path}"
+    encoded_path = urllib.parse.quote(full_path)
+    raw_url = f"https://raw.githubusercontent.com/{repo}/{encoded_branch}/{encoded_path}"
     try:
       r = urllib.request.Request(raw_url, headers=headers)
       with urllib.request.urlopen(r, timeout=10) as f_resp:

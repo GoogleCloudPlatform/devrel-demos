@@ -492,20 +492,6 @@
     document.body.classList.add("video-mode");
   }
 
-  const dataParam = params.get("data");
-  if (dataParam) {
-    if (/^([a-z]+:)?\/\//i.test(dataParam) || dataParam.includes("..") || dataParam.includes("\\")) {
-      throw new Error("External URLs or parent path traversals are not allowed for data parameter.");
-    }
-    await new Promise((resolve, reject) => {
-      const s = document.createElement("script");
-      s.src = dataParam;
-      s.onload = resolve;
-      s.onerror = () => reject(new Error(`Failed to load ${dataParam}`));
-      document.head.appendChild(s);
-    });
-  }
-
   const DATA = window.WALKTHROUGH_DATA || window.ADK_DATA;
   const repoTitle = DATA.title || DATA.repo || "Repository";
   const repoSub = DATA.subtitle || "Interactive Architecture Walkthrough";
