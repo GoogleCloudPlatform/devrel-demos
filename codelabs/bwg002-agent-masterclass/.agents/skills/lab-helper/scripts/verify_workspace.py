@@ -47,68 +47,31 @@ DEFAULT_SOLUTIONS_DIR = APP_ROOT / ".agents" / "solutions"
 HINTS_CATALOG_PATH = SKILL_DIR / "references" / "hints_catalog.json"
 
 VALID_MODULES = (1, 2, 3, 4)
-VALID_STEPS = ("1a", "1b", "1c", "1d", "1e", "2a", "2b", "2c", "3a", "3b", "3c", "4a", "4b")
+VALID_STEPS = ("1a", "1b", "1c", "2a", "2b", "3a", "3b", "3c", "4a")
 VALID_TIERS = ("1", "2", "3", "remediate")
 
 # Step metadata mapping: relative file paths, AST required symbols, and required substrings
 STEP_REGISTRY: dict[str, dict[str, Any]] = {
     "1a": {
         "module": 1,
-        "title": "Specialist Agents",
-        "files": ["module_1/step_1a_specialist_agents.py"],
-        "required_symbols": [
-            "creative_director",
-            "copywriter",
-            "brand_strategist",
-            "visual_director",
-            "run_specialist_team",
-        ],
-        "step_new_symbols": [
-            "brand_strategist",
-            "visual_director",
-            "run_specialist_team",
-        ],
-        "required_substrings": ["output_key", "Why:"],
-    },
-    "1b": {
-        "module": 1,
         "title": "Authoring Agent Skills",
-        "files": ["module_1/step_1b_authoring_skills.py", "module_1/skills/brand-guidelines/SKILL.md"],
+        "files": ["module_1/step_1a_authoring_skills.py", "module_1/skills/brand-guidelines/SKILL.md"],
         "required_symbols": ["Skill", "SkillToolset", "load_skill_from_dir", "load_brand_skill"],
         "step_new_symbols": ["Skill", "SkillToolset", "load_skill_from_dir", "load_brand_skill"],
         "required_substrings": ["brand-guidelines"],
     },
-    "1c": {
+    "1b": {
         "module": 1,
-        "title": "Skill Evals",
-        "files": ["module_1/step_1c_skill_evals.py"],
+        "title": "Skill Evaluation Harnesses",
+        "files": ["module_1/step_1b_skill_evals.py"],
         "required_symbols": ["SkillEvalResult", "evaluate_brand_skill", "run_eval_suite"],
         "step_new_symbols": ["SkillEvalResult", "evaluate_brand_skill", "run_eval_suite"],
         "required_substrings": ["brand-guidelines", "FORBIDDEN_BRAND_PATTERNS"],
     },
-    "1d": {
+    "1c": {
         "module": 1,
-        "title": "Graph Orchestration & Circular Loop Prevention",
-        "files": ["module_1/step_1d_graph_orchestration.py"],
-        "required_symbols": [
-            "CircularLoopError",
-            "LoopGuard",
-            "strip_markdown_fences",
-            "assemble",
-            "package",
-            "root_agent",
-        ],
-        "step_new_symbols": [
-            "CircularLoopError",
-            "LoopGuard",
-            "strip_markdown_fences",
-        ],
-        "required_substrings": ["JoinNode", "Why:"],
-    },
-    "1e": {
-        "module": 1,
-        "title": "Remote Visual Director Service over A2A Protocol",
-        "files": ["module_1/step_1e_remote_a2a_visual_director.py"],
+        "title": "Remote A2A Visual Director Service",
+        "files": ["module_1/step_1c_remote_a2a_visual_director.py"],
         "required_symbols": [
             "generate_key_visual",
             "build_visual_director_card",
@@ -128,7 +91,7 @@ STEP_REGISTRY: dict[str, dict[str, Any]] = {
     },
     "2a": {
         "module": 2,
-        "title": "Agent Analytics in BigQuery & Object Tables",
+        "title": "BigQuery Agent Analytics & Key Visuals Object Table",
         "files": ["module_2/step_2a_bigquery_analytics.py", "module_2/sql/create_key_visuals.sql"],
         "required_symbols": ["BigQueryAnalyticsService", "build_key_visuals_sql", "register_key_visuals"],
         "step_new_symbols": ["register_key_visuals"],
@@ -136,16 +99,8 @@ STEP_REGISTRY: dict[str, dict[str, Any]] = {
     },
     "2b": {
         "module": 2,
-        "title": "Cloud Storage Artifact Persistence",
-        "files": ["module_2/step_2b_cloud_storage_artifacts.py"],
-        "required_symbols": ["GcsArtifactService", "get_artifact_service"],
-        "step_new_symbols": ["return GcsArtifactService("],
-        "required_substrings": ["key-visuals", "gs://", "return GcsArtifactService("],
-    },
-    "2c": {
-        "module": 2,
-        "title": "Brand/Compliance Drift Detection & Prompt Tuning",
-        "files": ["module_2/step_2c_drift_detection_and_tuning.py", "module_2/sql/score_brand_fit.sql"],
+        "title": "Brand Drift Detection & Closed-Loop Prompt Tuning",
+        "files": ["module_2/step_2b_drift_detection_and_tuning.py", "module_2/sql/score_brand_fit.sql"],
         "required_symbols": ["score_brand_compliance", "detect_brand_drift", "tune_prompt_and_skill"],
         "step_new_symbols": ["detect_brand_drift", "tune_prompt_and_skill"],
         "required_substrings": ["AI.SCORE", "brand_fit", "needs another pass"],
@@ -196,14 +151,6 @@ STEP_REGISTRY: dict[str, dict[str, Any]] = {
         ],
         "required_substrings": ["sha256", "Why:"],
     },
-    "4b": {
-        "module": 4,
-        "title": "Hybrid Routing (WebLLM / Cloud Frontier)",
-        "files": ["module_4/step_4b_hybrid_routing.py", "module_4/webllm_router.js"],
-        "required_symbols": ["RoutingDecision", "HybridModelRouter", "route_task", "select_route"],
-        "step_new_symbols": ["RoutingDecision", "HybridModelRouter", "route_task", "select_route"],
-        "required_substrings": ["webllm_browser", "cloud_frontier"],
-    },
 }
 
 
@@ -217,7 +164,7 @@ def _load_catalog() -> dict[str, Any]:
      * Loads the hints catalog JSON dictionary.
      *
      * Why: Provides a single source of truth for progressive hint templates across
-     * all 13 steps in Modules 1–4.
+     * all 9 steps in Modules 1–4.
      *
      * @return Dictionary containing step entries keyed by step_id.
      */
@@ -332,7 +279,7 @@ def inspect_step_drift(
      * missing AST symbols, and missing required substrings. Strictly read-only: never
      * writes or modifies files.
      *
-     * @param step Step identifier ("1a"–"4b") or "all".
+     * @param step Step identifier ("1a"–"4a") or "all".
      * @param workspace_dir Path to learner's workspace directory (defaults to project root).
      * @param solutions_dir Path to gold-standard solutions directory (defaults to project solutions).
      * @param module Optional module filter (1–4).
@@ -383,22 +330,17 @@ def inspect_step_drift(
     # Proper application paths for real-world project structure
     app_file_map: dict[str, str] = {
         "module_1/skills/brand-guidelines/SKILL.md": "pitch_generator/skills/brand-guidelines/SKILL.md",
-        "module_1/step_1a_specialist_agents.py": "pitch_generator/agent.py",
-        "module_1/step_1b_authoring_skills.py": "pitch_generator/agent.py",
-        "module_1/step_1c_skill_evals.py": "pitch_generator/agent.py",
-        "module_1/step_1d_graph_orchestration.py": "pitch_generator/agent.py",
-        "module_1/step_1e_remote_a2a_visual_director.py": "pitch_generator/agent.py",
+        "module_1/step_1a_authoring_skills.py": "pitch_generator/agent.py",
+        "module_1/step_1b_skill_evals.py": "pitch_generator/agent.py",
+        "module_1/step_1c_remote_a2a_visual_director.py": "pitch_generator/agent.py",
         "module_2/step_2a_bigquery_analytics.py": "pitch_generator/app_utils/services.py",
         "module_2/sql/create_key_visuals.sql": "pitch_generator/sql/create_key_visuals.sql",
-        "module_2/step_2b_cloud_storage_artifacts.py": "pitch_generator/app_utils/services.py",
-        "module_2/step_2c_drift_detection_and_tuning.py": "pitch_generator/app_utils/services.py",
+        "module_2/step_2b_drift_detection_and_tuning.py": "pitch_generator/app_utils/services.py",
         "module_2/sql/score_brand_fit.sql": "pitch_generator/sql/score_brand_fit.sql",
         "module_3/step_3a_pre_tool_use_hooks.py": "pitch_generator/agent.py",
         "module_3/step_3b_pii_scrubbing.py": "pitch_generator/app_utils/services.py",
         "module_3/step_3c_hitl_authorizations.py": "pitch_generator/agent.py",
         "module_4/step_4a_tokenomics.py": "pitch_generator/agent.py",
-        "module_4/step_4b_hybrid_routing.py": "pitch_generator/agent.py",
-        "module_4/webllm_router.js": "frontend/webllm_router.js",
     }
 
     target_files: list[str] = [app_file_map.get(f, f) for f in spec["files"]]
@@ -419,7 +361,7 @@ def inspect_step_drift(
             if cand_path.is_file() and cand_path.stat().st_size > 0:
                 canonical_py_exists = True
                 c_content = cand_path.read_text(encoding="utf-8")
-                if step_id == "1e" and (ws_root / "pitch_generator/fast_api_app.py").is_file():
+                if step_id == "1c" and (ws_root / "pitch_generator/fast_api_app.py").is_file():
                     c_content = c_content + "\n" + (ws_root / "pitch_generator/fast_api_app.py").read_text(encoding="utf-8")
                 c_symbols, c_syn_err = _extract_ast_symbols(c_content, str(cand_path))
                 c_code_only = _strip_comment_lines(c_content)
@@ -484,7 +426,7 @@ def inspect_step_drift(
         try:
             content = target_path.read_text(encoding="utf-8")
             if (
-                step_id == "1e"
+                step_id == "1c"
                 and canonical_path is not None
                 and target_path == canonical_path
                 and (ws_root / "pitch_generator/fast_api_app.py").is_file()

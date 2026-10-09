@@ -18,7 +18,7 @@
  * @description Package initializer for the Pitch Generator hidden reference solutions.
  *
  * Why: Organizes progressive reference implementations across Modules 1 through 4
- * (`1a`-`1e`, `2a`-`2c`, `3a`-`3c`, `4a`-`4b`) so the `lab-helper` skill and automated
+ * (`1a`-`1c`, `2a`-`2b`, `3a`-`3c`, `4a`) so the `lab-helper` skill and automated
  * E2E verification suite can inspect, diff, and remediate any individual lab step
  * deterministically offline.
  */
@@ -27,20 +27,6 @@
 from __future__ import annotations
 
 MODULES: tuple[str, ...] = ("module_1", "module_2", "module_3", "module_4")
-STEPS: tuple[str, ...] = (
-    "1a",
-    "1b",
-    "1c",
-    "1d",
-    "1e",
-    "2a",
-    "2b",
-    "2c",
-    "3a",
-    "3b",
-    "3c",
-    "4a",
-    "4b",
-)
+STEPS: tuple[str, ...] = ("1a", "1b", "1c", "2a", "2b", "3a", "3b", "3c", "4a")
 
 __all__ = ["MODULES", "STEPS"]

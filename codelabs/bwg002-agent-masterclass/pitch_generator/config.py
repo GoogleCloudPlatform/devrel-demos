@@ -40,11 +40,6 @@ DEFAULT_FLASH_MODEL = "gemini-3.8-flash"
 DEFAULT_IMAGE_MODEL = "gemini-nano-banana-2.1"
 DEFAULT_LOCAL_MODEL = "gemma-3-4b-it"
 
-VALID_ROUTING_MODES: tuple[str, ...] = (
-    "auto",
-    "cloud_frontier",
-)
-
 _REPO_ROOT: Path = Path(__file__).resolve().parent.parent
 
 
@@ -260,7 +255,6 @@ class PitchConfig:
          * @return Dictionary suitable for JSON serialization.
          */
         """
-        modes = list(VALID_ROUTING_MODES)
         return {
             "project_id": self.project_id,
             "region": self.region,
@@ -274,8 +268,6 @@ class PitchConfig:
                 "flash": self.flash_model,
                 "image": self.image_model,
             },
-            "routing_modes": modes,
-            "available_routing_modes": modes,
         }
 
 

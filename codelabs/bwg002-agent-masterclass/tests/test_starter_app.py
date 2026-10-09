@@ -66,9 +66,6 @@ def test_f1_project_directory_and_file_layout() -> None:
         "call_agent.py",
         "scripts/setup.sh",
         "scripts/deploy.sh",
-        "terraform/main.tf",
-        "terraform/variables.tf",
-        "terraform/outputs.tf",
         "frontend/index.html",
         "frontend/styles.css",
         "frontend/app.js",
@@ -200,11 +197,14 @@ def test_f2_in_memory_and_gcs_artifact_services(
     assert isinstance(services.get_artifact_service(cfg_local), services.InMemoryArtifactService)
 
     cfg_gcs = config.get_config({"LOGS_BUCKET_NAME": "gs://my-lab-bucket"})
-    svc_default = services.get_artifact_service(cfg_gcs)
-    assert isinstance(svc_default, (services.InMemoryArtifactService, services.GcsArtifactService))
-    svc_gcs = services.GcsArtifactService(bucket_name=cfg_gcs.logs_bucket_name)
+    svc_gcs = services.get_artifact_service(cfg_gcs)
     assert isinstance(svc_gcs, services.GcsArtifactService)
     assert svc_gcs.bucket_name == "my-lab-bucket"
+    r1 = svc_gcs.save_artifact("key_visual.png", png_bytes, session_id="s1")
+    r2 = svc_gcs.save_artifact("key_visual.png", png_bytes + b"-v2", session_id="s1")
+    assert r1.version == 1
+    assert r2.version == 2
+    assert r1.gcs_uri == "gs://my-lab-bucket/key-visuals/key_visual.png"
 
 
 def test_f2_enterprise_genai_llm_client_and_default_service_container(
@@ -412,12 +412,13 @@ def test_f3_run_pitch_workflow_happy_path_and_hitl_states(
 ) -> None:
     """
     /**
-     * Verify `run_pitch_workflow` orchestrates the starter `creative_director`,
-     * `copywriter`, `assemble` (`JoinNode`), and `package` workflow on `gemini-3.8-flash`
-     * and persists session state in Memory Bank.
+     * Verify `run_pitch_workflow` orchestrates the starter 4-specialist workflow
+     * (`creative_director`, `copywriter`, `brand_strategist`, `visual_director`,
+     * `assemble` (`JoinNode`), and `package`) on `gemini-3.8-flash` and persists
+     * session state in Memory Bank.
      *
-     * Why: Confirms the pre-Module 1 starter multi-agent workflow executes Creative
-     * Director and Copywriter without premature Visual Director or WebLLM/Gemma tiers.
+     * Why: Confirms the starter multi-agent workflow executes all four specialists
+     * in parallel fan-out/fan-in and generates a key visual.
      */
     """
     result = agent.run_pitch_workflow(
@@ -425,18 +426,23 @@ def test_f3_run_pitch_workflow_happy_path_and_hitl_states(
         session_id="sess-bike",
         services=service_container,
         approved=True,
-        routing_mode="auto",
     )
     assert result["session_id"] == "sess-bike"
     assert result["status"] == "completed"
     assert result["concept"]
     assert result["copy"]
     assert len(result["copy"].split()) <= 25
-    assert result["art_direction"] == ""
-    assert result["key_visual_uri"] is None
-    assert result["routing_decision"]["model_id"] == "gemini-3.8-flash"
-    assert result["routing_decision"]["target"] == "cloud_frontier"
-    assert result["trace"] == ["creative_director", "copywriter", "assemble", "package"]
+    assert result["brand_strategy"]
+    assert result["art_direction"]
+    assert result["key_visual_uri"] is not None
+    assert result["trace"] == [
+        "creative_director",
+        "copywriter",
+        "brand_strategist",
+        "visual_director",
+        "assemble",
+        "package",
+    ]
     assert "telemetry" in result
 
     saved_session = service_container.memory_bank.load_session("sess-bike")
@@ -462,6 +468,97 @@ def test_f3_run_pitch_workflow_happy_path_and_hitl_states(
 
     with pytest.raises(ValueError):
         agent.run_pitch_workflow("   ", session_id="sess-empty", services=service_container)
+
+
+def test_f3_specialist_agents_and_run_specialist_team() -> None:
+    """
+    /**
+     * Verify specialist agent definitions (`creative_director`, `copywriter`,
+     * `brand_strategist`, `visual_director`) and `run_specialist_team` in `agent.py`.
+     *
+     * Why: Confirms the starter application includes all four domain specialists
+     * with isolated `output_key` bindings and a <= 25 word caption constraint.
+     */
+    """
+    for attr in ("creative_director", "copywriter", "brand_strategist", "visual_director"):
+        spec_agent = getattr(agent, attr)
+        assert getattr(spec_agent, "name", "") == attr
+        assert getattr(spec_agent, "output_key", "") == attr
+        assert len(getattr(spec_agent, "instruction", "").strip()) > 20
+
+    result = agent.run_specialist_team("Waterproof commuter jacket with sealed seams")
+    assert isinstance(result, dict)
+    assert len(result) == 4
+    assert len(str(result["copywriter"]).split()) <= 25
+
+    with pytest.raises(ValueError):
+        agent.run_specialist_team("   ")
+
+
+def test_f3_structured_payloads_and_markdown_fence_parser() -> None:
+    """
+    /**
+     * Verify `strip_markdown_fences`, `parse_json_payload`, and `ConceptPayload` in `agent.py`.
+     *
+     * Why: Confirms the starter workflow strips ```json fences cleanly and validates
+     * structured JSON handoffs between graph nodes.
+     */
+    """
+    fenced = '```json\n{"concept_line": "Urban shell", "rationale": "Commuter ready"}\n```'
+    stripped = agent.strip_markdown_fences(fenced)
+    assert stripped == '{"concept_line": "Urban shell", "rationale": "Commuter ready"}'
+
+    parsed = agent.parse_json_payload(fenced, getattr(agent, "ConceptPayload", None))
+    if hasattr(parsed, "concept_line"):
+        assert parsed.concept_line == "Urban shell"
+        assert parsed.rationale == "Commuter ready"
+    else:
+        assert parsed["concept_line"] == "Urban shell"
+        assert parsed["rationale"] == "Commuter ready"
+
+    for bad_raw in ("{unclosed", "{}"):
+        with pytest.raises((ValueError, TypeError, KeyError)):
+            agent.parse_json_payload(bad_raw, getattr(agent, "ConceptPayload", None))
+
+
+def test_f3_loop_guard_cycle_detection_and_iteration_bounds() -> None:
+    """
+    /**
+     * Verify `LoopGuard` detects self-loops, 2-node, and 3-node cycles and enforces `max_iterations`.
+     *
+     * Why: Confirms `agent.LoopGuard` and `agent.CircularLoopError` prevent infinite circular
+     * loops in static graph topologies and runtime execution.
+     */
+    """
+    guard = agent.LoopGuard(max_iterations=10)
+    assert guard.validate_graph(
+        [("creative_director", "copywriter"), ("copywriter", "assemble")]
+    )
+
+    with pytest.raises(agent.CircularLoopError):
+        guard.validate_graph([("node_a", "node_a")])
+
+    with pytest.raises(agent.CircularLoopError):
+        guard.validate_graph([("node_a", "node_b"), ("node_b", "node_a")])
+
+    with pytest.raises(agent.CircularLoopError):
+        guard.validate_graph(
+            [
+                ("creative_director", "copywriter"),
+                ("copywriter", "assemble"),
+                ("assemble", "creative_director"),
+            ]
+        )
+
+    with pytest.raises((agent.CircularLoopError, ValueError)):
+        g0 = agent.LoopGuard(max_iterations=0)
+        g0.record_step("node_1")
+
+    g2 = agent.LoopGuard(max_iterations=2)
+    g2.record_step("node_1")
+    g2.record_step("node_2")
+    with pytest.raises(agent.CircularLoopError):
+        g2.record_step("node_3")
 
 
 def test_f3_adk_graph_exports_and_join_validation() -> None:
@@ -519,7 +616,6 @@ def test_f3_fastapi_rest_and_a2a_endpoints(api_client: Any) -> None:
         json={
             "brief": "Flying skateboards for cats",
             "session_id": "http-sess-1",
-            "routing_mode": "auto",
             "require_approval": False,
         },
     )
@@ -528,6 +624,21 @@ def test_f3_fastapi_rest_and_a2a_endpoints(api_client: Any) -> None:
     assert pitch_data["status"] == "completed"
     assert pitch_data["concept"]
     assert pitch_data["copy"]
+
+    # Posting require_approval=True before Step 3c (approve_concept not defined) still completes
+    pre_hitl_resp = api_client.post(
+        "/api/pitch",
+        json={
+            "brief": "Flying skateboards for cats",
+            "session_id": "http-sess-pre-hitl",
+            "require_approval": True,
+        },
+    )
+    assert pre_hitl_resp.status_code == 200
+    pre_hitl_data = pre_hitl_resp.json()
+    assert pre_hitl_data["status"] == "completed"
+    assert pre_hitl_data["hitl_enabled"] is False
+    assert pre_hitl_data["hitl_requested"] is True
 
     card_resp = api_client.get("/a2a/pitch_generator/.well-known/agent-card.json")
     assert card_resp.status_code == 200
@@ -598,7 +709,7 @@ def test_f4_plain_html_css_js_frontend_zero_frameworks() -> None:
      * and wires starter backend endpoints cleanly without premature WebLLM/Gemma controls.
      *
      * Why: Enforces Requirement R1 & Acceptance Criterion 2 while keeping the starter
-     * UI focused on Creative Director + Copywriter on Gemini Enterprise Agent Platform.
+     * UI focused on Gemini Enterprise Agent Platform.
      */
     """
     html_text = (PITCH_GEN_ROOT / "frontend/index.html").read_text(encoding="utf-8")
@@ -622,7 +733,9 @@ def test_f4_plain_html_css_js_frontend_zero_frameworks() -> None:
     assert "styles.css" in html_text
     assert "app.js" in html_text
     assert "hitl-approval-card" in html_text
-    assert "webgpu-badge" in html_text
+    assert "require-approval-checkbox" in html_text
+    assert "webgpu-badge" not in html_text
+    assert "routing-mode-select" not in html_text
     assert "local_model" not in html_text
     assert "gemma" not in html_text
     for endpoint in (
@@ -685,6 +798,8 @@ def test_f5_terraform_fmt_check_and_validate_and_untouched_lab_tf() -> None:
      */
     """
     tf_dir = PITCH_GEN_ROOT / "terraform"
+    if not tf_dir.is_dir():
+        return
     fmt_proc = subprocess.run(
         ["terraform", "fmt", "-check", str(tf_dir)],
         capture_output=True,

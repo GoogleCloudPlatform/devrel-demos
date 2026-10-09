@@ -16,9 +16,9 @@
 /**
  * @file __init__.py
  * @description Package initializer for Module 2 reference solutions (Observability,
- *   Cloud Storage Artifact Versioning, BigQuery Multimodal Analytics, and Brand Drift Tuning).
+ *   BigQuery Multimodal Analytics, and Brand Drift Tuning).
  *
- * Why: Exposes Step 2a (`F12`), Step 2b (`F13`), and Step 2c (`F14`) solution modules
+ * Why: Exposes Step 2a (`F12`) and Step 2b (`F14`) solution modules
  * as a clean Python package for automated workspace drift verification and testing.
  */
 """
@@ -27,6 +27,5 @@ from __future__ import annotations
 
 __all__ = [
     "step_2a_bigquery_analytics",
-    "step_2b_cloud_storage_artifacts",
-    "step_2c_drift_detection_and_tuning",
+    "step_2b_drift_detection_and_tuning",
 ]

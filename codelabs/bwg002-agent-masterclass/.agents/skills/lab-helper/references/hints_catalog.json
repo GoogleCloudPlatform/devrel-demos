@@ -4,57 +4,35 @@
     "1a": {
       "step_id": "1a",
       "module": 1,
-      "title": "Specialist Agents (creative_director, copywriter, brand_strategist, visual_director)",
-      "files": ["module_1/step_1a_specialist_agents.py"],
-      "required_symbols": ["build_specialist_team", "run_specialist_team", "creative_director", "copywriter", "brand_strategist", "visual_director"],
-      "required_substrings": ["output_key", "Why:"],
-      "tier_1_hint": "Tier 1 Conceptual Nudge (Step 1a): Decompose the pitch workflow into four single-responsibility ADK Agent specialists (creative_director, copywriter, brand_strategist, visual_director) with isolated output_key state bindings so each specialist focuses on a single domain.",
-      "tier_2_hint": "Tier 2 Targeted File & Symbol Hint (Step 1a): In 'pitch_generator/agent.py' (referencing '.agents/solutions/module_1/step_1a_specialist_agents.py'), define 'creative_director', 'copywriter', 'brand_strategist', and 'visual_director' along with factory 'build_specialist_team(config=None)' and runner 'run_specialist_team(brief, ...)'. Bind each Agent to a unique output_key and enforce a <=25-word caption limit on copywriter.",
-      "tier_3_hint": "Tier 3 Implementation Blueprint (Step 1a): In 'pitch_generator/agent.py' (using '.agents/solutions/module_1/step_1a_specialist_agents.py' as your blueprint), instantiate each Agent(name=..., model=_model(), instruction=..., output_key=...) for creative_director, copywriter, brand_strategist, and visual_director, and implement run_specialist_team(brief) returning a dict with keys 'creative_director', 'copywriter', 'brand_strategist', 'visual_director', and 'caption_word_count'. Run 'verify_workspace.py --module 1 --step 1a --tier remediate' to auto-restore."
+      "title": "Authoring Agent Skills (brand-guidelines)",
+      "files": ["module_1/step_1a_authoring_skills.py", "module_1/skills/brand-guidelines/SKILL.md"],
+      "required_symbols": ["Skill", "SkillToolset", "load_skill_from_dir", "load_brand_skill"],
+      "required_substrings": ["brand-guidelines", "load_skill"],
+      "tier_1_hint": "Tier 1 Conceptual Nudge (Step 1a): Equip the visual director agent with dynamic domain skills loaded from markdown playbooks at runtime rather than hardcoding style guidelines into static prompt instructions.",
+      "tier_2_hint": "Tier 2 Targeted File & Symbol Hint (Step 1a): In 'pitch_generator/agent.py' (referencing '.agents/solutions/module_1/step_1a_authoring_skills.py'), implement 'Skill', 'SkillToolset', and loader 'load_skill_from_dir(skill_dir)'. Create 'pitch_generator/skills/brand-guidelines/SKILL.md' with YAML frontmatter, palette rules, and lighting constraints, and attach it to 'visual_director'.",
+      "tier_3_hint": "Tier 3 Implementation Blueprint (Step 1a): In 'pitch_generator/skills/brand-guidelines/SKILL.md' (using '.agents/solutions/module_1/skills/brand-guidelines/SKILL.md' as your blueprint), define frontmatter with name 'brand-guidelines' and markdown instructions forbidding neon colors and watermarks. In 'pitch_generator/agent.py', parse frontmatter with load_skill_from_dir and create SkillToolset exposing load_skill to the visual director agent. Run 'verify_workspace.py --module 1 --step 1a --tier remediate' to auto-restore."
     },
     "1b": {
       "step_id": "1b",
       "module": 1,
-      "title": "Authoring Agent Skills (brand-guidelines)",
-      "files": ["module_1/step_1b_authoring_skills.py", "module_1/skills/brand-guidelines/SKILL.md"],
-      "required_symbols": ["Skill", "SkillToolset", "load_skill_from_dir", "build_skilled_visual_director"],
-      "required_substrings": ["brand-guidelines", "load_skill"],
-      "tier_1_hint": "Tier 1 Conceptual Nudge (Step 1b): Equip the visual director agent with dynamic domain skills loaded from markdown playbooks at runtime rather than hardcoding style guidelines into static prompt instructions.",
-      "tier_2_hint": "Tier 2 Targeted File & Symbol Hint (Step 1b): In 'pitch_generator/agent.py' (referencing '.agents/solutions/module_1/step_1b_authoring_skills.py'), implement 'Skill', 'SkillToolset', and loader 'load_skill_from_dir(skill_dir)'. Create 'pitch_generator/skills/brand-guidelines/SKILL.md' with YAML frontmatter, palette rules, and lighting constraints, and attach it to 'visual_director'.",
-      "tier_3_hint": "Tier 3 Implementation Blueprint (Step 1b): In 'pitch_generator/skills/brand-guidelines/SKILL.md' (using '.agents/solutions/module_1/skills/brand-guidelines/SKILL.md' as your blueprint), define frontmatter with name 'brand-guidelines' and markdown instructions forbidding neon colors and watermarks. In 'pitch_generator/agent.py', parse frontmatter with load_skill_from_dir and create SkillToolset exposing load_skill to the visual director agent. Run 'verify_workspace.py --module 1 --step 1b --tier remediate' to auto-restore."
+      "title": "Skill Evals (Brand Guidelines Compliance)",
+      "files": ["module_1/step_1b_skill_evals.py"],
+      "required_symbols": ["SkillEvalResult", "evaluate_brand_skill", "run_eval_suite"],
+      "required_substrings": ["brand-guidelines", "FORBIDDEN_BRAND_PATTERNS"],
+      "tier_1_hint": "Tier 1 Conceptual Nudge (Step 1b): Build an automated evaluation harness to verify that the agent respects brand guidelines across positive and adversarial test cases before deploying changes to production.",
+      "tier_2_hint": "Tier 2 Targeted File & Symbol Hint (Step 1b): In 'pitch_generator/agent.py' (referencing '.agents/solutions/module_1/step_1b_skill_evals.py'), define dataclass 'SkillEvalResult(passed, score, violations, feedback)', constant 'FORBIDDEN_BRAND_PATTERNS', and functions 'evaluate_brand_skill(output_text, ...)' and 'run_eval_suite(agent, ...)' to audit text against prohibited colors and fonts.",
+      "tier_3_hint": "Tier 3 Implementation Blueprint (Step 1b): In 'pitch_generator/agent.py' (using '.agents/solutions/module_1/step_1b_skill_evals.py' as your blueprint), implement FORBIDDEN_BRAND_PATTERNS regex scanning for forbidden tokens (e.g., 'neon', 'comic sans', 'papyrus'). In evaluate_brand_skill, inspect generated creative proposals, returning SkillEvalResult(passed=len(violations)==0, score=..., violations=...). Test with run_eval_suite across positive and adversarial cases. Run 'verify_workspace.py --module 1 --step 1b --tier remediate' to auto-restore."
     },
     "1c": {
       "step_id": "1c",
       "module": 1,
-      "title": "Skill Evals (Brand Guidelines Compliance)",
-      "files": ["module_1/step_1c_skill_evals.py"],
-      "required_symbols": ["SkillEvalResult", "evaluate_brand_skill", "run_eval_suite"],
-      "required_substrings": ["brand-guidelines", "FORBIDDEN_BRAND_PATTERNS"],
-      "tier_1_hint": "Tier 1 Conceptual Nudge (Step 1c): Build an automated evaluation harness to verify that the agent respects brand guidelines across positive and adversarial test cases before deploying changes to production.",
-      "tier_2_hint": "Tier 2 Targeted File & Symbol Hint (Step 1c): In 'pitch_generator/agent.py' (referencing '.agents/solutions/module_1/step_1c_skill_evals.py'), define dataclass 'SkillEvalResult(passed, score, violations, feedback)', constant 'FORBIDDEN_BRAND_PATTERNS', and functions 'evaluate_brand_skill(output_text, ...)' and 'run_eval_suite(agent, ...)' to audit text against prohibited colors and fonts.",
-      "tier_3_hint": "Tier 3 Implementation Blueprint (Step 1c): In 'pitch_generator/agent.py' (using '.agents/solutions/module_1/step_1c_skill_evals.py' as your blueprint), implement FORBIDDEN_BRAND_PATTERNS regex scanning for forbidden tokens (e.g., 'neon', 'comic sans', 'papyrus'). In evaluate_brand_skill, inspect generated creative proposals, returning SkillEvalResult(passed=len(violations)==0, score=..., violations=...). Test with run_eval_suite across positive and adversarial cases. Run 'verify_workspace.py --module 1 --step 1c --tier remediate' to auto-restore."
-    },
-    "1d": {
-      "step_id": "1d",
-      "module": 1,
-      "title": "Graph Orchestration & Circular Loop Prevention",
-      "files": ["module_1/step_1d_graph_orchestration.py"],
-      "required_symbols": ["CircularLoopError", "LoopGuard", "strip_markdown_fences", "assemble", "package", "root_agent"],
-      "required_substrings": ["JoinNode", "Why:"],
-      "tier_1_hint": "Tier 1 Conceptual Nudge (Step 1d): Coordinate specialist agents using a parallel DAG workflow with a JoinNode for fan-in and a LoopGuard that detects circular edges and caps runtime steps.",
-      "tier_2_hint": "Tier 2 Targeted File & Symbol Hint (Step 1d): In 'pitch_generator/agent.py' (referencing '.agents/solutions/module_1/step_1d_graph_orchestration.py'), declare exception 'CircularLoopError', class 'LoopGuard(max_iterations=10)' with 'validate_graph(edges)' and 'record_step(node_name)', helper 'strip_markdown_fences(raw_text)', and restructure 'root_agent' so 'brand_strategist' fans out in parallel to '(copywriter, visual_director)' before joining at 'assemble' and 'package'.",
-      "tier_3_hint": "Tier 3 Implementation Blueprint (Step 1d): In 'pitch_generator/agent.py' (using '.agents/solutions/module_1/step_1d_graph_orchestration.py' as your blueprint), implement strip_markdown_fences(raw_text) to strip ```json code blocks, implement LoopGuard.validate_graph(edges) with 3-color DFS cycle detection raising CircularLoopError on back-edges, and update root_agent = Workflow(name='pitch_generator', edges=[(creative_director, brand_strategist, (copywriter, visual_director)), ((copywriter, visual_director), assemble, package)]) followed by loop_guard.validate_graph(root_agent.edges). Run 'verify_workspace.py --module 1 --step 1d --tier remediate' to auto-restore."
-    },
-    "1e": {
-      "step_id": "1e",
-      "module": 1,
       "title": "Remote Visual Director Service over A2A Protocol",
-      "files": ["module_1/step_1e_remote_a2a_visual_director.py"],
+      "files": ["module_1/step_1c_remote_a2a_visual_director.py"],
       "required_symbols": ["generate_key_visual", "build_visual_director_card", "build_a2a_visual_director_app", "remote_visual_director", "_cloud_run_client", "_pitch_parts_only"],
       "required_substrings": ["include_artifacts_in_a2a_event_interceptor", "AgentCardBuilder"],
-      "tier_1_hint": "Tier 1 Conceptual Nudge (Step 1e): Decouple compute-heavy image generation by exposing the Visual Director as an independent microservice communicating over the standardized Agent2Agent (A2A) protocol.",
-      "tier_2_hint": "Tier 2 Targeted File & Symbol Hint (Step 1e): In 'pitch_generator/fast_api_app.py' and 'pitch_generator/agent.py' (referencing '.agents/solutions/module_1/step_1e_remote_a2a_visual_director.py'), implement 'build_visual_director_card', 'build_a2a_visual_director_app' (with 'include_artifacts_in_a2a_event_interceptor'), '_cloud_run_client(url)', '_pitch_parts_only(part)', and 'remote_visual_director = RemoteA2aAgent(...)', then swap 'remote_visual_director' into 'root_agent'.",
-      "tier_3_hint": "Tier 3 Implementation Blueprint (Step 1e): Using '.agents/solutions/module_1/step_1e_remote_a2a_visual_director.py' as your blueprint, expose the Visual Director A2A service in 'pitch_generator/fast_api_app.py' via 'build_a2a_visual_director_app()' using AgentCardBuilder and A2aAgentExecutorConfig(execute_interceptors=[include_artifacts_in_a2a_event_interceptor]). In 'pitch_generator/agent.py', implement '_cloud_run_client(url)' (600s timeout and OIDC auth for https:// URLs), '_pitch_parts_only(part)' to strip function_call/function_response parts, and 'remote_visual_director = RemoteA2aAgent(...)' wired into 'root_agent'. Run 'verify_workspace.py --module 1 --step 1e --tier remediate' to auto-restore."
+      "tier_1_hint": "Tier 1 Conceptual Nudge (Step 1c): Decouple compute-heavy image generation by exposing the Visual Director as an independent microservice communicating over the standardized Agent2Agent (A2A) protocol.",
+      "tier_2_hint": "Tier 2 Targeted File & Symbol Hint (Step 1c): In 'pitch_generator/fast_api_app.py' and 'pitch_generator/agent.py' (referencing '.agents/solutions/module_1/step_1c_remote_a2a_visual_director.py'), implement 'build_visual_director_card', 'build_a2a_visual_director_app' (with 'include_artifacts_in_a2a_event_interceptor'), '_cloud_run_client(url)', '_pitch_parts_only(part)', and 'remote_visual_director = RemoteA2aAgent(...)', then swap 'remote_visual_director' into 'root_agent'.",
+      "tier_3_hint": "Tier 3 Implementation Blueprint (Step 1c): Using '.agents/solutions/module_1/step_1c_remote_a2a_visual_director.py' as your blueprint, expose the Visual Director A2A service in 'pitch_generator/fast_api_app.py' via 'build_a2a_visual_director_app()' using AgentCardBuilder and A2aAgentExecutorConfig(execute_interceptors=[include_artifacts_in_a2a_event_interceptor]). In 'pitch_generator/agent.py', implement '_cloud_run_client(url)' (600s timeout and OIDC auth for https:// URLs), '_pitch_parts_only(part)' to strip function_call/function_response parts, and 'remote_visual_director = RemoteA2aAgent(...)' wired into 'root_agent'. Run 'verify_workspace.py --module 1 --step 1c --tier remediate' to auto-restore."
     },
     "2a": {
       "step_id": "2a",
@@ -70,24 +48,13 @@
     "2b": {
       "step_id": "2b",
       "module": 2,
-      "title": "Cloud Storage Artifact Persistence",
-      "files": ["module_2/step_2b_cloud_storage_artifacts.py"],
-      "required_symbols": ["GcsArtifactService", "resolve_artifact_service", "persist_campaign_visual"],
-      "required_substrings": ["key-visuals", "gs://"],
-      "tier_1_hint": "Tier 1 Conceptual Nudge (Step 2b): Store large binary assets like generated pitch visuals in Google Cloud Storage using structured URI paths and metadata rather than bloating relational databases.",
-      "tier_2_hint": "Tier 2 Targeted File & Symbol Hint (Step 2b): In 'pitch_generator/app_utils/services.py' (referencing '.agents/solutions/module_2/step_2b_cloud_storage_artifacts.py'), implement class 'GcsArtifactService(bucket_name, client=None)', factory 'resolve_artifact_service(config=None)', and function 'persist_campaign_visual(campaign_id, asset_bytes, metadata=None)'. Return structured 'gs://' URIs.",
-      "tier_3_hint": "Tier 3 Implementation Blueprint (Step 2b): In 'pitch_generator/app_utils/services.py' (using '.agents/solutions/module_2/step_2b_cloud_storage_artifacts.py' as your blueprint), construct storage paths following 'gs://{bucket}/key-visuals/{campaign_id}/{timestamp}_{filename}'. Support dependency injection of a mock storage client for offline testing and implement persist_campaign_visual to upload bytes with content_type='image/png'. Run 'verify_workspace.py --module 2 --step 2b --tier remediate' to auto-restore."
-    },
-    "2c": {
-      "step_id": "2c",
-      "module": 2,
       "title": "Brand/Compliance Drift Detection & Prompt Tuning",
-      "files": ["module_2/step_2c_drift_detection_and_tuning.py", "module_2/sql/score_brand_fit.sql"],
+      "files": ["module_2/step_2b_drift_detection_and_tuning.py", "module_2/sql/score_brand_fit.sql"],
       "required_symbols": ["build_brand_score_sql", "score_brand_compliance", "detect_brand_drift", "tune_prompt_and_skill"],
       "required_substrings": ["AI.SCORE", "brand_fit", "needs another pass"],
-      "tier_1_hint": "Tier 1 Conceptual Nudge (Step 2c): Continuously evaluate generated pitch assets against brand guidelines using BigQuery AI functions and automatically tune agent prompt instructions when drift is detected.",
-      "tier_2_hint": "Tier 2 Targeted File & Symbol Hint (Step 2c): In 'pitch_generator/app_utils/services.py' (referencing '.agents/solutions/module_2/step_2c_drift_detection_and_tuning.py'), implement 'build_brand_score_sql', 'score_brand_compliance', 'detect_brand_drift', and 'tune_prompt_and_skill'. In 'pitch_generator/sql/score_brand_fit.sql', invoke BigQuery 'AI.SCORE' to generate brand_fit confidence scores.",
-      "tier_3_hint": "Tier 3 Implementation Blueprint (Step 2c): In 'pitch_generator/sql/score_brand_fit.sql' (using '.agents/solutions/module_2/sql/score_brand_fit.sql' as your blueprint), construct SQL invoking AI.SCORE(...) AS brand_fit. In 'pitch_generator/app_utils/services.py', implement detect_brand_drift to flag 'needs another pass' when scores fall below threshold, and tune_prompt_and_skill to append negative constraints. Run 'verify_workspace.py --module 2 --step 2c --tier remediate' to auto-restore."
+      "tier_1_hint": "Tier 1 Conceptual Nudge (Step 2b): Continuously evaluate generated pitch assets against brand guidelines using BigQuery AI functions and automatically tune agent prompt instructions when drift is detected.",
+      "tier_2_hint": "Tier 2 Targeted File & Symbol Hint (Step 2b): In 'pitch_generator/app_utils/services.py' (referencing '.agents/solutions/module_2/step_2b_drift_detection_and_tuning.py'), implement 'build_brand_score_sql', 'score_brand_compliance', 'detect_brand_drift', and 'tune_prompt_and_skill'. In 'pitch_generator/sql/score_brand_fit.sql', invoke BigQuery 'AI.SCORE' to generate brand_fit confidence scores.",
+      "tier_3_hint": "Tier 3 Implementation Blueprint (Step 2b): In 'pitch_generator/sql/score_brand_fit.sql' (using '.agents/solutions/module_2/sql/score_brand_fit.sql' as your blueprint), construct SQL invoking AI.SCORE(...) AS brand_fit. In 'pitch_generator/app_utils/services.py', implement detect_brand_drift to flag 'needs another pass' when scores fall below threshold, and tune_prompt_and_skill to append negative constraints. Run 'verify_workspace.py --module 2 --step 2b --tier remediate' to auto-restore."
     },
     "3a": {
       "step_id": "3a",
@@ -132,17 +99,6 @@
       "tier_1_hint": "Tier 1 Conceptual Nudge (Step 4a): Optimize token consumption and latency by implementing sliding-window history pruning, conversation memory compression, SHA-256 prompt caching, and tiered model selection.",
       "tier_2_hint": "Tier 2 Targeted File & Symbol Hint (Step 4a): In 'pitch_generator/agent.py' (referencing '.agents/solutions/module_4/step_4a_tokenomics.py'), declare classes 'CompressedHistoryList', 'PromptCacheManager', 'TokenomicsManager', and functions 'compress_memory(messages, max_tokens)', 'prune_history(history, window_size)', and 'select_model_strategy(task_type, budget)'. Use hashlib.sha256 for prompt cache keys.",
       "tier_3_hint": "Tier 3 Implementation Blueprint (Step 4a): In 'pitch_generator/agent.py' (using '.agents/solutions/module_4/step_4a_tokenomics.py' as your blueprint), prune_history keeps only recent turns within token limits, compress_memory summarizes older turns into a synthetic context block, PromptCacheManager keys static prompts by sha256(prompt.encode()), and select_model_strategy configures 'gemini-3.8-flash' thinking budgets or 'local' model strategy. Run 'verify_workspace.py --module 4 --step 4a --tier remediate' to auto-restore."
-    },
-    "4b": {
-      "step_id": "4b",
-      "module": 4,
-      "title": "Hybrid Routing (WebLLM in Browser, Cloud Frontier)",
-      "files": ["module_4/step_4b_hybrid_routing.py", "module_4/webllm_router.js"],
-      "required_symbols": ["RoutingDecision", "HybridModelRouter", "route_task", "select_route"],
-      "required_substrings": ["webllm_browser", "cloud_frontier"],
-      "tier_1_hint": "Tier 1 Conceptual Nudge (Step 4b): Create a hybrid inference pipeline that routes low-complexity requests to client-side WebLLM in the browser when WebGPU is available, and falls back to Cloud Frontier on Gemini Enterprise Agent Platform.",
-      "tier_2_hint": "Tier 2 Targeted File & Symbol Hint (Step 4b): In 'pitch_generator/agent.py' (referencing '.agents/solutions/module_4/step_4b_hybrid_routing.py'), define dataclass 'RoutingDecision(target, model_id, ...)', class 'HybridModelRouter', and functions 'route_task' and 'select_route'. In 'frontend/webllm_router.js' (referencing '.agents/solutions/module_4/webllm_router.js'), implement browser WebGPU feature detection and fallback dispatch across 'webllm_browser' and 'cloud_frontier'.",
-      "tier_3_hint": "Tier 3 Implementation Blueprint (Step 4b): In 'pitch_generator/agent.py' (using '.agents/solutions/module_4/step_4b_hybrid_routing.py' as your blueprint), route low-complexity drafts to 'webllm_browser' when WebGPU is available, and multimodal/complex tasks to 'cloud_frontier' ('gemini-3.8-flash' / 'gemini-nano-banana-2.1'). In 'frontend/webllm_router.js', check 'navigator.gpu' to initialize WebLLM on-device with graceful REST fallback. Run 'verify_workspace.py --module 4 --step 4b --tier remediate' to auto-restore."
     }
   }
 }

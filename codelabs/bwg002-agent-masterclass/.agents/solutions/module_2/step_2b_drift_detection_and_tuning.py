@@ -14,16 +14,16 @@
 
 """
 /**
- * @file step_2c_drift_detection_and_tuning.py
- * @description Module 2 — Step 2c: Multimodal Brand Drift Detection (`AI.SCORE`) & Prompt/Skill Tuning (`F14`).
+ * @file step_2b_drift_detection_and_tuning.py
+ * @description Module 2 — Step 2b: Multimodal Brand Drift Detection (`AI.SCORE`) & Prompt/Skill Tuning (`F14`).
  *
- * Why: Implements the closed-loop observability and remediation workflow from `docs/outline.md` §4.3:
+ * Why: Implements the closed-loop observability and remediation workflow:
  * 1. Generate the `bwg.brand_review` `AI.SCORE` query (`build_brand_score_sql`).
  * 2. Deterministically evaluate key visual compliance (`score_brand_compliance`) with an exact
  *    `brand_fit >= 7.0` threshold (`'on brand'` vs. `'needs another pass'`).
  * 3. Diagnose specific house-brand rule violations (`detect_brand_drift`).
  * 4. Remediate drifted prompts and skills (`tune_prompt_and_skill`) so re-scored visuals achieve
- *    `brand_fit >= 7.0` and pass local `step_1c` Skill Evals.
+ *    `brand_fit >= 7.0` and pass local `step_1b` Skill Evals.
  */
 """
 
@@ -368,7 +368,7 @@ def tune_prompt_and_skill(
      *
      * Why: Closes the feedback loop between BigQuery `AI.SCORE` drift detection and ADK
      * agent behavior, ensuring re-scored visuals achieve `brand_fit >= 7.0` (`'on brand'`)
-     * and pass pre-deployment `step_1c` Skill Evals.
+     * and pass pre-deployment `step_1b` Skill Evals.
      *
      * @param record Drifted campaign record dict (or list of campaign record dicts).
      * @return Remediated campaign record dict (or list) with `brand_fit >= 9.0` and `verdict == 'on brand'`.

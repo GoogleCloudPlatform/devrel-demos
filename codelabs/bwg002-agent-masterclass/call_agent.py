@@ -104,11 +104,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Memory Bank session identifier.",
     )
     parser.add_argument(
-        "--routing-mode",
-        default="auto",
-        help="Model routing strategy (auto, cloud_frontier).",
-    )
-    parser.add_argument(
         "--offline",
         action="store_true",
         help="Execute in-process via TestClient without opening network sockets.",
@@ -244,7 +239,6 @@ async def generate_pitch_async(
     require_approval: bool = False,
     approval_input_fn: Callable[[str], str] | None = None,
     session_id: str = "cli-session",
-    routing_mode: str = "auto",
     services: ServiceContainer | None = None,
     force_offline: bool = False,
 ) -> dict[str, Any]:
@@ -267,13 +261,14 @@ async def generate_pitch_async(
      * @param require_approval Whether to request a HITL pause on initial submission.
      * @param approval_input_fn Optional custom callable for reading human input.
      * @param session_id Memory Bank session identifier.
-     * @param routing_mode Model routing strategy.
      * @param services Optional injected `ServiceContainer`.
      * @param force_offline Execute via in-process `TestClient` without network sockets.
      * @return Dictionary with `status`, `concept`, `copy`, `art_direction`, `task`,
      *   and `saved_image_path`.
      */
     """
+    if force_offline:
+        os.environ.setdefault("PITCH_OFFLINE_MODE", "1")
     active_services = services or get_default_services()
     default_cfg_url = active_services.config.pitch_generator_url.strip()
     explicit_url = base_url is not None and base_url.strip() != default_cfg_url
@@ -313,7 +308,6 @@ async def generate_pitch_async(
             "id": task_id,
             "sessionId": session_id,
             "require_approval": require_approval,
-            "routing_mode": routing_mode,
             "message": {
                 "role": "user",
                 "parts": [{"type": "text", "text": brief}],
@@ -387,7 +381,6 @@ async def generate_pitch_async(
         "copy": metadata.get("copy", ""),
         "art_direction": metadata.get("art_direction", ""),
         "key_visual_uri": metadata.get("key_visual_uri"),
-        "routing_decision": metadata.get("routing_decision", {}),
         "saved_image_path": saved_path_str,
         "task": task_obj,
     }
@@ -402,7 +395,6 @@ def run_cli_pitch(
     save_image_path: str | Path | None = None,
     base_url: str | None = None,
     session_id: str = "cli-session",
-    routing_mode: str = "auto",
     services: ServiceContainer | None = None,
     approval_input_fn: Callable[[str], str] | None = None,
     force_offline: bool = False,
@@ -421,7 +413,6 @@ def run_cli_pitch(
      * @param save_image_path Optional alias for `output_image_path`.
      * @param base_url Optional target URL.
      * @param session_id Session identifier.
-     * @param routing_mode Model routing strategy.
      * @param services Optional injected `ServiceContainer`.
      * @param approval_input_fn Optional callback for HITL user input.
      * @param force_offline If True, run via in-process `TestClient`.
@@ -437,7 +428,6 @@ def run_cli_pitch(
             require_approval=require_approval,
             approval_input_fn=approval_input_fn,
             session_id=session_id,
-            routing_mode=routing_mode,
             services=services,
             force_offline=force_offline,
         )
@@ -471,7 +461,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             save_image_path=args.save_image,
             base_url=args.url if explicit_url_arg else None,
             session_id=args.session_id,
-            routing_mode=args.routing_mode,
             force_offline=args.offline,
         )
         return 0 if result.get("status") == "completed" else 1

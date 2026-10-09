@@ -14,8 +14,8 @@
 
 """
 /**
- * @file step_1e_remote_a2a_visual_director.py
- * @description Module 1 — Step 1e: Remote A2A Visual Director Service & Client Integration (`F11`).
+ * @file step_1c_remote_a2a_visual_director.py
+ * @description Module 1 — Step 1c: Remote A2A Visual Director Service & Client Integration (`F11`).
  *
  * Why: Isolating the image-generating `visual_director` behind the Agent-to-Agent (A2A)
  * protocol allows it to scale and deploy independently on Cloud Run while streaming
@@ -104,7 +104,7 @@ class Context(_BaseContext):
      * deterministic failure simulation (`simulate_no_image`).
      *
      * Why: Enables both offline unit testing of empty-image error handling and
-     * cross-module integration with Step 2b's `GcsArtifactService` (`test_t3_pair_12`).
+     * cross-module integration with `GcsArtifactService`.
      */
     """
 

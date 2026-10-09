@@ -15,10 +15,9 @@
 """
 /**
  * @file test_module_2.py
- * @description Offline unit tests for Module 2 reference solutions (`F12`, `F13`, `F14`):
+ * @description Offline unit tests for Module 2 reference solutions (`F12`, `F14`):
  *   Step 2a BigQuery Agent Analytics & `bwg.key_visuals` (`step_2a_bigquery_analytics.py`),
- *   Step 2b Cloud Storage Artifact Versioning (`step_2b_cloud_storage_artifacts.py`),
- *   Step 2c Multimodal Brand Drift Detection & Prompt/Skill Tuning (`step_2c_drift_detection_and_tuning.py`),
+ *   Step 2b Multimodal Brand Drift Detection & Prompt/Skill Tuning (`step_2b_drift_detection_and_tuning.py`),
  *   and SQL scripts (`create_key_visuals.sql`, `score_brand_fit.sql`).
  *
  * Why: Verifies that every Module 2 deliverable satisfies all happy-path, boundary, and
@@ -124,42 +123,10 @@ class TestModule2Step2aBigQueryAnalytics(unittest.TestCase):
         self.assertEqual(summary["total_tokens"], 210)
 
 
-class TestModule2Step2bCloudStorageArtifacts(unittest.TestCase):
+class TestModule2Step2bDriftDetectionAndTuning(unittest.TestCase):
     """
     /**
-     * Unit tests for Step 2b (`F13`): `step_2b_cloud_storage_artifacts.py`.
-     *
-     * Why: Confirms `GcsArtifactService` produces `gs://<bucket>/key-visuals/<filename>` URIs,
-     * increments per-session versions, and toggles cleanly via `get_artifact_service`.
-     */
-    """
-
-    def test_gcs_artifact_service_uri_and_versioning(self) -> None:
-        """
-        /**
-         * Verifies `GcsArtifactService.save_artifact` sets `gs://<bucket>/key-visuals/<filename>` and increments `version`.
-         *
-         * Why: Ensures Cloud Storage URIs match the paths referenced by `bwg.key_visuals` in Step 2a.
-         *
-         * @return None.
-         */
-        """
-        step_2b = _load_module_2_file("step_2b_cloud_storage_artifacts.py")
-        svc = step_2b.GcsArtifactService(bucket_name="gs://test-bucket-bwg/")
-        r1 = svc.save_artifact("cats.png", step_2b.MINIMAL_PNG_BYTES, session_id="s1")
-        r2 = svc.save_artifact("cats.png", step_2b.MINIMAL_PNG_BYTES + b"\x00", session_id="s1")
-        self.assertEqual(r1.gcs_uri, "gs://test-bucket-bwg/key-visuals/cats.png")
-        self.assertEqual(r1.version, 1)
-        self.assertEqual(r2.version, 2)
-
-        mem_svc = step_2b.get_artifact_service(env={"LOGS_BUCKET_NAME": ""})
-        self.assertIsNone(mem_svc.save_artifact("cats.png", step_2b.MINIMAL_PNG_BYTES).gcs_uri)
-
-
-class TestModule2Step2cDriftDetectionAndTuning(unittest.TestCase):
-    """
-    /**
-     * Unit tests for Step 2c (`F14`): `step_2c_drift_detection_and_tuning.py` and `sql/score_brand_fit.sql`.
+     * Unit tests for Step 2b (`F14`): `step_2b_drift_detection_and_tuning.py` and `sql/score_brand_fit.sql`.
      *
      * Why: Validates `AI.SCORE` SQL generation, exact `6.99` vs `7.00` threshold classification,
      * drift violation diagnostics, and closed-loop prompt/skill remediation.
@@ -183,8 +150,8 @@ class TestModule2Step2cDriftDetectionAndTuning(unittest.TestCase):
             sql_file.read_text(encoding="utf-8"),
         )
 
-        step_2c = _load_module_2_file("step_2c_drift_detection_and_tuning.py")
-        scored = step_2c.score_brand_compliance(
+        step_2b = _load_module_2_file("step_2b_drift_detection_and_tuning.py")
+        scored = step_2b.score_brand_compliance(
             [
                 {"campaign": "low", "concept": "Low", "brand_fit": 6.99},
                 {"campaign": "high", "concept": "High", "brand_fit": 7.00},
@@ -198,9 +165,9 @@ class TestModule2Step2cDriftDetectionAndTuning(unittest.TestCase):
             "concept": "Flying skateboards for cats",
             "art_direction": "Neon cyan cat with watermark logo and flat overhead ring light.",
         }
-        report = step_2c.detect_brand_drift([drifted])
+        report = step_2b.detect_brand_drift([drifted])
         self.assertTrue(report["has_drift"])
-        tuned = step_2c.tune_prompt_and_skill(drifted)
+        tuned = step_2b.tune_prompt_and_skill(drifted)
         self.assertGreaterEqual(float(tuned["brand_fit"]), 7.0)
         self.assertEqual(tuned["verdict"], "on brand")
 

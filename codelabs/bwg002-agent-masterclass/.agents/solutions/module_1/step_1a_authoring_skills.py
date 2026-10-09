@@ -14,8 +14,8 @@
 
 """
 /**
- * @file step_1b_authoring_skills.py
- * @description Module 1 Step 1b reference solution: Authoring and loading on-demand
+ * @file step_1a_authoring_skills.py
+ * @description Module 1 Step 1a reference solution: Authoring and loading on-demand
  *   ADK Agent Skills (`brand-guidelines/SKILL.md`) via `load_skill_from_dir` and
  *   `SkillToolset`.
  *
@@ -304,7 +304,7 @@ class SkillToolset:
         /**
          * Load the full Markdown instruction body for `skill_name` on demand.
          *
-         * Why: Records that the agent explicitly loaded `skill_name` (used by Step 1c
+         * Why: Records that the agent explicitly loaded `skill_name` (used by Step 1b
          * Skill Evals) and returns the complete Markdown house rules.
          *
          * @param skill_name Name of the registered skill to load.

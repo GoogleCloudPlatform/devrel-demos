@@ -339,7 +339,7 @@ def api_client(service_container: ServiceContainer) -> _UnifiedTestClient:
      * Provide an offline HTTP test client bound to `pitch_generator.fast_api_app`.
      *
      * Why: Enables end-to-end testing of `/api/health`, `/api/config`, `/api/pitch`,
-     * `/api/approve`, `/api/route`, `/a2a/pitch_generator`, and static frontend routes
+     * `/api/approve`, `/a2a/pitch_generator`, and static frontend routes
      * without binding a network socket.
      *
      * @param service_container Injected offline service container.

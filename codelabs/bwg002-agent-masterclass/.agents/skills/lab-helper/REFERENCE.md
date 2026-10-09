@@ -5,11 +5,11 @@
 2. [CLI Usage & Interface Contracts](#cli-usage--interface-contracts)
 3. [Exit Codes & Error Semantics](#exit-codes--error-semantics)
 4. [JSON Schema Specification](#json-schema-specification)
-5. [Canonical 13-Step Verification Rubrics](#canonical-13-step-verification-rubrics)
-   - [Module 1: Expand the Agent Team (Steps 1a–1e)](#module-1-expand-the-agent-team-steps-1a1e)
-   - [Module 2: Observe and Audit (Steps 2a–2c)](#module-2-observe-and-audit-steps-2a2c)
+5. [Canonical 9-Step Verification Rubrics](#canonical-9-step-verification-rubrics)
+   - [Module 1: Expand the Agent Team (Steps 1a–1c)](#module-1-expand-the-agent-team-steps-1a1c)
+   - [Module 2: Observe and Audit (Steps 2a–2b)](#module-2-observe-and-audit-steps-2a2b)
    - [Module 3: Harden and Secure (Steps 3a–3c)](#module-3-harden-and-secure-steps-3a3c)
-   - [Module 4: Optimize for Scale (Steps 4a–4b)](#module-4-optimize-for-scale-steps-4a4b)
+   - [Module 4: Optimize for Scale (Step 4a)](#module-4-optimize-for-scale-step-4a)
 6. [Drift Detection Strategy & AST Parsing](#drift-detection-strategy--ast-parsing)
 7. [Remediation Semantics & Safety Invariants](#remediation-semantics--safety-invariants)
 
@@ -17,7 +17,7 @@
 
 ## Overview & Architectural Rationale
 
-The Lab Helper skill provides automated, non-invasive workspace analysis for learners completing the Pitch Generator lab. Instead of giving away answers immediately or modifying learner files prematurely, Lab Helper uses static analysis (Python AST inspection, symbol table resolution, SQL grammar checking, and JavaScript token validation) to compare the learner's workspace with the gold-standard reference implementations in `.agents/solutions/`.
+The Lab Helper skill provides automated, non-invasive workspace analysis for learners completing the Pitch Generator lab. Instead of giving away answers immediately or modifying learner files prematurely, Lab Helper uses static analysis (Python AST inspection, symbol table resolution, and SQL grammar checking) to compare the learner's workspace with the gold-standard reference implementations in `.agents/solutions/`.
 
 Why: Hands-on learning requires scaffolding. Beginners frequently face syntax errors, missing method signatures, or misnamed output keys. Lab Helper bridges the gap between learner confusion and mastery by offering structured, progressive feedback.
 
@@ -29,7 +29,7 @@ The script `verify_workspace.py` can be invoked via CLI or imported as a Python 
 
 ### Command-Line Arguments
 - `--module <1|2|3|4>`: Optional filter for the lab module. When combined with `--step`, it validates that the step belongs to this module.
-- `--step <1a..4b|all>`: Specific step identifier or `"all"` to inspect all steps across the syllabus. Default is `"all"`.
+- `--step <1a..4a|all>`: Specific step identifier or `"all"` to inspect all steps across the syllabus. Default is `"all"`.
 - `--tier <1|2|3|remediate>`: Progressive hint level or remediation command. Default is `"1"`.
 - `--remediate`, `--apply`: Boolean flags that alias `--tier remediate`.
 - `--workspace-dir <PATH>`: Absolute or relative path to learner workspace directory. Default is `pitch-generator` project root.
@@ -58,18 +58,18 @@ When `--json` is supplied, `verify_workspace.py` emits a single JSON object on s
 {
   "step": "1a",
   "module": 1,
-  "title": "Specialist Agents",
+  "title": "Authoring Agent Skills",
   "tier": "1",
   "has_drift": true,
   "drifted": true,
   "status": "drifted",
   "missing_files": [],
   "syntax_errors": [],
-  "missing_symbols": ["visual_director"],
-  "diagnostics": ["Missing required symbol: visual_director"],
-  "checked_files": ["module_1/step_1a_specialist_agents.py"],
-  "hint": "Tier 1 Conceptual Nudge (Step 1a): Decompose the pitch workflow...",
-  "message": "Tier 1 Conceptual Nudge (Step 1a): Decompose the pitch workflow..."
+  "missing_symbols": ["SkillToolset"],
+  "diagnostics": ["Missing required symbol: SkillToolset"],
+  "checked_files": ["module_1/step_1a_authoring_skills.py", "module_1/skills/brand-guidelines/SKILL.md"],
+  "hint": "Tier 1 Conceptual Nudge (Step 1a): Equip the visual director agent...",
+  "message": "Tier 1 Conceptual Nudge (Step 1a): Equip the visual director agent..."
 }
 ```
 
@@ -80,69 +80,51 @@ When `--json` is supplied, `verify_workspace.py` emits a single JSON object on s
   "module": 1,
   "tier": "remediate",
   "remediated": true,
-  "restored_files": [".agents/solutions/module_1/step_1a_specialist_agents.py"],
+  "restored_files": [".agents/solutions/module_1/step_1a_authoring_skills.py", ".agents/solutions/module_1/skills/brand-guidelines/SKILL.md"],
   "has_drift": false,
   "drifted": false,
   "status": "clean",
-  "hint": "Remediated step 1a: restored .agents/solutions/module_1/step_1a_specialist_agents.py.",
-  "message": "Remediated step 1a: restored .agents/solutions/module_1/step_1a_specialist_agents.py."
+  "hint": "Remediated step 1a: restored .agents/solutions/module_1/step_1a_authoring_skills.py, .agents/solutions/module_1/skills/brand-guidelines/SKILL.md.",
+  "message": "Remediated step 1a: restored .agents/solutions/module_1/step_1a_authoring_skills.py, .agents/solutions/module_1/skills/brand-guidelines/SKILL.md."
 }
 ```
 
 ---
 
-## Canonical 13-Step Verification Rubrics
+## Canonical 9-Step Verification Rubrics
 
-### Module 1: Expand the Agent Team (Steps 1a–1e)
+### Module 1: Expand the Agent Team (Steps 1a–1c)
 
-#### Step 1a: Specialist Agents
-- **Target File**: `pitch_generator/agent.py` (reference: `module_1/step_1a_specialist_agents.py`)
-- **Required AST Symbols**: `build_specialist_team`, `run_specialist_team`, `creative_director`, `copywriter`, `brand_strategist`, `visual_director`
-- **Required Substrings**: `output_key`, `Why:`
-- **Rationale**: Isolates domain expertise across 4 distinct ADK agents and enforces caption limits.
-
-#### Step 1b: Authoring Agent Skills
-- **Target Files**: `pitch_generator/skills/brand-guidelines/SKILL.md`, `pitch_generator/agent.py` (reference: `module_1/step_1b_authoring_skills.py`)
+#### Step 1a: Authoring Agent Skills
+- **Target Files**: `pitch_generator/skills/brand-guidelines/SKILL.md`, `pitch_generator/agent.py` (reference: `module_1/step_1a_authoring_skills.py`)
 - **Required AST Symbols**: `Skill`, `SkillToolset`, `load_skill_from_dir`, `load_brand_skill`
 - **Required Substrings**: `brand-guidelines`, `load_skill`
 - **Rationale**: Dynamically equips agents with domain skill playbooks at runtime.
 
-#### Step 1c: Skill Evaluation Harnesses
-- **Target File**: `pitch_generator/agent.py` (reference: `module_1/step_1c_skill_evals.py`)
+#### Step 1b: Skill Evaluation Harnesses
+- **Target File**: `pitch_generator/agent.py` (reference: `module_1/step_1b_skill_evals.py`)
 - **Required AST Symbols**: `SkillEvalResult`, `evaluate_brand_skill`, `run_eval_suite`
 - **Required Substrings**: `brand-guidelines`, `FORBIDDEN_BRAND_PATTERNS`
 - **Rationale**: Automated offline rubric evaluating compliance against style guidelines.
 
-#### Step 1d: Graph Orchestration & Loop Prevention
-- **Target File**: `pitch_generator/agent.py` (reference: `module_1/step_1d_graph_orchestration.py`)
-- **Required AST Symbols**: `CircularLoopError`, `LoopGuard`, `strip_markdown_fences`, `assemble`, `package`, `root_agent`
-- **Required Substrings**: `JoinNode`, `Why:`
-- **Rationale**: Coordinates multi-agent graph fan-out/fan-in and terminates cyclical routing loops.
-
-#### Step 1e: Remote A2A Visual Director Service
-- **Target Files**: `pitch_generator/fast_api_app.py`, `pitch_generator/agent.py` (reference: `module_1/step_1e_remote_a2a_visual_director.py`)
+#### Step 1c: Remote A2A Visual Director Service
+- **Target Files**: `pitch_generator/fast_api_app.py`, `pitch_generator/agent.py` (reference: `module_1/step_1c_remote_a2a_visual_director.py`)
 - **Required AST Symbols**: `generate_key_visual`, `build_visual_director_card`, `build_a2a_visual_director_app`, `remote_visual_director`, `_cloud_run_client`, `_pitch_parts_only`
 - **Required Substrings**: `include_artifacts_in_a2a_event_interceptor`, `AgentCardBuilder`
 - **Rationale**: Implements Agent2Agent (A2A) protocol over JSON-RPC with Cloud Run authentication.
 
 ---
 
-### Module 2: Observe and Audit (Steps 2a–2c)
+### Module 2: Observe and Audit (Steps 2a–2b)
 
-#### Step 2a: BigQuery Telemetry & Object Tables
+#### Step 2a: BigQuery Agent Analytics & Key Visuals Object Table
 - **Target Files**: `pitch_generator/app_utils/services.py` (reference: `module_2/step_2a_bigquery_analytics.py`, `module_2/sql/create_key_visuals.sql`)
-- **Required AST Symbols**: `BigQueryTelemetryLogger`, `build_key_visuals_sql`, `register_key_visuals`
+- **Required AST Symbols**: `BigQueryAnalyticsService`, `build_key_visuals_sql`, `register_key_visuals`
 - **Required Substrings**: `OBJ.MAKE_REF`, `OBJ.FETCH_METADATA`, `pitch-connection`
 - **Rationale**: Tracks agent invocations in BigQuery and indexes multimodal visuals with object tables.
 
-#### Step 2b: Cloud Storage Artifact Service
-- **Target File**: `pitch_generator/app_utils/services.py` (reference: `module_2/step_2b_cloud_storage_artifacts.py`)
-- **Required AST Symbols**: `GcsArtifactService`, `resolve_artifact_service`, `persist_campaign_visual`
-- **Required Substrings**: `key-visuals`, `gs://`
-- **Rationale**: Persists generated visual assets with structured naming and metadata.
-
-#### Step 2c: Brand Drift Detection & Prompt Tuning
-- **Target Files**: `pitch_generator/app_utils/services.py` (reference: `module_2/step_2c_drift_detection_and_tuning.py`, `module_2/sql/score_brand_fit.sql`)
+#### Step 2b: Brand Drift Detection & Closed-Loop Prompt Tuning
+- **Target Files**: `pitch_generator/app_utils/services.py` (reference: `module_2/step_2b_drift_detection_and_tuning.py`, `module_2/sql/score_brand_fit.sql`)
 - **Required AST Symbols**: `build_brand_score_sql`, `score_brand_compliance`, `detect_brand_drift`, `tune_prompt_and_skill`
 - **Required Substrings**: `AI.SCORE`, `brand_fit`, `needs another pass`
 - **Rationale**: Leverages BigQuery AI analytics to detect brand drift and tune agent prompts.
@@ -171,19 +153,13 @@ When `--json` is supplied, `verify_workspace.py` emits a single JSON object on s
 
 ---
 
-### Module 4: Optimize for Scale (Steps 4a–4b)
+### Module 4: Optimize for Scale (Step 4a)
 
 #### Step 4a: Tokenomics & History Optimization
 - **Target File**: `pitch_generator/agent.py` (reference: `module_4/step_4a_tokenomics.py`)
 - **Required AST Symbols**: `CompressedHistoryList`, `PromptCacheManager`, `TokenomicsManager`, `compress_memory`, `prune_history`, `select_model_strategy`
 - **Required Substrings**: `sha256`, `Why:`
 - **Rationale**: Implements sliding window history pruning, conversation memory compression, and prompt caching.
-
-#### Step 4b: Hybrid Routing (WebLLM / Local / Cloud)
-- **Target Files**: `pitch_generator/agent.py` (reference: `module_4/step_4b_hybrid_routing.py`, `module_4/webllm_router.js`)
-- **Required AST Symbols**: `RoutingDecision`, `HybridModelRouter`, `route_task`, `select_route`
-- **Required Substrings**: `webllm_browser`, `local_model`, `cloud_frontier`
-- **Rationale**: Dynamically classifies task complexity and routes inference to WebLLM, local, or cloud frontier models.
 
 ---
 

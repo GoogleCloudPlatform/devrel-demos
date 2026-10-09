@@ -6,12 +6,12 @@
  *
  * Why:
  * 1. Eliminates external bundler and transpiler complexity inside the Antigravity 2.0 VM
- *    so learners can focus strictly on multi-agent orchestration, observability, security,
- *    and hybrid model routing.
- * 2. Provides a clean baseline UI for the starter Creative Director + Copywriter workflow
- *    running on Gemini Enterprise Agent Platform (`gemini-3.8-flash`), with dynamic panels
- *    that reveal Visual Director, Key Visual, or HITL controls as learners build them in
- *    Modules 1–4.
+ *    so learners can focus strictly on multi-agent orchestration, skills, observability,
+ *    security, and context engineering.
+ * 2. Provides a clean UI for the 4-specialist workflow (`creative_director`, `brand_strategist`,
+ *    `copywriter`, and `visual_director`) running on Gemini Enterprise Agent Platform
+ *    (`gemini-3.8-flash` and `gemini-nano-banana-2.1`), with visible Human-in-the-Loop (HITL)
+ *    controls that activate once Step 3c is implemented.
  * 3. Guarantees accessible semantic landmarks, explicit form labels, and ARIA live regions.
  */
 -->
@@ -31,7 +31,6 @@
       <p class="subtitle">Multi-Agent Orchestration on Gemini Enterprise Agent Platform</p>
     </div>
     <div class="header-badges" aria-label="Service status indicators">
-      <span id="webgpu-badge" class="badge badge-neutral" role="status" aria-live="polite">WebGPU: Probing...</span>
       <span id="health-badge" class="badge badge-neutral" role="status" aria-live="polite">Checking service...</span>
       <button id="btn-inspect-a2a" type="button" class="btn btn-secondary">Inspect A2A Agent Card</button>
     </div>
@@ -61,14 +60,13 @@
             <label for="session-id-input">Memory Bank Session ID</label>
             <input id="session-id-input" name="session_id" type="text" value="default" required />
           </div>
-          <div class="form-group">
-            <label for="routing-mode-select">Model Routing Tier</label>
-            <select id="routing-mode-select" name="routing_mode">
-              <option value="auto" selected>Auto (Balanced: WebLLM / Cloud)</option>
-              <option value="webllm_browser">WebLLM (In-Browser WebGPU)</option>
-              <option value="cloud_frontier">Cloud Frontier (Gemini Flash)</option>
-            </select>
-          </div>
+        </div>
+
+        <div class="form-group form-group-checkbox">
+          <label class="checkbox-label" for="require-approval-checkbox">
+            <input id="require-approval-checkbox" name="require_approval" type="checkbox" />
+            <span>Enable Human-in-the-Loop (HITL) verification (Step 3c)</span>
+          </label>
         </div>
 
         <div class="form-actions">
@@ -83,14 +81,14 @@
         <span id="pitch-status" class="badge badge-neutral" role="status" aria-live="polite">Idle</span>
       </div>
 
-      <div id="hitl-approval-card" class="hitl-panel" role="region" aria-labelledby="heading-hitl" hidden>
+      <div id="hitl-approval-card" class="hitl-panel" role="region" aria-labelledby="heading-hitl">
         <h3 id="heading-hitl">Human-in-the-Loop Approval Gate (<code>approve_concept</code>)</h3>
         <p id="hitl-approval-prompt" class="pitch-content">
-          Please approve the campaign concept (yes/no). Downstream agents are paused until you decide.
+          Inactive until Step 3c (<code>approve_concept</code> / <code>user_approval</code>) is implemented in <code>agent.py</code>.
         </p>
         <div class="form-actions">
-          <button id="btn-approve-concept" type="button" class="btn btn-success">Approve Concept (Yes)</button>
-          <button id="btn-reject-concept" type="button" class="btn btn-danger">Reject Concept (No)</button>
+          <button id="btn-approve-concept" type="button" class="btn btn-success" disabled>Approve Concept (Yes)</button>
+          <button id="btn-reject-concept" type="button" class="btn btn-danger" disabled>Reject Concept (No)</button>
         </div>
       </div>
 
@@ -105,17 +103,17 @@
           <div id="pitch-copy" class="pitch-content">Waiting for workflow execution...</div>
         </article>
 
-        <article id="brand-strategy-card" class="pitch-card" hidden>
+        <article id="brand-strategy-card" class="pitch-card">
           <h3>Brand Strategy (Brand Strategist)</h3>
-          <div id="pitch-brand-strategy" class="pitch-content"></div>
+          <div id="pitch-brand-strategy" class="pitch-content">Waiting for workflow execution...</div>
         </article>
 
-        <article id="art-direction-card" class="pitch-card" hidden>
+        <article id="art-direction-card" class="pitch-card">
           <h3>Art Direction (Visual Director)</h3>
-          <div id="pitch-art-direction" class="pitch-content"></div>
+          <div id="pitch-art-direction" class="pitch-content">Waiting for workflow execution...</div>
         </article>
 
-        <article id="key-visual-card" class="pitch-card" hidden>
+        <article id="key-visual-card" class="pitch-card">
           <h3>Key Visual (Visual Director)</h3>
           <img
             id="pitch-key-visual-img"
@@ -123,14 +121,14 @@
             alt="Generated campaign key visual"
             hidden
           />
-          <p id="pitch-key-visual" class="pitch-content"></p>
+          <p id="pitch-key-visual" class="pitch-content">Waiting for key visual generation...</p>
         </article>
       </div>
 
       <section class="subpanel" aria-labelledby="heading-trace">
         <h3 id="heading-trace">Agent Workflow Trace &amp; Telemetry</h3>
         <ol id="workflow-trace-list" class="trace-list">
-          <li>Ready to run multi-agent workflow (`creative_director` &rarr; `copywriter` &rarr; `assemble` &rarr; `package`).</li>
+          <li>Ready to run multi-agent workflow (`creative_director` &rarr; `brand_strategist` &rarr; `copywriter` + `visual_director` &rarr; `assemble` &rarr; `package`).</li>
         </ol>
       </section>
 

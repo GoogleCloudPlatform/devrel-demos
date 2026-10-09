@@ -15,12 +15,10 @@
 """
 /**
  * @file test_module_4.py
- * @description Comprehensive offline unit and functional test suite for Module 4 (Steps 4a–4b, F18–F19).
+ * @description Comprehensive offline unit and functional test suite for Module 4 (Step 4a, F18).
  *
  * Why: Validates that Module 4 tokenomics (memory compression, sliding window history pruning,
- * SHA-256 prompt caching, and 5-tier model strategy) and hybrid model routing (3-tier dispatch
- * across browser WebLLM, local Gemma, and Cloud Frontier, with deterministic fallback and
- * vanilla ES6 JavaScript WebGPU integration) execute deterministically and 100% offline.
+ * SHA-256 prompt caching, and 5-tier model strategy) executes deterministically and 100% offline.
  */
 """
 
@@ -323,196 +321,6 @@ def test_step_4a_tokenomics_manager_optimize() -> None:
     assert len(opt1["turns"]) <= 4
 
 
-# ===========================================================================
-# Step 4b — Hybrid Model Routing and Fallback Chain (F19)
-# ===========================================================================
-
-
-def test_step_4b_route_lightweight_privacy_task() -> None:
-    """
-    /**
-     * Verifies low-complexity, privacy-sensitive tasks route to webllm_browser when WebGPU is available.
-     *
-     * Why: Keeps private user drafts on-device in browser with zero cloud token cost.
-     */
-    """
-    step_4b = _load_step("step_4b_hybrid_routing.py")
-    route_fn = step_4b.route_task
-
-    decision = route_fn(
-        {
-            "task_type": "draft_copy",
-            "complexity": "low",
-            "privacy_sensitive": True,
-            "requires_multimodal": False,
-            "browser_webgpu_available": True,
-            "local_gpu_available": True,
-        }
-    )
-
-    assert decision.target == "webllm_browser"
-    assert decision["target"] == "webllm_browser"
-    assert decision.fallback_used is False
-    assert decision.fallback_applied is False
-    assert bool(decision.rationale)
-
-
-def test_step_4b_fallback_webllm_to_cloud_frontier() -> None:
-    """
-    /**
-     * Verifies fallback from webllm_browser directly to cloud_frontier when WebGPU is unavailable.
-     *
-     * Why: Confirms the 2-tier edge-to-cloud fallback chain ("webllm_browser" -> "cloud_frontier").
-     */
-    """
-    step_4b = _load_step("step_4b_hybrid_routing.py")
-    route_fn = step_4b.route_task
-
-    decision = route_fn(
-        {
-            "task_type": "draft_copy",
-            "complexity": "low",
-            "privacy_sensitive": True,
-            "browser_webgpu_available": False,
-        }
-    )
-
-    assert decision.target == "cloud_frontier"
-    assert decision.fallback_used is True
-    assert decision.fallback_applied is True
-    assert decision.fallback_chain == ["webllm_browser", "cloud_frontier"]
-
-
-def test_step_4b_legacy_local_model_cascades_to_cloud() -> None:
-    """
-    /**
-     * Verifies requesting legacy local_model cascades gracefully to cloud_frontier.
-     *
-     * Why: Provides backwards compatibility while keeping the execution architecture strictly 2-tier.
-     */
-    """
-    step_4b = _load_step("step_4b_hybrid_routing.py")
-    route_fn = step_4b.route_task
-
-    decision = route_fn(
-        {
-            "task_type": "concept_refinement",
-            "routing_mode": "local_model",
-            "complexity": "medium",
-            "browser_webgpu_available": False,
-        }
-    )
-
-    assert decision.target == "cloud_frontier"
-    assert decision.fallback_used is True
-def test_step_4b_route_multimodal_to_cloud_frontier() -> None:
-    """
-    /**
-     * Verifies multimodal or high-complexity tasks route to cloud_frontier.
-     *
-     * Why: Key visual image generation requires Gemini Enterprise Agent Platform vision capabilities.
-     */
-    """
-    step_4b = _load_step("step_4b_hybrid_routing.py")
-    route_fn = step_4b.route_task
-
-    decision = route_fn(
-        {
-            "task_type": "generate_key_visual",
-            "complexity": "high",
-            "requires_multimodal": True,
-            "browser_webgpu_available": True,
-        }
-    )
-
-    assert decision.target == "cloud_frontier"
-    assert bool(decision.rationale)
-
-
-def test_step_4b_multimodal_overrides_forced_targets() -> None:
-    """
-    /**
-     * Verifies requires_multimodal=True forces cloud_frontier even when webllm or local is requested.
-     *
-     * Why: Browser WebLLM and local text models cannot generate image assets.
-     */
-    """
-    step_4b = _load_step("step_4b_hybrid_routing.py")
-    route_fn = step_4b.route_task
-
-    for pref in ("webllm_browser", "local_model"):
-        decision = route_fn(
-            {
-                "task_type": "generate_key_visual",
-                "requires_multimodal": True,
-                "routing_mode": pref,
-                "preferred_target": pref,
-                "browser_webgpu_available": True,
-                "local_gpu_available": True,
-            }
-        )
-        assert decision.target == "cloud_frontier"
-
-
-def test_step_4b_rejects_unknown_routing_mode() -> None:
-    """
-    /**
-     * Verifies unknown routing_mode raises ValueError.
-     *
-     * Why: Fails fast on invalid configuration strings to prevent silent misrouting.
-     */
-    """
-    step_4b = _load_step("step_4b_hybrid_routing.py")
-    route_fn = step_4b.route_task
-
-    with pytest.raises(ValueError):
-        route_fn({"routing_mode": "invalid_mode_xyz"})
-
-
-def test_step_4b_handles_empty_metadata_safely() -> None:
-    """
-    /**
-     * Verifies empty metadata routes safely to cloud_frontier default.
-     *
-     * Why: Ensures zero-argument routing calls work predictably out of the box.
-     */
-    """
-    step_4b = _load_step("step_4b_hybrid_routing.py")
-    route_fn = step_4b.route_task
-
-    decision = route_fn({})
-    assert decision.target == "cloud_frontier"
-    assert decision.model_id == "gemini-3.8-flash"
-
-
-# ===========================================================================
-# Step 4b — Vanilla ES6 JavaScript Router (webllm_router.js) & API
-# ===========================================================================
-
-
-def test_webllm_router_js_content_and_compliance() -> None:
-    """
-    /**
-     * Verifies webllm_router.js contains Javadoc comments, WebGPU checks, and zero UI frameworks.
-     *
-     * Why: Enforces vanilla ES6 client compliance with zero framework dependencies.
-     */
-    """
-    js_path = SOLUTIONS_M4 / "webllm_router.js"
-    assert js_path.is_file(), f"Missing {js_path}"
-    content = js_path.read_text(encoding="utf-8")
-
-    assert "/**" in content
-    assert "navigator.gpu" in content
-    assert "webllm_browser" in content
-    assert "local_model" in content
-    assert "cloud_frontier" in content
-
-    lower_js = content.lower()
-    for forbidden in ("from 'react'", 'from "react"', "from 'vue'", "angular", "streamlit"):
-        assert forbidden not in lower_js
-
-
 def test_module_4_javadoc_why_comments_in_python_files() -> None:
     """
     /**
@@ -522,7 +330,7 @@ def test_module_4_javadoc_why_comments_in_python_files() -> None:
      */
     """
     py_files = list(SOLUTIONS_M4.glob("*.py"))
-    assert len(py_files) >= 3  # __init__.py, step_4a_tokenomics.py, step_4b_hybrid_routing.py
+    assert len(py_files) >= 2  # __init__.py, step_4a_tokenomics.py
 
     for fpath in py_files:
         tree = ast.parse(fpath.read_text(encoding="utf-8"), filename=str(fpath))

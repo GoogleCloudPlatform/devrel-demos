@@ -49,8 +49,12 @@ from pitch_generator.app_utils.services import (
     LLMClientProtocol,
     MockLLMClient,
     ServiceContainer,
+    create_artifact_service,
     get_artifact_service,
     get_default_services,
+    resolve_artifact_service,
+    run_workflow_with_gcs_artifacts,
+    select_artifact_service,
 )
 
 __all__ = [
@@ -75,6 +79,10 @@ __all__ = [
     "LLMClientProtocol",
     "MockLLMClient",
     "ServiceContainer",
+    "create_artifact_service",
     "get_artifact_service",
     "get_default_services",
+    "resolve_artifact_service",
+    "run_workflow_with_gcs_artifacts",
+    "select_artifact_service",
 ]

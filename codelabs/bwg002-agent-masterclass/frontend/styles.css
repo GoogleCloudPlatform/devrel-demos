@@ -123,10 +123,28 @@ body {
   gap: 1rem;
 }
 
-.checkbox-group {
+.checkbox-group,
+.form-group-checkbox {
   flex-direction: row;
   align-items: center;
   gap: 0.5rem;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-amber-accent);
+  cursor: pointer;
 }
 
 label {
@@ -183,9 +201,11 @@ select:focus-visible,
   opacity: 0.92;
 }
 
-.btn:disabled {
+.btn:disabled,
+button:disabled {
   cursor: not-allowed;
-  opacity: 0.65;
+  opacity: 0.5;
+  filter: grayscale(35%);
 }
 
 .spinner {

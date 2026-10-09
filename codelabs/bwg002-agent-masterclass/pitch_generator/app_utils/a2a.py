@@ -329,7 +329,6 @@ class A2aAgentExecutor:
         session_id: str = "default",
         approved: bool | None = True,
         require_approval: bool = False,
-        routing_mode: str = "auto",
         services: ServiceContainer | None = None,
     ) -> dict[str, Any]:
         """
@@ -343,7 +342,6 @@ class A2aAgentExecutor:
          * @param session_id Session identifier for Memory Bank continuity.
          * @param approved Approval flag (`True`, `False`, or `None` for pending).
          * @param require_approval Whether to pause at the HITL concept gate.
-         * @param routing_mode Model routing strategy.
          * @param services Optional injected `ServiceContainer`.
          * @return Enriched workflow and A2A event dictionary.
          */
@@ -356,7 +354,6 @@ class A2aAgentExecutor:
             session_id=session_id,
             services=active_services,
             approved=approved,
-            routing_mode=routing_mode,
             require_approval=require_approval,
         )
 
@@ -464,7 +461,6 @@ class DefaultRequestHandler:
 
         text_input = self._extract_message_text(params)
         require_approval = bool(params.get("require_approval", False))
-        routing_mode = str(params.get("routing_mode", "auto"))
 
         # Check if this message is resuming a paused HITL task
         existing_task = self.task_store.get(task_id)
@@ -518,7 +514,6 @@ class DefaultRequestHandler:
                 session_id=session_id,
                 approved=approved_param,
                 require_approval=require_approval,
-                routing_mode=routing_mode,
                 services=services,
             )
         except (ValueError, RuntimeError) as exc:
@@ -622,7 +617,6 @@ class DefaultRequestHandler:
                 "copy": event_data.get("copy", ""),
                 "art_direction": event_data.get("art_direction", ""),
                 "key_visual_uri": event_data.get("key_visual_uri"),
-                "routing_decision": event_data.get("routing_decision", {}),
             },
         }
 

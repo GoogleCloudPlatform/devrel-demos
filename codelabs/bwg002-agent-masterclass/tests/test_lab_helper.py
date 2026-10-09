@@ -102,10 +102,10 @@ class TestLabHelperSkillStructure(unittest.TestCase):
         root_scripts = list(SKILL_DIR.glob("*.py")) + list(SKILL_DIR.glob("*.sh"))
         self.assertEqual(root_scripts, [], "No .py or .sh scripts should be at the root of lab-helper/")
 
-    def test_hints_catalog_covers_all_13_steps_with_progressive_tiers(self) -> None:
+    def test_hints_catalog_covers_all_9_steps_with_progressive_tiers(self) -> None:
         """
         /**
-         * Verifies hints_catalog.json contains all 13 steps and enforces strictly increasing hint lengths.
+         * Verifies hints_catalog.json contains all 9 steps and enforces strictly increasing hint lengths.
          *
          * Why: Guarantees deterministic progressive disclosure: len(tier_3) > len(tier_2) > len(tier_1).
          */
@@ -113,7 +113,7 @@ class TestLabHelperSkillStructure(unittest.TestCase):
         self.assertTrue(HINTS_CATALOG.is_file(), f"Missing hints catalog: {HINTS_CATALOG}")
         data = json.loads(HINTS_CATALOG.read_text(encoding="utf-8"))
         steps = data.get("steps", data)
-        expected = ["1a", "1b", "1c", "1d", "1e", "2a", "2b", "2c", "3a", "3b", "3c", "4a", "4b"]
+        expected = ["1a", "1b", "1c", "2a", "2b", "3a", "3b", "3c", "4a"]
 
         for sid in expected:
             self.assertIn(sid, steps, f"Step '{sid}' missing from hints_catalog.json")
@@ -157,15 +157,15 @@ class TestWorkspaceVerificationEngine(unittest.TestCase):
         """
         self.vw = _load_verify_workspace_module()
 
-    def test_inspect_step_drift_clean_on_reference_workspace_all_13_steps(self) -> None:
+    def test_inspect_step_drift_clean_on_reference_workspace_all_9_steps(self) -> None:
         """
         /**
-         * Verifies that the authoritative repository workspace has 0 drift across all 13 steps.
+         * Verifies that the authoritative repository workspace has 0 drift across all 9 steps.
          *
          * Why: Ensures that our reference solutions in .agents/solutions/ are complete and accurate.
          */
         """
-        for sid in ("1a", "1b", "1c", "1d", "1e", "2a", "2b", "2c", "3a", "3b", "3c", "4a", "4b"):
+        for sid in ("1a", "1b", "1c", "2a", "2b", "3a", "3b", "3c", "4a"):
             rep = self.vw.inspect_step_drift(sid, workspace_dir=APP_ROOT)
             self.assertFalse(rep["has_drift"], f"Reference solution for {sid} has unexpected drift: {rep}")
             self.assertFalse(rep["drifted"])
@@ -173,7 +173,7 @@ class TestWorkspaceVerificationEngine(unittest.TestCase):
 
         all_rep = self.vw.inspect_step_drift("all", workspace_dir=APP_ROOT)
         self.assertFalse(all_rep["has_drift"])
-        self.assertEqual(len(all_rep["steps"]), 13)
+        self.assertEqual(len(all_rep["steps"]), 9)
 
     def test_inspect_step_drift_detects_missing_files_syntax_errors_and_missing_symbols(self) -> None:
         """
@@ -235,14 +235,14 @@ class TestWorkspaceVerificationEngine(unittest.TestCase):
         /**
          * Verifies that remediate_step successfully restores step implementations to zero drift.
          *
-         * Why: Validates the recovery mechanism for Python, SQL, Markdown, and JavaScript files.
+         * Why: Validates the recovery mechanism for Python, SQL, and Markdown files.
          */
         """
         with tempfile.TemporaryDirectory() as tmpdir:
-            # Test step 1b (includes brand-guidelines/SKILL.md)
-            res_1b = self.vw.remediate_step("1b", workspace_dir=tmpdir)
-            self.assertTrue(res_1b["remediated"])
-            self.assertFalse(res_1b["has_drift"])
+            # Test step 1a (includes brand-guidelines/SKILL.md)
+            res_1a = self.vw.remediate_step("1a", workspace_dir=tmpdir)
+            self.assertTrue(res_1a["remediated"])
+            self.assertFalse(res_1a["has_drift"])
             self.assertTrue((Path(tmpdir) / ".agents" / "solutions" / "module_1" / "skills" / "brand-guidelines" / "SKILL.md").is_file())
 
             # Test step 2a (includes sql/create_key_visuals.sql)
@@ -251,11 +251,11 @@ class TestWorkspaceVerificationEngine(unittest.TestCase):
             self.assertFalse(res_2a["has_drift"])
             self.assertTrue((Path(tmpdir) / ".agents" / "solutions" / "module_2" / "sql" / "create_key_visuals.sql").is_file())
 
-            # Test step 4b (includes webllm_router.js)
-            res_4b = self.vw.remediate_step("4b", workspace_dir=tmpdir)
-            self.assertTrue(res_4b["remediated"])
-            self.assertFalse(res_4b["has_drift"])
-            self.assertTrue((Path(tmpdir) / ".agents" / "solutions" / "module_4" / "webllm_router.js").is_file())
+            # Test step 4a (tokenomics)
+            res_4a = self.vw.remediate_step("4a", workspace_dir=tmpdir)
+            self.assertTrue(res_4a["remediated"])
+            self.assertFalse(res_4a["has_drift"])
+            self.assertTrue((Path(tmpdir) / ".agents" / "solutions" / "module_4" / "step_4a_tokenomics.py").is_file())
 
 
 class TestVerifyWorkspaceCLI(unittest.TestCase):

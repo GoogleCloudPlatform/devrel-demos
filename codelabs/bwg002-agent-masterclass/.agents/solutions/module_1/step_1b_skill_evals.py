@@ -14,8 +14,8 @@
 
 """
 /**
- * @file step_1c_skill_evals.py
- * @description Module 1 Step 1c reference solution: Deterministic and rubric-based
+ * @file step_1b_skill_evals.py
+ * @description Module 1 Step 1b reference solution: Deterministic and rubric-based
  *   Skill Evaluation harness (`evaluate_brand_skill` and `run_eval_suite`) for
  *   verifying agent adherence to `brand-guidelines/SKILL.md`.
  *

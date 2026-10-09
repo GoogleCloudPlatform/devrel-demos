@@ -5,7 +5,7 @@ description: Diagnoses workspace drift across Modules 1 to 4 of the Pitch Genera
 
 # Pitch Generator Lab Helper Skill
 
-The **Lab Helper** skill provides an interactive, pedagogical diagnosis and recovery engine for learners working through the Pitch Generator lab (`bwg001-devlab-1b`). It actively inspects the learner's workspace directory against the 13 reference solution steps across Modules 1–4, assesses syntactic and structural drift, delivers calibrated educational guidance, and safely restores files if a learner gets stuck.
+The **Lab Helper** skill provides an interactive, pedagogical diagnosis and recovery engine for learners working through the Pitch Generator lab (`bwg001-devlab-1b`). It actively inspects the learner's workspace directory against the 9 reference solution steps across Modules 1–4, assesses syntactic and structural drift, delivers calibrated educational guidance, and safely restores files if a learner gets stuck.
 
 ---
 
@@ -66,29 +66,25 @@ To ensure learners build genuine understanding without having solutions spoiled 
 4. **In-Place Surgical Remediation**:
    - Used when hints are exhausted or the learner explicitly asks to fix/restore a step.
    - For cumulative files (`pitch_generator/agent.py`, `pitch_generator/app_utils/services.py`, `pitch_generator/fast_api_app.py`), read the reference solution in `.agents/solutions/` and **patch the missing/broken step code in-place**, preserving all prior steps and future `# [Guidepost — ...]` comments.
-   - For standalone files (`pitch_generator/skills/brand-guidelines/SKILL.md`, `pitch_generator/sql/*.sql`, `frontend/webllm_router.js`), restore or create the file from `.agents/solutions/`.
+   - For standalone files (`pitch_generator/skills/brand-guidelines/SKILL.md`, `pitch_generator/sql/*.sql`), restore or create the file from `.agents/solutions/`.
 
 ---
 
-## Supported Modules and Steps (`1a`–`4b`)
+## Supported Modules and Steps (`1a`–`4a`)
 
-Lab Helper supports all 13 progressive steps across the 4 syllabus modules:
+Lab Helper supports all 9 progressive steps across the 4 syllabus modules:
 
 | Module | Step ID | Step Title & Description | Target Deliverable(s) (Application & Reference) |
 |---|---|---|---|
-| **Module 1** | `1a` | Specialist Agents & State Isolation | `pitch_generator/agent.py` (ref: `module_1/step_1a_specialist_agents.py`) |
-| | `1b` | Authoring Agent Skills (`brand-guidelines`) | `pitch_generator/skills/brand-guidelines/SKILL.md`, `pitch_generator/agent.py` (ref: `module_1/step_1b_authoring_skills.py`) |
-| | `1c` | Skill Evaluation Harnesses | `tests/test_module_1.py` / `pitch_generator/` (ref: `module_1/step_1c_skill_evals.py`) |
-| | `1d` | Graph Orchestration & Loop Prevention | `pitch_generator/agent.py` (ref: `module_1/step_1d_graph_orchestration.py`) |
-| | `1e` | Remote A2A Visual Director Service | `pitch_generator/agent.py`, `pitch_generator/fast_api_app.py` (ref: `module_1/step_1e_remote_a2a_visual_director.py`) |
-| **Module 2** | `2a` | BigQuery Telemetry & Object Tables | `pitch_generator/app_utils/services.py` (ref: `module_2/step_2a_bigquery_analytics.py`, `sql/create_key_visuals.sql`) |
-| | `2b` | Cloud Storage Artifact Service | `pitch_generator/app_utils/services.py` (ref: `module_2/step_2b_cloud_storage_artifacts.py`) |
-| | `2c` | Brand Drift Detection & Prompt Tuning | `pitch_generator/app_utils/services.py` (ref: `module_2/step_2c_drift_detection_and_tuning.py`, `sql/score_brand_fit.sql`) |
+| **Module 1** | `1a` | Authoring Agent Skills (`brand-guidelines`) | `pitch_generator/skills/brand-guidelines/SKILL.md`, `pitch_generator/agent.py` (ref: `module_1/step_1a_authoring_skills.py`) |
+| | `1b` | Skill Evaluation Harnesses | `tests/test_module_1.py` / `pitch_generator/` (ref: `module_1/step_1b_skill_evals.py`) |
+| | `1c` | Remote A2A Visual Director Service | `pitch_generator/agent.py`, `pitch_generator/fast_api_app.py` (ref: `module_1/step_1c_remote_a2a_visual_director.py`) |
+| **Module 2** | `2a` | BigQuery Agent Analytics & Key Visuals Object Table | `pitch_generator/app_utils/services.py` (ref: `module_2/step_2a_bigquery_analytics.py`, `sql/create_key_visuals.sql`) |
+| | `2b` | Brand Drift Detection & Closed-Loop Prompt Tuning | `pitch_generator/app_utils/services.py` (ref: `module_2/step_2b_drift_detection_and_tuning.py`, `sql/score_brand_fit.sql`) |
 | **Module 3** | `3a` | PreToolUse Lifecycle Policy Hooks | `pitch_generator/agent.py` (ref: `module_3/step_3a_pre_tool_use_hooks.py`) |
 | | `3b` | PII Data Scrubbing & Redaction | `pitch_generator/app_utils/services.py` (ref: `module_3/step_3b_pii_scrubbing.py`) |
 | | `3c` | Human-in-the-Loop (HITL) Authorizations | `pitch_generator/agent.py` (ref: `module_3/step_3c_hitl_authorizations.py`) |
 | **Module 4** | `4a` | Tokenomics & History Optimization | `pitch_generator/agent.py` (ref: `module_4/step_4a_tokenomics.py`) |
-| | `4b` | Hybrid Routing (WebLLM / Local / Cloud) | `pitch_generator/agent.py`, `frontend/app.js` (ref: `module_4/step_4b_hybrid_routing.py`, `module_4/webllm_router.js`) |
 
 ---
 

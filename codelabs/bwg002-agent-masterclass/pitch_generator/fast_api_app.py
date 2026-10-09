@@ -19,7 +19,7 @@
  *   Agentic Pitch Generator.
  *
  * Why: Exposes all required REST endpoints (`/api/health`, `/api/config`, `/api/pitch`,
- * `/api/approve`, `/api/route`), A2A v0.3 protocol routes
+ * `/api/approve`), A2A v0.3 protocol routes
  * (`/a2a/pitch_generator/.well-known/agent-card.json` and `/a2a/pitch_generator`),
  * and plain HTML5/CSS3/ES6 JS frontend routes (`/`, `/index.html`, `/styles.css`,
  * `/app.js`). Includes a self-contained ASGI 3.0 application class and `TestClient`
@@ -47,7 +47,6 @@ from pitch_generator.agent import (
     resume_pitch_workflow,
     root_agent,
     run_pitch_workflow,
-    select_routing_decision,
 )
 from pitch_generator.app_utils.a2a import (
     A2aAgentExecutor,
@@ -202,7 +201,6 @@ class PitchFastAPIApp:
             RouteInfo(path="/api/config", methods=("GET",), name="api_config"),
             RouteInfo(path="/api/pitch", methods=("POST",), name="api_pitch"),
             RouteInfo(path="/api/approve", methods=("POST",), name="api_approve"),
-            RouteInfo(path="/api/route", methods=("POST",), name="api_route"),
             RouteInfo(
                 path="/a2a/pitch_generator/.well-known/agent-card.json",
                 methods=("GET",),
@@ -308,6 +306,12 @@ class PitchFastAPIApp:
                 )
 
         services = self.state.services
+        import pitch_generator.agent as _agent_mod
+
+        hitl_gate_defined = (
+            getattr(_agent_mod, "approve_concept", None) is not None
+            or getattr(_agent_mod, "user_approval", None) is not None
+        )
 
         # 1. Health check endpoint
         if method_upper == "GET" and clean_path in ("/api/health", "/healthz", "/health"):
@@ -323,7 +327,9 @@ class PitchFastAPIApp:
 
         # 2. Public runtime configuration endpoint
         if method_upper == "GET" and clean_path == "/api/config":
-            return TestResponse(200, services.config.to_public_dict())
+            cfg_dict = services.config.to_public_dict()
+            cfg_dict["hitl_enabled"] = hitl_gate_defined
+            return TestResponse(200, cfg_dict)
 
         # 3. Campaign pitch workflow execution endpoint
         if method_upper == "POST" and clean_path == "/api/pitch":
@@ -337,16 +343,8 @@ class PitchFastAPIApp:
                     },
                 )
             session_id = str(payload.get("session_id") or "default").strip() or "default"
-            routing_mode = str(payload.get("routing_mode") or "auto").strip()
-            import pitch_generator.agent as _agent_mod
-
-            hitl_gate_defined = (
-                getattr(_agent_mod, "approve_concept", None) is not None
-                or getattr(_agent_mod, "user_approval", None) is not None
-            )
-            require_approval = bool(
-                payload.get("require_approval", hitl_gate_defined)
-            )
+            requested_approval = bool(payload.get("require_approval", hitl_gate_defined))
+            require_approval = bool(requested_approval and hitl_gate_defined)
             approved_val = payload.get("approved", None if require_approval else True)
 
             try:
@@ -355,9 +353,10 @@ class PitchFastAPIApp:
                     session_id=session_id,
                     services=services,
                     approved=approved_val,
-                    routing_mode=routing_mode,
                     require_approval=require_approval,
                 )
+                result["hitl_enabled"] = hitl_gate_defined
+                result["hitl_requested"] = requested_approval
                 return TestResponse(200, result)
             except ValueError as exc:
                 return TestResponse(400, {"error": str(exc), "detail": str(exc)})
@@ -396,33 +395,7 @@ class PitchFastAPIApp:
             except RuntimeError as exc:
                 return TestResponse(502, {"error": str(exc), "detail": str(exc)})
 
-        # 5. Hybrid model routing decision endpoint
-        if method_upper == "POST" and clean_path == "/api/route":
-            brief = str(
-                payload.get("brief") or payload.get("prompt") or payload.get("task") or ""
-            )
-            routing_mode = str(payload.get("routing_mode") or "auto")
-            complexity = str(payload.get("complexity") or "medium")
-            privacy_level = str(payload.get("privacy_level") or "standard")
-            requires_multimodal = bool(payload.get("requires_multimodal", False))
-            browser_webgpu = bool(payload.get("browser_webgpu_available", False))
-            local_gpu = bool(payload.get("local_gpu_available", False))
-            try:
-                decision = select_routing_decision(
-                    brief=brief,
-                    routing_mode=routing_mode,
-                    complexity=complexity,
-                    privacy_level=privacy_level,
-                    requires_multimodal=requires_multimodal,
-                    browser_webgpu_available=browser_webgpu,
-                    local_gpu_available=local_gpu,
-                    config=services.config,
-                )
-                return TestResponse(200, decision)
-            except ValueError as exc:
-                return TestResponse(400, {"error": str(exc), "detail": str(exc)})
-
-        # 6. Artifact binary retrieval endpoint
+        # 5. Artifact binary retrieval endpoint
         if method_upper == "GET" and clean_path.startswith("/api/artifacts/"):
             parts = [p for p in clean_path.split("/") if p]
             if len(parts) >= 4:
@@ -437,7 +410,7 @@ class PitchFastAPIApp:
                     )
             return TestResponse(404, {"error": "Artifact not found"})
 
-        # 7. A2A Agent Card discovery endpoint
+        # 6. A2A Agent Card discovery endpoint
         card_paths = {
             f"{self._a2a_rpc_path}/.well-known/agent-card.json",
             "/.well-known/agent-card.json",
@@ -445,12 +418,12 @@ class PitchFastAPIApp:
         if method_upper == "GET" and clean_path in card_paths:
             return TestResponse(200, self._agent_card)
 
-        # 8. A2A JSON-RPC 2.0 endpoint
+        # 7. A2A JSON-RPC 2.0 endpoint
         if method_upper == "POST" and clean_path == self._a2a_rpc_path:
             rpc_resp = self._a2a_handler.handle_rpc(payload, services=services)
             return TestResponse(200, rpc_resp)
 
-        # 9. Static plain HTML/CSS/JS frontend files
+        # 8. Static plain HTML/CSS/JS frontend files
         static_map = {
             "/": ("index.html", "text/html; charset=utf-8"),
             "/index.html": ("index.html", "text/html; charset=utf-8"),
@@ -655,8 +628,8 @@ def create_app(services: ServiceContainer | None = None) -> PitchFastAPIApp:
     return PitchFastAPIApp(services=services)
 
 
-# [Guidepost — Step 1e: Standalone Visual Director A2A Service Role]
-# In Step 1e, check `os.environ.get("SERVICE_ROLE", "pitch-generator").strip().lower()` and when
+# [Guidepost — Step 1c: Standalone Visual Director A2A Service Role]
+# In Step 1c, check `os.environ.get("SERVICE_ROLE", "pitch-generator").strip().lower()` and when
 # `SERVICE_ROLE == "visual-director"`, bind `app = build_a2a_visual_director_app()` (imported from
 # `pitch_generator.agent`) so the same container image can serve the standalone Visual Director
 # A2A microservice on port 8801 or Cloud Run.
@@ -764,4 +737,3 @@ if __name__ == "__main__":
             server.serve_forever()
         except KeyboardInterrupt:
             print("\nShutting down server.")
-

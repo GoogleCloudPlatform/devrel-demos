@@ -15,11 +15,10 @@
 """
 /**
  * @file test_module_1.py
- * @description Unit and integration tests for Module 1 reference solutions (Steps 1a–1e, `F7`–`F11`).
+ * @description Unit and integration tests for Module 1 reference solutions (Steps 1a–1c).
  *
- * Why: Verifies that every Module 1 learning progression step—specialist agents (`1a`),
- * authoring on-demand ADK skills (`1b`), skill evaluation harnesses (`1c`),
- * graph workflows with JoinNodes and `LoopGuard` (`1d`), and Remote A2A Visual Director (`1e`)—
+ * Why: Verifies that every Module 1 learning progression step—authoring on-demand
+ * ADK skills (`1a`), skill evaluation harnesses (`1b`), and Remote A2A Visual Director (`1c`)—
  * executes deterministically and 100% offline.
  */
 """
@@ -62,54 +61,21 @@ def _load_step(filename: str) -> Any:
 
 
 # ===========================================================================
-# Step 1a — Specialist Agents (F7)
+# Step 1a — Authoring Agent Skills & SkillToolset (F8)
 # ===========================================================================
 
 
-def test_step_1a_specialist_agents_and_word_limit() -> None:
-    """
-    /**
-     * Verifies specialist agent definitions (`creative_director`, `copywriter`, `brand_strategist`, `visual_director`) and <= 25 word caption enforcement.
-     *
-     * Why: Confirms Step 1a (`F7`) decomposes the pitch team into 4 single-responsibility specialists with distinct instructions and `output_key` bindings.
-     *
-     * @return None.
-     */
-    """
-    mod = _load_step("step_1a_specialist_agents.py")
-    for attr in ("creative_director", "copywriter", "brand_strategist", "visual_director"):
-        agent = getattr(mod, attr)
-        assert getattr(agent, "name", "") == attr
-        assert getattr(agent, "output_key", "") == attr
-        assert len(getattr(agent, "instruction", "").strip()) > 20
-
-    result = mod.run_specialist_team("Waterproof commuter jacket with sealed seams")
-    assert isinstance(result, dict)
-    assert len(result) == 4
-    assert len(str(result["copywriter"]).split()) <= 25
-
-    with pytest.raises(ValueError):
-        mod.run_specialist_team("   ")
-    with pytest.raises(KeyError):
-        mod.get_specialist_agent("nonexistent_role")
-
-
-# ===========================================================================
-# Step 1b — Authoring Agent Skills & SkillToolset (F8)
-# ===========================================================================
-
-
-def test_step_1b_authoring_skills_and_skill_toolset() -> None:
+def test_step_1a_authoring_skills_and_skill_toolset() -> None:
     """
     /**
      * Verifies `brand-guidelines/SKILL.md` frontmatter, `load_skill_from_dir`, and `SkillToolset` on-demand loading.
      *
-     * Why: Confirms Step 1b (`F8`) packages house brand rules with valid YAML frontmatter and loads the Markdown body progressively via `SkillToolset`.
+     * Why: Confirms Step 1a (`F8`) packages house brand rules with valid YAML frontmatter and loads the Markdown body progressively via `SkillToolset`.
      *
      * @return None.
      */
     """
-    mod = _load_step("step_1b_authoring_skills.py")
+    mod = _load_step("step_1a_authoring_skills.py")
     skill_md = SOLUTIONS_M1 / "skills" / "brand-guidelines" / "SKILL.md"
     assert skill_md.is_file()
 
@@ -132,21 +98,21 @@ def test_step_1b_authoring_skills_and_skill_toolset() -> None:
 
 
 # ===========================================================================
-# Step 1c — Skill Evals (F9)
+# Step 1b — Skill Evals (F9)
 # ===========================================================================
 
 
-def test_step_1c_skill_evals_rubric_and_suite() -> None:
+def test_step_1b_skill_evals_rubric_and_suite() -> None:
     """
     /**
      * Verifies `evaluate_brand_skill` and `run_eval_suite` score compliant vs drifted art direction accurately.
      *
-     * Why: Confirms Step 1c (`F9`) enforces both skill loading (`"brand-guidelines" in loaded_skills`) and the 5 house brand sections.
+     * Why: Confirms Step 1b (`F9`) enforces both skill loading (`"brand-guidelines" in loaded_skills`) and the 5 house brand sections.
      *
      * @return None.
      */
     """
-    mod = _load_step("step_1c_skill_evals.py")
+    mod = _load_step("step_1b_skill_evals.py")
     good_art = (
         "One realistic photographic subject placed off-center one-third into the frame "
         "with generous negative space opposite, shallow depth of field, deep indigo and slate "
@@ -173,121 +139,21 @@ def test_step_1c_skill_evals_rubric_and_suite() -> None:
 
 
 # ===========================================================================
-# Step 1d — Graph Orchestration, JoinNodes, JSON Payloads & LoopGuard (F10)
+# Step 1c — Remote A2A Visual Director Service & Client (F11)
 # ===========================================================================
 
 
-def test_step_1d_structured_payloads_and_markdown_fence_parser() -> None:
-    """
-    /**
-     * Verifies `ConceptPayload`, `CopyPayload`, `ArtDirectionPayload`, and Markdown fence stripping.
-     *
-     * Why: Confirms Step 1d (`F10`) enforces typed JSON schemas between graph nodes and strips ```json fences cleanly.
-     *
-     * @return None.
-     */
-    """
-    mod = _load_step("step_1d_graph_orchestration.py")
-    concept = mod.ConceptPayload(
-        concept_line="Ride the storm.",
-        rationale="Built for rainy commuters.",
-    )
-    assert concept.concept_line == "Ride the storm."
-
-    fenced = '```json\n{"concept_line": "Urban shell", "rationale": "Commuter ready"}\n```'
-    parsed = mod.parse_json_payload(fenced, mod.ConceptPayload)
-    assert parsed.concept_line == "Urban shell"
-    assert parsed.rationale == "Commuter ready"
-
-    for bad_raw in ("{unclosed", "{}"):
-        with pytest.raises((ValueError, TypeError, KeyError)):
-            mod.parse_json_payload(bad_raw, mod.ConceptPayload)
-
-
-def test_step_1d_loop_guard_cycle_detection_and_iteration_bounds() -> None:
-    """
-    /**
-     * Verifies `LoopGuard` detects self-loops, 2-node, and 3-node cycles and enforces `max_iterations`.
-     *
-     * Why: Confirms Step 1d (`F10`) prevents infinite circular loops in static graph topologies and runtime execution.
-     *
-     * @return None.
-     */
-    """
-    mod = _load_step("step_1d_graph_orchestration.py")
-    guard = mod.LoopGuard(max_iterations=10)
-    assert guard.validate_graph(
-        [("creative_director", "copywriter"), ("copywriter", "assemble")]
-    )
-
-    with pytest.raises(mod.CircularLoopError):
-        guard.validate_graph([("node_a", "node_a")])
-
-    with pytest.raises(mod.CircularLoopError):
-        guard.validate_graph([("node_a", "node_b"), ("node_b", "node_a")])
-
-    with pytest.raises(mod.CircularLoopError):
-        guard.validate_graph(
-            [
-                ("creative_director", "copywriter"),
-                ("copywriter", "assemble"),
-                ("assemble", "creative_director"),
-            ]
-        )
-
-    with pytest.raises((mod.CircularLoopError, ValueError)):
-        g0 = mod.LoopGuard(max_iterations=0)
-        g0.record_step("node_1")
-
-    g2 = mod.LoopGuard(max_iterations=2)
-    g2.record_step("node_1")
-    g2.record_step("node_2")
-    with pytest.raises(mod.CircularLoopError):
-        g2.record_step("node_3")
-
-
-def test_step_1d_package_join_validation_and_workflow_execution() -> None:
-    """
-    /**
-     * Verifies `package` rejects missing upstream branches and `run_graph_workflow` returns `PitchPackage`.
-     *
-     * Why: Confirms Step 1d (`F10`) validates fan-in branch completeness at the `assemble` join barrier.
-     *
-     * @return None.
-     */
-    """
-    mod = _load_step("step_1d_graph_orchestration.py")
-    bad_input = {
-        "creative_director": "Concept",
-        "copywriter": "",
-        "visual_director": "Art",
-    }
-    with pytest.raises(ValueError, match="copywriter"):
-        list(mod.package(bad_input))
-
-    pkg = mod.run_graph_workflow("Launch brief for waterproof commuter jacket")
-    assert isinstance(pkg, mod.PitchPackage)
-    assert "CONCEPT" in pkg.pitch_text
-    assert "COPY" in pkg.pitch_text
-    assert "ART DIRECTION" in pkg.pitch_text
-
-
-# ===========================================================================
-# Step 1e — Remote A2A Visual Director Service & Client (F11)
-# ===========================================================================
-
-
-def test_step_1e_agent_card_and_generate_key_visual() -> None:
+def test_step_1c_agent_card_and_generate_key_visual() -> None:
     """
     /**
      * Verifies `AgentCardBuilder`, well-known path, and `generate_key_visual` artifact saving.
      *
-     * Why: Confirms Step 1e (`F11`) publishes a valid A2A Agent Card and persists generated key visuals into the tool context.
+     * Why: Confirms Step 1c (`F11`) publishes a valid A2A Agent Card and persists generated key visuals into the tool context.
      *
      * @return None.
      */
     """
-    mod = _load_step("step_1e_remote_a2a_visual_director.py")
+    mod = _load_step("step_1c_remote_a2a_visual_director.py")
     assert mod.AGENT_CARD_WELL_KNOWN_PATH == "/.well-known/agent-card.json"
 
     builder = mod.AgentCardBuilder(
@@ -318,17 +184,17 @@ def test_step_1e_agent_card_and_generate_key_visual() -> None:
         )
 
 
-def test_step_1e_cloud_run_client_part_converter_and_package() -> None:
+def test_step_1c_cloud_run_client_part_converter_and_package() -> None:
     """
     /**
      * Verifies `_cloud_run_client`, `_pitch_parts_only`, and `package` key visual validation.
      *
-     * Why: Confirms Step 1e (`F11`) signs `https://` Cloud Run requests, filters tool-call parts, and enforces image presence in `package`.
+     * Why: Confirms Step 1c (`F11`) signs `https://` Cloud Run requests, filters tool-call parts, and enforces image presence in `package`.
      *
      * @return None.
      */
     """
-    mod = _load_step("step_1e_remote_a2a_visual_director.py")
+    mod = _load_step("step_1c_remote_a2a_visual_director.py")
     assert mod._cloud_run_client("http://localhost:8801") is None
     assert mod._cloud_run_client("http://127.0.0.1:8801") is None
     assert mod._cloud_run_client("") is None

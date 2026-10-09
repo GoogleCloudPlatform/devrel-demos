@@ -28,7 +28,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 import copy
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -1187,33 +1187,44 @@ class GcsArtifactService:
         /**
          * Persist a versioned binary artifact to Cloud Storage and return its `gs://` URI.
          *
-         * Why: Constructs a deterministic versioned object path and invokes the GCS client's
-         * `bucket().blob().upload_from_string()` to upload the binary payload to Cloud Storage,
-         * while caching the record locally for fast retrieval.
+         * Why: Constructs a canonical `gs://<bucket>/<prefix>/<filename>` URI matching
+         * BigQuery `bwg.key_visuals` (`OBJ.MAKE_REF`), increments the per-session version
+         * counter, and uploads via `client.upload_bytes(...)` or `bucket().blob().upload_from_string(...)`.
          *
-         * @param filename Artifact filename (e.g., `"key_visual.png"`).
+         * @param filename Artifact filename (e.g., `"key_visual.png"`, `"cats.png"`).
          * @param data Non-empty binary image bytes.
          * @param mime_type MIME type string (default `"image/png"`).
          * @param session_id Session or campaign identifier.
-         * @return `ArtifactRecord` populated with `gcs_uri = "gs://<bucket>/..."`.
+         * @return `ArtifactRecord` populated with `gcs_uri = "gs://<bucket>/<prefix>/<filename>"`.
          */
         """
         clean_name, clean_session = _validate_artifact_inputs(filename, data, session_id)
+        clean_mime = (mime_type or "image/png").strip() or "image/png"
+        raw_bytes = bytes(data)
+
         key = (clean_session, clean_name)
         history = self._by_session_file.setdefault(key, [])
         next_version = len(history) + 1
 
-        object_path = f"{self.prefix}/{clean_session}/v{next_version}/{clean_name}"
+        object_path = f"{self.prefix}/{clean_name}"
         gcs_uri = f"gs://{self.bucket_name}/{object_path}"
 
-        if self.client is not None and hasattr(self.client, "bucket"):
-            try:
-                bucket_obj = self.client.bucket(self.bucket_name)
-                blob_obj = bucket_obj.blob(object_path)
-                if hasattr(blob_obj, "upload_from_string"):
-                    blob_obj.upload_from_string(bytes(data), content_type=mime_type)
-            except Exception:
-                pass
+        if self.client is not None:
+            if hasattr(self.client, "upload_bytes"):
+                self.client.upload_bytes(
+                    bucket_name=self.bucket_name,
+                    object_path=object_path,
+                    data=raw_bytes,
+                    mime_type=clean_mime,
+                )
+            elif hasattr(self.client, "bucket"):
+                try:
+                    bucket_obj = self.client.bucket(self.bucket_name)
+                    blob_obj = bucket_obj.blob(object_path)
+                    if hasattr(blob_obj, "upload_from_string"):
+                        blob_obj.upload_from_string(raw_bytes, content_type=clean_mime)
+                except Exception:
+                    pass
 
         self.uploaded_blobs.append(
             {
@@ -1221,16 +1232,16 @@ class GcsArtifactService:
                 "object_path": object_path,
                 "gcs_uri": gcs_uri,
                 "version": next_version,
-                "bytes": len(data),
-                "mime_type": mime_type,
+                "bytes": len(raw_bytes),
+                "mime_type": clean_mime,
             }
         )
 
         record = ArtifactRecord(
             filename=clean_name,
             version=next_version,
-            data=bytes(data),
-            mime_type=mime_type or "image/png",
+            data=raw_bytes,
+            mime_type=clean_mime,
             gcs_uri=gcs_uri,
         )
         history.append(record)
@@ -1241,22 +1252,34 @@ class GcsArtifactService:
         self,
         filename: str,
         session_id: str = "default",
+        version: int | None = None,
     ) -> ArtifactRecord | None:
         """
         /**
-         * Retrieve the latest version of `filename` for `session_id` from the GCS service.
+         * Retrieve the latest (or specific version) of `filename` for `session_id` from the GCS service.
          *
-         * Why: Returns the most recently persisted `ArtifactRecord` including its `gcs_uri`.
+         * Why: Returns the most recently persisted `ArtifactRecord` (or a specific historical
+         * revision when `version` is supplied) including its `gcs_uri`.
          *
          * @param filename Artifact filename.
          * @param session_id Session identifier.
-         * @return Latest `ArtifactRecord` or `None`.
+         * @param version Optional 1-based version number; defaults to latest.
+         * @return Matching `ArtifactRecord` or `None`.
          */
         """
+        if not isinstance(filename, str) or not filename.strip():
+            return None
         clean_session = (session_id or "default").strip() or "default"
-        clean_name = (filename or "").strip()
+        clean_name = filename.strip()
         history = self._by_session_file.get((clean_session, clean_name), [])
-        return history[-1] if history else None
+        if not history:
+            return None
+        if version is None:
+            return history[-1]
+        for rec in history:
+            if rec.version == version:
+                return rec
+        return None
 
     def list_artifacts(self, session_id: str = "default") -> list[ArtifactRecord]:
         """
@@ -1276,26 +1299,76 @@ class GcsArtifactService:
 def get_artifact_service(
     config: PitchConfig | None = None,
     client: Any = None,
+    *,
+    bucket_name: str | None = None,
+    env: Mapping[str, str] | None = None,
 ) -> ArtifactServiceProtocol:
     """
     /**
-     * Return the active artifact storage service (`InMemoryArtifactService` in starter).
+     * Select `GcsArtifactService` when a bucket is configured via `bucket_name`, `env`, or `config`,
+     * and fall back to `InMemoryArtifactService` when empty.
      *
-     * Why: Defaults to ephemeral `InMemoryArtifactService` in the starter application so
-     * generated key visuals stay in memory during Module 1 until learners wire
-     * `GcsArtifactService` with `LOGS_BUCKET_NAME` in Module 2 Step 2b.
+     * Why: Provides environment-driven Cloud Storage persistence (`LOGS_BUCKET_NAME`) so local
+     * development works with zero configuration while staging/production persists to GCS (`gs://<bucket>/key-visuals/...`).
      *
-     * @param config Optional `PitchConfig` instance (defaults to `get_config()`).
+     * @param config Optional `PitchConfig` instance.
      * @param client Optional Cloud Storage client for dependency injection.
-     * @return Concrete `ArtifactServiceProtocol` instance.
+     * @param bucket_name Explicit bucket name override.
+     * @param env Optional environment dictionary containing `LOGS_BUCKET_NAME`.
+     * @return Configured `GcsArtifactService` or `InMemoryArtifactService`.
      */
     """
-    # [Guidepost — Step 2b: Cloud Storage Artifact Persistence]
-    # In Step 2b, resolve `cfg = config or get_config()` and when `cfg.logs_bucket_name` is set,
-    # instantiate and return `GcsArtifactService(bucket_name=cfg.logs_bucket_name, client=client)`
-    # so generated key visuals are saved to `gs://<LOGS_BUCKET_NAME>/key-visuals/...`.
-    del config, client
+    if bucket_name is not None:
+        raw_bucket = bucket_name
+    elif env is not None:
+        raw_bucket = env.get("LOGS_BUCKET_NAME", "")
+    elif config is not None:
+        raw_bucket = config.logs_bucket_name or ""
+    else:
+        raw_bucket = os.environ.get("LOGS_BUCKET_NAME") or get_config().logs_bucket_name or ""
+
+    normalized = normalize_bucket_name(raw_bucket)
+    if normalized:
+        return GcsArtifactService(bucket_name=normalized, client=client)
     return InMemoryArtifactService()
+
+
+create_artifact_service = get_artifact_service
+select_artifact_service = get_artifact_service
+resolve_artifact_service = get_artifact_service
+
+
+def run_workflow_with_gcs_artifacts(
+    brief: str,
+    *,
+    bucket_name: str = "local-dev-project-bwg",
+    session_id: str = "default",
+    services: ServiceContainer | None = None,
+) -> dict[str, Any]:
+    """
+    /**
+     * Execute the end-to-end Pitch Generator workflow backed by `GcsArtifactService`.
+     *
+     * Why: Verifies that `generate_key_visual` and the orchestrator pipeline persist
+     * `key_visual.png` to `gs://<bucket>/key-visuals/key_visual.png` and surface the
+     * `gs://` URI in the packaged output.
+     *
+     * @param brief Product pitch brief text.
+     * @param bucket_name Target GCS bucket name (default `'local-dev-project-bwg'`).
+     * @param session_id Session identifier (default `'default'`).
+     * @param services Optional pre-built `ServiceContainer`.
+     * @return Workflow execution result dictionary including `key_visual_uri` and `gcs_uri`.
+     */
+    """
+    from pitch_generator.agent import run_pitch_workflow
+
+    cfg = get_config(env={"LOGS_BUCKET_NAME": bucket_name})
+    svc_container = services or get_default_services(cfg)
+    svc_container.artifacts = GcsArtifactService(bucket_name=bucket_name)
+    svc_container.artifact_service = svc_container.artifacts
+    result = run_pitch_workflow(brief, session_id=session_id, services=svc_container)
+    result["gcs_uri"] = result.get("key_visual_uri")
+    return result
 
 
 class BigQueryAnalyticsService:
@@ -1623,10 +1696,10 @@ class BigQueryAnalyticsService:
         return evaluated
 
 
-# [Guidepost — Steps 2a, 2c & 3b: BigQuery Analytics, Brand Drift & PII Scrubbing]
+# [Guidepost — Steps 2a, 2b & 3b: BigQuery Analytics, Brand Drift & PII Scrubbing]
 # - In Step 2a, add `register_key_visuals` (and save the SQL query to `pitch_generator/sql/create_key_visuals.sql`)
 #   using `OBJ.MAKE_REF` and `OBJ.FETCH_METADATA` with the `pitch-connection` Cloud Resource connection.
-# - In Step 2c, add `detect_brand_drift` and `tune_prompt_and_skill` (and save the `AI.SCORE` query to
+# - In Step 2b, add `detect_brand_drift` and `tune_prompt_and_skill` (and save the `AI.SCORE` query to
 #   `pitch_generator/sql/score_brand_fit.sql`) to identify rows where `brand_fit < 7` (`'needs another pass'`).
 # - In Step 3b, add `ScrubResult`, `PIIScrubber`, `scrub_pii`, `scrub_text`, and `scrub_payload`
 #   to redact emails (`[REDACTED_EMAIL]`), phone numbers (`[REDACTED_PHONE]`), SSNs, and API keys.

@@ -18,10 +18,10 @@
 
 /**
  * @file app.js
- * @description Vanilla ES6 JavaScript client for the Agentic Pitch Generator starter web UI.
+ * @description Vanilla ES6 JavaScript client for the Agentic Pitch Generator web UI.
  *
  * Why: Connects the plain HTML5 interface to the FastAPI backend endpoints
- * (`/api/health`, `/api/config`, `/api/pitch`, and
+ * (`/api/health`, `/api/config`, `/api/pitch`, `/api/approve`, and
  * `/a2a/pitch_generator/.well-known/agent-card.json`) without third-party UI libraries.
  * Uses strictly safe DOM APIs (`document.createElement`, `textContent`, `replaceChildren`)
  * to prevent DOM-based cross-site scripting.
@@ -233,68 +233,16 @@ function setBanner(message, level) {
 }
 
 /**
- * Render the step-by-step agent execution trace list inside `#workflow-trace-list`.
- *
- * Why: Uses `replaceChildren` and `createSafeElement("li", ...)` so learners can
- * inspect which specialist nodes (`creative_director`, `copywriter`, `assemble`,
- * `package`) ran during the workflow.
- *
- * @param {Array<string>} traceSteps Ordered list of executed workflow node names.
- * @return {void}
- */
-let _cachedWebGpuAvailable = null;
-
-/**
- * Probe whether WebGPU hardware acceleration is available in the client browser.
- *
- * Why: Asynchronously queries navigator.gpu and requests an adapter to verify
- * true GPU acceleration is present for client-side WebLLM execution (Module 4),
- * updating the #webgpu-badge element in the application header.
- *
- * @param {Object} [navOverride] Optional navigator object override for offline testing.
- * @return {Promise<boolean>} Resolves true if WebGPU hardware acceleration is active.
- */
-async function probeWebGpuHardware(navOverride) {
-  const nav =
-    navOverride !== undefined
-      ? navOverride
-      : typeof navigator !== "undefined"
-        ? navigator
-        : null;
-  let isAvailable = false;
-  try {
-    if (nav && nav.gpu && typeof nav.gpu.requestAdapter === "function") {
-      const adapter = await nav.gpu.requestAdapter();
-      isAvailable = Boolean(adapter);
-    } else if (nav && nav.gpu) {
-      isAvailable = true;
-    }
-  } catch (err) {
-    isAvailable = false;
-  }
-  _cachedWebGpuAvailable = isAvailable;
-
-  if (typeof document !== "undefined") {
-    const badge = document.getElementById("webgpu-badge");
-    if (badge) {
-      badge.textContent = isAvailable ? "WebGPU: Available" : "WebGPU: Unavailable";
-      badge.className = isAvailable ? "badge badge-ok" : "badge badge-neutral";
-    }
-  }
-  return isAvailable;
-}
-
-/**
  * Render execution trace steps in `#workflow-trace-list`.
  *
- * Why: Renders an accessible ordered list confirming which agent nodes (and routing tier)
- * ran during the workflow.
+ * Why: Uses `replaceChildren` and `createSafeElement("li", ...)` so learners can
+ * inspect which specialist nodes (`creative_director`, `copywriter`,
+ * `brand_strategist`, `visual_director`, `assemble`, `package`) ran during the workflow.
  *
  * @param {Array<string>} traceSteps Ordered list of executed workflow node names.
- * @param {Object} [routingDecision] Optional hybrid routing decision metadata.
  * @return {void}
  */
-function renderWorkflowTrace(traceSteps, routingDecision) {
+function renderWorkflowTrace(traceSteps) {
   if (typeof document === "undefined") {
     return;
   }
@@ -305,33 +253,28 @@ function renderWorkflowTrace(traceSteps, routingDecision) {
   const steps =
     Array.isArray(traceSteps) && traceSteps.length > 0
       ? traceSteps
-      : ["creative_director", "copywriter", "assemble", "package"];
+      : [
+          "creative_director",
+          "copywriter",
+          "brand_strategist",
+          "visual_director",
+          "assemble",
+          "package",
+        ];
   const items = steps.map((stepName) =>
     createSafeElement("li", {}, `Executed node: ${stepName}`)
   );
-  if (routingDecision && routingDecision.target) {
-    const fallbackText = routingDecision.fallback_applied
-      ? " (Fallback from WebLLM)"
-      : "";
-    items.unshift(
-      createSafeElement(
-        "li",
-        {},
-        `Routing tier: ${routingDecision.target} [${routingDecision.model_id}]${fallbackText}`
-      )
-    );
-  }
   listEl.replaceChildren(...items);
 }
 
 /**
  * Update the DOM cards in `#pitch-result-card` with the workflow response payload.
  *
- * Why: Populates the starter Creative Director concept and Copywriter social copy,
- * and dynamically reveals Art Direction or Key Visual cards once the learner adds
- * `visual_director` in Module 1.
+ * Why: Populates Creative Director concept, Copywriter social copy, Brand Strategist
+ * positioning, Visual Director art direction, Key Visual preview, and Human-in-the-Loop
+ * approval gate state.
  *
- * @param {Object} data Parsed JSON response from `/api/pitch`.
+ * @param {Object} data Parsed JSON response from `/api/pitch` or `/api/approve`.
  * @return {void}
  */
 function renderPitchResult(data) {
@@ -341,6 +284,8 @@ function renderPitchResult(data) {
   const statusEl = document.getElementById("pitch-status");
   const hitlCard = document.getElementById("hitl-approval-card");
   const hitlPromptEl = document.getElementById("hitl-approval-prompt");
+  const approveBtn = document.getElementById("btn-approve-concept");
+  const rejectBtn = document.getElementById("btn-reject-concept");
   const conceptEl = document.getElementById("pitch-concept");
   const copyEl = document.getElementById("pitch-copy");
   const brandCard = document.getElementById("brand-strategy-card");
@@ -358,8 +303,10 @@ function renderPitchResult(data) {
       statusText === "completed" ? "badge badge-ok" : "badge badge-warn";
   }
   if (hitlCard) {
+    hitlCard.hidden = false;
     if (statusText === "input_required") {
-      hitlCard.hidden = false;
+      if (approveBtn) approveBtn.disabled = false;
+      if (rejectBtn) rejectBtn.disabled = false;
       if (hitlPromptEl) {
         hitlPromptEl.textContent =
           data.prompt ||
@@ -370,13 +317,32 @@ function renderPitchResult(data) {
         "info"
       );
     } else {
-      hitlCard.hidden = true;
-      if (statusText === "rejected") {
+      if (approveBtn) approveBtn.disabled = true;
+      if (rejectBtn) rejectBtn.disabled = true;
+      if (data.hitl_requested && data.hitl_enabled === false) {
+        if (hitlPromptEl) {
+          hitlPromptEl.textContent =
+            "HITL verification was checked, but approve_concept / user_approval is not yet implemented in agent.py (Step 3c). Workflow ran without pausing.";
+        }
+        setBanner(
+          "Human-in-the-Loop gate is not wired yet (complete Step 3c to enable concept approval pausing).",
+          "warn"
+        );
+      } else if (statusText === "rejected") {
+        if (hitlPromptEl) {
+          hitlPromptEl.textContent =
+            "Campaign concept rejected by reviewer. Downstream workflow halted.";
+        }
         setBanner(
           "Campaign concept rejected. Workflow halted before running downstream agents.",
           "warn"
         );
-      } else if (statusText === "completed") {
+      } else {
+        if (hitlPromptEl) {
+          hitlPromptEl.textContent = data.hitl_enabled
+            ? "HITL gate ready. Check 'Enable Human-in-the-Loop (HITL) verification' before generating to pause after concept ideation."
+            : "Inactive until Step 3c (approve_concept / user_approval) is implemented in agent.py.";
+        }
         setBanner("", "info");
       }
     }
@@ -394,24 +360,28 @@ function renderPitchResult(data) {
     renderSafeMarkdown(copyEl, data.copy || defaultCopyMessage);
   }
   if (brandCard && brandEl) {
-    if (data.brand_strategy) {
-      brandCard.hidden = false;
-      renderSafeMarkdown(brandEl, data.brand_strategy);
-    } else {
-      brandCard.hidden = true;
-    }
+    brandCard.hidden = false;
+    const defaultBrandMessage =
+      statusText === "input_required"
+        ? "Paused at HITL gate — awaiting human approval."
+        : statusText === "rejected"
+          ? "Workflow halted — concept rejected by human reviewer."
+          : "No brand strategy generated.";
+    renderSafeMarkdown(brandEl, data.brand_strategy || defaultBrandMessage);
   }
   if (artCard && artEl) {
-    if (data.art_direction) {
-      artCard.hidden = false;
-      renderSafeMarkdown(artEl, data.art_direction);
-    } else {
-      artCard.hidden = true;
-    }
+    artCard.hidden = false;
+    const defaultArtMessage =
+      statusText === "input_required"
+        ? "Paused at HITL gate — awaiting human approval."
+        : statusText === "rejected"
+          ? "Workflow halted — concept rejected by human reviewer."
+          : "No art direction generated.";
+    renderSafeMarkdown(artEl, data.art_direction || defaultArtMessage);
   }
   if (visualCard && visualEl) {
+    visualCard.hidden = false;
     if (data.key_visual_uri) {
-      visualCard.hidden = false;
       const rawUri = String(data.key_visual_uri);
       const sessionId = encodeURIComponent(
         String(data.session_id || "default").trim() || "default"
@@ -427,15 +397,20 @@ function renderPitchResult(data) {
       }
       visualEl.textContent = `Artifact URI: ${rawUri}`;
     } else {
-      visualCard.hidden = true;
       if (visualImgEl) {
         visualImgEl.removeAttribute("src");
         visualImgEl.hidden = true;
       }
+      visualEl.textContent =
+        statusText === "input_required"
+          ? "Paused at HITL gate — awaiting human approval."
+          : statusText === "rejected"
+            ? "Workflow halted — no key visual generated."
+            : "Waiting for key visual generation...";
     }
   }
 
-  renderWorkflowTrace(data.trace, data.routing_decision);
+  renderWorkflowTrace(data.trace);
 }
 
 /**
@@ -482,6 +457,11 @@ async function fetchHealthAndConfig(fetchImpl) {
       summaryEl.textContent =
         `Project: ${cfg.project_id} | Region: ${cfg.region} | ` +
         `Model: ${modelName} | Enterprise Agent Platform: ${cfg.use_enterprise ? "Enabled" : "Disabled"}`;
+    }
+    const hitlPromptEl = document.getElementById("hitl-approval-prompt");
+    if (hitlPromptEl && cfg.hitl_enabled) {
+      hitlPromptEl.textContent =
+        "HITL gate ready. Check 'Enable Human-in-the-Loop (HITL) verification' before generating to pause after concept ideation.";
     }
   }
   return { health, config: cfg };
@@ -532,7 +512,7 @@ function setGenerateButtonLoading(isLoading) {
  * Why: Drives the primary campaign generation workflow using Gemini Enterprise Agent
  * Platform cloud models while locking the submit button until completion.
  *
- * @param {Object} payload Request dictionary with `brief` and `session_id`.
+ * @param {Object} payload Request dictionary with `brief`, `session_id`, and `require_approval`.
  * @param {Function} fetchImpl Optional fetch implementation for testing.
  * @return {Promise<Object>} Workflow execution response.
  */
@@ -626,16 +606,18 @@ async function submitApprovalDecision(approved, fetchImpl) {
     const data = await resp.json();
     if (!resp.ok) {
       setBanner(data.error || "Failed to process approval decision.", "error");
+      if (approveBtn) approveBtn.disabled = false;
+      if (rejectBtn) rejectBtn.disabled = false;
       return data;
     }
     renderPitchResult(data);
     return data;
   } catch (err) {
     setBanner(`Approval request failed: ${err.message || err}`, "error");
-    throw err;
-  } finally {
     if (approveBtn) approveBtn.disabled = false;
     if (rejectBtn) rejectBtn.disabled = false;
+    throw err;
+  } finally {
     setGenerateButtonLoading(false);
   }
 }
@@ -678,7 +660,6 @@ function initPitchGeneratorApp() {
   fetchHealthAndConfig().catch((err) => {
     setBanner(`Unable to load service configuration: ${err.message}`, "warn");
   });
-  probeWebGpuHardware().catch(() => {});
 
   const form = document.getElementById("pitch-form");
   if (form) {
@@ -686,13 +667,16 @@ function initPitchGeneratorApp() {
       event.preventDefault();
       const briefInput = document.getElementById("brief-input");
       const sessionInput = document.getElementById("session-id-input");
-      const routingSelect = document.getElementById("routing-mode-select");
+      const approvalCheckbox = document.getElementById(
+        "require-approval-checkbox"
+      );
 
       submitPitchRequest({
         brief: briefInput ? briefInput.value : "",
         session_id: sessionInput ? sessionInput.value : "default",
-        routing_mode: routingSelect ? routingSelect.value : "auto",
-        browser_webgpu_available: _cachedWebGpuAvailable ?? false,
+        require_approval: Boolean(
+          approvalCheckbox && approvalCheckbox.checked
+        ),
       });
     });
   }
@@ -731,7 +715,6 @@ if (typeof module !== "undefined" && module.exports) {
     renderWorkflowTrace,
     renderPitchResult,
     fetchHealthAndConfig,
-    probeWebGpuHardware,
     setGenerateButtonLoading,
     submitPitchRequest,
     submitApprovalDecision,
