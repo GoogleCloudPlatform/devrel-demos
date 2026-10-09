@@ -198,11 +198,11 @@ STEP_REGISTRY: dict[str, dict[str, Any]] = {
     },
     "4b": {
         "module": 4,
-        "title": "Hybrid Routing (WebLLM / Local / Cloud)",
+        "title": "Hybrid Routing (WebLLM / Cloud Frontier)",
         "files": ["module_4/step_4b_hybrid_routing.py", "module_4/webllm_router.js"],
         "required_symbols": ["RoutingDecision", "HybridModelRouter", "route_task", "select_route"],
         "step_new_symbols": ["RoutingDecision", "HybridModelRouter", "route_task", "select_route"],
-        "required_substrings": ["webllm_browser", "local_model", "cloud_frontier"],
+        "required_substrings": ["webllm_browser", "cloud_frontier"],
     },
 }
 

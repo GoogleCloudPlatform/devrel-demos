@@ -31,3 +31,7 @@
    - **Never Read `.agents/solutions/` During Implementation**: Do NOT view, search, or read any files under `.agents/solutions/` when implementing features or answering coding requests. `.agents/solutions/` may ONLY be accessed when the learner explicitly asks for a hint, asks to verify a step, or asks to fix/remediate their workspace via the `lab-helper` skill.
    - **Strictly On-Demand Verification**: To conserve time and turns during the lab, do NOT run `verify_workspace.py` or unsolicited test suites after implementing a step unless the learner explicitly asks to verify, test, or troubleshoot their work.
    - **In-Place Surgical Remediation**: When the learner asks to remediate or fix a broken step, read the corresponding `.agents/solutions/` reference file and patch `pitch_generator/` in-place rather than overwriting the entire cumulative file, so earlier work, user customizations, and upcoming guidepost comments are preserved.
+
+8. **Never Deploy Unless Explicitly Asked by the Learner**:
+   - Do NOT run `bash scripts/deploy.sh`, `agents-cli deploy`, or `gcloud run deploy` automatically after making code changes. Cloud Run deployment takes several minutes, so wait until the learner explicitly asks you to deploy in their prompt.
+

@@ -31,6 +31,7 @@
       <p class="subtitle">Multi-Agent Orchestration on Gemini Enterprise Agent Platform</p>
     </div>
     <div class="header-badges" aria-label="Service status indicators">
+      <span id="webgpu-badge" class="badge badge-neutral" role="status" aria-live="polite">WebGPU: Probing...</span>
       <span id="health-badge" class="badge badge-neutral" role="status" aria-live="polite">Checking service...</span>
       <button id="btn-inspect-a2a" type="button" class="btn btn-secondary">Inspect A2A Agent Card</button>
     </div>
@@ -60,6 +61,14 @@
             <label for="session-id-input">Memory Bank Session ID</label>
             <input id="session-id-input" name="session_id" type="text" value="default" required />
           </div>
+          <div class="form-group">
+            <label for="routing-mode-select">Model Routing Tier</label>
+            <select id="routing-mode-select" name="routing_mode">
+              <option value="auto" selected>Auto (Balanced: WebLLM / Cloud)</option>
+              <option value="webllm_browser">WebLLM (In-Browser WebGPU)</option>
+              <option value="cloud_frontier">Cloud Frontier (Gemini Flash)</option>
+            </select>
+          </div>
         </div>
 
         <div class="form-actions">
@@ -72,6 +81,17 @@
       <div class="panel-header">
         <h2 id="heading-output">2. Generated Pitch Package</h2>
         <span id="pitch-status" class="badge badge-neutral" role="status" aria-live="polite">Idle</span>
+      </div>
+
+      <div id="hitl-approval-card" class="hitl-panel" role="region" aria-labelledby="heading-hitl" hidden>
+        <h3 id="heading-hitl">Human-in-the-Loop Approval Gate (<code>approve_concept</code>)</h3>
+        <p id="hitl-approval-prompt" class="pitch-content">
+          Please approve the campaign concept (yes/no). Downstream agents are paused until you decide.
+        </p>
+        <div class="form-actions">
+          <button id="btn-approve-concept" type="button" class="btn btn-success">Approve Concept (Yes)</button>
+          <button id="btn-reject-concept" type="button" class="btn btn-danger">Reject Concept (No)</button>
+        </div>
       </div>
 
       <div id="pitch-result-card" class="pitch-grid">

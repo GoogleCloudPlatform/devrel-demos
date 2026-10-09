@@ -492,7 +492,13 @@ class EnterpriseGenAILLMClient:
 
     @classmethod
     def clear_cache(cls) -> None:
-        """Clear the process-wide in-memory text and image deduplication caches."""
+        """
+        /**
+         * Clear the process-wide in-memory text and image deduplication caches.
+         *
+         * Why: Allows tests and callers to reset cached Vertex AI responses between runs.
+         */
+        """
         with cls._RATE_LOCK:
             cls._LIVE_TEXT_CACHE.clear()
             cls._LIVE_IMAGE_CACHE.clear()
@@ -685,6 +691,23 @@ class EnterpriseGenAILLMClient:
                         ),
                     )
                     text_out = getattr(response, "text", None)
+                    if not (text_out and str(text_out).strip()):
+                        extracted_parts: list[str] = []
+                        for cand in getattr(response, "candidates", None) or []:
+                            content_obj = getattr(cand, "content", None)
+                            for part in getattr(content_obj, "parts", None) or []:
+                                part_txt = getattr(part, "text", None)
+                                if part_txt and str(part_txt).strip():
+                                    extracted_parts.append(str(part_txt).strip())
+                                fn_call = getattr(part, "function_call", None)
+                                fn_args = getattr(fn_call, "args", None) if fn_call else None
+                                if isinstance(fn_args, dict):
+                                    for key in ("art_direction", "prompt", "text", "content"):
+                                        val = fn_args.get(key)
+                                        if isinstance(val, str) and val.strip():
+                                            extracted_parts.append(val.strip())
+                        if extracted_parts:
+                            text_out = "\n\n".join(extracted_parts)
                     if text_out and str(text_out).strip():
                         clean_out = str(text_out).strip()
                         if self.enable_cache:

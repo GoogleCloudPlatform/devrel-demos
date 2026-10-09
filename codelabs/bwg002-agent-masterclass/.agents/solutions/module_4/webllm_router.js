@@ -30,7 +30,7 @@
  * Ordered sequence of fallback execution tiers.
  * Why: Defines the priority chain from edge client to local server to frontier cloud.
  */
-export const FALLBACK_CHAIN = ['webllm_browser', 'local_model', 'cloud_frontier'];
+export const FALLBACK_CHAIN = ['webllm_browser', 'cloud_frontier'];
 
 /**
  * Default WebLLM model identifier for browser execution.
@@ -113,13 +113,19 @@ export function routeTaskInBrowser(taskMetadata = {}, navOverride) {
   if (requestedMode === 'webllm_browser') {
     desiredTarget = 'webllm_browser';
   } else if (requestedMode === 'local_model') {
-    desiredTarget = 'local_model';
+    return {
+      target: 'cloud_frontier',
+      model_id: 'gemini-3.8-flash',
+      requested_mode: requestedMode,
+      fallback_used: true,
+      fallback_applied: true,
+      fallback_chain: [...FALLBACK_CHAIN],
+      webgpu_available: webGpuAvailable,
+      local_gpu_available: false,
+      rationale: 'Fell back from local_model to Cloud Frontier Flash because local execution tier has been streamlined to direct cloud reasoning.',
+    };
   } else {
-    if (complexity === 'low') {
-      desiredTarget = 'webllm_browser';
-    } else if (complexity === 'medium' && (localGpuAvailable || privacySensitive)) {
-      desiredTarget = 'local_model';
-    } else if (privacySensitive) {
+    if (complexity === 'low' || privacySensitive) {
       desiredTarget = 'webllm_browser';
     } else {
       desiredTarget = 'cloud_frontier';
@@ -137,21 +143,9 @@ export function routeTaskInBrowser(taskMetadata = {}, navOverride) {
         fallback_applied: false,
         fallback_chain: [...FALLBACK_CHAIN],
         webgpu_available: true,
-        local_gpu_available: localGpuAvailable,
+        local_gpu_available: false,
         rationale: 'Routed to client-side WebLLM in browser via WebGPU acceleration for zero-cost on-device execution.',
       };
-    } else if (localGpuAvailable) {
-      return {
-        target: 'local_model',
-        model_id: 'gemma-3-4b-it',
-        requested_mode: requestedMode,
-        fallback_used: true,
-        fallback_applied: true,
-        fallback_chain: [...FALLBACK_CHAIN],
-        webgpu_available: false,
-        local_gpu_available: true,
-        rationale: 'Fell back from browser WebLLM to local model (Gemma) because client WebGPU is unavailable.',
-      };
     } else {
       return {
         target: 'cloud_frontier',
@@ -162,35 +156,7 @@ export function routeTaskInBrowser(taskMetadata = {}, navOverride) {
         fallback_chain: [...FALLBACK_CHAIN],
         webgpu_available: false,
         local_gpu_available: false,
-        rationale: 'Fell back from browser WebLLM and local model to Cloud Frontier Flash because neither WebGPU nor local GPU was detected.',
-      };
-    }
-  }
-
-  if (desiredTarget === 'local_model') {
-    if (localGpuAvailable) {
-      return {
-        target: 'local_model',
-        model_id: 'gemma-3-4b-it',
-        requested_mode: requestedMode,
-        fallback_used: false,
-        fallback_applied: false,
-        fallback_chain: [...FALLBACK_CHAIN],
-        webgpu_available: webGpuAvailable,
-        local_gpu_available: true,
-        rationale: 'Routed to local open-weights model on local GPU for confidential edge execution.',
-      };
-    } else {
-      return {
-        target: 'cloud_frontier',
-        model_id: 'gemini-3.8-flash',
-        requested_mode: requestedMode,
-        fallback_used: true,
-        fallback_applied: true,
-        fallback_chain: [...FALLBACK_CHAIN],
-        webgpu_available: webGpuAvailable,
-        local_gpu_available: false,
-        rationale: 'Fell back from local model to Cloud Frontier Flash because local GPU environment is unavailable.',
+        rationale: 'Fell back from browser WebLLM to Cloud Frontier Flash because client WebGPU is unavailable.',
       };
     }
   }

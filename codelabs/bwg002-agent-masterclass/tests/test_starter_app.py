@@ -292,6 +292,13 @@ def test_f2_enterprise_genai_llm_client_and_default_service_container(
             self.attempts = 0
 
         def generate_content(self, *, model: str, contents: str, config: Any = None) -> _FakeGenAIResponse:
+            """
+            /**
+             * Simulate two transient 429 quota errors before succeeding on attempt 3.
+             *
+             * Why: Verifies exponential backoff retry recovery in `EnterpriseGenAILLMClient`.
+             */
+            """
             self.attempts += 1
             if self.attempts < 3:
                 raise Exception("429 RESOURCE_EXHAUSTED: Resource exhausted. Please try again later.")
@@ -614,9 +621,17 @@ def test_f4_plain_html_css_js_frontend_zero_frameworks() -> None:
     assert "<!DOCTYPE html>" in html_text
     assert "styles.css" in html_text
     assert "app.js" in html_text
-    assert "webllm_browser" not in html_text
+    assert "hitl-approval-card" in html_text
+    assert "webgpu-badge" in html_text
     assert "local_model" not in html_text
-    for endpoint in ("/api/health", "/api/config", "/api/pitch", "/a2a/pitch_generator/.well-known/agent-card.json"):
+    assert "gemma" not in html_text
+    for endpoint in (
+        "/api/health",
+        "/api/config",
+        "/api/pitch",
+        "/api/approve",
+        "/a2a/pitch_generator/.well-known/agent-card.json",
+    ):
         assert endpoint in js_text, f"frontend/app.js does not connect to {endpoint}"
 
 

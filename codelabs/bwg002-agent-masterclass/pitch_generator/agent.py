@@ -554,12 +554,14 @@ copywriter = Agent(
 #   - `brand_strategist = Agent(name="brand_strategist", model=_model(), ..., output_key="brand_strategist")`
 #     to define target audience positioning and brand alignment.
 #   - `visual_director = Agent(name="visual_director", model=_model(), ..., output_key="visual_director")`
-#     to write art direction and call `generate_key_visual`.
+#     to write art direction (subject, composition, lighting, color, mood) and output ONLY the art
+#     direction text notes (while attaching `tools=[generate_key_visual]`).
 #   - Also define `run_specialist_team(brief: str, services: ServiceContainer | None = None) -> dict[str, Any]`
 #     to run all four specialists (`creative_director`, `copywriter`, `brand_strategist`, `visual_director`).
 # In Step 1b, load the house style skill from `pitch_generator/skills/brand-guidelines` using
-# `brand_guidelines_skill = load_skill_from_dir(...)` and attach `[SkillToolset([brand_guidelines_skill]), generate_key_visual]`
-# to `visual_director`'s `tools`.
+# `brand_guidelines_skill = load_skill_from_dir(...)`, attach `[SkillToolset([brand_guidelines_skill]), generate_key_visual]`
+# to `visual_director`'s `tools`, and instruct `visual_director` to call `load_skill` for `brand-guidelines`,
+# write art direction, call `generate_key_visual`, and output ONLY the art direction notes as plain text.
 
 # [Guidepost — Step 1c: Skill Evaluation Harness]
 # Here is where we add `FORBIDDEN_BRAND_PATTERNS`, `SkillEvalResult`,
@@ -651,8 +653,11 @@ def package(
 # - In Step 3a, add `HookDecision`, `ToolAuthorizationError`, `PreToolUseHook`, and
 #   `validate_tool_call(tool_name, tool_args, loaded_skills)` to require `load_skill("brand-guidelines")`
 #   before `generate_key_visual` can run.
-# - In Step 3c, add `approve_concept = RequestInput(...)`, `user_approval`, `evaluate_user_approval`,
-#   and `run_hitl_workflow` to pause after `creative_director` for human approval before production.
+# - In Step 3c, add `approve_concept` (RequestInput / `@node(rerun_on_resume=False)`),
+#   `user_approval` (`@node(rerun_on_resume=True)` raising `ValueError("User rejected the concept")`
+#   when rejected), `evaluate_user_approval`, and `run_hitl_workflow` to pause after `creative_director`.
+#   Defining `approve_concept` or `user_approval` here also automatically enables the web UI's
+#   Human-in-the-Loop approval banner (`#hitl-approval-card` via `/api/pitch` and `/api/approve`).
 root_agent = Workflow(
     name="pitch_generator",
     edges=[
@@ -670,8 +675,8 @@ app = App(root_agent=root_agent, name="pitch_generator")
 # - In Step 4a, add `CompressedHistoryList`, `PromptCacheManager`, `TokenomicsManager`,
 #   `compress_memory(turns)`, `prune_history(turns, max_tokens)`, and `select_model_strategy(task)`.
 # - In Step 4b, add `RoutingDecision`, `HybridModelRouter`, `route_task`, and `select_route`,
-#   and expand `select_routing_decision` below to route across `webllm_browser`, `local_model` (Gemma),
-#   and `cloud_frontier` (`gemini-3.8-flash`), plus `frontend/webllm_router.js` for browser WebGPU.
+#   and expand `select_routing_decision` below to route across client `webllm_browser` (on-device
+#   WebGPU) and `cloud_frontier` (`gemini-3.8-flash`), plus `frontend/webllm_router.js` for browser WebGPU.
 def select_routing_decision(
     brief: str = "",
     routing_mode: str = "auto",
@@ -763,6 +768,8 @@ def run_pitch_workflow(
     clean_brief = brief.strip()
     clean_session = session_id.strip()
     active_services = services or get_default_services()
+    module_globals = globals()
+    strip_fn = module_globals.get("strip_markdown_fences")
 
     routing_decision = select_routing_decision(
         brief=clean_brief,
@@ -777,6 +784,8 @@ def run_pitch_workflow(
         system_instruction=creative_director.instruction,
         model=active_model,
     )
+    if callable(strip_fn):
+        concept = strip_fn(concept)
 
     # Determine effective approval state (used when learner enables HITL in Module 3)
     effective_approved: bool | None = approved
@@ -847,11 +856,19 @@ def run_pitch_workflow(
         model=active_model,
     )
 
+    hitl_defined = (
+        module_globals.get("approve_concept") is not None
+        or module_globals.get("user_approval") is not None
+    )
     join_inputs: dict[str, Any] = {
         "creative_director": concept,
         "copywriter": copy_text,
     }
-    nodes_executed: list[str] = ["creative_director", "copywriter"]
+    nodes_executed: list[str] = (
+        ["creative_director", "approve_concept", "user_approval", "copywriter"]
+        if hitl_defined
+        else ["creative_director", "copywriter"]
+    )
     brand_text = ""
     art_direction = ""
     key_visual_uri: str | None = None
@@ -860,7 +877,6 @@ def run_pitch_workflow(
 
     # Dynamic expansion: if the learner has defined LoopGuard, strip_markdown_fences,
     # brand_strategist, or visual_director in agent.py (Module 1), execute them automatically.
-    module_globals = globals()
     loop_guard_cls = module_globals.get("LoopGuard")
     active_guard = None
     if callable(loop_guard_cls):
@@ -871,9 +887,7 @@ def run_pitch_workflow(
             active_guard.record_step("creative_director")
             active_guard.record_step("copywriter")
 
-    strip_fn = module_globals.get("strip_markdown_fences")
     if callable(strip_fn):
-        concept = strip_fn(concept)
         copy_text = strip_fn(copy_text)
         join_inputs["creative_director"] = concept
         join_inputs["copywriter"] = copy_text
@@ -956,19 +970,35 @@ def run_pitch_workflow(
                         f"(or verify VISUAL_DIRECTOR_URL in .env)."
                     ) from exc
 
-        visual_instruction = getattr(
-            visual_agent,
-            "instruction",
-            (
-                "You are the Visual Director. Produce brand-compliant art direction "
-                "using our deep indigo and slate palette with a warm amber or terracotta "
-                "accent, single low raking light with long shadows, off-center negative "
-                "space, and one realistic photographic subject."
-            ),
+        visual_instruction = str(
+            getattr(
+                visual_agent,
+                "instruction",
+                (
+                    "You are the Visual Director. Produce brand-compliant art direction "
+                    "using our deep indigo and slate palette with a warm amber or terracotta "
+                    "accent, single low raking light with long shadows, off-center negative "
+                    "space, and one realistic photographic subject."
+                ),
+            )
+            or ""
+        )
+        skill_md_path = Path(__file__).resolve().parent / "skills" / "brand-guidelines" / "SKILL.md"
+        if skill_md_path.is_file():
+            try:
+                skill_text = skill_md_path.read_text(encoding="utf-8").strip()
+                if skill_text and skill_text not in visual_instruction:
+                    visual_instruction = f"{visual_instruction}\n\n[Loaded Skill: brand-guidelines]\n{skill_text}"
+            except OSError:
+                pass
+        effective_visual_instruction = (
+            f"{visual_instruction}\n\n"
+            "Return ONLY the written art direction notes as plain text "
+            "(do not emit tool call syntax; generate_key_visual will be invoked automatically with your text output)."
         )
         art_direction = active_services.llm.generate_text(
             concept,
-            system_instruction=visual_instruction,
+            system_instruction=effective_visual_instruction,
             model=active_model,
         )
         if callable(strip_fn):

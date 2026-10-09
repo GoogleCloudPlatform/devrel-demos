@@ -338,7 +338,15 @@ class PitchFastAPIApp:
                 )
             session_id = str(payload.get("session_id") or "default").strip() or "default"
             routing_mode = str(payload.get("routing_mode") or "auto").strip()
-            require_approval = bool(payload.get("require_approval", False))
+            import pitch_generator.agent as _agent_mod
+
+            hitl_gate_defined = (
+                getattr(_agent_mod, "approve_concept", None) is not None
+                or getattr(_agent_mod, "user_approval", None) is not None
+            )
+            require_approval = bool(
+                payload.get("require_approval", hitl_gate_defined)
+            )
             approved_val = payload.get("approved", None if require_approval else True)
 
             try:

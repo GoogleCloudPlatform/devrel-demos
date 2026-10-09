@@ -42,7 +42,7 @@ VALID_ROUTING_MODES: tuple[str, ...] = (
     "local_model",
     "cloud_frontier",
 )
-FALLBACK_CHAIN: list[str] = ["webllm_browser", "local_model", "cloud_frontier"]
+FALLBACK_CHAIN: list[str] = ["webllm_browser", "cloud_frontier"]
 DEFAULT_WEBLLM_MODEL: str = "Llama-3.2-1B-Instruct-q4f16_1-MLC"
 
 
@@ -287,14 +287,26 @@ class HybridModelRouter:
         if clean_mode == "webllm_browser":
             desired_target = "webllm_browser"
         elif clean_mode == "local_model":
-            desired_target = "local_model"
+            # Graceful legacy fallback: local model tier routes to Cloud Frontier
+            desired_target = "cloud_frontier"
+            fallback_needed = True
+            model_id = self.config.flash_model
+            return RoutingDecision(
+                target="cloud_frontier",
+                model_id=model_id,
+                requested_mode=clean_mode,
+                fallback_used=True,
+                fallback_applied=True,
+                webgpu_available=browser_webgpu,
+                local_gpu_available=False,
+                rationale=(
+                    f"Fell back from local_model to Cloud Frontier Flash ({model_id}) "
+                    "because local execution tier has been streamlined to direct cloud reasoning."
+                ),
+            )
         else:
-            # Auto mode determination
-            if complexity == "low":
-                desired_target = "webllm_browser"
-            elif complexity == "medium" and (local_gpu or privacy_sensitive):
-                desired_target = "local_model"
-            elif privacy_sensitive:
+            # Auto mode determination: low complexity or private drafts target client WebLLM
+            if complexity == "low" or privacy_sensitive:
                 desired_target = "webllm_browser"
             else:
                 desired_target = "cloud_frontier"
@@ -309,68 +321,24 @@ class HybridModelRouter:
                     fallback_used=False,
                     fallback_applied=False,
                     webgpu_available=True,
-                    local_gpu_available=local_gpu,
+                    local_gpu_available=False,
                     rationale=(
                         "Routed to client-side WebLLM in browser via WebGPU acceleration for "
                         "zero-cost on-device execution."
                     ),
                 )
-            elif local_gpu:
+            else:
                 return RoutingDecision(
-                    target="local_model",
-                    model_id=self.config.local_model,
+                    target="cloud_frontier",
+                    model_id=self.config.flash_model,
                     requested_mode=clean_mode,
                     fallback_used=True,
                     fallback_applied=True,
                     webgpu_available=False,
-                    local_gpu_available=True,
+                    local_gpu_available=False,
                     rationale=(
-                        "Fell back from browser WebLLM to local model (Gemma) because client "
+                        "Fell back from browser WebLLM to Cloud Frontier Flash because client "
                         "browser WebGPU acceleration is unavailable."
-                    ),
-                )
-            else:
-                return RoutingDecision(
-                    target="cloud_frontier",
-                    model_id=self.config.flash_model,
-                    requested_mode=clean_mode,
-                    fallback_used=True,
-                    fallback_applied=True,
-                    webgpu_available=False,
-                    local_gpu_available=False,
-                    rationale=(
-                        "Fell back from browser WebLLM and local model to Cloud Frontier Flash "
-                        "because neither WebGPU nor local GPU hardware was detected."
-                    ),
-                )
-
-        if desired_target == "local_model":
-            if local_gpu:
-                return RoutingDecision(
-                    target="local_model",
-                    model_id=self.config.local_model,
-                    requested_mode=clean_mode,
-                    fallback_used=False,
-                    fallback_applied=False,
-                    webgpu_available=browser_webgpu,
-                    local_gpu_available=True,
-                    rationale=(
-                        f"Routed to local open-weights model ({self.config.local_model}) on local "
-                        "GPU for confidential edge execution."
-                    ),
-                )
-            else:
-                return RoutingDecision(
-                    target="cloud_frontier",
-                    model_id=self.config.flash_model,
-                    requested_mode=clean_mode,
-                    fallback_used=True,
-                    fallback_applied=True,
-                    webgpu_available=browser_webgpu,
-                    local_gpu_available=False,
-                    rationale=(
-                        "Fell back from local model to Cloud Frontier Flash because local GPU "
-                        "environment is unavailable."
                     ),
                 )
 
@@ -382,7 +350,7 @@ class HybridModelRouter:
             fallback_used=False,
             fallback_applied=False,
             webgpu_available=browser_webgpu,
-            local_gpu_available=local_gpu,
+            local_gpu_available=False,
             rationale=(
                 f"Routed to Cloud Frontier Flash model ({self.config.flash_model}) as the "
                 "balanced default for campaign pitch synthesis."

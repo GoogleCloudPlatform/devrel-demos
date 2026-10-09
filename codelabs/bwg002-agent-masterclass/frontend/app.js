@@ -242,7 +242,59 @@ function setBanner(message, level) {
  * @param {Array<string>} traceSteps Ordered list of executed workflow node names.
  * @return {void}
  */
-function renderWorkflowTrace(traceSteps) {
+let _cachedWebGpuAvailable = null;
+
+/**
+ * Probe whether WebGPU hardware acceleration is available in the client browser.
+ *
+ * Why: Asynchronously queries navigator.gpu and requests an adapter to verify
+ * true GPU acceleration is present for client-side WebLLM execution (Module 4),
+ * updating the #webgpu-badge element in the application header.
+ *
+ * @param {Object} [navOverride] Optional navigator object override for offline testing.
+ * @return {Promise<boolean>} Resolves true if WebGPU hardware acceleration is active.
+ */
+async function probeWebGpuHardware(navOverride) {
+  const nav =
+    navOverride !== undefined
+      ? navOverride
+      : typeof navigator !== "undefined"
+        ? navigator
+        : null;
+  let isAvailable = false;
+  try {
+    if (nav && nav.gpu && typeof nav.gpu.requestAdapter === "function") {
+      const adapter = await nav.gpu.requestAdapter();
+      isAvailable = Boolean(adapter);
+    } else if (nav && nav.gpu) {
+      isAvailable = true;
+    }
+  } catch (err) {
+    isAvailable = false;
+  }
+  _cachedWebGpuAvailable = isAvailable;
+
+  if (typeof document !== "undefined") {
+    const badge = document.getElementById("webgpu-badge");
+    if (badge) {
+      badge.textContent = isAvailable ? "WebGPU: Available" : "WebGPU: Unavailable";
+      badge.className = isAvailable ? "badge badge-ok" : "badge badge-neutral";
+    }
+  }
+  return isAvailable;
+}
+
+/**
+ * Render execution trace steps in `#workflow-trace-list`.
+ *
+ * Why: Renders an accessible ordered list confirming which agent nodes (and routing tier)
+ * ran during the workflow.
+ *
+ * @param {Array<string>} traceSteps Ordered list of executed workflow node names.
+ * @param {Object} [routingDecision] Optional hybrid routing decision metadata.
+ * @return {void}
+ */
+function renderWorkflowTrace(traceSteps, routingDecision) {
   if (typeof document === "undefined") {
     return;
   }
@@ -257,6 +309,18 @@ function renderWorkflowTrace(traceSteps) {
   const items = steps.map((stepName) =>
     createSafeElement("li", {}, `Executed node: ${stepName}`)
   );
+  if (routingDecision && routingDecision.target) {
+    const fallbackText = routingDecision.fallback_applied
+      ? " (Fallback from WebLLM)"
+      : "";
+    items.unshift(
+      createSafeElement(
+        "li",
+        {},
+        `Routing tier: ${routingDecision.target} [${routingDecision.model_id}]${fallbackText}`
+      )
+    );
+  }
   listEl.replaceChildren(...items);
 }
 
@@ -275,6 +339,8 @@ function renderPitchResult(data) {
     return;
   }
   const statusEl = document.getElementById("pitch-status");
+  const hitlCard = document.getElementById("hitl-approval-card");
+  const hitlPromptEl = document.getElementById("hitl-approval-prompt");
   const conceptEl = document.getElementById("pitch-concept");
   const copyEl = document.getElementById("pitch-copy");
   const brandCard = document.getElementById("brand-strategy-card");
@@ -291,11 +357,41 @@ function renderPitchResult(data) {
     statusEl.className =
       statusText === "completed" ? "badge badge-ok" : "badge badge-warn";
   }
+  if (hitlCard) {
+    if (statusText === "input_required") {
+      hitlCard.hidden = false;
+      if (hitlPromptEl) {
+        hitlPromptEl.textContent =
+          data.prompt ||
+          "Please approve the campaign concept (yes/no). Downstream agents are paused until you decide.";
+      }
+      setBanner(
+        "Human-in-the-Loop gate active: review the Campaign Concept and click Approve or Reject.",
+        "info"
+      );
+    } else {
+      hitlCard.hidden = true;
+      if (statusText === "rejected") {
+        setBanner(
+          "Campaign concept rejected. Workflow halted before running downstream agents.",
+          "warn"
+        );
+      } else if (statusText === "completed") {
+        setBanner("", "info");
+      }
+    }
+  }
   if (conceptEl) {
     renderSafeMarkdown(conceptEl, data.concept || "No concept generated.");
   }
   if (copyEl) {
-    renderSafeMarkdown(copyEl, data.copy || "No social copy generated.");
+    const defaultCopyMessage =
+      statusText === "input_required"
+        ? "Paused at HITL gate — awaiting human approval before running downstream agents."
+        : statusText === "rejected"
+          ? "Workflow halted — concept rejected by human reviewer (zero downstream tokens spent)."
+          : "No social copy generated.";
+    renderSafeMarkdown(copyEl, data.copy || defaultCopyMessage);
   }
   if (brandCard && brandEl) {
     if (data.brand_strategy) {
@@ -339,7 +435,7 @@ function renderPitchResult(data) {
     }
   }
 
-  renderWorkflowTrace(data.trace);
+  renderWorkflowTrace(data.trace, data.routing_decision);
 }
 
 /**
@@ -488,6 +584,63 @@ async function submitPitchRequest(payload, fetchImpl) {
 }
 
 /**
+ * Submit a Human-in-the-Loop approval or rejection decision to `POST /api/approve`.
+ *
+ * Why: Resumes a paused workflow session (`status === "input_required"`) in Step 3c
+ * so learners can test both concept rejection (fail-closed) and approval directly
+ * from the web interface.
+ *
+ * @param {boolean} approved True to approve and run downstream agents, False to reject.
+ * @param {Function} fetchImpl Optional fetch implementation for testing.
+ * @return {Promise<Object>} Resumed workflow response payload.
+ */
+async function submitApprovalDecision(approved, fetchImpl) {
+  const fetcher = fetchImpl || fetch;
+  const sessionInput =
+    typeof document !== "undefined"
+      ? document.getElementById("session-id-input")
+      : null;
+  const approveBtn =
+    typeof document !== "undefined"
+      ? document.getElementById("btn-approve-concept")
+      : null;
+  const rejectBtn =
+    typeof document !== "undefined"
+      ? document.getElementById("btn-reject-concept")
+      : null;
+  const sessionId =
+    sessionInput && sessionInput.value ? sessionInput.value.trim() : "default";
+
+  if (approveBtn) approveBtn.disabled = true;
+  if (rejectBtn) rejectBtn.disabled = true;
+  setGenerateButtonLoading(true);
+  try {
+    const resp = await fetcher("/api/approve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: sessionId,
+        approved: Boolean(approved),
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      setBanner(data.error || "Failed to process approval decision.", "error");
+      return data;
+    }
+    renderPitchResult(data);
+    return data;
+  } catch (err) {
+    setBanner(`Approval request failed: ${err.message || err}`, "error");
+    throw err;
+  } finally {
+    if (approveBtn) approveBtn.disabled = false;
+    if (rejectBtn) rejectBtn.disabled = false;
+    setGenerateButtonLoading(false);
+  }
+}
+
+/**
  * Fetch and display the A2A Agent Card from `/a2a/pitch_generator/.well-known/agent-card.json`.
  *
  * Why: Allows learners to inspect the published A2A v0.3 discovery metadata directly
@@ -512,7 +665,7 @@ async function inspectA2aAgentCard(fetchImpl) {
 }
 
 /**
- * Attach DOM event listeners for form submission and A2A Agent Card inspection.
+ * Attach DOM event listeners for form submission, HITL approval, and A2A Agent Card inspection.
  *
  * Why: Centralizes UI initialization when `DOMContentLoaded` fires in the browser.
  *
@@ -525,6 +678,7 @@ function initPitchGeneratorApp() {
   fetchHealthAndConfig().catch((err) => {
     setBanner(`Unable to load service configuration: ${err.message}`, "warn");
   });
+  probeWebGpuHardware().catch(() => {});
 
   const form = document.getElementById("pitch-form");
   if (form) {
@@ -532,11 +686,28 @@ function initPitchGeneratorApp() {
       event.preventDefault();
       const briefInput = document.getElementById("brief-input");
       const sessionInput = document.getElementById("session-id-input");
+      const routingSelect = document.getElementById("routing-mode-select");
 
       submitPitchRequest({
         brief: briefInput ? briefInput.value : "",
         session_id: sessionInput ? sessionInput.value : "default",
+        routing_mode: routingSelect ? routingSelect.value : "auto",
+        browser_webgpu_available: _cachedWebGpuAvailable ?? false,
       });
+    });
+  }
+
+  const approveBtn = document.getElementById("btn-approve-concept");
+  if (approveBtn) {
+    approveBtn.addEventListener("click", () => {
+      submitApprovalDecision(true);
+    });
+  }
+
+  const rejectBtn = document.getElementById("btn-reject-concept");
+  if (rejectBtn) {
+    rejectBtn.addEventListener("click", () => {
+      submitApprovalDecision(false);
     });
   }
 
@@ -560,8 +731,10 @@ if (typeof module !== "undefined" && module.exports) {
     renderWorkflowTrace,
     renderPitchResult,
     fetchHealthAndConfig,
+    probeWebGpuHardware,
     setGenerateButtonLoading,
     submitPitchRequest,
+    submitApprovalDecision,
     inspectA2aAgentCard,
     initPitchGeneratorApp,
   };

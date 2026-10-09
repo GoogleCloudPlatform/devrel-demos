@@ -357,12 +357,38 @@ def test_step_4b_route_lightweight_privacy_task() -> None:
     assert bool(decision.rationale)
 
 
-def test_step_4b_route_medium_task_to_local_gemma() -> None:
+def test_step_4b_fallback_webllm_to_cloud_frontier() -> None:
     """
     /**
-     * Verifies medium-complexity text tasks route to local_model when local GPU is available.
+     * Verifies fallback from webllm_browser directly to cloud_frontier when WebGPU is unavailable.
      *
-     * Why: Validates local edge execution for confidential synthesis without cloud egress.
+     * Why: Confirms the 2-tier edge-to-cloud fallback chain ("webllm_browser" -> "cloud_frontier").
+     */
+    """
+    step_4b = _load_step("step_4b_hybrid_routing.py")
+    route_fn = step_4b.route_task
+
+    decision = route_fn(
+        {
+            "task_type": "draft_copy",
+            "complexity": "low",
+            "privacy_sensitive": True,
+            "browser_webgpu_available": False,
+        }
+    )
+
+    assert decision.target == "cloud_frontier"
+    assert decision.fallback_used is True
+    assert decision.fallback_applied is True
+    assert decision.fallback_chain == ["webllm_browser", "cloud_frontier"]
+
+
+def test_step_4b_legacy_local_model_cascades_to_cloud() -> None:
+    """
+    /**
+     * Verifies requesting legacy local_model cascades gracefully to cloud_frontier.
+     *
+     * Why: Provides backwards compatibility while keeping the execution architecture strictly 2-tier.
      */
     """
     step_4b = _load_step("step_4b_hybrid_routing.py")
@@ -371,18 +397,14 @@ def test_step_4b_route_medium_task_to_local_gemma() -> None:
     decision = route_fn(
         {
             "task_type": "concept_refinement",
+            "routing_mode": "local_model",
             "complexity": "medium",
-            "requires_multimodal": False,
             "browser_webgpu_available": False,
-            "local_gpu_available": True,
         }
     )
 
-    assert decision.target == "local_model"
-    assert decision.fallback_used is False
-    assert bool(decision.rationale)
-
-
+    assert decision.target == "cloud_frontier"
+    assert decision.fallback_used is True
 def test_step_4b_route_multimodal_to_cloud_frontier() -> None:
     """
     /**
@@ -400,64 +422,11 @@ def test_step_4b_route_multimodal_to_cloud_frontier() -> None:
             "complexity": "high",
             "requires_multimodal": True,
             "browser_webgpu_available": True,
-            "local_gpu_available": True,
         }
     )
 
     assert decision.target == "cloud_frontier"
     assert bool(decision.rationale)
-
-
-def test_step_4b_single_fallback_webllm_to_local() -> None:
-    """
-    /**
-     * Verifies fallback from webllm_browser to local_model when WebGPU is unavailable.
-     *
-     * Why: Exercises first hop of the fallback chain when client browser lacks WebGPU.
-     */
-    """
-    step_4b = _load_step("step_4b_hybrid_routing.py")
-    route_fn = step_4b.route_task
-
-    decision = route_fn(
-        {
-            "task_type": "draft_copy",
-            "complexity": "low",
-            "privacy_sensitive": True,
-            "browser_webgpu_available": False,
-            "local_gpu_available": True,
-        }
-    )
-
-    assert decision.target == "local_model"
-    assert decision.fallback_used is True
-    assert decision.fallback_applied is True
-
-
-def test_step_4b_double_fallback_to_cloud_frontier() -> None:
-    """
-    /**
-     * Verifies double fallback webllm_browser -> local_model -> cloud_frontier when both GPUs are missing.
-     *
-     * Why: Guarantees task execution succeeds on Cloud Frontier even when edge hardware is absent.
-     */
-    """
-    step_4b = _load_step("step_4b_hybrid_routing.py")
-    route_fn = step_4b.route_task
-
-    decision = route_fn(
-        {
-            "task_type": "draft_copy",
-            "complexity": "low",
-            "privacy_sensitive": True,
-            "browser_webgpu_available": False,
-            "local_gpu_available": False,
-        }
-    )
-
-    assert decision.target == "cloud_frontier"
-    assert decision.fallback_used is True
-    assert decision.fallback_applied is True
 
 
 def test_step_4b_multimodal_overrides_forced_targets() -> None:
