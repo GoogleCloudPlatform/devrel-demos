@@ -253,6 +253,14 @@ async function main() {
     ],
     { stdio: ["pipe", "ignore", "inherit"] }
   );
+  ff.on("error", (err) => {
+    console.error("Failed to start ffmpeg:", err);
+  });
+  ff.stdin.on("error", (err) => {
+    if (err.code !== "EPIPE") {
+      console.error("ffmpeg stdin error:", err);
+    }
+  });
 
   for (let frame = 0; frame < totalFrames; frame++) {
     const t = frame / FPS;

@@ -308,27 +308,33 @@ def fetch_local_dir(
 ) -> dict[str, Any]:
   """Analyze a local directory without any network requests."""
   local_path = local_path.resolve()
+  base_dir = local_path if local_path.is_dir() else local_path.parent
   all_entries: list[tuple[str, int]] = []
-  for root, dirs, filenames in os.walk(local_path):
-    dirs[:] = [
-        d for d in dirs
-        if not d.startswith(".") and d not in ("node_modules", "__pycache__", "venv", ".venv", "dist", "build", "target")
-    ]
-    for fn in filenames:
-      p = pathlib.Path(root) / fn
-      rel = p.relative_to(local_path).as_posix()
-      if p.suffix.lower() in CODE_EXTENSIONS or p.name.lower() in CODE_FILENAMES:
-        try:
-          sz = p.stat().st_size
-        except OSError:
-          sz = 0
-        all_entries.append((rel, sz))
+  if local_path.is_file():
+    all_entries.append((local_path.name, local_path.stat().st_size))
+  elif local_path.is_dir():
+    for root, dirs, filenames in os.walk(local_path):
+      dirs[:] = [
+          d for d in dirs
+          if not d.startswith(".") and d not in ("node_modules", "__pycache__", "venv", ".venv", "dist", "build", "target")
+      ]
+      for fn in filenames:
+        p = pathlib.Path(root) / fn
+        rel = p.relative_to(local_path).as_posix()
+        if p.suffix.lower() in CODE_EXTENSIONS or p.name.lower() in CODE_FILENAMES:
+          try:
+            sz = p.stat().st_size
+          except OSError:
+            sz = 0
+          all_entries.append((rel, sz))
+  else:
+    raise FileNotFoundError(f"Path not found: {local_path}")
 
   selected = filter_and_rank_paths(all_entries, max_files)
   file_contents = {}
   for rel in selected:
     try:
-      file_contents[rel] = (local_path / rel).read_text(encoding="utf-8", errors="replace")
+      file_contents[rel] = (base_dir / rel).read_text(encoding="utf-8", errors="replace")
     except Exception:
       file_contents[rel] = ""
 
