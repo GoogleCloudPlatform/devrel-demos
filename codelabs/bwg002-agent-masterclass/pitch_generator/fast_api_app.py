@@ -629,10 +629,13 @@ def create_app(services: ServiceContainer | None = None) -> PitchFastAPIApp:
 
 
 # [Guidepost — Step 1c: Standalone Visual Director A2A Service Role]
-# In Step 1c, check `os.environ.get("SERVICE_ROLE", "pitch-generator").strip().lower()` and when
-# `SERVICE_ROLE == "visual-director"`, bind `app = build_a2a_visual_director_app()` (imported from
-# `pitch_generator.agent`) so the same container image can serve the standalone Visual Director
-# A2A microservice on port 8801 or Cloud Run.
+# TODO (Step 1c): Expose the Visual Director as a standalone A2A microservice when `SERVICE_ROLE == "visual-director"`:
+#   - Implement or import `build_a2a_visual_director_app(services: ServiceContainer | None = None) -> PitchFastAPIApp`
+#     from `pitch_generator.agent` that registers `/.well-known/agent-card.json` and `/a2a/visual_director`
+#     using `AgentCardBuilder(agent=visual_director, rpc_url=...)` and `A2aAgentExecutorConfig(execute_interceptors=[include_artifacts_in_a2a_event_interceptor])`.
+#   - Check `os.environ.get("SERVICE_ROLE", "pitch-generator").strip().lower()` and when `SERVICE_ROLE == "visual-director"`,
+#     bind `app = build_a2a_visual_director_app()` so the same container image can serve either `pitch-generator` (port 8080)
+#     or `visual-director` (port 8801 / Cloud Run).
 app: PitchFastAPIApp = create_app()
 
 

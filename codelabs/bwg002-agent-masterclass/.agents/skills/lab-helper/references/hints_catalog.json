@@ -39,11 +39,11 @@
       "module": 2,
       "title": "Agent Analytics in BigQuery & Object Tables",
       "files": ["module_2/step_2a_bigquery_analytics.py", "module_2/sql/create_key_visuals.sql"],
-      "required_symbols": ["BigQueryTelemetryLogger", "build_key_visuals_sql", "register_key_visuals"],
+      "required_symbols": ["BigQueryAnalyticsService", "build_key_visuals_sql", "register_key_visuals"],
       "required_substrings": ["OBJ.MAKE_REF", "OBJ.FETCH_METADATA", "pitch-connection"],
       "tier_1_hint": "Tier 1 Conceptual Nudge (Step 2a): Stream agent execution telemetry and multimodal image references directly into BigQuery object tables for unified relational auditing and multimodal search.",
-      "tier_2_hint": "Tier 2 Targeted File & Symbol Hint (Step 2a): In 'pitch_generator/app_utils/services.py' (referencing '.agents/solutions/module_2/step_2a_bigquery_analytics.py'), define 'BigQueryTelemetryLogger', 'build_key_visuals_sql(project, dataset, bucket)', and 'register_key_visuals(...)'. In 'pitch_generator/sql/create_key_visuals.sql', author DDL using BigQuery Cloud Resource Connection 'pitch-connection' with OBJ.MAKE_REF and OBJ.FETCH_METADATA.",
-      "tier_3_hint": "Tier 3 Implementation Blueprint (Step 2a): In 'pitch_generator/sql/create_key_visuals.sql' (using '.agents/solutions/module_2/sql/create_key_visuals.sql' as your blueprint), author DDL: CREATE OR REPLACE TABLE ... using `pitch-connection`, OBJ.MAKE_REF, and OBJ.FETCH_METADATA. In 'pitch_generator/app_utils/services.py', implement BigQueryTelemetryLogger and register_key_visuals. Run 'verify_workspace.py --module 2 --step 2a --tier remediate' to auto-restore."
+      "tier_2_hint": "Tier 2 Targeted File & Symbol Hint (Step 2a): In 'pitch_generator/app_utils/services.py' (referencing '.agents/solutions/module_2/step_2a_bigquery_analytics.py'), use 'BigQueryAnalyticsService', 'build_key_visuals_sql(project, region, bucket)', and 'register_key_visuals(...)'. In 'pitch_generator/sql/create_key_visuals.sql', author DDL using BigQuery Cloud Resource Connection 'pitch-connection' with OBJ.MAKE_REF and OBJ.FETCH_METADATA.",
+      "tier_3_hint": "Tier 3 Implementation Blueprint (Step 2a): In 'pitch_generator/sql/create_key_visuals.sql' (using '.agents/solutions/module_2/sql/create_key_visuals.sql' as your blueprint), author DDL: CREATE OR REPLACE TABLE bwg.key_visuals AS ... using `pitch-connection`, OBJ.MAKE_REF, and OBJ.FETCH_METADATA. In 'pitch_generator/app_utils/services.py', implement register_key_visuals validating gs:// URIs on BigQueryAnalyticsService. Run 'verify_workspace.py --module 2 --step 2a --tier remediate' to auto-restore."
     },
     "2b": {
       "step_id": "2b",
