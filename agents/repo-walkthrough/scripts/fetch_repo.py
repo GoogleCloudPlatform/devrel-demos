@@ -441,11 +441,11 @@ def fetch_git_diff(
   local_path = local_path.resolve()
   try:
     numstat_out = subprocess.run(
-        ["git", "-C", str(local_path), "diff", "--relative", "--numstat", diff_range, "--", "."],
+        ["git", "-C", str(local_path), "diff", "--relative", "--no-renames", "--numstat", diff_range, "--", "."],
         capture_output=True, text=True, check=True,
     ).stdout
     status_out = subprocess.run(
-        ["git", "-C", str(local_path), "diff", "--relative", "--name-status", diff_range, "--", "."],
+        ["git", "-C", str(local_path), "diff", "--relative", "--no-renames", "--name-status", diff_range, "--", "."],
         capture_output=True, text=True, check=True,
     ).stdout
     commits_out = subprocess.run(

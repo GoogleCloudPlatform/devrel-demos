@@ -493,7 +493,7 @@
 
   const dataParam = params.get("data");
   if (dataParam) {
-    if (/^([a-z]+:)?\/\//i.test(dataParam) || dataParam.includes("..")) {
+    if (/^([a-z]+:)?\/\//i.test(dataParam) || dataParam.includes("..") || dataParam.includes("\\")) {
       throw new Error("External URLs or parent path traversals are not allowed for data parameter.");
     }
     await new Promise((resolve, reject) => {
@@ -711,8 +711,8 @@
     for (let i = 0; i < text.length; i++) {
       const ch = text[i];
       const next = text[i + 1] || "";
-      if ((ch === "." || ch === "!" || ch === "?" || ch === ";" || ch === ":") && /\s/.test(next)) w += 26;
-      else if ((ch === "," || ch === "-") && /\s/.test(next)) w += 12;
+      if ((ch === "." || ch === "!" || ch === "?" || ch === ";" || ch === ":") && /\s/.test(next)) w += 12;
+      else if ((ch === "," || ch === "-") && /\s/.test(next)) w += 6;
       else if (/\s/.test(ch)) w += 0.3;
       else w += 1.0;
     }
