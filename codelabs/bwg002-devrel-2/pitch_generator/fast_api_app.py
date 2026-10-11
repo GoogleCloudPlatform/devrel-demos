@@ -306,11 +306,18 @@ class PitchFastAPIApp:
                 )
 
         services = self.state.services
+        import sys
         import pitch_generator.agent as _agent_mod
 
         hitl_gate_defined = (
             getattr(_agent_mod, "approve_concept", None) is not None
             or getattr(_agent_mod, "user_approval", None) is not None
+        )
+        a2a_visual_director_enabled = (
+            getattr(_agent_mod, "remote_visual_director", None) is not None
+            or getattr(_agent_mod, "build_a2a_visual_director_app", None) is not None
+            or getattr(sys.modules.get(__name__), "build_a2a_visual_director_app", None)
+            is not None
         )
 
         # 1. Health check endpoint
@@ -329,6 +336,7 @@ class PitchFastAPIApp:
         if method_upper == "GET" and clean_path == "/api/config":
             cfg_dict = services.config.to_public_dict()
             cfg_dict["hitl_enabled"] = hitl_gate_defined
+            cfg_dict["a2a_enabled"] = a2a_visual_director_enabled
             return TestResponse(200, cfg_dict)
 
         # 3. Campaign pitch workflow execution endpoint
@@ -410,7 +418,22 @@ class PitchFastAPIApp:
                     )
             return TestResponse(404, {"error": "Artifact not found"})
 
-        # 6. A2A Agent Card discovery endpoint
+        # 6. A2A Agent Card discovery endpoint (Visual Director well-known card & registered A2A card)
+        if method_upper == "GET" and clean_path == "/a2a/visual_director/.well-known/agent-card.json":
+            vd_base_url = services.config.visual_director_url.rstrip("/")
+            vd_rpc_url = f"{vd_base_url}/a2a/visual_director"
+            card_builder_fn = getattr(_agent_mod, "build_visual_director_card", None)
+            if callable(card_builder_fn):
+                vd_card = dict(card_builder_fn(rpc_url=vd_rpc_url))
+            else:
+                vd_card = dict(
+                    AgentCardBuilder(
+                        agent=_agent_mod.visual_director,
+                        rpc_url=vd_rpc_url,
+                    ).build()
+                )
+            return TestResponse(200, vd_card)
+
         card_paths = {
             f"{self._a2a_rpc_path}/.well-known/agent-card.json",
             "/.well-known/agent-card.json",

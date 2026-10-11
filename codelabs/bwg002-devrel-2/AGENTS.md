@@ -17,8 +17,8 @@
 4. **Clean Workspace Integrity**:
    - Always run `git status` before finishing a task to ensure no untracked `module_<N>/` directories or temporary scratch files were inadvertently created in the project root.
 
-5. **Provide prompts, not Python suggestions**:
-   - When responding with "how to" type suggestions, provide example prompts the user can type that will accomplish the task. Avoid providing Python commandline instructions for the user to type. Assume the user is not going to use the terminal to enter commands and will only prompt you for changes.
+5. **Provide prompts, not Python command lines**:
+   - When responding with "how to" type suggestions, provide example prompts the user can type that will accomplish the task. **NEVER** provide Python commandline instructions for the user to type.
 
 6. **Canonical CLI Testing, Setup, Local Server & Cloud Run Deployment Scripts**:
    - **CLI Agent Testing**: Whenever asked to test or run the Pitch Generator agent with a prompt (e.g., `"Test the agent with 'Flying skateboards for cats'"`), ALWAYS execute `python3 call_agent.py "<prompt>"` (do NOT pass `--offline` unless explicitly asked).
@@ -38,3 +38,7 @@
 9. **Environment URL Synchronization & BigQuery Telemetry Invariants**:
    - **Post-Deploy URL Sync**: After deploying services with `scripts/deploy.sh`, update `VISUAL_DIRECTOR_URL` and `PITCH_GENERATOR_URL` in `.env` to match the deployed Cloud Run HTTPS URLs so CLI agent invocations route to live services with proper OIDC authentication.
    - **BigQuery Telemetry Table Safeguards**: When initializing or executing live telemetry recording with `BigQueryAnalyticsService`, ensure the destination dataset (`bwg`) and table (`agent_events`) exist with required schema fields before streaming rows via `insert_rows_json`.
+
+10. **Giving URLs to the learner**:
+   - **Pitch Generator** - ONLY provide frontend URL
+   - **Visual Director** - ONLY provide A2A agent card URL

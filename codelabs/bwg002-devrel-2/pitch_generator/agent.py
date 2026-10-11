@@ -378,7 +378,9 @@ run_specialists = run_specialist_team
 #   - `_pitch_parts_only(part: Any)`: stream filter that drops `function_call` and `function_response` parts
 #     (returning `None` / `False`) while keeping `text` and `inline_data` (`image/png`) parts.
 #   - `remote_visual_director = RemoteA2aAgent(name="visual_director", description=..., agent_card=f"{visual_director_url}/.well-known/agent-card.json", httpx_client=_cloud_run_client(visual_director_url), genai_part_converter=_pitch_parts_only, output_key="visual_director")`
-#     and swap `visual_director` for `remote_visual_director` in `root_agent.edges`.
+#     and swap `visual_director` for `remote_visual_director` in `root_agent.edges`. Also remove `hidden`
+#     from `#btn-inspect-a2a` in `frontend/index.html` (defining `remote_visual_director` or
+#     `build_a2a_visual_director_app` also automatically sets `a2a_enabled=True` in `/api/config`).
 
 assemble = JoinNode(name="assemble")
 
@@ -493,9 +495,9 @@ loop_guard = LoopGuard(max_iterations=10)
 #     `status="rejected"` (`downstream_calls=0`) when `approved is False`, and `status="completed"`
 #     (`downstream_calls=2`, `"## Approved Concept"` in `concept_header`) when `approved is True`.
 #   - Insert `user_approval` into `root_agent.edges` after `creative_director`, and enable the
-#     Human-in-the-Loop approval gate card (`#hitl-approval-card`) in `frontend/index.html` by
-#     removing its `hidden` attribute (defining `approve_concept` or `user_approval` here also
-#     automatically sets `hitl_enabled=True` in `/api/config` and `/api/pitch`).
+#     Human-in-the-Loop UI controls (`#hitl-checkbox-group` and `#hitl-approval-card`) in
+#     `frontend/index.html` by removing their `hidden` attributes (defining `approve_concept` or
+#     `user_approval` here also automatically sets `hitl_enabled=True` in `/api/config` and `/api/pitch`).
 root_agent = Workflow(
     name="pitch_generator",
     edges=[

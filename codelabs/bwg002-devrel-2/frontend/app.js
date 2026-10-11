@@ -282,6 +282,7 @@ function renderPitchResult(data) {
     return;
   }
   const statusEl = document.getElementById("pitch-status");
+  const hitlCheckboxGroup = document.getElementById("hitl-checkbox-group");
   const hitlCard = document.getElementById("hitl-approval-card");
   const hitlPromptEl = document.getElementById("hitl-approval-prompt");
   const approveBtn = document.getElementById("btn-approve-concept");
@@ -302,11 +303,14 @@ function renderPitchResult(data) {
     statusEl.className =
       statusText === "completed" ? "badge badge-ok" : "badge badge-warn";
   }
+  const showHitlCard =
+    Boolean(data.hitl_enabled) ||
+    statusText === "input_required" ||
+    statusText === "rejected";
+  if (hitlCheckboxGroup) {
+    hitlCheckboxGroup.hidden = !showHitlCard;
+  }
   if (hitlCard) {
-    const showHitlCard =
-      Boolean(data.hitl_enabled) ||
-      statusText === "input_required" ||
-      statusText === "rejected";
     hitlCard.hidden = !showHitlCard;
     if (statusText === "input_required") {
       if (approveBtn) approveBtn.disabled = false;
@@ -461,6 +465,14 @@ async function fetchHealthAndConfig(fetchImpl) {
       summaryEl.textContent =
         `Project: ${cfg.project_id} | Region: ${cfg.region} | ` +
         `Model: ${modelName} | Enterprise Agent Platform: ${cfg.use_enterprise ? "Enabled" : "Disabled"}`;
+    }
+    const a2aBtn = document.getElementById("btn-inspect-a2a");
+    if (a2aBtn && cfg.a2a_enabled) {
+      a2aBtn.hidden = false;
+    }
+    const hitlCheckboxGroup = document.getElementById("hitl-checkbox-group");
+    if (hitlCheckboxGroup && cfg.hitl_enabled) {
+      hitlCheckboxGroup.hidden = false;
     }
     const hitlCard = document.getElementById("hitl-approval-card");
     if (hitlCard && cfg.hitl_enabled) {
@@ -631,17 +643,18 @@ async function submitApprovalDecision(approved, fetchImpl) {
 }
 
 /**
- * Fetch and display the A2A Agent Card from `/a2a/pitch_generator/.well-known/agent-card.json`.
+ * Fetch and display the Visual Director's well-known A2A Agent Card from
+ * `/a2a/visual_director/.well-known/agent-card.json`.
  *
- * Why: Allows learners to inspect the published A2A v0.3 discovery metadata directly
- * in the web UI.
+ * Why: Allows learners in Step 1c to inspect the published Visual Director A2A v0.3
+ * discovery metadata (`/.well-known/agent-card.json`) directly in the web UI.
  *
  * @param {Function} fetchImpl Optional fetch implementation for testing.
- * @return {Promise<Object>} Parsed A2A Agent Card JSON.
+ * @return {Promise<Object>} Parsed Visual Director A2A Agent Card JSON.
  */
 async function inspectA2aAgentCard(fetchImpl) {
   const fetcher = fetchImpl || fetch;
-  const resp = await fetcher("/a2a/pitch_generator/.well-known/agent-card.json");
+  const resp = await fetcher("/a2a/visual_director/.well-known/agent-card.json");
   const card = await resp.json();
   if (typeof document !== "undefined") {
     const section = document.getElementById("a2a-card-section");

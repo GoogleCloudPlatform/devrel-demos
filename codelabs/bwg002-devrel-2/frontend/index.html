@@ -32,7 +32,10 @@
     </div>
     <div class="header-badges" aria-label="Service status indicators">
       <span id="health-badge" class="badge badge-neutral" role="status" aria-live="polite">Checking service...</span>
-      <button id="btn-inspect-a2a" type="button" class="btn btn-secondary">Inspect A2A Agent Card</button>
+      <!-- [Guidepost — Step 1c: Enable the Visual Director A2A Agent Card Button]
+           TODO (Step 1c): Remove the `hidden` attribute from `#btn-inspect-a2a` when exposing the
+           Visual Director A2A service and connecting `RemoteA2aAgent`. -->
+      <button id="btn-inspect-a2a" type="button" class="btn btn-secondary" hidden>Inspect A2A Agent Card</button>
     </div>
   </header>
 
@@ -62,7 +65,10 @@
           </div>
         </div>
 
-        <div class="form-group form-group-checkbox">
+        <!-- [Guidepost — Step 3c: Enable the Human-in-the-Loop Verification Checkbox]
+             TODO (Step 3c): Remove the `hidden` attribute from `#hitl-checkbox-group` when implementing
+             `approve_concept` and `user_approval` in `pitch_generator/agent.py`. -->
+        <div id="hitl-checkbox-group" class="form-group form-group-checkbox" hidden>
           <label class="checkbox-label" for="require-approval-checkbox">
             <input id="require-approval-checkbox" name="require_approval" type="checkbox" />
             <span>Enable Human-in-the-Loop (HITL) verification (Step 3c)</span>
@@ -136,7 +142,7 @@
       </section>
 
       <section id="a2a-card-section" class="subpanel" aria-labelledby="heading-a2a" hidden>
-        <h3 id="heading-a2a">A2A Protocol Agent Card (<code>/.well-known/agent-card.json</code>)</h3>
+        <h3 id="heading-a2a">Visual Director A2A Agent Card (<code>/.well-known/agent-card.json</code>)</h3>
         <pre id="a2a-card-panel" class="code-box"></pre>
       </section>
     </section>

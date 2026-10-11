@@ -743,7 +743,7 @@ def test_f4_plain_html_css_js_frontend_zero_frameworks() -> None:
         "/api/config",
         "/api/pitch",
         "/api/approve",
-        "/a2a/pitch_generator/.well-known/agent-card.json",
+        "/a2a/visual_director/.well-known/agent-card.json",
     ):
         assert endpoint in js_text, f"frontend/app.js does not connect to {endpoint}"
 
