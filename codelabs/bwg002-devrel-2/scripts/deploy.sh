@@ -108,6 +108,7 @@ deploy_cloud_run_service() {
 
   if command -v agents-cli >/dev/null 2>&1; then
     agents-cli deploy \
+      --deployment-target cloud_run \
       --service-name "${service_name}" \
       --project "${GOOGLE_CLOUD_PROJECT}" \
       --region "${GOOGLE_CLOUD_REGION}" \

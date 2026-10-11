@@ -16,14 +16,17 @@
  */
 -->
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https:; style-src 'self'; script-src 'self';" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; img-src 'self' data: https:; style-src 'self'; script-src 'self';" />
   <title>Agentic Pitch Generator — Gemini Enterprise Agent Platform</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="app.js" defer></script>
 </head>
+
 <body>
   <header class="app-header">
     <div class="header-titles">
@@ -49,13 +52,8 @@
       <form id="pitch-form" novalidate>
         <div class="form-group">
           <label for="brief-input">Campaign Topic Brief</label>
-          <textarea
-            id="brief-input"
-            name="brief"
-            rows="3"
-            required
-            placeholder="e.g., Flying skateboards for cats, or A commuter bike built for rainy cities"
-          >A commuter bike built for rainy cities</textarea>
+          <textarea id="brief-input" name="brief" rows="3" required
+            placeholder="e.g., Flying skateboards for cats, or A commuter bike built for rainy cities">A commuter bike built for rainy cities</textarea>
         </div>
 
         <div class="form-row">
@@ -104,7 +102,8 @@
       <div id="pitch-result-card" class="pitch-grid">
         <article class="pitch-card">
           <h3>Campaign Concept (Creative Director)</h3>
-          <div id="pitch-concept" class="pitch-content">Submit a campaign brief to generate a concept line and rationale.</div>
+          <div id="pitch-concept" class="pitch-content">Submit a campaign brief to generate a concept line and
+            rationale.</div>
         </article>
 
         <article class="pitch-card">
@@ -124,12 +123,8 @@
 
         <article id="key-visual-card" class="pitch-card">
           <h3>Key Visual (Visual Director)</h3>
-          <img
-            id="pitch-key-visual-img"
-            class="pitch-key-visual-img"
-            alt="Generated campaign key visual"
-            hidden
-          />
+          <img id="pitch-key-visual-img" class="pitch-key-visual-img" alt="Generated campaign key visual"
+            src="placeholder.png" hidden />
           <p id="pitch-key-visual" class="pitch-content">Waiting for key visual generation...</p>
         </article>
       </div>
@@ -137,7 +132,8 @@
       <section class="subpanel" aria-labelledby="heading-trace">
         <h3 id="heading-trace">Agent Workflow Trace &amp; Telemetry</h3>
         <ol id="workflow-trace-list" class="trace-list">
-          <li>Ready to run multi-agent workflow (`creative_director` &rarr; `brand_strategist` &rarr; `copywriter` + `visual_director` &rarr; `assemble` &rarr; `package`).</li>
+          <li>Ready to run multi-agent workflow (`creative_director` &rarr; `brand_strategist` &rarr; `copywriter` +
+            `visual_director` &rarr; `assemble` &rarr; `package`).</li>
         </ol>
       </section>
 
@@ -148,4 +144,5 @@
     </section>
   </main>
 </body>
+
 </html>
