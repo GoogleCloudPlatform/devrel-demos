@@ -533,7 +533,7 @@ class PromptCacheManager:
         entry = self._entries.get(cache_key)
         is_hit = False
 
-        if entry is not None and effective_ttl > 0 and self.default_ttl_seconds > 0:
+        if entry is not None and effective_ttl > 0:
             if now < entry["expires_at"]:
                 is_hit = True
 

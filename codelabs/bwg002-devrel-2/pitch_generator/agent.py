@@ -341,6 +341,7 @@ run_specialists = run_specialist_team
 #      `## Composition` (off-center hero subject, generous negative space, shallow depth of field),
 #      `## Subject` (one realistic photographic subject, authentic/handcrafted materials), and
 #      `## Never` (no neon, fluorescent cyan/magenta, watermarks, logos, ring light, or 3D renders).
+#      Keep these 5 sections, but set values to match learner's prompt incase they get creative.
 #   2. Define `Skill(name, description, body, path=None)` and `SkillToolset(skills)` (with
 #      `.load_skill(skill_name) -> str` and `.loaded_skills: list[str]`), plus
 #      `load_skill_from_dir(skill_dir: str | Path) -> Skill` and `load_brand_skill() -> Skill`.
@@ -642,6 +643,7 @@ def run_pitch_workflow(
     services: ServiceContainer | None = None,
     approved: bool | None = True,
     require_approval: bool = False,
+    existing_concept: str | None = None,
 ) -> dict[str, Any]:
     """
     /**
@@ -660,6 +662,8 @@ def run_pitch_workflow(
      * @param approved HITL approval state (`True` to complete, `False` to reject,
      *   `None` to pause at `input_required` when HITL is enabled).
      * @param require_approval If True, pauses at the HITL gate (`status="input_required"`).
+     * @param existing_concept Optional pre-generated concept to reuse when resuming a paused
+     *   HITL session so `creative_director` is not re-executed.
      * @return Workflow result dictionary with keys `session_id`, `status`, `concept`,
      *   `copy`, `brand_strategy`, `art_direction`, `key_visual_uri`, `telemetry`,
      *   `artifacts`, `pitch_text`, and `trace`.
@@ -677,14 +681,17 @@ def run_pitch_workflow(
     strip_fn = module_globals.get("strip_markdown_fences")
     active_model = active_services.config.flash_model
 
-    # Step 1: Creative Director generates campaign concept & rationale
-    concept = active_services.llm.generate_text(
-        clean_brief,
-        system_instruction=creative_director.instruction,
-        model=active_model,
-    )
-    if callable(strip_fn):
-        concept = strip_fn(concept)
+    # Step 1: Creative Director generates campaign concept & rationale (or reuses saved concept on resume)
+    if isinstance(existing_concept, str) and existing_concept.strip():
+        concept = existing_concept.strip()
+    else:
+        concept = active_services.llm.generate_text(
+            clean_brief,
+            system_instruction=creative_director.instruction,
+            model=active_model,
+        )
+        if callable(strip_fn):
+            concept = strip_fn(concept)
 
     # Determine effective approval state (used when learner enables HITL in Module 3)
     effective_approved: bool | None = approved
@@ -1003,6 +1010,7 @@ def resume_pitch_workflow(
         raise KeyError(f"Unknown session_id: {clean_session}")
 
     brief = str(stored.get("brief") or "Campaign brief")
+    saved_concept = str(stored.get("concept") or "").strip() or None
 
     if not approved:
         result = run_pitch_workflow(
@@ -1010,6 +1018,7 @@ def resume_pitch_workflow(
             session_id=clean_session,
             services=active_services,
             approved=False,
+            existing_concept=saved_concept,
         )
         result["reviewer_feedback"] = feedback
         active_services.memory_bank.save_session(clean_session, result)
@@ -1022,6 +1031,7 @@ def resume_pitch_workflow(
         services=active_services,
         approved=True,
         require_approval=False,
+        existing_concept=saved_concept,
     )
     result["reviewer_feedback"] = feedback
     active_services.memory_bank.save_session(clean_session, result)

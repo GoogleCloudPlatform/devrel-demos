@@ -393,8 +393,9 @@ class BigQueryAnalyticsService:
         evaluated: list[dict[str, Any]] = []
         for rec in records:
             item = copy.deepcopy(rec)
-            if "brand_fit" in item and isinstance(item["brand_fit"], (int, float)):
-                score = float(item["brand_fit"])
+            if "brand_fit" in item and isinstance(item["brand_fit"], (int, float)) and not isinstance(item["brand_fit"], bool):
+                raw_score = max(1.0, min(10.0, float(item["brand_fit"])))
+                item["brand_fit"] = raw_score
             else:
                 text_parts = [
                     str(item.get("art_direction", "")),
@@ -416,12 +417,12 @@ class BigQueryAnalyticsService:
                         score -= 3.0
                         penalties.append(forbidden)
 
-                score = max(1.0, min(10.0, round(score, 1)))
+                raw_score = max(1.0, min(10.0, float(score)))
                 item["matched_brand_signals"] = matched_categories
                 item["forbidden_penalties"] = penalties
+                item["brand_fit"] = round(raw_score, 2)
 
-            item["brand_fit"] = round(float(score), 1)
-            item["verdict"] = "on brand" if item["brand_fit"] >= 7.0 else "needs another pass"
+            item["verdict"] = "on brand" if raw_score >= 7.0 else "needs another pass"
             evaluated.append(item)
         return evaluated
 
