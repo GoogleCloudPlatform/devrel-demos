@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<!--
+/**
+ * @file index.html
+ * @description Plain HTML5 interface for the Agentic Pitch Generator starter application.
+ *
+ * Why:
+ * 1. Eliminates external bundler and transpiler complexity inside the Antigravity 2.0 VM
+ *    so learners can focus strictly on multi-agent orchestration, skills, observability,
+ *    security, and context engineering.
+ * 2. Provides a clean UI for the 4-specialist workflow (`creative_director`, `brand_strategist`,
+ *    `copywriter`, and `visual_director`) running on Gemini Enterprise Agent Platform
+ *    (`gemini-3.8-flash` and `gemini-nano-banana-2.1`), with the Human-in-the-Loop (HITL)
+ *    approval card hidden in the starter app until Step 3c is implemented.
+ * 3. Guarantees accessible semantic landmarks, explicit form labels, and ARIA live regions.
+ */
+-->
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; img-src 'self' data: https:; style-src 'self'; script-src 'self';" />
+  <title>Agentic Pitch Generator — Gemini Enterprise Agent Platform</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="app.js" defer></script>
+</head>
+
+<body>
+  <header class="app-header">
+    <div class="header-titles">
+      <h1>Agentic Pitch Generator</h1>
+      <p class="subtitle">Multi-Agent Orchestration on Gemini Enterprise Agent Platform</p>
+    </div>
+    <div class="header-badges" aria-label="Service status indicators">
+      <span id="health-badge" class="badge badge-neutral" role="status" aria-live="polite">Checking service...</span>
+      <!-- [Guidepost — Step 1c: Enable the Visual Director A2A Agent Card Button]
+           TODO (Step 1c): Remove the `hidden` attribute from `#btn-inspect-a2a` when exposing the
+           Visual Director A2A service and connecting `RemoteA2aAgent`. -->
+      <button id="btn-inspect-a2a" type="button" class="btn btn-secondary" hidden>Inspect A2A Agent Card</button>
+    </div>
+  </header>
+
+  <main class="app-layout">
+    <section class="panel panel-input" aria-labelledby="heading-brief">
+      <h2 id="heading-brief">1. Campaign Brief</h2>
+      <p id="config-summary" class="config-summary">Loading runtime configuration...</p>
+
+      <div id="status-banner" class="status-banner" role="alert" aria-live="assertive" hidden></div>
+
+      <form id="pitch-form" novalidate>
+        <div class="form-group">
+          <label for="brief-input">Campaign Topic Brief</label>
+          <textarea id="brief-input" name="brief" rows="3" required
+            placeholder="e.g., Flying skateboards for cats, or A commuter bike built for rainy cities">A commuter bike built for rainy cities</textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="session-id-input">Memory Bank Session ID</label>
+            <input id="session-id-input" name="session_id" type="text" value="default" required />
+          </div>
+        </div>
+
+        <!-- [Guidepost — Step 3c: Enable the Human-in-the-Loop Verification Checkbox]
+             TODO (Step 3c): Remove the `hidden` attribute from `#hitl-checkbox-group` when implementing
+             `approve_concept` and `user_approval` in `pitch_generator/agent.py`. -->
+        <div id="hitl-checkbox-group" class="form-group form-group-checkbox" hidden>
+          <label class="checkbox-label" for="require-approval-checkbox">
+            <input id="require-approval-checkbox" name="require_approval" type="checkbox" />
+            <span>Enable Human-in-the-Loop (HITL) verification (Step 3c)</span>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button id="btn-generate-pitch" type="submit" class="btn btn-primary">Generate Campaign Pitch</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel panel-output" aria-labelledby="heading-output">
+      <div class="panel-header">
+        <h2 id="heading-output">2. Generated Pitch Package</h2>
+        <span id="pitch-status" class="badge badge-neutral" role="status" aria-live="polite">Idle</span>
+      </div>
+
+      <!-- [Guidepost — Step 3c: Enable the Human-in-the-Loop Approval Gate Card]
+           TODO (Step 3c): Remove the `hidden` attribute from `#hitl-approval-card` when implementing
+           `approve_concept` and `user_approval` in `pitch_generator/agent.py`. -->
+      <div id="hitl-approval-card" class="hitl-panel" role="region" aria-labelledby="heading-hitl" hidden>
+        <h3 id="heading-hitl">Human-in-the-Loop Approval Gate (<code>approve_concept</code>)</h3>
+        <p id="hitl-approval-prompt" class="pitch-content">
+          Please approve the campaign concept (yes/no). Downstream agents are paused until you decide.
+        </p>
+        <div class="form-actions">
+          <button id="btn-approve-concept" type="button" class="btn btn-success" disabled>Approve Concept (Yes)</button>
+          <button id="btn-reject-concept" type="button" class="btn btn-danger" disabled>Reject Concept (No)</button>
+        </div>
+      </div>
+
+      <div id="pitch-result-card" class="pitch-grid">
+        <article class="pitch-card">
+          <h3>Campaign Concept (Creative Director)</h3>
+          <div id="pitch-concept" class="pitch-content">Submit a campaign brief to generate a concept line and
+            rationale.</div>
+        </article>
+
+        <article class="pitch-card">
+          <h3>Social Copy (Copywriter)</h3>
+          <div id="pitch-copy" class="pitch-content">Waiting for workflow execution...</div>
+        </article>
+
+        <article id="brand-strategy-card" class="pitch-card">
+          <h3>Brand Strategy (Brand Strategist)</h3>
+          <div id="pitch-brand-strategy" class="pitch-content">Waiting for workflow execution...</div>
+        </article>
+
+        <article id="art-direction-card" class="pitch-card">
+          <h3>Art Direction (Visual Director)</h3>
+          <div id="pitch-art-direction" class="pitch-content">Waiting for workflow execution...</div>
+        </article>
+
+        <article id="key-visual-card" class="pitch-card">
+          <h3>Key Visual (Visual Director)</h3>
+          <img id="pitch-key-visual-img" class="pitch-key-visual-img" alt="Generated campaign key visual"
+            src="placeholder.png" hidden />
+          <p id="pitch-key-visual" class="pitch-content">Waiting for key visual generation...</p>
+        </article>
+      </div>
+
+      <section class="subpanel" aria-labelledby="heading-trace">
+        <h3 id="heading-trace">Agent Workflow Trace &amp; Telemetry</h3>
+        <ol id="workflow-trace-list" class="trace-list">
+          <li>Ready to run multi-agent workflow (`creative_director` &rarr; `brand_strategist` &rarr; `copywriter` +
+            `visual_director` &rarr; `assemble` &rarr; `package`).</li>
+        </ol>
+      </section>
+
+      <section id="a2a-card-section" class="subpanel" aria-labelledby="heading-a2a" hidden>
+        <h3 id="heading-a2a">Visual Director A2A Agent Card (<code>/.well-known/agent-card.json</code>)</h3>
+        <pre id="a2a-card-panel" class="code-box"></pre>
+      </section>
+    </section>
+  </main>
+</body>
+
+</html>
