@@ -226,13 +226,7 @@ def build_specialist_team(config: PitchConfig | None = None) -> dict[str, Agent]
             name="visual_director",
             model=model,
             description="Translates the campaign concept into art direction and key visuals.",
-            instruction=(
-                "You are the Visual Director. Translate the campaign concept into "
-                "art direction and key visuals using our house brand palette (deep indigo "
-                "and slate ground with one warm amber or terracotta accent), single low "
-                "raking light with long shadows, off-center composition with generous "
-                "negative space, and one realistic photographic subject with shallow depth of field."
-            ),
+            instruction="You are the Visual Director.",
             tools=[generate_key_visual],
             output_key="visual_director",
         ),
@@ -498,9 +492,10 @@ loop_guard = LoopGuard(max_iterations=10)
 #     returns `status="input_required"` (`downstream_calls=0`) when `approved is None`,
 #     `status="rejected"` (`downstream_calls=0`) when `approved is False`, and `status="completed"`
 #     (`downstream_calls=2`, `"## Approved Concept"` in `concept_header`) when `approved is True`.
-#   - Insert `user_approval` into `root_agent.edges` after `creative_director`. Defining `approve_concept`
-#     or `user_approval` here also automatically enables the web UI's Human-in-the-Loop approval controls
-#     (`#hitl-approval-card` via `/api/pitch` and `/api/approve`).
+#   - Insert `user_approval` into `root_agent.edges` after `creative_director`, and enable the
+#     Human-in-the-Loop approval gate card (`#hitl-approval-card`) in `frontend/index.html` by
+#     removing its `hidden` attribute (defining `approve_concept` or `user_approval` here also
+#     automatically sets `hitl_enabled=True` in `/api/config` and `/api/pitch`).
 root_agent = Workflow(
     name="pitch_generator",
     edges=[

@@ -303,7 +303,11 @@ function renderPitchResult(data) {
       statusText === "completed" ? "badge badge-ok" : "badge badge-warn";
   }
   if (hitlCard) {
-    hitlCard.hidden = false;
+    const showHitlCard =
+      Boolean(data.hitl_enabled) ||
+      statusText === "input_required" ||
+      statusText === "rejected";
+    hitlCard.hidden = !showHitlCard;
     if (statusText === "input_required") {
       if (approveBtn) approveBtn.disabled = false;
       if (rejectBtn) rejectBtn.disabled = false;
@@ -457,6 +461,10 @@ async function fetchHealthAndConfig(fetchImpl) {
       summaryEl.textContent =
         `Project: ${cfg.project_id} | Region: ${cfg.region} | ` +
         `Model: ${modelName} | Enterprise Agent Platform: ${cfg.use_enterprise ? "Enabled" : "Disabled"}`;
+    }
+    const hitlCard = document.getElementById("hitl-approval-card");
+    if (hitlCard && cfg.hitl_enabled) {
+      hitlCard.hidden = false;
     }
     const hitlPromptEl = document.getElementById("hitl-approval-prompt");
     if (hitlPromptEl && cfg.hitl_enabled) {

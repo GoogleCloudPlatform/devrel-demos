@@ -10,8 +10,8 @@
  *    security, and context engineering.
  * 2. Provides a clean UI for the 4-specialist workflow (`creative_director`, `brand_strategist`,
  *    `copywriter`, and `visual_director`) running on Gemini Enterprise Agent Platform
- *    (`gemini-3.8-flash` and `gemini-nano-banana-2.1`), with visible Human-in-the-Loop (HITL)
- *    controls that activate once Step 3c is implemented.
+ *    (`gemini-3.8-flash` and `gemini-nano-banana-2.1`), with the Human-in-the-Loop (HITL)
+ *    approval card hidden in the starter app until Step 3c is implemented.
  * 3. Guarantees accessible semantic landmarks, explicit form labels, and ARIA live regions.
  */
 -->
@@ -81,10 +81,13 @@
         <span id="pitch-status" class="badge badge-neutral" role="status" aria-live="polite">Idle</span>
       </div>
 
-      <div id="hitl-approval-card" class="hitl-panel" role="region" aria-labelledby="heading-hitl">
+      <!-- [Guidepost — Step 3c: Enable the Human-in-the-Loop Approval Gate Card]
+           TODO (Step 3c): Remove the `hidden` attribute from `#hitl-approval-card` when implementing
+           `approve_concept` and `user_approval` in `pitch_generator/agent.py`. -->
+      <div id="hitl-approval-card" class="hitl-panel" role="region" aria-labelledby="heading-hitl" hidden>
         <h3 id="heading-hitl">Human-in-the-Loop Approval Gate (<code>approve_concept</code>)</h3>
         <p id="hitl-approval-prompt" class="pitch-content">
-          Inactive until Step 3c (<code>approve_concept</code> / <code>user_approval</code>) is implemented in <code>agent.py</code>.
+          Please approve the campaign concept (yes/no). Downstream agents are paused until you decide.
         </p>
         <div class="form-actions">
           <button id="btn-approve-concept" type="button" class="btn btn-success" disabled>Approve Concept (Yes)</button>
