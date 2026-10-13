@@ -1,0 +1,6 @@
+[project]
+name = "mcp-on-cloudrun"
+version = "0.1.0"
+description = "Example of deploying an MCP server on Cloud Run"
+requires-python = ">=3.13"
+dependencies = ["fastmcp<5.0.0"]
