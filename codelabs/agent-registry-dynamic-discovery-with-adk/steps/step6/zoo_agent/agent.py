@@ -168,9 +168,9 @@ def zoo_guide_instruction(ctx: ReadonlyContext) -> str:
         "Do not run discovery again; use the active zoo tools directly to fulfill the visitor's request."
     )
 root_agent = Agent(
-    name="zoo_guide",
-    model="gemini-2.5-flash",
-    description="A friendly zoo guide that discovers and uses zoo MCP tools.",
+    model="gemini-3.8-flash",
+    name="zoo_agent",
+    description="The friendly assistant for handling a user's requests about zoo animals.",
     instruction=zoo_guide_instruction,
     tools=[
         discover_zoo_mcp_servers,
