@@ -140,3 +140,25 @@ func TestCheckStuckEvaluations(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "SUCCESS", e.Status)
 }
+
+func TestDeleteHackathon(t *testing.T) {
+	repo := repository.NewMemoryRepo()
+	svc := service.NewHackathonService(repo, repo, repo, nil)
+
+	// Try deleting an existing hackathon
+	err := svc.DeleteHackathon("1")
+	assert.NoError(t, err)
+
+	// Subsequently getting the deleted hackathon should fail
+	_, err = svc.GetHackathon("1")
+	assert.Error(t, err)
+}
+
+func TestDeleteHackathon_NotFound(t *testing.T) {
+	repo := repository.NewMemoryRepo()
+	svc := service.NewHackathonService(repo, repo, repo, nil)
+
+	// Deleting a nonexistent hackathon should return an error
+	err := svc.DeleteHackathon("invalid_id")
+	assert.Error(t, err)
+}

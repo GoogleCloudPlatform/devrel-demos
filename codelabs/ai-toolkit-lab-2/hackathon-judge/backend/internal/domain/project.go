@@ -33,4 +33,5 @@ type ProjectRepository interface {
 	GetByHackathonID(hackathonID string) ([]Project, error)
 	GetProjectByID(id string) (Project, error)
 	UpdateScore(projectID string, score float64) error
+	CreateProject(project Project) error
 }
