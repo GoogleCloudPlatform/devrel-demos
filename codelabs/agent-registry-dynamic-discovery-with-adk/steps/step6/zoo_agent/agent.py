@@ -20,7 +20,7 @@ DISCOVERY_STATE_KEY = "app:zoo_mcp_servers" # "app:" prefix scopes state across 
 DISCOVERY_TTL_SECONDS = 24 * 60 * 60  # Retention period: rediscovery every 24 hours
 
 class _GoogleAuthHeaders():
-    "Provides Authorization headers with thread-safe, implicit token refresh."
+    """Provides Authorization headers with implicit token refresh."""
     def __init__(self, quota_project_id: str | None = None):
         self._credentials, default_project = google.auth.default(
             scopes=["https://www.googleapis.com/auth/cloud-platform"]
