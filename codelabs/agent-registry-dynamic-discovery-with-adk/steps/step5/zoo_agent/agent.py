@@ -13,7 +13,7 @@ load_dotenv()
 PROJECT_ID = os.environ["GOOGLE_CLOUD_PROJECT"]  # required: fail fast
 PROJECT_NUMBER = os.environ["GOOGLE_CLOUD_PROJECT_NUMBER"]  # required: fail fast
 REGION = os.environ.get("GOOGLE_CLOUD_REGION", "us-west1")
-MCP_SERVER_URN = f"urn:mcp:projects-{PROJECT_NUMBER}:projects:{PROJECT_NUMBER}:locations:{REGION}:run:services:zoo-mcp-server"
+MCP_SERVER_URN = f"urn:mcp:projects-{PROJECT_NUMBER}:projects:{PROJECT_NUMBER}:locations:{REGION}:agentregistry:services:zoo-mcp-server"
 
 
 class _GoogleAuthHeaders:
