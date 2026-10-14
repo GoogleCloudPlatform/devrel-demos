@@ -266,7 +266,6 @@ ZOO_ANIMALS = [
     title="Get animals by species",
     annotations=READ_ONLY,
     tags={"animals", "catalog"},
-    meta={"dataset": "zoo-animals", "owner": "codelab"},
 )
 def get_animals_by_species(species: str) -> List[Dict[str, Any]]:
    """
