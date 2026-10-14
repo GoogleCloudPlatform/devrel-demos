@@ -1,0 +1,96 @@
+# Prices in USD per 1M tokens on Gemini Enterprise Agent Platform: global endpoint, Standard tier.
+# Source: https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing
+# Checked on 2026-10-14. Prices change; re-check before publishing numbers.
+#
+# Keys in a price block:
+#   input        uncached input tokens
+#   cache_read   cached input tokens (Gemini implicit cache hits, Claude cache hits)
+#   cache_write  Claude 5-minute cache writes (Gemini implicit caching has no write charge)
+#   output       response + reasoning ("thinking") tokens
+#   long_context_threshold + *_long keys: rates applied to every token of a request whose
+#   prompt is at or above the threshold.
+# "current" applies until its "until" date (launch promotions, introductory prices);
+# "list" applies afterwards, and always when a model has no "current" block.
+# "levels" are the accepted values for MODEL_ID:LEVEL
+# (Gemini thinking_level, Claude effort). An empty list means "model default only".
+
+as_of: "2026-10-14"
+source: https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing
+
+models:
+  # --- Gemini -----------------------------------------------------------------------------
+  gemini-4-argon:
+    levels: [low, medium, high]
+    current: {until: "2026-11-30", input: 2.00, cache_read: 0.10, output: 10.00}  # launch promo (50% credit back)
+    list: {input: 4.00, cache_read: 0.20, output: 20.00}
+  gemini-3.8-flash:
+    levels: [low, medium, high]
+    current: {until: "2026-12-31", input: 0.75, cache_read: 0.075, output: 3.75}  # introductory price
+    list: {input: 1.50, cache_read: 0.15, output: 7.50}
+  gemini-3.7-flash:
+    levels: [low, medium, high]
+    current: {until: "2026-12-31", input: 0.75, cache_read: 0.075, output: 3.75}
+    list: {input: 1.50, cache_read: 0.15, output: 7.50}
+  gemini-3.6-flash:
+    levels: [low, medium, high]
+    current: {until: "2026-12-31", input: 0.75, cache_read: 0.075, output: 3.75}
+    list: {input: 1.50, cache_read: 0.15, output: 7.50}
+  gemini-3.5-flash:
+    levels: [low, medium, high]
+    list: {input: 1.50, cache_read: 0.15, output: 9.00}
+  gemini-3.5-flash-lite:
+    levels: [low, medium, high]
+    list: {input: 0.30, cache_read: 0.03, output: 2.50}
+  gemini-3.1-flash-lite:
+    levels: [low, medium, high]
+    list: {input: 0.25, cache_read: 0.025, output: 1.50}
+  gemini-3.1-pro-preview:
+    levels: [low, high]
+    list: {input: 2.00, cache_read: 0.20, output: 12.00, long_context_threshold: 200000,
+           input_long: 4.00, cache_read_long: 0.40, output_long: 18.00}
+
+  # --- Claude (adaptive thinking; LEVEL sets output_config.effort) ---------------------------
+  claude-opus-5-5:
+    levels: [low, medium, high, max]
+    list: {input: 4.00, cache_read: 0.20, cache_write: 5.00, output: 20.00}
+  claude-sonnet-5-5:
+    levels: [low, medium, high, max]
+    list: {input: 2.00, cache_read: 0.10, cache_write: 2.50, output: 10.00}
+  claude-haiku-5-5:
+    levels: [low, medium, high, max]
+    list: {input: 0.10, cache_read: 0.01, cache_write: 0.125, output: 0.50, long_context_threshold: 100000,
+           input_long: 0.50, cache_read_long: 0.05, cache_write_long: 0.625, output_long: 2.50}
+  claude-fable-5-1:
+    levels: [low, medium, high, max]
+    list: {input: 10.00, cache_read: 0.25, cache_write: 12.50, output: 50.00}
+  claude-fable-5:
+    levels: [low, medium, high, max]
+    list: {input: 10.00, cache_read: 1.00, cache_write: 12.50, output: 50.00}
+  claude-opus-5:
+    levels: [low, medium, high, max]
+    list: {input: 5.00, cache_read: 0.50, cache_write: 6.25, output: 25.00}
+  claude-sonnet-5:
+    levels: [low, medium, high, max]
+    list: {input: 2.00, cache_read: 0.20, cache_write: 2.50, output: 10.00}
+  claude-opus-4-8:
+    levels: [low, medium, high, max]
+    list: {input: 5.00, cache_read: 0.50, cache_write: 6.25, output: 25.00}
+  claude-opus-4-7:
+    levels: [low, medium, high, max]
+    list: {input: 5.00, cache_read: 0.50, cache_write: 6.25, output: 25.00}
+  claude-opus-4-6:
+    levels: [low, medium, high, max]
+    list: {input: 5.00, cache_read: 0.50, cache_write: 6.25, output: 25.00}
+  claude-sonnet-4-6:
+    levels: [low, medium, high, max]
+    list: {input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00}
+  claude-opus-4-5:
+    levels: []
+    list: {input: 5.00, cache_read: 0.50, cache_write: 6.25, output: 25.00}
+  claude-sonnet-4-5:
+    levels: []
+    list: {input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00, long_context_threshold: 200000,
+           input_long: 6.00, cache_read_long: 0.60, cache_write_long: 7.50, output_long: 22.50}
+  claude-haiku-4-5:
+    levels: []
+    list: {input: 1.00, cache_read: 0.10, cache_write: 1.25, output: 5.00}

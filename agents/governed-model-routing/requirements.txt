@@ -1,0 +1,8 @@
+# Pinned versions verified on 2026-10-14 with Python 3.13.
+harbor==0.24.0             # benchmark runner (SWE-bench Verified tasks, Docker sandboxes, official verifier)
+google-genai==2.30.1       # Gemini on Gemini Enterprise Agent Platform
+anthropic[vertex]==1.12.0  # Claude on Gemini Enterprise Agent Platform (imported only for claude-* models)
+pydantic==2.13.5           # tool schemas and validation (Trigger 4)
+PyYAML==6.0.3              # pricing.yaml
+matplotlib==3.11.2         # report.py charts
+pytest==9.1.1              # offline tests

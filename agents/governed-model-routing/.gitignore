@@ -1,0 +1,7 @@
+.env
+.venv/
+jobs/
+plots/
+report.md
+__pycache__/
+.pytest_cache/
