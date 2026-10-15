@@ -144,7 +144,7 @@ In Step 3, you containerize and deploy the FastMCP server to Google Cloud Run wi
    gcloud agent-registry services create zoo-mcp-server \
        --display-name="zoo-mcp-server" \
        --project="${GOOGLE_CLOUD_PROJECT}" \
-       --location="global" \
+       --location=global \
        --mcp-server-spec-type="tool-spec" \
        --mcp-server-spec-content="toolspec.json" \
        --interfaces="url=${MCP_URL}/mcp,protocolBinding=jsonrpc"
@@ -160,7 +160,7 @@ In Step 3, you containerize and deploy the FastMCP server to Google Cloud Run wi
    - Verify that the server is registered in Agent Registry:
 
      ```bash
-     gcloud alpha agent-registry mcp-servers list --location=us-west1
+     gcloud agent-registry mcp-servers list --location=global
      ```
 
 ### Step 4: Run Agent Locally with Direct Static MCP Connection
