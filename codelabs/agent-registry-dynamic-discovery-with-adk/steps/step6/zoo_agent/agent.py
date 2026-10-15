@@ -2,47 +2,55 @@ import asyncio
 import os
 import time
 from typing import Any
+from urllib.parse import urlparse
 
 from google.adk.agents.llm_agent import Agent
 from google.adk.agents.readonly_context import ReadonlyContext
 from google.adk.integrations.agent_registry import AgentRegistry
 from google.adk.tools import ToolContext, BaseTool, BaseToolset
 from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
-import google.auth
+from google.oauth2 import id_token
 from google.auth.transport.requests import Request
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
-PROJECT_ID = os.environ["GOOGLE_CLOUD_PROJECT"]          # required: fail fast
+PROJECT_ID = os.environ["GOOGLE_CLOUD_PROJECT"]  # required: fail fast
 REGION = os.environ.get("GOOGLE_CLOUD_REGION", "us-west1")
-DISCOVERY_STATE_KEY = "app:zoo_mcp_servers" # "app:" prefix scopes state across application run
+DISCOVERY_STATE_KEY = (
+    "app:zoo_mcp_servers"  # "app:" prefix scopes state across application run
+)
 DISCOVERY_TTL_SECONDS = 24 * 60 * 60  # Retention period: rediscovery every 24 hours
 
-class _GoogleAuthHeaders():
+
+class _GoogleAuthHeaders:
     """Provides Authorization headers with implicit token refresh."""
-    def __init__(self, quota_project_id: str | None = None):
-        self._credentials, default_project = google.auth.default(
-            scopes=["https://www.googleapis.com/auth/cloud-platform"]
-        )
-        self._quota_project_id = quota_project_id or getattr(
-            self._credentials, "quota_project_id", default_project
-        )
+
+    def __init__(self):
         self._request = Request()
+        self._credentials = None
+
+    def bind(self, endpoint_url: str) -> None:
+        parsed = urlparse(endpoint_url)
+        if not (parsed.hostname or "").endswith(".run.app"):
+            self._credentials = None
+            self._enabled = False  # not a Cloud Run endpoint: add no headers
+            return
+        self._enabled = True
+        self._credentials = id_token.fetch_id_token_credentials(
+            f"{parsed.scheme}://{parsed.netloc}", request=self._request
+        )
 
     def __call__(self, unused_context: ReadonlyContext | None = None) -> dict[str, str]:
+        if not getattr(self, "_enabled", False):
+            return {}
+        if self._credentials is None:
+            raise RuntimeError("MCP endpoint not bound; run discovery first.")
         if not self._credentials.valid:
             self._credentials.refresh(self._request)
-        headers = {"Authorization": f"Bearer {self._credentials.token}"}
-        if self._quota_project_id:
-            headers["x-goog-user-project"] = self._quota_project_id
-        return headers
+        return {"Authorization": f"Bearer {self._credentials.token}"}
 
-registry = AgentRegistry(
-    project_id=PROJECT_ID,
-    location=REGION,
-    header_provider=_GoogleAuthHeaders(),
-)
 
 def _fresh_discovery(state: Any) -> dict[str, Any] | None:
     """Returns the saved discovery record if it exists and has not expired."""
@@ -55,9 +63,16 @@ def _fresh_discovery(state: Any) -> dict[str, Any] | None:
         return None
     return record
 
+
+registry = AgentRegistry(
+    project_id=PROJECT_ID,
+    location=REGION,
+)
+
+
 def discover_zoo_mcp_servers(query: str, tool_context: ToolContext) -> dict[str, Any]:
     """Discovers Zoo MCP server(s) matching the query using semantic search.
-    
+
     Args:
         query: Semantic description of zoo capabilities needed (e.g. 'zoo animal info')
     """
@@ -101,8 +116,10 @@ def discover_zoo_mcp_servers(query: str, tool_context: ToolContext) -> dict[str,
         "servers": valid_servers,
     }
 
+
 class RegistryDiscoveredToolset(BaseToolset):
     """Dynamically resolves and mounts tools from servers saved in session state."""
+
     def __init__(self, agent_registry: AgentRegistry):
         super().__init__()
         self._registry = agent_registry
@@ -110,13 +127,26 @@ class RegistryDiscoveredToolset(BaseToolset):
         # OVERRIDE BaseToolset._use_invocation_cache so the toolset reacts immediately to discovery/rediscovery
         self._use_invocation_cache = False
 
+    def _build_toolset(self, server_name: str) -> McpToolset:
+        """Creates a toolset for one server with its own ID-token provider (blocking I/O)."""
+        header_provider = _GoogleAuthHeaders()
+        server_registry = AgentRegistry(
+            project_id=self._registry.project_id,
+            location=self._registry.location,
+            header_provider=header_provider,
+        )
+        toolset = server_registry.get_mcp_toolset(server_name)
+        header_provider.bind(toolset.connection_params.url)
+        toolset.connection_params.timeout = 30.0
+        return toolset
+
     async def _tools_of(self, server_name: str, ctx: ReadonlyContext) -> list[BaseTool]:
         """Resolves an MCP server to an McpToolset (cached) and returns its tools."""
         try:
             if server_name not in self._toolsets:
                 # get_mcp_toolset performs blocking I/O; run in a worker thread
                 self._toolsets[server_name] = await asyncio.to_thread(
-                    self._registry.get_mcp_toolset, server_name
+                    self._build_toolset, server_name
                 )
             return await self._toolsets[server_name].get_tools_with_prefix(ctx)
         except Exception as e:
@@ -124,7 +154,9 @@ class RegistryDiscoveredToolset(BaseToolset):
             print(f"Skipping MCP server {server_name}: {e}")
             return []
 
-    async def get_tools(self, readonly_context: ReadonlyContext | None = None) -> list[BaseTool]:
+    async def get_tools(
+        self, readonly_context: ReadonlyContext | None = None
+    ) -> list[BaseTool]:
         """Fetches active tools from all discovered servers in the current state."""
         if not readonly_context:
             return []
@@ -148,6 +180,7 @@ class RegistryDiscoveredToolset(BaseToolset):
             )
             self._toolsets.clear()
 
+
 _ROLE = """You are a friendly, knowledgeable guide at the zoo. You help visitors
 with animals, exhibits, feeding and show times, maps, tickets, and events.
 Base every fact about this zoo on tool results; never invent them.
@@ -159,6 +192,8 @@ TOOL DISCOVERY - do this once before answering the visitor:
 2. As soon as the discovery succeeds, the zoo tools become available to you.
 3. Immediately use those tools to answer the visitor's request.
 """
+
+
 def zoo_guide_instruction(ctx: ReadonlyContext) -> str:
     record = _fresh_discovery(ctx.state)
     if record is None:
@@ -167,6 +202,8 @@ def zoo_guide_instruction(ctx: ReadonlyContext) -> str:
         f"\nYour active Zoo MCP servers: {', '.join(record['servers'])}. "
         "Do not run discovery again; use the active zoo tools directly to fulfill the visitor's request."
     )
+
+
 root_agent = Agent(
     model="gemini-3.8-flash",
     name="zoo_agent",
