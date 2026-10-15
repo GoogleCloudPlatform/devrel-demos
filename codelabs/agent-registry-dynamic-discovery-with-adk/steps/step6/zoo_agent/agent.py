@@ -9,14 +9,15 @@ from google.adk.agents.readonly_context import ReadonlyContext
 from google.adk.integrations.agent_registry import AgentRegistry
 from google.adk.tools import ToolContext, BaseTool, BaseToolset
 from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
-from google.oauth2 import id_token
+from google.auth import exceptions
 from google.auth.transport.requests import Request
+from google.oauth2 import id_token
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-PROJECT_ID = os.environ["GOOGLE_CLOUD_PROJECT"] # required: fail fast
+PROJECT_ID = os.environ["GOOGLE_CLOUD_PROJECT"]  # required: fail fast
 LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "global")
 DISCOVERY_STATE_KEY = (
     "app:zoo_mcp_servers"  # "app:" prefix scopes state across application run
@@ -29,25 +30,33 @@ class _GoogleAuthHeaders:
 
     def __init__(self):
         self._request = Request()
+        self._id_token = True
         self._credentials = None
         self._bound = False
 
     def bind(self, endpoint_url: str) -> None:
         parsed = urlparse(endpoint_url)
-        if (parsed.hostname or "").endswith(".run.app"):
+        audience = f"{parsed.scheme}://{parsed.netloc}"
+        try:
             self._credentials = id_token.fetch_id_token_credentials(
-                f"{parsed.scheme}://{parsed.netloc}", request=self._request
-        )
+                audience, request=self._request_adapter
+            )
+        except exceptions.DefaultCredentialsError:
+            self._credentials, _ = google.auth.default()
+            self._id_token = False
+            if not isinstance(self._credentials, credentials.Credentials):
+                raise
         self._bound = True
 
     def __call__(self, unused_context: ReadonlyContext | None = None) -> dict[str, str]:
         if not self._bound:
             raise RuntimeError("MCP endpoint not bound; run discovery first.")
-        if self._credentials is None: # not a Cloud Run endpoint: add no headers
+        if self._credentials is None:  # not a Cloud Run endpoint: add no headers
             return {}
-        if not self._credentials.valid:
-            self._credentials.refresh(self._request)
-        return {"Authorization": f"Bearer {self._credentials.token}"}
+        if not self._credentials.valid or (self._id_token and not self._credentials.id_token):
+            self._credentials.refresh(self._request_adapter)
+        token = self._credentials.id_token if self._user_id_token else self._credentials.token
+        return {"Authorization": f"Bearer {token}"}
 
 
 def _fresh_discovery(state: Any) -> dict[str, Any] | None:
