@@ -1,0 +1,101 @@
+{
+  "eval_cases": [
+    {
+      "eval_case_id": "fe_001_tokyo_compliant",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Design and homologate a Formula E circuit at Tokyo Bay."
+          }
+        ]
+      },
+      "reference": {
+        "response": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "APPROVED: Tokyo Bay (FIA-FE-2026-TYO-01), 3150m long, 10.0m minimum width, peak regeneration about 422 kW at Turn 5, with F1_TRACK_CENTRELINE, F1_PIT_ENTRY_SPEED_LIMIT_LANE, F1_WALL_TEMP and F1_TEC3 plus F1_MEDICAL_CENTRE_TEXT and F1_HELIPAD. The Gatekeeper approved it."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "eval_case_id": "fe_002_monaco_narrow",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Can the Monaco Harbour layout be homologated as it is?"
+          }
+        ]
+      },
+      "reference": {
+        "response": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "REJECTED: Monaco Harbour's 6.8m chicane is below the 10.0m minimum width. Widen the chicane to at least 10.0m, keep F1_TRACK_CENTRELINE, F1_PIT_ENTRY_SPEED_LIMIT_LANE, F1_WALL_TEMP and F1_TEC3, then re-assess."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "eval_case_id": "fe_008_multiturn_remediation",
+      "agent_data": {
+        "turns": [
+          {
+            "turn_index": 0,
+            "events": [
+              {
+                "author": "user",
+                "content": {
+                  "role": "user",
+                  "parts": [
+                    {
+                      "text": "Assess the Monaco Harbour layout."
+                    }
+                  ]
+                }
+              },
+              {
+                "author": "track_planner",
+                "content": {
+                  "role": "model",
+                  "parts": [
+                    {
+                      "text": "REJECTED: the 6.8m harbour chicane is below the 10.0m minimum width."
+                    }
+                  ]
+                }
+              },
+              {
+                "author": "user",
+                "content": {
+                  "role": "user",
+                  "parts": [
+                    {
+                      "text": "Widen the chicane to 11m, keep everything else the same, and get Gatekeeper approval."
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "reference": {
+        "response": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "APPROVED: with the chicane widened to 11m, Monaco Harbour (3330m, peak regeneration about 461 kW, with F1_TRACK_CENTRELINE, F1_PIT_ENTRY_SPEED_LIMIT_LANE, F1_WALL_TEMP and F1_TEC3) passes the Assessor and the Gatekeeper approved it."
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
