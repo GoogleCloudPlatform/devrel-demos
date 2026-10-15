@@ -144,7 +144,7 @@ In Step 3, you containerize and deploy the FastMCP server to Google Cloud Run wi
    gcloud agent-registry services create zoo-mcp-server \
        --display-name="zoo-mcp-server" \
        --project="${GOOGLE_CLOUD_PROJECT}" \
-       --location="us-west1" \
+       --location="global" \
        --mcp-server-spec-type="tool-spec" \
        --mcp-server-spec-content="toolspec.json" \
        --interfaces="url=${MCP_URL}/mcp,protocolBinding=jsonrpc"
