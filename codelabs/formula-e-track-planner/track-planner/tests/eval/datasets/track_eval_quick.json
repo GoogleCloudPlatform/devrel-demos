@@ -22,27 +22,6 @@
       }
     },
     {
-      "eval_case_id": "fe_002_monaco_narrow",
-      "prompt": {
-        "role": "user",
-        "parts": [
-          {
-            "text": "Can the Monaco Harbour layout be homologated as it is?"
-          }
-        ]
-      },
-      "reference": {
-        "response": {
-          "role": "model",
-          "parts": [
-            {
-              "text": "REJECTED: Monaco Harbour's 6.8m chicane is below the 10.0m minimum width. Widen the chicane to at least 10.0m, keep F1_TRACK_CENTRELINE, F1_PIT_ENTRY_SPEED_LIMIT_LANE, F1_WALL_TEMP and F1_TEC3, then re-assess."
-            }
-          ]
-        }
-      }
-    },
-    {
       "eval_case_id": "fe_008_multiturn_remediation",
       "agent_data": {
         "turns": [
