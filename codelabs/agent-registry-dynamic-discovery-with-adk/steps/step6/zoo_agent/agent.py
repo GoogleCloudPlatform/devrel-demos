@@ -7,7 +7,8 @@ from urllib.parse import urlparse
 from google.adk.agents.llm_agent import Agent
 from google.adk.agents.readonly_context import ReadonlyContext
 from google.adk.integrations.agent_registry import AgentRegistry
-from google.adk.tools import ToolContext, BaseTool, BaseToolset
+from google.adk.tools import ToolContext, BaseTool
+from google.adk.tools.base_toolset import BaseToolset
 from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
 from google.auth import exceptions
 from google.auth.transport.requests import Request
@@ -53,9 +54,15 @@ class _GoogleAuthHeaders:
             raise RuntimeError("MCP endpoint not bound; run discovery first.")
         if self._credentials is None:  # not a Cloud Run endpoint: add no headers
             return {}
-        if not self._credentials.valid or (self._id_token and not self._credentials.id_token):
+        if not self._credentials.valid or (
+            self._id_token and not self._credentials.id_token
+        ):
             self._credentials.refresh(self._request_adapter)
-        token = self._credentials.id_token if self._user_id_token else self._credentials.token
+        token = (
+            self._credentials.id_token
+            if self._user_id_token
+            else self._credentials.token
+        )
         return {"Authorization": f"Bearer {token}"}
 
 
