@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-PROJECT_ID = os.environ["GOOGLE_CLOUD_PROJECT"]  # required: fail fast
+PROJECT_ID = os.environ["GOOGLE_CLOUD_PROJECT"] # required: fail fast
 REGION = os.environ.get("GOOGLE_CLOUD_REGION", "us-west1")
 DISCOVERY_STATE_KEY = (
     "app:zoo_mcp_servers"  # "app:" prefix scopes state across application run
@@ -30,23 +30,21 @@ class _GoogleAuthHeaders:
     def __init__(self):
         self._request = Request()
         self._credentials = None
+        self._bound = False
 
     def bind(self, endpoint_url: str) -> None:
         parsed = urlparse(endpoint_url)
-        if not (parsed.hostname or "").endswith(".run.app"):
-            self._credentials = None
-            self._enabled = False  # not a Cloud Run endpoint: add no headers
-            return
-        self._enabled = True
-        self._credentials = id_token.fetch_id_token_credentials(
-            f"{parsed.scheme}://{parsed.netloc}", request=self._request
+        if (parsed.hostname or "").endswith(".run.app"):
+            self._credentials = id_token.fetch_id_token_credentials(
+                f"{parsed.scheme}://{parsed.netloc}", request=self._request
         )
+        self._bound = True
 
     def __call__(self, unused_context: ReadonlyContext | None = None) -> dict[str, str]:
-        if not getattr(self, "_enabled", False):
-            return {}
-        if self._credentials is None:
+        if not self._bound:
             raise RuntimeError("MCP endpoint not bound; run discovery first.")
+        if self._credentials is None: # not a Cloud Run endpoint: add no headers
+            return {}
         if not self._credentials.valid:
             self._credentials.refresh(self._request)
         return {"Authorization": f"Bearer {self._credentials.token}"}
