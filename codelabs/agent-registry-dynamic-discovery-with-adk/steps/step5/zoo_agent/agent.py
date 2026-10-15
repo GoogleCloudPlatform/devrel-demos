@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 from google.adk.agents.llm_agent import Agent
 from google.adk.agents.readonly_context import ReadonlyContext
 from google.adk.integrations.agent_registry import AgentRegistry
-import google.auth
+from google.oauth2 import id_token
 from google.auth.transport.requests import Request
 
 from dotenv import load_dotenv
@@ -43,7 +43,7 @@ class _GoogleAuthHeaders:
 header_provider = _GoogleAuthHeaders()
 registry = AgentRegistry(
     project_id=PROJECT_ID,
-    location=REGION,
+    location=LOCATION,
     header_provider=header_provider,
 )
 
