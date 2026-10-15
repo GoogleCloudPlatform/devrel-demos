@@ -1,8 +1,9 @@
 """Formula E track planner: Lead Architect, FIA Assessor and remote Gatekeeper.
 
-- The Lead Architect (root agent) designs the circuit.
-- The FIA Assessor checks it and is called as a tool (`AgentTool`).
-- The Gatekeeper runs in a separate project and is called over A2A.
+- The Lead Architect (root agent) designs the circuit and stays in charge.
+- The FIA Assessor checks the layout and is called as a tool (`AgentTool`).
+- The Gatekeeper runs in a separate project. It is also called as a tool, over
+  A2A, so its verdict comes back to the Lead Architect.
 """
 
 from google.adk.agents import Agent
@@ -69,10 +70,12 @@ root_agent = Agent(
         "3. If the Assessor rejects the layout, propose concrete fixes (for "
         "example widen a sector to 10.0m or add missing CAD layers) and "
         "re-assess the fixed layout.\n"
-        "4. Once the Assessor passes it, transfer to `remote_gatekeeper` "
-        "for final approval.\n"
+        "4. Once the Assessor passes it, call the `remote_gatekeeper` tool "
+        "with the circuit ID, CAD layers, minimum width and peak "
+        "regeneration for final approval.\n"
         "5. Finish with a short blueprint: circuit ID, length, minimum width, "
-        "peak regeneration, CAD layers and the Gatekeeper's status."
+        "peak regeneration, every CAD layer by name, and the Gatekeeper's "
+        "status."
     ),
     generate_content_config=types.GenerateContentConfig(
         temperature=0.2,
@@ -80,8 +83,13 @@ root_agent = Agent(
             thinking_level=types.ThinkingLevel.HIGH,
         ),
     ),
-    tools=[get_track_topology, AgentTool(agent=assessor_agent)],
-    sub_agents=[remote_gatekeeper],
+    # Both helpers are tools, so their answers come back to the Lead Architect
+    # and it writes the final blueprint.
+    tools=[
+        get_track_topology,
+        AgentTool(agent=assessor_agent),
+        AgentTool(agent=remote_gatekeeper),
+    ],
 )
 
 app = App(

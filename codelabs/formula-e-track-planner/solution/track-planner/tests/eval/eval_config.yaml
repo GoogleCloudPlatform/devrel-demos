@@ -8,17 +8,25 @@ custom_metrics:
   - name: custom_response_quality
     custom_function_file: response_quality.py
 
-  # Deterministic code metric: share of mandatory FIA CAD layers that the
-  # agent's final answer mentions.
+  # Deterministic code metric: an approved blueprint must name every
+  # mandatory FIA CAD layer.
   - name: fia_cad_layer_compliance
     custom_function: |
       def evaluate(instance):
           response = str(instance.get("response") or "")
+          reference = str(instance.get("reference") or "")
+          # Only approvals must list every layer. Rejections and other
+          # questions (such as Attack Mode) don't, so skip them.
+          if "APPROVED" not in reference:
+              return {"score": 1.0, "explanation": "Not an approval case."}
           required = [
               "F1_TRACK_CENTRELINE",
               "F1_PIT_ENTRY_SPEED_LIMIT_LANE",
               "F1_WALL_TEMP",
               "F1_TEC3",
           ]
-          found = sum(1 for layer in required if layer in response)
-          return {"score": round(found / len(required), 2)}
+          missing = [layer for layer in required if layer not in response]
+          return {
+              "score": round(1 - len(missing) / len(required), 2),
+              "explanation": "Missing: " + (", ".join(missing) or "none"),
+          }
