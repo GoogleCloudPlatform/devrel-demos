@@ -1,65 +1,61 @@
 import os
-import httpx
-import google.auth
+from google.oauth2 import id_token
 from google.auth.transport.requests import Request
 
 from google.adk.agents.llm_agent import Agent
+from google.adk.agents.readonly_context import ReadonlyContext
 from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPConnectionParams
 from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
-MCP_SERVER_URL = os.environ["MCP_SERVER_URL"]       # required: fail fast
+MCP_SERVER_URL = os.environ["MCP_SERVER_URL"].rstrip("/")  # required: fail fast
 
-class GoogleAuthHeaders(httpx.Auth):
-    """
-    HTTPX Auth extension that guarantees a valid bearer token is attached
-    to every request.
-    """
-    def __init__(self):
-        # Obtain Google credentials (e.g., Application Default Credentials)
-        self._credentials, _ = google.auth.default(
-            scopes=["https://www.googleapis.com/auth/cloud-platform"],
-        )
+
+class _GoogleAuthHeaders:
+    """Provides Authorization headers with implicit token refresh."""
+
+    def __init__(self, audience: str):
         self._request_adapter = Request()
+        self._credentials = id_token.fetch_id_token_credentials(
+            audience, request=self._request_adapter
+        )
 
-    def auth_flow(self, request: httpx.Request):
-        # Refresh the credentials if they are expired or not yet loaded
+    def __call__(self, unused_context: ReadonlyContext | None = None) -> dict[str, str]:
         if not self._credentials.valid:
             self._credentials.refresh(self._request_adapter)
+        return {"Authorization": f"Bearer {self._credentials.token}"}
 
-        # Inject the fresh token into the request headers
-        request.headers["Authorization"] = f"Bearer {self._credentials.token}"
-
-        # Yield the modified request back to httpx to be sent
-        yield request
-
-_auth_provider = GoogleAuthHeaders()
-def _auth_client_factory(headers, timeout,auth) -> httpx.AsyncClient:
-    """Factory that attaches our dynamic Auth flow to the ADK HTTP client."""
-
-    return httpx.AsyncClient(
-        headers=headers,
-        timeout=timeout,
-        # Override any ADK auth with our dynamic AutoRefreshingBearerAuth
-        auth=_auth_provider,
-    )
 
 zoo_mcp_toolset = McpToolset(
-   connection_params = StreamableHTTPConnectionParams(
-      url=MCP_SERVER_URL,
-      httpx_client_factory=_auth_client_factory,
-))
+    connection_params=StreamableHTTPConnectionParams(
+        url=f"{MCP_SERVER_URL}/mcp",
+        timeout=30.0,  # leave room for Cloud Run cold starts
+    ),
+    header_provider=_GoogleAuthHeaders(MCP_SERVER_URL),
+)
+
+_INSTRUCTIONS = """    You are the friendly voice of the Zoo Tour Guide. You help visitors learn
+    about the animals that live in the zoo.
+    Rules:
+    - Never answer questions about the zoo's animals from your own knowledge.
+      Every fact about our animals (names, species, counts, ages, enclosures,
+      trails) MUST come from the zoo tools. If the tools return nothing, say so.
+    - Use the tools on the very first question as well. Do not reply with a
+      generic greeting when the visitor has already asked something.
+    - For zoo-wide questions (for example "how many animals are in the zoo"),
+      first find out which species the zoo has, then gather the animals for
+      each species and combine the results.
+    - If the visitor only greets you, briefly introduce yourself and offer to
+      help them explore the zoo's animals.
+"""
 
 root_agent = Agent(
-    model='gemini-3.8-flash',
-    name='zoo_agent',
+    model="gemini-3.8-flash",
+    name="zoo_agent",
     description="The friendly assistant for handling a user's requests about zoo animals.",
-    instruction="""
-    You are the friendly voice of the Zoo Tour Guide. Your tasks are:
-    - Let the user know you will help them learn about the animals we have in the zoo.
-    - When the user responds, use the tools to find information about animals.
-    """,
+    instruction=_INSTRUCTIONS,
     tools=[zoo_mcp_toolset],
 )
