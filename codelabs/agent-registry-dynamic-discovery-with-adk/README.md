@@ -176,7 +176,6 @@ In Step 4, the agent connects directly to the Cloud Run service URL using custom
 
    Open `zoo_agent/.env` and fill in:
    - `GOOGLE_CLOUD_PROJECT`: Your project ID
-   - `GOOGLE_CLOUD_PROJECT_NUMBER`: Your numeric project number
    - `MCP_SERVER_URL`: The Cloud Run service URL from Step 3
 
 2. **Install dependencies**:
@@ -240,7 +239,6 @@ In Step 6, the agent dynamically searches the registry using semantic queries (`
 
    Open `zoo_agent/.env` and verify:
    - `GOOGLE_CLOUD_PROJECT`: Your project ID
-   - `GOOGLE_CLOUD_REGION`: The region where the server was deployed (`us-west1`)
    *(Note: No server URLs, project numbers, or URN identifiers are required).*
 
 2. **Install dependencies**:
