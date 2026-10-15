@@ -18,8 +18,8 @@ The project walks through an architectural evolution across incremental steps, i
 | Step | Path | Description | Infrastructure Coupling |
 | :--- | :--- | :--- | :--- |
 | **Step 3** | [`steps/step3/`](./steps/step3) | **FastMCP Server on Cloud Run:** Implements zoo animal tools (`get_animals_by_species`, `get_animal_details`) with read-only annotations. Containerized via Docker and `uv` for deployment on Cloud Run. | Server implementation |
-| **Step 4** | [`steps/step4/`](./steps/step4) | **Static Direct MCP Connection:** Agent connects directly to `MCP_SERVER_URL` via `McpToolset` and custom `httpx.Auth` token refresh. | Hardcoded service URL & project number |
-| **Step 5** | [`steps/step5/`](./steps/step5) | **Registry Lookup via Static URN:** Uses `AgentRegistry` and `header_provider` to look up the server matching `MCP_SERVER_URN`. Abstracted endpoint URL, but still requires hardcoded server identifier. | Hardcoded MCP Server URN |
+| **Step 4** | [`steps/step4/`](./steps/step4) | **Static Direct MCP Connection:** Agent connects directly to `MCP_SERVER_URL` via `McpToolset` and custom `header_provider` to make authorized calls to the MCP server. | Hardcoded service URL & project number |
+| **Step 5** | [`steps/step5/`](./steps/step5) | **Registry Lookup via Static URN:** Uses `AgentRegistry` to look up the server matching `MCP_SERVER_URN`. Abstracted endpoint URL, but still requires hardcoded server identifier. | Hardcoded MCP Server URN |
 | **Step 6** | [`steps/step6/`](./steps/step6) | **Dynamic Semantic Discovery:** Zero hardcoded endpoints or URNs. Uses `discover_zoo_mcp_servers` to query the registry semantically and a custom `RegistryDiscoveredToolset` to dynamically mount tools into the agent. | **Fully Decoupled** (Dynamic runtime discovery) |
 
 ## Architectural Evolution
@@ -82,11 +82,11 @@ Each step directory contains a `.env.example` file illustrating the required env
 
 | Variable | Step 4 | Step 5 | Step 6 | Description |
 | --- | :---: | :---: | :---: | --- |
+| `GOOGLE_CLOUD_LOCATION` | **Required** | **Required** | **Required** | Should be set to `global` unless a regional Gemini endpoint is used. |
 | `GOOGLE_CLOUD_PROJECT` | **Required** | **Required** | **Required** | Google Cloud Project ID |
-| `GOOGLE_CLOUD_REGION` | Optional | Optional | Optional | Deployment region (default: `us-west1`) |
-| `GOOGLE_CLOUD_PROJECT_NUMBER` | **Required** | **Required** | — | Google Cloud Project Number |
+| `GOOGLE_CLOUD_PROJECT_NUMBER` | — | **Required** | — | Google Cloud Project Number |
+| `GOOGLE_GENAI_USE_ENTERPRISE` | **Required** | **Required** | **Required** | Set to `TRUE` to route through Vertex AI |
 | `MCP_SERVER_URL` | **Required** | — | — | Deployed Cloud Run MCP server endpoint |
-| `GOOGLE_GENAI_USE_ENTERPRISE` | Optional | Optional | Optional | Set to `TRUE` to route through Vertex AI |
 
 Notice how **Step 6** eliminates the need for `MCP_SERVER_URL`, `GOOGLE_CLOUD_PROJECT_NUMBER`, and server URNs, requiring only the standard Google Cloud project and region settings.
 
@@ -127,7 +127,8 @@ In Step 3, you containerize and deploy the FastMCP server to Google Cloud Run wi
    gcloud beta run deploy zoo-mcp-server \
      --source . \
      --region us-west1 \
-     --functional-type=mcp-server \
+     --labels=dev-tutorial=codelab-dynamic-mcp-discovery \
+     --invoker-iam-check \
      --no-allow-unauthenticated
    ```
 
@@ -135,7 +136,26 @@ In Step 3, you containerize and deploy the FastMCP server to Google Cloud Run wi
    - `--functional-type=mcp-server`: Automatically registers the deployed Cloud Run service as an MCP server in Google Cloud Agent Registry.
    - `--no-allow-unauthenticated`: Enforces IAM authentication on the service endpoint (protecting it from public access and requiring caller bearer tokens).
 
-3. **Verify registration and note service details**:
+3. **Registry MCP server in Agent Registry**:
+
+   ```shell
+   fastmcp inspect server.py --format mcp | jq 'del(..|nulls) | del(.tools[]?._meta?)' > toolspec.json
+   MCP_URL=$(gcloud run services describe zoo-mcp-server --region=us-west1 --format='value(status.url)')
+   gcloud agent-registry services create zoo-mcp-server \
+       --display-name="zoo-mcp-server" \
+       --project="${GOOGLE_CLOUD_PROJECT}" \
+       --location="us-west1" \
+       --mcp-server-spec-type="tool-spec" \
+       --mcp-server-spec-content="toolspec.json" \
+       --interfaces="url=${MCP_URL}/mcp,protocolBinding=jsonrpc"
+   ```
+
+   > [!NOTE!]
+   > Using the flag `--functional-type=mcp-server` in the previous step to register the MCP server
+   > would register it in the same location as the deployed region. Discovering the server will require
+   > knowledge about the deployment region of the MCP server which isn't always available.
+
+4. **Verify registration and note service details**:
    - Check the deployment output for the **Service URL** (format: `https://zoo-mcp-server-<hash>-<region>.a.run.app`). You will need this URL for Step 4.
    - Verify that the server is registered in Agent Registry:
 
