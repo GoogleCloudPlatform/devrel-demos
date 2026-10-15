@@ -34,7 +34,8 @@ from providers import (PLACEHOLDER_SIGNATURE, ClaudeModel, GeminiModel, ModelSpe
                        ToolCall, ToolResults, Usage, UserText, parse_spec)
 from router import (FRONTIER, WORKHORSE, GovernedRouter, RouterConfig, Signals,  # noqa: E402
                     is_test_command, label_turn, removed_signatures, syntax_error)
-from telemetry import call_cost, check_spec, ledger_total, load_pricing, rates, switch_tax  # noqa: E402
+from telemetry import (call_cost, check_spec, ledger_total, load_pricing, rates, switch_tax,  # noqa: E402
+                       trial_variant, variant_name)
 
 PRICING = load_pricing()
 
@@ -113,6 +114,26 @@ def test_forced_modes_record_the_trigger_they_ignored():
     assert GovernedRouter(RouterConfig(mode="frontier_only")).route(1, 0).tier == FRONTIER
 
 
+def test_stall_trigger_fires_after_n_turns_without_a_tracked_edit_then_counts_again():
+    router = GovernedRouter(RouterConfig(stall_turns=3))
+    reasons = []
+    for turn in range(1, 9):
+        reasons.append(router.route(turn, 0).reason)
+        router.observe(Signals(progress=turn == 6))
+    assert reasons == ["default", "default", "default", "stalled", "default", "default", "default", "default"]
+
+
+def test_stall_trigger_off_and_suppressed_in_forced_modes():
+    off = GovernedRouter(RouterConfig(stall_turns=0))
+    for _ in range(50):
+        off.observe(Signals())
+    assert off.route(1, 0).reason == "default"
+    forced = GovernedRouter(RouterConfig(mode="workhorse_only", stall_turns=1))
+    forced.observe(Signals())
+    d = forced.route(1, 0)
+    assert (d.tier, d.reason, d.suppressed) == (WORKHORSE, "forced", "stalled")
+
+
 # --- Deterministic signals --------------------------------------------------------------------
 
 BASE = '''
@@ -179,6 +200,68 @@ def test_is_test_command_false(cmd):
     ("finish", {"summary": "done"}, "other")])
 def test_label_turn(tool, args, label):
     assert label_turn(tool, args) == label
+
+
+# --- Tier 0 helpers and prompts ---------------------------------------------------------------------
+
+PILOT_PROMPT = """You are an autonomous software engineer fixing an issue in the repository in the current directory.
+Tools:
+- bash: run a non-interactive shell command in the repository root (each call starts a fresh shell).
+- edit_file: replace one exact, unique occurrence of old_str with new_str in a file.
+- finish: call once the fix is implemented and verified.
+Rules:
+- Work in small steps: inspect the code, reproduce the problem, fix it, verify the fix.
+- Change source files only. Do not modify existing tests.
+- Prefer edit_file for code changes.
+- Lines starting with [gate] come from automatic checks in the harness. Take them into account.
+- Every response must include at least one tool call."""
+
+
+def test_system_prompt_variants():
+    assert routing_agent.system_prompt("steps", tier0=False) == PILOT_PROMPT  # the pilot, unchanged
+    batch = routing_agent.system_prompt("batch", tier0=True)
+    assert "Work in small steps" not in batch and "use few turns" in batch
+    assert "re-runs your most recent test" in batch
+    assert "re-runs" not in routing_agent.system_prompt("batch", tier0=False)
+
+
+PYTEST_OUT = """============================= test session starts ==============================
+platform linux -- Python 3.9.20, pytest-7.4.0
+collected 120 items
+
+astropy/io/fits/tests/test_header.py ......................F........... [ 40%]
+astropy/io/fits/tests/test_core.py ..............s....................... [100%]
+tests/test_verbose.py::test_ok PASSED                                    [100%]
+
+=================================== FAILURES ===================================
+_________________________________ test_float __________________________________
+    def test_float():
+>       assert fmt(0.009125) == "0.009125"
+E       AssertionError
+=============================== warnings summary ===============================
+astropy/io/fits/card.py:12: DeprecationWarning: old API
+  warnings.warn(x)
+=========================== short test summary info ============================
+FAILED astropy/io/fits/tests/test_header.py::test_float - AssertionError
+=================== 1 failed, 118 passed, 1 skipped in 3.21s ===================
+"""
+
+
+def test_condense_test_output_keeps_failures_and_summary():
+    out = routing_agent.condense_test_output(PYTEST_OUT)
+    for gone in ("[ 40%]", "test_ok PASSED", "DeprecationWarning", "warnings summary"):
+        assert gone not in out
+    for kept in ("collected 120 items", "E       AssertionError", "FAILED astropy/io/fits/tests/test_header.py",
+                 "1 failed, 118 passed, 1 skipped", "[6 lines of passing tests and warnings omitted]"):
+        assert kept in out
+    assert routing_agent.condense_test_output("traceback line\n" * 2_000).count("characters omitted") == 1
+
+
+def test_variant_names():
+    assert variant_name(None) == "steps"  # trials recorded before Tier 0 existed
+    assert variant_name({"prompt": "batch", "tier0": True, "stall_turns": 20}) == "batch+tier0+stall20"
+    assert trial_variant({}, {"prompt": "batch", "tier0": "false", "stall_turns": "0"}) == "batch"
+    assert trial_variant({"harness": {"prompt": "steps", "tier0": True, "stall_turns": 0}}, {}) == "steps+tier0"
 
 
 # --- Pricing and cost ---------------------------------------------------------------------------
@@ -279,9 +362,12 @@ class FakeEnv:
         self.files = {"pkg/mod.py": "def f(a):\n    return a\n"}
         self.head = dict(self.files)
         self.commands = []
+        self.tmp = {}
 
     async def exec(self, command, cwd=None, env=None, timeout_sec=None, user=None):
         self.commands.append(command)
+        if len(command) > 131_072:  # Linux MAX_ARG_STRLEN for one argument
+            raise OSError(7, "Argument list too long")
         if command.startswith("git rev-parse"):
             return ExecResult(stdout="abc123\n", return_code=0)
         if command.startswith("git ls-files"):
@@ -292,20 +378,35 @@ class FakeEnv:
         if "| base64 | tr -d" in command:
             text = self.head["pkg/mod.py"] if "git show" in command else self.files["pkg/mod.py"]
             return ExecResult(stdout=base64.b64encode(text.encode()).decode(), return_code=0)
-        if "| base64 -d >" in command:
-            data = command.split("printf %s ", 1)[1].split(" | base64 -d", 1)[0]
-            self.files["pkg/mod.py"] = base64.b64decode(data).decode()
+        if command.startswith("printf %s ") and "/tmp/.edit_file_" in command:
+            chunk, op, tmp = command[len("printf %s "):].rsplit(" ", 2)
+            self.tmp[tmp] = (self.tmp.get(tmp, "") if op == ">>" else "") + chunk
+            return ExecResult(stdout="", return_code=0)
+        if command.startswith("base64 -d /tmp/.edit_file_"):
+            tmp = command.split()[2]
+            self.files["pkg/mod.py"] = base64.b64decode(self.tmp.pop(tmp)).decode()
             return ExecResult(stdout="", return_code=0)
         if "pytest" in command:
             return ExecResult(stdout="1 failed", return_code=1)
         return ExecResult(stdout="ok", return_code=0)
 
 
+def test_edit_file_writes_large_files_in_chunks():
+    env = FakeEnv()
+    env.files["pkg/mod.py"] = "x = 1\n" + "# padding line for a large module\n" * 6_000  # ~200 KB
+    out, code = asyncio.run(routing_agent.edit_file(env, "pkg/mod.py", "x = 1", "x = 2"))
+    assert code == 0 and env.files["pkg/mod.py"].startswith("x = 2\n") and len(env.files["pkg/mod.py"]) > 200_000
+    assert sum(c.startswith("printf %s ") for c in env.commands) >= 4  # several chunks, none over the limit
+    out, code = asyncio.run(routing_agent.run_bash(env, "echo " + "y" * 140_000, 10))
+    assert code == 1 and "too long" in out
+
+
 class ScriptedModel:
     def __init__(self, spec, steps):
-        self.spec, self.steps = spec, list(steps)
+        self.spec, self.steps, self.systems = spec, list(steps), []
 
     async def step(self, system, tools, transcript):
+        self.systems.append(system)
         return self.steps.pop(0)
 
     async def aclose(self):
@@ -315,6 +416,9 @@ class ScriptedModel:
 def step(model, *calls, text=""):
     return Step(model, text, [ToolCall(f"c{i}", name, args) for i, (name, args) in enumerate(calls)],
                 Usage(input_uncached=1000, output=100))
+
+
+PILOT = {"prompt": "steps", "tier0": False, "stall_turns": 0}  # harness settings of the pilot runs
 
 
 def run_agent(tmp_path, monkeypatch, workhorse_steps, frontier_steps, trial="pkg__mod-1__abc", **opts):
@@ -329,6 +433,7 @@ def run_agent(tmp_path, monkeypatch, workhorse_steps, frontier_steps, trial="pkg
     asyncio.run(agent.run("Fix f in pkg/mod.py so `f` accepts `b`.", env, ctx))
     records = [json.loads(line) for line in (logs / "trajectory.jsonl").read_text().splitlines()] \
         if (logs / "trajectory.jsonl").exists() else []
+    run_agent.models = models
     return records, json.loads((logs / "summary.json").read_text()), ctx, env, logs
 
 
@@ -338,16 +443,47 @@ def test_loop_routes_on_triggers_and_writes_telemetry(tmp_path, monkeypatch):
     workhorse = [step(W, ("edit_file", {"path": "pkg/mod.py", "old_str": "def f(a):", "new_str": "def f(a, b):"})),
                  step(W, pytest_call), step(W, pytest_call)]
     frontier = [step(F, text="1. edit f\n2. run tests"), step(F, pytest_call), step(F, ("finish", {"summary": "done"}))]
-    records, summary, ctx, env, logs = run_agent(tmp_path, monkeypatch, workhorse, frontier)
+    records, summary, ctx, env, logs = run_agent(tmp_path, monkeypatch, workhorse, frontier, **PILOT)
     assert [r["tier"] for r in records] == ["frontier", "workhorse", "frontier", "workhorse", "workhorse", "frontier"]
     assert [r["reason"] for r in records] == ["planning", "default", "signature_mutation", "default", "default",
                                               "gate_failures"]
     assert summary["stop_reason"] == "finished"
     assert summary["triggers"]["fired"] == {"planning": 1, "signature_mutation": 1, "gate_failures": 1}
+    assert summary["variant"] == "steps" and summary["tier0"]["first_tracked_edit_turn"] == 1
     assert "def f(a, b):" in env.files["pkg/mod.py"]
     assert set(ctx.model_usage) == {"gemini-3.8-flash:low", "claude-opus-5-5:high"} and ctx.cost_usd > 0
     assert ledger_total(tmp_path / "ledger.jsonl") > 0
     assert "Strip: `P W F W W F`" in (logs / "timeline.md").read_text()
+    assert run_agent.models[ModelSpec("gemini-3.8-flash", "low")].systems[0] == PILOT_PROMPT
+
+
+def test_tier0_reruns_the_latest_test_command_after_an_edit(tmp_path, monkeypatch):
+    W, F = "gemini-3.8-flash", "claude-opus-5-5"
+    workhorse = [step(W, ("bash", {"command": "python -m pytest tests/test_mod.py"})),
+                 step(W, ("edit_file", {"path": "pkg/mod.py", "old_str": "return a", "new_str": "return a or 0"})),
+                 step(W, ("finish", {"summary": "done"}))]
+    records, summary, ctx, env, logs = run_agent(tmp_path, monkeypatch, workhorse, [step(F, text="plan")])
+    edit = records[2]
+    assert edit["harness"] == {"progress": True, "auto_verify": "python -m pytest tests/test_mod.py", "nudge": False}
+    assert edit["gate"]["file"] == "pkg/mod.py" and edit["gate"]["passed"] is False
+    assert "[gate] auto-verify: re-ran `python -m pytest tests/test_mod.py`" in edit["results"][0]["preview"]
+    assert "[gate] tests failed after editing pkg/mod.py" in edit["results"][0]["preview"]
+    assert edit["results"][0]["exit_code"] == 0  # the edit itself succeeded
+    assert sum("pytest" in c for c in env.commands) == 2  # once by the model, once by the harness
+    assert summary["variant"] == "steps+tier0+stall20"
+    assert summary["tier0"] == {"auto_verify_runs": 1, "nudges": 0, "first_tracked_edit_turn": 2}
+    assert "re-runs your most recent test" in run_agent.models[ModelSpec(W, "low")].systems[0]
+
+
+def test_tier0_nudges_then_the_stall_trigger_escalates(tmp_path, monkeypatch):
+    W, F = "gemini-3.8-flash", "claude-opus-5-5"
+    workhorse = [step(W, ("bash", {"command": f"ls {d}"})) for d in "abc"]
+    frontier = [step(F, text="plan"), step(F, ("finish", {"summary": "done"}))]
+    records, summary, *_ = run_agent(tmp_path, monkeypatch, workhorse, frontier, nudge_turns=2, stall_turns=3)
+    assert [r["reason"] for r in records] == ["planning", "default", "default", "default", "stalled"]
+    assert "[harness] 2 turns without a change to a tracked file" in records[2]["results"][0]["preview"]
+    assert [r["harness"].get("nudge") for r in records[1:4]] == [False, True, True]
+    assert summary["triggers"]["fired"]["stalled"] == 1 and summary["tier0"]["nudges"] == 2
 
 
 def test_schema_failures_reach_the_frontier_and_get_an_error_back(tmp_path, monkeypatch):
@@ -383,11 +519,15 @@ def test_env_file_precedence(tmp_path):
 def test_task_ref_and_shared_baselines():
     assert runner.task_ref("swe-bench/swe-bench-verified", "a__b-1") == "swe-bench/a__b-1"
     assert runner.task_ref("swe-bench/swe-bench-verified", "x/a__b-1") == "x/a__b-1"
-    assert runner.run_key("t", "frontier_only", "w1", "f", "") == runner.run_key("t", "frontier_only", "w2", "f", "")
-    assert runner.run_key("t", "routed", "w1", "f", "") != runner.run_key("t", "routed", "w2", "f", "")
+    assert runner.task_ref("scale-ai/swe-bench-pro", "instance_a__b-1") == "scale-ai/instance_a__b-1"
+    key = runner.run_key
+    assert key("t", "frontier_only", "w1", "f", "", "v") == key("t", "frontier_only", "w2", "f", "", "v")
+    assert key("t", "routed", "w1", "f", "", "v") != key("t", "routed", "w2", "f", "", "v")
+    assert key("t", "routed", "w", "f", "", "steps") != key("t", "routed", "w", "f", "", "batch+tier0")
 
 
-def write_trial(root, name, mode, reward, tokens, exc=None, wh="gemini-3.8-flash:low", fr="gemini-4-argon:high"):
+def write_trial(root, name, mode, reward, tokens, exc=None, wh="gemini-3.8-flash:low", fr="gemini-4-argon:high",
+                harness=None):
     trial = root / "job" / name
     (trial / "agent").mkdir(parents=True)
     (trial / "result.json").write_text(json.dumps({
@@ -398,9 +538,11 @@ def write_trial(root, name, mode, reward, tokens, exc=None, wh="gemini-3.8-flash
     rec = {"turn": 1, "tier": "workhorse", "model_id": wh.split(":")[0], "model_switch": False, "cum_cost_current": 1.5,
            "usage": {"input_uncached": tokens, "cache_read": 0, "cache_write": 0, "output": 0, "thinking": 0}}
     (trial / "agent" / "trajectory.jsonl").write_text(json.dumps(rec) + "\n")
-    (trial / "agent" / "summary.json").write_text(json.dumps({
-        "turns": 1, "calls": 1, "tiers": {"frontier": {"calls": 0}}, "turn_labels": {"explore": 1},
-        "triggers": {"fired": {"planning": 1}}, "model_switches": 0, "stop_reason": "finished"}))
+    summary = {"turns": 1, "calls": 1, "tiers": {"frontier": {"calls": 0}}, "turn_labels": {"explore": 1},
+               "triggers": {"fired": {"planning": 1}}, "model_switches": 0, "stop_reason": "finished"}
+    if harness:
+        summary |= {"harness": harness, "tier0": {"auto_verify_runs": 2, "nudges": 1, "first_tracked_edit_turn": 7}}
+    (trial / "agent" / "summary.json").write_text(json.dumps(summary))
 
 
 def test_completed_trials_and_report(tmp_path):
@@ -408,14 +550,24 @@ def test_completed_trials_and_report(tmp_path):
     write_trial(tmp_path, "t1__b", "routed", 0.0, 1_000_000)
     write_trial(tmp_path, "t1__c", "routed", None, 1_000_000, exc="DockerError")
     write_trial(tmp_path, "t1__d", "routed", 1.0, 1_000_000, exc="AgentTimeoutError")
+    v2 = {"prompt": "batch", "tier0": True, "stall_turns": 20}
+    write_trial(tmp_path, "t1__e", "workhorse_only", 1.0, 500_000, harness=v2)
     done = runner.completed_trials(tmp_path)
-    assert done[runner.run_key("swe-bench/t1", "routed", "gemini-3.8-flash:low", "gemini-4-argon:high", "")] == 3
+    assert done[runner.run_key("swe-bench/t1", "routed", "gemini-3.8-flash:low", "gemini-4-argon:high", "",
+                               "steps")] == 3
+    assert done[runner.run_key("swe-bench/t1", "workhorse_only", "gemini-3.8-flash:low", "x", "",
+                               "batch+tier0+stall20")] == 1
     trials = report.load_trials(tmp_path, PRICING, "list", [], [])
-    agg = report.aggregate(report.pairing_rows(trials, "gemini-3.8-flash:low", "gemini-4-argon:high")["routed"])
+    assert report.configs(trials) == [
+        ("batch+tier0+stall20", "workhorse_only", "gemini-3.8-flash:low", "-"),
+        ("steps", "routed", "gemini-3.8-flash:low", "gemini-4-argon:high")]
+    agg = report.aggregate(report.rows_for(trials, report.configs(trials)[1]))
     assert (agg["attempts"], agg["resolved"], agg["infra_errors"]) == (3, 2, 1)
     assert agg["cost_per_resolved"] == pytest.approx(4.50 / 2)
+    tier0 = report.aggregate(report.rows_for(trials, report.configs(trials)[0]))
+    assert (tier0["auto_verify"], tier0["nudges"], tier0["first_edit"]) == (2, 1, 7)
     text = report.render(trials, PRICING, "list")
-    assert "Left out of the comparison" in text and "**$2.250**" in text
+    assert "Left out of the comparison" in text and "**$2.250**" in text and "| stalled |" in text
     report.plot(trials, tmp_path / "plots")
     assert {p.name for p in (tmp_path / "plots").iterdir()} == {"cost_per_resolved.png", "trajectory_strip.png",
                                                                "triggers.png"}
@@ -429,5 +581,11 @@ def test_dry_run_builds_the_harbor_command(tmp_path, monkeypatch, capsys):
     out = capsys.readouterr().out
     for fragment in ("-i swe-bench/astropy__astropy-14508", "-a routing_agent:GovernedRoutingAgent",
                      "--ak workhorse=gemini-3.8-flash:low", "--ak frontier=gemini-4-argon:high",
-                     "--agent-timeout-multiplier 2.0", "--max-retries 1", "project=p"):
+                     "--ak prompt=steps", "--ak tier0=true", "--ak stall_turns=20", "harness=steps+tier0+stall20",
+                     "steps-tier0-stall20-k1", "--agent-timeout-multiplier 2.0", "--max-retries 1", "project=p"):
         assert fragment in out
+    runner.main(["--task", "astropy__astropy-14508", "--workhorse", "gemini-3.8-flash:low",
+                 "--frontier", "gemini-4-argon:high", "--modes", "workhorse_only", "--prompt", "batch",
+                 "--tier0", "off", "--stall-turns", "0", "--jobs-dir", str(tmp_path), "--dry-run"])
+    out = capsys.readouterr().out
+    assert "--ak tier0=false" in out and "--ak stall_turns=0" in out and "harness=batch " in out

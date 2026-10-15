@@ -23,6 +23,7 @@ Escalation triggers (Workhorse -> Frontier):
      Sets a sticky lock that holds Frontier until that file passes a test gate.
   3. Signature mutation: an edit removed or changed an existing public signature.
   4. Schema failure: the model's output had no tool call, an unknown tool, or invalid args.
+  5. Stall: N turns in a row without a change to a tracked file (0 turns it off).
 
 Safeguards: an escalation cap (max Frontier turns per task) and a per-task budget that
 downshifts to Workhorse at 80% spend. Baseline modes force one tier for comparison.
@@ -45,6 +46,7 @@ MODES = ("routed", "frontier_only", "workhorse_only")
 class RouterConfig:
     mode: str = "routed"             # routed | frontier_only | workhorse_only
     gate_failure_threshold: int = 3  # Trigger 2: escalate on the 3rd consecutive failure
+    stall_turns: int = 20            # Trigger 5: turns without a tracked-file change (0 = off)
     max_frontier_turns: int = 15     # escalation cap per task (the plan call counts)
     budget_usd: float = 3.00         # per-task budget at current prices
     downshift_at: float = 0.80       # no Frontier once 80% of the budget is spent
@@ -57,13 +59,14 @@ class Signals:
     gate_passed: bool | None = None                              # None: no gate ran
     removed_signatures: list[str] = field(default_factory=list)  # Trigger 3
     schema_error: str | None = None                              # Trigger 4
+    progress: bool = False                                       # a tracked file changed (Trigger 5)
 
 
 @dataclass
 class Decision:
     tier: str
-    reason: str          # planning | gate_failures | sticky_lock | signature_mutation |
-                         # schema_failure | default | forced | budget_downshift | cap_reached
+    reason: str          # planning | gate_failures | sticky_lock | signature_mutation | schema_failure |
+                         # stalled | default | forced | budget_downshift | cap_reached
     detail: str = ""
     suppressed: str = ""  # trigger that fired but was blocked by a safeguard or forced mode
 
@@ -77,6 +80,7 @@ class GovernedRouter:
         self.sticky_file: str | None = None
         self.pending: list[tuple[str, str]] = []
         self.frontier_turns = 0
+        self.stalled_turns = 0  # consecutive turns without a change to a tracked file
 
     def plan(self) -> Decision:
         """Trigger 1: the plan-only call (turn 0). Frontier, except in workhorse_only."""
@@ -86,6 +90,7 @@ class GovernedRouter:
         return Decision(tier, reason, "plan-only call, no tools")
 
     def observe(self, s: Signals) -> None:
+        self.stalled_turns = 0 if s.progress else self.stalled_turns + 1
         if s.gate_file and s.gate_passed is not None:
             if s.gate_passed:
                 self.failures[s.gate_file] = 0
@@ -125,6 +130,9 @@ class GovernedRouter:
             reason, detail = self.pending[0]
             self.pending.clear()
             return reason, detail
+        if self.cfg.stall_turns and self.stalled_turns >= self.cfg.stall_turns:
+            n, self.stalled_turns = self.stalled_turns, 0  # one Frontier turn, then count again
+            return "stalled", f"{n} turns without a change to a tracked file"
         return None
 
 

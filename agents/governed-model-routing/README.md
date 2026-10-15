@@ -1,9 +1,11 @@
 # Governed model routing for coding agents
 
 A coding agent that runs every turn on a cheap **workhorse** model and moves up to a
-**frontier** model only when a deterministic trigger fires. It solves
-[SWE-bench Verified](https://www.swebench.com/) tasks through [Harbor](https://harborframework.com)
-(the official Docker environments and verifier) and records, for every task:
+**frontier** model only when a deterministic trigger fires. Before any model is involved,
+**Tier 0** harness actions do the work that needs no model at all. It solves
+[SWE-bench Verified](https://www.swebench.com/) and [SWE-bench Pro](https://hub.harborframework.com/datasets/scale-ai/swe-bench-pro)
+tasks through [Harbor](https://harborframework.com) (the official Docker environments and verifiers)
+and records, for every task:
 
 - the **trajectory**: which model handled each turn, and why;
 - **tokens**: uncached input, cache reads and writes, output and thinking;
@@ -28,7 +30,7 @@ flowchart LR
     L -- yes --> F["Frontier turn"]
     W --> C["Task container: bash / edit_file"]
     F --> C
-    C --> G["Gates: lint, tests, AST signatures"]
+    C --> G["Tier 0 and gates: tests after edits, lint, AST signatures"]
     G --> L
     A --> T["trajectory.jsonl, summary.json, timeline.md"]
     H --> V["Official verifier: resolved or not"]
@@ -37,9 +39,18 @@ flowchart LR
 | Escalation trigger | Deterministic signal |
 |---|---|
 | 1. Planning | One plan-only call with no tools before the loop. It sees the issue plus a repo map built without any model call. |
-| 2. Consecutive gate failures | 3 failures in a row on the same file. Gates are a host-side syntax check of edited `.py` files, plus the exit code of test or repro commands run after an edit. A sticky lock keeps the frontier until that file passes a test gate. |
+| 2. Consecutive gate failures | 3 failures in a row on the same file. Gates are a host-side syntax check of edited `.py` files, plus a test gate (see Tier 0). A sticky lock keeps the frontier until that file passes a test gate. |
 | 3. Public signature mutation | An AST diff against the base commit shows an existing public function, method or class signature was removed or changed. |
 | 4. Schema validation failure | The model replied with no tool call, an unknown tool, or arguments that fail the Pydantic model. |
+| 5. Stall | `stall_turns=20` turns in a row without a change to a tracked file. One frontier turn, then the count starts again. |
+
+| Tier 0 action (no model calls, `--tier0 on`) | What it does |
+|---|---|
+| Test gate after every edit | When a turn changes a tracked file, the harness re-runs the agent's most recent test or reproduction command and appends the result as `[gate]` lines. The agent doesn't spend a turn re-running it. |
+| Condensed test output | Test output loses progress dots, `PASSED` lines and the warnings summary. Failures and the final summary stay. |
+| No-progress nudge | After `nudge_turns=12` (and again at `stall_turns`) turns without a tracked edit, a `[harness]` line asks the agent to make the edit and batch its remaining checks. |
+
+With `--tier0 off` the test gate is the exit code of test commands the agent runs itself after an edit.
 
 | Safeguard | Default |
 |---|---|
@@ -48,8 +59,8 @@ flowchart LR
 | Circuit breaker | The same tool call with the same output 5 times in a row ends the trial. There is also a 100-turn limit. |
 | Spend ceiling | `run.py --ceiling-usd 250` (list prices). Once the ledger reaches it, new trials are skipped. |
 
-The gates, the repo map and the plan call run in every mode. Routed and baseline runs therefore get
-the same deterministic feedback, and only the routing differs.
+The gates, Tier 0, the repo map and the plan call run in every mode. Routed and baseline runs therefore
+get the same deterministic feedback, and only the routing differs.
 
 ## Files
 
@@ -97,6 +108,16 @@ In the project:
 # Gemini workhorse, Claude frontier; several tasks; only the routed mode
 .venv/bin/python run.py --task sympy__sympy-24213 --task django__django-16631 \
     --workhorse gemini-3.8-flash:low --frontier claude-opus-5-5:high --modes routed
+
+# SWE-bench Pro task
+.venv/bin/python run.py --dataset scale-ai/swe-bench-pro \
+    --task instance_ansible__ansible-5260527c4a71bfed99d803e687dd19619423b134-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5 \
+    --workhorse gemini-3.8-flash:low --frontier gemini-4-argon:high
+
+# The harness without Tier 0 and the stall trigger (as in the first pilot)
+.venv/bin/python run.py --task astropy__astropy-14508 \
+    --workhorse gemini-3.8-flash:low --frontier gemini-4-argon:high \
+    --tier0 off --stall-turns 0
 ```
 
 Useful flags:
@@ -104,13 +125,16 @@ Useful flags:
 - `--project`, which overrides the shell environment and `.env`.
 - `--label` to group a batch.
 - `--ceiling-usd`.
+- Harness settings: `--tier0 on|off`, `--stall-turns N` (0 turns the stall trigger off), and
+  `--prompt steps|batch` (system prompt style; `steps` is the default, and `batch` asks for fewer,
+  fuller turns). Their combination is the run's harness variant, for example `steps+tier0+stall20`.
 - `--ak key=value` for router options: `gate_failure_threshold`, `max_frontier_turns`, `budget_usd`,
-  `downshift_at`, `max_turns`, `command_timeout_sec`.
+  `downshift_at`, `max_turns`, `command_timeout_sec`, `nudge_turns`.
 - `--dry-run` prints the Harbor commands without running them.
 
-Trials already finished with the same task, mode, models and label are skipped. That makes
-interrupted runs resumable, and lets pairings share baselines: a `frontier_only` run depends only on
-the frontier model, and a `workhorse_only` run only on the workhorse.
+Trials already finished with the same task, mode, models, harness variant and label are skipped. That
+makes interrupted runs resumable, and lets pairings share baselines: a `frontier_only` run depends only
+on the frontier model, and a `workhorse_only` run only on the workhorse.
 
 `run.py` is a thin wrapper around Harbor. The equivalent direct command is:
 
@@ -131,8 +155,8 @@ Each trial writes these files to `jobs/<job>/<trial>/agent/`:
 
 | File | Contents |
 |---|---|
-| `trajectory.jsonl` | One record per model call. Turn 0 is the plan call. Fields: tier, model, routing reason (and any suppressed trigger), tool calls, turn label (explore / edit / test / other), exit codes, gate results, usage, model switch, cache hit ratio, cost at current and list prices, latency. |
-| `summary.json` | Totals by tier, trigger counts, model switches, switch tax, cache hit ratios, turn labels, stop reason. |
+| `trajectory.jsonl` | One record per model call. Turn 0 is the plan call. Fields: tier, model, routing reason (and any suppressed trigger), tool calls, turn label (explore / edit / test / other), exit codes, gate results, Tier 0 events (tracked-file change, auto-verify command, nudge), usage, model switch, cache hit ratio, cost at current and list prices, latency. |
+| `summary.json` | Harness settings and variant, totals by tier, trigger counts, Tier 0 counts (auto-verify runs, nudges, turn of the first tracked edit), model switches, switch tax, cache hit ratios, turn labels, stop reason. |
 | `timeline.md` | A readable trajectory, plus a strip such as `P W W F F F W W` (plan, workhorse, frontier). |
 
 `jobs/ledger.jsonl` holds one cost line per trial, used for the spend ceiling. Harbor's `result.json`
@@ -152,30 +176,25 @@ that persist after retries) are retried once by Harbor and listed separately. An
 still graded by the verifier.
 
 The report includes:
-- per-pairing and per-task tables;
+- one row per configuration (harness variant, mode, models) and a per-task table;
+- Tier 0 activity: auto-verify runs, nudges, and the median turn of the first tracked edit;
 - the share of frontier-only turns spent on reads, searches, edits and tests;
 - trigger counts;
 - three charts: `cost_per_resolved.png`, `trajectory_strip.png` and `triggers.png`.
 
-## Two things that matter when you route across models
-
-1. **Reasoning artifacts belong to the model that produced them.** Gemini 3+ rejects a function call in
-   the current turn that has no thought signature (`400 INVALID_ARGUMENT`). `providers.py` replays each
-   model's own steps natively. Steps from any other model are replayed as plain tool calls: for Gemini
-   they carry the documented placeholder signature, and Claude accepts them as `tool_use` blocks with
-   no thinking blocks.
-2. **Caches are per model.** A switch to a different model reads the whole history uncached. Each
-   trajectory record flags model switches, and the summary estimates the resulting "switch tax".
-   Switching thinking levels on the same model keeps the cache warm. Claude caches only when asked,
-   so the Claude adapter sets `cache_control` on every call.
-
 ## Limitations
 
 - Small samples. Treat a handful of tasks as an illustration of the mechanics, not a benchmark score.
-- The gates are heuristics. The lint gate is a syntax check; the test gate trusts the exit codes of
-  the agent's own test and repro commands.
+- The gates are heuristics. The lint gate is a syntax check; the test gate trusts the exit code of the
+  agent's own test or reproduction command (re-run by the harness with Tier 0 on).
 - SWE-bench Verified is public, and models may have seen it during training. Comparisons within one
   pairing (the same models, routed vs. baselines) are less affected than absolute resolve rates.
 - Prices change, and `pricing.yaml` is a dated snapshot. Re-check it before you publish numbers.
+
+## Troubleshooting
+
+- **"all predefined address pools have been fully subnetted"**: every Harbor trial creates its own
+  Docker network, and the daemon ran out of subnets. Lower `--concurrency`, or give Docker more
+  subnets with `default-address-pools` in `/etc/docker/daemon.json`.
 
 This is not an officially supported Google product.

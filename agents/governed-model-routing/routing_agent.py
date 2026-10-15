@@ -18,6 +18,11 @@
         -a routing_agent:GovernedRoutingAgent \
         --ak workhorse=gemini-3.8-flash:low --ak frontier=gemini-4-argon:high
 
+Tier 0 (`--ak tier0=true`, the default) adds deterministic harness actions that cost no
+model calls: the test gate re-runs the agent's latest test command after every edit to a
+tracked file, test output is condensed, and the agent gets a nudge after `nudge_turns`
+turns without a tracked edit.
+
 Security note: model-written commands run only inside the task's Docker container that
 Harbor creates for the trial (its sandbox). Nothing the model writes is executed on the host,
 and no host credentials or environment variables are passed into the container.
@@ -30,6 +35,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import errno
 import os
 import re
 import shlex
@@ -47,27 +53,47 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from providers import Step, ToolCall, ToolResults, ToolSpec, UserText, make_model
 from router import (FRONTIER, WORKHORSE, GovernedRouter, RouterConfig, Signals, is_test_command,
                     removed_signatures, syntax_error)
-from telemetry import Telemetry, check_spec, ledger_total, load_pricing
+from telemetry import Telemetry, check_spec, ledger_total, load_pricing, variant_name
 
 # --- Prompts ------------------------------------------------------------------------------
 
 PLAN_SYSTEM = ("You are a senior software engineer planning a fix. You cannot run tools in this step; "
                "base the plan on the issue and the repository overview.")
 
-SYSTEM_PROMPT = """You are an autonomous software engineer fixing an issue in the repository in the current directory.
+_SYSTEM_HEAD = """You are an autonomous software engineer fixing an issue in the repository in the current directory.
 Tools:
 - bash: run a non-interactive shell command in the repository root (each call starts a fresh shell).
 - edit_file: replace one exact, unique occurrence of old_str with new_str in a file.
 - finish: call once the fix is implemented and verified.
 Rules:
-- Work in small steps: inspect the code, reproduce the problem, fix it, verify the fix.
-- Change source files only. Do not modify existing tests.
+"""
+# The prompt A/B: the original "small steps" rule vs. a rule that asks for fewer, fuller turns.
+# In a 3 + 3 trial A/B (Flash low, no Tier 0) the batch rule did not reduce turns, so "steps" stays
+# the default; the Tier 0 nudges are what shortened trajectories.
+_STYLE_RULES = {
+    "steps": "- Work in small steps: inspect the code, reproduce the problem, fix it, verify the fix.\n",
+    "batch": ("- Every turn re-sends the whole conversation, so use few turns: combine related reads and checks "
+              "into one command or a short script, and make independent tool calls in the same response. "
+              "Reproduce the problem, fix it, verify the fix.\n"),
+}
+_TIER0_RULE = ("- After every change to a tracked file, the harness re-runs your most recent test or reproduction "
+               "command (pytest, or a script such as reproduce_issue.py) and reports the result in [gate] lines. "
+               "You don't need to re-run it yourself.\n")
+_SYSTEM_TAIL = """- Change source files only. Do not modify existing tests.
 - Prefer edit_file for code changes.
 - Lines starting with [gate] come from automatic checks in the harness. Take them into account.
 - Every response must include at least one tool call."""
 
+
+def system_prompt(style: str = "steps", tier0: bool = True) -> str:
+    """System prompt for the loop. ("steps", tier0=False) is the original pilot prompt."""
+    return _SYSTEM_HEAD + _STYLE_RULES[style] + (_TIER0_RULE if tier0 else "") + _SYSTEM_TAIL
+
+
 NO_TOOL_CALL_HINT = ("Your last response did not include a tool call. "
                      "Continue by calling one of the tools: bash, edit_file or finish.")
+NUDGE = ("[harness] {n} turns without a change to a tracked file. If you know the fix, make the edit now; "
+         "batch any remaining checks into one script.")
 
 
 def plan_prompt(instruction: str, repo_map: str) -> str:
@@ -160,14 +186,45 @@ def clip(text: str, head: int = 6000, tail: int = 4000) -> str:
     return f"{text[:head]}\n[... {len(text) - head - tail} characters omitted ...]\n{text[-tail:]}"
 
 
-async def run_bash(env: BaseEnvironment, command: str, timeout_sec: int) -> tuple[str, int]:
+_PROGRESS = re.compile(r"^(\S+\.py\s+)?[.sSxXEF]+\s*(\[\s*\d+%\])?$")  # pytest progress or unittest dots
+_SECTION = re.compile(r"^={3,} (.+?) ={3,}$")
+
+
+def condense_test_output(text: str, head: int = 2000, tail: int = 4000) -> str:
+    """Tier 0: drop passing-test noise (progress dots, PASSED lines, the warnings summary).
+
+    Failures, errors and the final summary stay. They sit at the end, which the clip keeps.
+    """
+    kept, dropped, skipping = [], 0, False
+    for line in text.splitlines():
+        s = line.strip()
+        section = _SECTION.match(s)
+        if section:
+            skipping = "warnings summary" in section.group(1).lower()
+        if skipping or _PROGRESS.match(s) or s.endswith((" PASSED", " ... ok")) or " PASSED " in s:
+            dropped += 1
+            continue
+        kept.append(line)
+    if dropped:
+        kept.append(f"[{dropped} lines of passing tests and warnings omitted]")
+    return clip("\n".join(kept), head, tail)
+
+
+async def run_bash(env: BaseEnvironment, command: str, timeout_sec: int,
+                   condense: bool = False) -> tuple[str, int]:
     try:
         res = await env.exec(shell(command, timeout_sec), timeout_sec=timeout_sec + 30)
     except RuntimeError as e:  # Harbor's exec timeout backstop
         return f"[exit code 124] command timed out after {timeout_sec}s ({e})", 124
+    except OSError as e:
+        if e.errno != errno.E2BIG:
+            raise
+        return ("[exit code 1] the command is too long to run (over the 128 KB argument limit); "
+                "write large content in smaller pieces"), 1
     code = res.return_code
+    text = (res.stdout or "") + (res.stderr or "")
     note = f"\n[command timed out after {timeout_sec}s]" if code == 124 else ""
-    return f"[exit code {code}]\n{clip((res.stdout or '') + (res.stderr or ''))}{note}", code
+    return f"[exit code {code}]\n{condense_test_output(text) if condense else clip(text)}{note}", code
 
 
 async def read_text(env: BaseEnvironment, producer: str) -> str | None:
@@ -179,6 +236,9 @@ async def read_text(env: BaseEnvironment, producer: str) -> str | None:
         return base64.b64decode(res.stdout or "").decode("utf-8")
     except (ValueError, UnicodeDecodeError):
         return None
+
+
+_CHUNK = 64_000  # one shell argument must stay under Linux's 128 KB limit (MAX_ARG_STRLEN)
 
 
 async def edit_file(env: BaseEnvironment, path: str, old: str, new: str) -> tuple[str, int]:
@@ -193,7 +253,14 @@ async def edit_file(env: BaseEnvironment, path: str, old: str, new: str) -> tupl
     data = base64.b64encode(text.replace(old, new, 1).encode("utf-8")).decode("ascii")
     if len(data) > 1_500_000:
         return f"[exit code 1] {path} is too large for edit_file; edit it with bash", 1
-    res = await env.exec(f"printf %s {data} | base64 -d > {quoted}", timeout_sec=60)
+    # Send the new content in chunks to a temp file, then decode it over the original.
+    tmp = f"/tmp/.edit_file_{abs(hash((path, len(data))))}.b64"
+    for i in range(0, max(len(data), 1), _CHUNK):
+        res = await env.exec(f"printf %s {data[i:i + _CHUNK]} {'>' if i == 0 else '>>'} {tmp}", timeout_sec=60)
+        if res.return_code != 0:
+            break
+    else:
+        res = await env.exec(f"base64 -d {tmp} > {quoted}; rc=$?; rm -f {tmp}; exit $rc", timeout_sec=60)
     if res.return_code != 0:
         return f"[exit code {res.return_code}] could not write {path}: {(res.stdout or '')[:500]}", res.return_code
     return f"[exit code 0] edited {path}: replaced 1 occurrence", 0
@@ -259,14 +326,20 @@ class GateState:
     snapshot: dict[str, str] = field(default_factory=dict)
     active_file: str | None = None
     flagged: dict[str, set[str]] = field(default_factory=dict)
+    edited: bool = False            # a tracked file changed during the current turn
+    verify_cmd: str | None = None   # the agent's most recent test or repro command (Tier 0 re-runs it)
 
 
 async def run_gates(env: BaseEnvironment, tool: str, args: BaseModel, code: int,
-                    signals: Signals, state: GateState) -> str:
-    """Lint gate and AST signature check on edited files; test gate on test commands."""
+                    signals: Signals, state: GateState, tier0: bool = False) -> str:
+    """Lint gate and AST signature check on edited files; test gate on test commands.
+
+    With Tier 0 on, the test gate comes from `verify_after_edit` instead of the agent's own runs.
+    """
     new = await git_snapshot(env, state.base)
     changed = sorted(p for p in set(state.snapshot) | set(new) if state.snapshot.get(p) != new.get(p))
     state.snapshot = new
+    state.edited = state.edited or bool(changed)
     notes = []
     for path in changed:
         if new.get(path, "deleted") == "deleted":
@@ -289,11 +362,36 @@ async def run_gates(env: BaseEnvironment, tool: str, args: BaseModel, code: int,
                 seen.update(fresh)
                 signals.removed_signatures.extend(f"{path}: {s}" for s in fresh)
                 notes.append(f"[gate] public API changed in {path}: removed or changed {'; '.join(fresh)}")
-    if (tool == "bash" and state.active_file and signals.gate_passed is not False
-            and is_test_command(args.command)):
-        signals.gate_file, signals.gate_passed = state.active_file, code == 0
-        notes.append(f"[gate] test run {'passed' if code == 0 else 'failed'} after editing {state.active_file}")
+    if tool == "bash" and is_test_command(args.command):
+        state.verify_cmd = args.command
+        if not tier0 and state.active_file and signals.gate_passed is not False:
+            signals.gate_file, signals.gate_passed = state.active_file, code == 0
+            notes.append(f"[gate] test run {'passed' if code == 0 else 'failed'} after editing {state.active_file}")
     return ("\n" + "\n".join(notes)) if notes else ""
+
+
+async def verify_after_edit(env: BaseEnvironment, state: GateState, signals: Signals,
+                            results: list[tuple[ToolCall, str, int]], timeout_sec: int) -> str | None:
+    """Tier 0: after a turn that changed a tracked file, re-run the latest test command.
+
+    This is the test gate, run by the harness instead of costing the model another turn.
+    Returns the command it ran, or None.
+    """
+    if not (state.edited and state.verify_cmd and state.active_file and results):
+        return None
+    call, output, code = results[-1]
+    ran = None
+    if call.name == "bash" and is_test_command(str(call.args.get("command", ""))):
+        verify_code = code  # the turn already ended with a test run after the edit
+    else:
+        verify_out, verify_code = await run_bash(env, state.verify_cmd, timeout_sec, condense=True)
+        output += f"\n[gate] auto-verify: re-ran `{state.verify_cmd}`\n{verify_out}"
+        ran = state.verify_cmd
+    if signals.gate_passed is not False:  # a lint failure already failed this turn's gate
+        signals.gate_file, signals.gate_passed = state.active_file, verify_code == 0
+    output += f"\n[gate] tests {'passed' if verify_code == 0 else 'failed'} after editing {state.active_file}"
+    results[-1] = (call, output, code)
+    return ran
 
 
 # --- The agent -----------------------------------------------------------------------------
@@ -303,6 +401,12 @@ class RoutingOptions(AgentOptions):
     workhorse: str = Field(description="Workhorse model, MODEL_ID[:LEVEL], e.g. gemini-3.8-flash:low")
     frontier: str = Field(description="Frontier model, MODEL_ID[:LEVEL], e.g. gemini-4-argon:high")
     mode: Literal["routed", "frontier_only", "workhorse_only"] = "routed"
+    prompt: Literal["steps", "batch"] = Field("steps", description="System prompt style (see system_prompt)")
+    tier0: bool = Field(True, description="Deterministic harness actions: auto-verify after edits, "
+                                          "condensed test output, no-progress nudges")
+    nudge_turns: int = Field(12, ge=0, description="Tier 0 nudge after this many turns without a tracked edit")
+    stall_turns: int = Field(20, ge=0, description="Trigger 5: escalate after this many turns without a "
+                                                   "tracked edit (0 = off)")
     gate_failure_threshold: int = Field(3, ge=1)
     max_frontier_turns: int = Field(15, ge=0)
     budget_usd: float = Field(3.0, gt=0, description="Per-task budget (current prices) for the downshift")
@@ -322,7 +426,7 @@ class GovernedRoutingAgent(BaseAgent):
         return "governed-routing"
 
     def version(self) -> str:
-        return "0.1.0"
+        return "0.2.0"
 
     @classmethod
     def preflight(cls, kwargs=None, env=None) -> None:
@@ -352,11 +456,14 @@ class GovernedRoutingAgent(BaseAgent):
         o = self.opts
         trial = Path(self.logs_dir).parent.name
         cfg = RouterConfig(mode=o.mode, gate_failure_threshold=o.gate_failure_threshold,
-                           max_frontier_turns=o.max_frontier_turns, budget_usd=o.budget_usd,
-                           downshift_at=o.downshift_at)
+                           stall_turns=o.stall_turns, max_frontier_turns=o.max_frontier_turns,
+                           budget_usd=o.budget_usd, downshift_at=o.downshift_at)
+        harness = {"prompt": o.prompt, "tier0": o.tier0, "stall_turns": o.stall_turns,
+                   "nudge_turns": o.nudge_turns if o.tier0 else 0}
         meta = {"task": trial.rsplit("__", 1)[0], "trial": trial, "label": o.label, "mode": o.mode,
                 "workhorse": str(self.specs[WORKHORSE]), "frontier": str(self.specs[FRONTIER]),
-                "router": vars(cfg), "max_turns": o.max_turns}
+                "router": vars(cfg), "harness": harness, "variant": variant_name(harness),
+                "max_turns": o.max_turns}
         tel = Telemetry(self.logs_dir, self.pricing, meta, self.ledger_path)
         if ledger_total(self.ledger_path, "cost_list") >= o.ceiling_usd:
             tel.finish(context, "spend_ceiling")
@@ -365,6 +472,7 @@ class GovernedRoutingAgent(BaseAgent):
         location = os.environ.get("GOOGLE_CLOUD_LOCATION", "global")
         tiers = {tier: make_model(spec, project, location) for tier, spec in self.specs.items()}
         router = GovernedRouter(cfg)
+        system = system_prompt(o.prompt, o.tier0)
         stop, error = "turn_limit", None
         try:
             head = await environment.exec("git rev-parse HEAD", timeout_sec=30)
@@ -381,10 +489,11 @@ class GovernedRoutingAgent(BaseAgent):
             for turn in range(1, o.max_turns + 1):
                 decision = router.route(turn, tel.cost_current)
                 model = tiers[decision.tier]
-                step = await model.step(SYSTEM_PROMPT, TOOLS, transcript)
+                step = await model.step(system, TOOLS, transcript)
                 transcript.append(step)
                 checked, schema_error = validate_calls(step)
                 signals = Signals(schema_error=schema_error)
+                state.edited = False
                 results: list[tuple[ToolCall, str, int]] = []
                 finished = False
                 for call, args, problem in checked:
@@ -395,15 +504,26 @@ class GovernedRoutingAgent(BaseAgent):
                         results.append((call, "[exit code 0] finished", 0))
                     else:
                         if call.name == "bash":
-                            output, code = await run_bash(environment, args.command, o.command_timeout_sec)
+                            condense = o.tier0 and is_test_command(args.command)
+                            output, code = await run_bash(environment, args.command, o.command_timeout_sec, condense)
                         else:
                             output, code = await edit_file(environment, args.path, args.old_str, args.new_str)
-                        output += await run_gates(environment, call.name, args, code, signals, state)
+                        output += await run_gates(environment, call.name, args, code, signals, state, o.tier0)
                         results.append((call, output, code))
+                events = {"progress": state.edited, "auto_verify": None, "nudge": False}
+                if o.tier0 and not finished:  # Tier 0: the harness runs the test gate, not the model
+                    events["auto_verify"] = await verify_after_edit(environment, state, signals, results,
+                                                                    o.command_timeout_sec)
+                signals.progress = state.edited
+                router.observe(signals)
+                stalled = router.stalled_turns
+                if o.tier0 and results and stalled and stalled in (o.nudge_turns, o.stall_turns):
+                    call, output, code = results[-1]
+                    results[-1] = (call, output + "\n" + NUDGE.format(n=stalled), code)
+                    events["nudge"] = True
                 transcript.append(ToolResults([(c, out) for c, out, _ in results]) if step.calls
                                   else UserText(NO_TOOL_CALL_HINT))
-                router.observe(signals)
-                tel.record(turn, decision, model.spec, step, results, signals)
+                tel.record(turn, decision, model.spec, step, results, signals, events)
                 if finished:
                     stop = "finished"
                     break

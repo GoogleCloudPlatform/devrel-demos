@@ -33,7 +33,28 @@ from providers import ModelSpec, Step, Usage, parse_spec
 from router import FRONTIER, WORKHORSE, Decision, Signals, label_turn
 
 PRICING_PATH = Path(__file__).with_name("pricing.yaml")
-_TRIGGERS = ("planning", "gate_failures", "signature_mutation", "schema_failure")
+_TRIGGERS = ("planning", "gate_failures", "signature_mutation", "schema_failure", "stalled")
+# Harness settings of trials recorded before Tier 0 existed (the pilot).
+V1_HARNESS = {"prompt": "steps", "tier0": False, "stall_turns": 0}
+
+
+def variant_name(harness: dict | None) -> str:
+    """Short name for a harness configuration, e.g. 'steps' (pilot) or 'batch+tier0+stall20'."""
+    h = {**V1_HARNESS, **(harness or {})}
+    return "+".join([h["prompt"]] + (["tier0"] if h["tier0"] else []) +
+                    ([f"stall{h['stall_turns']}"] if h["stall_turns"] else []))
+
+
+def trial_variant(summary: dict, kwargs: dict) -> str:
+    """Harness variant of a finished trial: the agent's own record, else its kwargs, else the pilot's."""
+    if "harness" in summary:
+        return variant_name(summary["harness"])
+    h = {k: kwargs[k] for k in V1_HARNESS if k in kwargs}
+    if isinstance(h.get("tier0"), str):
+        h["tier0"] = h["tier0"].lower() in ("1", "true", "yes", "on")
+    if "stall_turns" in h:
+        h["stall_turns"] = int(h["stall_turns"])
+    return variant_name(h)
 
 
 def load_pricing(path: str | Path | None = None) -> dict:
@@ -119,7 +140,7 @@ class Telemetry:
         self._finished = False
 
     def record(self, turn: int, decision: Decision, spec: ModelSpec, step: Step,
-               results: list[tuple], signals: Signals) -> dict:
+               results: list[tuple], signals: Signals, harness: dict | None = None) -> dict:
         u = step.usage
         rate_now, rate_list = rates(self.pricing, spec.model_id), rates(self.pricing, spec.model_id, "list")
         cost_c, cost_l = call_cost(rate_now, u), call_cost(rate_list, u)
@@ -137,6 +158,7 @@ class Telemetry:
                         for c, out, code in results],
             "gate": {"file": signals.gate_file, "passed": signals.gate_passed,
                      "removed_signatures": signals.removed_signatures, "schema_error": signals.schema_error},
+            "harness": harness or {},  # Tier 0 events: progress, auto_verify (command), nudge
             "usage": asdict(u),
             "model_switch": model_switch,
             "tier_switch": self._last_tier is not None and decision.tier != self._last_tier,
@@ -197,6 +219,10 @@ class Telemetry:
             "cache_hit_ratio": {"switch_calls": mean([r["cache_hit_ratio"] for r in switches if r["cache_hit_ratio"] is not None]),
                                 "other_calls": mean([r["cache_hit_ratio"] for r in steady])},
             "turn_labels": dict(Counter(r["turn_label"] for r in loop)),
+            "tier0": {"auto_verify_runs": sum(bool(r.get("harness", {}).get("auto_verify")) for r in loop),
+                      "nudges": sum(bool(r.get("harness", {}).get("nudge")) for r in loop),
+                      "first_tracked_edit_turn": next((r["turn"] for r in loop if r.get("harness", {}).get("progress")),
+                                                      None)},
             "pricing": {"as_of": self.pricing.get("as_of"), "source": self.pricing.get("source")},
         }
 
@@ -210,7 +236,8 @@ class Telemetry:
         (self.dir / "timeline.md").write_text(self.timeline(summary), encoding="utf-8")
         entry = {"trial": self.meta.get("trial"), "task": self.meta.get("task"), "mode": self.meta.get("mode"),
                  "label": self.meta.get("label"), "workhorse": self.meta.get("workhorse"),
-                 "frontier": self.meta.get("frontier"), "stop_reason": stop_reason,
+                 "frontier": self.meta.get("frontier"), "variant": self.meta.get("variant"),
+                 "stop_reason": stop_reason,
                  "cost_current": round(self.cost_current, 6), "cost_list": round(self.cost_list, 6)}
         self.ledger_path.parent.mkdir(parents=True, exist_ok=True)
         with self.ledger_path.open("a", encoding="utf-8") as f:
@@ -236,15 +263,15 @@ class Telemetry:
             m.n_output_tokens += u["output"]
             m.cost_usd = round((m.cost_usd or 0.0) + r["cost_current"], 6)
         context.model_usage = per_model
-        context.metadata = {"routing": {k: summary[k] for k in (
-            "mode", "workhorse", "frontier", "label", "stop_reason", "turns", "triggers",
+        context.metadata = {"routing": {k: summary.get(k) for k in (
+            "mode", "workhorse", "frontier", "variant", "label", "stop_reason", "turns", "triggers",
             "model_switches", "cost_current", "cost_list")}}
 
     def timeline(self, summary: dict) -> str:
         strip = " ".join("P" if r["turn"] == 0 else ("F" if r["tier"] == FRONTIER else "W") for r in self.records)
         lines = [
             f"# {summary.get('task')} | mode={summary.get('mode')} | workhorse={summary.get('workhorse')}"
-            f" | frontier={summary.get('frontier')}",
+            f" | frontier={summary.get('frontier')} | harness={summary.get('variant')}",
             "",
             f"Strip: `{strip}`  (P = plan call, F = frontier turn, W = workhorse turn)",
             "",

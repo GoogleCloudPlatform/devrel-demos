@@ -19,9 +19,9 @@
 
 Runs each mode (routed, frontier_only, workhorse_only) as one Harbor job. Precedence for the
 project: --project > shell environment > .env. Trials already completed with the same task,
-mode, models and label are skipped, so baselines are shared across pairings and an
-interrupted run can be resumed. New trials stop launching once the spend ledger reaches the
-ceiling (list prices).
+mode, models, harness settings and label are skipped, so baselines are shared across pairings
+and an interrupted run can be resumed. New trials stop launching once the spend ledger reaches
+the ceiling (list prices).
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ from datetime import datetime
 from pathlib import Path
 
 from router import MODES
-from telemetry import check_spec, ledger_total, load_pricing
+from telemetry import check_spec, ledger_total, load_pricing, trial_variant, variant_name
 
 HERE = Path(__file__).resolve().parent
 _VENV_HARBOR = Path(sys.executable).with_name("harbor")
@@ -65,7 +65,7 @@ def task_ref(dataset: str, task: str) -> str:
 
 
 def completed_trials(jobs_dir: Path) -> Counter:
-    """Count finished trials by (task, mode, workhorse, frontier, label). Infra failures don't count."""
+    """Count finished trials by (task, mode, workhorse, frontier, label, variant). Infra failures don't count."""
     counts: Counter = Counter()
     for result in jobs_dir.glob("*/*/result.json"):
         try:
@@ -77,22 +77,27 @@ def completed_trials(jobs_dir: Path) -> Counter:
         exc = (r.get("exception_info") or {}).get("exception_type")
         if exc and exc != "AgentTimeoutError":
             continue
-        summary = result.parent / "agent" / "summary.json"
-        if summary.exists() and json.loads(summary.read_text(encoding="utf-8")).get("stop_reason") == "spend_ceiling":
+        path = result.parent / "agent" / "summary.json"
+        summary = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        if summary.get("stop_reason") == "spend_ceiling":
             continue
         kw = r.get("config", {}).get("agent", {}).get("kwargs", {}) or {}
         counts[run_key(r["task_name"], kw.get("mode", "routed"), kw.get("workhorse", ""),
-                       kw.get("frontier", ""), kw.get("label", ""))] += 1
+                       kw.get("frontier", ""), kw.get("label", ""), trial_variant(summary, kw))] += 1
     return counts
 
 
-def run_key(task: str, mode: str, workhorse: str, frontier: str, label: str) -> tuple:
+def run_key(task: str, mode: str, workhorse: str, frontier: str, label: str, variant: str) -> tuple:
     """Baselines depend on one model only, so they are shared across pairings."""
     if mode == "frontier_only":
         workhorse = "*"
     elif mode == "workhorse_only":
         frontier = "*"
-    return (task, mode, workhorse, frontier, label)
+    return (task, mode, workhorse, frontier, label, variant)
+
+
+def harness_args(args) -> dict:
+    return {"prompt": args.prompt, "tier0": args.tier0 == "on", "stall_turns": args.stall_turns}
 
 
 def harbor_command(args, mode: str, tasks: list[str], ledger: Path, job_name: str, attempts: int) -> list[str]:
@@ -102,8 +107,10 @@ def harbor_command(args, mode: str, tasks: list[str], ledger: Path, job_name: st
            "--max-retries", "1", "--retry-exclude", "AgentTimeoutError", "--yes", "-q"]
     for t in tasks:
         cmd += ["-i", t]
+    harness = harness_args(args)
     kwargs = {"workhorse": args.workhorse, "frontier": args.frontier, "mode": mode, "label": args.label,
-              "ledger_path": str(ledger), "ceiling_usd": args.ceiling_usd}
+              "prompt": harness["prompt"], "tier0": str(harness["tier0"]).lower(),
+              "stall_turns": harness["stall_turns"], "ledger_path": str(ledger), "ceiling_usd": args.ceiling_usd}
     for key, value in kwargs.items():
         cmd += ["--ak", f"{key}={value}"]
     for extra in args.ak:
@@ -118,6 +125,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--workhorse", required=True, help="MODEL_ID[:LEVEL], e.g. gemini-3.8-flash:low")
     p.add_argument("--frontier", required=True, help="MODEL_ID[:LEVEL], e.g. claude-opus-5-5:high")
     p.add_argument("--modes", default=",".join(MODES), help="Comma-separated subset of: " + ", ".join(MODES))
+    p.add_argument("--prompt", choices=("steps", "batch"), default="steps",
+                   help="System prompt style: steps (the pilot's 'small steps', default) or batch (fewer, fuller turns)")
+    p.add_argument("--tier0", choices=("on", "off"), default="on",
+                   help="Tier 0 harness actions: auto-verify after edits, condensed test output, nudges")
+    p.add_argument("--stall-turns", type=int, default=20,
+                   help="Trigger 5: escalate after this many turns without a tracked edit (0 = off)")
     p.add_argument("--attempts", type=int, default=3)
     p.add_argument("--concurrency", type=int, default=4)
     p.add_argument("--project", help="GCP project (overrides shell env and .env)")
@@ -151,8 +164,9 @@ def main(argv: list[str] | None = None) -> int:
     args.jobs_dir = args.jobs_dir.resolve()
     ledger = args.jobs_dir / "ledger.jsonl"
     tasks = [task_ref(args.dataset, t) for t in args.task]
+    variant = variant_name(harness_args(args))
     print(f"project={env['GOOGLE_CLOUD_PROJECT']} location={env['GOOGLE_CLOUD_LOCATION']}")
-    print(f"workhorse={workhorse} frontier={frontier} modes={modes} attempts={args.attempts} "
+    print(f"workhorse={workhorse} frontier={frontier} modes={modes} harness={variant} attempts={args.attempts} "
           f"concurrency={args.concurrency} label={args.label or '-'}")
     print(f"tasks={tasks}")
 
@@ -165,14 +179,14 @@ def main(argv: list[str] | None = None) -> int:
             break
         remaining: dict[int, list[str]] = {}
         for t in tasks:
-            left = args.attempts - done[run_key(t, mode, str(workhorse), str(frontier), args.label)]
+            left = args.attempts - done[run_key(t, mode, str(workhorse), str(frontier), args.label, variant)]
             if left > 0:
                 remaining.setdefault(left, []).append(t)
         if not remaining:
-            print("Already complete for these models and label; skipping.")
+            print("Already complete for these models, harness settings and label; skipping.")
             continue
         for left, group in sorted(remaining.items(), reverse=True):  # one Harbor job per attempt count
-            models = re.sub(r"[^A-Za-z0-9]+", "-", f"{workhorse}__{frontier}")
+            models = re.sub(r"[^A-Za-z0-9]+", "-", f"{workhorse}__{frontier}__{variant}")
             job_name = f"{args.label or 'run'}-{mode}-{models}-k{left}-{datetime.now():%Y%m%d-%H%M%S}"
             cmd = harbor_command(args, mode, group, ledger, job_name, attempts=left)
             print("$ PYTHONPATH=. " + shlex.join(cmd))
