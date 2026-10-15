@@ -3,4 +3,4 @@ name = "sample-agent"
 version = "0.1.0"
 description = "Example of ADK agent to showcase dynamic MCP discovery"
 requires-python = ">=3.13"
-dependencies = ["google-adk<3.0.0"]
+dependencies = ["google-adk[mcp]<3.0.0"]
