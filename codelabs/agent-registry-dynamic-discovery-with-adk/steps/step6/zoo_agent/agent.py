@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 PROJECT_ID = os.environ["GOOGLE_CLOUD_PROJECT"] # required: fail fast
-REGION = os.environ.get("GOOGLE_CLOUD_REGION", "us-west1")
+LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "global")
 DISCOVERY_STATE_KEY = (
     "app:zoo_mcp_servers"  # "app:" prefix scopes state across application run
 )
@@ -64,7 +64,7 @@ def _fresh_discovery(state: Any) -> dict[str, Any] | None:
 
 registry = AgentRegistry(
     project_id=PROJECT_ID,
-    location=REGION,
+    location=LOCATION,
 )
 
 
@@ -100,7 +100,7 @@ def discover_zoo_mcp_servers(query: str, tool_context: ToolContext) -> dict[str,
     if not found_servers:
         return {
             "status": "not_found",
-            "message": f"No MCP servers found in Agent Registry at {REGION} matching '{query}'.",
+            "message": f"No MCP servers found in Agent Registry at {LOCATION} matching '{query}'.",
         }
 
     valid_servers = [s["name"] for s in found_servers if "name" in s]
