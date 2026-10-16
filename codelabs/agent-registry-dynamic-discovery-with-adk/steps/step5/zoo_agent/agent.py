@@ -7,7 +7,7 @@ from google.adk.integrations.agent_registry import AgentRegistry
 import google.auth
 from google.auth import exceptions
 from google.auth.transport.requests import Request
-from google.oauth2 import id_token
+from google.oauth2 import credentials, id_token
 
 from dotenv import load_dotenv
 
