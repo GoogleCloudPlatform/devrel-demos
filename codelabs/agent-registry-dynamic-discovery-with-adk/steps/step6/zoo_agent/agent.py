@@ -10,7 +10,7 @@ from google.adk.integrations.agent_registry import AgentRegistry
 from google.adk.tools import ToolContext, BaseTool
 from google.adk.tools.base_toolset import BaseToolset
 from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
-from google.auth import exceptions
+import google.auth
 from google.auth.transport.requests import Request
 from google.oauth2 import id_token
 
@@ -31,7 +31,7 @@ class _GoogleAuthHeaders:
 
     def __init__(self):
         self._request = Request()
-        self._id_token = True
+        self._id_token = False
         self._credentials = None
         self._bound = False
 
@@ -42,9 +42,9 @@ class _GoogleAuthHeaders:
             self._credentials = id_token.fetch_id_token_credentials(
                 audience, request=self._request_adapter
             )
-        except exceptions.DefaultCredentialsError:
+        except google.auth.exceptions.DefaultCredentialsError:
             self._credentials, _ = google.auth.default()
-            self._id_token = False
+            self._id_token = True
             if not isinstance(self._credentials, credentials.Credentials):
                 raise
         self._bound = True
@@ -54,15 +54,9 @@ class _GoogleAuthHeaders:
             raise RuntimeError("MCP endpoint not bound; run discovery first.")
         if self._credentials is None:  # not a Cloud Run endpoint: add no headers
             return {}
-        if not self._credentials.valid or (
-            self._id_token and not self._credentials.id_token
-        ):
+        if not self._credentials.valid or (self._id_token and not self._credentials.id_token):
             self._credentials.refresh(self._request_adapter)
-        token = (
-            self._credentials.id_token
-            if self._user_id_token
-            else self._credentials.token
-        )
+        token = self._credentials.id_token if self._id_token else self._credentials.token
         return {"Authorization": f"Bearer {token}"}
 
 
