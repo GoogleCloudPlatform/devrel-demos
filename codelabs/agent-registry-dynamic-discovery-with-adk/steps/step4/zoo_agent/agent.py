@@ -5,6 +5,7 @@ from google.adk.agents.readonly_context import ReadonlyContext
 from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPConnectionParams
 from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
 import google.auth
+from google.auth import exceptions
 from google.auth.transport.requests import Request
 from google.oauth2 import id_token
 
@@ -19,13 +20,13 @@ class _GoogleAuthHeaders:
     """Provides Authorization headers with implicit token refresh."""
 
     def __init__(self, audience: str):
-        self._request_adapter = Request()
+        self._request = Request()
         self._id_token = False
         try:
             self._credentials = id_token.fetch_id_token_credentials(
-                audience, request=self._request_adapter
+                audience, request=self._request
             )
-        except google.auth.exceptions.DefaultCredentialsError:
+        except exceptions.DefaultCredentialsError:
             self._credentials, _ = google.auth.default()
             self._id_token = True
             if not isinstance(self._credentials, credentials.Credentials):
@@ -33,7 +34,7 @@ class _GoogleAuthHeaders:
 
     def __call__(self, unused_context: ReadonlyContext | None = None) -> dict[str, str]:
         if not self._credentials.valid or (self._id_token and not self._credentials.id_token):
-            self._credentials.refresh(self._request_adapter)
+            self._credentials.refresh(self._request)
         token = self._credentials.id_token if self._id_token else self._credentials.token
         return {"Authorization": f"Bearer {token}"}
 
