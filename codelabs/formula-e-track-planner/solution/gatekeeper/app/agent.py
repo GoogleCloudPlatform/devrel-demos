@@ -11,6 +11,9 @@ from google.genai import types
 
 from app.tools import verify_infrastructure_checklist
 
+# Tested with Gemini 3.8 Flash. To try Gemini 4 Argon, change this to
+# "gemini-4-argon", delete the `temperature` settings below (Argon ignores
+# them) and run `uv add "google-genai>=2.30.1"` in this project first.
 MODEL = "gemini-3.8-flash"
 
 root_agent = Agent(

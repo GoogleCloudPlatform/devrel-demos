@@ -17,6 +17,9 @@ from app.tools import build_fia_skill_toolset
 from app.tools import evaluate_track_layout
 from app.tools import get_track_topology
 
+# Tested with Gemini 3.8 Flash. To try Gemini 4 Argon, change this to
+# "gemini-4-argon", delete the `temperature` settings below (Argon ignores
+# them) and run `uv add "google-genai>=2.30.1"` in this project first.
 MODEL = "gemini-3.8-flash"
 
 fia_skill_toolset = build_fia_skill_toolset()
