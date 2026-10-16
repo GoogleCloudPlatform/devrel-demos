@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 from google.adk.agents.llm_agent import Agent
 from google.adk.agents.readonly_context import ReadonlyContext
 from google.adk.integrations.agent_registry import AgentRegistry
+import google.auth
 from google.auth import exceptions
 from google.auth.transport.requests import Request
 from google.oauth2 import id_token
@@ -23,7 +24,7 @@ class _GoogleAuthHeaders:
 
     def __init__(self):
         self._request = Request()
-        self._id_token = True
+        self._id_token = False
         self._credentials = None
 
     def bind(self, endpoint_url: str) -> None:
@@ -32,11 +33,11 @@ class _GoogleAuthHeaders:
         audience = f"{parsed.scheme}://{parsed.netloc}"
         try:
             self._credentials = id_token.fetch_id_token_credentials(
-                audience, request=self._request_adapter
+                audience, request=self._request
             )
         except exceptions.DefaultCredentialsError:
             self._credentials, _ = google.auth.default()
-            self._id_token = False
+            self._id_token = True
             if not isinstance(self._credentials, credentials.Credentials):
                 raise
 
@@ -44,8 +45,8 @@ class _GoogleAuthHeaders:
         if self._credentials is None:
             raise RuntimeError("MCP endpoint not bound; run discovery first.")
         if not self._credentials.valid or (self._id_token and not self._credentials.id_token):
-            self._credentials.refresh(self._request_adapter)
-        token = self._credentials.id_token if self._user_id_token else self._credentials.token
+            self._credentials.refresh(self._request)
+        token = self._credentials.id_token if self._id_token else self._credentials.token
         return {"Authorization": f"Bearer {token}"}
 
 
