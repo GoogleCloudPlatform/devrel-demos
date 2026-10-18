@@ -160,6 +160,8 @@ class FlowBenchmarkRunner:
                     and s.node_count >= job.node_count
                 ]
                 if not matching_slots:
+                    if not slots:
+                        raise ValueError("No registered power slots available in the benchmark.")
                     slot = slots[0]
                 else:
                     matching_slots.sort(key=lambda s: s.price_per_node_hour_usd)
