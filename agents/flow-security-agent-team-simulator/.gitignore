@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Secrets & Environment Variables
+.env
+.env.*
+!.env.example
+*.key.json
+*-key.json
+*.pem
+*.p12
+credentials*.json
+service-account*.json
+application_default_credentials.json
+
+# Runtime & Local IDE State
+flow/data/projects_state.json
+flow/data/study_runs_project_*/C*_seed42.json
+.DS_Store
+*.log
+*.code-workspace
+.vscode/
+.idea/
+.agents/
+.superpowers/
