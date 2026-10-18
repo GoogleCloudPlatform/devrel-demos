@@ -155,7 +155,7 @@ class DispatcherEngine:
         carbon_score = min(30.0, max(0.0, (450.0 - slot.carbon_intensity_g_per_kwh) / 450.0 * 30.0))
 
         # Utilization score (matching 16 nodes to 16 nodes is 100% efficient)
-        util_ratio = job.node_count / slot.node_count
+        util_ratio = job.node_count / slot.node_count if slot.node_count > 0 else 0.0
         util_score = min(20.0, util_ratio * 20.0)
 
         total_score = round(cost_score + carbon_score + util_score, 2)
