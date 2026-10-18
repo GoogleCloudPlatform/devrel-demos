@@ -1,0 +1,7 @@
+google-genai>=0.1.0
+google-auth>=2.28.0
+requests>=2.31.0
+anthropic[vertex]>=0.18.0
+openai>=1.0.0
+json-repair>=0.30.0
+
