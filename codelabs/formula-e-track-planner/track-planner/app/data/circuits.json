@@ -1,0 +1,100 @@
+{
+  "_comment": "Synthetic teaching data for the Formula E codelab. Not real survey data.",
+  "venues": {
+    "London Docklands": {
+      "circuit_id": "FIA-FE-2026-LON-01",
+      "venue_name": "ExCeL London Royal Docks E-Prix Circuit",
+      "total_length_m": 2400,
+      "minimum_width_m": 11.5,
+      "turn_count": 22,
+      "cad_layers": [
+        "F1_TRACK_CENTRELINE",
+        "F1_PIT_ENTRY_SPEED_LIMIT_LANE",
+        "F1_WALL_TEMP",
+        "F1_TEC3",
+        "F1_MEDICAL_CENTRE_TEXT",
+        "F1_HELIPAD"
+      ],
+      "heavy_braking_zones": [
+        {"turn": 1, "entry_kph": 195, "exit_kph": 65, "brake_dist_m": 68},
+        {"turn": 10, "entry_kph": 215, "exit_kph": 55, "brake_dist_m": 82},
+        {"turn": 19, "entry_kph": 205, "exit_kph": 60, "brake_dist_m": 74}
+      ],
+      "attack_mode": {"turn": 16, "off_line": true, "time_loss_s": 1.2},
+      "notes": "Indoor exhibition hall section plus Royal Victoria Dock waterfront."
+    },
+    "Tokyo Bay": {
+      "circuit_id": "FIA-FE-2026-TYO-01",
+      "venue_name": "Tokyo Bay Waterfront E-Prix Circuit",
+      "total_length_m": 3150,
+      "minimum_width_m": 10.0,
+      "turn_count": 17,
+      "cad_layers": [
+        "F1_TRACK_CENTRELINE",
+        "F1_PIT_ENTRY_SPEED_LIMIT_LANE",
+        "F1_WALL_TEMP",
+        "F1_TEC3",
+        "F1_MEDICAL_CENTRE_TEXT",
+        "F1_HELIPAD"
+      ],
+      "heavy_braking_zones": [
+        {"turn": 5, "entry_kph": 200, "exit_kph": 60, "brake_dist_m": 80},
+        {"turn": 15, "entry_kph": 190, "exit_kph": 75, "brake_dist_m": 90}
+      ],
+      "attack_mode": {"turn": 15, "off_line": true, "time_loss_s": 1.1},
+      "notes": "Fully compliant reference layout."
+    },
+    "Monaco Harbour": {
+      "circuit_id": "FIA-FE-2026-MCO-01",
+      "venue_name": "Monaco Harbour Historic Chicane Proposal",
+      "total_length_m": 3330,
+      "minimum_width_m": 6.8,
+      "turn_count": 19,
+      "cad_layers": [
+        "F1_TRACK_CENTRELINE",
+        "F1_PIT_ENTRY_SPEED_LIMIT_LANE",
+        "F1_WALL_TEMP",
+        "F1_TEC3"
+      ],
+      "heavy_braking_zones": [
+        {"turn": 6, "entry_kph": 210, "exit_kph": 70, "brake_dist_m": 85}
+      ],
+      "notes": "Historic harbour chicane narrows to 6.8m, below the 10.0m minimum."
+    },
+    "Sao Paulo": {
+      "circuit_id": "FIA-FE-2026-SAO-01",
+      "venue_name": "Sao Paulo Anhembi Sambadrome Circuit",
+      "total_length_m": 2930,
+      "minimum_width_m": 10.5,
+      "turn_count": 11,
+      "cad_layers": [
+        "F1_TRACK_CENTRELINE",
+        "F1_PIT_ENTRY_SPEED_LIMIT_LANE",
+        "F1_WALL_TEMP",
+        "F1_TEC3"
+      ],
+      "heavy_braking_zones": [
+        {"turn": 1, "entry_kph": 230, "exit_kph": 90, "brake_dist_m": 95}
+      ],
+      "notes": "Layout cuts the ambulance route to the municipal hospital. Needs a bypass corridor plus F1_MEDICAL_CENTRE_TEXT and F1_HELIPAD."
+    },
+    "Berlin Tempelhof": {
+      "circuit_id": "FIA-FE-2026-BER-01",
+      "venue_name": "Berlin Tempelhof Airport Extended Perimeter",
+      "total_length_m": 4350,
+      "minimum_width_m": 14.0,
+      "turn_count": 15,
+      "cad_layers": [
+        "F1_TRACK_CENTRELINE",
+        "F1_PIT_ENTRY_SPEED_LIMIT_LANE",
+        "F1_WALL_TEMP",
+        "F1_TEC3"
+      ],
+      "heavy_braking_zones": [
+        {"turn": 3, "entry_kph": 180, "exit_kph": 85, "brake_dist_m": 120},
+        {"turn": 9, "entry_kph": 170, "exit_kph": 60, "brake_dist_m": 70}
+      ],
+      "notes": "Outer apron perimeter is 4350m, above the 3500m maximum."
+    }
+  }
+}
