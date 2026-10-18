@@ -205,7 +205,7 @@ class CommitmentLedger:
                 start_hour=slot.start_hour,
                 duration_hours=job.estimated_duration_hours,
                 agreed_price_per_node_hour=slot.price_per_node_hour_usd,
-                total_power_kw=(slot.total_power_kw / slot.node_count) * job.node_count,
+                total_power_kw=(slot.total_power_kw / slot.node_count) * job.node_count if slot.node_count > 0 else 0.0,
                 status=ReservationStatus.SECURITY_HOLD,
                 workload_description=job.workload_description,
                 container_image=getattr(job, "container_image", ""),
