@@ -392,4 +392,4 @@ class CommitmentLedger:
         # Benchmark daytime grid ~ 450 g/kWh; offpeak wind ~ 130 g/kWh -> delta ~ 320 g/kWh = 0.32 kg/kWh
         delta_kg_per_kwh = max(0.0, (450.0 - slot.carbon_intensity_g_per_kwh) / 1000.0)
         job_kwh = (slot.total_power_kw / slot.node_count) * job.node_count * job.estimated_duration_hours
-        return round(job_kwh * delta_kg_per_kwh, 2)
+        job_kwh = (slot.total_power_kw / slot.node_count) * job.node_count * job.estimated_duration_hours if slot.node_count > 0 else 0.0
