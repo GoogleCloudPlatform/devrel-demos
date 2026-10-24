@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -5,10 +7,22 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+// Firebase PNV test token for debug builds. Generate one in the Firebase console
+// (Security > Phone Verification > Settings > Testing) and add it to your
+// local.properties file, which isn't checked into version control:
+//   fpnv.testToken=COPIED_TOKEN_STRING
+// On CI, you can set the FPNV_TEST_TOKEN environment variable instead.
+val localProperties = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }
+        ?.inputStream()?.use { load(it) }
+}
+val fpnvTestToken = System.getenv("FPNV_TEST_TOKEN")?.takeIf { it.isNotEmpty() }
+    ?: localProperties.getProperty("fpnv.testToken", "")
+
 android {
     namespace = "com.google.firebase.example.fpnv"
     compileSdk {
-        version = release(36)
+        version = release(37)
     }
 
     defaultConfig {
@@ -22,7 +36,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "FPNV_TEST_TOKEN", "\"$fpnvTestToken\"")
+        }
         release {
+            // Release builds never enable a test session.
+            buildConfigField("String", "FPNV_TEST_TOKEN", "\"\"")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -36,6 +55,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -48,11 +68,11 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.core)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.ai.logic)
-
-    // TODO(developer): add a dependency on the FPNV SDK
+    implementation(libs.firebase.pnv)
 
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
