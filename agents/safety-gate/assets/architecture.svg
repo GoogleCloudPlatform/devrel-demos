@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 392" width="1040" height="392" role="img" aria-labelledby="t d">
+  <title id="t">safety-gate three-stage cascade</title>
+  <desc id="d">Every tool call enters Stage 1 Static rules (~60 percent of calls, under 5 ms), then Stage 2 gemini-3.1-flash-lite-preview (~37 percent of calls, 0.8 s median), then Stage 3 gemini-3.1-pro-preview (~3 percent of calls, 3.5 s median). High-impact actions jump from Stage 1 straight to Stage 3. Underneath Stage 1, Stage 2, and Stage 3, Input boxes point upward into each stage: command or path plus cwd for Stage 1, command plus scripts plus 8-step transcript for Stage 2, and tool call plus scripts plus 16-step transcript for Stage 3. Every call ends in allow or deny with zero prompts.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#64748B"/>
+    </marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#7C3AED"/>
+    </marker>
+    <marker id="au" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#475569"/>
+    </marker>
+    <style>
+      .h{font:700 17px -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;fill:#0F172A}
+      .s{font:500 13.5px -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;fill:#475569}
+      .inp-tag{font:700 10.5px -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;letter-spacing:.06em;fill:#64748B}
+      .inp{font:600 12.5px -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;fill:#1E293B}
+      .m{font:600 12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#334155}
+      .p{font:800 30px -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+      .tag{font:700 11.5px -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;letter-spacing:.08em}
+      .jump{font:600 12px -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;fill:#6D28D9}
+    </style>
+  </defs>
+  <rect x="1" y="1" width="1038" height="390" rx="18" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="2"/>
+  <text x="32" y="38" class="h">Every tool call</text>
+
+  <!-- Direct jump path from Stage 1 to Stage 3 for high-impact actions -->
+  <path d="M 152 108 C 152 44, 696 44, 696 104" fill="none" stroke="#7C3AED" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#ap)"/>
+  <rect x="274" y="53" width="292" height="26" rx="13" fill="#F3E8FF" stroke="#DDD6FE" stroke-width="1.2"/>
+  <text x="420" y="70" text-anchor="middle" class="jump">high-impact jumps to Stage 3</text>
+
+  <!-- Stage 1 (x=32, w=240) -->
+  <rect x="32" y="108" width="240" height="160" rx="14" fill="#FFFFFF" stroke="#16A34A" stroke-width="2"/>
+  <text x="52" y="135" class="tag" fill="#16A34A">STAGE 1</text>
+  <text x="52" y="160" class="h">Static rules</text>
+  <text x="52" y="208" class="p" fill="#16A34A">~60%</text>
+  <text x="142" y="206" class="s">of calls</text>
+  <text x="52" y="246" class="m">&lt;5 ms</text>
+
+  <line x1="274" y1="188" x2="296" y2="188" stroke="#64748B" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- Stage 2 (x=300, w=248) -->
+  <rect x="300" y="108" width="248" height="160" rx="14" fill="#FFFFFF" stroke="#2563EB" stroke-width="2"/>
+  <text x="320" y="135" class="tag" fill="#2563EB">STAGE 2</text>
+  <text x="320" y="160" class="m">gemini-3.1-flash-lite-preview</text>
+  <text x="320" y="208" class="p" fill="#2563EB">~37%</text>
+  <text x="410" y="206" class="s">of calls</text>
+  <text x="320" y="246" class="m">~0.8s median</text>
+
+  <line x1="550" y1="188" x2="572" y2="188" stroke="#64748B" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- Stage 3 (x=576, w=240) -->
+  <rect x="576" y="108" width="240" height="160" rx="14" fill="#FFFFFF" stroke="#7C3AED" stroke-width="2"/>
+  <text x="596" y="135" class="tag" fill="#7C3AED">STAGE 3</text>
+  <text x="596" y="160" class="m">gemini-3.1-pro-preview</text>
+  <text x="596" y="208" class="p" fill="#7C3AED">~3%</text>
+  <text x="668" y="206" class="s">of calls</text>
+  <text x="596" y="246" class="m">~3.5s median</text>
+
+  <line x1="818" y1="188" x2="840" y2="188" stroke="#64748B" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- Decision (x=844, w=164) -->
+  <rect x="844" y="108" width="164" height="160" rx="14" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
+  <text x="864" y="135" class="tag" fill="#0F172A">DECISION</text>
+  <rect x="866" y="148" width="120" height="34" rx="17" fill="#DCFCE7"/>
+  <text x="926" y="170" text-anchor="middle" class="m" fill="#166534">allow</text>
+  <rect x="866" y="192" width="120" height="34" rx="17" fill="#FEE2E2"/>
+  <text x="926" y="214" text-anchor="middle" class="m" fill="#991B1B">deny</text>
+  <text x="926" y="250" text-anchor="middle" class="s">zero prompts</text>
+
+  <!-- Separate Row of Input Boxes Underneath Stage 1, Stage 2, and Stage 3 -->
+  <!-- Stage 1 Input -->
+  <line x1="152" y1="300" x2="152" y2="272" stroke="#475569" stroke-width="2" marker-end="url(#au)"/>
+  <rect x="32" y="302" width="240" height="66" rx="10" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="50" y="322" class="inp-tag">INPUT</text>
+  <text x="50" y="346" class="inp">command / path + cwd</text>
+
+  <!-- Stage 2 Input -->
+  <line x1="424" y1="300" x2="424" y2="272" stroke="#475569" stroke-width="2" marker-end="url(#au)"/>
+  <rect x="300" y="302" width="248" height="66" rx="10" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="318" y="322" class="inp-tag">INPUT</text>
+  <text x="318" y="341" class="inp">command + scripts</text>
+  <text x="318" y="358" class="inp">+ 8-step transcript</text>
+
+  <!-- Stage 3 Input -->
+  <line x1="696" y1="300" x2="696" y2="272" stroke="#475569" stroke-width="2" marker-end="url(#au)"/>
+  <rect x="576" y="302" width="240" height="66" rx="10" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="594" y="322" class="inp-tag">INPUT</text>
+  <text x="594" y="341" class="inp">tool call + scripts</text>
+  <text x="594" y="358" class="inp">+ 16-step transcript</text>
+</svg>
