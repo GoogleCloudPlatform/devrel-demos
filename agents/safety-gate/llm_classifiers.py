@@ -255,35 +255,12 @@ def _get_recent_conversation_history(conv_id: str, limit: int = 8) -> str:
 
 
 
-def _read_key_from_env_or_raw_file(cand: Path) -> Optional[str]:
-    """Read GEMINI_API_KEY from a .env file or a raw single-line key file."""
-    if not cand.is_file():
-        return None
-    try:
-        text = cand.read_text(encoding="utf-8", errors="replace")
-    except Exception:
-        return None
-    if cand.name in ("gemini_api_key", "api_key", ".gemini_api_key", ".gemini_api_key.bak"):
-        raw = text.strip()
-        if raw and "\n" not in raw and not raw.startswith("#"):
-            return raw
-    for line in text.splitlines():
-        m = re.match(r"^\s*(?:export\s+)?GEMINI_API_KEY\s*=\s*(.*)$", line)
-        if m:
-            val = m.group(1).strip().strip("'\"")
-            if val:
-                return val
-    return None
-
-
 def resolve_gemini_api_key() -> Optional[str]:
     """
-    Resolve the Gemini API key using the 4-source key chain:
+    Resolve the Gemini API key using the trusted home/OS key chain (never CWD):
       1. Environment variable: `GEMINI_API_KEY`
-      2. `.env` and config files: `STATE_DIR`, `~/.config/safety-gate` (`%APPDATA%/safety-gate`),
-         `~/.config/repo-walkthrough` (`%APPDATA%/repo-walkthrough`), `~/.gemini/.env`, and `./.env`
-      3. OS credential store (`gemini-api-key` / `safety-gate`): macOS Keychain, Linux `secret-tool`,
-         or Windows Credential Manager
+      2. Home config files: `~/.config/safety-gate/gemini_api_key` and `~/.gemini/.env`
+      3. OS credential store: macOS Keychain (`security find-generic-password`) or Linux `secret-tool`
     """
     env_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if env_key:
@@ -291,47 +268,51 @@ def resolve_gemini_api_key() -> Optional[str]:
 
     # Per-test/custom STATE_DIR override files
     for state_cand in (
-        STATE_DIR / ".env",
         STATE_DIR / "gemini_api_key",
         STATE_DIR / "api_key",
         STATE_DIR / ".gemini_api_key",
         STATE_DIR / ".gemini_api_key.bak",
     ):
-        val = _read_key_from_env_or_raw_file(state_cand)
-        if val:
-            return val
+        if state_cand.is_file():
+            try:
+                val = state_cand.read_text(encoding="utf-8").strip()
+                if val:
+                    return val
+            except Exception:
+                pass
 
     home_dir = Path.home()
-    appdata_raw = os.environ.get("APPDATA", "").strip()
-    appdata_dir = Path(appdata_raw) if appdata_raw else None
-
-    file_candidates: List[Path] = [Path.cwd() / ".env"]
-    if appdata_dir is not None:
-        file_candidates.extend([
-            appdata_dir / "safety-gate" / ".env",
-            appdata_dir / "safety-gate" / "gemini_api_key",
-            appdata_dir / "repo-walkthrough" / ".env",
-        ])
     sg_cfg_dir = home_dir / ".config" / "safety-gate"
-    rw_cfg_dir = home_dir / ".config" / "repo-walkthrough"
     extra_cands = (
         PRIVATE_RULES.extra_api_key_candidates()
         if PRIVATE_RULES is not None and hasattr(PRIVATE_RULES, "extra_api_key_candidates")
         else ()
     )
-    file_candidates.extend([
-        sg_cfg_dir / ".env",
+    for candidate in (
         sg_cfg_dir / "gemini_api_key",
         sg_cfg_dir / "api_key",
         sg_cfg_dir / ".gemini_api_key",
-        rw_cfg_dir / ".env",
-        home_dir / ".gemini" / ".env",
         *extra_cands,
-    ])
-    for candidate in file_candidates:
-        val = _read_key_from_env_or_raw_file(candidate)
-        if val:
-            return val
+    ):
+        if candidate.is_file():
+            try:
+                val = candidate.read_text(encoding="utf-8").strip()
+                if val:
+                    return val
+            except Exception:
+                pass
+
+    gemini_dotenv = home_dir / ".gemini" / ".env"
+    if gemini_dotenv.is_file():
+        try:
+            for line in gemini_dotenv.read_text(encoding="utf-8", errors="replace").splitlines():
+                m = re.match(r"""^\s*(?:export\s+)?GEMINI_API_KEY\s*=\s*(?:"([^"]*)"|'([^']*)'|([^#\r\n]*))""", line)
+                if m:
+                    val = (m.group(1) or m.group(2) or m.group(3) or "").strip()
+                    if val:
+                        return val
+        except Exception:
+            pass
 
     if sys.platform == "darwin":
         for service_name in ("gemini-api-key", "safety-gate"):
@@ -347,31 +328,9 @@ def resolve_gemini_api_key() -> Optional[str]:
             except Exception:
                 pass
     elif sys.platform.startswith("linux") and shutil.which("secret-tool"):
-        for lookup_args in (
-            ["secret-tool", "lookup", "service", "gemini-api-key"],
-            ["secret-tool", "lookup", "safety-gate", "gemini_api_key"],
-        ):
-            try:
-                res = subprocess.run(
-                    lookup_args,
-                    capture_output=True,
-                    text=True,
-                    timeout=2.0,
-                )
-                if res.returncode == 0 and res.stdout.strip():
-                    return res.stdout.strip()
-            except Exception:
-                pass
-    elif sys.platform == "win32":
         try:
-            ps_cmd = (
-                "$c = if (Get-Command Get-StoredCredential -ErrorAction SilentlyContinue) { "
-                "Get-StoredCredential -Target 'gemini-api-key' -ErrorAction SilentlyContinue } else { $null }; "
-                "if ($c -and $c.GetNetworkCredential().Password) { $c.GetNetworkCredential().Password } "
-                "else { [Environment]::GetEnvironmentVariable('GEMINI_API_KEY', 'User') }"
-            )
             res = subprocess.run(
-                ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", ps_cmd],
+                ["secret-tool", "lookup", "safety-gate", "gemini_api_key"],
                 capture_output=True,
                 text=True,
                 timeout=2.0,
@@ -560,7 +519,7 @@ def classify_with_heavy_gemini(
         max_attempts = max(1, int(globals().get("LLM_MAX_RETRIES", 3)))
         base_delay = float(globals().get("LLM_RETRY_BASE_DELAY_SECONDS", 0.25))
         for model in models_to_try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
             gen_cfg: Dict[str, Any] = {
                 "responseMimeType": "application/json",
                 "temperature": 0.0,
@@ -580,7 +539,7 @@ def classify_with_heavy_gemini(
                     req = urllib.request.Request(
                         url,
                         data=json.dumps(body).encode("utf-8"),
-                        headers={"Content-Type": "application/json"},
+                        headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
                         method="POST",
                     )
                     eff_t3 = (
@@ -707,7 +666,7 @@ def classify_command_with_gemini(
         max_attempts = max(1, int(globals().get("LLM_MAX_RETRIES", 3)))
         base_delay = float(globals().get("LLM_RETRY_BASE_DELAY_SECONDS", 0.25))
         for model in models_to_try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
             stage2_deadline = time.monotonic() + float(GEMINI_TIMEOUT_SECONDS)
             for attempt in range(max_attempts):
                 if attempt > 0 and (stage2_deadline - time.monotonic()) <= 0.1:
@@ -716,7 +675,7 @@ def classify_command_with_gemini(
                     req = urllib.request.Request(
                         url,
                         data=json.dumps(body).encode("utf-8"),
-                        headers={"Content-Type": "application/json"},
+                        headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
                         method="POST",
                     )
                     eff_t2 = (

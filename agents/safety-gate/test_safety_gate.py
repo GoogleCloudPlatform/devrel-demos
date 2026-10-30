@@ -2349,24 +2349,21 @@ class TestPreSplitModuleContractsAndBoundaries(unittest.TestCase):
 
     def test_presplit_076_resolve_gemini_api_key_priority_env_then_state_dir_then_config(self) -> None:
         fake_home = self.tmp_dir / "fake_home"
-        fake_appdata = self.tmp_dir / "fake_appdata"
         fake_cwd = self.tmp_dir / "fake_cwd"
         (fake_home / ".config" / "safety-gate").mkdir(parents=True, exist_ok=True)
-        (fake_home / ".config" / "repo-walkthrough").mkdir(parents=True, exist_ok=True)
         (fake_home / ".gemini").mkdir(parents=True, exist_ok=True)
-        (fake_appdata / "safety-gate").mkdir(parents=True, exist_ok=True)
         fake_cwd.mkdir(parents=True, exist_ok=True)
+        # Untrusted CWD .env MUST NEVER be read by resolve_gemini_api_key
+        (fake_cwd / ".env").write_text("GEMINI_API_KEY=untrusted-cwd-key\n", encoding="utf-8")
 
         with mock.patch.object(Path, "home", return_value=fake_home), mock.patch.object(
             Path, "cwd", return_value=fake_cwd
         ), mock.patch.object(safety_gate, "PRIVATE_RULES", None), mock.patch.dict(
-            os.environ, {"GEMINI_API_KEY": "", "GOOGLE_API_KEY": "ignored-google-key", "APPDATA": ""}, clear=False
+            os.environ, {"GEMINI_API_KEY": "", "GOOGLE_API_KEY": "ignored-google-key"}, clear=False
         ):
-            # 1. GOOGLE_API_KEY is ignored when GEMINI_API_KEY and files/stores are absent
             with mock.patch.object(safety_gate.subprocess, "run", side_effect=OSError("no store")):
                 self.assertIsNone(safety_gate.resolve_gemini_api_key())
 
-            # 2. OS credential store across macOS (security), Linux (secret-tool), and Windows (powershell.exe)
             def fake_macos_run(cmd, **_kw):
                 self.assertEqual(cmd[:4], ["security", "find-generic-password", "-s", "gemini-api-key"])
                 return safety_gate.subprocess.CompletedProcess(cmd, 0, stdout="macos-keychain-key\n", stderr="")
@@ -2377,7 +2374,7 @@ class TestPreSplitModuleContractsAndBoundaries(unittest.TestCase):
                 self.assertEqual(safety_gate.resolve_gemini_api_key(), "macos-keychain-key")
 
             def fake_linux_run(cmd, **_kw):
-                self.assertEqual(cmd, ["secret-tool", "lookup", "service", "gemini-api-key"])
+                self.assertEqual(cmd, ["secret-tool", "lookup", "safety-gate", "gemini_api_key"])
                 return safety_gate.subprocess.CompletedProcess(cmd, 0, stdout="linux-secret-tool-key\n", stderr="")
 
             with mock.patch.object(safety_gate.sys, "platform", "linux"), mock.patch.object(
@@ -2385,48 +2382,20 @@ class TestPreSplitModuleContractsAndBoundaries(unittest.TestCase):
             ), mock.patch.object(safety_gate.subprocess, "run", side_effect=fake_linux_run):
                 self.assertEqual(safety_gate.resolve_gemini_api_key(), "linux-secret-tool-key")
 
-            def fake_win_run(cmd, **_kw):
-                self.assertEqual(cmd[0], "powershell.exe")
-                return safety_gate.subprocess.CompletedProcess(cmd, 0, stdout="win-cred-manager-key\r\n", stderr="")
-
-            with mock.patch.object(safety_gate.sys, "platform", "win32"), mock.patch.object(
-                safety_gate.subprocess, "run", side_effect=fake_win_run
-            ):
-                self.assertEqual(safety_gate.resolve_gemini_api_key(), "win-cred-manager-key")
-
-            # 3. .env and config file chain (~/.gemini/.env -> ~/.config/repo-walkthrough/.env -> ~/.config/safety-gate/.env -> %APPDATA%/safety-gate/.env -> ./.env -> STATE_DIR)
             with mock.patch.object(safety_gate.subprocess, "run", side_effect=OSError("no store")):
-                (fake_home / ".gemini" / ".env").write_text("GEMINI_API_KEY=from-gemini-dotenv\n", encoding="utf-8")
-                self.assertEqual(safety_gate.resolve_gemini_api_key(), "from-gemini-dotenv")
-
-                (fake_home / ".config" / "repo-walkthrough" / ".env").write_text(
-                    'export GEMINI_API_KEY="from-rw-dotenv"\n', encoding="utf-8"
+                (fake_home / ".gemini" / ".env").write_text(
+                    "GEMINI_API_KEY=from-gemini-dotenv # inline comment\n", encoding="utf-8"
                 )
-                self.assertEqual(safety_gate.resolve_gemini_api_key(), "from-rw-dotenv")
+                self.assertEqual(safety_gate.resolve_gemini_api_key(), "from-gemini-dotenv")
 
                 (fake_home / ".config" / "safety-gate" / "gemini_api_key").write_text(
                     "from-sg-raw-keyfile\n", encoding="utf-8"
                 )
                 self.assertEqual(safety_gate.resolve_gemini_api_key(), "from-sg-raw-keyfile")
 
-                (fake_home / ".config" / "safety-gate" / ".env").write_text(
-                    "GEMINI_API_KEY=from-sg-dotenv\n", encoding="utf-8"
-                )
-                self.assertEqual(safety_gate.resolve_gemini_api_key(), "from-sg-dotenv")
-
-                (fake_appdata / "safety-gate" / ".env").write_text(
-                    "GEMINI_API_KEY=from-win-appdata-dotenv\n", encoding="utf-8"
-                )
-                with mock.patch.dict(os.environ, {"APPDATA": str(fake_appdata)}, clear=False):
-                    self.assertEqual(safety_gate.resolve_gemini_api_key(), "from-win-appdata-dotenv")
-
-                (fake_cwd / ".env").write_text("GEMINI_API_KEY=from-local-cwd-dotenv\n", encoding="utf-8")
-                self.assertEqual(safety_gate.resolve_gemini_api_key(), "from-local-cwd-dotenv")
-
                 (self.tmp_dir / "api_key").write_text("state-dir-key-123\n", encoding="utf-8")
                 self.assertEqual(safety_gate.resolve_gemini_api_key(), "state-dir-key-123")
 
-            # 4. GEMINI_API_KEY environment variable takes highest priority
             with mock.patch.dict(os.environ, {"GEMINI_API_KEY": "env-priority-key"}, clear=False):
                 self.assertEqual(safety_gate.resolve_gemini_api_key(), "env-priority-key")
 
@@ -2719,13 +2688,14 @@ class TestPreSplitModuleContractsAndBoundaries(unittest.TestCase):
         buf_k = io.StringIO()
         with mock.patch("pathlib.Path.home", return_value=self.tmp_dir), mock.patch("sys.stdout", buf_k):
             self.assertEqual(safety_gate.handle_setup_key_cli("AIzaSyFakeTestKey1234567890", use_keychain=False), 0)
-        self.assertTrue((self.tmp_dir / ".config" / "safety-gate" / "gemini_api_key").is_file())
+        key_f = self.tmp_dir / ".config" / "safety-gate" / "gemini_api_key"
+        self.assertTrue(key_f.is_file())
+        if os.name != "nt":
+            self.assertEqual(key_f.stat().st_mode & 0o777, 0o600)
 
-        # Also verify --keychain (use_keychain=True) across macOS, Linux, and Windows
         for plat, expected_store in (
             ("darwin", "macos-keychain"),
             ("linux", "secret-tool"),
-            ("win32", "windows-credential-manager"),
         ):
             buf_kc = io.StringIO()
             with mock.patch.object(safety_gate.sys, "platform", plat), mock.patch.object(
@@ -3637,6 +3607,51 @@ class TestPreSplitModuleContractsAndBoundaries(unittest.TestCase):
         self.assertGreater(big_log.stat().st_size, 65536)
         hist = safety_gate._get_recent_conversation_history("convtail999", limit=5)
         self.assertIn("git status --short", hist)
+
+    def test_fail_closed_hook_payloads_and_api_key_header(self) -> None:
+        """
+        Verify:
+        1. `handle_hook` and `evaluate_tool_call` fail closed (`deny`) on empty, malformed, non-dict,
+           null-byte, or unrecognized hook payloads instead of returning `allow` or crashing.
+        2. Claude Code / Gemini CLI `tool_name` + `tool_input` payloads are evaluated and denied on dangerous commands.
+        3. Stage 2 and Stage 3 pass the Gemini API key via `x-goog-api-key` header rather than `?key=` URL query param.
+        """
+        import io
+
+        for bad_stdin in ("", "   ", "{bad json", "[]", '"just-a-string"', "{}", '{"toolCall": "bad"}'):
+            out_buf = io.StringIO()
+            with mock.patch("sys.stdin", io.StringIO(bad_stdin)), mock.patch("sys.stdout", out_buf):
+                rc = safety_gate.handle_hook()
+            self.assertEqual(rc, 0)
+            self.assertEqual(json.loads(out_buf.getvalue().strip())["decision"], "deny", f"Expected deny for {bad_stdin!r}")
+
+        for bad_payload in (
+            {"toolCall": {"name": "run_command", "args": "rm -rf ~"}},
+            {"toolCall": {"name": "run_command", "args": {"CommandLine": "cd 'a\x00b'; rm -rf ~"}}},
+            {"tool_name": "Bash", "tool_input": {"command": "rm -rf ~"}},
+            {"tool_name": "run_shell_command", "tool_input": {"command": "sudo rm -rf /"}},
+        ):
+            out_d, _, _ = safety_gate.evaluate_tool_call(bad_payload)
+            self.assertEqual(out_d["decision"], "deny", f"Expected deny for {bad_payload!r}")
+
+        out_ok, _, _ = safety_gate.evaluate_tool_call({"tool_name": "Bash", "tool_input": {"command": "git status"}})
+        self.assertEqual(out_ok["decision"], "allow")
+
+        fake_resp = mock.MagicMock()
+        fake_resp.read.return_value = json.dumps(
+            {"candidates": [{"content": {"parts": [{"text": '{"decision": "allow", "reason": "ok"}'}]}}]}
+        ).encode("utf-8")
+        fake_resp.__enter__.return_value = fake_resp
+        with mock.patch.dict(os.environ, {"GEMINI_API_KEY": "secret-hdr-key"}, clear=False), mock.patch(
+            "safety_gate.urllib.request.urlopen", return_value=fake_resp
+        ) as m_open:
+            safety_gate.classify_command_with_gemini("pytest", "/Users/alice/projects")
+            safety_gate.classify_with_heavy_gemini("git push origin main", "/Users/alice/projects")
+            self.assertEqual(m_open.call_count, 2)
+            for call in m_open.call_args_list:
+                req = call.args[0]
+                self.assertNotIn("key=", req.full_url)
+                self.assertEqual(req.get_header("X-goog-api-key"), "secret-hdr-key")
 
 
 if __name__ == "__main__":

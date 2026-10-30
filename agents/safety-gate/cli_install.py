@@ -655,34 +655,29 @@ def handle_setup_key_cli(key_arg: str = "", use_keychain: bool = False) -> int:
                 ["security", "add-generic-password", "-U", "-a", os.environ.get("USER", "user"), "-s", "gemini-api-key", "-w", key_val],
                 capture_output=True,
                 text=True,
+                timeout=5.0,
             )
             if res.returncode == 0:
                 print(json.dumps({"ok": True, "store": "macos-keychain", "service": "gemini-api-key"}))
                 return 0
         elif sys.platform.startswith("linux") and shutil.which("secret-tool"):
             res = subprocess.run(
-                ["secret-tool", "store", "--label=gemini-api-key", "service", "gemini-api-key"],
+                ["secret-tool", "store", "--label=safety-gate", "safety-gate", "gemini_api_key"],
                 input=key_val,
                 capture_output=True,
                 text=True,
+                timeout=5.0,
             )
             if res.returncode == 0:
-                print(json.dumps({"ok": True, "store": "secret-tool", "service": "gemini-api-key"}))
-                return 0
-        elif sys.platform == "win32":
-            res = subprocess.run(
-                ["cmdkey", "/generic:gemini-api-key", f"/user:{os.environ.get('USERNAME', 'user')}", f"/pass:{key_val}"],
-                capture_output=True,
-                text=True,
-            )
-            if res.returncode == 0:
-                print(json.dumps({"ok": True, "store": "windows-credential-manager", "service": "gemini-api-key"}))
+                print(json.dumps({"ok": True, "store": "secret-tool", "service": "safety-gate"}))
                 return 0
 
     cfg_dir = Path.home() / ".config" / "safety-gate"
     cfg_dir.mkdir(parents=True, exist_ok=True)
     key_file = cfg_dir / "gemini_api_key"
-    key_file.write_text(key_val + "\n", encoding="utf-8")
+    fd = os.open(key_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(key_val + "\n")
     try:
         key_file.chmod(0o600)
     except Exception:

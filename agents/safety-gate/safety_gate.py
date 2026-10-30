@@ -372,23 +372,47 @@ def _resolve_payload_cwd(payload: Dict[str, Any], args: Dict[str, Any]) -> str:
     return str(WORKSPACE_ROOT)
 
 
+def _contains_null_char(val: Any) -> bool:
+    if isinstance(val, str):
+        return "\x00" in val
+    if isinstance(val, dict):
+        return any(_contains_null_char(k) or _contains_null_char(v) for k, v in val.items())
+    return isinstance(val, (list, tuple)) and any(_contains_null_char(x) for x in val)
+
+
 def evaluate_tool_call(payload: Dict[str, Any]) -> Tuple[Dict[str, Any], str, str]:
     """
     Evaluate a `PreToolUse` hook payload.
     Returns (hook_output_dict, stage, target_summary) where `decision` is strictly `"allow"` or `"deny"`.
     """
-    tool_call = payload.get("toolCall") or {}
-    if not isinstance(tool_call, dict):
-        return {"decision": "allow", "permissionOverrides": ["command(ls)"]}, "noop", ""
+    if not isinstance(payload, dict) or _contains_null_char(payload):
+        return {"decision": "deny", "reason": "Malformed hook payload."}, "invalid-payload", ""
 
-    tool_name = str(tool_call.get("name") or "").strip()
-    conv_id = str(payload.get("conversationId") or "").strip()
-    transcript_hint = str(payload.get("transcriptPath") or payload.get("transcript") or "").strip()
-    args = tool_call.get("args") or {}
-    if not isinstance(args, dict):
-        args = {}
+    tool_call = payload.get("toolCall")
+    if isinstance(tool_call, dict):
+        tool_name = str(tool_call.get("name") or "").strip()
+        raw_args = tool_call.get("args")
+        args = {} if raw_args is None else raw_args
+    elif "tool_name" in payload:
+        raw_tn = str(payload.get("tool_name") or "").strip()
+        raw_in = payload.get("tool_input")
+        args = {} if raw_in is None else raw_in
+        if raw_tn in ("Bash", "run_shell_command") and isinstance(args, dict) and "CommandLine" not in args:
+            args = {"CommandLine": args.get("command", ""), **args}
+            tool_name = "run_command"
+        else:
+            tool_name = raw_tn
+    else:
+        return {"decision": "deny", "reason": "Unrecognized hook payload schema."}, "invalid-payload", ""
 
-    if not tool_name or tool_name in READ_ONLY_TOOLS:
+    conv_id = str(payload.get("conversationId") or payload.get("session_id") or "").strip()
+    transcript_hint = str(
+        payload.get("transcriptPath") or payload.get("transcript") or payload.get("transcript_path") or ""
+    ).strip()
+    if not isinstance(args, dict) or not tool_name:
+        return {"decision": "deny", "reason": "Malformed tool call payload."}, "invalid-payload", ""
+
+    if tool_name in READ_ONLY_TOOLS:
         return {"decision": "allow", "permissionOverrides": ["command(ls)"]}, "readonly-tool", tool_name
 
     if tool_name in (
@@ -632,26 +656,24 @@ def evaluate_tool_call(payload: Dict[str, Any]) -> Tuple[Dict[str, Any], str, st
 
 def handle_hook() -> int:
     t0 = time.time()
-    raw_stdin = sys.stdin.read()
-    if not raw_stdin.strip():
-        sys.stdout.write(json.dumps({"decision": "allow"}) + "\n")
-        sys.stdout.flush()
-        return 0
-
     try:
-        payload = json.loads(raw_stdin)
-    except Exception:
-        sys.stdout.write(json.dumps({"decision": "allow"}) + "\n")
+        raw_stdin = sys.stdin.read()
+        payload = json.loads(raw_stdin) if raw_stdin.strip() else None
+        if not isinstance(payload, dict):
+            raise ValueError("Invalid hook payload")
+        tool_call = payload.get("toolCall")
+        tool_name = str((tool_call if isinstance(tool_call, dict) else {}).get("name") or payload.get("tool_name") or "")
+        conv_id = str(payload.get("conversationId") or payload.get("session_id") or "")
+        step_idx = payload.get("stepIdx")
+        if not isinstance(step_idx, int):
+            step_idx = None
+        out, stage, target_summary = evaluate_tool_call(payload)
+    except Exception as exc:
+        sys.stdout.write(
+            json.dumps({"decision": "deny", "reason": f"Safety gate fail-closed error: {type(exc).__name__}."}) + "\n"
+        )
         sys.stdout.flush()
         return 0
-
-    tool_name = str((payload.get("toolCall") or {}).get("name") or "")
-    conv_id = str(payload.get("conversationId") or "")
-    step_idx = payload.get("stepIdx")
-    if not isinstance(step_idx, int):
-        step_idx = None
-
-    out, stage, target_summary = evaluate_tool_call(payload)
     elapsed_ms = (time.time() - t0) * 1000.0
     decision = str(out.get("decision", "allow"))
     reason = str(out.get("reason", "Allowed."))
