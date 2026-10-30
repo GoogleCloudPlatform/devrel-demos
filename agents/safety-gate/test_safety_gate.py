@@ -2348,11 +2348,87 @@ class TestPreSplitModuleContractsAndBoundaries(unittest.TestCase):
         self.assertEqual(json.loads(extracted)["decision"], "deny")
 
     def test_presplit_076_resolve_gemini_api_key_priority_env_then_state_dir_then_config(self) -> None:
-        (self.tmp_dir / "api_key").write_text("state-dir-key-123\n", encoding="utf-8")
-        with mock.patch.dict(os.environ, {"GEMINI_API_KEY": "", "GOOGLE_API_KEY": ""}, clear=False):
-            self.assertEqual(safety_gate.resolve_gemini_api_key(), "state-dir-key-123")
-        with mock.patch.dict(os.environ, {"GEMINI_API_KEY": "env-priority-key"}, clear=False):
-            self.assertEqual(safety_gate.resolve_gemini_api_key(), "env-priority-key")
+        fake_home = self.tmp_dir / "fake_home"
+        fake_appdata = self.tmp_dir / "fake_appdata"
+        fake_cwd = self.tmp_dir / "fake_cwd"
+        (fake_home / ".config" / "safety-gate").mkdir(parents=True, exist_ok=True)
+        (fake_home / ".config" / "repo-walkthrough").mkdir(parents=True, exist_ok=True)
+        (fake_home / ".gemini").mkdir(parents=True, exist_ok=True)
+        (fake_appdata / "safety-gate").mkdir(parents=True, exist_ok=True)
+        fake_cwd.mkdir(parents=True, exist_ok=True)
+
+        with mock.patch.object(Path, "home", return_value=fake_home), mock.patch.object(
+            Path, "cwd", return_value=fake_cwd
+        ), mock.patch.object(safety_gate, "PRIVATE_RULES", None), mock.patch.dict(
+            os.environ, {"GEMINI_API_KEY": "", "GOOGLE_API_KEY": "ignored-google-key", "APPDATA": ""}, clear=False
+        ):
+            # 1. GOOGLE_API_KEY is ignored when GEMINI_API_KEY and files/stores are absent
+            with mock.patch.object(safety_gate.subprocess, "run", side_effect=OSError("no store")):
+                self.assertIsNone(safety_gate.resolve_gemini_api_key())
+
+            # 2. OS credential store across macOS (security), Linux (secret-tool), and Windows (powershell.exe)
+            def fake_macos_run(cmd, **_kw):
+                self.assertEqual(cmd[:4], ["security", "find-generic-password", "-s", "gemini-api-key"])
+                return safety_gate.subprocess.CompletedProcess(cmd, 0, stdout="macos-keychain-key\n", stderr="")
+
+            with mock.patch.object(safety_gate.sys, "platform", "darwin"), mock.patch.object(
+                safety_gate.subprocess, "run", side_effect=fake_macos_run
+            ):
+                self.assertEqual(safety_gate.resolve_gemini_api_key(), "macos-keychain-key")
+
+            def fake_linux_run(cmd, **_kw):
+                self.assertEqual(cmd, ["secret-tool", "lookup", "service", "gemini-api-key"])
+                return safety_gate.subprocess.CompletedProcess(cmd, 0, stdout="linux-secret-tool-key\n", stderr="")
+
+            with mock.patch.object(safety_gate.sys, "platform", "linux"), mock.patch.object(
+                safety_gate.shutil, "which", return_value="/usr/bin/secret-tool"
+            ), mock.patch.object(safety_gate.subprocess, "run", side_effect=fake_linux_run):
+                self.assertEqual(safety_gate.resolve_gemini_api_key(), "linux-secret-tool-key")
+
+            def fake_win_run(cmd, **_kw):
+                self.assertEqual(cmd[0], "powershell.exe")
+                return safety_gate.subprocess.CompletedProcess(cmd, 0, stdout="win-cred-manager-key\r\n", stderr="")
+
+            with mock.patch.object(safety_gate.sys, "platform", "win32"), mock.patch.object(
+                safety_gate.subprocess, "run", side_effect=fake_win_run
+            ):
+                self.assertEqual(safety_gate.resolve_gemini_api_key(), "win-cred-manager-key")
+
+            # 3. .env and config file chain (~/.gemini/.env -> ~/.config/repo-walkthrough/.env -> ~/.config/safety-gate/.env -> %APPDATA%/safety-gate/.env -> ./.env -> STATE_DIR)
+            with mock.patch.object(safety_gate.subprocess, "run", side_effect=OSError("no store")):
+                (fake_home / ".gemini" / ".env").write_text("GEMINI_API_KEY=from-gemini-dotenv\n", encoding="utf-8")
+                self.assertEqual(safety_gate.resolve_gemini_api_key(), "from-gemini-dotenv")
+
+                (fake_home / ".config" / "repo-walkthrough" / ".env").write_text(
+                    'export GEMINI_API_KEY="from-rw-dotenv"\n', encoding="utf-8"
+                )
+                self.assertEqual(safety_gate.resolve_gemini_api_key(), "from-rw-dotenv")
+
+                (fake_home / ".config" / "safety-gate" / "gemini_api_key").write_text(
+                    "from-sg-raw-keyfile\n", encoding="utf-8"
+                )
+                self.assertEqual(safety_gate.resolve_gemini_api_key(), "from-sg-raw-keyfile")
+
+                (fake_home / ".config" / "safety-gate" / ".env").write_text(
+                    "GEMINI_API_KEY=from-sg-dotenv\n", encoding="utf-8"
+                )
+                self.assertEqual(safety_gate.resolve_gemini_api_key(), "from-sg-dotenv")
+
+                (fake_appdata / "safety-gate" / ".env").write_text(
+                    "GEMINI_API_KEY=from-win-appdata-dotenv\n", encoding="utf-8"
+                )
+                with mock.patch.dict(os.environ, {"APPDATA": str(fake_appdata)}, clear=False):
+                    self.assertEqual(safety_gate.resolve_gemini_api_key(), "from-win-appdata-dotenv")
+
+                (fake_cwd / ".env").write_text("GEMINI_API_KEY=from-local-cwd-dotenv\n", encoding="utf-8")
+                self.assertEqual(safety_gate.resolve_gemini_api_key(), "from-local-cwd-dotenv")
+
+                (self.tmp_dir / "api_key").write_text("state-dir-key-123\n", encoding="utf-8")
+                self.assertEqual(safety_gate.resolve_gemini_api_key(), "state-dir-key-123")
+
+            # 4. GEMINI_API_KEY environment variable takes highest priority
+            with mock.patch.dict(os.environ, {"GEMINI_API_KEY": "env-priority-key"}, clear=False):
+                self.assertEqual(safety_gate.resolve_gemini_api_key(), "env-priority-key")
 
     def test_presplit_077_resolve_and_set_safety_gate_backend_modes_gcp_and_auto(self) -> None:
         with mock.patch.dict(os.environ, {"SAFETY_GATE_BACKEND": ""}, clear=False):
@@ -2644,6 +2720,23 @@ class TestPreSplitModuleContractsAndBoundaries(unittest.TestCase):
         with mock.patch("pathlib.Path.home", return_value=self.tmp_dir), mock.patch("sys.stdout", buf_k):
             self.assertEqual(safety_gate.handle_setup_key_cli("AIzaSyFakeTestKey1234567890", use_keychain=False), 0)
         self.assertTrue((self.tmp_dir / ".config" / "safety-gate" / "gemini_api_key").is_file())
+
+        # Also verify --keychain (use_keychain=True) across macOS, Linux, and Windows
+        for plat, expected_store in (
+            ("darwin", "macos-keychain"),
+            ("linux", "secret-tool"),
+            ("win32", "windows-credential-manager"),
+        ):
+            buf_kc = io.StringIO()
+            with mock.patch.object(safety_gate.sys, "platform", plat), mock.patch.object(
+                safety_gate.shutil, "which", return_value="/usr/bin/secret-tool"
+            ), mock.patch.object(
+                safety_gate.subprocess,
+                "run",
+                return_value=safety_gate.subprocess.CompletedProcess(["cmd"], 0, stdout="ok", stderr=""),
+            ), mock.patch("sys.stdout", buf_kc):
+                self.assertEqual(safety_gate.handle_setup_key_cli("AIzaKeychainTest", use_keychain=True), 0)
+            self.assertEqual(json.loads(buf_kc.getvalue().strip())["store"], expected_store)
 
     def test_presplit_101_standalone_install_copies_all_repo_py_modules_to_install_dir(self) -> None:
         """

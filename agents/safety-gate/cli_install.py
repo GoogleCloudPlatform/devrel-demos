@@ -661,13 +661,22 @@ def handle_setup_key_cli(key_arg: str = "", use_keychain: bool = False) -> int:
                 return 0
         elif sys.platform.startswith("linux") and shutil.which("secret-tool"):
             res = subprocess.run(
-                ["secret-tool", "store", "--label=safety-gate", "safety-gate", "gemini_api_key"],
+                ["secret-tool", "store", "--label=gemini-api-key", "service", "gemini-api-key"],
                 input=key_val,
                 capture_output=True,
                 text=True,
             )
             if res.returncode == 0:
-                print(json.dumps({"ok": True, "store": "secret-tool", "service": "safety-gate"}))
+                print(json.dumps({"ok": True, "store": "secret-tool", "service": "gemini-api-key"}))
+                return 0
+        elif sys.platform == "win32":
+            res = subprocess.run(
+                ["cmdkey", "/generic:gemini-api-key", f"/user:{os.environ.get('USERNAME', 'user')}", f"/pass:{key_val}"],
+                capture_output=True,
+                text=True,
+            )
+            if res.returncode == 0:
+                print(json.dumps({"ok": True, "store": "windows-credential-manager", "service": "gemini-api-key"}))
                 return 0
 
     cfg_dir = Path.home() / ".config" / "safety-gate"
