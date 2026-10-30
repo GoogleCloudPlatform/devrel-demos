@@ -107,7 +107,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
                         )
                     )
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 )
             )
@@ -166,8 +166,10 @@ fun ChatScreen(viewModel: ChatViewModel) {
                         ReservationCard(
                             reservation = uiState.pendingReservation!!,
                             isPending = true,
+                            isVerifying = uiState.isVerifying,
+                            verificationFailure = uiState.verificationFailure,
                             onRetry = {
-                                viewModel.retry()
+                                viewModel.retry(context)
                             }
                         )
                     }
@@ -192,9 +194,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
                         ReservationCard(
                             reservation = reservation,
                             isPending = false,
-                            onRetry = {
-                                viewModel.retry()
-                            }
+                            onRetry = {}
                         )
                     }
                 }
@@ -255,6 +255,8 @@ fun RestaurantCard(restaurant: Restaurant) {
 fun ReservationCard(
     reservation: Reservation,
     isPending: Boolean = false,
+    isVerifying: Boolean = false,
+    verificationFailure: FpnvFailure? = null,
     onRetry: () -> Unit
 ) {
     val backgroundColor = if (isPending)
@@ -298,6 +300,18 @@ fun ReservationCard(
                     Spacer(Modifier.width(4.dp))
                     Text("Verified: ${reservation.phoneNumber}", style = MaterialTheme.typography.bodySmall, color = Color(0xFF1B5E20))
                 }
+            } else if (isPending && verificationFailure != null && !isVerifying) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    verificationFailure.userMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+                if (verificationFailure.canRetry) {
+                    TextButton(onClick = onRetry) {
+                        Text("Retry")
+                    }
+                }
             } else if (isPending) {
                 Spacer(Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -307,7 +321,8 @@ fun ReservationCard(
                     TextButton(
                         onClick =  {
                             onRetry()
-                        }
+                        },
+                        enabled = !isVerifying
                     ) {
                         Text("Retry")
                     }
