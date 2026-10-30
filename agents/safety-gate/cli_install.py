@@ -355,6 +355,8 @@ def _refresh_self_backup_if_changed() -> None:
         self_path = Path(__file__).resolve()
         if self_path.name.endswith(".bak"):
             return
+        if self_path.name != "safety_gate.py":
+            self_path = self_path.parent / "safety_gate.py"
         extra_targets = (
             PRIVATE_RULES.extra_self_backup_targets(WORKSPACE_ROOT)
             if globals().get("PRIVATE_RULES") is not None and hasattr(PRIVATE_RULES, "extra_self_backup_targets")
@@ -549,6 +551,8 @@ def _verify_modules_smoke_test(src_dir: Path) -> bool:
 def handle_install_cli(target: str = "antigravity", custom_path: str = "") -> int:
     """Install the PreToolUse hook into ~/.gemini/hooks.json and ~/.gemini/config/hooks.json (or a custom hooks.json path)."""
     self_file = Path(__file__).resolve()
+    if self_file.name != "safety_gate.py":
+        self_file = self_file.parent / "safety_gate.py"
     if not _verify_modules_smoke_test(self_file.parent):
         print("Aborted install: smoke test failed on candidate safety_gate modules.", file=sys.stderr)
         return 1

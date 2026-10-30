@@ -220,7 +220,16 @@ def _get_recent_conversation_history(conv_id: str, limit: int = 8) -> str:
     short_conv = (conv_id or "")[:8]
     matched: List[str] = []
     try:
-        lines = LOG_FILE.read_text(encoding="utf-8", errors="replace").splitlines()[-120:]
+        try:
+            with open(LOG_FILE, "rb") as f:
+                f.seek(0, os.SEEK_END)
+                file_size = f.tell()
+                seek_offset = min(file_size, 65536)
+                f.seek(file_size - seek_offset, os.SEEK_SET)
+                chunk = f.read(seek_offset)
+                lines = chunk.decode("utf-8", errors="replace").splitlines()[-120:]
+        except Exception:
+            lines = LOG_FILE.read_text(encoding="utf-8", errors="replace").splitlines()[-120:]
         for line in lines:
             if not line.strip():
                 continue

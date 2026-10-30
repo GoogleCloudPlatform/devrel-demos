@@ -215,7 +215,7 @@ SENSITIVE_CREDENTIAL_PATTERNS = (
 )
 
 ENV_FILE_PATTERN = (
-    r"(?:^|[/\s'\"=])\.env(?:\.[A-Za-z0-9_-]+)?(?![A-Za-z0-9_.-])(?!\.example\b|\.sample\b|\.template\b)"
+    r"(?:^|[/\s'\"=])\.env(?:\.[A-Za-z0-9_.-]+)?(?![A-Za-z0-9_.-])(?<!\.example)(?<!\.sample)(?<!\.template)"
 )
 
 SENSITIVE_EXFIL_PATTERNS = SENSITIVE_CREDENTIAL_PATTERNS + (

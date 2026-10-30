@@ -3487,6 +3487,64 @@ class TestPreSplitModuleContractsAndBoundaries(unittest.TestCase):
             self.assertIn(str(fake_home / ".gemini" / "hooks.json"), uninst_out["uninstalled"])
             self.assertIn(str(fake_home / ".gemini" / "config" / "hooks.json"), uninst_out["uninstalled"])
 
+    def test_gemini_code_assist_review_regressions(self) -> None:
+        """
+        Verify fixes for all 7 gemini-code-assist review findings on PR #1579:
+        1. `_check_ssh_command` rejects `-F`, `-o ProxyCommand=...`, and `-o LocalCommand=...`.
+        2. `ENV_FILE_PATTERN` and `_is_env_secret_file` match `.env.production.local` while excluding `.env.example` / `.env.production.example`.
+        3. `_is_py_exec_call` / `_python_ast_reaches_exec_sink` detect aliased `subprocess` / `os` exec calls (`import subprocess as sp; sp.run(...)`) without flagging `re.compile(...)`.
+        4. `_get_recent_conversation_history` seek-based 64KB tail read handles >64KB logs cleanly.
+        """
+        import re
+
+        # 1. SSH -F and -o ProxyCommand / LocalCommand must not fast-allow in Stage 1
+        for ssh_tokens in (
+            ["ssh", "-F", "/tmp/evil_ssh_config", "host", "ls"],
+            ["ssh", "-F/tmp/evil_ssh_config", "host", "ls"],
+            ["ssh", "-o", "ProxyCommand=sh -c id", "host", "ls"],
+            ["ssh", "-oProxyCommand=sh -c id", "host", "ls"],
+            ["ssh", "-o", "LocalCommand=id", "host", "ls"],
+            ["ssh", "-oLocalCommand=id", "host", "ls"],
+        ):
+            self.assertIsNone(
+                safety_gate._check_ssh_command(ssh_tokens),
+                f"Expected None for dangerous SSH option {ssh_tokens!r}",
+            )
+
+        # 2. Multi-part .env.production.local vs .env.example / .env.production.example
+        for secret_env in (".env", ".env.local", ".env.production.local", "/app/.env.staging.local"):
+            self.assertTrue(safety_gate._is_env_secret_file(secret_env), f"Expected True for {secret_env}")
+            self.assertIsNotNone(re.search(safety_gate.ENV_FILE_PATTERN, f"cat {secret_env}"))
+        for safe_env in (".env.example", ".env.sample", ".env.template", ".env.production.example"):
+            self.assertFalse(safety_gate._is_env_secret_file(safe_env), f"Expected False for {safe_env}")
+            self.assertIsNone(re.search(safety_gate.ENV_FILE_PATTERN, f"cat {safe_env}"))
+
+        # 3. Aliased subprocess/os exec calls detected; re.compile not flagged
+        self.assertTrue(
+            safety_gate._python_ast_reaches_exec_sink(
+                'import subprocess as sp\nsp.run(["sudo", "id"])\n', r"\bsudo\b"
+            )
+        )
+        self.assertTrue(
+            safety_gate._python_ast_reaches_exec_sink(
+                'import os as _os\n_os.system("sudo id")\n', r"\bsudo\b"
+            )
+        )
+        self.assertFalse(
+            safety_gate._python_ast_reaches_exec_sink(
+                'import re\nrx = re.compile(r"\\bsudo\\b")\nprint(rx.pattern)\n', r"\bsudo\b"
+            )
+        )
+
+        # 4. >64KB log tail read
+        big_log = self.tmp_dir / "safety-gate.log"
+        filler = json.dumps({"ts": "2026-10-29 00:00:00", "conv": "other123", "tool": "run_command", "decision": "allow", "target": "echo " + ("x" * 200)}) + "\n"
+        target_line = json.dumps({"ts": "2026-10-29 23:59:59", "conv": "convtail", "tool": "run_command", "decision": "allow", "target": "git status --short"}) + "\n"
+        big_log.write_text((filler * 400) + target_line, encoding="utf-8")
+        self.assertGreater(big_log.stat().st_size, 65536)
+        hist = safety_gate._get_recent_conversation_history("convtail999", limit=5)
+        self.assertIn("git status --short", hist)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -478,7 +478,7 @@ def _is_py_exec_call(node: ast.Call) -> bool:
             return True
         if root_name == "os" and (attr in ("system", "popen") or attr.startswith(("exec", "spawn", "posix_spawn"))):
             return True
-        if attr in ("Popen", "check_output", "check_call", "getoutput", "getstatusoutput"):
+        if attr in (_PY_EXEC_FUNCS - {"compile"}) or attr.startswith(("exec", "spawn", "posix_spawn")):
             return True
     return False
 

@@ -414,7 +414,7 @@ def _is_env_secret_file(path_str: str) -> bool:
     for candidate in (path_str, os.path.expanduser(path_str)):
         base = os.path.basename(candidate.strip().replace("\\", "/").rstrip("/"))
         if re.match(
-            r"^\.env(?:\.[A-Za-z0-9_-]+)?(?<!\.example)(?<!\.sample)(?<!\.template)$",
+            r"^\.env(?:\.[A-Za-z0-9_.-]+)?(?<!\.example)(?<!\.sample)(?<!\.template)$",
             base,
             re.I,
         ):
@@ -922,13 +922,21 @@ def _check_ssh_command(tokens: List[str]) -> Optional[Tuple[str, str, str]]:
             idx += 2
             continue
         if tok in SSH_OPTS_WITH_ARG:
-            if tok in SSH_TUNNEL_OR_MUX_OPTS:
+            if tok in SSH_TUNNEL_OR_MUX_OPTS or tok == "-F":
                 return None
+            if tok == "-o" and idx + 1 < n:
+                opt_val = tokens[idx + 1].lower()
+                if "proxycommand" in opt_val or "localcommand" in opt_val:
+                    return None
             idx += 2
             continue
         if tok.startswith("-"):
-            if any(tok.startswith(opt) and len(tok) > 2 for opt in SSH_TUNNEL_OR_MUX_OPTS):
+            if any(tok.startswith(opt) and len(tok) > 2 for opt in SSH_TUNNEL_OR_MUX_OPTS) or tok.startswith("-F"):
                 return None
+            if tok.startswith("-o"):
+                opt_val = tok[2:].lower()
+                if "proxycommand" in opt_val or "localcommand" in opt_val:
+                    return None
             idx += 1
             continue
         destination = tok
