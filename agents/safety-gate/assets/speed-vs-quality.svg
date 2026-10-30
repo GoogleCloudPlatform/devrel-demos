@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="428" viewBox="0 0 760 428" role="img" aria-labelledby="svq_t svq_d">
+  <title id="svq_t">Speed vs. reasoning quality: Stage 2 vs. Stage 3</title>
+  <desc id="svq_d">Chart plots classifier p50 latency from 0.8 s to 3.5 s against GPQA Diamond reasoning quality from 84 percent to 96 percent across two models: Stage 2 gemini-3.1-flash-lite-preview at 0.8 s p50 and 86.9 percent GPQA Diamond (37 percent of calls) and Stage 3 gemini-3.1-pro-preview at 3.5 s p50 and 94.3 percent GPQA Diamond (3 percent of calls).</desc>
+  <rect x="1" y="1" width="758" height="426" rx="18" fill="#f8fafc" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="28" y="42" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#0f172a">Speed vs. reasoning quality (Stage 2 vs. Stage 3)</text>
+  <text x="28" y="67" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#475569">Classifier latency (p50) vs. GPQA Diamond reasoning score for the two cascade models.</text>
+
+  <!-- Plot Area (x=86..728, y=96..356) -->
+  <rect x="86" y="96" width="642" height="260" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2"/>
+
+  <!-- Horizontal Grid Lines (84% to 96%) -->
+  <line x1="86" y1="356" x2="728" y2="356" stroke="#e8eaed" stroke-width="1"/>
+  <text x="76" y="360.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" fill="#64748b" text-anchor="end">84%</text>
+
+  <line x1="86" y1="312.7" x2="728" y2="312.7" stroke="#e8eaed" stroke-width="1"/>
+  <text x="76" y="317.2" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" fill="#64748b" text-anchor="end">86%</text>
+
+  <line x1="86" y1="269.3" x2="728" y2="269.3" stroke="#e8eaed" stroke-width="1"/>
+  <text x="76" y="273.8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" fill="#64748b" text-anchor="end">88%</text>
+
+  <line x1="86" y1="226" x2="728" y2="226" stroke="#e8eaed" stroke-width="1"/>
+  <text x="76" y="230.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" fill="#64748b" text-anchor="end">90%</text>
+
+  <line x1="86" y1="182.7" x2="728" y2="182.7" stroke="#e8eaed" stroke-width="1"/>
+  <text x="76" y="187.2" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" fill="#64748b" text-anchor="end">92%</text>
+
+  <line x1="86" y1="139.3" x2="728" y2="139.3" stroke="#e8eaed" stroke-width="1"/>
+  <text x="76" y="143.8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" fill="#64748b" text-anchor="end">94%</text>
+
+  <line x1="86" y1="96" x2="728" y2="96" stroke="#e8eaed" stroke-width="1"/>
+  <text x="76" y="100.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" fill="#64748b" text-anchor="end">96%</text>
+
+  <text x="32" y="226" transform="rotate(-90 32 226)" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#475569" text-anchor="middle">Reasoning quality (GPQA Diamond)</text>
+
+  <!-- Vertical Grid Lines (0.8s to 3.5s) -->
+  <line x1="164" y1="96" x2="164" y2="356" stroke="#e8eaed" stroke-width="1"/>
+  <text x="164" y="378" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#0f172a" text-anchor="middle">0.8 s p50</text>
+
+  <line x1="326" y1="96" x2="326" y2="356" stroke="#e8eaed" stroke-width="1"/>
+  <text x="326" y="378" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#64748b" text-anchor="middle">1.7 s</text>
+
+  <line x1="488" y1="96" x2="488" y2="356" stroke="#e8eaed" stroke-width="1"/>
+  <text x="488" y="378" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#64748b" text-anchor="middle">2.6 s</text>
+
+  <line x1="650" y1="96" x2="650" y2="356" stroke="#e8eaed" stroke-width="1"/>
+  <text x="650" y="378" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#0f172a" text-anchor="middle">3.5 s p50</text>
+
+  <text x="407" y="404" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#475569" text-anchor="middle">Classifier latency (p50)</text>
+
+  <!-- Escalation connector between the two points -->
+  <line x1="179" y1="288" x2="633" y2="138" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="6,5"/>
+  <g transform="translate(633,138) rotate(-18.2)">
+    <path d="M-10 -6L2 0L-10 6Z" fill="#7c3aed"/>
+  </g>
+
+  <!-- Point 1: Stage 2 (gemini-3.1-flash-lite-preview) -->
+  <circle cx="164" cy="293.2" r="11" fill="#1a73e8" stroke="#ffffff" stroke-width="3"/>
+  <text x="184" y="309" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#1a73e8" text-anchor="start">gemini-3.1-flash-lite-preview</text>
+  <text x="184" y="328" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" fill="#475569" text-anchor="start">Stage 2 (37% of calls) &#183; 0.8 s p50 &#183; 86.9% GPQA</text>
+
+  <!-- Point 2: Stage 3 (gemini-3.1-pro-preview) -->
+  <circle cx="650" cy="132.8" r="11" fill="#7627bb" stroke="#ffffff" stroke-width="3"/>
+  <text x="630" y="109" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#7627bb" text-anchor="end">gemini-3.1-pro-preview</text>
+  <text x="630" y="126" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" fill="#475569" text-anchor="end">Stage 3 (3% of calls) &#183; 3.5 s p50 &#183; 94.3% GPQA</text>
+</svg>
