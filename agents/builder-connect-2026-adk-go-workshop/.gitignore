@@ -1,0 +1,8 @@
+# The MCP servers built by workshop/start-servers.sh.
+bin/
+
+# Files the agents write in the step folder while you try the workshop.
+workshop/*/notes/
+workshop/*/my-plan.md
+workshop/*/sessions.txt
+workshop/*/*.ics

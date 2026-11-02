@@ -1,0 +1,126 @@
+<!doctype html>
+<!--
+  Copyright 2026 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My conference calendar</title>
+<style>
+  :root { --bg: #fafafa; --card: #fff; --text: #18181b; --muted: #71717a; --line: #e4e4e7; --soft: #f4f4f5; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111113; --card: #18181b; --text: #f4f4f5; --muted: #a1a1aa; --line: #27272a; --soft: #232326; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 42rem; margin: 0 auto; padding: 3rem 1.25rem; }
+  h1 { margin: 0; font-size: 1.6rem; font-weight: 650; letter-spacing: -.02em; }
+  .sub { margin: .25rem 0 2rem; color: var(--muted); }
+  .day { margin-bottom: 2rem; }
+  .day h2 { display: flex; align-items: baseline; gap: .6rem; margin: 0 0 .75rem; font-size: 1rem; font-weight: 600; }
+  .day h2 span { font-size: .85rem; font-weight: 400; color: var(--muted); }
+  .list { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .event { display: grid; grid-template-columns: 6.5rem 1fr; gap: 1rem; padding: .9rem 1.1rem; }
+  .event + .event { border-top: 1px solid var(--line); }
+  .time { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .9rem; }
+  .time b { color: var(--text); font-weight: 600; }
+  .time small { display: block; font-size: .8rem; }
+  .title { font-weight: 500; line-height: 1.4; }
+  .note { display: inline-block; margin-top: .35rem; padding: .1rem .5rem; border-radius: 6px; background: var(--soft); color: var(--muted); font-size: .8rem; }
+  .message { padding: 2.5rem 1.5rem; text-align: center; color: var(--muted); background: var(--card); border: 1px dashed var(--line); border-radius: 12px; }
+  .message strong { display: block; margin-bottom: .25rem; color: var(--text); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>My conference calendar</h1>
+  <p class="sub">Builder Connect &amp; Google Cloud Summit Poland · PGE Narodowy, Warsaw</p>
+  <main id="calendar"></main>
+</div>
+<script>
+  const events = { "2026-11-03": "Builder Connect", "2026-11-04": "Google Cloud Summit Poland" };
+
+  // Model output goes in with textContent, so it is never read as HTML.
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text) e.textContent = text;
+    return e;
+  }
+
+  function duration(start, end) {
+    const mins = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+    const d = mins(end) - mins(start);
+    if (!(d > 0)) return "";
+    return [Math.floor(d / 60) && `${Math.floor(d / 60)} h`, d % 60 && `${d % 60} min`].filter(Boolean).join(" ");
+  }
+
+  function day(date, items) {
+    const d = new Date(date + "T12:00:00");
+    const section = el("section", "day");
+    const h2 = el("h2", null, isNaN(d) ? date : d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }));
+    if (events[date]) h2.append(el("span", null, events[date]));
+    const list = el("div", "list");
+    for (const e of items) {
+      const row = el("div", "event");
+      const time = el("div", "time");
+      time.append(el("b", null, e.start), ` – ${e.end}`);
+      const length = duration(e.start, e.end);
+      if (length) time.append(el("small", null, length));
+      const what = el("div");
+      what.append(el("div", "title", e.title));
+      if (e.note) what.append(el("span", "note", e.note));
+      row.append(time, what);
+      list.append(row);
+    }
+    section.append(h2, list);
+    return section;
+  }
+
+  function message(title, text) {
+    const box = el("div", "message");
+    box.append(el("strong", null, title), text);
+    return box;
+  }
+
+  let last = null;
+  async function refresh() {
+    const root = document.getElementById("calendar");
+    let text;
+    try {
+      text = await (await fetch("calendar.json")).text();
+    } catch {
+      last = null;
+      root.replaceChildren(message("The calendar agent isn't running", "Start it with go run ./calendar."));
+      return;
+    }
+    if (text === last) return; // redraw only when something changed
+    last = text;
+    const list = JSON.parse(text).events || [];
+    if (list.length === 0) {
+      root.replaceChildren(message("Nothing in your calendar yet", "Ask the calendar agent, for example “Add the ADK + A2A workshop to my calendar.”"));
+      return;
+    }
+    const byDate = new Map(); // the list comes in time order
+    for (const e of list) byDate.set(e.date, [...(byDate.get(e.date) || []), e]);
+    root.replaceChildren(...[...byDate].map(([date, items]) => day(date, items)));
+  }
+
+  refresh();
+  setInterval(refresh, 2000);
+</script>
+</body>
+</html>
