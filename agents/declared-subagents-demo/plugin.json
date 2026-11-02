@@ -1,0 +1,9 @@
+{
+  "name": "declared-subagents-plugin",
+  "version": "0.0.1",
+  "description": "Reference plugin demonstrating how declared subagents inherit, filter, and isolate plugin, global, and agent-private inline MCP servers.",
+  "author": {
+    "name": "Google"
+  },
+  "license": "Apache-2.0"
+}
