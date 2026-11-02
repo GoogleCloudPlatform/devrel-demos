@@ -1,0 +1,364 @@
+{
+  "technologies": [
+    {
+      "name": "Agent Development Kit (ADK)",
+      "aliases": ["ADK", "Agent Development Kit"],
+      "kind": "agent framework",
+      "vendor": "Google",
+      "open_source": true,
+      "summary": "Open-source, code-first toolkit for building, evaluating and deploying AI agents. Optimized for Gemini but model-agnostic.",
+      "related": ["Agent2Agent (A2A)", "Model Context Protocol (MCP)", "Agents CLI", "Gemini Enterprise Agent Platform"],
+      "sdks": [
+        {"language": "Python", "repo": "google/adk-python"},
+        {"language": "Java", "repo": "google/adk-java"},
+        {"language": "Go", "repo": "google/adk-go"},
+        {"language": "TypeScript", "repo": "google/adk-js"},
+        {"language": "Kotlin", "repo": "google/adk-kotlin"}
+      ]
+    },
+    {
+      "name": "Agent2Agent (A2A)",
+      "aliases": ["A2A", "Agent2Agent"],
+      "kind": "protocol",
+      "vendor": "A2A project",
+      "open_source": true,
+      "summary": "Open protocol that lets agents built with different frameworks discover each other and work together.",
+      "related": ["Agent Development Kit (ADK)", "Model Context Protocol (MCP)"],
+      "sdks": [
+        {"language": "Specification", "repo": "a2aproject/A2A"},
+        {"language": "Python", "repo": "a2aproject/a2a-python"},
+        {"language": "Java", "repo": "a2aproject/a2a-java"},
+        {"language": "Go", "repo": "a2aproject/a2a-go"},
+        {"language": "TypeScript", "repo": "a2aproject/a2a-js"},
+        {"language": "C#", "repo": "a2aproject/a2a-dotnet"}
+      ]
+    },
+    {
+      "name": "Model Context Protocol (MCP)",
+      "aliases": ["MCP", "Model Context Protocol"],
+      "kind": "protocol",
+      "vendor": "MCP project (created by Anthropic)",
+      "open_source": true,
+      "summary": "Open protocol for connecting AI applications and agents to tools and data sources through MCP servers.",
+      "related": ["Agent Development Kit (ADK)", "Agent2Agent (A2A)", "Agent Gateway"],
+      "sdks": [
+        {"language": "Specification", "repo": "modelcontextprotocol/modelcontextprotocol"},
+        {"language": "Python", "repo": "modelcontextprotocol/python-sdk"},
+        {"language": "TypeScript", "repo": "modelcontextprotocol/typescript-sdk"},
+        {"language": "Java", "repo": "modelcontextprotocol/java-sdk"},
+        {"language": "Go", "repo": "modelcontextprotocol/go-sdk"},
+        {"language": "Kotlin", "repo": "modelcontextprotocol/kotlin-sdk"},
+        {"language": "C#", "repo": "modelcontextprotocol/csharp-sdk"},
+        {"language": "Rust", "repo": "modelcontextprotocol/rust-sdk"}
+      ]
+    },
+    {
+      "name": "Google Gen AI SDK",
+      "aliases": ["Gen AI SDK", "Gemini API"],
+      "kind": "SDK",
+      "vendor": "Google",
+      "open_source": true,
+      "summary": "Official client libraries for calling Gemini models, through the Gemini Developer API or Google Cloud.",
+      "related": ["Gemini", "Agent Development Kit (ADK)"],
+      "sdks": [
+        {"language": "Python", "repo": "googleapis/python-genai"},
+        {"language": "TypeScript", "repo": "googleapis/js-genai"},
+        {"language": "Go", "repo": "googleapis/go-genai"},
+        {"language": "Java", "repo": "googleapis/java-genai"},
+        {"language": "C#", "repo": "googleapis/dotnet-genai"}
+      ]
+    },
+    {
+      "name": "Gemini",
+      "aliases": ["Gemini"],
+      "kind": "model family",
+      "vendor": "Google",
+      "open_source": false,
+      "summary": "Google's family of multimodal AI models. Apps reach it through the Google Gen AI SDK or Firebase AI Logic.",
+      "related": ["Google Gen AI SDK", "Firebase AI Logic", "Gemma"],
+      "sdks": []
+    },
+    {
+      "name": "Gemma",
+      "aliases": ["Gemma"],
+      "kind": "open model family",
+      "vendor": "Google DeepMind",
+      "open_source": true,
+      "summary": "Lightweight open-weight models from Google DeepMind. The Gemma library is for running and fine-tuning them in Python.",
+      "related": ["Gemini"],
+      "sdks": [
+        {"language": "Python", "repo": "google-deepmind/gemma"}
+      ]
+    },
+    {
+      "name": "Bielik",
+      "aliases": ["Bielik"],
+      "kind": "open model family",
+      "vendor": "SpeakLeash",
+      "open_source": true,
+      "summary": "Polish-language open-weight LLMs from the SpeakLeash community, published on Hugging Face (huggingface.co/speakleash).",
+      "related": [],
+      "sdks": []
+    },
+    {
+      "name": "Gemini CLI",
+      "aliases": ["Gemini CLI"],
+      "kind": "coding agent",
+      "vendor": "Google",
+      "open_source": true,
+      "summary": "Open-source AI agent for the terminal, powered by Gemini.",
+      "related": ["Gemini", "Agents CLI"],
+      "sdks": [
+        {"language": "TypeScript", "repo": "google-gemini/gemini-cli"}
+      ]
+    },
+    {
+      "name": "Agents CLI",
+      "aliases": ["Agents CLI", "agents-cli"],
+      "kind": "developer CLI",
+      "vendor": "Google",
+      "open_source": true,
+      "summary": "CLI and skills that help coding agents build, evaluate and deploy ADK agents on Google Cloud.",
+      "related": ["Agent Development Kit (ADK)", "Gemini CLI", "Cloud Run"],
+      "sdks": [
+        {"language": "Python", "repo": "google/agents-cli"}
+      ]
+    },
+    {
+      "name": "Genkit",
+      "aliases": ["Genkit"],
+      "kind": "AI app framework",
+      "vendor": "Google",
+      "open_source": true,
+      "summary": "Open-source framework for building AI-powered features into apps, with JavaScript/TypeScript, Go and Python SDKs.",
+      "related": ["Firebase AI Logic", "Gemini"],
+      "sdks": [
+        {"language": "TypeScript", "repo": "genkit-ai/genkit", "path": "js"},
+        {"language": "Go", "repo": "genkit-ai/genkit", "path": "go"},
+        {"language": "Python", "repo": "genkit-ai/genkit", "path": "py"}
+      ]
+    },
+    {
+      "name": "Firebase AI Logic",
+      "aliases": ["Firebase AI Logic"],
+      "kind": "client SDK",
+      "vendor": "Google (Firebase)",
+      "open_source": true,
+      "summary": "Lets mobile and web apps call Gemini directly through Firebase SDKs, with App Check guarding the calls against abuse.",
+      "related": ["Gemini", "Genkit"],
+      "sdks": [
+        {"language": "Kotlin", "repo": "firebase/firebase-android-sdk", "path": "ai-logic/firebase-ai"},
+        {"language": "Java", "repo": "firebase/firebase-android-sdk", "path": "ai-logic/firebase-ai/src/main/kotlin/com/google/firebase/ai/java"},
+        {"language": "Swift", "repo": "firebase/firebase-ios-sdk", "path": "FirebaseAI"},
+        {"language": "TypeScript", "repo": "firebase/firebase-js-sdk", "path": "packages/ai"},
+        {"language": "Dart", "repo": "firebase/flutterfire", "path": "packages/firebase_ai"}
+      ]
+    },
+    {
+      "name": "Google Antigravity",
+      "aliases": ["Antigravity"],
+      "kind": "agentic development platform",
+      "vendor": "Google",
+      "open_source": false,
+      "summary": "Google's developer platform that uses Gemini to go from code completion to autonomous, agentic coding workflows.",
+      "related": ["Gemini", "Gemini CLI"],
+      "sdks": []
+    },
+    {
+      "name": "Gemini Enterprise",
+      "aliases": ["Gemini Enterprise"],
+      "kind": "enterprise AI product",
+      "vendor": "Google Cloud",
+      "open_source": false,
+      "summary": "Google Cloud's offering for bringing Gemini and agents to employees across an organization.",
+      "related": ["Gemini Enterprise Agent Platform", "Gemini"],
+      "sdks": []
+    },
+    {
+      "name": "Gemini Enterprise Agent Platform",
+      "aliases": ["Gemini Enterprise Agent Platform", "Agent Platform"],
+      "kind": "cloud AI platform",
+      "vendor": "Google Cloud",
+      "open_source": false,
+      "summary": "Google Cloud's platform for building, deploying and scaling agents and models, served from the aiplatform.googleapis.com APIs.",
+      "related": ["Agent Development Kit (ADK)", "Agent Gateway", "Gemini Enterprise", "Model Armor"],
+      "sdks": []
+    },
+    {
+      "name": "Agent Gateway",
+      "aliases": ["Agent Gateway"],
+      "kind": "security service",
+      "vendor": "Google Cloud",
+      "open_source": false,
+      "summary": "Networking and security proxy for the Gemini Enterprise Agent Platform. It secures how agents connect to tools, APIs and other agents.",
+      "related": ["Gemini Enterprise Agent Platform", "Apigee", "Model Context Protocol (MCP)"],
+      "sdks": []
+    },
+    {
+      "name": "Model Armor",
+      "aliases": ["Model Armor"],
+      "kind": "security service",
+      "vendor": "Google Cloud",
+      "open_source": false,
+      "summary": "Google Cloud service that screens prompts and responses for safety and security risks such as prompt injection.",
+      "related": ["Gemini Enterprise Agent Platform", "Agent Gateway"],
+      "sdks": []
+    },
+    {
+      "name": "Apigee",
+      "aliases": ["Apigee"],
+      "kind": "API management",
+      "vendor": "Google Cloud",
+      "open_source": false,
+      "summary": "Google Cloud's API management platform.",
+      "related": ["Agent Gateway"],
+      "sdks": []
+    },
+    {
+      "name": "BigQuery",
+      "aliases": ["BigQuery"],
+      "kind": "data warehouse",
+      "vendor": "Google Cloud",
+      "open_source": false,
+      "summary": "Google Cloud's serverless data warehouse for analytics, with official client libraries in several languages.",
+      "related": ["Apache Iceberg", "Spanner"],
+      "sdks": [
+        {"language": "Java", "repo": "googleapis/google-cloud-java", "path": "java-bigquery"},
+        {"language": "Python", "repo": "googleapis/google-cloud-python", "path": "packages/google-cloud-bigquery"},
+        {"language": "TypeScript", "repo": "googleapis/google-cloud-node", "path": "handwritten/bigquery"},
+        {"language": "Go", "repo": "googleapis/google-cloud-go", "path": "bigquery"}
+      ]
+    },
+    {
+      "name": "Spanner",
+      "aliases": ["Spanner"],
+      "kind": "database",
+      "vendor": "Google Cloud",
+      "open_source": false,
+      "summary": "Google Cloud's globally distributed relational database, with official client libraries in several languages.",
+      "related": ["BigQuery"],
+      "sdks": [
+        {"language": "Java", "repo": "googleapis/google-cloud-java", "path": "java-spanner"},
+        {"language": "Python", "repo": "googleapis/google-cloud-python", "path": "packages/google-cloud-spanner"},
+        {"language": "TypeScript", "repo": "googleapis/google-cloud-node", "path": "handwritten/spanner"},
+        {"language": "Go", "repo": "googleapis/google-cloud-go", "path": "spanner"}
+      ]
+    },
+    {
+      "name": "Cloud Run",
+      "aliases": ["Cloud Run"],
+      "kind": "serverless platform",
+      "vendor": "Google Cloud",
+      "open_source": false,
+      "summary": "Google Cloud's serverless platform for running containers.",
+      "related": ["Google Kubernetes Engine (GKE)", "Agents CLI"],
+      "sdks": []
+    },
+    {
+      "name": "Kubernetes",
+      "aliases": ["Kubernetes"],
+      "kind": "container orchestration",
+      "vendor": "CNCF",
+      "open_source": true,
+      "summary": "Open-source system for deploying, scaling and managing containerized applications.",
+      "related": ["Google Kubernetes Engine (GKE)", "Kueue"],
+      "sdks": [
+        {"language": "Go", "repo": "kubernetes/kubernetes"}
+      ]
+    },
+    {
+      "name": "Google Kubernetes Engine (GKE)",
+      "aliases": ["GKE", "Google Kubernetes Engine"],
+      "kind": "managed Kubernetes",
+      "vendor": "Google Cloud",
+      "open_source": false,
+      "summary": "Google Cloud's managed Kubernetes service.",
+      "related": ["Kubernetes", "Kueue", "Cloud Run"],
+      "sdks": []
+    },
+    {
+      "name": "Kueue",
+      "aliases": ["Kueue"],
+      "kind": "Kubernetes job queueing",
+      "vendor": "Kubernetes SIGs",
+      "open_source": true,
+      "summary": "Kubernetes-native job queueing that manages quotas and how workloads share cluster resources, for example for AI/ML jobs.",
+      "related": ["Kubernetes", "Google Kubernetes Engine (GKE)"],
+      "sdks": [
+        {"language": "Go", "repo": "kubernetes-sigs/kueue"}
+      ]
+    },
+    {
+      "name": "Apache Beam",
+      "aliases": ["Beam", "Apache Beam"],
+      "kind": "data processing framework",
+      "vendor": "Apache Software Foundation",
+      "open_source": true,
+      "summary": "Open-source, unified model for batch and streaming data pipelines that run on engines such as Dataflow.",
+      "related": ["Dataflow"],
+      "sdks": [
+        {"language": "Java", "repo": "apache/beam", "path": "sdks/java"},
+        {"language": "Python", "repo": "apache/beam", "path": "sdks/python"},
+        {"language": "Go", "repo": "apache/beam", "path": "sdks/go"},
+        {"language": "TypeScript", "repo": "apache/beam", "path": "sdks/typescript"}
+      ]
+    },
+    {
+      "name": "Dataflow",
+      "aliases": ["Dataflow"],
+      "kind": "managed data processing",
+      "vendor": "Google Cloud",
+      "open_source": false,
+      "summary": "Google Cloud's managed service for running Apache Beam pipelines.",
+      "related": ["Apache Beam"],
+      "sdks": []
+    },
+    {
+      "name": "Apache Airflow",
+      "aliases": ["Airflow", "Apache Airflow"],
+      "kind": "workflow orchestration",
+      "vendor": "Apache Software Foundation",
+      "open_source": true,
+      "summary": "Open-source platform for authoring, scheduling and monitoring workflows as Python DAGs.",
+      "related": ["Managed Airflow"],
+      "sdks": [
+        {"language": "Python", "repo": "apache/airflow"}
+      ]
+    },
+    {
+      "name": "Managed Airflow",
+      "aliases": ["Managed Airflow"],
+      "kind": "managed workflow orchestration",
+      "vendor": "Google Cloud",
+      "open_source": false,
+      "summary": "Google Cloud's managed Apache Airflow service.",
+      "related": ["Apache Airflow"],
+      "sdks": []
+    },
+    {
+      "name": "Apache Iceberg",
+      "aliases": ["Iceberg", "Apache Iceberg"],
+      "kind": "open table format",
+      "vendor": "Apache Software Foundation",
+      "open_source": true,
+      "summary": "Open table format for large analytic datasets, usable across engines and clouds.",
+      "related": ["BigQuery"],
+      "sdks": [
+        {"language": "Java", "repo": "apache/iceberg"},
+        {"language": "Python", "repo": "apache/iceberg-python"},
+        {"language": "Go", "repo": "apache/iceberg-go"},
+        {"language": "Rust", "repo": "apache/iceberg-rust"}
+      ]
+    },
+    {
+      "name": "NotebookLM",
+      "aliases": ["NotebookLM"],
+      "kind": "AI research assistant",
+      "vendor": "Google",
+      "open_source": false,
+      "summary": "Google's AI notebook that answers questions grounded in the sources you give it.",
+      "related": ["Gemini"],
+      "sdks": []
+    }
+  ]
+}
