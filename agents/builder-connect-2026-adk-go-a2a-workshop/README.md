@@ -1,4 +1,4 @@
-# ADK Go workshop: Builder Connect Poland 2026
+# ADK Go and A2A workshop: Builder Connect Poland 2026
 
 The hands-on part of the ADK + A2A workshop at Builder Connect Poland
 (3 November 2026). You build an agent with the
@@ -15,7 +15,7 @@ The example agent answers questions about the event's agenda.
 ## Get the code
 
 ```bash
-npx -y giget@latest gh+git:GoogleCloudPlatform/devrel-demos/agents/builder-connect-2026-adk-go-workshop adk-go-workshop
+npx -y giget@latest gh+git:GoogleCloudPlatform/devrel-demos/agents/builder-connect-2026-adk-go-a2a-workshop adk-go-a2a-workshop
 ```
 
 Or clone the whole repository and use this folder:
