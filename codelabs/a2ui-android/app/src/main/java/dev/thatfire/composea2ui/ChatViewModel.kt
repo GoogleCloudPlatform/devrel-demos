@@ -21,54 +21,40 @@ import kotlinx.coroutines.launch
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
-    // Step 3: Instantiate catalog, processor, and parser
-    private val catalog = createCatalog(application)
-    private val processor = A2uiMessageProcessor(catalogs = listOf(catalog))
-    private val parser = A2uiMessageParser()
+    // TODO(developer): Step #3 - Instantiate catalog, processor, and parser
 
     private val generativeModel = Firebase.ai(backend = GenerativeBackend.googleAI())
         .generativeModel(
             modelName = "gemini-3.5-flash-lite",
-            // Step 2: Add A2UI system instructions
-            systemInstruction = content {
-                text(buildSystemInstruction(application, catalog))
-            },
+            // TODO(developer): Step #2 - Add A2UI system instructions
         )
 
     private var chat: Chat = generativeModel.startChat()
 
     private val chatState = ChatState(
         scope = viewModelScope,
-        // Step 3: Listen to activeSurfaces and process A2UI JSON messages
-        surfaces = processor.activeSurfaces,
-        onA2uiMessage = { json -> processor.processInput(parser, json) },
+        // TODO(developer): Step #3 - Listen to activeSurfaces and process A2UI JSON messages
     )
     val uiState: StateFlow<ChatUiState> = chatState.uiState
 
     init {
-        // Step 3: Process incoming A2UI messages off the main thread
-        viewModelScope.launch(Dispatchers.Default) {
-            processor.collectMessages()
-        }
+        // TODO(developer): Step #3 - Process incoming A2UI messages off the main thread
 
-        // Step 4: Forward user actions and validation errors back to the agent
-        viewModelScope.launch {
-            processor.outboundEvents.collect { sendClientMessage(it) }
-        }
+        // TODO(developer): Step #4 - Forward user actions and validation errors back to the agent
     }
 
     fun sendMessage(prompt: String) {
         chatState.sendMessage(prompt) { chat.sendMessageStream(it) }
     }
 
+    @Suppress("UnusedPrivateMember")
     private fun sendClientMessage(message: A2uiClientToServerMessage) {
         chatState.sendClientMessage(message) { chat.sendMessageStream(it) }
     }
 
     fun clearChat() {
         chatState.clear()
-        // Step 3: Clear active A2UI surfaces
-        processor.clearSurfaces()
+        // TODO(developer): Step #3 - Clear active A2UI surfaces
         chat = generativeModel.startChat()
     }
 }

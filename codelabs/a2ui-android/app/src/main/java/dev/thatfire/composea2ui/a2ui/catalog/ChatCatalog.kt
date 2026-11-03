@@ -19,13 +19,11 @@ import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import java.io.IOException
 
+// TODO(developer): Step #6 - Define a unique URI ID for the extended catalog
+
+@Suppress("UnusedParameter")
 fun createCatalog(context: Context): A2uiCatalog {
-    return materialA2uiBasicCatalogV1(
-        image = MaterialA2uiBasicCatalogV1Defaults.image(CoilA2uiImageRenderer),
-        video = MaterialA2uiBasicCatalogV1Defaults.video(Media3A2uiVideoRenderer),
-        audioPlayer = MaterialA2uiBasicCatalogV1Defaults.audioPlayer(Media3A2uiAudioPlayerRenderer),
-        functions = A2uiBasicCatalogV1.Functions(context),
-    )
+    TODO("Complete Step #2 in README.md to create the A2uiCatalog")
 }
 
 /**

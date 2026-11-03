@@ -120,16 +120,7 @@ fun ChatScreenContent(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(text = stringResource(R.string.chat_title))
-                        Badge(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                        ) {
-                            Text(
-                                text = stringResource(R.string.model_badge),
-                                modifier = Modifier.padding(horizontal = 4.dp),
-                            )
-                        }
+                        Text(text = stringResource(R.string.app_name))
                     }
                 },
                 actions = {

@@ -8,27 +8,5 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import dev.thatfire.composea2ui.ui.components.CustomButton
 
-object CustomButtonComponent : A2uiBasicCatalogV1.Button {
-    @Composable
-    override fun A2uiComponentScope.TypedContent(
-        childId: String,
-        variant: A2uiBasicCatalogV1.Button.Variant,
-        action: Map<String, Any?>,
-        accessibility: A2uiBasicCatalogV1.AccessibilityAttributes?,
-        checks: List<A2uiBasicCatalogV1.CheckRule>,
-        modifier: Modifier,
-    ) {
-        val allChecksPassed = checks.all { it.condition }
-        val childState = observeA2uiComponentState(childId)
+// TODO(developer): Step #5 - Implement CustomButtonComponent to override A2uiBasicCatalogV1.Button
 
-        CustomButton(
-            onClick = { dispatchAction(action) },
-            enabled = allChecksPassed && childState is A2uiComponentState.Success,
-            modifier = modifier,
-        ) {
-            if (childState is A2uiComponentState.Success) {
-                A2uiComponent(childState.component)
-            }
-        }
-    }
-}
