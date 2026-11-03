@@ -1,0 +1,6 @@
+google-cloud-aiplatform[agent_engines,adk]
+pydantic
+psycopg2-binary
+pgvector
+google-cloud-modelarmor
+google-cloud-pubsub
