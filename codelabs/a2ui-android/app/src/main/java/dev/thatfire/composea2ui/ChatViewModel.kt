@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.a2ui.compose.runtime.A2uiMessageParser
 import androidx.a2ui.compose.ui.A2uiMessageProcessor
 import androidx.a2ui.model.processor.processInput
+import androidx.a2ui.model.protocol.A2uiClientToServerMessage
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Firebase
@@ -27,7 +28,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private val generativeModel = Firebase.ai(backend = GenerativeBackend.googleAI())
         .generativeModel(
-            modelName = "gemini-3.8-flash",
+            modelName = "gemini-3.5-flash-lite",
             // Step 2: Add A2UI system instructions
             systemInstruction = content {
                 text(buildSystemInstruction(application, catalog))
@@ -49,10 +50,19 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.Default) {
             processor.collectMessages()
         }
+
+        // Step 4: Forward user actions and validation errors back to the agent
+        viewModelScope.launch {
+            processor.outboundEvents.collect { sendClientMessage(it) }
+        }
     }
 
     fun sendMessage(prompt: String) {
         chatState.sendMessage(prompt) { chat.sendMessageStream(it) }
+    }
+
+    private fun sendClientMessage(message: A2uiClientToServerMessage) {
+        chatState.sendClientMessage(message) { chat.sendMessageStream(it) }
     }
 
     fun clearChat() {
