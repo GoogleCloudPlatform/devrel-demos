@@ -35,7 +35,7 @@ class EnterpriseSupportADKAgent:
             
         return prompt
 
-    def handle_user_query(self, user_id: str, audience_tier: str, raw_query: str) -> dict:
+     def handle_user_query(self, user_id: str, audience_tier: str, raw_query: str, conversation_id: str = "conv_1029") -> dict:
         """
         Processes multi-turn requests with On-Behalf-Of (OBO) identity propagation.
         """
@@ -48,7 +48,7 @@ class EnterpriseSupportADKAgent:
         if not retrieved_evidence or retrieved_evidence[0]["similarity"] < 0.65:
             # Automatic fallback: Record coverage gap and create ticket
             execute_record_outcome(OutcomeRecordRequest(
-                conversation_id="conv_1029",
+                conversation_id="conversation_id",
                 outcome="no_coverage",
                 supporting_article_ids=[]
             ), self.telemetry)
@@ -66,7 +66,7 @@ class EnterpriseSupportADKAgent:
         # 2. Synthesize answer with context injection
         best_match = retrieved_evidence[0]
         execute_record_outcome(OutcomeRecordRequest(
-            conversation_id="conv_1029",
+            conversation_id="conversation_id",
             outcome="confirmed_resolution",
             supporting_article_ids=[best_match["document_id"]]
         ), self.telemetry)
