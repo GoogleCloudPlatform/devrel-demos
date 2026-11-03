@@ -22,10 +22,8 @@ provider "google" {
   region  = var.region
 }
 
-# =========================================================================
-# NETWORKING PLACEHOLDER (Review with Deepak Michael)
-# =========================================================================
-# TODO: Finalize the following enterprise network components with Deepak Michael:
+# TODO(production): For production, connect over Private Service Connect instead of a public endpoint.
+# Ensure the following enterprise network components are configured:
 # 1. Serverless VPC Access Connector for Cloud Run outbound traffic.
 # 2. Private Service Connect (PSC) endpoints for Cloud SQL / AlloyDB.
 # 3. Cloud Armor WAF policies attached to internal Application Load Balancer.
@@ -56,7 +54,7 @@ resource "google_sql_database_instance" "knowledge_store" {
       ipv4_enabled    = false
       private_network = "projects/${var.project_id}/global/networks/default"
       
-      # NETWORKING PLACEHOLDER: Deepak Michael to verify PSC vs VPC Peering allocation
+      # TODO(production): Verify PSC vs VPC Peering allocation
     }
   }
 }

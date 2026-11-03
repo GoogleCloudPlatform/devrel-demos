@@ -12,12 +12,10 @@ from pgvector.psycopg2 import register_vector
 
 class VectorStoreRepository:
     def __init__(self, db_config: dict):
-        # =========================================================================
-        # NETWORKING PLACEHOLDER (Review with Deepak Michael)
-        # =========================================================================
+        # TODO(production): For production, connect over Private Service Connect instead of a public endpoint.
         # Connection string to use Cloud SQL Private IP / PSC Endpoint.
-        # Deepak Michael to review whether Cloud SQL Auth Proxy sidecar or native direct private IP
-        # is preferred in our GKE/Cloud Run environment.
+        # Review whether Cloud SQL Auth Proxy sidecar or native direct private IP
+        # is preferred in your GKE/Cloud Run environment.
         self.conn = psycopg2.connect(**db_config)
         register_vector(self.conn)
 

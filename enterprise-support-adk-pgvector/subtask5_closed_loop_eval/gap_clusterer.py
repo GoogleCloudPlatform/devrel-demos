@@ -10,9 +10,7 @@ from vertexai.generative_models import GenerativeModel
 
 class GapClusteringService:
     def __init__(self):
-        # Updated to gemini-2.5-flash per Critique review guidelines
         self.model = GenerativeModel("gemini-2.5-flash")
-
     def synthesize_missing_runbook(self, cluster_topic: str, sample_questions: list[str]) -> str:
         """
         Generates an Agent-Ready KCS Markdown template prepopulated from telemetry logs.

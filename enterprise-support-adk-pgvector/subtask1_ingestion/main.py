@@ -70,11 +70,9 @@ async def ingest_document(payload: DocumentPayload):
     try:
         metadata, clean_body = parse_and_validate_frontmatter(payload.raw_markdown)
         
-        # =========================================================================
-        # NETWORKING PLACEHOLDER (Review with Deepak Michael)
-        # =========================================================================
+        # TODO(production): For production, connect over Private Service Connect instead of a public endpoint.
         # Forwarding payload to Subtask 2 worker pool:
-        # Deepak Michael to confirm internal gRPC service mesh routing or 
+        # Confirm internal gRPC service mesh routing or 
         # Serverless VPC connector configuration for direct Cloud Run-to-Cloud Run calls.
         
         return {

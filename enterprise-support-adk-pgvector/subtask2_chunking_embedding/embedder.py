@@ -7,9 +7,7 @@ from vertexai.language_models import TextEmbeddingModel
 
 class VertexVectorService:
     def __init__(self, project_id: str, location: str = "us-central1"):
-        # =========================================================================
-        # NETWORKING PLACEHOLDER (Review with Deepak Michael)
-        # =========================================================================
+        # TODO(production): For production, connect over Private Service Connect instead of a public endpoint.
         # Verify that calls to aiplatform.googleapis.com resolve via Private Google Access
         # or a dedicated Private Service Connect (PSC) forwarder rule to stay inside the VPC.
         aiplatform.init(project=project_id, location=location)
