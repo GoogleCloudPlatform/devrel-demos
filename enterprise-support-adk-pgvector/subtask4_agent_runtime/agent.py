@@ -18,6 +18,7 @@ from subtask3_vector_store.db import VectorStoreRepository
 from subtask4_agent_runtime.mcp_tools import (
     EnterpriseWikiSearchRequest, ITSMTicketRequest, OutcomeRecordRequest,
     execute_wiki_rag_search, execute_create_itsm_ticket, execute_record_outcome
+from subtask5_closed_loop_eval.telemetry import TelemetryService
 )
 
 
@@ -81,14 +82,29 @@ def screen_prompt_with_model_armor(
             parts=[types.Part(text="This request violates the enterprise safety policy.")]))
     return None  # None lets the request continue to Gemini.
 
+@functools.cache
+def _telemetry() -> TelemetryService:
+    return TelemetryService(PROJECT_ID, os.environ["TELEMETRY_TOPIC"])
+
+def record_outcome(conversation_id: str, outcome: str, article_ids: list[str]) -> dict:
+    """Records the outcome of a conversational turn for telemetry and analytics."""
+    return execute_record_outcome(
+        OutcomeRecordRequest(
+            conversation_id=conversation_id,
+            outcome=outcome,
+            supporting_article_ids=article_ids
+        ), 
+        _telemetry()
+    )
 
 root_agent = Agent(
     name="enterprise_support_agent",
     model="gemini-2.5-flash",
     instruction=(
         "Answer only from search_knowledge_base results and cite the heading. "
-        "If no result has similarity >= 0.65, call create_itsm_ticket."
+        "If no result has similarity >= 0.65, call create_itsm_ticket. "
+        "Always call record_outcome after providing a final answer to log the result."
     ),
-    tools=[search_knowledge_base, create_itsm_ticket],
+    tools=[search_knowledge_base, create_itsm_ticket, record_outcome],
     before_model_callback=screen_prompt_with_model_armor,
 )
