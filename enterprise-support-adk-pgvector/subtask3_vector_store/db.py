@@ -29,40 +29,41 @@ class VectorStoreRepository:
             with self.conn.cursor() as cur:
                 # 1. Upsert master document record
                 cur.execute("""
-                INSERT INTO kb_documents (document_id, title, source_url, target_audience, content_owner, last_verified_date)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                ON CONFLICT (document_id) DO UPDATE 
-                SET updated_at = CURRENT_TIMESTAMP,
-                    target_audience = EXCLUDED.target_audience,
-                    last_verified_date = EXCLUDED.last_verified_date;
-            """, (
-                doc_meta["document_id"],
-                doc_meta["title"],
-                doc_meta["source_url"],
-                doc_meta["target_audience"],
-                doc_meta["content_owner"],
-                doc_meta["last_verified_date"]
-            ))
-
-            # 2. Insert semantic chunks with HNSW vector indexing
-            chunk_records = []
-            for i, chunk in enumerate(chunks):
-                chunk_records.append((
-                    f"{doc_meta['document_id']}_chunk_{i}",
+                    INSERT INTO kb_documents (document_id, title, source_url, target_audience, content_owner, last_verified_date)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (document_id) DO UPDATE 
+                    SET updated_at = CURRENT_TIMESTAMP,
+                        target_audience = EXCLUDED.target_audience,
+                        last_verified_date = EXCLUDED.last_verified_date;
+                """, (
                     doc_meta["document_id"],
-                    chunk["hierarchy"],
-                    chunk["content"],
+                    doc_meta["title"],
+                    doc_meta["source_url"],
                     doc_meta["target_audience"],
-                    embeddings[i]
+                    doc_meta["content_owner"],
+                    doc_meta["last_verified_date"]
                 ))
 
-            execute_values(cur, """
-                INSERT INTO kb_chunks (chunk_id, document_id, heading_hierarchy, chunk_content, target_audience, embedding)
-                VALUES %s
-                ON CONFLICT (chunk_id) DO UPDATE 
-                SET chunk_content = EXCLUDED.chunk_content,
-                    embedding = EXCLUDED.embedding;
-            """, chunk_records)
+                # 2. Insert semantic chunks with HNSW vector indexing
+                # Properly indented to remain inside the cursor and transaction blocks
+                chunk_records = []
+                for i, chunk in enumerate(chunks):
+                    chunk_records.append((
+                        f"{doc_meta['document_id']}_chunk_{i}",
+                        doc_meta["document_id"],
+                        chunk["hierarchy"],
+                        chunk["content"],
+                        doc_meta["target_audience"],
+                        embeddings[i]
+                    ))
+
+                execute_values(cur, """
+                    INSERT INTO kb_chunks (chunk_id, document_id, heading_hierarchy, chunk_content, target_audience, embedding)
+                    VALUES %s
+                    ON CONFLICT (chunk_id) DO UPDATE 
+                    SET chunk_content = EXCLUDED.chunk_content,
+                        embedding = EXCLUDED.embedding;
+                """, chunk_records)
 
     def search_similar_chunks(self, query_embedding: list[float], user_audience: str, top_k: int = 3) -> list[dict]:
         """
