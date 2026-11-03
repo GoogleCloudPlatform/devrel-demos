@@ -35,7 +35,7 @@ class EnterpriseSupportADKAgent:
             
         return prompt
 
-     def handle_user_query(self, user_id: str, audience_tier: str, raw_query: str, conversation_id: str = "conv_1029") -> dict:
+    def handle_user_query(self, user_id: str, audience_tier: str, raw_query: str, conversation_id: str = "conv_1029") -> dict:
         """
         Processes multi-turn requests with On-Behalf-Of (OBO) identity propagation.
         """
