@@ -27,6 +27,11 @@ Traditional enterprise RAG architectures depend on scheduled batch scrapers over
 
 ---
 
+### ⚠️ Networking Note for Development
+By default, the Terraform configuration in this blueprint provisions the Cloud SQL database with a private IP only (`ipv4_enabled = false`). In a production environment, you must configure **Private Service Connect (PSC)** or a **Serverless VPC Access Connector** for the Agent Runtime and Cloud Run services to reach the database.
+
+**For local development or testing:** You can temporarily change `ipv4_enabled = true` in `infra/main.tf` and use the Cloud SQL Auth Proxy or authorized networks to allow your test agent to connect.
+
 ## 🚀 Deployment Instructions
 
 ### Prerequisites
