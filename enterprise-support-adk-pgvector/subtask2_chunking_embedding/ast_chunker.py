@@ -39,8 +39,9 @@ class HeadingAwareChunker:
                 
                 # Maintain heading stack depth (e.g. "[App: ZTNA Client] > [OS: Desktop]")
                 if level <= len(current_ancestors):
-                    current_ancestors = current_ancestors[:level - 1]
+                    current_ancestors = current_ancestors[:level]
                 current_ancestors.append(heading_text)
+
             else:
                 # Accumulate lists, paragraphs, code blocks
                 raw_text = token.get("raw") or ""
