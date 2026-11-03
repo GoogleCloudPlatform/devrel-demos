@@ -1,12 +1,16 @@
 package dev.thatfire.composea2ui
 
+import android.app.Application
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Firebase
 import com.google.firebase.ai.Chat
 import com.google.firebase.ai.ai
 import com.google.firebase.ai.type.GenerativeBackend
+import com.google.firebase.ai.type.content
+import dev.thatfire.composea2ui.a2ui.buildSystemInstruction
+import dev.thatfire.composea2ui.a2ui.catalog.createCatalog
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,14 +37,23 @@ data class ChatUiState(
     val isGenerating: Boolean = false
 )
 
-class ChatViewModel : ViewModel() {
+class ChatViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val catalog = createCatalog(application)
 
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
     private val chat: Chat by lazy {
+        val systemPrompt = buildSystemInstruction(
+            resources = getApplication<Application>().resources,
+            catalog = catalog,
+        )
         Firebase.ai(backend = GenerativeBackend.googleAI())
-            .generativeModel(MODEL_NAME)
+            .generativeModel(
+                modelName = MODEL_NAME,
+                systemInstruction = content { text(systemPrompt) },
+            )
             .startChat()
     }
 
