@@ -25,9 +25,10 @@ class VectorStoreRepository:
         """
         Atomically commits the document header and indexed chunks within a single transaction.
         """
-        with self.conn.cursor() as cur:
-            # 1. Upsert master document record
-            cur.execute("""
+        with self.conn:
+            with self.conn.cursor() as cur:
+                # 1. Upsert master document record
+                cur.execute("""
                 INSERT INTO kb_documents (document_id, title, source_url, target_audience, content_owner, last_verified_date)
                 VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (document_id) DO UPDATE 
