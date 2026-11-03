@@ -17,7 +17,8 @@ import org.json.JSONObject
 internal object WikipediaPhotos {
 
     private const val WIKI_PATH_PREFIX = "/wiki/"
-    private const val USER_AGENT = "ComposeA2UIDemo/1.0 (Android; Jetpack Compose A2UI Codelab)"
+    internal const val USER_AGENT =
+        "ComposeA2UIDemo/1.0 (https://developer.android.com; Android A2UI Codelab)"
     private const val TIMEOUT_MS = 10_000
 
     private val cache = ConcurrentHashMap<String, String>()

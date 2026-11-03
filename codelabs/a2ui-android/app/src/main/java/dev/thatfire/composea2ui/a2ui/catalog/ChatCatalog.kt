@@ -9,9 +9,14 @@ import androidx.compose.material3.a2ui.catalog.MaterialA2uiBasicCatalogV1Default
 import androidx.compose.material3.a2ui.catalog.materialA2uiBasicCatalogV1
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.network.NetworkHeaders
+import coil3.network.httpHeaders
+import coil3.request.ImageRequest
 import java.io.IOException
 
 fun createCatalog(context: Context): A2uiCatalog {
@@ -28,6 +33,12 @@ fun createCatalog(context: Context): A2uiCatalog {
  * For a Wikipedia article, it loads the article's lead photo.
  */
 private object CoilA2uiImageRenderer : A2uiImageRenderer {
+
+    private val requestHeaders =
+        NetworkHeaders.Builder()
+            .set("User-Agent", WikipediaPhotos.USER_AGENT)
+            .build()
+
     @Composable
     override fun Image(
         url: String,
@@ -51,8 +62,15 @@ private object CoilA2uiImageRenderer : A2uiImageRenderer {
             // Keeps the image's space while the photo is looked up.
             Box(modifier)
         } else {
+            val context = LocalPlatformContext.current
+            val imageRequest = remember(context, photoUrl) {
+                ImageRequest.Builder(context)
+                    .data(photoUrl)
+                    .httpHeaders(requestHeaders)
+                    .build()
+            }
             AsyncImage(
-                model = photoUrl,
+                model = imageRequest,
                 contentDescription = contentDescription,
                 modifier = modifier,
                 contentScale = contentScale,
