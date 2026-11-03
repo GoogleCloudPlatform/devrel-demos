@@ -64,8 +64,6 @@ class VectorStoreRepository:
                     embedding = EXCLUDED.embedding;
             """, chunk_records)
 
-            self.conn.commit()
-
     def search_similar_chunks(self, query_embedding: list[float], user_audience: str, top_k: int = 3) -> list[dict]:
         """
         Queries top_k chunks using cosine distance (<=>).
