@@ -1,10 +1,17 @@
 package dev.thatfire.composea2ui.a2ui
 
+import android.content.Context
 import android.content.res.Resources
 import androidx.a2ui.compose.ui.A2uiCatalog
 import androidx.a2ui.compose.ui.toJsonSchemaString
 import androidx.annotation.RawRes
 import dev.thatfire.composea2ui.R
+import dev.thatfire.composea2ui.a2ui.catalog.createCatalog
+
+fun buildSystemInstruction(
+    context: Context,
+    catalog: A2uiCatalog = createCatalog(context),
+): String = buildSystemInstruction(context.resources, catalog)
 
 fun buildSystemInstruction(resources: Resources, catalog: A2uiCatalog): String = buildString {
     appendLine(resources.readRawText(R.raw.agent_instructions))

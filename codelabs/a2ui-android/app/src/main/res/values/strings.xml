@@ -2,10 +2,12 @@
     <string name="app_name">Compose A2UI</string>
     <string name="chat_title">Gemini Chat</string>
     <string name="model_badge">gemini-3.8-flash</string>
+    <string name="clear_chat">Clear</string>
     <string name="empty_chat_prompt">Send a message to start chatting with Gemini.</string>
     <string name="message_placeholder">Type a message…</string>
     <string name="send">Send</string>
     <string name="sender_user">You</string>
     <string name="sender_model">Gemini</string>
     <string name="sender_error">Error</string>
+    <string name="updated_the_ui_above">Updated the UI above.</string>
 </resources>

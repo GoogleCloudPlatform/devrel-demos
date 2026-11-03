@@ -56,19 +56,22 @@ Here is a weekend itinerary for Tokyo with highlights for Saturday and Sunday!
         "tabs": [
           {
             "title": "Saturday",
-            "child": "sat-col"
+            "child": "sat-list"
           },
           {
             "title": "Sunday",
-            "child": "sun-col"
+            "child": "sun-list"
           }
         ]
       },
       {
-        "id": "sat-col",
-        "component": "Column",
+        "id": "sat-list",
+        "component": "List",
+        "direction": "vertical",
+        "align": "stretch",
         "children": [
           "sat-morning",
+          "sat-afternoon",
           "sat-evening"
         ]
       },
@@ -78,15 +81,23 @@ Here is a weekend itinerary for Tokyo with highlights for Saturday and Sunday!
         "text": "Morning: Explore Asakusa & Senso-ji, then stroll Nakamise-dori."
       },
       {
+        "id": "sat-afternoon",
+        "component": "Text",
+        "text": "Afternoon: TeamLab Planets and waterfront walk in Toyosu."
+      },
+      {
         "id": "sat-evening",
         "component": "Text",
         "text": "Evening: Shibuya Sky sunset views and dinner in Shinjuku."
       },
       {
-        "id": "sun-col",
-        "component": "Column",
+        "id": "sun-list",
+        "component": "List",
+        "direction": "vertical",
+        "align": "stretch",
         "children": [
           "sun-morning",
+          "sun-afternoon",
           "sun-evening"
         ]
       },
@@ -94,6 +105,11 @@ Here is a weekend itinerary for Tokyo with highlights for Saturday and Sunday!
         "id": "sun-morning",
         "component": "Text",
         "text": "Morning: Meiji Shrine walk followed by Harajuku & Omotesando cafes."
+      },
+      {
+        "id": "sun-afternoon",
+        "component": "Text",
+        "text": "Afternoon: Yanaka Ginza neighborhood stroll and Ueno Park museums."
       },
       {
         "id": "sun-evening",
