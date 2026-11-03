@@ -1,50 +1,40 @@
-# Low-Latency Enterprise Support Agent Blueprint
-### *From 24-Hour Batch Enterprise Wiki Scraping to 6-Second Agentic Knowledge Serving*
+# Enterprise Support Agent Blueprint (Low-Latency RAG)
 
-This repository provides an enterprise-ready reference implementation demonstrating how to re-architect conversational IT/support agents using the **Google Agent Development Kit (ADK)**, **Cloud SQL / AlloyDB for PostgreSQL (`pgvector`)**, and **Model Context Protocol (MCP)** tools.
+This repository provides a reference architecture for an event-driven, low-latency Enterprise Support Agent. It demonstrates how to decouple monolithic RAG pipelines into five highly efficient microservices using the Google Agent Development Kit (ADK), Cloud SQL `pgvector`, and Model Armor.
 
----
+📖 **For the full, step-by-step walkthrough, refer to the [DevSite Tutorial](https://cloud.google.com/gemini/enterprise/docs/agent-runtime/deploy-low-latency-support-agent).**
 
-## 🏗️ Architectural Overview: The 5 Subtasks
+## 🏗️ Architecture & Subtasks
 
-Traditional enterprise RAG architectures depend on scheduled batch scrapers over complex Enterprise Wiki pages, resulting in a **1-to-24 hour delay** before emergency incident documentation becomes searchable. This architecture breaks the pipeline into **5 decoupled, event-driven subtasks**, reducing total update latency to **under 6 seconds**.
-
-| Subtask | Engine / Service | Responsibilities | Target Latency |
-| :--- | :--- | :--- | :--- |
-| **1. Ingestion & Validation** | Cloud Run + Eventarc | Validates mandatory YAML frontmatter (`Target_Audience`, `Last_Verified_Date`, `Content_Owner`) and rejects unindexed macros. | ~50–150 ms |
-| **2. AST Chunking & Embedding** | Cloud Run + Vertex AI | Splits Markdown strictly along header hierarchies (`#`, `##`, `###`) and prepends breadcrumbs before vectorization. | ~200–500 ms |
-| **3. Real-Time Vector Commit** | Cloud SQL / AlloyDB (`pgvector`) | Writes vectors transactionally into HNSW-indexed tables with deterministic Role-Level Access Control (RLAC). | ~100–300 ms |
-| **4. Multi-Surface ADK Runtime** | GCP Agent Runtime + MCP Tools | Enforces prompt sanitization (Model Armor), On-Behalf-Of (OBO) user identity, and deterministic tool actions. | ~1.5–3.0 s |
-| **5. Closed-Loop Telemetry** | Pub/Sub + BigQuery + Vertex AI | Clusters unresolved queries (`no_coverage`), auto-drafts structured Markdown SOPs, and alerts SMEs via Enterprise Chat. | Asynchronous / Batch |
-
----
+1. **Ingestion & Governance (`subtask1_ingestion`):** Replaces batch scraping with instant webhooks, enforcing Role-Level Access Control (RLAC) metadata.
+2. **AST Chunking (`subtask2_chunking_embedding`):** Uses heading-aware chunking and Vertex AI `text-embedding-005` to preserve procedural context.
+3. **Vector Store (`subtask3_vector_store`):** Transactional HNSW vector storage in Cloud SQL PostgreSQL for fast similarity search.
+4. **Agent Runtime (`subtask4_agent_runtime`):** ADK-based orchestrator featuring Model Armor prompt defense and deterministic Model Context Protocol (MCP) tools, running on Agent Runtime on Gemini Enterprise Agent Platform.
+5. **Closed-Loop Eval (`subtask5_closed_loop_eval`):** Pub/Sub event streaming and automated runbook generation for unhandled queries.
 
 ## 🔒 Enterprise Security & Governance
 
-1. **On-Behalf-Of (OBO) Execution:** Rather than running under a single, over-privileged Service Account, runtime actions propagate authenticated end-user identity (via OAuth tokens) to downstream MCP tools.
-2. **Deterministic Routing:** LLMs are restricted to natural language synthesis. Operational actions (ITSM ticket creation, ITSM platform routing, password resets) execute via deterministic code.
-3. **Model Armor Prompt Defense:** Inbound user prompts are pre-screened for jailbreaks, prompt injection, and PII leakage before touching reasoning models.
-
----
+1. **On-Behalf-Of (OBO) Execution:** Runtime actions propagate authenticated end-user identity (via OAuth tokens) to downstream MCP tools using the ADK `ToolContext`.
+2. **Deterministic Routing:** LLMs are restricted to natural language synthesis. Operational actions (ITSM ticketing, helpdesk routing) execute via deterministic code.
+3. **Model Armor Prompt Defense:** Inbound user prompts are pre-screened for jailbreaks and prompt injection. *(Note: You must create a template named `default-safety-template` using `gcloud model-armor templates create` before deploying).*
 
 ### ⚠️ Networking Note for Development
 By default, the Terraform configuration in this blueprint provisions the Cloud SQL database with a private IP only (`ipv4_enabled = false`). In a production environment, you must configure **Private Service Connect (PSC)** or a **Serverless VPC Access Connector** for the Agent Runtime and Cloud Run services to reach the database.
 
 **For local development or testing:** You can temporarily change `ipv4_enabled = true` in `infra/main.tf` and use the Cloud SQL Auth Proxy or authorized networks to allow your test agent to connect.
 
-## 🚀 Deployment Instructions
+## 🚀 Quickstart
 
-### Prerequisites
-* Google Cloud Project with Billing enabled.
-* Google Cloud CLI (`gcloud`) initialized.
-* Terraform >= 1.5.0.
+Clone the repository and provision the infrastructure:
 
-### Step 1: Environment Setup
 ```bash
-gcloud services enable \
-    run.googleapis.com \
-    sqladmin.googleapis.com \
-    aiplatform.googleapis.com \
-    pubsub.googleapis.com \
-    bigquery.googleapis.com \
-    eventarc.googleapis.com
+git clone https://github.com/GoogleCloudPlatform/devrel-demos.git
+cd devrel-demos/ai-ml/enterprise-support-adk-pgvector
+
+# Initialize and apply Terraform
+cd infra
+terraform init
+terraform apply -var="project_id=YOUR_PROJECT_ID"
+```
+
+Once infrastructure is provisioned, you can deploy the chunker and the ADK Agent (see the [DevSite Tutorial](https://docs.cloud.google.com/gemini/enterprise/docs/agent-runtime/deploy-low-latency-support-agent) for full `gcloud run deploy` deployment steps).

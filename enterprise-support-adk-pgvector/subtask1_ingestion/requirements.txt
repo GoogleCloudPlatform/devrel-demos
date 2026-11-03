@@ -2,3 +2,5 @@ fastapi
 uvicorn
 pyyaml
 pydantic
+requests
+google-auth
