@@ -36,8 +36,12 @@ def parse_and_validate_frontmatter(content: str) -> tuple[dict, str]:
     raw_yaml, body = match.group(1), match.group(2)
     meta = yaml.safe_load(raw_yaml)
     
+    if not isinstance(meta, dict):
+        raise ValueError("YAML frontmatter must be a valid dictionary mapping.")
+    
     # 1. Enforce Target_Audience for RLAC
     audience = meta.get("Target_Audience")
+
     if not audience or audience not in VALID_AUDIENCES:
         raise ValueError(f"Invalid or missing Target_Audience. Must be one of: {VALID_AUDIENCES}")
     
