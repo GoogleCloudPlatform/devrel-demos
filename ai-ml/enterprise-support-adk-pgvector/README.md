@@ -2,7 +2,7 @@
 
 This repository provides a reference architecture for an event-driven, low-latency Enterprise Support Agent. It demonstrates how to decouple monolithic RAG pipelines into five highly efficient microservices using the Google Agent Development Kit (ADK), Cloud SQL `pgvector`, and Model Armor.
 
-📖 **For the full, step-by-step walkthrough, refer to the [DevSite Tutorial](https://cloud.google.com/gemini/enterprise/docs/agent-runtime/deploy-low-latency-support-agent).**
+📖 **For the full, step-by-step walkthrough, refer to the [DevSite Tutorial](https://cloud.google.com/gemini-enterprise-agent-platform/tutorials/deploy-low-latency-support-agent).**
 
 ## 🏗️ Architecture & Subtasks
 
@@ -35,6 +35,3 @@ cd devrel-demos/ai-ml/enterprise-support-adk-pgvector
 cd infra
 terraform init
 terraform apply -var="project_id=YOUR_PROJECT_ID"
-```
-
-Once infrastructure is provisioned, you can deploy the chunker and the ADK Agent (see the [DevSite Tutorial](https://docs.cloud.google.com/gemini/enterprise/docs/agent-runtime/deploy-low-latency-support-agent) for full `gcloud run deploy` deployment steps).

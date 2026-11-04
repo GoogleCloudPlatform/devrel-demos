@@ -1,4 +1,4 @@
-# Copyright 2026 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ Receives the validated document from Subtask 1, chunks it, embeds it, and saves 
 """
 
 import os
+import functools
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
 from subtask2_chunking_embedding.ast_chunker import HeadingAwareChunker
@@ -35,21 +36,25 @@ class ProcessDocumentRequest(BaseModel):
     last_verified_date: str
     body: str
 
+@functools.cache
+def _embedder() -> VertexVectorService:
+    return VertexVectorService(os.environ["PROJECT_ID"], os.environ.get("LOCATION", "us-central1"))
+
+@functools.cache
+def _db() -> VectorStoreRepository:
+    return VectorStoreRepository({
+        "host": os.environ["DB_HOST"],
+        "dbname": os.environ.get("DB_NAME", "knowledge_base"),
+        "user": os.environ.get("DB_USER", "app_agent"),
+        "password": os.environ["DB_PASSWORD"],
+    })
+
 @app.post("/api/v1/process", status_code=status.HTTP_200_OK)
 def process_document(req: ProcessDocumentRequest):
     try:
-        # Initialize services
-        project_id = os.environ["PROJECT_ID"]
-        location = os.environ.get("LOCATION", "us-central1")
-        
         chunker = HeadingAwareChunker()
-        embedder = VertexVectorService(project_id, location)
-        db = VectorStoreRepository({
-            "host": os.environ["DB_HOST"],
-            "dbname": os.environ.get("DB_NAME", "knowledge_base"),
-            "user": os.environ.get("DB_USER", "app_agent"),
-            "password": os.environ["DB_PASSWORD"],
-        })
+        embedder = _embedder()
+        db = _db()
 
         # 1. Chunk the document
         chunks = chunker.chunk_document(req.title, req.body)
