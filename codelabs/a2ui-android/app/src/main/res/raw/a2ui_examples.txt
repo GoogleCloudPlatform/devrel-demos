@@ -1,0 +1,258 @@
+### Example 1: Weekend Trip Planner
+
+User: Plan a weekend trip to Tokyo
+
+Assistant:
+Here is a weekend itinerary for Tokyo with highlights for Saturday and Sunday!
+
+```json
+{
+  "version": "v0.9",
+  "createSurface": {
+    "surfaceId": "tokyo-weekend-planner",
+    "catalogId": "{{CATALOG_ID}}"
+  }
+}
+```
+
+```json
+{
+  "version": "v0.9",
+  "updateComponents": {
+    "surfaceId": "tokyo-weekend-planner",
+    "components": [
+      {
+        "id": "root",
+        "component": "Card",
+        "child": "planner-col"
+      },
+      {
+        "id": "planner-col",
+        "component": "Column",
+        "children": [
+          "header-image",
+          "title-text",
+          "planner-tabs"
+        ],
+        "align": "stretch"
+      },
+      {
+        "id": "header-image",
+        "component": "Image",
+        "url": "https://en.wikipedia.org/wiki/Senso-ji",
+        "description": "Senso-ji temple in Asakusa, Tokyo",
+        "variant": "header",
+        "fit": "cover"
+      },
+      {
+        "id": "title-text",
+        "component": "Text",
+        "text": "Weekend in Tokyo",
+        "variant": "h3"
+      },
+      {
+        "id": "planner-tabs",
+        "component": "Tabs",
+        "tabs": [
+          {
+            "title": "Saturday",
+            "child": "sat-list"
+          },
+          {
+            "title": "Sunday",
+            "child": "sun-list"
+          }
+        ]
+      },
+      {
+        "id": "sat-list",
+        "component": "List",
+        "direction": "vertical",
+        "align": "stretch",
+        "children": [
+          "sat-morning",
+          "sat-afternoon",
+          "sat-evening"
+        ]
+      },
+      {
+        "id": "sat-morning",
+        "component": "Text",
+        "text": "Morning: Explore Asakusa & Senso-ji, then stroll Nakamise-dori."
+      },
+      {
+        "id": "sat-afternoon",
+        "component": "Text",
+        "text": "Afternoon: TeamLab Planets and waterfront walk in Toyosu."
+      },
+      {
+        "id": "sat-evening",
+        "component": "Text",
+        "text": "Evening: Shibuya Sky sunset views and dinner in Shinjuku."
+      },
+      {
+        "id": "sun-list",
+        "component": "List",
+        "direction": "vertical",
+        "align": "stretch",
+        "children": [
+          "sun-morning",
+          "sun-afternoon",
+          "sun-evening"
+        ]
+      },
+      {
+        "id": "sun-morning",
+        "component": "Text",
+        "text": "Morning: Meiji Shrine walk followed by Harajuku & Omotesando cafes."
+      },
+      {
+        "id": "sun-afternoon",
+        "component": "Text",
+        "text": "Afternoon: Yanaka Ginza neighborhood stroll and Ueno Park museums."
+      },
+      {
+        "id": "sun-evening",
+        "component": "Text",
+        "text": "Evening: Tsukiji Outer Market tasting tour and Ginza."
+      }
+    ]
+  }
+}
+```
+
+### Example 2: Interactive Reservation Form with Data Binding
+
+User: Book a dinner table in Tokyo
+
+Assistant:
+Choose your party size and preferred seating time below to confirm your reservation.
+
+```json
+{
+  "version": "v0.9",
+  "createSurface": {
+    "surfaceId": "tokyo-dinner-booking",
+    "catalogId": "{{CATALOG_ID}}",
+    "sendDataModel": true
+  }
+}
+```
+
+```json
+{
+  "version": "v0.9",
+  "updateComponents": {
+    "surfaceId": "tokyo-dinner-booking",
+    "components": [
+      {
+        "id": "root",
+        "component": "Card",
+        "child": "form-col"
+      },
+      {
+        "id": "form-col",
+        "component": "Column",
+        "children": [
+          "heading",
+          "guest-summary",
+          "party-slider",
+          "time-picker",
+          "reserve-btn"
+        ],
+        "align": "stretch"
+      },
+      {
+        "id": "heading",
+        "component": "Text",
+        "text": "Dinner Reservation",
+        "variant": "h3"
+      },
+      {
+        "id": "guest-summary",
+        "component": "Text",
+        "text": {
+          "call": "formatString",
+          "args": {
+            "value": "Table for ${/partySize} guests"
+          },
+          "returnType": "string"
+        },
+        "variant": "body"
+      },
+      {
+        "id": "party-slider",
+        "component": "Slider",
+        "label": "Party size",
+        "value": {
+          "path": "/partySize"
+        },
+        "min": 1,
+        "max": 10
+      },
+      {
+        "id": "time-picker",
+        "component": "ChoicePicker",
+        "label": "Seating time",
+        "value": {
+          "path": "/time"
+        },
+        "variant": "mutuallyExclusive",
+        "options": [
+          {
+            "label": "18:00",
+            "value": "18:00"
+          },
+          {
+            "label": "19:30",
+            "value": "19:30"
+          },
+          {
+            "label": "21:00",
+            "value": "21:00"
+          }
+        ]
+      },
+      {
+        "id": "reserve-btn-label",
+        "component": "Text",
+        "text": "Confirm Reservation"
+      },
+      {
+        "id": "reserve-btn",
+        "component": "Button",
+        "child": "reserve-btn-label",
+        "variant": "primary",
+        "action": {
+          "event": {
+            "name": "confirmReservation",
+            "context": {
+              "partySize": {
+                "path": "/partySize"
+              },
+              "time": {
+                "path": "/time"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+```json
+{
+  "version": "v0.9",
+  "updateDataModel": {
+    "surfaceId": "tokyo-dinner-booking",
+    "value": {
+      "partySize": 4,
+      "time": [
+        "19:30"
+      ]
+    }
+  }
+}
+```
