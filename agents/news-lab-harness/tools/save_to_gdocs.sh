@@ -35,5 +35,5 @@ fi
 echo "[1/2] Running Breaking News Lab Referee Grades on ${DRAFT_FILE}..."
 python3 "${HARNESS_ROOT}/grades/run_all_grades.py" "${DRAFT_FILE}"
 
-echo "[2/2] All grades passed! Ready to sync to Google Doc (${DOC_ID}, tab ${TAB_ID})."
-echo "Run: gdocs mutate sync ${DOC_ID} ${DRAFT_FILE} --tab ${TAB_ID}"
+echo "[2/2] All grades passed! Syncing to Google Doc (${DOC_ID}, tab ${TAB_ID})..."
+gdocs mutate sync "${DOC_ID}" "${DRAFT_FILE}" --tab "${TAB_ID}"

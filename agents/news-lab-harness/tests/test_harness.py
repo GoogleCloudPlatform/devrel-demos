@@ -77,5 +77,18 @@ class TestBreakingNewsLabHarness(unittest.TestCase):
             tmp_path.unlink(missing_ok=True)
 
 
+    def test_truth_grade_ignores_list_markers_and_url_digits(self) -> None:
+        text = (
+            "# Daily Brief\n\n"
+            "1. Read the [full report](https://example.com/2026/report/42) for background.\n\n"
+            "Lab tests cut errors to 0% across 50 runs [Source: Lab Benchmark Run #42].\n"
+        )
+        result = grade_draft_text = None
+        from check_truth import evaluate_truth
+        res = evaluate_truth(text)
+        self.assertTrue(res["passed"], msg=json.dumps(res, indent=2))
+        self.assertEqual(res["score"], 100)
+
+
 if __name__ == "__main__":
     unittest.main()

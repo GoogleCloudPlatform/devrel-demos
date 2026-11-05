@@ -68,7 +68,10 @@ def evaluate_truth(text: str, graph_path: Path = DEFAULT_GRAPH_PATH) -> Dict[str
 
     paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip() and not p.strip().startswith("#")]
     for idx, para in enumerate(paragraphs, start=1):
-        has_number = bool(re.search(r"\b\d+(?:\.\d+)?%?\b", para))
+        # Strip markdown links and leading list numbers to avoid false positives on URLs or list indices
+        clean_para = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", para)
+        clean_para = "\n".join(re.sub(r"^\s*\d+\.\s+", "", line) for line in clean_para.splitlines())
+        has_number = bool(re.search(r"\b\d+(?:\.\d+)?%?\b", clean_para))
         has_source = bool(re.search(r"\[Source:\s*[^\]]+\]", para, flags=re.IGNORECASE))
         if has_number and not has_source:
             violations.append(

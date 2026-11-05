@@ -80,7 +80,19 @@ def print_scoreboard(report: Dict[str, Any]) -> None:
 def handle_stop_hook() -> int:
     """Handle Antigravity / Claude Code Stop hook JSON contract."""
     drafts_dir = GRADE_DIR.parent / "drafts"
-    candidates = sorted(drafts_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True) if drafts_dir.exists() else []
+    examples_dir = GRADE_DIR.parent / "examples"
+    candidates = []
+    if drafts_dir.exists():
+        candidates.extend(drafts_dir.glob("*.md"))
+    if examples_dir.exists():
+        candidates.extend(
+            [
+                p
+                for p in examples_dir.glob("*.md")
+                if p.name not in ("sample_bad_draft.md", "sample_good_draft.md")
+            ]
+        )
+    candidates = sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True)
     if not candidates:
         print(json.dumps({"decision": "allow"}))
         return 0
