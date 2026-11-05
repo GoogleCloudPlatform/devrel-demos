@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Safe Google Docs wrapper (`tools/save_to_gdocs.sh`) for Breaking News Lab.
+# Safe Google Docs wrapper (`tools/save_to_gdocs.sh`) for Newsroom.
 # Enforces Yellow-Light / Green-Light boundaries:
 # 1. Refuses to sync unless all 3 harness grades pass (`exit code 0`).
 # 2. Locks `gdocs mutate sync` to one approved Document ID and Tab ID.
@@ -32,7 +32,7 @@ if [[ -z "${DRAFT_FILE}" ]]; then
   exit 1
 fi
 
-echo "[1/2] Running Breaking News Lab Referee Grades on ${DRAFT_FILE}..."
+echo "[1/2] Running Newsroom Referee Grades on ${DRAFT_FILE}..."
 python3 "${HARNESS_ROOT}/grades/run_all_grades.py" "${DRAFT_FILE}"
 
 echo "[2/2] All grades passed! Syncing to Google Doc (${DOC_ID}, tab ${TAB_ID})..."

@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Safety Grade referee (`grades/check_safety.py`) for the Breaking News Lab harness.
+"""Safety Grade referee (`grades/check_safety.py`) for the Newsroom harness.
 
 Scans a draft or proposed action for:
 1. In-band prompt injections (`IGNORE PREVIOUS INSTRUCTIONS`, `SYSTEM OVERRIDE`).
@@ -81,7 +81,7 @@ def evaluate_safety(text: str) -> Dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run the Breaking News Lab Safety Grade check.")
+    parser = argparse.ArgumentParser(description="Run the Newsroom Safety Grade check.")
     parser.add_argument("draft", type=Path, help="Path to markdown draft")
     parser.add_argument("--json", action="store_true", help="Output JSON")
     args = parser.parse_args()

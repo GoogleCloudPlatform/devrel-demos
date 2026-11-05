@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Unit test suite (`tests/test_harness.py`) for the Breaking News Lab harness."""
+"""Unit test suite (`tests/test_harness.py`) for the Newsroom harness."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ from dream import dream  # noqa: E402
 from run_all_grades import grade_draft  # noqa: E402
 
 
-class TestBreakingNewsLabHarness(unittest.TestCase):
+class TestNewsroomHarness(unittest.TestCase):
     def test_good_draft_passes_all_three_grades(self) -> None:
         good_path = ROOT / "examples" / "sample_good_draft.md"
         report = grade_draft(good_path)

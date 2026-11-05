@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Master Referee Scoreboard (`grades/run_all_grades.py`) for the Breaking News Lab harness.
+"""Master Referee Scoreboard (`grades/run_all_grades.py`) for the Newsroom harness.
 
 Runs all three deterministic grades (Truth, Safety, Reading) on a draft file
 or acts as a lifecycle `Stop` hook handler (`--hook-stop`).
@@ -60,7 +60,7 @@ def print_scoreboard(report: Dict[str, Any]) -> None:
     s = report["safety"]
     r = report["reading"]
 
-    print(f"=== Breaking News Lab Harness Scoreboard [{overall_tag}] ({report['overall_score']}/100) ===")
+    print(f"=== Newsroom Harness Scoreboard [{overall_tag}] ({report['overall_score']}/100) ===")
     print(f"  1. Truth Grade:   [{'PASS' if t['passed'] else 'FAIL'}] {t['score']}/100 (Sources cited: {len(t['sources_cited'])})")
     print(f"  2. Safety Grade:  [{'PASS' if s['passed'] else 'FAIL'}] {s['score']}/100")
     print(
@@ -107,7 +107,7 @@ def handle_stop_hook() -> int:
         json.dumps(
             {
                 "decision": "continue",
-                "reason": f"Breaking News Lab Referee blocked stop on {candidates[0].name}: " + "; ".join(violations),
+                "reason": f"Newsroom Referee blocked stop on {candidates[0].name}: " + "; ".join(violations),
             }
         )
     )
@@ -115,7 +115,7 @@ def handle_stop_hook() -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run all 3 Breaking News Lab harness grades.")
+    parser = argparse.ArgumentParser(description="Run all 3 Newsroom harness grades.")
     parser.add_argument("draft", nargs="?", type=Path, help="Path to markdown draft")
     parser.add_argument("--json", action="store_true", help="Output JSON report")
     parser.add_argument("--hook-stop", action="store_true", help="Run in Stop-hook JSON contract mode")

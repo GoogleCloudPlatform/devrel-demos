@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Truth Grade referee (`grades/check_truth.py`) for the Breaking News Lab harness.
+"""Truth Grade referee (`grades/check_truth.py`) for the Newsroom harness.
 
 Checks a markdown draft for:
 1. Explicit `[Source: <Name>]` citations on paragraphs with numeric/factual claims.
@@ -92,7 +92,7 @@ def evaluate_truth(text: str, graph_path: Path = DEFAULT_GRAPH_PATH) -> Dict[str
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run the Breaking News Lab Truth Grade check.")
+    parser = argparse.ArgumentParser(description="Run the Newsroom Truth Grade check.")
     parser.add_argument("draft", type=Path, help="Path to markdown draft")
     parser.add_argument("--json", action="store_true", help="Output JSON")
     args = parser.parse_args()

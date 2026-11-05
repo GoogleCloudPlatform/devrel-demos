@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Reading Grade referee (`grades/check_reading.py`) for the Breaking News Lab harness.
+"""Reading Grade referee (`grades/check_reading.py`) for the Newsroom harness.
 
 Enforces 5th-to-6th grade readability and punchy journalistic style:
 1. Flesch-Kincaid Grade Level <= 6.5 (easy enough for a 5th/6th grader to understand).
@@ -125,7 +125,7 @@ def evaluate_reading(text: str) -> Dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run the Breaking News Lab Reading Grade check.")
+    parser = argparse.ArgumentParser(description="Run the Newsroom Reading Grade check.")
     parser.add_argument("draft", type=Path, help="Path to markdown draft")
     parser.add_argument("--json", action="store_true", help="Output JSON")
     args = parser.parse_args()

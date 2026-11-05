@@ -1,5 +1,5 @@
 {
-  "harness": "Breaking News Lab (news-lab-harness)",
+  "harness": "Newsroom (newsroom-harness)",
   "last_dream_at": "2026-11-05T09:00:00Z",
   "verified_sources": [
     "AGENTS.md Spec",
@@ -54,7 +54,7 @@
   ],
   "scratchpad": [
     {
-      "entity": "Breaking News Lab",
+      "entity": "Newsroom",
       "claim": "Three built-in grades (Truth, Safety, and Reading) block bad drafts before a human ever sees them.",
       "source": "Lab Benchmark Run #42",
       "verified": true

@@ -1,11 +1,11 @@
 ---
 name: verify-sources
-description: Local Breaking News Lab skill for triangulating incoming news tips against the memory graph and primary sources before drafting.
+description: Local Newsroom skill for triangulating incoming news tips against the memory graph and primary sources before drafting.
 ---
 
 # Local Skill: Verify Sources (`skills/verify-sources`)
 
-Use this step-by-step recipe card whenever a new tip, press release, or claim arrives at the Breaking News Lab desk:
+Use this step-by-step recipe card whenever a new tip, press release, or claim arrives at the Newsroom desk:
 
 1. **Step 1 — Check the Memory Graph:**
    Look up the company, project, or source in [`memory/memory_graph.json`](../../memory/memory_graph.json).

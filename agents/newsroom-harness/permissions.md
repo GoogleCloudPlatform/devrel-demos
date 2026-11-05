@@ -1,13 +1,13 @@
 # Permissions (`permissions.md`)
 
-This file is the **Breaking News Lab** permission slip. Both the agent and the safety referee (`grades/check_safety.py`) check these rules before any work is accepted.
+This file is the **Newsroom** permission slip. Both the agent and the safety referee (`grades/check_safety.py`) check these rules before any work is accepted.
 
 ## 1. Green Light — Allowed Without Asking
-- **Read local files:** Read any file inside `news-lab-harness/`.
+- **Read local files:** Read any file inside `newsroom-harness/`.
 - **Read Google Docs:** Read approved press notes or drafts using `gdocs readonly`.
 - **Search the web:** Look up primary sources, public filings, and official statements.
 - **Write local drafts:** Create or update markdown drafts inside `examples/` or `drafts/`.
-- **Run harness grades & dreaming:** Run `./tools/news-lab grade` and `./tools/news-lab dream`.
+- **Run harness grades & dreaming:** Run `./tools/newsroom grade` and `./tools/newsroom dream`.
 
 ## 2. Yellow Light — Ask a Human First
 - **Edit a Google Doc:** Syncing or mutating a Google Doc (`gdocs mutate`) via `./tools/save_to_gdocs.sh` requires explicit human confirmation.

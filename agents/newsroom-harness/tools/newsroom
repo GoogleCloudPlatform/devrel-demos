@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Unified CLI (`tools/news-lab`) for the Breaking News Lab agent harness.
+"""Unified CLI (`tools/newsroom`) for the Newsroom agent harness.
 
 Subcommands:
   grade <draft.md>   Run Truth, Safety, and Reading referees on a draft
@@ -37,7 +37,7 @@ from run_all_grades import grade_draft, print_scoreboard  # noqa: E402
 
 def show_memory(graph_path: Path = DEFAULT_GRAPH_PATH) -> int:
     data = json.loads(graph_path.read_text(encoding="utf-8"))
-    print(f"=== Breaking News Lab Memory Graph ({graph_path.name}) ===")
+    print(f"=== Newsroom Memory Graph ({graph_path.name}) ===")
     print(f"  Last Dream:       {data.get('last_dream_at', 'never')}")
     print(f"  Verified Sources: {', '.join(data.get('verified_sources', []))}")
     print(f"  Rumor Mills:      {', '.join(data.get('known_rumor_mills', []))}")
@@ -52,7 +52,7 @@ def show_memory(graph_path: Path = DEFAULT_GRAPH_PATH) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(prog="news-lab", description="Breaking News Lab Agent Harness CLI")
+    parser = argparse.ArgumentParser(prog="newsroom", description="Newsroom Agent Harness CLI")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_grade = sub.add_parser("grade", help="Run Truth, Safety, and Reading grades on a draft")
@@ -75,7 +75,7 @@ def main() -> int:
     elif args.cmd == "dream":
         summary = dream(dry_run=args.dry_run)
         print(
-            f"Breaking News Lab Dreaming [COMPLETE] — "
+            f"Newsroom Dreaming [COMPLETE] — "
             f"Promoted: {summary['promoted_count']} | Pruned Rumors: {summary['pruned_count']} | "
             f"Graph Size: {summary['total_nodes']} nodes, {summary['total_edges']} edges"
         )

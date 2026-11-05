@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Dreaming routine (`memory/dream.py`) for the Breaking News Lab harness.
+"""Dreaming routine (`memory/dream.py`) for the Newsroom harness.
 
 Consolidates raw session notes from `scratchpad` in `memory/memory_graph.json`:
 1. Promotes verified notes (`verified: true` from non-rumor-mill sources) into permanent graph `nodes`.
@@ -105,14 +105,14 @@ def dream(graph_path: Path = DEFAULT_GRAPH_PATH, dry_run: bool = False) -> Dict[
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run the Breaking News Lab memory dreaming loop.")
+    parser = argparse.ArgumentParser(description="Run the Newsroom memory dreaming loop.")
     parser.add_argument("--graph", type=Path, default=DEFAULT_GRAPH_PATH, help="Path to memory_graph.json")
     parser.add_argument("--dry-run", action="store_true", help="Preview consolidation without writing")
     args = parser.parse_args()
 
     summary = dream(graph_path=args.graph, dry_run=args.dry_run)
     print(
-        f"Breaking News Lab Dreaming [COMPLETE] — "
+        f"Newsroom Dreaming [COMPLETE] — "
         f"Promoted: {summary['promoted_count']} | Pruned Rumors: {summary['pruned_count']} | "
         f"Graph Size: {summary['total_nodes']} nodes, {summary['total_edges']} edges"
     )
