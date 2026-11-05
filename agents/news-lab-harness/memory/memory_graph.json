@@ -1,0 +1,69 @@
+{
+  "harness": "Breaking News Lab (news-lab-harness)",
+  "last_dream_at": "2026-11-05T09:00:00Z",
+  "verified_sources": [
+    "AGENTS.md Spec",
+    "Agent Skills Standard",
+    "Antigravity Release Notes",
+    "Claude Code Docs",
+    "OpenAI Codex Docs",
+    "Lab Benchmark Run #42"
+  ],
+  "known_rumor_mills": [
+    "AnonTechLeaks",
+    "UnverifiedForumPost",
+    "TrustMeBroDaily"
+  ],
+  "nodes": [
+    {
+      "id": "fact_001",
+      "entity": "Agent Harness",
+      "claim": "An agent is a harness body with a model brain plugged into it.",
+      "source": "Antigravity Release Notes",
+      "confidence": 1.0,
+      "added_at": "2026-11-04T18:00:00Z"
+    },
+    {
+      "id": "fact_002",
+      "entity": "Skills vs Hooks",
+      "claim": "Skills load step-by-step recipes on demand, while hooks run deterministic checks automatically.",
+      "source": "Agent Skills Standard",
+      "confidence": 1.0,
+      "added_at": "2026-11-04T19:30:00Z"
+    },
+    {
+      "id": "fact_003",
+      "entity": "Referee Loop",
+      "claim": "Wiring a deterministic Python referee into a Stop hook cut rule violations from 6 per run to 0%.",
+      "source": "Lab Benchmark Run #42",
+      "confidence": 1.0,
+      "added_at": "2026-11-04T21:00:00Z"
+    }
+  ],
+  "edges": [
+    {
+      "from": "fact_001",
+      "to": "fact_002",
+      "relation": "contains_layer"
+    },
+    {
+      "from": "fact_002",
+      "to": "fact_003",
+      "relation": "enforced_by"
+    }
+  ],
+  "scratchpad": [
+    {
+      "entity": "Breaking News Lab",
+      "claim": "Three built-in grades (Truth, Safety, and Reading) block bad drafts before a human ever sees them.",
+      "source": "Lab Benchmark Run #42",
+      "verified": true
+    },
+    {
+      "entity": "Rumor Check",
+      "claim": "Secret AI model writes 100% bug-free code with zero prompts.",
+      "source": "AnonTechLeaks",
+      "verified": false
+    }
+  ]
+}

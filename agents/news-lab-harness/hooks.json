@@ -1,0 +1,12 @@
+{
+  "breaking-news-lab-referee": {
+    "enabled": true,
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python3 ./grades/run_all_grades.py --hook-stop",
+        "timeout": 15
+      }
+    ]
+  }
+}
