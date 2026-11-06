@@ -33,7 +33,7 @@ CREATE SCHEMA IF NOT EXISTS petverse
 -- ----------------------------------------------------------------------------
 -- 1. Create and populate the `petverse.pets` table from Cloud Storage CSV
 -- ----------------------------------------------------------------------------
-LOAD DATA INTO petverse.pets
+LOAD DATA OVERWRITE petverse.pets
 OPTIONS(
     description="Table for furry friend data"
   )
@@ -128,10 +128,10 @@ FROM
                 connection_id => 'REGION.pet-connection',
                 endpoint => 'gemini-2.5-flash-lite',
                 output_schema => 'food STRING').food
-    FROM petverse.pets ) AS  aigen
-WHERE p.Id = aigen.Id
-AND p.FavoriteFood IS NULL
-AND p.additional_media IS NOT NULL;
+    FROM petverse.pets
+    WHERE FavoriteFood IS NULL
+      AND additional_media IS NOT NULL ) AS aigen
+WHERE p.Id = aigen.Id;
 
 -- ----------------------------------------------------------------------------
 -- 5. Add MediaDescription column and populate using AI.GENERATE
@@ -148,10 +148,10 @@ FROM
                 connection_id => 'REGION.pet-connection',
                 endpoint => 'gemini-2.5-flash',
                 output_schema => 'description STRING').description
-    FROM petverse.pets ) AS  aigen
-WHERE p.Id = aigen.Id
-AND p.MediaDescription IS NULL
-AND p.additional_media IS NOT NULL;
+    FROM petverse.pets
+    WHERE MediaDescription IS NULL
+      AND additional_media IS NOT NULL ) AS aigen
+WHERE p.Id = aigen.Id;
 
 -- ----------------------------------------------------------------------------
 -- 6. Create multimodal image embedding model and profile image embeddings table

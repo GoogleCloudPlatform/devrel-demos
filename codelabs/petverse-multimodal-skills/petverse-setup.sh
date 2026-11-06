@@ -28,13 +28,63 @@ echo "Region: $REGION"
 echo " "
 
 # Save variables to .env file in Cloud Shell
-echo "PROJECT_ID=$PROJECT_ID" > ~/.env
-echo "REGION=$REGION" >> ~/.env
+cat > ~/.env << EOF
+export PROJECT_ID=$PROJECT_ID
+export REGION=$REGION
+export AGY_ADC_AUTH=true
+export GOOGLE_CLOUD_PROJECT=$PROJECT_ID
+export GOOGLE_CLOUD_QUOTA_PROJECT=$PROJECT_ID
+export GOOGLE_CLOUD_LOCATION=global
+export AGY_CLI_DISABLE_AUTO_UPDATE=true
+EOF
 if [ "$PWD" != "$HOME" ]; then
-  echo "PROJECT_ID=$PROJECT_ID" > .env
-  echo "REGION=$REGION" >> .env
+  cp ~/.env .env
 fi
+grep -q 'source ~/.env' ~/.bashrc 2>/dev/null || echo '[ -f ~/.env ] && source ~/.env' >> ~/.bashrc
 echo "  ✅   Environment variables saved to .env file."
+echo " "
+
+# Pre-configure Antigravity CLI (agy) to skip interactive onboarding & trust prompts
+echo "  🔄   Pre-configuring Antigravity CLI..."
+APP_DIR="$HOME/petverse-profiles"
+mkdir -p "$APP_DIR" "$HOME/.gemini/antigravity-cli/cache"
+
+cat > "$HOME/.gemini/antigravity-cli/cache/onboarding.json" << 'EOF'
+{
+  "consumerOnboardingComplete": true,
+  "enterpriseOnboardingComplete": true,
+  "onboardingComplete": true
+}
+EOF
+
+cat > "$HOME/.gemini/antigravity-cli/settings.json" << EOF
+{
+  "allowNonWorkspaceAccess": true,
+  "gcp": {
+    "project": "$PROJECT_ID",
+    "location": "global"
+  },
+  "permissions": {
+    "allow": [
+      "command(ls)",
+      "command(mkdir)",
+      "command(gcloud help)",
+      "command(gcloud dataplex)",
+      "command(gcloud config)",
+      "command(bq query)",
+      "command(gcloud storage)",
+      "command(curl)",
+      "command(gcloud artifacts)",
+      "command(gcloud builds)",
+      "command(gcloud run)"
+    ]
+  },
+  "trustedWorkspaces": [
+    "$APP_DIR"
+  ]
+}
+EOF
+echo "  ✅   Antigravity CLI pre-configured."
 echo " "
 
 # BigQuery Connection & IAM Setup
