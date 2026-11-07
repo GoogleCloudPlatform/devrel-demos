@@ -1,0 +1,616 @@
+<!--
+  Copyright 2026 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Montréal TechGear · ADK + AlloyDB MCP Triage Console</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f0d1a;
+      --panel: #181529;
+      --border: #2e294e;
+      --cyan: #38bdf8;
+      --pink: #f472b6;
+      --green: #4ade80;
+      --amber: #fbbf24;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top right, #231942 0%, var(--bg) 55%);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(24, 21, 41, 0.85);
+    }
+    .brand { display: flex; flex-direction: column; gap: 2px; }
+    .brand small { color: var(--cyan); font-family: monospace; letter-spacing: 0.08em; }
+    .brand h1 { margin: 0; font-size: 1.15rem; }
+    .badges { display: flex; gap: 10px; align-items: center; font-family: monospace; font-size: 0.8rem; }
+    .badge {
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #121020;
+    }
+    .badge.toolbox { border-color: var(--amber); color: var(--amber); }
+    .badge.remote { border-color: var(--green); color: var(--green); }
+    .reset-btn {
+      padding: 5px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--pink);
+      background: #1e1533;
+      color: var(--pink);
+      font-family: monospace;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .reset-btn:hover { background: #2d1d4c; }
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.45fr 1fr;
+      gap: 16px;
+      padding: 16px 24px;
+      overflow: hidden;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-family: monospace;
+      font-size: 0.82rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #messages, #trace {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .msg {
+      padding: 12px 16px;
+      border-radius: 10px;
+      line-height: 1.55;
+      max-width: 96%;
+      font-size: 0.92rem;
+      overflow-x: auto;
+    }
+    .msg.user {
+      align-self: flex-end;
+      max-width: 85%;
+      white-space: pre-wrap;
+      background: #2b224f;
+      border: 1px solid var(--pink);
+    }
+    .msg.agent {
+      align-self: flex-start;
+      background: #131b2e;
+      border: 1px solid var(--cyan);
+    }
+    .msg.loading {
+      color: var(--muted);
+      font-style: italic;
+      border-style: dashed;
+    }
+    /* Rendered Markdown Styles inside .msg.agent */
+    .msg.agent > *:first-child { margin-top: 0; }
+    .msg.agent > *:last-child { margin-bottom: 0; }
+    .msg.agent p { margin: 0.55em 0; }
+    .msg.agent h1, .msg.agent h2, .msg.agent h3, .msg.agent h4 {
+      margin: 0.85em 0 0.4em;
+      color: #e0f2fe;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .msg.agent h1 { font-size: 1.15rem; }
+    .msg.agent h2 { font-size: 1.06rem; border-bottom: 1px solid #1e3a5f; padding-bottom: 4px; }
+    .msg.agent h3 { font-size: 0.98rem; color: var(--cyan); }
+    .msg.agent h4 { font-size: 0.92rem; color: var(--pink); }
+    .msg.agent ul, .msg.agent ol {
+      margin: 0.45em 0;
+      padding-left: 1.35em;
+    }
+    .msg.agent li { margin: 0.28em 0; }
+    .msg.agent li > ul, .msg.agent li > ol { margin: 0.2em 0; }
+    .msg.agent strong { color: #ffffff; font-weight: 600; }
+    .msg.agent hr {
+      border: none;
+      border-top: 1px solid #243b55;
+      margin: 0.85em 0;
+    }
+    .msg.agent code {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.83em;
+      background: #0b1120;
+      color: #67e8f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #1e3a5f;
+    }
+    .msg.agent pre {
+      background: #0b1120;
+      border: 1px solid #1e3a5f;
+      border-radius: 8px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      margin: 0.65em 0;
+    }
+    .msg.agent pre code {
+      background: transparent;
+      border: none;
+      padding: 0;
+      color: #e2e8f0;
+      font-size: 0.82rem;
+    }
+    .msg.agent blockquote {
+      margin: 0.6em 0;
+      padding: 6px 12px;
+      border-left: 3px solid var(--pink);
+      background: rgba(244, 114, 182, 0.08);
+      color: #cbd5e1;
+      border-radius: 0 6px 6px 0;
+    }
+    .msg.agent table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.7em 0;
+      font-size: 0.83rem;
+      background: #0d1424;
+      border: 1px solid #23496d;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .msg.agent th, .msg.agent td {
+      padding: 7px 10px;
+      text-align: left;
+      border-bottom: 1px solid #1e293b;
+    }
+    .msg.agent th {
+      background: #16243d;
+      color: var(--cyan);
+      font-family: monospace;
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+    }
+    .msg.agent tr:nth-child(even) td { background: rgba(255, 255, 255, 0.02); }
+    .msg.agent tr:last-child td { border-bottom: none; }
+    .msg.agent a { color: var(--cyan); text-decoration: underline; }
+    .prompts {
+      padding: 8px 16px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      border-top: 1px solid var(--border);
+    }
+    .chip {
+      background: #121020;
+      color: var(--cyan);
+      border: 1px solid #23496d;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .chip:hover { border-color: var(--cyan); }
+    .chip:disabled, button[type="submit"]:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    form {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+    }
+    input {
+      flex: 1;
+      background: #0e0c18;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 0.92rem;
+    }
+    button[type="submit"] {
+      background: linear-gradient(135deg, #0ea5e9, #ec4899);
+      border: none;
+      color: white;
+      font-weight: 600;
+      padding: 0 18px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    /* Trace Panel Cards */
+    .turn-divider {
+      font-family: monospace;
+      font-size: 0.72rem;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding-top: 4px;
+      border-top: 1px dashed #2e294e;
+    }
+    .step {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.77rem;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #100e1c;
+      border-left: 3px solid var(--cyan);
+      word-break: break-word;
+      animation: fadeSlideIn 0.2s ease-out;
+    }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .step-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .step-body {
+      color: #cbd5e1;
+      white-space: pre-wrap;
+      max-height: 150px;
+      overflow-y: auto;
+      line-height: 1.4;
+    }
+    .step.skill { border-left-color: var(--pink); }
+    .step.skill .step-title { color: var(--pink); }
+    .step.mcp_tool { border-left-color: var(--green); }
+    .step.mcp_tool .step-title { color: var(--green); }
+    .step.tool_result { border-left-color: var(--amber); }
+    .step.tool_result .step-title { color: var(--amber); }
+    .step.tool_result .step-body { color: var(--muted); font-size: 0.73rem; }
+    .step.session_note { border-left-color: var(--cyan); color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <small>DEVFEST MONTRÉAL 2026 · GOOGLE ADK + ALLOYDB</small>
+      <h1>Montréal TechGear Support &amp; Order Triage Agent</h1>
+    </div>
+    <div class="badges">
+      <span id="modeBadge" class="badge">Loading MCP mode...</span>
+      <span id="dbBadge" class="badge">AlloyDB</span>
+      <button class="reset-btn" type="button" onclick="resetSession()" title="Start a fresh ADK session so Skills &amp; MCP tools reload from scratch">↻ New Session</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="card-header">
+        <span>AGENT CONVERSATION</span>
+        <span id="modelLabel">gemini-2.5-flash</span>
+      </div>
+      <div id="messages">
+        <div class="msg agent"><p>Bonjour! Ask me to triage open high-priority tickets, check SLA status for <code>CUST-101</code>, or look up past macOS sleep disconnect fixes in AlloyDB.</p></div>
+      </div>
+      <div class="prompts">
+        <button class="chip" type="button" onclick="sendPreset('Triage all open high-priority tickets and tell me which ones breach our SLA.')">1. Triage high-priority tickets</button>
+        <button class="chip" type="button" onclick="sendPreset('Check CUST-102 macOS sleep disconnect ticket and search past resolved tickets for a known fix.')">2. Match historical resolution</button>
+        <button class="chip" type="button" onclick="sendPreset('Escalate ticket 1 for CUST-101 per our Enterprise SLA policy and log the credit recommendation.')">3. Escalate &amp; update AlloyDB</button>
+      </div>
+      <form id="chatForm">
+        <input id="promptInput" placeholder="Ask the grounded ADK agent..." autocomplete="off" />
+        <button id="sendBtn" type="submit">Send</button>
+      </form>
+    </section>
+
+    <aside class="card">
+      <div class="card-header">
+        <span>LIVE SKILL &amp; MCP TRACE</span>
+        <span id="sessionLabel">SkillToolset + MCP</span>
+      </div>
+      <div id="trace">
+        <div id="tracePlaceholder" class="step skill">Waiting for first turn — watch ADK load <b>ticket-triage</b> SKILL.md on demand before invoking AlloyDB MCP tools.</div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    let currentSessionId = '';
+    let turnNumber = 0;
+
+    function initNewSessionId() {
+      currentSessionId = 'session-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+      turnNumber = 0;
+      const lbl = document.getElementById('sessionLabel');
+      if (lbl) lbl.textContent = currentSessionId;
+    }
+
+    function resetSession() {
+      initNewSessionId();
+      document.getElementById('messages').innerHTML =
+        '<div class="msg agent"><p>New session started! Ask me to triage open high-priority tickets, check SLA status for <code>CUST-101</code>, or look up past macOS sleep disconnect fixes in AlloyDB.</p></div>';
+      document.getElementById('trace').innerHTML =
+        '<div id="tracePlaceholder" class="step skill">Fresh session ready — watch ADK load <b>ticket-triage</b> SKILL.md on demand before invoking AlloyDB MCP tools.</div>';
+    }
+
+    if (window.marked) {
+      marked.setOptions({ gfm: true, breaks: true });
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function offlineMarkdownFallback(md) {
+      const escaped = escapeHtml(md);
+      const formatInline = (s) => s
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+      const lines = escaped.split('\n');
+      let html = '';
+      let inList = false;
+      let inTable = false;
+
+      for (let i = 0; i < lines.length; i++) {
+        const trimmed = lines[i].trim();
+        if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+          if (/^\|[\s:|-]+\|$/.test(trimmed)) continue;
+          const cells = trimmed.slice(1, -1).split('|').map((c) => formatInline(c.trim()));
+          if (!inTable) {
+            if (inList) { html += '</ul>'; inList = false; }
+            html += '<table><thead><tr>' + cells.map((c) => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+            inTable = true;
+          } else {
+            html += '<tr>' + cells.map((c) => `<td>${c}</td>`).join('') + '</tr>';
+          }
+          continue;
+        } else if (inTable) {
+          html += '</tbody></table>';
+          inTable = false;
+        }
+
+        if (/^---+$/.test(trimmed)) {
+          if (inList) { html += '</ul>'; inList = false; }
+          html += '<hr />';
+        } else if (/^#{1,4}\s+/.test(trimmed)) {
+          if (inList) { html += '</ul>'; inList = false; }
+          const lvl = trimmed.match(/^#+/)[0].length;
+          html += `<h${lvl}>${formatInline(trimmed.replace(/^#{1,4}\s+/, ''))}</h${lvl}>`;
+        } else if (/^[-*]\s+/.test(trimmed)) {
+          if (!inList) { html += '<ul>'; inList = true; }
+          html += `<li>${formatInline(trimmed.replace(/^[-*]\s+/, ''))}</li>`;
+        } else if (trimmed === '') {
+          if (inList) { html += '</ul>'; inList = false; }
+        } else {
+          if (inList) { html += '</ul>'; inList = false; }
+          html += `<p>${formatInline(trimmed)}</p>`;
+        }
+      }
+      if (inList) html += '</ul>';
+      if (inTable) html += '</tbody></table>';
+      return html;
+    }
+
+    function renderMarkdown(text) {
+      if (window.marked) {
+        const rawHtml = marked.parse(String(text || ''));
+        return window.DOMPurify ? DOMPurify.sanitize(rawHtml) : rawHtml;
+      }
+      return offlineMarkdownFallback(String(text || ''));
+    }
+
+    async function loadStatus() {
+      const res = await fetch('/api/status');
+      const data = await res.json();
+      const badge = document.getElementById('modeBadge');
+      if (data.mcp_mode === 'remote') {
+        badge.textContent = 'MCP: Cloud AlloyDB Remote (' + (data.read_only ? 'read-only' : 'read/write') + ')';
+        badge.className = 'badge remote';
+      } else {
+        badge.textContent = 'MCP: Local MCP Toolbox (' + data.endpoint + ')';
+        badge.className = 'badge toolbox';
+      }
+      document.getElementById('dbBadge').textContent = data.alloydb_cluster + ' · ' + data.alloydb_region;
+      document.getElementById('modelLabel').textContent = data.model;
+    }
+
+    function addMsg(role, text) {
+      const el = document.createElement('div');
+      el.className = 'msg ' + role;
+      if (role === 'agent') {
+        el.innerHTML = renderMarkdown(text);
+      } else {
+        el.textContent = text;
+      }
+      const box = document.getElementById('messages');
+      box.appendChild(el);
+      box.scrollTop = box.scrollHeight;
+      return el;
+    }
+
+    function setControlsDisabled(disabled) {
+      document.getElementById('sendBtn').disabled = disabled;
+      document.querySelectorAll('.chip').forEach((btn) => { btn.disabled = disabled; });
+    }
+
+    function appendTraceDivider(turnIdx) {
+      const placeholder = document.getElementById('tracePlaceholder');
+      if (placeholder) placeholder.remove();
+      const trace = document.getElementById('trace');
+      const div = document.createElement('div');
+      div.className = 'turn-divider';
+      div.textContent = `Turn #${turnIdx}`;
+      trace.appendChild(div);
+      trace.scrollTop = trace.scrollHeight;
+    }
+
+    function appendTraceStep(s) {
+      const placeholder = document.getElementById('tracePlaceholder');
+      if (placeholder) placeholder.remove();
+
+      const trace = document.getElementById('trace');
+      const div = document.createElement('div');
+      div.className = 'step ' + s.type;
+
+      const title = document.createElement('div');
+      title.className = 'step-title';
+
+      const body = document.createElement('div');
+      body.className = 'step-body';
+
+      if (s.type === 'tool_result') {
+        title.textContent = `RESULT <- ${s.name}`;
+        body.textContent = s.preview || '';
+      } else if (s.type === 'session_note') {
+        title.textContent = 'SESSION MEMORY';
+        body.textContent = s.preview || '';
+      } else {
+        const badge = s.type === 'skill' ? 'SKILL LOAD' : 'MCP TOOL CALL';
+        title.textContent = `${badge}: ${s.name}`;
+        if (s.args && s.args.sqlStatement) {
+          body.textContent = `SQL: ${s.args.sqlStatement}`;
+        } else {
+          body.textContent = Object.keys(s.args || {}).length
+            ? JSON.stringify(s.args, null, 2)
+            : '(no arguments)';
+        }
+      }
+
+      div.appendChild(title);
+      div.appendChild(body);
+      trace.appendChild(div);
+      trace.scrollTop = trace.scrollHeight;
+    }
+
+    async function submitPrompt(text) {
+      turnNumber += 1;
+      addMsg('user', text);
+      appendTraceDivider(turnNumber);
+      setControlsDisabled(true);
+
+      const pending = document.createElement('div');
+      pending.className = 'msg agent loading';
+      pending.textContent = 'Loading skill & querying AlloyDB via MCP...';
+      const box = document.getElementById('messages');
+      box.appendChild(pending);
+      box.scrollTop = box.scrollHeight;
+
+      let stepCount = 0;
+
+      try {
+        const res = await fetch('/api/chat/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text, session_id: currentSessionId }),
+        });
+
+        if (!res.ok || !res.body) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            const payload = JSON.parse(line);
+            if (payload.event === 'trace') {
+              stepCount += 1;
+              appendTraceStep(payload.step);
+              pending.textContent = `Executing ${payload.step.name}...`;
+            } else if (payload.event === 'final') {
+              pending.remove();
+              if (stepCount === 0) {
+                appendTraceStep({
+                  type: 'session_note',
+                  name: 'session',
+                  preview: 'Answered using skill & AlloyDB data already loaded in this session. Click "↻ New Session" in the top bar to watch fresh Skill + MCP calls.',
+                });
+              }
+              addMsg('agent', payload.reply);
+            } else if (payload.event === 'error') {
+              pending.remove();
+              addMsg('agent', `**Agent Error:** \`${payload.message}\``);
+            }
+          }
+        }
+      } catch (err) {
+        pending.remove();
+        addMsg('agent', `**Request failed:** \`${err.message || err}\``);
+      } finally {
+        setControlsDisabled(false);
+      }
+    }
+
+    function sendPreset(text) { submitPrompt(text); }
+
+    document.getElementById('chatForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('promptInput');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      await submitPrompt(text);
+    });
+
+    initNewSessionId();
+    loadStatus();
+  </script>
+</body>
+</html>
