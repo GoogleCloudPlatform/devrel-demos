@@ -26,4 +26,9 @@ createRoot(document.getElementById('root')!).render(
       <App />
     </BrowserRouter>
   </StrictMode>,
-)
+);
+
+// Active cache-buster assignment to force browser script refresh
+(window as any)._cacheBuster = "20260710-0906";
+
+

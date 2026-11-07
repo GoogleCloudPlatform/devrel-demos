@@ -169,3 +169,28 @@ func TestGetProject_NotFound(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
+
+func TestDeleteHackathon(t *testing.T) {
+	r, _ := setupRouter()
+
+	req, _ := http.NewRequest(http.MethodDelete, "/api/hackathons/1", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var res map[string]string
+	err := json.Unmarshal(w.Body.Bytes(), &res)
+	assert.NoError(t, err)
+	assert.Equal(t, "Hackathon deleted successfully", res["message"])
+}
+
+func TestDeleteHackathon_NotFound(t *testing.T) {
+	r, _ := setupRouter()
+
+	req, _ := http.NewRequest(http.MethodDelete, "/api/hackathons/invalid_id", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
