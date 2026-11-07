@@ -1,0 +1,137 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ============================================================================
+# MCP Toolbox for Databases (Option 1: Local / Self-Hosted Custom MCP Server)
+# Run locally: npx -y @toolbox-sdk/server --config mcp_toolbox/tools.yaml
+# Uses AlloyDB Go Connector + Application Default Credentials (ADC) + mTLS
+# ============================================================================
+kind: source
+name: alloydb_support
+type: alloydb-postgres
+project: ${ALLOYDB_PROJECT_ID:devfest-project}
+region: ${ALLOYDB_REGION:us-west1}
+cluster: ${ALLOYDB_CLUSTER:devfest-cluster}
+instance: ${ALLOYDB_INSTANCE:devfest-cluster-pr}
+database: ${ALLOYDB_DATABASE:support_db}
+ipType: ${ALLOYDB_IP_TYPE:public}
+# Leave user/password blank to authenticate via IAM + ADC (alloydbiamuser)
+# Or uncomment below only if using built-in PostgreSQL password auth in a lab:
+# user: ${ALLOYDB_USER}
+# password: ${ALLOYDB_PASSWORD}
+---
+kind: tool
+name: find_customer_tickets
+type: postgres-sql
+source: alloydb_support
+description: Fetch support tickets and customer tier details for a given customer_id (e.g. CUST-101).
+parameters:
+  - name: customer_id
+    type: string
+    description: Unique customer identifier such as CUST-101.
+statement: |
+  SELECT t.ticket_id, c.full_name, c.tier, c.city,
+         t.order_id, t.priority, t.status, t.issue_summary, t.resolution_note, t.created_at
+  FROM support_tickets t
+  JOIN customers c ON c.customer_id = t.customer_id
+  WHERE t.customer_id = $1
+  ORDER BY t.created_at DESC;
+---
+kind: tool
+name: list_open_high_priority_tickets
+type: postgres-sql
+source: alloydb_support
+description: List all currently OPEN or ESCALATED tickets ordered by priority and age for triage.
+parameters: []
+statement: |
+  SELECT t.ticket_id, t.customer_id, c.full_name, c.tier,
+         t.order_id, o.amount_cad, o.order_status,
+         t.priority, t.status, t.issue_summary, t.created_at
+  FROM support_tickets t
+  JOIN customers c ON c.customer_id = t.customer_id
+  LEFT JOIN orders o ON o.order_id = t.order_id
+  WHERE t.status IN ('OPEN', 'IN_PROGRESS', 'ESCALATED')
+  ORDER BY
+    CASE t.priority
+      WHEN 'CRITICAL' THEN 1
+      WHEN 'HIGH' THEN 2
+      WHEN 'MEDIUM' THEN 3
+      ELSE 4
+    END,
+    t.created_at ASC;
+---
+kind: tool
+name: get_order_details
+type: postgres-sql
+source: alloydb_support
+description: Retrieve order status, CAD amount, and customer tier for a specific order_id (e.g. ORD-9001).
+parameters:
+  - name: order_id
+    type: string
+    description: Unique order identifier such as ORD-9001.
+statement: |
+  SELECT o.order_id, o.customer_id, c.full_name, c.tier,
+         o.product_name, o.amount_cad, o.order_status, o.ordered_at
+  FROM orders o
+  JOIN customers c ON c.customer_id = o.customer_id
+  WHERE o.order_id = $1;
+---
+kind: tool
+name: search_past_resolutions
+type: postgres-sql
+source: alloydb_support
+description: Search resolved tickets matching a symptom keyword to ground troubleshooting advice.
+parameters:
+  - name: keyword
+    type: string
+    description: Symptom keyword such as sleep, hub, firmware, or keycap.
+statement: |
+  SELECT ticket_id, issue_summary, resolution_note, updated_at
+  FROM support_tickets
+  WHERE status = 'RESOLVED'
+    AND (issue_summary ILIKE '%' || $1 || '%' OR resolution_note ILIKE '%' || $1 || '%')
+  ORDER BY updated_at DESC
+  LIMIT 5;
+---
+kind: tool
+name: update_ticket_status
+type: postgres-sql
+source: alloydb_support
+description: Update a support ticket's status (IN_PROGRESS, ESCALATED, RESOLVED) and record a resolution_note.
+parameters:
+  - name: ticket_id
+    type: integer
+    description: Numeric ticket ID.
+  - name: new_status
+    type: string
+    description: Target status (IN_PROGRESS, ESCALATED, or RESOLVED).
+  - name: resolution_note
+    type: string
+    description: Auditable action summary or resolution note.
+statement: |
+  UPDATE support_tickets
+  SET status = $2,
+      resolution_note = $3,
+      updated_at = NOW()
+  WHERE ticket_id = $1
+  RETURNING ticket_id, customer_id, status, resolution_note, updated_at;
+---
+kind: toolset
+name: support_triage_toolset
+tools:
+  - find_customer_tickets
+  - list_open_high_priority_tickets
+  - get_order_details
+  - search_past_resolutions
+  - update_ticket_status
