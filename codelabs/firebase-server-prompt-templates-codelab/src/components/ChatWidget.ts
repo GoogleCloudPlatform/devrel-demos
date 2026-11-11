@@ -17,13 +17,6 @@
 import { callCustomerSupportModel } from '../firebase';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-import products from '../data/products.json';
-
-// Helper function that does a mock database look up for product details
-const getProductById = (productId: string | undefined) => {
-    if (!productId) return undefined;
-    return products.find(product => product.id === productId);
-}
 
 export class ChatWidget {
     private isOpen = false;
@@ -125,7 +118,7 @@ export class ChatWidget {
 
                 const urlParams = new URLSearchParams(window.location.search);
                 const productId = urlParams.get('product') || undefined;
-                const response = await callCustomerSupportModel(message, productId, history, getProductById(productId));
+                const response = await callCustomerSupportModel(message, productId, history);
 
                 this.messages.push({ text: response || 'Communications silent.', isUser: false });
                 this.saveState();
