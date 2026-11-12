@@ -1,0 +1,15 @@
+# One regular expression per line. tools/leak_check.py fails if any of them
+# matches a file in the public tree. Lines starting with # are comments.
+\[INTERNAL\]
+(?i)\bgoogle3\b
+\bConfidential\b
+(?<![A-Za-z0-9_./~-])go/[A-Za-z0-9][A-Za-z0-9_-]*
+(?<![A-Za-z0-9_./~-])b/[0-9]{5,}
+(?i)\bbuganizer\b
+(?i)\bjetski\b
+(?i)\bgoogleplex\b
+(?i)corp\.google\.com
+(?i)\bmoma\b
+(?i)\byaqs\b
+(?i)\bg3doc\b
+(?i)\bcider\b
