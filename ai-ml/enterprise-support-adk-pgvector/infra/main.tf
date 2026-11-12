@@ -81,12 +81,6 @@ resource "google_sql_database_instance" "knowledge_store" {
   settings {
     tier = "db-custom-4-16384"
 
-    # Database flags to activate vector performance extensions
-    database_flags {
-      name  = "cloudsql.enable_pgvector"
-      value = "on"
-    }
-
     ip_configuration {
       # In production, require private IP exclusively
       ipv4_enabled    = false
