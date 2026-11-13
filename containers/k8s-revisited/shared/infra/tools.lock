@@ -1,0 +1,8 @@
+# Written by tools-install.sh on 2026-10-19T18:33:54Z for linux/amd64
+# kubectl=v1.37.1 kind=v0.33.0 helm=v4.3.1 kwok=v0.8.0 kubeconform=v0.8.0
+https://dl.k8s.io/release/v1.37.1/bin/linux/amd64/kubectl 65691ff77eb6fa44c908b77a1082c9f092c3b9733b5cefabec0d1104890e21a8
+https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-amd64 aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d
+https://get.helm.sh/helm-v4.3.1-linux-amd64.tar.gz 0403a88ae20913d11b10a2467b50087721fea7581736da6b9d3992f5357fe54b
+https://github.com/kubernetes-sigs/kwok/releases/download/v0.8.0/kwok-linux-amd64 f5a4385a2ae1b9dd7f8acae18e002a75c0ebba124ae9d7259aa8dadb50711f46
+https://github.com/kubernetes-sigs/kwok/releases/download/v0.8.0/kwokctl-linux-amd64 d5743166c657283d6e827c7c4c20cacfd9009fd94830f06718ca7b2c7099461f
+https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz 9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883

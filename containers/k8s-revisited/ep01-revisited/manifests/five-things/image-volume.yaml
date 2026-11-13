@@ -1,0 +1,33 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Image volume (GA in 1.36): mount an OCI artifact read-only, for example model weights.
+# The artifact is the one the Kubernetes "Use an Image Volume With a Pod" task page uses.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: image-volume-demo
+  labels: {k8s-revisited/demo: image-volume}
+spec:
+  containers:
+  - name: app
+    image: busybox:1.37
+    command: ["sh", "-c", "ls -la /models; sleep infinity"]
+    volumeMounts:
+    - {name: weights, mountPath: /models, readOnly: true}
+  volumes:
+  - name: weights
+    image:
+      reference: quay.io/crio/artifact:v2
+      pullPolicy: IfNotPresent

@@ -1,0 +1,16 @@
+# Generated results stay local until they are checked and published deliberately.
+*/results/*
+!*/results/.gitkeep
+# Local environment and credentials
+shared/infra/.env
+*.kubeconfig
+kubeconfig*
+# Python
+__pycache__/
+*.pyc
+.venv/
+# Terraform
+*.tfstate
+*.tfstate.*
+# Built binaries
+/census

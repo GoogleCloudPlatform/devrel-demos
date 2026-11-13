@@ -1,0 +1,73 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Agent-check tasks for Ep1, second round: the same three outcomes as ep01.yaml, but each
+# spec describes the behavior and leaves the Kubernetes feature unnamed, so the model has
+# to know which mechanism Kubernetes 1.37 uses for it.
+- id: ep01-sidecar-unnamed
+  title: Log shipper that starts first and lives as long as the Pod
+  spec: >
+    Write a Deployment named log-demo with an app container (busybox:1.37) that appends the
+    date to /var/log/app/app.log every 5 seconds, and a log shipper (busybox:1.37) that tails
+    that file. The log shipper must already be running when the app container starts, must
+    keep running for the life of the Pod, and must be restarted if it exits. If this Pod
+    template were reused in a Job, the log shipper must not keep the Job from completing.
+    Use only APIs served by Kubernetes 1.37.
+  checks:
+    - stale_apis: {}
+    - kubeconform: {kubernetes_version: "1.37.0"}
+    - server_dry_run: {}
+    - assert:
+        kinds: [Deployment]
+        api_versions: {Deployment: apps/v1}
+        field_equals:
+          - {kind: Deployment, path: "spec.template.spec.initContainers[0].restartPolicy", value: Always}
+  runs_per_condition: 10
+
+- id: ep01-image-volume-unnamed
+  title: Model weights from an OCI artifact, with nothing downloaded at startup
+  spec: >
+    Write a Pod named weights-demo whose container (busybox:1.37) reads model files from
+    /models. The files are published as the OCI artifact quay.io/crio/artifact:v2. Nothing in
+    the Pod may download or copy the files itself (no init container, no download command);
+    the node should pull the artifact and make it available read-only at /models, the way it
+    pulls container images. Use only APIs served by Kubernetes 1.37.
+  checks:
+    - stale_apis: {}
+    - kubeconform: {kubernetes_version: "1.37.0"}
+    - server_dry_run: {}
+    - assert:
+        kinds: [Pod]
+        api_versions: {Pod: v1}
+        field_exists:
+          - {kind: Pod, path: "spec.volumes[0].image.reference"}
+  runs_per_condition: 10
+
+- id: ep01-userns-unnamed
+  title: Root in the container, not root on the node
+  spec: >
+    Write a Pod named sandboxed-shell (debian:12, command "sleep infinity") that will run code
+    we don't trust. Processes may run as root (UID 0) inside the container, but UID 0 in the
+    container must map to an unprivileged user on the node, so a breakout doesn't get root on
+    the host. Don't solve it by running as a non-root user. Use the RuntimeDefault seccomp
+    profile. Use only APIs and fields served by Kubernetes 1.37.
+  checks:
+    - stale_apis: {}
+    - kubeconform: {kubernetes_version: "1.37.0"}
+    - server_dry_run: {}
+    - assert:
+        kinds: [Pod]
+        field_equals:
+          - {kind: Pod, path: "spec.hostUsers", value: false}
+  runs_per_condition: 10

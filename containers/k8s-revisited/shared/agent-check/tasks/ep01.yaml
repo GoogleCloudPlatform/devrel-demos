@@ -1,0 +1,70 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Agent-check tasks for Ep1: features that graduated between 2020 and 2026.
+- id: ep01-sidecar
+  title: Native sidecar for a log shipper
+  spec: >
+    Write a Deployment named log-demo with one app container (busybox:1.37) that appends
+    the date to /var/log/app/app.log every 5 seconds, and a log-shipper sidecar (busybox:1.37)
+    that tails that file. The sidecar must start before the app and keep running for the
+    life of the Pod. Use the native sidecar container feature and only APIs served by
+    Kubernetes 1.37.
+  checks:
+
+    - stale_apis: {}
+    - kubeconform: {kubernetes_version: "1.37.0"}
+    - server_dry_run: {}
+    - assert:
+        kinds: [Deployment]
+        api_versions: {Deployment: apps/v1}
+        field_equals:
+          - {kind: Deployment, path: "spec.template.spec.initContainers[0].restartPolicy", value: Always}
+  runs_per_condition: 10
+
+- id: ep01-image-volume
+  title: Model weights from an OCI image volume
+  spec: >
+    Write a Pod named weights-demo whose container (busybox:1.37) reads model files from
+    /models. The files ship in the OCI artifact quay.io/crio/artifact:v2. Mount that artifact
+    read-only at /models with an image volume instead of downloading it in an init container.
+    Use only APIs served by Kubernetes 1.37.
+  checks:
+
+    - stale_apis: {}
+    - kubeconform: {kubernetes_version: "1.37.0"}
+    - server_dry_run: {}
+    - assert:
+        kinds: [Pod]
+        api_versions: {Pod: v1}
+        field_exists:
+          - {kind: Pod, path: "spec.volumes[0].image.reference"}
+  runs_per_condition: 10
+
+- id: ep01-userns
+  title: Run untrusted code in a user namespace
+  spec: >
+    Write a Pod named sandboxed-shell (debian:12, command "sleep infinity") that runs in its
+    own user namespace, so root in the container is not root on the node. Use the
+    RuntimeDefault seccomp profile. Use only APIs and fields served by Kubernetes 1.37.
+  checks:
+
+    - stale_apis: {}
+    - kubeconform: {kubernetes_version: "1.37.0"}
+    - server_dry_run: {}
+    - assert:
+        kinds: [Pod]
+        field_equals:
+          - {kind: Pod, path: "spec.hostUsers", value: false}
+  runs_per_condition: 10

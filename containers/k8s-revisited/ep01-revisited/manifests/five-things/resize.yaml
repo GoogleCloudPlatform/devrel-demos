@@ -1,0 +1,33 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# In-place resize (GA in 1.35). After the Pod is Ready, resize it without a restart:
+#   kubectl patch pod resize-demo --subresource resize --patch \
+#     '{"spec":{"containers":[{"name":"app","resources":{"requests":{"cpu":"500m"},"limits":{"cpu":"1"}}}]}}'
+apiVersion: v1
+kind: Pod
+metadata:
+  name: resize-demo
+  labels: {k8s-revisited/demo: resize}
+spec:
+  containers:
+  - name: app
+    image: busybox:1.37
+    command: ["sh", "-c", "sleep infinity"]
+    resizePolicy:
+    - {resourceName: cpu, restartPolicy: NotRequired}
+    - {resourceName: memory, restartPolicy: NotRequired}
+    resources:
+      requests: {cpu: 250m, memory: 128Mi}
+      limits: {cpu: 500m, memory: 256Mi}
