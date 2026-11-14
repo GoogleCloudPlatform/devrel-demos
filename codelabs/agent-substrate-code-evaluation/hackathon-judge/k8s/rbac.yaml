@@ -1,0 +1,90 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: hackathon-judge
+  name: judge-actor-manager
+rules:
+- apiGroups: ["ate.dev"]
+  resources: ["actors", "actortemplates", "workerpools", "egresspolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["pods", "pods/exec", "services"]
+  verbs: ["get", "list", "watch", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: judge-actor-manager-binding
+  namespace: hackathon-judge
+subjects:
+- kind: ServiceAccount
+  name: hackathon-judge-sa
+  namespace: hackathon-judge
+roleRef:
+  kind: Role
+  name: judge-actor-manager
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hackathon-judge-ate-client
+  namespace: ate-system
+rules:
+- apiGroups: [""]
+  resources: ["serviceaccounts/token"]
+  resourceNames: ["ate-client"]
+  verbs: ["create"]
+- apiGroups: ["discovery.k8s.io"]
+  resources: ["endpointslices"]
+  verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hackathon-judge-ate-client-binding
+  namespace: ate-system
+subjects:
+- kind: ServiceAccount
+  name: hackathon-judge-sa
+  namespace: hackathon-judge
+roleRef:
+  kind: Role
+  name: hackathon-judge-ate-client
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: hackathon-judge-trust-bundles
+rules:
+- apiGroups: ["certificates.k8s.io"]
+  resources: ["clustertrustbundles"]
+  verbs: ["list", "get", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: hackathon-judge-trust-bundles-binding
+subjects:
+- kind: ServiceAccount
+  name: hackathon-judge-sa
+  namespace: hackathon-judge
+roleRef:
+  kind: ClusterRole
+  name: hackathon-judge-trust-bundles
+  apiGroup: rbac.authorization.k8s.io
