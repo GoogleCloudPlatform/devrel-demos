@@ -12,9 +12,7 @@ The assessment uses:
 
 ## Demo
 
-<video src="assets/charm-demo.mp4" controls muted playsinline width="100%"></video>
-
-> If your Markdown viewer does not render `<video>` inline, open [`assets/charm-demo.mp4`](assets/charm-demo.mp4) directly.
+![CHARM App Walkthrough](assets/charm-demo.gif)
 
 ---
 
