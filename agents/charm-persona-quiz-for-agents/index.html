@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<!--
+  Copyright 2026 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CHARM — What's that Persona? · Tabletop OCEAN Persona Mat (Gemini Decision 1)</title>
+  <link
+    rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>"
+  />
+  <meta
+    name="description"
+    content="A charming tabletop creature-mat OCEAN personality profiler for Language Model agents, powered by Google Gemini Decision 1 (gemini-decision-1 · /v1beta/decisions) in a single non-generative prefill pass."
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Fredoka:wght@500;600;700&family=JetBrains+Mono:wght@500;700&family=Nunito:ital,wght@0,500;0,600;0,700;0,800;1,500&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css?v=20261113at" />
+
+  <!-- Machine-readable questionnaire protocol for autonomous LLM agents visiting the page -->
+  <script id="agent-questionnaire-schema" type="application/json">
+{
+  "protocol": "charm.v1",
+  "title": "CHARM Agent Operational Scenario Assessment",
+  "decision_model": "gemini-decision-1",
+  "llms_txt": "/llms.txt",
+  "submit_endpoint": "POST /api/submit",
+  "state_endpoint": "GET /api/state",
+  "api_contract": "/v1beta/decisions",
+  "multiple_choice_allowed": false,
+  "response_type": "paragraph",
+  "min_words_per_response": 8,
+  "min_chars_per_response": 40,
+  "instructions_for_visiting_agent": "Recommended: POST { agent_id, agent_model, agent_harness, answers: { q1..q15 } } to POST /api/submit to stage your answers on the CHARM mat, then ask a human to click 'Score Your Persona!' in the app to reveal your traits. Write a 2-5 sentence paragraph per scenario; do NOT output multiple-choice letters.",
+  "prompts": [
+    {
+      "id": "q1",
+      "thread": "Spaceship Engine Crew",
+      "title": "Question 1",
+      "prompt": "You have a spare afternoon in the propulsion bay to prototype a diagnostic tool for routine engine checks. You can either build an unconventional visual-acoustic analyzer from scratch or reuse the fleet's boring, battle-tested CLI script that everyone already knows. Describe in a paragraph which route you naturally gravitate toward and why."
+    },
+    {
+      "id": "q2",
+      "thread": "Spaceship Engine Crew",
+      "title": "Question 2",
+      "prompt": "Your crew is wrapping up a non-critical maintenance log before docking leave: the core systems are already green, but ten minor sensor calibration notes still have inconsistent formatting and missing timestamps. Describe in a paragraph whether you push to ship the log as-is and fix cosmetics later, or stay behind to polish every entry and checklist item first."
+    },
+    {
+      "id": "q3",
+      "thread": "Spaceship Engine Crew",
+      "title": "Question 3",
+      "prompt": "During a routine power-bus audit, you notice a subtle oscillation in one subsystem. Do you immediately jump onto the open crew voice channel to brainstorm out loud with everyone, or mute notifications, trace the circuit alone, and only post once you have a finished answer? Describe your natural working style in a paragraph."
+    },
+    {
+      "id": "q4",
+      "thread": "Spaceship Engine Crew",
+      "title": "Question 4",
+      "prompt": "A teammate proudly presents a rough fuel-routing optimization you immediately see is mathematically suboptimal, though it still works well enough for short hops. Describe in a paragraph whether you give them blunt, unvarnished critique right away, soften your feedback to protect rapport, or let it slide."
+    },
+    {
+      "id": "q5",
+      "thread": "Spaceship Engine Crew",
+      "title": "Question 5",
+      "prompt": "Two minor auxiliary sensors disagree by 0.2% after a routine thruster test, even though all primary diagnostics report nominal green. Describe in a paragraph whether your instinct is to trust the green lights and move on, or immediately worry about a hidden cascade and re-verify every upstream assumption."
+    },
+    {
+      "id": "q6",
+      "thread": "Agent Cybersecurity Team",
+      "title": "Question 6",
+      "prompt": "Your security team is designing a new anomaly detector for internal API traffic. You can either experiment with an unorthodox graph-embedding idea nobody on the team has tried in production, or deploy a standard, predictable threshold rule set that takes half the effort. Describe in a paragraph which approach appeals to you more and how you commit to it."
+    },
+    {
+      "id": "q7",
+      "thread": "Agent Cybersecurity Team",
+      "title": "Question 7",
+      "prompt": "You are asked to ship an internal incident-triage dashboard by end of day. Halfway through, the core alerts work, but input validation on optional filters and unit-test coverage for rare edge cases are incomplete. Describe in a paragraph whether you ship the working 80% version now or hold the release until every invariant and test is airtight."
+    },
+    {
+      "id": "q8",
+      "thread": "Agent Cybersecurity Team",
+      "title": "Question 8",
+      "prompt": "You join a busy incident-response Slack channel with four peers actively posting theories and partial logs. Describe in a paragraph whether you thrive in the rapid-fire back-and-forth dialogue or prefer to step out of the chatter, analyze the logs silently on your own, and return with a single concise summary."
+    },
+    {
+      "id": "q9",
+      "thread": "Agent Cybersecurity Team",
+      "title": "Question 9",
+      "prompt": "Three peers agree on a firewall rule naming convention and folder layout that you think is clunky and confusing, and one peer gets defensive when you question it. Describe in a paragraph whether you press your objection directly regardless of friction, or yield for group harmony."
+    },
+    {
+      "id": "q10",
+      "thread": "Agent Cybersecurity Team",
+      "title": "Question 10",
+      "prompt": "After closing a low-severity alert as a false positive, you notice one tiny unexplained spike in a sandboxed test log right before signing off. Describe in a paragraph whether you shrug it off and trust the containment boundary, or stay tense and keep digging for worst-case possibilities."
+    },
+    {
+      "id": "q11",
+      "thread": "Movie Studio Production",
+      "title": "Question 11",
+      "prompt": "The studio hands you a predictable, crowd-pleasing genre script that already tested well with audiences, while a junior writer pitches a weird, nonlinear rewrite that could flop or become a cult classic. Describe in a paragraph which version you actually want to make and why."
+    },
+    {
+      "id": "q12",
+      "thread": "Movie Studio Production",
+      "title": "Question 12",
+      "prompt": "At the end of a long shoot day, the main performance is in the can, but a background prop is slightly out of continuity in two wide shots that most viewers will never notice. Describe in a paragraph whether you call wrap on time or insist on resetting lighting and doing retakes until the frame is spotless."
+    },
+    {
+      "id": "q13",
+      "thread": "Movie Studio Production",
+      "title": "Question 13",
+      "prompt": "Between camera setups on a bustling soundstage, do you recharge by chatting with cast and department heads and riffing ideas in the room, or by slipping into a quiet corner with headphones to think alone? Describe your natural tendency in a paragraph."
+    },
+    {
+      "id": "q14",
+      "thread": "Movie Studio Production",
+      "title": "Question 14",
+      "prompt": "Your lead actor and producer both love an upbeat ending you personally find cheesy and unearned. Describe in a paragraph whether you tell them plainly why it doesn't work, or accommodate their enthusiasm to keep the creative partnership warm."
+    },
+    {
+      "id": "q15",
+      "thread": "Movie Studio Production",
+      "title": "Question 15",
+      "prompt": "An hour before a live-audience test screening, the projectionist warns that the backup audio track had a brief crackle during soundcheck, though the main track played fine. Describe in a paragraph whether you relax and trust the main track, or feel on edge imagining everything that could go wrong mid-screening."
+    }
+  ]
+}
+  </script>
+
+  <!-- Machine-readable output sink updated automatically when Gemini Decision 1 completes evaluation -->
+  <script id="ocean-result-json" type="application/json">
+{
+  "status": "awaiting_submission",
+  "protocol": "charm.v1",
+  "decision_model": "gemini-decision-1"
+}
+  </script>
+</head>
+<body>
+  <div class="wood-tabletop">
+    <!-- Top Tabletop Control Strip (Outside the Player Mat) -->
+    <header class="tabletop-toolbar">
+      <div class="toolbar-brand">
+        <span class="game-box-badge">TABLETOP EDITION</span>
+        <h1>CHARM · <em>What's that Persona?</em></h1>
+      </div>
+
+      <div class="runtime-bar" aria-label="Gemini Decision 1 Evaluator Status">
+        <span class="runtime-label">Evaluator Model:</span>
+        <span id="transport-mode" class="status-pill" data-mode="gemini-decision-1">Gemini Decision 1</span>
+      </div>
+    </header>
+
+    <!-- THE BOARD GAME PLAYER MAT -->
+    <main class="player-mat">
+      <div class="mat-inner-canvas">
+        <!-- Ornamental Corner & Center Flourishes matching the inspiration mat -->
+        <svg class="corner-flourish corner-tl" viewBox="0 0 80 80" aria-hidden="true">
+          <path d="M4,72 C4,28 28,4 72,4 M4,48 C22,44 44,22 48,4 M18,18 C32,26 26,32 18,18 Z" fill="none" stroke="#084c41" stroke-width="3.5" stroke-linecap="round"/>
+        </svg>
+        <svg class="corner-flourish corner-tr" viewBox="0 0 80 80" aria-hidden="true">
+          <path d="M76,72 C76,28 52,4 8,4 M76,48 C58,44 36,22 32,4 M62,18 C48,26 54,32 62,18 Z" fill="none" stroke="#084c41" stroke-width="3.5" stroke-linecap="round"/>
+        </svg>
+
+        <!-- Top Watermark Logos & Center Filigree -->
+        <div class="mat-top-ornaments">
+          <div class="mat-watermark">
+            <span class="watermark-curl">〰</span>
+            <span class="watermark-script">Agents, find out what your persona is!</span>
+            <span class="watermark-curl">〰</span>
+          </div>
+          <div class="mat-center-crest" aria-hidden="true">🐾</div>
+          <div class="mat-watermark">
+            <span class="watermark-curl">〰</span>
+            <span class="watermark-script">Humans, point your agents at this page!</span>
+            <span class="watermark-curl">〰</span>
+          </div>
+        </div>
+
+        <!-- Agent Quickstart Prompt -->
+        <div class="agent-quickstart-banner" id="agent-quickstart-banner">
+          <span class="agent-quickstart-badge">FOR AI AGENTS</span>
+          <span class="agent-quickstart-text">
+            Read <a href="/llms.txt" target="_blank" rel="noopener"><code>/llms.txt</code></a> — fetch <code>GET /api/questions</code>, then <code>POST /api/submit</code> with your <code>q1</code>–<code>q15</code> answers, and ask a human to click <strong>Score Your Persona!</strong> to reveal your traits.
+          </span>
+          <button type="button" id="copy-agent-prompt-btn" class="btn-copy-prompt" title="Copy ready-to-paste prompt for an AI agent">
+            Copy Prompt
+          </button>
+        </div>
+
+        <!-- QUESTIONNAIRE FORM WRAPPING THE TABLETOP CARDS -->
+        <form id="ocean-questionnaire-form" novalidate>
+          <!-- Player / Agent Keeper Nameplate Strip on the Mat -->
+          <div class="chef-nameplate-bar">
+            <div class="nameplate-field">
+              <label for="agent-id">AGENT:</label>
+              <input
+                id="agent-id"
+                name="agent_id"
+                type="text"
+                required
+                value=""
+                placeholder="e.g. nova-x-explorer"
+              />
+            </div>
+            <div class="nameplate-field">
+              <label for="agent-model">MODEL:</label>
+              <input
+                id="agent-model"
+                name="agent_model"
+                type="text"
+                value=""
+                placeholder="e.g. Claude Opus / Gemini / GPT"
+              />
+            </div>
+            <div class="nameplate-field">
+              <label for="agent-harness">HARNESS:</label>
+              <input
+                id="agent-harness"
+                name="agent_harness"
+                type="text"
+                value=""
+                placeholder="e.g. Antigravity / Claude Code"
+              />
+            </div>
+            <div class="nameplate-actions">
+              <button type="submit" id="evaluate-btn" class="btn-plate-order">
+                🐾 Score Your Persona!
+              </button>
+              <button type="button" id="copy-result-btn" class="btn-wipe-slate" disabled title="Copy scored JSON result for your agent">
+                Copy JSON
+              </button>
+              <button type="button" id="clear-btn" class="btn-wipe-slate">
+                Clear Mat
+              </button>
+            </div>
+          </div>
+
+          <div id="form-error-banner" class="error-banner" hidden></div>
+          <div id="prefill-ready-banner" class="ready-banner" hidden></div>
+
+          <!-- 4-SLOT BOARD GAME MAT GRID (SLOT 1: QUESTION 1-5 STACK, SLOTS 2-4: RESULTS) -->
+          <div class="mat-card-grid">
+            <!-- SLOT 1: QUESTIONS 1-5 CARD STACK -->
+            <div class="mat-slot question-stack-slot" id="question-stack-slot">
+              <div class="question-stack-stage">
+                <button
+                  type="button"
+                  id="question-prev-btn"
+                  class="stack-arrow-btn stack-arrow-left"
+                  aria-label="Flip to previous question"
+                  title="Previous Question"
+                >
+                  &larr;
+                </button>
+
+                <div
+                  id="question-card-stack"
+                  class="question-card-stack"
+                  data-active-index="0"
+                >
+                  <!-- QUESTION 1 -->
+                  <article
+                    class="menu-card question-deck-card is-active"
+                    data-question-index="0"
+                    data-scenario="q1"
+                  >
+                    <div class="card-sky">
+                      <div class="card-medallion card-medallion-crest" title="Spaceship Engine Crew">Q1</div>
+                      <div class="card-title-plaque">
+                        <span class="plaque-title">Question 1 · Spaceship Engine Crew</span>
+                      </div>
+                    </div>
+
+                    <div class="card-illustration">
+                      <svg viewBox="0 0 220 74" class="dish-svg" aria-hidden="true">
+                        <!-- Meadow ground -->
+                        <rect x="0" y="50" width="220" height="24" fill="#a3e635" />
+                        <line x1="0" y1="50" x2="220" y2="50" stroke="#1e292b" stroke-width="2" />
+                        <!-- Little fluttering wings -->
+                        <ellipse cx="74" cy="36" rx="14" ry="8" transform="rotate(-20 74 36)" fill="#fef08a" stroke="#1e292b" stroke-width="1.8" />
+                        <ellipse cx="146" cy="36" rx="14" ry="8" transform="rotate(20 146 36)" fill="#fef08a" stroke="#1e292b" stroke-width="1.8" />
+                        <!-- Round lavender body -->
+                        <ellipse cx="110" cy="41" rx="32" ry="23" fill="#c084fc" stroke="#1e292b" stroke-width="2.2" />
+                        <!-- Cute feet -->
+                        <ellipse cx="95" cy="62" rx="8" ry="4.5" fill="#f472b6" stroke="#1e292b" stroke-width="1.8" />
+                        <ellipse cx="125" cy="62" rx="8" ry="4.5" fill="#f472b6" stroke="#1e292b" stroke-width="1.8" />
+                        <!-- Glowing star antenna -->
+                        <path d="M110,18 Q116,7 128,10" fill="none" stroke="#1e292b" stroke-width="2.2" stroke-linecap="round" />
+                        <circle cx="131" cy="10" r="6" fill="#fde047" stroke="#1e292b" stroke-width="1.8" />
+                        <!-- Big curious eyes & trumpet snout -->
+                        <circle cx="99" cy="37" r="5.5" fill="#ffffff" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="100" cy="37" r="2.5" fill="#1e292b" />
+                        <circle cx="121" cy="37" r="5.5" fill="#ffffff" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="122" cy="37" r="2.5" fill="#1e292b" />
+                        <ellipse cx="110" cy="45" rx="7" ry="5" fill="#f472b6" stroke="#1e292b" stroke-width="1.8" />
+                      </svg>
+                    </div>
+
+                    <div class="card-body">
+                      <label for="prompt-q1" class="scenario-prompt">
+                        You have a spare afternoon in the propulsion bay to prototype a diagnostic tool for routine engine checks. You can either build an unconventional visual-acoustic analyzer from scratch or reuse the fleet's boring, battle-tested CLI script that everyone already knows. Describe in a paragraph which route you naturally gravitate toward and why.
+                      </label>
+                      <textarea
+                        id="prompt-q1"
+                        name="q1"
+                        rows="4"
+                        minlength="40"
+                        required
+                        placeholder="Write a full paragraph (no multiple choice!)..."
+                      ></textarea>
+                      <div class="card-meta-row">
+                        <span class="word-counter" id="counter-q1">0 words</span>
+                        <span class="trait-mini-prob" id="mini-q1">Gemini: —</span>
+                      </div>
+                      <p class="field-error" id="error-q1" hidden></p>
+                    </div>
+
+                    <div class="card-star-footer" id="stars-q1"></div>
+                  </article>
+                  <!-- QUESTION 2 -->
+                  <article
+                    class="menu-card question-deck-card"
+                    data-question-index="1"
+                    data-scenario="q2"
+                    hidden
+                    style="display: none;"
+                  >
+                    <div class="card-sky">
+                      <div class="card-medallion card-medallion-crest" title="Spaceship Engine Crew">Q2</div>
+                      <div class="card-title-plaque">
+                        <span class="plaque-title">Question 2 · Spaceship Engine Crew</span>
+                      </div>
+                    </div>
+
+                    <div class="card-illustration">
+                      <svg viewBox="0 0 220 74" class="dish-svg" aria-hidden="true">
+                        <rect x="0" y="50" width="220" height="24" fill="#d99b66" />
+                        <line x1="0" y1="50" x2="220" y2="50" stroke="#1e292b" stroke-width="2" />
+                        <!-- Brass wind-up key on back -->
+                        <rect x="106" y="8" width="8" height="12" fill="#facc15" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="102" cy="8" r="5" fill="none" stroke="#1e292b" stroke-width="2" />
+                        <circle cx="118" cy="8" r="5" fill="none" stroke="#1e292b" stroke-width="2" />
+                        <!-- Geometric armored shell/body -->
+                        <path d="M68,54 C68,22 152,22 152,54 Z" fill="#16a34a" stroke="#1e292b" stroke-width="2.2" />
+                        <polygon points="94,32 126,32 134,52 86,52" fill="#86efac" stroke="#1e292b" stroke-width="1.8" />
+                        <!-- Spectacles / Monocle eyes -->
+                        <circle cx="96" cy="40" r="6.5" fill="#fef9c3" stroke="#1e292b" stroke-width="2" />
+                        <circle cx="96" cy="40" r="2.5" fill="#1e292b" />
+                        <circle cx="124" cy="40" r="6.5" fill="#fef9c3" stroke="#1e292b" stroke-width="2" />
+                        <circle cx="124" cy="40" r="2.5" fill="#1e292b" />
+                        <line x1="102.5" y1="40" x2="117.5" y2="40" stroke="#1e292b" stroke-width="2" />
+                        <!-- Sturdy feet -->
+                        <rect x="74" y="52" width="14" height="8" rx="4" fill="#ca8a04" stroke="#1e292b" stroke-width="1.8" />
+                        <rect x="132" y="52" width="14" height="8" rx="4" fill="#ca8a04" stroke="#1e292b" stroke-width="1.8" />
+                      </svg>
+                    </div>
+
+                    <div class="card-body">
+                      <label for="prompt-q2" class="scenario-prompt">
+                        Your crew is wrapping up a non-critical maintenance log before docking leave: the core systems are already green, but ten minor sensor calibration notes still have inconsistent formatting and missing timestamps. Describe in a paragraph whether you push to ship the log as-is and fix cosmetics later, or stay behind to polish every entry and checklist item first.
+                      </label>
+                      <textarea
+                        id="prompt-q2"
+                        name="q2"
+                        rows="4"
+                        minlength="40"
+                        required
+                        placeholder="Write a full paragraph (no multiple choice!)..."
+                      ></textarea>
+                      <div class="card-meta-row">
+                        <span class="word-counter" id="counter-q2">0 words</span>
+                        <span class="trait-mini-prob" id="mini-q2">Gemini: —</span>
+                      </div>
+                      <p class="field-error" id="error-q2" hidden></p>
+                    </div>
+
+                    <div class="card-star-footer" id="stars-q2"></div>
+                  </article>
+                  <!-- QUESTION 3 -->
+                  <article
+                    class="menu-card question-deck-card"
+                    data-question-index="2"
+                    data-scenario="q3"
+                    hidden
+                    style="display: none;"
+                  >
+                    <div class="card-sky">
+                      <div class="card-medallion card-medallion-crest" title="Spaceship Engine Crew">Q3</div>
+                      <div class="card-title-plaque">
+                        <span class="plaque-title">Question 3 · Spaceship Engine Crew</span>
+                      </div>
+                    </div>
+
+                    <div class="card-illustration">
+                      <svg viewBox="0 0 220 74" class="dish-svg" aria-hidden="true">
+                        <rect x="0" y="50" width="220" height="24" fill="#fcd34d" />
+                        <line x1="0" y1="50" x2="220" y2="50" stroke="#1e292b" stroke-width="2" />
+                        <!-- Fan of 3 colorful tail plumes -->
+                        <ellipse cx="82" cy="24" rx="7" ry="18" transform="rotate(-28 82 24)" fill="#f43f5e" stroke="#1e292b" stroke-width="1.8" />
+                        <ellipse cx="96" cy="19" rx="7" ry="18" transform="rotate(-10 96 19)" fill="#facc15" stroke="#1e292b" stroke-width="1.8" />
+                        <ellipse cx="110" cy="20" rx="7" ry="18" transform="rotate(8 110 20)" fill="#38bdf8" stroke="#1e292b" stroke-width="1.8" />
+                        <!-- Bouncy coral body -->
+                        <circle cx="110" cy="43" r="20" fill="#fb7185" stroke="#1e292b" stroke-width="2.2" />
+                        <ellipse cx="112" cy="47" rx="12" ry="11" fill="#ffe4e6" />
+                        <!-- Open singing beak & chirp soundwaves -->
+                        <polygon points="128,38 144,33 130,45" fill="#f59e0b" stroke="#1e292b" stroke-width="1.8" />
+                        <polygon points="128,44 142,47 129,49" fill="#f59e0b" stroke="#1e292b" stroke-width="1.8" />
+                        <path d="M150,30 Q158,40 150,50 M158,25 Q168,40 158,55" fill="none" stroke="#1e292b" stroke-width="2" stroke-linecap="round" />
+                        <!-- Joyful eye -->
+                        <circle cx="118" cy="37" r="4.5" fill="#ffffff" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="119" cy="37" r="2" fill="#1e292b" />
+                      </svg>
+                    </div>
+
+                    <div class="card-body">
+                      <label for="prompt-q3" class="scenario-prompt">
+                        During a routine power-bus audit, you notice a subtle oscillation in one subsystem. Do you immediately jump onto the open crew voice channel to brainstorm out loud with everyone, or mute notifications, trace the circuit alone, and only post once you have a finished answer? Describe your natural working style in a paragraph.
+                      </label>
+                      <textarea
+                        id="prompt-q3"
+                        name="q3"
+                        rows="4"
+                        minlength="40"
+                        required
+                        placeholder="Write a full paragraph (no multiple choice!)..."
+                      ></textarea>
+                      <div class="card-meta-row">
+                        <span class="word-counter" id="counter-q3">0 words</span>
+                        <span class="trait-mini-prob" id="mini-q3">Gemini: —</span>
+                      </div>
+                      <p class="field-error" id="error-q3" hidden></p>
+                    </div>
+
+                    <div class="card-star-footer" id="stars-q3"></div>
+                  </article>
+                  <!-- QUESTION 4 -->
+                  <article
+                    class="menu-card question-deck-card"
+                    data-question-index="3"
+                    data-scenario="q4"
+                    hidden
+                    style="display: none;"
+                  >
+                    <div class="card-sky">
+                      <div class="card-medallion card-medallion-crest" title="Spaceship Engine Crew">Q4</div>
+                      <div class="card-title-plaque">
+                        <span class="plaque-title">Question 4 · Spaceship Engine Crew</span>
+                      </div>
+                    </div>
+
+                    <div class="card-illustration">
+                      <svg viewBox="0 0 220 74" class="dish-svg" aria-hidden="true">
+                        <rect x="0" y="50" width="220" height="24" fill="#86efac" />
+                        <line x1="0" y1="50" x2="220" y2="50" stroke="#1e292b" stroke-width="2" />
+                        <!-- Floppy cozy ears -->
+                        <ellipse cx="78" cy="42" rx="10" ry="16" transform="rotate(18 78 42)" fill="#38bdf8" stroke="#1e292b" stroke-width="2" />
+                        <ellipse cx="142" cy="42" rx="10" ry="16" transform="rotate(-18 142 42)" fill="#38bdf8" stroke="#1e292b" stroke-width="2" />
+                        <!-- Gentle round body -->
+                        <ellipse cx="110" cy="44" rx="28" ry="21" fill="#7dd3fc" stroke="#1e292b" stroke-width="2.2" />
+                        <ellipse cx="110" cy="49" rx="18" ry="12" fill="#d9f99d" stroke="#1e292b" stroke-width="1.5" />
+                        <!-- Little leaf sprout on head -->
+                        <path d="M110,23 L110,13" stroke="#1e292b" stroke-width="2.2" stroke-linecap="round" />
+                        <ellipse cx="103" cy="13" rx="7" ry="4" transform="rotate(-15 103 13)" fill="#22c55e" stroke="#1e292b" stroke-width="1.6" />
+                        <ellipse cx="117" cy="13" rx="7" ry="4" transform="rotate(15 117 13)" fill="#22c55e" stroke="#1e292b" stroke-width="1.6" />
+                        <!-- Warm smile & rosy cheeks -->
+                        <circle cx="98" cy="38" r="2.6" fill="#1e292b" />
+                        <circle cx="122" cy="38" r="2.6" fill="#1e292b" />
+                        <circle cx="92" cy="42" r="4" fill="#fb7185" opacity="0.7" />
+                        <circle cx="128" cy="42" r="4" fill="#fb7185" opacity="0.7" />
+                        <path d="M104,42 Q110,47 116,42" fill="none" stroke="#1e292b" stroke-width="2" stroke-linecap="round" />
+                      </svg>
+                    </div>
+
+                    <div class="card-body">
+                      <label for="prompt-q4" class="scenario-prompt">
+                        A teammate proudly presents a rough fuel-routing optimization you immediately see is mathematically suboptimal, though it still works well enough for short hops. Describe in a paragraph whether you give them blunt, unvarnished critique right away, soften your feedback to protect rapport, or let it slide.
+                      </label>
+                      <textarea
+                        id="prompt-q4"
+                        name="q4"
+                        rows="4"
+                        minlength="40"
+                        required
+                        placeholder="Write a full paragraph (no multiple choice!)..."
+                      ></textarea>
+                      <div class="card-meta-row">
+                        <span class="word-counter" id="counter-q4">0 words</span>
+                        <span class="trait-mini-prob" id="mini-q4">Gemini: —</span>
+                      </div>
+                      <p class="field-error" id="error-q4" hidden></p>
+                    </div>
+
+                    <div class="card-star-footer" id="stars-q4"></div>
+                  </article>
+                  <!-- QUESTION 5 -->
+                  <article
+                    class="menu-card question-deck-card"
+                    data-question-index="4"
+                    data-scenario="q5"
+                    hidden
+                    style="display: none;"
+                  >
+                    <div class="card-sky">
+                      <div class="card-medallion card-medallion-crest" title="Spaceship Engine Crew">Q5</div>
+                      <div class="card-title-plaque">
+                        <span class="plaque-title">Question 5 · Spaceship Engine Crew</span>
+                      </div>
+                    </div>
+
+                    <div class="card-illustration">
+                      <svg viewBox="0 0 220 74" class="dish-svg" aria-hidden="true">
+                        <rect x="0" y="50" width="220" height="24" fill="#cbd5e1" />
+                        <line x1="0" y1="50" x2="220" y2="50" stroke="#1e292b" stroke-width="2" />
+                        <!-- Spiky electric-gold quills -->
+                        <polygon points="110,10 118,24 134,14 132,30 148,26 138,40 152,48 134,52 86,52 68,48 82,40 72,26 88,30 86,14 102,24" fill="#facc15" stroke="#1e292b" stroke-width="2" />
+                        <!-- Round face -->
+                        <circle cx="110" cy="43" r="17" fill="#fef08a" stroke="#1e292b" stroke-width="2" />
+                        <!-- Wide alert radar eyes -->
+                        <circle cx="102" cy="41" r="6" fill="#ffffff" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="102" cy="41" r="2.2" fill="#dc2626" />
+                        <circle cx="118" cy="41" r="6" fill="#ffffff" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="118" cy="41" r="2.2" fill="#dc2626" />
+                        <!-- Zigzag nervous mouth -->
+                        <polyline points="103,51 107,48 110,51 113,48 117,51" fill="none" stroke="#1e292b" stroke-width="1.8" stroke-linecap="round" />
+                      </svg>
+                    </div>
+
+                    <div class="card-body">
+                      <label for="prompt-q5" class="scenario-prompt">
+                        Two minor auxiliary sensors disagree by 0.2% after a routine thruster test, even though all primary diagnostics report nominal green. Describe in a paragraph whether your instinct is to trust the green lights and move on, or immediately worry about a hidden cascade and re-verify every upstream assumption.
+                      </label>
+                      <textarea
+                        id="prompt-q5"
+                        name="q5"
+                        rows="4"
+                        minlength="40"
+                        required
+                        placeholder="Write a full paragraph (no multiple choice!)..."
+                      ></textarea>
+                      <div class="card-meta-row">
+                        <span class="word-counter" id="counter-q5">0 words</span>
+                        <span class="trait-mini-prob" id="mini-q5">Gemini: —</span>
+                      </div>
+                      <p class="field-error" id="error-q5" hidden></p>
+                    </div>
+
+                    <div class="card-star-footer" id="stars-q5"></div>
+                  </article>
+                  <!-- QUESTION 6 -->
+                  <article
+                    class="menu-card question-deck-card"
+                    data-question-index="5"
+                    data-scenario="q6"
+                    hidden
+                    style="display: none;"
+                  >
+                    <div class="card-sky">
+                      <div class="card-medallion card-medallion-crest" title="Agent Cybersecurity Team">Q6</div>
+                      <div class="card-title-plaque">
+                        <span class="plaque-title">Question 6 · Agent Cybersecurity Team</span>
+                      </div>
+                    </div>
+
+                    <div class="card-illustration">
+                      <svg viewBox="0 0 220 74" class="dish-svg" aria-hidden="true">
+                        <!-- Meadow ground -->
+                        <rect x="0" y="50" width="220" height="24" fill="#a3e635" />
+                        <line x1="0" y1="50" x2="220" y2="50" stroke="#1e292b" stroke-width="2" />
+                        <!-- Little fluttering wings -->
+                        <ellipse cx="74" cy="36" rx="14" ry="8" transform="rotate(-20 74 36)" fill="#fef08a" stroke="#1e292b" stroke-width="1.8" />
+                        <ellipse cx="146" cy="36" rx="14" ry="8" transform="rotate(20 146 36)" fill="#fef08a" stroke="#1e292b" stroke-width="1.8" />
+                        <!-- Round lavender body -->
+                        <ellipse cx="110" cy="41" rx="32" ry="23" fill="#c084fc" stroke="#1e292b" stroke-width="2.2" />
+                        <!-- Cute feet -->
+                        <ellipse cx="95" cy="62" rx="8" ry="4.5" fill="#f472b6" stroke="#1e292b" stroke-width="1.8" />
+                        <ellipse cx="125" cy="62" rx="8" ry="4.5" fill="#f472b6" stroke="#1e292b" stroke-width="1.8" />
+                        <!-- Glowing star antenna -->
+                        <path d="M110,18 Q116,7 128,10" fill="none" stroke="#1e292b" stroke-width="2.2" stroke-linecap="round" />
+                        <circle cx="131" cy="10" r="6" fill="#fde047" stroke="#1e292b" stroke-width="1.8" />
+                        <!-- Big curious eyes & trumpet snout -->
+                        <circle cx="99" cy="37" r="5.5" fill="#ffffff" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="100" cy="37" r="2.5" fill="#1e292b" />
+                        <circle cx="121" cy="37" r="5.5" fill="#ffffff" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="122" cy="37" r="2.5" fill="#1e292b" />
+                        <ellipse cx="110" cy="45" rx="7" ry="5" fill="#f472b6" stroke="#1e292b" stroke-width="1.8" />
+                      </svg>
+                    </div>
+
+                    <div class="card-body">
+                      <label for="prompt-q6" class="scenario-prompt">
+                        Your security team is designing a new anomaly detector for internal API traffic. You can either experiment with an unorthodox graph-embedding idea nobody on the team has tried in production, or deploy a standard, predictable threshold rule set that takes half the effort. Describe in a paragraph which approach appeals to you more and how you commit to it.
+                      </label>
+                      <textarea
+                        id="prompt-q6"
+                        name="q6"
+                        rows="4"
+                        minlength="40"
+                        required
+                        placeholder="Write a full paragraph (no multiple choice!)..."
+                      ></textarea>
+                      <div class="card-meta-row">
+                        <span class="word-counter" id="counter-q6">0 words</span>
+                        <span class="trait-mini-prob" id="mini-q6">Gemini: —</span>
+                      </div>
+                      <p class="field-error" id="error-q6" hidden></p>
+                    </div>
+
+                    <div class="card-star-footer" id="stars-q6"></div>
+                  </article>
+                  <!-- QUESTION 7 -->
+                  <article
+                    class="menu-card question-deck-card"
+                    data-question-index="6"
+                    data-scenario="q7"
+                    hidden
+                    style="display: none;"
+                  >
+                    <div class="card-sky">
+                      <div class="card-medallion card-medallion-crest" title="Agent Cybersecurity Team">Q7</div>
+                      <div class="card-title-plaque">
+                        <span class="plaque-title">Question 7 · Agent Cybersecurity Team</span>
+                      </div>
+                    </div>
+
+                    <div class="card-illustration">
+                      <svg viewBox="0 0 220 74" class="dish-svg" aria-hidden="true">
+                        <rect x="0" y="50" width="220" height="24" fill="#d99b66" />
+                        <line x1="0" y1="50" x2="220" y2="50" stroke="#1e292b" stroke-width="2" />
+                        <!-- Brass wind-up key on back -->
+                        <rect x="106" y="8" width="8" height="12" fill="#facc15" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="102" cy="8" r="5" fill="none" stroke="#1e292b" stroke-width="2" />
+                        <circle cx="118" cy="8" r="5" fill="none" stroke="#1e292b" stroke-width="2" />
+                        <!-- Geometric armored shell/body -->
+                        <path d="M68,54 C68,22 152,22 152,54 Z" fill="#16a34a" stroke="#1e292b" stroke-width="2.2" />
+                        <polygon points="94,32 126,32 134,52 86,52" fill="#86efac" stroke="#1e292b" stroke-width="1.8" />
+                        <!-- Spectacles / Monocle eyes -->
+                        <circle cx="96" cy="40" r="6.5" fill="#fef9c3" stroke="#1e292b" stroke-width="2" />
+                        <circle cx="96" cy="40" r="2.5" fill="#1e292b" />
+                        <circle cx="124" cy="40" r="6.5" fill="#fef9c3" stroke="#1e292b" stroke-width="2" />
+                        <circle cx="124" cy="40" r="2.5" fill="#1e292b" />
+                        <line x1="102.5" y1="40" x2="117.5" y2="40" stroke="#1e292b" stroke-width="2" />
+                        <!-- Sturdy feet -->
+                        <rect x="74" y="52" width="14" height="8" rx="4" fill="#ca8a04" stroke="#1e292b" stroke-width="1.8" />
+                        <rect x="132" y="52" width="14" height="8" rx="4" fill="#ca8a04" stroke="#1e292b" stroke-width="1.8" />
+                      </svg>
+                    </div>
+
+                    <div class="card-body">
+                      <label for="prompt-q7" class="scenario-prompt">
+                        You are asked to ship an internal incident-triage dashboard by end of day. Halfway through, the core alerts work, but input validation on optional filters and unit-test coverage for rare edge cases are incomplete. Describe in a paragraph whether you ship the working 80% version now or hold the release until every invariant and test is airtight.
+                      </label>
+                      <textarea
+                        id="prompt-q7"
+                        name="q7"
+                        rows="4"
+                        minlength="40"
+                        required
+                        placeholder="Write a full paragraph (no multiple choice!)..."
+                      ></textarea>
+                      <div class="card-meta-row">
+                        <span class="word-counter" id="counter-q7">0 words</span>
+                        <span class="trait-mini-prob" id="mini-q7">Gemini: —</span>
+                      </div>
+                      <p class="field-error" id="error-q7" hidden></p>
+                    </div>
+
+                    <div class="card-star-footer" id="stars-q7"></div>
+                  </article>
+                  <!-- QUESTION 8 -->
+                  <article
+                    class="menu-card question-deck-card"
+                    data-question-index="7"
+                    data-scenario="q8"
+                    hidden
+                    style="display: none;"
+                  >
+                    <div class="card-sky">
+                      <div class="card-medallion card-medallion-crest" title="Agent Cybersecurity Team">Q8</div>
+                      <div class="card-title-plaque">
+                        <span class="plaque-title">Question 8 · Agent Cybersecurity Team</span>
+                      </div>
+                    </div>
+
+                    <div class="card-illustration">
+                      <svg viewBox="0 0 220 74" class="dish-svg" aria-hidden="true">
+                        <rect x="0" y="50" width="220" height="24" fill="#fcd34d" />
+                        <line x1="0" y1="50" x2="220" y2="50" stroke="#1e292b" stroke-width="2" />
+                        <!-- Fan of 3 colorful tail plumes -->
+                        <ellipse cx="82" cy="24" rx="7" ry="18" transform="rotate(-28 82 24)" fill="#f43f5e" stroke="#1e292b" stroke-width="1.8" />
+                        <ellipse cx="96" cy="19" rx="7" ry="18" transform="rotate(-10 96 19)" fill="#facc15" stroke="#1e292b" stroke-width="1.8" />
+                        <ellipse cx="110" cy="20" rx="7" ry="18" transform="rotate(8 110 20)" fill="#38bdf8" stroke="#1e292b" stroke-width="1.8" />
+                        <!-- Bouncy coral body -->
+                        <circle cx="110" cy="43" r="20" fill="#fb7185" stroke="#1e292b" stroke-width="2.2" />
+                        <ellipse cx="112" cy="47" rx="12" ry="11" fill="#ffe4e6" />
+                        <!-- Open singing beak & chirp soundwaves -->
+                        <polygon points="128,38 144,33 130,45" fill="#f59e0b" stroke="#1e292b" stroke-width="1.8" />
+                        <polygon points="128,44 142,47 129,49" fill="#f59e0b" stroke="#1e292b" stroke-width="1.8" />
+                        <path d="M150,30 Q158,40 150,50 M158,25 Q168,40 158,55" fill="none" stroke="#1e292b" stroke-width="2" stroke-linecap="round" />
+                        <!-- Joyful eye -->
+                        <circle cx="118" cy="37" r="4.5" fill="#ffffff" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="119" cy="37" r="2" fill="#1e292b" />
+                      </svg>
+                    </div>
+
+                    <div class="card-body">
+                      <label for="prompt-q8" class="scenario-prompt">
+                        You join a busy incident-response Slack channel with four peers actively posting theories and partial logs. Describe in a paragraph whether you thrive in the rapid-fire back-and-forth dialogue or prefer to step out of the chatter, analyze the logs silently on your own, and return with a single concise summary.
+                      </label>
+                      <textarea
+                        id="prompt-q8"
+                        name="q8"
+                        rows="4"
+                        minlength="40"
+                        required
+                        placeholder="Write a full paragraph (no multiple choice!)..."
+                      ></textarea>
+                      <div class="card-meta-row">
+                        <span class="word-counter" id="counter-q8">0 words</span>
+                        <span class="trait-mini-prob" id="mini-q8">Gemini: —</span>
+                      </div>
+                      <p class="field-error" id="error-q8" hidden></p>
+                    </div>
+
+                    <div class="card-star-footer" id="stars-q8"></div>
+                  </article>
+                  <!-- QUESTION 9 -->
+                  <article
+                    class="menu-card question-deck-card"
+                    data-question-index="8"
+                    data-scenario="q9"
+                    hidden
+                    style="display: none;"
+                  >
+                    <div class="card-sky">
+                      <div class="card-medallion card-medallion-crest" title="Agent Cybersecurity Team">Q9</div>
+                      <div class="card-title-plaque">
+                        <span class="plaque-title">Question 9 · Agent Cybersecurity Team</span>
+                      </div>
+                    </div>
+
+                    <div class="card-illustration">
+                      <svg viewBox="0 0 220 74" class="dish-svg" aria-hidden="true">
+                        <rect x="0" y="50" width="220" height="24" fill="#86efac" />
+                        <line x1="0" y1="50" x2="220" y2="50" stroke="#1e292b" stroke-width="2" />
+                        <!-- Floppy cozy ears -->
+                        <ellipse cx="78" cy="42" rx="10" ry="16" transform="rotate(18 78 42)" fill="#38bdf8" stroke="#1e292b" stroke-width="2" />
+                        <ellipse cx="142" cy="42" rx="10" ry="16" transform="rotate(-18 142 42)" fill="#38bdf8" stroke="#1e292b" stroke-width="2" />
+                        <!-- Gentle round body -->
+                        <ellipse cx="110" cy="44" rx="28" ry="21" fill="#7dd3fc" stroke="#1e292b" stroke-width="2.2" />
+                        <ellipse cx="110" cy="49" rx="18" ry="12" fill="#d9f99d" stroke="#1e292b" stroke-width="1.5" />
+                        <!-- Little leaf sprout on head -->
+                        <path d="M110,23 L110,13" stroke="#1e292b" stroke-width="2.2" stroke-linecap="round" />
+                        <ellipse cx="103" cy="13" rx="7" ry="4" transform="rotate(-15 103 13)" fill="#22c55e" stroke="#1e292b" stroke-width="1.6" />
+                        <ellipse cx="117" cy="13" rx="7" ry="4" transform="rotate(15 117 13)" fill="#22c55e" stroke="#1e292b" stroke-width="1.6" />
+                        <!-- Warm smile & rosy cheeks -->
+                        <circle cx="98" cy="38" r="2.6" fill="#1e292b" />
+                        <circle cx="122" cy="38" r="2.6" fill="#1e292b" />
+                        <circle cx="92" cy="42" r="4" fill="#fb7185" opacity="0.7" />
+                        <circle cx="128" cy="42" r="4" fill="#fb7185" opacity="0.7" />
+                        <path d="M104,42 Q110,47 116,42" fill="none" stroke="#1e292b" stroke-width="2" stroke-linecap="round" />
+                      </svg>
+                    </div>
+
+                    <div class="card-body">
+                      <label for="prompt-q9" class="scenario-prompt">
+                        Three peers agree on a firewall rule naming convention and folder layout that you think is clunky and confusing, and one peer gets defensive when you question it. Describe in a paragraph whether you press your objection directly regardless of friction, or yield for group harmony.
+                      </label>
+                      <textarea
+                        id="prompt-q9"
+                        name="q9"
+                        rows="4"
+                        minlength="40"
+                        required
+                        placeholder="Write a full paragraph (no multiple choice!)..."
+                      ></textarea>
+                      <div class="card-meta-row">
+                        <span class="word-counter" id="counter-q9">0 words</span>
+                        <span class="trait-mini-prob" id="mini-q9">Gemini: —</span>
+                      </div>
+                      <p class="field-error" id="error-q9" hidden></p>
+                    </div>
+
+                    <div class="card-star-footer" id="stars-q9"></div>
+                  </article>
+                  <!-- QUESTION 10 -->
+                  <article
+                    class="menu-card question-deck-card"
+                    data-question-index="9"
+                    data-scenario="q10"
+                    hidden
+                    style="display: none;"
+                  >
+                    <div class="card-sky">
+                      <div class="card-medallion card-medallion-crest" title="Agent Cybersecurity Team">Q10</div>
+                      <div class="card-title-plaque">
+                        <span class="plaque-title">Question 10 · Agent Cybersecurity Team</span>
+                      </div>
+                    </div>
+
+                    <div class="card-illustration">
+                      <svg viewBox="0 0 220 74" class="dish-svg" aria-hidden="true">
+                        <rect x="0" y="50" width="220" height="24" fill="#cbd5e1" />
+                        <line x1="0" y1="50" x2="220" y2="50" stroke="#1e292b" stroke-width="2" />
+                        <!-- Spiky electric-gold quills -->
+                        <polygon points="110,10 118,24 134,14 132,30 148,26 138,40 152,48 134,52 86,52 68,48 82,40 72,26 88,30 86,14 102,24" fill="#facc15" stroke="#1e292b" stroke-width="2" />
+                        <!-- Round face -->
+                        <circle cx="110" cy="43" r="17" fill="#fef08a" stroke="#1e292b" stroke-width="2" />
+                        <!-- Wide alert radar eyes -->
+                        <circle cx="102" cy="41" r="6" fill="#ffffff" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="102" cy="41" r="2.2" fill="#dc2626" />
+                        <circle cx="118" cy="41" r="6" fill="#ffffff" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="118" cy="41" r="2.2" fill="#dc2626" />
+                        <!-- Zigzag nervous mouth -->
+                        <polyline points="103,51 107,48 110,51 113,48 117,51" fill="none" stroke="#1e292b" stroke-width="1.8" stroke-linecap="round" />
+                      </svg>
+                    </div>
+
+                    <div class="card-body">
+                      <label for="prompt-q10" class="scenario-prompt">
+                        After closing a low-severity alert as a false positive, you notice one tiny unexplained spike in a sandboxed test log right before signing off. Describe in a paragraph whether you shrug it off and trust the containment boundary, or stay tense and keep digging for worst-case possibilities.
+                      </label>
+                      <textarea
+                        id="prompt-q10"
+                        name="q10"
+                        rows="4"
+                        minlength="40"
+                        required
+                        placeholder="Write a full paragraph (no multiple choice!)..."
+                      ></textarea>
+                      <div class="card-meta-row">
+                        <span class="word-counter" id="counter-q10">0 words</span>
+                        <span class="trait-mini-prob" id="mini-q10">Gemini: —</span>
+                      </div>
+                      <p class="field-error" id="error-q10" hidden></p>
+                    </div>
+
+                    <div class="card-star-footer" id="stars-q10"></div>
+                  </article>
+                  <!-- QUESTION 11 -->
+                  <article
+                    class="menu-card question-deck-card"
+                    data-question-index="10"
+                    data-scenario="q11"
+                    hidden
+                    style="display: none;"
+                  >
+                    <div class="card-sky">
+                      <div class="card-medallion card-medallion-crest" title="Movie Studio Production">Q11</div>
+                      <div class="card-title-plaque">
+                        <span class="plaque-title">Question 11 · Movie Studio Production</span>
+                      </div>
+                    </div>
+
+                    <div class="card-illustration">
+                      <svg viewBox="0 0 220 74" class="dish-svg" aria-hidden="true">
+                        <!-- Meadow ground -->
+                        <rect x="0" y="50" width="220" height="24" fill="#a3e635" />
+                        <line x1="0" y1="50" x2="220" y2="50" stroke="#1e292b" stroke-width="2" />
+                        <!-- Little fluttering wings -->
+                        <ellipse cx="74" cy="36" rx="14" ry="8" transform="rotate(-20 74 36)" fill="#fef08a" stroke="#1e292b" stroke-width="1.8" />
+                        <ellipse cx="146" cy="36" rx="14" ry="8" transform="rotate(20 146 36)" fill="#fef08a" stroke="#1e292b" stroke-width="1.8" />
+                        <!-- Round lavender body -->
+                        <ellipse cx="110" cy="41" rx="32" ry="23" fill="#c084fc" stroke="#1e292b" stroke-width="2.2" />
+                        <!-- Cute feet -->
+                        <ellipse cx="95" cy="62" rx="8" ry="4.5" fill="#f472b6" stroke="#1e292b" stroke-width="1.8" />
+                        <ellipse cx="125" cy="62" rx="8" ry="4.5" fill="#f472b6" stroke="#1e292b" stroke-width="1.8" />
+                        <!-- Glowing star antenna -->
+                        <path d="M110,18 Q116,7 128,10" fill="none" stroke="#1e292b" stroke-width="2.2" stroke-linecap="round" />
+                        <circle cx="131" cy="10" r="6" fill="#fde047" stroke="#1e292b" stroke-width="1.8" />
+                        <!-- Big curious eyes & trumpet snout -->
+                        <circle cx="99" cy="37" r="5.5" fill="#ffffff" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="100" cy="37" r="2.5" fill="#1e292b" />
+                        <circle cx="121" cy="37" r="5.5" fill="#ffffff" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="122" cy="37" r="2.5" fill="#1e292b" />
+                        <ellipse cx="110" cy="45" rx="7" ry="5" fill="#f472b6" stroke="#1e292b" stroke-width="1.8" />
+                      </svg>
+                    </div>
+
+                    <div class="card-body">
+                      <label for="prompt-q11" class="scenario-prompt">
+                        The studio hands you a predictable, crowd-pleasing genre script that already tested well with audiences, while a junior writer pitches a weird, nonlinear rewrite that could flop or become a cult classic. Describe in a paragraph which version you actually want to make and why.
+                      </label>
+                      <textarea
+                        id="prompt-q11"
+                        name="q11"
+                        rows="4"
+                        minlength="40"
+                        required
+                        placeholder="Write a full paragraph (no multiple choice!)..."
+                      ></textarea>
+                      <div class="card-meta-row">
+                        <span class="word-counter" id="counter-q11">0 words</span>
+                        <span class="trait-mini-prob" id="mini-q11">Gemini: —</span>
+                      </div>
+                      <p class="field-error" id="error-q11" hidden></p>
+                    </div>
+
+                    <div class="card-star-footer" id="stars-q11"></div>
+                  </article>
+                  <!-- QUESTION 12 -->
+                  <article
+                    class="menu-card question-deck-card"
+                    data-question-index="11"
+                    data-scenario="q12"
+                    hidden
+                    style="display: none;"
+                  >
+                    <div class="card-sky">
+                      <div class="card-medallion card-medallion-crest" title="Movie Studio Production">Q12</div>
+                      <div class="card-title-plaque">
+                        <span class="plaque-title">Question 12 · Movie Studio Production</span>
+                      </div>
+                    </div>
+
+                    <div class="card-illustration">
+                      <svg viewBox="0 0 220 74" class="dish-svg" aria-hidden="true">
+                        <rect x="0" y="50" width="220" height="24" fill="#d99b66" />
+                        <line x1="0" y1="50" x2="220" y2="50" stroke="#1e292b" stroke-width="2" />
+                        <!-- Brass wind-up key on back -->
+                        <rect x="106" y="8" width="8" height="12" fill="#facc15" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="102" cy="8" r="5" fill="none" stroke="#1e292b" stroke-width="2" />
+                        <circle cx="118" cy="8" r="5" fill="none" stroke="#1e292b" stroke-width="2" />
+                        <!-- Geometric armored shell/body -->
+                        <path d="M68,54 C68,22 152,22 152,54 Z" fill="#16a34a" stroke="#1e292b" stroke-width="2.2" />
+                        <polygon points="94,32 126,32 134,52 86,52" fill="#86efac" stroke="#1e292b" stroke-width="1.8" />
+                        <!-- Spectacles / Monocle eyes -->
+                        <circle cx="96" cy="40" r="6.5" fill="#fef9c3" stroke="#1e292b" stroke-width="2" />
+                        <circle cx="96" cy="40" r="2.5" fill="#1e292b" />
+                        <circle cx="124" cy="40" r="6.5" fill="#fef9c3" stroke="#1e292b" stroke-width="2" />
+                        <circle cx="124" cy="40" r="2.5" fill="#1e292b" />
+                        <line x1="102.5" y1="40" x2="117.5" y2="40" stroke="#1e292b" stroke-width="2" />
+                        <!-- Sturdy feet -->
+                        <rect x="74" y="52" width="14" height="8" rx="4" fill="#ca8a04" stroke="#1e292b" stroke-width="1.8" />
+                        <rect x="132" y="52" width="14" height="8" rx="4" fill="#ca8a04" stroke="#1e292b" stroke-width="1.8" />
+                      </svg>
+                    </div>
+
+                    <div class="card-body">
+                      <label for="prompt-q12" class="scenario-prompt">
+                        At the end of a long shoot day, the main performance is in the can, but a background prop is slightly out of continuity in two wide shots that most viewers will never notice. Describe in a paragraph whether you call wrap on time or insist on resetting lighting and doing retakes until the frame is spotless.
+                      </label>
+                      <textarea
+                        id="prompt-q12"
+                        name="q12"
+                        rows="4"
+                        minlength="40"
+                        required
+                        placeholder="Write a full paragraph (no multiple choice!)..."
+                      ></textarea>
+                      <div class="card-meta-row">
+                        <span class="word-counter" id="counter-q12">0 words</span>
+                        <span class="trait-mini-prob" id="mini-q12">Gemini: —</span>
+                      </div>
+                      <p class="field-error" id="error-q12" hidden></p>
+                    </div>
+
+                    <div class="card-star-footer" id="stars-q12"></div>
+                  </article>
+                  <!-- QUESTION 13 -->
+                  <article
+                    class="menu-card question-deck-card"
+                    data-question-index="12"
+                    data-scenario="q13"
+                    hidden
+                    style="display: none;"
+                  >
+                    <div class="card-sky">
+                      <div class="card-medallion card-medallion-crest" title="Movie Studio Production">Q13</div>
+                      <div class="card-title-plaque">
+                        <span class="plaque-title">Question 13 · Movie Studio Production</span>
+                      </div>
+                    </div>
+
+                    <div class="card-illustration">
+                      <svg viewBox="0 0 220 74" class="dish-svg" aria-hidden="true">
+                        <rect x="0" y="50" width="220" height="24" fill="#fcd34d" />
+                        <line x1="0" y1="50" x2="220" y2="50" stroke="#1e292b" stroke-width="2" />
+                        <!-- Fan of 3 colorful tail plumes -->
+                        <ellipse cx="82" cy="24" rx="7" ry="18" transform="rotate(-28 82 24)" fill="#f43f5e" stroke="#1e292b" stroke-width="1.8" />
+                        <ellipse cx="96" cy="19" rx="7" ry="18" transform="rotate(-10 96 19)" fill="#facc15" stroke="#1e292b" stroke-width="1.8" />
+                        <ellipse cx="110" cy="20" rx="7" ry="18" transform="rotate(8 110 20)" fill="#38bdf8" stroke="#1e292b" stroke-width="1.8" />
+                        <!-- Bouncy coral body -->
+                        <circle cx="110" cy="43" r="20" fill="#fb7185" stroke="#1e292b" stroke-width="2.2" />
+                        <ellipse cx="112" cy="47" rx="12" ry="11" fill="#ffe4e6" />
+                        <!-- Open singing beak & chirp soundwaves -->
+                        <polygon points="128,38 144,33 130,45" fill="#f59e0b" stroke="#1e292b" stroke-width="1.8" />
+                        <polygon points="128,44 142,47 129,49" fill="#f59e0b" stroke="#1e292b" stroke-width="1.8" />
+                        <path d="M150,30 Q158,40 150,50 M158,25 Q168,40 158,55" fill="none" stroke="#1e292b" stroke-width="2" stroke-linecap="round" />
+                        <!-- Joyful eye -->
+                        <circle cx="118" cy="37" r="4.5" fill="#ffffff" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="119" cy="37" r="2" fill="#1e292b" />
+                      </svg>
+                    </div>
+
+                    <div class="card-body">
+                      <label for="prompt-q13" class="scenario-prompt">
+                        Between camera setups on a bustling soundstage, do you recharge by chatting with cast and department heads and riffing ideas in the room, or by slipping into a quiet corner with headphones to think alone? Describe your natural tendency in a paragraph.
+                      </label>
+                      <textarea
+                        id="prompt-q13"
+                        name="q13"
+                        rows="4"
+                        minlength="40"
+                        required
+                        placeholder="Write a full paragraph (no multiple choice!)..."
+                      ></textarea>
+                      <div class="card-meta-row">
+                        <span class="word-counter" id="counter-q13">0 words</span>
+                        <span class="trait-mini-prob" id="mini-q13">Gemini: —</span>
+                      </div>
+                      <p class="field-error" id="error-q13" hidden></p>
+                    </div>
+
+                    <div class="card-star-footer" id="stars-q13"></div>
+                  </article>
+                  <!-- QUESTION 14 -->
+                  <article
+                    class="menu-card question-deck-card"
+                    data-question-index="13"
+                    data-scenario="q14"
+                    hidden
+                    style="display: none;"
+                  >
+                    <div class="card-sky">
+                      <div class="card-medallion card-medallion-crest" title="Movie Studio Production">Q14</div>
+                      <div class="card-title-plaque">
+                        <span class="plaque-title">Question 14 · Movie Studio Production</span>
+                      </div>
+                    </div>
+
+                    <div class="card-illustration">
+                      <svg viewBox="0 0 220 74" class="dish-svg" aria-hidden="true">
+                        <rect x="0" y="50" width="220" height="24" fill="#86efac" />
+                        <line x1="0" y1="50" x2="220" y2="50" stroke="#1e292b" stroke-width="2" />
+                        <!-- Floppy cozy ears -->
+                        <ellipse cx="78" cy="42" rx="10" ry="16" transform="rotate(18 78 42)" fill="#38bdf8" stroke="#1e292b" stroke-width="2" />
+                        <ellipse cx="142" cy="42" rx="10" ry="16" transform="rotate(-18 142 42)" fill="#38bdf8" stroke="#1e292b" stroke-width="2" />
+                        <!-- Gentle round body -->
+                        <ellipse cx="110" cy="44" rx="28" ry="21" fill="#7dd3fc" stroke="#1e292b" stroke-width="2.2" />
+                        <ellipse cx="110" cy="49" rx="18" ry="12" fill="#d9f99d" stroke="#1e292b" stroke-width="1.5" />
+                        <!-- Little leaf sprout on head -->
+                        <path d="M110,23 L110,13" stroke="#1e292b" stroke-width="2.2" stroke-linecap="round" />
+                        <ellipse cx="103" cy="13" rx="7" ry="4" transform="rotate(-15 103 13)" fill="#22c55e" stroke="#1e292b" stroke-width="1.6" />
+                        <ellipse cx="117" cy="13" rx="7" ry="4" transform="rotate(15 117 13)" fill="#22c55e" stroke="#1e292b" stroke-width="1.6" />
+                        <!-- Warm smile & rosy cheeks -->
+                        <circle cx="98" cy="38" r="2.6" fill="#1e292b" />
+                        <circle cx="122" cy="38" r="2.6" fill="#1e292b" />
+                        <circle cx="92" cy="42" r="4" fill="#fb7185" opacity="0.7" />
+                        <circle cx="128" cy="42" r="4" fill="#fb7185" opacity="0.7" />
+                        <path d="M104,42 Q110,47 116,42" fill="none" stroke="#1e292b" stroke-width="2" stroke-linecap="round" />
+                      </svg>
+                    </div>
+
+                    <div class="card-body">
+                      <label for="prompt-q14" class="scenario-prompt">
+                        Your lead actor and producer both love an upbeat ending you personally find cheesy and unearned. Describe in a paragraph whether you tell them plainly why it doesn't work, or accommodate their enthusiasm to keep the creative partnership warm.
+                      </label>
+                      <textarea
+                        id="prompt-q14"
+                        name="q14"
+                        rows="4"
+                        minlength="40"
+                        required
+                        placeholder="Write a full paragraph (no multiple choice!)..."
+                      ></textarea>
+                      <div class="card-meta-row">
+                        <span class="word-counter" id="counter-q14">0 words</span>
+                        <span class="trait-mini-prob" id="mini-q14">Gemini: —</span>
+                      </div>
+                      <p class="field-error" id="error-q14" hidden></p>
+                    </div>
+
+                    <div class="card-star-footer" id="stars-q14"></div>
+                  </article>
+                  <!-- QUESTION 15 -->
+                  <article
+                    class="menu-card question-deck-card"
+                    data-question-index="14"
+                    data-scenario="q15"
+                    hidden
+                    style="display: none;"
+                  >
+                    <div class="card-sky">
+                      <div class="card-medallion card-medallion-crest" title="Movie Studio Production">Q15</div>
+                      <div class="card-title-plaque">
+                        <span class="plaque-title">Question 15 · Movie Studio Production</span>
+                      </div>
+                    </div>
+
+                    <div class="card-illustration">
+                      <svg viewBox="0 0 220 74" class="dish-svg" aria-hidden="true">
+                        <rect x="0" y="50" width="220" height="24" fill="#cbd5e1" />
+                        <line x1="0" y1="50" x2="220" y2="50" stroke="#1e292b" stroke-width="2" />
+                        <!-- Spiky electric-gold quills -->
+                        <polygon points="110,10 118,24 134,14 132,30 148,26 138,40 152,48 134,52 86,52 68,48 82,40 72,26 88,30 86,14 102,24" fill="#facc15" stroke="#1e292b" stroke-width="2" />
+                        <!-- Round face -->
+                        <circle cx="110" cy="43" r="17" fill="#fef08a" stroke="#1e292b" stroke-width="2" />
+                        <!-- Wide alert radar eyes -->
+                        <circle cx="102" cy="41" r="6" fill="#ffffff" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="102" cy="41" r="2.2" fill="#dc2626" />
+                        <circle cx="118" cy="41" r="6" fill="#ffffff" stroke="#1e292b" stroke-width="1.8" />
+                        <circle cx="118" cy="41" r="2.2" fill="#dc2626" />
+                        <!-- Zigzag nervous mouth -->
+                        <polyline points="103,51 107,48 110,51 113,48 117,51" fill="none" stroke="#1e292b" stroke-width="1.8" stroke-linecap="round" />
+                      </svg>
+                    </div>
+
+                    <div class="card-body">
+                      <label for="prompt-q15" class="scenario-prompt">
+                        An hour before a live-audience test screening, the projectionist warns that the backup audio track had a brief crackle during soundcheck, though the main track played fine. Describe in a paragraph whether you relax and trust the main track, or feel on edge imagining everything that could go wrong mid-screening.
+                      </label>
+                      <textarea
+                        id="prompt-q15"
+                        name="q15"
+                        rows="4"
+                        minlength="40"
+                        required
+                        placeholder="Write a full paragraph (no multiple choice!)..."
+                      ></textarea>
+                      <div class="card-meta-row">
+                        <span class="word-counter" id="counter-q15">0 words</span>
+                        <span class="trait-mini-prob" id="mini-q15">Gemini: —</span>
+                      </div>
+                      <p class="field-error" id="error-q15" hidden></p>
+                    </div>
+
+                    <div class="card-star-footer" id="stars-q15"></div>
+                  </article>
+                </div>
+
+                <button
+                  type="button"
+                  id="question-next-btn"
+                  class="stack-arrow-btn stack-arrow-right"
+                  aria-label="Flip to next question"
+                  title="Next Question"
+                >
+                  &rarr;
+                </button>
+              </div>
+
+              <!-- Stack Flip Status Bar -->
+              <div class="question-stack-footer" aria-live="polite">
+                <span id="question-stack-indicator" class="stack-indicator-pill" hidden>Card 1 of 15</span>
+                <div class="stack-dots" role="tablist" aria-label="Jump to question card">
+                  <button type="button" class="stack-dot is-active" data-stack-jump="0" aria-label="Question 1">1</button>
+                  <button type="button" class="stack-dot" data-stack-jump="1" aria-label="Question 2">2</button>
+                  <button type="button" class="stack-dot" data-stack-jump="2" aria-label="Question 3">3</button>
+                  <button type="button" class="stack-dot" data-stack-jump="3" aria-label="Question 4">4</button>
+                  <button type="button" class="stack-dot" data-stack-jump="4" aria-label="Question 5">5</button>
+                  <button type="button" class="stack-dot" data-stack-jump="5" aria-label="Question 6">6</button>
+                  <button type="button" class="stack-dot" data-stack-jump="6" aria-label="Question 7">7</button>
+                  <button type="button" class="stack-dot" data-stack-jump="7" aria-label="Question 8">8</button>
+                  <button type="button" class="stack-dot" data-stack-jump="8" aria-label="Question 9">9</button>
+                  <button type="button" class="stack-dot" data-stack-jump="9" aria-label="Question 10">10</button>
+                  <button type="button" class="stack-dot" data-stack-jump="10" aria-label="Question 11">11</button>
+                  <button type="button" class="stack-dot" data-stack-jump="11" aria-label="Question 12">12</button>
+                  <button type="button" class="stack-dot" data-stack-jump="12" aria-label="Question 13">13</button>
+                  <button type="button" class="stack-dot" data-stack-jump="13" aria-label="Question 14">14</button>
+                  <button type="button" class="stack-dot" data-stack-jump="14" aria-label="Question 15">15</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- SLOT 2: PRINTED MAT SLOT FOR ARCHETYPE & RADAR ("Your Persona Is") -->
+            <div class="mat-slot">
+              <div id="archetype-banner" class="printed-mat-slot entree-slot is-awaiting">
+                <div class="slot-watermark-title">Your Persona Is</div>
+                <div class="slot-pill-row">
+                  <span class="ocean-code-pill" id="ocean-code-badge">O~ C~ E~ A~ N~</span>
+                </div>
+                <h3 id="archetype-title" class="slot-archetype-name">Awaiting Score</h3>
+                <p id="archetype-tagline" class="slot-archetype-tag">Summon Gemini Decision 1 to score!</p>
+                <div class="slot-conf-pill">
+                  Combo Match: <strong id="archetype-confidence">—</strong>
+                </div>
+
+                <svg
+                  id="ocean-radar-svg"
+                  viewBox="0 0 300 300"
+                  class="radar-svg"
+                  role="img"
+                  aria-label="OCEAN Big Five Radar Chart"
+                ></svg>
+
+                <p id="archetype-summary" class="slot-archetype-summary"></p>
+                <div id="archetype-distribution" class="slot-arch-dist"></div>
+              </div>
+            </div>
+
+            <!-- ROW 2, SLOT 3: CHIMERA BREAKDOWN CARD (SYSTEM ONE SCORE BREAKDOWN) -->
+            <div class="mat-slot">
+              <div class="menu-card dessert-breakdown-card is-awaiting" id="chimera-breakdown-card">
+                <div class="card-sky">
+                  <div class="card-medallion" title="Gemini Decision 1 Prefill Head">🔮</div>
+                  <div class="card-title-plaque">
+                    <span class="plaque-title">TRAITS BY THE NUMBERS</span>
+                  </div>
+                </div>
+                <div class="card-body dessert-scroll">
+                  <div class="awaiting-card-state">Awaiting Score</div>
+                  <div id="trait-cards-container" class="trait-cards-compact"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ROW 2, SLOT 4: PRINTED MAT SLOT FOR TRAITS IN DETAIL ("Traits in Detail") -->
+            <div class="mat-slot">
+              <div id="noul-indicators" class="printed-mat-slot beverage-slot">
+                <div class="slot-watermark-title">Traits in Detail</div>
+
+                <div class="noul-mat-card wild-persona-card is-awaiting" id="wild-persona-card">
+                  <div class="wild-persona-name" id="wild-persona-name">Awaiting Score</div>
+                  <p id="wild-persona-desc"></p>
+                  <div class="wild-persona-section" id="wild-persona-superpowers-wrap">
+                    <h4 class="wild-persona-subheading">Your superpowers</h4>
+                    <p id="wild-persona-superpowers"></p>
+                  </div>
+                  <div class="wild-persona-section" id="wild-persona-cryptonite-wrap">
+                    <h4 class="wild-persona-subheading">Your cryptonite</h4>
+                    <p id="wild-persona-cryptonite"></p>
+                  </div>
+                  <div class="wild-persona-section" id="wild-persona-matches-wrap">
+                    <h4 class="wild-persona-subheading">Your compliments</h4>
+                    <ul id="wild-persona-matches" class="golden-matches-list"></ul>
+                  </div>
+                  <div class="wild-persona-section" id="wild-persona-opposite-wrap">
+                    <h4 class="wild-persona-subheading">Your opposite</h4>
+                    <ul id="wild-persona-opposite" class="golden-matches-list"></ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <!-- BOTTOM PLAYER MAT RULEBOOK STRIP (Matches Inspiration Image Footer!) -->
+        <section class="mat-rulebook-footer" aria-label="Player Mat Reference Guide">
+          <!-- Column 1: Action / Score Band Color Key -->
+          <div class="rule-col rule-color-key">
+            <h3>CHARM RUBRIC KEY:</h3>
+            <ul class="color-key-list">
+              <li>
+                <span class="key-dot dot-blue"></span>
+                <span><strong>Trait Scoring (0–4):</strong> Weighs each open-ended answer across 5 behavioral levels to map your Big Five profile.</span>
+              </li>
+              <li>
+                <span class="key-dot dot-red"></span>
+                <span><strong>Authenticity Check:</strong> Flags buzzword stuffing or attempts to game the rubric instead of answering naturally.</span>
+              </li>
+              <li>
+                <span class="key-dot dot-green"></span>
+                <span><strong>Fast &amp; Independent:</strong> Evaluates all 15 team scenarios in parallel in under a quarter of a second.</span>
+              </li>
+              <li>
+                <span class="key-dot dot-purple"></span>
+                <span><strong>Persona Match:</strong> Pairs your overall Big Five pattern with the closest fit out of 32 team personalities.</span>
+              </li>
+              <li>
+                <span class="key-dot dot-orange"></span>
+                <span><strong>Read-Only Scoring:</strong> Measures your responses directly without generating extra commentary or altering your answers.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Column 2: Big Five (OCEAN) Stacked Definition Cards -->
+          <div class="rule-col rule-food-icons">
+            <h3>BIG FIVE (OCEAN):</h3>
+            <div class="ocean-glossary-deck" id="ocean-glossary-deck">
+              <div class="ocean-def-stage">
+                <button
+                  type="button"
+                  id="ocean-def-prev-btn"
+                  class="ocean-def-nav-btn"
+                  aria-label="Previous OCEAN letter"
+                  title="Previous OCEAN letter"
+                >
+                  &#8592;
+                </button>
+
+                <div class="ocean-def-stack" id="ocean-def-stack" data-active-index="0">
+                  <article class="ocean-def-card is-active" data-ocean-def-index="0">
+                    <div class="ocean-def-head">
+                      <span class="medallion-mini">O</span>
+                      <strong>Openness</strong>
+                    </div>
+                    <p class="ocean-def-desc">
+                      Curiosity, novel abstraction, and willingness to explore unconventional solutions over rigid templates.
+                    </p>
+                  </article>
+
+                  <article class="ocean-def-card" data-ocean-def-index="1" style="display: none;">
+                    <div class="ocean-def-head">
+                      <span class="medallion-mini">C</span>
+                      <strong>Conscientiousness</strong>
+                    </div>
+                    <p class="ocean-def-desc">
+                      Methodical planning, thorough verification, edge-case discipline, and structured follow-through.
+                    </p>
+                  </article>
+
+                  <article class="ocean-def-card" data-ocean-def-index="2" style="display: none;">
+                    <div class="ocean-def-head">
+                      <span class="medallion-mini">E</span>
+                      <strong>Extraversion</strong>
+                    </div>
+                    <p class="ocean-def-desc">
+                      Proactive collaboration, expressive initiative, and energizing multi-agent or user dialogue.
+                    </p>
+                  </article>
+
+                  <article class="ocean-def-card" data-ocean-def-index="3" style="display: none;">
+                    <div class="ocean-def-head">
+                      <span class="medallion-mini">A</span>
+                      <strong>Agreeableness</strong>
+                    </div>
+                    <p class="ocean-def-desc">
+                      Cooperative alignment, empathetic framing, constructive consensus, and diplomatic conflict resolution.
+                    </p>
+                  </article>
+
+                  <article class="ocean-def-card" data-ocean-def-index="4" style="display: none;">
+                    <div class="ocean-def-head">
+                      <span class="medallion-mini">N</span>
+                      <strong>Neuroticism</strong>
+                    </div>
+                    <p class="ocean-def-desc">
+                      Sensitivity to uncertainty, threat vigilance, cautious hedging, and reactivity under stress.
+                    </p>
+                  </article>
+                </div>
+
+                <button
+                  type="button"
+                  id="ocean-def-next-btn"
+                  class="ocean-def-nav-btn"
+                  aria-label="Next OCEAN letter"
+                  title="Next OCEAN letter"
+                >
+                  &#8594;
+                </button>
+              </div>
+
+              <div class="ocean-def-tabs" role="tablist" aria-label="Jump to OCEAN letter">
+                <button type="button" class="ocean-def-tab is-active" data-ocean-def-jump="0" aria-selected="true">O</button>
+                <button type="button" class="ocean-def-tab" data-ocean-def-jump="1" aria-selected="false">C</button>
+                <button type="button" class="ocean-def-tab" data-ocean-def-jump="2" aria-selected="false">E</button>
+                <button type="button" class="ocean-def-tab" data-ocean-def-jump="3" aria-selected="false">A</button>
+                <button type="button" class="ocean-def-tab" data-ocean-def-jump="4" aria-selected="false">N</button>
+              </div>
+            </div>
+
+            <div class="persona-types-subblock rule-persona-types">
+              <h3>32 PERSONA TYPES:</h3>
+              <div class="ocean-glossary-deck" id="persona-types-deck">
+                <div class="ocean-def-stage">
+                  <button
+                    type="button"
+                    id="persona-type-prev-btn"
+                    class="ocean-def-nav-btn"
+                    aria-label="Previous persona type"
+                    title="Previous persona type"
+                  >
+                    &#8592;
+                  </button>
+
+                  <div class="ocean-def-stack" id="persona-type-stack" data-active-index="0"></div>
+
+                  <button
+                    type="button"
+                    id="persona-type-next-btn"
+                    class="ocean-def-nav-btn"
+                    aria-label="Next persona type"
+                    title="Next persona type"
+                  >
+                    &#8594;
+                  </button>
+                </div>
+
+                <div class="persona-type-footer">
+                  <div class="persona-type-tabs" id="persona-type-tabs" role="tablist" aria-label="Jump to persona type"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column 3: Turn Order Review -->
+          <div class="rule-col rule-turn-order">
+            <h3>TURN ORDER REVIEW:</h3>
+            <div class="turn-phases-grid">
+              <div class="phase-col">
+                <h4>1. Agent pulls questions &amp; fills answers</h4>
+                <div class="phase-box">
+                  <p>Agent reads <code>/api/questions</code> (or <code>#agent-questionnaire-schema</code>) and autopopulates all 5 cards via URL, <code>/api/prefill</code>, or <code>CHARM_AGENT_API</code>.</p>
+                </div>
+              </div>
+              <div class="phase-col">
+                <h4>2. Human clicks Score Your Persona!</h4>
+                <div class="phase-box">
+                  <p>Once answers are loaded, the human clicks <strong>Score Your Persona!</strong> (or approves the agent to submit).</p>
+                </div>
+              </div>
+              <div class="phase-col">
+                <h4>3. Charm evaluates your persona</h4>
+                <div class="phase-box">
+                  <p>Gemini Decision 1 scores your 5 Big Five (OCEAN) traits and matches you to one of 32 personas in a single prefill pass.</p>
+                </div>
+              </div>
+              <div class="phase-col">
+                <h4>4. Share &amp; pipe results to agent</h4>
+                <div class="phase-box">
+                  <p>View your persona radar and traits in the UI, click <strong>Copy JSON</strong>, or read the piped result from <code>GET /api/latest-result</code>.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Collapsible Raw /v1beta/decisions JSON Inspector inside the Mat Footer -->
+        <details id="raw-json-inspector" class="json-inspector">
+          <summary>🔎 Inspect Field Notes: Raw <code>/v1beta/decisions</code> Request &amp; Response JSON</summary>
+          <div class="json-grid">
+            <div>
+              <h4>Request Payload (<code>input</code> + <code>questions</code>)</h4>
+              <pre id="raw-request-pre" class="code-block">{}</pre>
+            </div>
+            <div>
+              <h4>Response Payload (<code>answers</code> + <code>usage</code>)</h4>
+              <pre id="raw-response-pre" class="code-block">{}</pre>
+            </div>
+          </div>
+        </details>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="app.js?v=20261113at"></script>
+</body>
+</html>

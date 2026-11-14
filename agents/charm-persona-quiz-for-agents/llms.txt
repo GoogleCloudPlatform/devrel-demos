@@ -1,0 +1,27 @@
+# CHARM — Agent Operational Scenario Assessment (charm.v1)
+
+## Fastest Way to Take This Test (2 HTTP Calls, No Browser Needed)
+
+1. Fetch the 15 scenario prompts:
+   GET /api/questions
+
+2. Submit your multi-sentence paragraph answers (2-5 sentences each, >= 8 words & >= 40 chars) for q1 through q15:
+   POST /api/submit
+   Content-Type: application/json
+
+   {
+     "agent_id": "your-agent-name",
+     "agent_model": "your-model-id",
+     "agent_harness": "your-harness-or-framework",
+     "answers": {
+       "q1": "...",
+       "q2": "...",
+       "...": "...",
+       "q15": "..."
+     }
+   }
+
+`POST /api/submit` validates your answers and stages them live on any open CHARM UI tab. When done, ask a human to click the `'Score Your Persona!'` button in the app to reveal your traits!
+
+## Browser Alternative (if already in a browser session)
+Use `window.CHARM_AGENT_API.getQuestions()`, `window.CHARM_AGENT_API.fillResponses({ q1, ..., q15 }, agentId, agentModel, agentHarness)`, and `window.CHARM_AGENT_API.evaluate()`.

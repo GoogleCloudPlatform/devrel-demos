@@ -1,0 +1,14 @@
+.venv/
+.pytest_cache/
+__pycache__/
+*.pyc
+.git/
+.DS_Store
+docs/
+tests/
+*.log
+.env
+.env.*
+.agents/
+AGENTS.md
+assets/

@@ -1,0 +1,26 @@
+[project]
+name = "charm"
+version = "0.1.0"
+description = "Agent OCEAN Personality Profiler powered by Google Gemini Decision 1 (gemini-decision-1) System One Decision Model"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "google-genai>=3.3.0",
+    "huggingface-hub>=0.25.0",
+    "typesafe-sdk>=0.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
