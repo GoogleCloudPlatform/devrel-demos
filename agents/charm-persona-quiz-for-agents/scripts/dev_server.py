@@ -85,19 +85,25 @@ def _load_dotenv_key() -> str:
     env_key = (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
     if env_key:
         return env_key
-    dotenv_path = Path.home() / ".env"
-    if dotenv_path.is_file():
+    for dotenv_path in (REPO_ROOT / ".env", Path.home() / ".env"):
+        if not dotenv_path.is_file():
+            continue
         for raw_line in dotenv_path.read_text(encoding="utf-8").splitlines():
             line = raw_line.strip()
             if not line or line.startswith("#"):
                 continue
-            if line.startswith("GEMINI_API_KEY="):
-                return line.split("=", 1)[1].strip().strip('"').strip("'")
+            if line.startswith("export "):
+                line = line[len("export "):].strip()
+            for var_name in ("GEMINI_API_KEY=", "GOOGLE_API_KEY="):
+                if line.startswith(var_name):
+                    val = line.split("=", 1)[1].strip().strip('"').strip("'")
+                    if val:
+                        return val
     return ""
 
 
 class CharmDevHandler(SimpleHTTPRequestHandler):
-    """Serves static files (no-cache) and proxies POST /api/decisions using ~/.env GEMINI_API_KEY."""
+    """Serves allowlisted static files (no-cache) and proxies POST /api/decisions using .env GEMINI_API_KEY."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(REPO_ROOT), **kwargs)

@@ -18,10 +18,14 @@ from __future__ import annotations
 
 from html.parser import HTMLParser
 import json
+import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tempfile
+
+import pytest
 
 from charm_gemini.client import (
     call_gemini_decisions_api,
@@ -30,7 +34,12 @@ from charm_gemini.client import (
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 JSC_BIN = Path(
-    "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc"
+    shutil.which("jsc")
+    or "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc"
+)
+requires_jsc = pytest.mark.skipif(
+    not JSC_BIN.exists(),
+    reason="JavaScriptCore (jsc) binary not found",
 )
 
 
@@ -220,6 +229,7 @@ def test_index_html_enforces_open_ended_paragraphs_and_zero_multiple_choice() ->
         assert giveaway not in html, f"Question cards must not contain '{giveaway}'"
 
 
+@requires_jsc
 def test_app_js_exposes_charm_agent_api_and_never_fails_silently_in_jsc() -> None:
     app_js_path = REPO_ROOT / "app.js"
     assert app_js_path.exists(), "app.js must exist at repository root"
@@ -386,6 +396,7 @@ def test_app_js_exposes_charm_agent_api_and_never_fails_silently_in_jsc() -> Non
     assert out["afterResetOpennessVal"] == ""
 
 
+@requires_jsc
 def test_end_to_end_ocean_core_with_gemini_decision_1() -> None:
     """Verify ocean-core.js payload -> test-only JSC harness -> ocean-core.js normalizer, and strict error on missing key."""
     ocean_core_js = _strip_esm_syntax(
@@ -444,6 +455,7 @@ def test_end_to_end_ocean_core_with_gemini_decision_1() -> None:
     assert 0.0 <= profile["flags"]["selfReflectionProbability"] <= 1.0
 
 
+@requires_jsc
 def test_render_profile_to_dom_escapes_untrusted_html() -> None:
     """Verify renderProfileToDom neutralizes XSS payloads inside profile fields."""
     ocean_core_js = _strip_esm_syntax(
@@ -555,3 +567,15 @@ def test_dev_server_static_allowlist_and_request_limits() -> None:
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_dev_server_loads_repo_dotenv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify _load_dotenv_key reads GEMINI_API_KEY from project root .env before Path.home()."""
+    from scripts import dev_server
+
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.setattr(dev_server, "REPO_ROOT", tmp_path)
+    (tmp_path / ".env").write_text('GEMINI_API_KEY="repo-root-test-value"\n', encoding="utf-8")
+
+    assert dev_server._load_dotenv_key() == "repo-root-test-value"

@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import shutil
+
 import pytest
 from google.genai import decisions as genai_decisions
 
@@ -110,6 +113,10 @@ def test_call_gemini_decisions_api_never_falls_back_silently(monkeypatch):
         call_gemini_decisions_api(req, api_key="")
 
 
+_JSC_BIN = shutil.which("jsc") or "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc"
+
+
+@pytest.mark.skipif(not os.path.exists(_JSC_BIN), reason="JavaScriptCore (jsc) binary not found")
 def test_gemini_decisions_evaluation_and_response_validation():
     req = build_decisions_request("agent-alpha", SAMPLE_RESPONSES)
     resp = evaluate_browser_decisions_via_jsc(req)
@@ -154,3 +161,8 @@ def test_flow_32_format_c_personas_table():
     assert p["code"] == "OcEAn"
     assert p["number"] == "23"
     assert p["archetype"] == "Explorer"
+    assert FLOW_FORMAT_C_PERSONAS["ocEan"]["archetype"] == "Maverick"
+    assert FLOW_FORMAT_C_PERSONAS["oCEAN"]["critter"] == "Lantern-Tail Herdling"
+    assert FLOW_FORMAT_C_PERSONAS["OCeAn"]["archetype"] == "Scholar"
+    assert FLOW_FORMAT_C_PERSONAS["OCEan"]["archetype"] == "Director"
+    assert FLOW_FORMAT_C_PERSONAS["OCEaN"]["archetype"] == "Prosecutor"

@@ -20,6 +20,7 @@ import importlib.metadata
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 from typing import Any
@@ -40,42 +41,35 @@ FLOW_FORMAT_C_PERSONAS: dict[str, dict[str, str]] = {
     "oceaN": {"number": "02", "code": "oceaN", "archetype": "Watchdog", "critter": "Bristle-Ear Burrower"},
     "oceAn": {"number": "03", "code": "oceAn", "archetype": "Peacemaker", "critter": "Pillow-Shell Dozer"},
     "oceAN": {"number": "04", "code": "oceAN", "archetype": "Caretaker", "critter": "Velvet-Pouch Badgerling"},
-    "ocEan": {"number": "05", "code": "ocEan", "archetype": "Hustler", "critter": "Razzle-Tail Ferret"},
-    "ocEaN": {"number": "06", "code": "ocEaN", "archetype": "Firebrand", "critter": "Spark-Crest Cockatrice"},
-    "ocEAn": {"number": "07", "code": "ocEAn", "archetype": "Host", "critter": "Honey-Bellow Bumblebear"},
-    "ocEAN": {"number": "08", "code": "ocEAN", "archetype": "Crusader", "critter": "Banner-Plume Staglet"},
-    "oCean": {"number": "09", "code": "oCean", "archetype": "Technician", "critter": "Ratchet-Claw Armadillo"},
-    "oCeaN": {"number": "10", "code": "oCeaN", "archetype": "Sentinel", "critter": "Iron-Quill Pangolin"},
-    "oCeAn": {"number": "11", "code": "oCeAn", "archetype": "Steward", "critter": "Acorn-Ledger Squirrel"},
-    "oCeAN": {"number": "12", "code": "oCeAN", "archetype": "Guardian", "critter": "Lantern-Shell Terrapin"},
-    "oCEan": {"number": "13", "code": "oCEan", "archetype": "Commander", "critter": "Brass-Horn Ramkin"},
-    "oCEaN": {"number": "14", "code": "oCEaN", "archetype": "Enforcer", "critter": "Thunder-Hoof Boarling"},
-    "oCEAn": {"number": "15", "code": "oCEAn", "archetype": "Consul", "critter": "Gold-Ruff Pelican"},
-    "oCEAN": {"number": "16", "code": "oCEAN", "archetype": "Quartermaster", "critter": "harbor-Bell Beaver"},
-    "Ocean": {"number": "17", "code": "Ocean", "archetype": "Maverick", "critter": "Cloud-Whisker Lynx"},
-    "OceaN": {"number": "18", "code": "OceaN", "archetype": "Cassandrian", "critter": "Star-Gazer Aye-Aye"},
-    "OceAn": {"number": "19", "code": "OceAn", "archetype": "Muse", "critter": "Petal-Wing Mothling"},
-    "OceAN": {"number": "20", "code": "OceAN", "archetype": "Mystic", "critter": "Moon-Dew Salamander"},
-    "OcEan": {"number": "21", "code": "OcEan", "archetype": "Provocateur", "critter": "Neon-Frill Chameleon"},
-    "OcEaN": {"number": "22", "code": "OcEaN", "archetype": "Agitator", "critter": "Cinder-Tuft Jay"},
+    "ocEan": {"number": "05", "code": "ocEan", "archetype": "Maverick", "critter": "Horn-Crested Hopper"},
+    "ocEaN": {"number": "06", "code": "ocEaN", "archetype": "Challenger", "critter": "Cinder-Beak Shrieker"},
+    "ocEAn": {"number": "07", "code": "ocEAn", "archetype": "Entertainer", "critter": "Tumble-Tuft Chirper"},
+    "ocEAN": {"number": "08", "code": "ocEAN", "archetype": "Supporter", "critter": "Clover-Mane Fluffkin"},
+    "oCean": {"number": "09", "code": "oCean", "archetype": "Inspector", "critter": "Brass-Lens Beetlekin"},
+    "oCeaN": {"number": "10", "code": "oCeaN", "archetype": "Sentinel", "critter": "Clockwork Bristle-Toad"},
+    "oCeAn": {"number": "11", "code": "oCeAn", "archetype": "Steward", "critter": "Acorn-Ledger Marmot"},
+    "oCeAN": {"number": "12", "code": "oCeAN", "archetype": "Defender", "critter": "Shield-Scute Pangopup"},
+    "oCEan": {"number": "13", "code": "oCEan", "archetype": "Commander", "critter": "Drum-Crest Marshal"},
+    "oCEaN": {"number": "14", "code": "oCEaN", "archetype": "Warden", "critter": "Iron-Gavel Owlkin"},
+    "oCEAn": {"number": "15", "code": "oCEAn", "archetype": "Coordinator", "critter": "Chatter-Plume Pipkin"},
+    "oCEAN": {"number": "16", "code": "oCEAN", "archetype": "Supervisor", "critter": "Lantern-Tail Herdling"},
+    "Ocean": {"number": "17", "code": "Ocean", "archetype": "Iconoclast", "critter": "Nebula-Whisker Lynxlet"},
+    "OceaN": {"number": "18", "code": "OceaN", "archetype": "Critic", "critter": "Thorn-Quill Specter"},
+    "OceAn": {"number": "19", "code": "OceAn", "archetype": "Dreamer", "critter": "Cloud-Drift Moonmoth"},
+    "OceAN": {"number": "20", "code": "OceAN", "archetype": "Mediator", "critter": "Dew-Drop Whisperkin"},
+    "OcEan": {"number": "21", "code": "OcEan", "archetype": "Debater", "critter": "Spark-Tongue Foxling"},
+    "OcEaN": {"number": "22", "code": "OcEaN", "archetype": "Disruptor", "critter": "Jitter-Quill Fizzlet"},
     "OcEAn": {"number": "23", "code": "OcEAn", "archetype": "Explorer", "critter": "Glimmer-Snout Puffle"},
-    "OcEAN": {"number": "24", "code": "OcEAN", "archetype": "Evangelist", "critter": "Sun-Chime Peacock"},
-    "OCean": {"number": "25", "code": "OCean", "archetype": "Architect", "critter": "Crystal-Web Weaver"},
-    "OCeaN": {"number": "26", "code": "OCeaN", "archetype": "Inquisitor", "critter": " Obsidian-Eye Falconet"},
-    "OCeAn": {"number": "27", "code": "OCeAn", "archetype": "Sage", "critter": "Scroll-Tusk Owl-Bear"},
-    "OCeAN": {"number": "28", "code": "OCeAN", "archetype": "Alchemist", "critter": "Amber-Vial Newt"},
-    "OCEin": {"number": "29", "code": "OCEan", "archetype": "Visionary", "critter": "Comet-Mane Kirin"},
+    "OcEAN": {"number": "24", "code": "OcEAN", "archetype": "Catalyst", "critter": "Aurora-Plume Finch"},
+    "OCean": {"number": "25", "code": "OCean", "archetype": "Architect", "critter": "Crystal-Loom Weaver"},
+    "OCeaN": {"number": "26", "code": "OCeaN", "archetype": "Inquisitor", "critter": "Obsidian-Eye Gryphlet"},
+    "OCeAn": {"number": "27", "code": "OCeAn", "archetype": "Scholar", "critter": "Scroll-Tucked Pangolin"},
+    "OCeAN": {"number": "28", "code": "OCeAN", "archetype": "Advocate", "critter": "Moss-Belly Snootling"},
+    "OCEan": {"number": "29", "code": "OCEan", "archetype": "Director", "critter": "Sun-Crown Basilisk"},
+    "OCEaN": {"number": "30", "code": "OCEaN", "archetype": "Prosecutor", "critter": "Thunder-Talon Shrike"},
+    "OCEAn": {"number": "31", "code": "OCEAn", "archetype": "Diplomat", "critter": "Honey-Chime Pipkin"},
+    "OCEAN": {"number": "32", "code": "OCEAN", "archetype": "Vanguard", "critter": "Prism-Crested Griffin"},
 }
-
-FLOW_FORMAT_C_PERSONAS.pop("OCEin", None)
-FLOW_FORMAT_C_PERSONAS.update(
-    {
-        "OCEan": {"number": "29", "code": "OCEan", "archetype": "Visionary", "critter": "Comet-Mane Kirin"},
-        "OCEaN": {"number": "30", "code": "OCEaN", "archetype": "Strategist", "critter": "Storm-Compass Gryphon"},
-        "OCEAn": {"number": "31", "code": "OCEAn", "archetype": "Diplomat", "critter": "Silk-Antler Hart"},
-        "OCEAN": {"number": "32", "code": "OCEAN", "archetype": "Vanguard", "critter": "Prism-Crested Griffin"},
-    }
-)
 
 
 def resolve_format_c_persona(trait_scores_0_to_4: dict[str, float]) -> dict[str, str]:
@@ -290,7 +284,9 @@ const result = evaluateBrowserSystemOne(payload);
 result.model = "gemini-decision-1";
 print(JSON.stringify(result));
 """
-    jsc_bin = "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc"
+    jsc_bin = shutil.which("jsc") or "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc"
+    if not os.path.exists(jsc_bin):
+        raise FileNotFoundError(f"JavaScriptCore (jsc) binary not found at {jsc_bin}")
     with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as tmp:
         tmp.write(script)
         tmp_path = tmp.name

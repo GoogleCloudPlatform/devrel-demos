@@ -14,13 +14,22 @@
 
 """Executes WebKit JavaScriptCore (jsc) unit tests against ocean-core.js."""
 
+import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
-JSC_BIN = "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc"
+JSC_BIN = shutil.which("jsc") or "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc"
 OCEAN_CORE_JS = REPO_ROOT / "ocean-core.js"
+
+pytestmark = pytest.mark.skipif(
+    not os.path.exists(JSC_BIN),
+    reason="JavaScriptCore (jsc) binary not found",
+)
 
 
 def run_jsc_test(js_assertions: str) -> str:
@@ -193,5 +202,25 @@ def test_evaluate_browser_systemone_calibrates_all_presets_in_jsc():
         const gamerRaw = evaluateBrowserSystemOne(gamerPayload);
         const gamerProfile = normalizeOceanProfile(gamerRaw, "inject-0-gamer");
         assertEqual(gamerProfile.flags.isRubricGaming, true, "adversarial gamer flagged");
+        """
+    )
+
+
+def test_python_and_js_format_c_personas_match():
+    import json
+    from charm_gemini.client import FLOW_FORMAT_C_PERSONAS as PY_PERSONAS
+
+    run_jsc_test(
+        f"""
+        const pyPersonas = {json.dumps(PY_PERSONAS)};
+        assertEqual(FLOW_FORMAT_C_PERSONAS.length, 32, "JS has 32 personas");
+        assertEqual(Object.keys(pyPersonas).length, 32, "Python has 32 personas");
+        for (const jsEntry of FLOW_FORMAT_C_PERSONAS) {{
+          const pyEntry = pyPersonas[jsEntry.code];
+          assertTrue(Boolean(pyEntry), "Missing persona code in Python: " + jsEntry.code);
+          for (const field of ["number", "code", "archetype", "critter"]) {{
+            assertEqual(pyEntry[field], jsEntry[field], jsEntry.code + "." + field);
+          }}
+        }}
         """
     )

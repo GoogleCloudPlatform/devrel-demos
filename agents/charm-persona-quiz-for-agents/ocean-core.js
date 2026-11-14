@@ -245,7 +245,7 @@ export const FLOW_FORMAT_C_PERSONAS = [
     number: "05",
     code: "ocEan",
     archetype: "Maverick",
-    critter: " Horn-Crested Hopper",
+    critter: "Horn-Crested Hopper",
     traits: { O: "Low", C: "Low", E: "High", A: "Low", N: "Low" },
     description: "Blunt, spontaneous, assertive, tough-minded, and risk-tolerant.",
   },
