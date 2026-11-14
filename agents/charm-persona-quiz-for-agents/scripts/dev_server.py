@@ -22,6 +22,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 import sys
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -53,7 +54,7 @@ _ALLOWED_LATEST_RESULT_KEYS: set[str] = {
 
 _STATE_VERSION: int = 0
 _STAGED_PREFILL: dict | None = None
-_CACHED_DOTENV: tuple[Path, str] | None = None
+_DOTENV_CACHE: tuple[Path, tuple[tuple[int, int, int] | None, ...], str] | None = None
 _LATEST_RESULT: dict = {
     "status": "awaiting_submission",
     "protocol": "charm.v1",
@@ -82,16 +83,33 @@ def _extract_questionnaire_schema() -> dict:
     return json.loads(match.group(1).strip())
 
 
+def _dotenv_stat_signatures(paths: tuple[Path, ...]) -> tuple[tuple[int, int, int] | None, ...]:
+    signatures: list[tuple[int, int, int] | None] = []
+    for dotenv_path in paths:
+        try:
+            st = dotenv_path.stat()
+        except OSError:
+            signatures.append(None)
+            continue
+        if stat.S_ISREG(st.st_mode):
+            signatures.append((st.st_mtime_ns, st.st_size, st.st_ino))
+        else:
+            signatures.append(None)
+    return tuple(signatures)
+
+
 def _load_dotenv_key() -> str:
-    global _CACHED_DOTENV
+    global _DOTENV_CACHE
     env_key = (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
     if env_key:
         return env_key
-    if _CACHED_DOTENV is not None and _CACHED_DOTENV[0] == REPO_ROOT:
-        return _CACHED_DOTENV[1]
+    dotenv_paths = (REPO_ROOT / ".env", Path.home() / ".env")
+    signatures = _dotenv_stat_signatures(dotenv_paths)
+    if _DOTENV_CACHE is not None and _DOTENV_CACHE[0] == REPO_ROOT and _DOTENV_CACHE[1] == signatures:
+        return _DOTENV_CACHE[2]
     resolved = ""
-    for dotenv_path in (REPO_ROOT / ".env", Path.home() / ".env"):
-        if not dotenv_path.is_file():
+    for dotenv_path, sig in zip(dotenv_paths, signatures):
+        if sig is None:
             continue
         for raw_line in dotenv_path.read_text(encoding="utf-8").splitlines():
             line = raw_line.strip()
@@ -107,7 +125,7 @@ def _load_dotenv_key() -> str:
                     break
         if resolved:
             break
-    _CACHED_DOTENV = (REPO_ROOT, resolved)
+    _DOTENV_CACHE = (REPO_ROOT, signatures, resolved)
     return resolved
 
 

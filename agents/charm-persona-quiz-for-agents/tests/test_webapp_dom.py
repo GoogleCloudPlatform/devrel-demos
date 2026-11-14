@@ -591,16 +591,86 @@ def test_dev_server_static_allowlist_and_request_limits() -> None:
 
 
 def test_dev_server_loads_repo_dotenv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify _load_dotenv_key reads GEMINI_API_KEY/GOOGLE_API_KEY with spaces or export prefix from project root .env."""
+    """Verify _load_dotenv_key reads GEMINI_API_KEY/GOOGLE_API_KEY with spaces or export prefix and invalidates on edits."""
+    from pathlib import Path as _Path
     from scripts import dev_server
 
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
     monkeypatch.setattr(dev_server, "REPO_ROOT", tmp_path)
-    monkeypatch.setattr(dev_server, "_CACHED_DOTENV", None)
+    monkeypatch.setattr(_Path, "home", classmethod(lambda cls: tmp_path / "home"))
+    monkeypatch.setattr(dev_server, "_DOTENV_CACHE", None)
     dotenv_file = tmp_path / ".env"
     dotenv_file.write_text('export GEMINI_API_KEY = "repo-root-test-value"\n', encoding="utf-8")
 
     assert dev_server._load_dotenv_key() == "repo-root-test-value"
+    # Updating .env invalidates the stat-based cache without requiring a server restart.
+    dotenv_file.write_text('GEMINI_API_KEY="repo-root-rotated-value"\n', encoding="utf-8")
+    assert dev_server._load_dotenv_key() == "repo-root-rotated-value"
     dotenv_file.unlink()
-    assert dev_server._load_dotenv_key() == "repo-root-test-value"
+    assert dev_server._load_dotenv_key() == ""
+
+
+@requires_jsc
+def test_server_polling_survives_transient_failures_in_jsc() -> None:
+    """Verify transient fetch failures do not permanently disable polling before MAX_SERVER_API_FAILURES."""
+    ocean_core_js = _strip_esm_syntax((REPO_ROOT / "ocean-core.js").read_text(encoding="utf-8"))
+    app_js = _strip_esm_syntax((REPO_ROOT / "app.js").read_text(encoding="utf-8"))
+    script = f"""
+    const elementsById = {{}};
+    function makeEl(id) {{
+      return {{
+        id: id, value: "", textContent: "", innerHTML: "", disabled: false, hidden: true,
+        className: "", dataset: {{}}, style: {{}},
+        classList: {{ add: function() {{}}, remove: function() {{}}, toggle: function() {{}}, contains: function() {{ return false; }} }},
+        addEventListener: function() {{}}, setAttribute: function() {{}}, getAttribute: function() {{ return null; }},
+        appendChild: function() {{}}, querySelectorAll: function() {{ return []; }}, querySelector: function() {{ return makeEl("child"); }}
+      }};
+    }}
+    let pollCallback = null;
+    let clearedCount = 0;
+    globalThis.setInterval = function(fn) {{ pollCallback = fn; return 42; }};
+    globalThis.clearInterval = function() {{ clearedCount += 1; }};
+    globalThis.fetch = function() {{
+      return Promise.resolve({{ ok: true, status: 200, json: () => Promise.resolve({{ status: "awaiting_submission", version: 0 }}) }});
+    }};
+    globalThis.window = globalThis;
+    globalThis.location = {{ origin: "http://127.0.0.1:8787", search: "" }};
+    globalThis.URLSearchParams = function() {{ return {{ get: function() {{ return null; }} }}; }};
+    globalThis.document = {{
+      getElementById: function(id) {{ if (!elementsById[id]) elementsById[id] = makeEl(id); return elementsById[id]; }},
+      querySelectorAll: function() {{ return []; }},
+      querySelector: function() {{ return makeEl("qs"); }},
+      createElement: function(tag) {{ return makeEl(tag); }},
+      createElementNS: function(ns, tag) {{ return makeEl(tag); }},
+      addEventListener: function(evt, fn) {{ if (evt === "DOMContentLoaded") fn(); }}
+    }};
+    {ocean_core_js}
+    {app_js}
+    recordServerApiFailure();
+    recordServerApiFailure();
+    const aliveAfterTwo = isServerApiReachable();
+    markServerApiResponse({{ ok: true, status: 200 }});
+    const aliveAfterRecovery = isServerApiReachable() && serverApiFailureCount === 0;
+    recordServerApiFailure();
+    recordServerApiFailure();
+    recordServerApiFailure();
+    const disabledAfterThree = !isServerApiReachable();
+    if (pollCallback) pollCallback();
+    // Reset state and verify HTTP 404 immediately disables polling for static hosts.
+    serverApiAvailable = true;
+    serverApiFailureCount = 0;
+    markServerApiResponse({{ ok: false, status: 404 }});
+    const disabledImmediatelyOn404 = !isServerApiReachable();
+    print(JSON.stringify({{ aliveAfterTwo, aliveAfterRecovery, disabledAfterThree, disabledImmediatelyOn404, clearedCount, hasPoll: typeof pollCallback === "function" }}));
+    """
+    stdout = _run_jsc(script)
+    out = json.loads(stdout.splitlines()[-1])
+    assert out == {
+        "aliveAfterTwo": True,
+        "aliveAfterRecovery": True,
+        "disabledAfterThree": True,
+        "disabledImmediatelyOn404": True,
+        "clearedCount": 1,
+        "hasPoll": True,
+    }
