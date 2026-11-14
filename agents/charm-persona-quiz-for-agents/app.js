@@ -750,19 +750,24 @@ function renderProfileToDom(profile, requestPayload, sourceLabel = "Gemini Decis
   if (typeof window !== "undefined" && typeof window.dispatchEvent === "function" && typeof CustomEvent === "function") {
     window.dispatchEvent(new CustomEvent("charm:scored", { detail: resultEnvelope }));
   }
-  if (isHttpOriginWithFetch()) {
+  if (isServerApiReachable()) {
     fetch("/api/latest-result", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(resultEnvelope),
     })
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => {
+        if (r.status === 404) serverApiAvailable = false;
+        return r.ok ? r.json() : null;
+      })
       .then((data) => {
         if (data && typeof data.version === "number") {
           lastKnownServerVersion = Math.max(lastKnownServerVersion, data.version);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        serverApiAvailable = false;
+      });
   }
 }
 
@@ -849,8 +854,14 @@ export function resetMat({ syncServer = true } = {}) {
   updateWordCounters();
   setActiveQuestionCard(0);
   clearLocalState();
-  if (syncServer && isHttpOriginWithFetch()) {
-    fetch("/api/reset", { method: "POST" }).catch(() => {});
+  if (syncServer && isServerApiReachable()) {
+    fetch("/api/reset", { method: "POST" })
+      .then((r) => {
+        if (r.status === 404) serverApiAvailable = false;
+      })
+      .catch(() => {
+        serverApiAvailable = false;
+      });
   }
 
   const banner = document.getElementById("form-error-banner");
@@ -958,6 +969,7 @@ export function loadFormatCCombo(code) {
 
 const CHARM_STORAGE_KEY = "charm.state.v1";
 let lastKnownServerVersion = 0;
+let serverApiAvailable = true;
 
 function isHttpOriginWithFetch() {
   return (
@@ -966,6 +978,10 @@ function isHttpOriginWithFetch() {
     window.location &&
     String(window.location.origin || "").startsWith("http")
   );
+}
+
+function isServerApiReachable() {
+  return serverApiAvailable && isHttpOriginWithFetch();
 }
 
 async function copyTextWithFeedback(text, btn, defaultLabel, fallbackTitle) {
@@ -1343,20 +1359,38 @@ function initCharmApp() {
       readyBanner.textContent = "";
       readyBanner.hidden = true;
     }
-    if (isHttpOriginWithFetch()) {
+    if (isServerApiReachable()) {
       fetch("/api/state")
-        .then((r) => (r.ok ? r.json() : null))
+        .then((r) => {
+          if (r.status === 404) serverApiAvailable = false;
+          return r.ok ? r.json() : null;
+        })
         .then((state) => applyServerState(state, { isInitialSync: true }))
-        .catch(() => {});
+        .catch(() => {
+          serverApiAvailable = false;
+        });
     }
   }
 
-  if (typeof setInterval === "function" && isHttpOriginWithFetch()) {
-    setInterval(() => {
+  if (typeof setInterval === "function" && isServerApiReachable()) {
+    const pollInterval = setInterval(() => {
+      if (!isServerApiReachable()) {
+        clearInterval(pollInterval);
+        return;
+      }
       fetch("/api/state")
-        .then((r) => (r.ok ? r.json() : null))
+        .then((r) => {
+          if (r.status === 404) {
+            serverApiAvailable = false;
+            clearInterval(pollInterval);
+          }
+          return r.ok ? r.json() : null;
+        })
         .then((state) => applyServerState(state, { isInitialSync: false }))
-        .catch(() => {});
+        .catch(() => {
+          serverApiAvailable = false;
+          clearInterval(pollInterval);
+        });
     }, 2500);
   }
 

@@ -92,13 +92,13 @@ def _load_dotenv_key() -> str:
             line = raw_line.strip()
             if not line or line.startswith("#"):
                 continue
-            if line.startswith("export "):
-                line = line[len("export "):].strip()
-            for var_name in ("GEMINI_API_KEY=", "GOOGLE_API_KEY="):
-                if line.startswith(var_name):
-                    val = line.split("=", 1)[1].strip().strip('"').strip("'")
-                    if val:
-                        return val
+            match = re.match(
+                r"^(?:export\s+)?(GEMINI_API_KEY|GOOGLE_API_KEY)\s*=\s*(.*)$", line
+            )
+            if match:
+                val = match.group(2).strip().strip('"').strip("'")
+                if val:
+                    return val
     return ""
 
 

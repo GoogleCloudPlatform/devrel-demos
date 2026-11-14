@@ -570,12 +570,12 @@ def test_dev_server_static_allowlist_and_request_limits() -> None:
 
 
 def test_dev_server_loads_repo_dotenv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify _load_dotenv_key reads GEMINI_API_KEY from project root .env before Path.home()."""
+    """Verify _load_dotenv_key reads GEMINI_API_KEY/GOOGLE_API_KEY with spaces or export prefix from project root .env."""
     from scripts import dev_server
 
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
     monkeypatch.setattr(dev_server, "REPO_ROOT", tmp_path)
-    (tmp_path / ".env").write_text('GEMINI_API_KEY="repo-root-test-value"\n', encoding="utf-8")
+    (tmp_path / ".env").write_text('export GEMINI_API_KEY = "repo-root-test-value"\n', encoding="utf-8")
 
     assert dev_server._load_dotenv_key() == "repo-root-test-value"
