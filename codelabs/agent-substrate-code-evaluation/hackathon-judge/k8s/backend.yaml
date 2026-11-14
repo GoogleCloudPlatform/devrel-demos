@@ -1,0 +1,82 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: hackathon-judge
+  labels:
+    app: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      serviceAccountName: hackathon-judge-sa
+      containers:
+      - name: backend
+        image: "${ARTIFACT_REGISTRY_LOCATION}-docker.pkg.dev/${GOOGLE_CLOUD_PROJECT}/${ARTIFACT_REPO_NAME}/backend:$COMMIT_SHA"
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: 500m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        env:
+        - name: GOOGLE_CLOUD_PROJECT
+          valueFrom:
+            configMapKeyRef:
+              name: hackathon-judge-config
+              key: GOOGLE_CLOUD_PROJECT
+        - name: TASKS_TOPIC
+          valueFrom:
+            configMapKeyRef:
+              name: hackathon-judge-config
+              key: TASKS_TOPIC
+        - name: RESULTS_SUB
+          valueFrom:
+            configMapKeyRef:
+              name: hackathon-judge-config
+              key: RESULTS_SUB
+        - name: BQ_DATASET
+          valueFrom:
+            configMapKeyRef:
+              name: hackathon-judge-config
+              key: BQ_DATASET
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: hackathon-judge
+  labels:
+    app: backend
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: backend
+  type: ClusterIP
