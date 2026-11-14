@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+.pytest_cache/
+models/
+vendor/
+.DS_Store
+.env
+.env.*
+!.env.example

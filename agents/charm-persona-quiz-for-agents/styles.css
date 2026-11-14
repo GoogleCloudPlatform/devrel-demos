@@ -1,0 +1,1847 @@
+/*
+ * Copyright 2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+:root {
+  --wood-base: #c8874b;
+  --wood-dark: #a5662f;
+  --wood-light: #df9f61;
+  --mat-forest: #7d5c42;
+  --mat-forest-dark: #573e2b;
+  --mat-cream: #f8f4ea;
+  --mat-slot-bg: #fcfaf3;
+  --mat-slot-border: #d5c59f;
+  --card-ink: #2b211b;
+  --card-sky-top: #d6d7fa;
+  --card-sky-bot: #b9baf2;
+  --card-plaque: #f7eed7;
+  --card-ribbon: #8b8dc9;
+  --card-body-bg: #f6efe0;
+  --star-gold: #f59e0b;
+  --star-stroke: #78350f;
+  --mint-watermark: #8789d6;
+  --accent-orange: #ea580c;
+  --accent-red: #dc2626;
+  --accent-green: #15803d;
+  --accent-blue: #0284c7;
+  --accent-purple: #7e22ce;
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-script: "Caveat", cursive;
+  --font-sans: "Nunito", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  color: var(--card-ink);
+  line-height: 1.42;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================================================
+   1. WARM HONEY-OAK WOOD-GRAIN TABLETOP
+   ========================================================================== */
+.wood-tabletop {
+  min-height: 100vh;
+  padding: 16px 20px 36px;
+  background-color: var(--wood-base);
+  background-image:
+    radial-gradient(ellipse at 50% 30%, rgba(255, 236, 209, 0.22) 0%, rgba(46, 22, 5, 0.38) 100%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(110, 54, 14, 0.14) 0px,
+      rgba(110, 54, 14, 0.14) 3px,
+      transparent 3px,
+      transparent 19px,
+      rgba(255, 220, 175, 0.1) 19px,
+      rgba(255, 220, 175, 0.1) 24px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(74, 34, 8, 0.08) 0px,
+      rgba(74, 34, 8, 0.08) 2px,
+      transparent 2px,
+      transparent 90px
+    ),
+    linear-gradient(180deg, #d7975b 0%, #bd7b3f 50%, #a9682e 100%);
+}
+
+/* ==========================================================================
+   2. TOP TABLETOP CONTROL TOOLBAR (OUTSIDE THE MAT)
+   ========================================================================== */
+.tabletop-toolbar {
+  max-width: 1460px;
+  margin: 0 auto 14px;
+  background: rgba(68, 48, 34, 0.95);
+  border: 3px solid #f5ead2;
+  border-radius: 14px;
+  padding: 10px 16px;
+  color: #f8f4ea;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 8px 20px rgba(34, 18, 6, 0.42);
+}
+
+.toolbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.game-box-badge {
+  background: #f59e0b;
+  color: #1e292b;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1.5px solid #1e292b;
+}
+
+.toolbar-brand h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fffbeb;
+  letter-spacing: 0.01em;
+}
+
+.toolbar-brand h1 em {
+  font-family: var(--font-script);
+  font-size: 1.55rem;
+  color: #c8c9f8;
+  font-weight: 700;
+}
+
+.toolbar-sub {
+  font-size: 0.78rem;
+  color: #f3e8d2;
+}
+
+.toolbar-sub code {
+  font-family: var(--font-mono);
+  background: rgba(0, 0, 0, 0.28);
+  padding: 2px 6px;
+  border-radius: 5px;
+  color: #fde68a;
+}
+
+.preset-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.preset-label,
+.runtime-label {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #ddd6fe;
+}
+
+.preset-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-chip {
+  background: #f7eed7;
+  color: #1e292b;
+  border: 2px solid #1e292b;
+  border-radius: 999px;
+  padding: 4px 11px;
+  font-family: var(--font-display);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 0 #1e292b;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.btn-chip:hover {
+  background: #fde68a;
+  transform: translateY(-1px);
+}
+
+.btn-chip:active {
+  transform: translateY(1px);
+}
+
+.btn-chip-warn {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.btn-chip-warn:hover {
+  background: #fecaca;
+}
+
+.runtime-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.runtime-select,
+.runtime-input {
+  background: #fcfaf3;
+  color: #1e292b;
+  border: 2px solid #1e292b;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.runtime-input {
+  width: 132px;
+  font-family: var(--font-mono);
+}
+
+.status-pill {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #e4e5fc;
+  color: #3c3e82;
+  border: 1.5px solid #2b211b;
+}
+
+/* ==========================================================================
+   3. THE BOARD-GAME PLAYER MAT (FOREST-TEAL FRAME + CREAM PARCHMENT)
+   ========================================================================== */
+.player-mat {
+  max-width: 1460px;
+  margin: 0 auto;
+  background: var(--mat-forest);
+  padding: 18px;
+  border-radius: 26px;
+  border: 3px solid var(--mat-forest-dark);
+  box-shadow:
+    0 22px 48px rgba(28, 14, 3, 0.62),
+    0 4px 10px rgba(0, 0, 0, 0.35),
+    inset 0 2px 3px rgba(255, 255, 255, 0.18);
+}
+
+.mat-inner-canvas {
+  position: relative;
+  background: var(--mat-cream);
+  background-image:
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.55) 0%, rgba(235, 224, 198, 0.45) 100%);
+  border-radius: 18px;
+  border: 3px solid #573e2b;
+  padding: 14px 20px 18px;
+  overflow: hidden;
+}
+
+/* Ornamental Corner Flourishes */
+.corner-flourish {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.corner-tl {
+  top: 6px;
+  left: 6px;
+}
+
+.corner-tr {
+  top: 6px;
+  right: 6px;
+}
+
+/* Top Watermark Strip matching "What's on the Menu?" script headers */
+.mat-top-ornaments {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 44px 6px;
+  border-bottom: 2px dashed rgba(125, 92, 66, 0.25);
+  margin-bottom: 10px;
+}
+
+.mat-watermark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mint-watermark);
+  user-select: none;
+}
+
+.watermark-script {
+  font-family: var(--font-script);
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.watermark-curl {
+  font-size: 1.2rem;
+  opacity: 0.75;
+}
+
+.mat-center-crest {
+  font-size: 1.55rem;
+  color: var(--mat-forest);
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.8));
+}
+
+/* Agent Quickstart Banner */
+.agent-quickstart-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  background: #e8e9fb;
+  border: 2px solid var(--card-ink);
+  border-radius: 10px;
+  padding: 7px 12px;
+  margin-bottom: 10px;
+  font-size: 0.86rem;
+  color: var(--ink-main);
+}
+
+.agent-quickstart-badge {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: #f5b82e;
+  color: var(--card-ink);
+  border: 1.5px solid var(--card-ink);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+.agent-quickstart-text {
+  flex: 1;
+  min-width: 220px;
+  line-height: 1.35;
+}
+
+.btn-copy-prompt {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: #fffdf7;
+  color: var(--card-ink);
+  border: 2px solid var(--card-ink);
+  border-radius: 999px;
+  padding: 4px 12px;
+  min-width: 112px;
+  cursor: pointer;
+  box-shadow: 0 2px 0 var(--card-ink);
+  transition: transform 0.1s ease, background 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-copy-prompt:hover {
+  background: #fde68a;
+}
+
+.btn-copy-prompt:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 var(--card-ink);
+}
+
+.agent-quickstart-text code {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(30, 41, 43, 0.2);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+
+.agent-quickstart-text a {
+  color: #2f2a7a;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* Chef / Agent Nameplate Bar */
+.chef-nameplate-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #efe6cf;
+  border: 2px solid var(--card-ink);
+  border-radius: 12px;
+  padding: 8px 14px;
+  margin-bottom: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.nameplate-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nameplate-field label {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--mat-forest);
+  letter-spacing: 0.04em;
+}
+
+.nameplate-field input {
+  background: #ffffff;
+  border: 2px solid var(--card-ink);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--card-ink);
+  width: 145px;
+}
+
+.nameplate-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-plate-order {
+  background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%);
+  color: var(--card-ink);
+  border: 2.5px solid var(--card-ink);
+  border-radius: 10px;
+  padding: 7px 16px;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  min-width: 215px;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--card-ink);
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+.btn-plate-order:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.btn-plate-order:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--card-ink);
+}
+
+.btn-plate-order:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.btn-wipe-slate {
+  background: #ffffff;
+  color: var(--card-ink);
+  border: 2px solid var(--card-ink);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 0 var(--card-ink);
+}
+
+.btn-wipe-slate:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+.btn-wipe-slate:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ready-banner {
+  margin-bottom: 12px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 2px solid var(--mat-forest);
+  background: #dcfce7;
+  color: #14532d;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.error-banner {
+  background: #fee2e2;
+  border: 2.5px solid #991b1b;
+  color: #7f1d1d;
+  border-radius: 10px;
+  padding: 9px 14px;
+  margin-bottom: 12px;
+  font-weight: 700;
+  font-size: 0.84rem;
+}
+
+/* ==========================================================================
+   4. 8-SLOT (4 x 2) BOARD GAME CARD GRID & PLAYFUL TILTED MENU CARDS
+   ========================================================================== */
+.mat-card-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 1fr 0.9fr;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 1220px) {
+  .mat-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .mat-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mat-slot {
+  background: var(--mat-slot-bg);
+  border: 2.5px solid var(--mat-slot-border);
+  border-radius: 16px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: inset 0 2px 5px rgba(161, 136, 91, 0.18);
+}
+
+/* Question 1-5 Card Stack Slot & Flip Controls */
+.question-stack-slot {
+  position: relative;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.question-stack-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  padding: 4px 2px 10px;
+}
+
+.question-card-stack {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+}
+
+/* Stacked deck backing cards peeking out behind the top card */
+.question-card-stack::before,
+.question-card-stack::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--card-body-bg);
+  border: 2.5px solid var(--card-ink);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.question-card-stack::before {
+  transform: translate(6px, 6px) rotate(1.6deg);
+  background: #ede3c8;
+  z-index: -1;
+  box-shadow: 0 5px 10px rgba(18, 24, 27, 0.18);
+}
+
+.question-card-stack::after {
+  transform: translate(-5px, 9px) rotate(-1.4deg);
+  background: #e2d5b5;
+  z-index: -2;
+  box-shadow: 0 6px 12px rgba(18, 24, 27, 0.16);
+}
+
+.question-deck-card[hidden] {
+  display: none !important;
+}
+
+.question-deck-card.is-active {
+  display: flex;
+  animation: stackCardFlipIn 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes stackCardFlipIn {
+  from {
+    opacity: 0.72;
+    transform: translateY(4px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.stack-arrow-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 44px;
+  border-radius: 8px;
+  border: 2px solid var(--card-ink);
+  background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%);
+  color: var(--card-ink);
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  box-shadow: 0 2px 0 var(--card-ink);
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+.stack-arrow-btn:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.stack-arrow-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 var(--card-ink);
+}
+
+.question-stack-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 8px 2px;
+}
+
+.stack-indicator-pill {
+  font-family: var(--font-display);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--mat-forest);
+  background: #efe6cf;
+  border: 1.5px solid var(--card-ink);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+.stack-dots {
+  display: grid;
+  grid-template-columns: repeat(8, 22px);
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+}
+
+.stack-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--card-ink);
+  background: #ffffff;
+  color: var(--card-ink);
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: 0 2px 0 var(--card-ink);
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.stack-dot.is-ready {
+  background: #e4e6ff;
+  color: #4c1d95;
+}
+
+.stack-dot.is-active {
+  background: #f59e0b;
+  color: #1e292b;
+  transform: translateY(-1px);
+}
+
+/* Tactile Tabletop Menu Card */
+.menu-card {
+  background: var(--card-body-bg);
+  border: 2.5px solid var(--card-ink);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  box-shadow:
+    0 7px 14px rgba(18, 24, 27, 0.22),
+    0 2px 0 rgba(30, 41, 43, 0.9);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.menu-card.tilt-left {
+  transform: rotate(-0.85deg);
+}
+
+.menu-card.tilt-right {
+  transform: rotate(0.85deg);
+}
+
+.menu-card:hover,
+.menu-card:focus-within {
+  transform: rotate(0deg) translateY(-3px);
+  box-shadow:
+    0 12px 22px rgba(18, 24, 27, 0.28),
+    0 3px 0 var(--card-ink);
+  z-index: 2;
+}
+
+/* Card Top Sky Banner (Aqua-Mint with Medallion & Hanging Title Plaque) */
+.card-sky {
+  position: relative;
+  background: linear-gradient(180deg, var(--card-sky-top) 0%, var(--card-sky-bot) 100%);
+  padding: 8px 10px 12px 46px;
+  border-bottom: 2px solid var(--card-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-medallion {
+  position: absolute;
+  left: 7px;
+  top: 7px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fde047 0%, #eab308 70%, #ca8a04 100%);
+  border: 2px solid var(--card-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.card-medallion-crest {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--card-ink);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.card-title-plaque {
+  position: relative;
+  background: var(--card-plaque);
+  border: 2px solid var(--card-ink);
+  border-radius: 6px;
+  padding: 5px 10px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.22);
+}
+
+.card-title-plaque:has(.plaque-ribbon) {
+  padding: 4px 10px 8px;
+}
+
+.plaque-title {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--card-ink);
+}
+
+.plaque-ribbon {
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  transform: translateX(-50%);
+  background: var(--card-ribbon);
+  color: #ffffff;
+  border: 1.5px solid var(--card-ink);
+  border-radius: 999px;
+  padding: 1px 10px;
+  font-family: var(--font-display);
+  font-size: 0.64rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Dish Illustration Strip */
+.card-illustration {
+  background: linear-gradient(180deg, #b9baf2 0%, #e4e5fc 68%, #d99b66 68%, #d99b66 100%);
+  border-bottom: 2px solid var(--card-ink);
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.dish-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Card Body & Open-Ended Paragraph Input */
+.card-body {
+  padding: 9px 10px 8px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background: var(--card-body-bg);
+}
+
+.scenario-prompt {
+  font-size: 0.74rem;
+  color: #27373a;
+  margin-bottom: 6px;
+  line-height: 1.32;
+}
+
+.scenario-prompt strong {
+  color: var(--mat-forest);
+  font-family: var(--font-display);
+}
+
+.card-body textarea {
+  width: 100%;
+  flex: 1;
+  min-height: 120px;
+  resize: vertical;
+  background: #fffdf8;
+  color: var(--card-ink);
+  border: 2px solid var(--card-ink);
+  border-radius: 8px;
+  padding: 7px 9px;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.38;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.card-body textarea:focus {
+  outline: none;
+  border-color: var(--mat-forest);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(185, 186, 242, 0.55);
+}
+
+.card-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+
+.word-counter {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.word-counter.valid {
+  color: var(--accent-green);
+  font-weight: 700;
+}
+
+.trait-mini-prob {
+  background: #e2e8f0;
+  color: var(--card-ink);
+  border: 1px solid var(--card-ink);
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-weight: 700;
+}
+
+.field-error {
+  margin: 4px 0 0;
+  color: #b91c1c;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+/* Card Bottom Footer Tab */
+.card-star-footer {
+  background: linear-gradient(180deg, #f3f4ff 0%, #d6d7fa 100%);
+  border-top: 2px solid var(--card-ink);
+  padding: 3px 8px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.star-icon {
+  color: var(--star-gold);
+  font-size: 1.15rem;
+  line-height: 1;
+  text-shadow:
+    -1px -1px 0 var(--card-ink),
+    1px -1px 0 var(--card-ink),
+    -1px 1px 0 var(--card-ink),
+    1px 1px 0 var(--card-ink),
+    0 2px 2px rgba(0, 0, 0, 0.25);
+}
+
+.star-icon.star-empty {
+  color: rgba(255, 255, 255, 0.55);
+  text-shadow:
+    -1px -1px 0 #64748b,
+    1px -1px 0 #64748b,
+    -1px 1px 0 #64748b,
+    1px 1px 0 #64748b;
+}
+
+/* ==========================================================================
+   5. PRINTED MAT SLOTS ("Chef's Entree" Radar & "Beverage 2" Noul Checks)
+   ========================================================================== */
+.printed-mat-slot {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 10px;
+  position: relative;
+}
+
+.slot-watermark-title {
+  font-family: var(--font-script);
+  font-size: 2.05rem;
+  font-weight: 700;
+  color: var(--mint-watermark);
+  line-height: 1;
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+.slot-watermark-sub {
+  font-family: var(--font-script);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--mint-watermark);
+  margin-top: -4px;
+  margin-bottom: 8px;
+}
+
+.slot-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.ocean-code-pill {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--mat-forest);
+  color: #fffbeb;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1.5px solid var(--card-ink);
+}
+
+.format-c-pill {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: linear-gradient(180deg, #fde047 0%, #eab308 100%);
+  color: var(--card-ink);
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1.5px solid var(--card-ink);
+  box-shadow: 0 2px 0 rgba(30, 41, 43, 0.2);
+}
+
+.slot-archetype-name {
+  margin: 4px 0 2px;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--mat-forest);
+  text-align: center;
+}
+
+.slot-archetype-tag {
+  margin: 0 0 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #6b6dc4;
+  text-align: center;
+}
+
+.slot-conf-pill {
+  font-size: 0.72rem;
+  background: #efe6cf;
+  border: 1.5px solid var(--card-ink);
+  border-radius: 999px;
+  padding: 2px 10px;
+  margin-bottom: 6px;
+}
+
+.radar-svg {
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  margin: 6px auto;
+}
+
+.slot-archetype-summary {
+  margin: 6px 0 10px;
+  font-size: 0.73rem;
+  color: #334155;
+  text-align: center;
+  line-height: 1.35;
+}
+
+.slot-arch-dist {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Dessert Breakdown Card (Slot 7) */
+.dessert-breakdown-card {
+  background: #fbf6ea;
+  flex: 1;
+  min-height: 0;
+}
+
+.dessert-scroll {
+  padding: 8px;
+  overflow-y: auto;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.dessert-meta {
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+  font-size: 0.67rem;
+  color: #334155;
+  text-align: center;
+  background: #eef0ff;
+  border: 1px solid var(--card-ink);
+  border-radius: 6px;
+  padding: 3px 6px;
+}
+
+.trait-cards-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trait-result-card {
+  background: #ffffff;
+  border: 1.5px solid var(--card-ink);
+  border-radius: 7px;
+  padding: 5px 7px;
+}
+
+.trait-result-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 3px;
+}
+
+.trait-result-title {
+  font-family: var(--font-display);
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: var(--mat-forest);
+}
+
+.trait-result-metrics {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #6b6dc4;
+}
+
+.level-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.level-row,
+.dist-row {
+  display: grid;
+  grid-template-columns: minmax(78px, 1.1fr) 1fr 32px;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.64rem;
+}
+
+.dist-label {
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dist-label.top {
+  color: var(--card-ink);
+  font-weight: 800;
+}
+
+.prob-track {
+  height: 6px;
+  background: #e2e8f0;
+  border: 1px solid rgba(30, 41, 43, 0.45);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.prob-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8789d6, #b9baf2);
+  border-radius: 999px;
+}
+
+.prob-fill.muted {
+  background: #94a3b8;
+}
+
+.prob-fill.warn {
+  background: linear-gradient(90deg, #ea580c, #ef4444);
+}
+
+.prob-val {
+  font-family: var(--font-mono);
+  font-size: 0.63rem;
+  text-align: right;
+  color: var(--card-ink);
+  font-weight: 700;
+}
+
+/* Noul Mat Cards inside Slot 8 ("Beverage 2") */
+.noul-mat-card {
+  width: 100%;
+  background: #ffffff;
+}
+
+.entree-slot.is-awaiting .slot-pill-row,
+.entree-slot.is-awaiting #archetype-tagline,
+.entree-slot.is-awaiting .slot-conf-pill,
+.entree-slot.is-awaiting .radar-svg {
+  display: none;
+}
+
+.dessert-breakdown-card .awaiting-card-state {
+  display: none;
+}
+
+.dessert-breakdown-card.is-awaiting .plaque-ribbon,
+.dessert-breakdown-card.is-awaiting #results-meta-line,
+.dessert-breakdown-card.is-awaiting #trait-cards-container,
+.dessert-breakdown-card.is-awaiting .card-star-footer {
+  display: none;
+}
+
+.dessert-breakdown-card.is-awaiting .dessert-scroll {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dessert-breakdown-card.is-awaiting .awaiting-card-state {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--card-ink);
+  text-align: center;
+}
+
+.wild-persona-card {
+  background: transparent;
+}
+
+.wild-persona-card.is-awaiting .wild-persona-name {
+  text-align: center;
+}
+
+.wild-persona-card.is-awaiting #wild-persona-desc,
+.wild-persona-card.is-awaiting .wild-persona-section {
+  display: none;
+}
+
+.wild-persona-subheading {
+  margin: 12px 0 3px;
+  font-family: var(--font-heading);
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--mat-forest);
+}
+
+.wild-persona-section p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.42;
+  color: #334155;
+}
+
+.golden-matches-list {
+  margin: 2px 0 0;
+  padding-left: 18px;
+  list-style-type: disc;
+  font-size: 0.78rem;
+  line-height: 1.42;
+  color: #334155;
+}
+
+.golden-matches-list li {
+  margin-bottom: 4px;
+}
+
+.golden-matches-list li::marker {
+  color: var(--mat-forest);
+  font-size: 1.1em;
+}
+
+.wild-persona-card.is-awaiting #wild-persona-desc:empty {
+  display: none;
+}
+
+.wild-persona-name {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--mat-forest);
+  margin: 4px 0 3px;
+}
+
+.noul-mat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+}
+
+.noul-mat-card p {
+  margin: 0 0 7px;
+  font-size: 0.72rem;
+  color: #334155;
+}
+
+.noul-badge {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1.5px solid var(--card-ink);
+}
+
+.noul-badge.flag-true {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #991b1b;
+}
+
+.noul-badge.flag-positive {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #166534;
+}
+
+/* ==========================================================================
+   6. BOTTOM PLAYER MAT RULEBOOK STRIP (MATCHING INSPIRATION IMAGE FOOTER)
+   ========================================================================== */
+.mat-rulebook-footer {
+  border-top: 4px solid var(--mat-forest);
+  padding-top: 14px;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr 1.25fr;
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .mat-rulebook-footer {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rule-col h3 {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--card-ink);
+  text-transform: uppercase;
+}
+
+/* Column 1: Action / Rubric Color Key */
+.color-key-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.color-key-list li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.75rem;
+  color: var(--card-ink);
+}
+
+.key-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--card-ink);
+  flex-shrink: 0;
+  box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.45);
+}
+
+.dot-blue {
+  background: var(--accent-blue);
+}
+.dot-red {
+  background: var(--accent-red);
+}
+.dot-green {
+  background: var(--accent-green);
+}
+.dot-purple {
+  background: var(--accent-purple);
+}
+.dot-orange {
+  background: var(--accent-orange);
+}
+
+/* Column 2: Food / Trait Medallions Mint Pill Box */
+.food-icons-box {
+  background: linear-gradient(180deg, #f3f4ff 0%, #d6d7fa 100%);
+  border: 2.5px solid var(--card-ink);
+  border-radius: 22px;
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.65);
+}
+
+.food-icon-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.medallion-mini {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fde047 0%, #eab308 75%);
+  border: 2px solid var(--card-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--card-ink);
+  font-size: 0.95rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ocean-glossary-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ocean-def-stage {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ocean-def-nav-btn {
+  width: 28px;
+  height: 44px;
+  border-radius: 8px;
+  border: 2px solid var(--card-ink);
+  background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%);
+  color: var(--card-ink);
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 0 var(--card-ink);
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+.ocean-def-nav-btn:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.ocean-def-stack {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  margin-right: 8px;
+  z-index: 1;
+}
+
+.ocean-def-stack::before,
+.ocean-def-stack::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--card-ink);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.ocean-def-stack::before {
+  transform: translate(4px, 4px) rotate(1.2deg);
+  background: #e4e5fc;
+  z-index: -1;
+}
+
+.ocean-def-stack::after {
+  transform: translate(8px, 8px) rotate(2.4deg);
+  background: #d6d7fa;
+  z-index: -2;
+}
+
+.ocean-def-card {
+  background: var(--mat-teal-pale);
+  border: 2px solid var(--card-ink);
+  border-radius: 12px;
+  padding: 10px 12px;
+  min-height: 98px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.ocean-def-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ocean-def-head strong {
+  font-family: var(--font-heading);
+  font-size: 0.92rem;
+  color: var(--card-ink);
+}
+
+.ocean-def-badge {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--mat-forest);
+  background: rgba(255, 255, 255, 0.75);
+  border: 1.5px solid var(--card-ink);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.ocean-def-desc {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.38;
+  color: var(--card-ink);
+}
+
+.ocean-def-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.ocean-def-tab {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--card-ink);
+  background: #ffffff;
+  color: var(--card-ink);
+  font-family: var(--font-heading);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.ocean-def-tab:hover {
+  transform: translateY(-1px);
+  background: #fef9c3;
+}
+
+.ocean-def-tab.is-active {
+  background: #fde047;
+  box-shadow: 0 2px 0 var(--card-ink);
+}
+
+.persona-code-pill {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--mat-forest);
+  background: rgba(255, 255, 255, 0.8);
+  border: 1.5px solid var(--card-ink);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.persona-type-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.persona-type-tabs {
+  display: grid;
+  grid-template-columns: repeat(12, 22px);
+  justify-content: center;
+  gap: 4px;
+}
+
+.persona-type-tab {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--card-ink);
+  background: #ffffff;
+  color: var(--card-ink);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.persona-type-tab:hover {
+  transform: translateY(-1px);
+  background: #fef9c3;
+}
+
+.persona-type-tab.is-active {
+  background: #fde047;
+  box-shadow: 0 1.5px 0 var(--card-ink);
+}
+
+.persona-types-subblock {
+  margin-top: 16px;
+}
+
+.food-icon-item small {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--mat-forest);
+}
+
+/* Column 3: Turn Order Review */
+.turn-phases-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (max-width: 680px) {
+  .turn-phases-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.phase-col h4 {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--mat-forest);
+}
+
+.phase-box {
+  background: #ffffff;
+  border: 2px solid var(--card-ink);
+  border-radius: 8px;
+  padding: 7px 10px;
+  margin-bottom: 8px;
+  font-size: 0.73rem;
+}
+
+.phase-box p {
+  margin: 0 0 4px;
+}
+
+.phase-box p:last-child {
+  margin-bottom: 0;
+}
+
+.phase-box ul {
+  margin: 3px 0 5px;
+  padding-left: 10px;
+  list-style: none;
+}
+
+.phase-box code {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  background: #f1f5f9;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+/* Raw JSON Kitchen Ticket Inspector */
+.json-inspector {
+  margin-top: 12px;
+  background: #efe6cf;
+  border: 2px solid var(--card-ink);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+.json-inspector summary {
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--mat-forest);
+}
+
+.json-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.json-grid > div {
+  min-width: 0;
+}
+
+@media (max-width: 820px) {
+  .json-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.json-grid h4 {
+  margin: 0 0 4px;
+  font-size: 0.75rem;
+}
+
+.code-block {
+  margin: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  max-height: 220px;
+  overflow: auto;
+  background: #1e292b;
+  color: #f5f3ff;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1.38;
+}
+
+/* ==========================================================================
+   7. MATCHED FLOW FORMAT C CARD (INSIDE CHIMERA TRAIT SPLIT CARD)
+   ========================================================================== */
+.matched-format-c-slot {
+  margin-bottom: 8px;
+}
+
+.format-c-card {
+  width: 100%;
+  text-align: left;
+  background: linear-gradient(180deg, #f5f6ff 0%, #e4e6ff 100%);
+  color: var(--card-ink);
+  border: 2px solid var(--card-ink);
+  border-radius: 9px;
+  padding: 8px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 2px 0 rgba(30, 41, 43, 0.18);
+}
+
+.fc-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+}
+
+.fc-num {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 800;
+  color: var(--mat-forest);
+  background: #e4e6ff;
+  border: 1.5px solid var(--card-ink);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+
+.fc-code-letters {
+  display: inline-flex;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.fc-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid var(--card-ink);
+  background: #ffffff;
+  color: var(--card-ink);
+}
+
+.fc-letter.fc-high {
+  background: var(--mat-forest);
+  color: #fde047;
+}
+
+.fc-letter.fc-low {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.fc-prob {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 800;
+  color: var(--mat-forest);
+  margin-left: auto;
+}
+
+.fc-card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 1px;
+}
+
+.fc-card-title strong {
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--card-ink);
+  line-height: 1.15;
+}
+
+.fc-critter {
+  font-size: 0.69rem;
+  font-weight: 700;
+  color: #6b6dc4;
+  line-height: 1.2;
+}
+
+.fc-desc {
+  margin: 1px 0 3px;
+  font-size: 0.68rem;
+  color: #334155;
+  line-height: 1.3;
+}
+
+.fc-prob-track {
+  margin-top: 2px;
+}
