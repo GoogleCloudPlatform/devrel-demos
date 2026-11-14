@@ -40,10 +40,18 @@ type hackathonService struct {
 	evalRepo    domain.EvaluationRepository
 	publisher   domain.TaskPublisher
 	scoreMu     sync.Mutex
+	stopChan    chan struct{}
+	stopOnce    sync.Once
 }
 
 func NewHackathonService(repo domain.HackathonRepository, projectRepo domain.ProjectRepository, evalRepo domain.EvaluationRepository, publisher domain.TaskPublisher) HackathonService {
-	s := &hackathonService{repo: repo, projectRepo: projectRepo, evalRepo: evalRepo, publisher: publisher}
+	s := &hackathonService{
+		repo:        repo,
+		projectRepo: projectRepo,
+		evalRepo:    evalRepo,
+		publisher:   publisher,
+		stopChan:    make(chan struct{}),
+	}
 	s.startWatchdog(5*time.Minute, 15*time.Minute)
 	return s
 }
@@ -51,10 +59,23 @@ func NewHackathonService(repo domain.HackathonRepository, projectRepo domain.Pro
 func (s *hackathonService) startWatchdog(interval, timeout time.Duration) {
 	ticker := time.NewTicker(interval)
 	go func() {
-		for range ticker.C {
-			s.checkStuckEvaluations(timeout)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				s.checkStuckEvaluations(timeout)
+			case <-s.stopChan:
+				return
+			}
 		}
 	}()
+}
+
+func (s *hackathonService) Close() error {
+	s.stopOnce.Do(func() {
+		close(s.stopChan)
+	})
+	return nil
 }
 
 func (s *hackathonService) checkStuckEvaluations(timeout time.Duration) {
@@ -172,6 +193,9 @@ func (s *hackathonService) AddEvaluation(eval domain.Evaluation) error {
 	evals, err := s.evalRepo.GetByProjectID(eval.ProjectID)
 	if err != nil {
 		return err
+	}
+	if len(evals) == 0 {
+		return nil
 	}
 
 	var total float64

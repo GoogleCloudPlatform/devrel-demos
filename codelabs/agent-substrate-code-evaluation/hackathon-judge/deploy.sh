@@ -865,7 +865,7 @@ if [ "$RUN_K8S" = "true" ]; then
     local role=$2
     local attempt=1
     log_info "  Binding $role to $ksa_name..."
-    while ! gcloud projects add-iam-policy-binding "projects/$GOOGLE_CLOUD_PROJECT" \
+    while ! gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
       --role="$role" \
       --member="principal://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/$GOOGLE_CLOUD_PROJECT.svc.id.goog/subject/ns/$NAMESPACE/sa/$ksa_name" \
       --condition=None >/dev/null 2>&1; do

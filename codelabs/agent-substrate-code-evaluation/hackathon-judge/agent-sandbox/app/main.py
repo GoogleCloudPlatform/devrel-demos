@@ -148,14 +148,16 @@ def _run_subprocess(
 
 def get_safe_path(file_path: str) -> str:
     """Sanitizes the file path to ensure it stays within the sandbox directory."""
-    base_dir = os.path.realpath(SANDBOX_DIR)
+    base_dir = os.path.normpath(os.path.realpath(SANDBOX_DIR))
     # Remove leading slashes to ensure path is relative
     clean_path = file_path.lstrip("/")
-    full_path = os.path.realpath(os.path.join(base_dir, clean_path))
+    full_path = os.path.normpath(os.path.realpath(os.path.join(base_dir, clean_path)))
 
-    if os.path.commonpath([base_dir, full_path]) != base_dir:
-        raise ValueError(f"Access denied: Path must be within {SANDBOX_DIR}")
-    
+    if not full_path.startswith(base_dir):
+        raise ValueError("Access denied: Path must be within sandbox directory")
+    if full_path != base_dir and not full_path.startswith(base_dir + os.sep):
+        raise ValueError("Access denied: Path must be within sandbox directory")
+
     return full_path
 
 app = FastAPI(
@@ -242,8 +244,13 @@ async def upload_file(path: str | None = None, file: UploadFile = File(...)):
         logging.info(f"--- UPLOAD_FILE CALLED: Attempting to save '{file.filename}' (requested path: '{path}') ---")
         if path is not None:
             file_path = get_safe_path(path)
-        else:
+        elif file.filename:
             file_path = get_safe_path(file.filename)
+        else:
+            return JSONResponse(
+                status_code=400,
+                content={"message": "Filename is missing and no path was provided."},
+            )
 
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
@@ -256,15 +263,16 @@ async def upload_file(path: str | None = None, file: UploadFile = File(...)):
             content={"message": f"File '{filename_to_return}' uploaded successfully."}
         )
     except ValueError as e:
+        logger.warning("Access denied during file upload: %s", e)
         return JSONResponse(
             status_code=403,
-            content={"message": f"Access denied: {str(e)}"}
+            content={"message": "Access denied"}
         )
-    except Exception as e:
+    except Exception:
         logging.exception("An error occurred during file upload.")
         return JSONResponse(
             status_code=500,
-            content={"message": f"File upload failed: {str(e)}"}
+            content={"message": "File upload failed"}
         )
 
 
@@ -321,8 +329,9 @@ async def list_files(encoded_file_path: str):
         if entries is None:
             return JSONResponse(status_code=404, content={"message": "Path is not a directory"})
         return JSONResponse(status_code=200, content=entries)
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"message": f"List files failed: {str(e)}"})
+    except Exception:
+        logger.exception("An error occurred while listing files.")
+        return JSONResponse(status_code=500, content={"message": "List files failed"})
 
 
 @app.get("/exists/{encoded_file_path:path}", summary="Check if the relative path exists")

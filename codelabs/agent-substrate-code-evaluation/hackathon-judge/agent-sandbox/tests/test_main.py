@@ -220,3 +220,23 @@ def test_exists(setup_sandbox_dir):
     response = client.get("/exists/not_exists.txt")
     assert response.status_code == 200
     assert response.json()["exists"] is False
+
+
+def test_path_traversal_rejected(setup_sandbox_dir):
+    files = {"file": ("evil.txt", b"bad", "text/plain")}
+    upload_res = client.post("/upload?path=../../etc/passwd", files=files)
+    assert upload_res.status_code == 403
+    assert upload_res.json() == {"message": "Access denied"}
+
+    download_res = client.get("/download/..%2F..%2Fetc%2Fpasswd")
+    assert download_res.status_code == 403
+    assert download_res.json() == {"message": "Access denied"}
+
+    list_res = client.get("/list/..%2F..%2Fetc")
+    assert list_res.status_code == 403
+    assert list_res.json() == {"message": "Access denied"}
+
+    exists_res = client.get("/exists/..%2F..%2Fetc%2Fpasswd")
+    assert exists_res.status_code == 403
+    assert exists_res.json() == {"message": "Access denied"}
+
