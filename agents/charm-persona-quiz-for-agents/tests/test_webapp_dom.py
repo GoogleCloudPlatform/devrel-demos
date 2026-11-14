@@ -573,6 +573,18 @@ def test_dev_server_static_allowlist_and_request_limits() -> None:
         resp = conn.getresponse()
         assert resp.status == 413
         conn.close()
+
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request(
+            "POST",
+            "/api/decisions",
+            body=b"{}",
+            headers={"Content-Type": "application/json"},
+        )
+        bad_resp = conn.getresponse()
+        assert bad_resp.status == 400
+        bad_resp.read()
+        conn.close()
     finally:
         server.shutdown()
         server.server_close()
@@ -585,6 +597,10 @@ def test_dev_server_loads_repo_dotenv(tmp_path: Path, monkeypatch: pytest.Monkey
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
     monkeypatch.setattr(dev_server, "REPO_ROOT", tmp_path)
-    (tmp_path / ".env").write_text('export GEMINI_API_KEY = "repo-root-test-value"\n', encoding="utf-8")
+    monkeypatch.setattr(dev_server, "_CACHED_DOTENV", None)
+    dotenv_file = tmp_path / ".env"
+    dotenv_file.write_text('export GEMINI_API_KEY = "repo-root-test-value"\n', encoding="utf-8")
 
+    assert dev_server._load_dotenv_key() == "repo-root-test-value"
+    dotenv_file.unlink()
     assert dev_server._load_dotenv_key() == "repo-root-test-value"

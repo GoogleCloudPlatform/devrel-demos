@@ -370,55 +370,6 @@ function renderRadarSvg(profile) {
   `;
 }
 
-function renderMatchedFormatCCard(profile) {
-  const cardSlot = document.getElementById("matched-format-c-card");
-  if (!cardSlot) return;
-
-  const fc =
-    profile && profile.formatC
-      ? profile.formatC
-      : FLOW_FORMAT_C_BY_CODE.OcEAn || FLOW_FORMAT_C_PERSONAS[0];
-
-  const prob = typeof fc.probability === "number" && Number.isFinite(fc.probability) ? fc.probability : 0.5;
-  const barWidth = Math.max(6, Math.min(100, Math.round(prob * 100)));
-  const fcCode = escapeHtml(fc.code || "OcEAn");
-  const fcNumber = escapeHtml(fc.number || "");
-  const fcArchetype = escapeHtml(fc.archetype || "");
-  const fcCritter = escapeHtml(String(fc.critter || "").trim());
-  const fcDescription = escapeHtml(fc.description || "");
-  const letterPills = String(fc.code || "OcEAn")
-    .split("")
-    .map((ch) => {
-      const safeCh = escapeHtml(ch);
-      const safeUpper = escapeHtml(ch.toUpperCase());
-      const isHigh = ch === ch.toUpperCase();
-      return `<span class="fc-letter ${isHigh ? "fc-high" : "fc-low"}" title="${safeUpper}: ${isHigh ? "High" : "Low"}">${safeCh}</span>`;
-    })
-    .join("");
-
-  cardSlot.innerHTML = `
-    <div
-      class="format-c-card is-matched"
-      data-format-c="${fcCode}"
-      title="Matched Flow Format C #${fcNumber} ${fcCode} (${fcArchetype} · ${fcCritter})"
-    >
-      <div class="fc-card-top">
-        <span class="fc-num">#${fcNumber}</span>
-        <span class="fc-code-letters">${letterPills}</span>
-        <span class="fc-prob">${(prob * 100).toFixed(1)}%</span>
-      </div>
-      <div class="fc-card-title">
-        <strong>${fcArchetype}</strong>
-        <span class="fc-critter">${fcCritter}</span>
-      </div>
-      <p class="fc-desc">${fcDescription}</p>
-      <div class="prob-track fc-prob-track">
-        <div class="prob-fill" style="width: ${barWidth}%"></div>
-      </div>
-    </div>
-  `;
-}
-
 function renderProfileToDom(profile, requestPayload, sourceLabel = "Gemini Decision 1") {
   lastResultProfile = profile;
 
@@ -904,8 +855,6 @@ export function resetMat({ syncServer = true } = {}) {
   }
   const metaLine = document.getElementById("results-meta-line");
   if (metaLine) metaLine.textContent = "Single forward pass · 0 tokens generated";
-  const matchedCard = document.getElementById("matched-format-c-card");
-  if (matchedCard) matchedCard.innerHTML = "";
   const cardsContainer = document.getElementById("trait-cards-container");
   if (cardsContainer) cardsContainer.innerHTML = "";
 

@@ -1198,7 +1198,6 @@ body {
 
 .dessert-breakdown-card.is-awaiting .plaque-ribbon,
 .dessert-breakdown-card.is-awaiting #results-meta-line,
-.dessert-breakdown-card.is-awaiting #matched-format-c-card,
 .dessert-breakdown-card.is-awaiting #trait-cards-container,
 .dessert-breakdown-card.is-awaiting .card-star-footer {
   display: none;
@@ -1275,12 +1274,6 @@ body {
   font-weight: 700;
   color: var(--mat-forest);
   margin: 4px 0 3px;
-}
-  border: 2px solid var(--card-ink);
-  border-radius: 10px;
-  padding: 9px 10px;
-  margin-bottom: 10px;
-  box-shadow: 0 3px 0 rgba(30, 41, 43, 0.16);
 }
 
 .noul-mat-head {

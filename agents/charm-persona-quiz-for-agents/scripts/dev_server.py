@@ -53,6 +53,7 @@ _ALLOWED_LATEST_RESULT_KEYS: set[str] = {
 
 _STATE_VERSION: int = 0
 _STAGED_PREFILL: dict | None = None
+_CACHED_DOTENV: tuple[Path, str] | None = None
 _LATEST_RESULT: dict = {
     "status": "awaiting_submission",
     "protocol": "charm.v1",
@@ -82,9 +83,13 @@ def _extract_questionnaire_schema() -> dict:
 
 
 def _load_dotenv_key() -> str:
+    global _CACHED_DOTENV
     env_key = (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
     if env_key:
         return env_key
+    if _CACHED_DOTENV is not None and _CACHED_DOTENV[0] == REPO_ROOT:
+        return _CACHED_DOTENV[1]
+    resolved = ""
     for dotenv_path in (REPO_ROOT / ".env", Path.home() / ".env"):
         if not dotenv_path.is_file():
             continue
@@ -98,8 +103,12 @@ def _load_dotenv_key() -> str:
             if match:
                 val = match.group(2).strip().strip('"').strip("'")
                 if val:
-                    return val
-    return ""
+                    resolved = val
+                    break
+        if resolved:
+            break
+    _CACHED_DOTENV = (REPO_ROOT, resolved)
+    return resolved
 
 
 class CharmDevHandler(SimpleHTTPRequestHandler):
@@ -269,6 +278,8 @@ class CharmDevHandler(SimpleHTTPRequestHandler):
         try:
             result = call_gemini_decisions_api(payload, api_key=api_key, timeout=30.0)
             self._write_json(HTTPStatus.OK, result)
+        except (KeyError, TypeError, ValueError) as exc:
+            self._write_json(HTTPStatus.BAD_REQUEST, {"error": _sanitize_error_message(str(exc))})
         except Exception as exc:
             self._write_json(HTTPStatus.BAD_GATEWAY, {"error": _sanitize_error_message(str(exc))})
 
