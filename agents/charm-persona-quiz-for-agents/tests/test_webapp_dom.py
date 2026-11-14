@@ -506,15 +506,24 @@ def test_render_profile_to_dom_escapes_untrusted_html() -> None:
     profile.formatC.topCombos[0].archetype = '<img src=x onerror="alert(1)">';
     profile.formatC.topCombos[0].description = '<script>alert(2)</script>';
     profile.traits.openness.levels[0].label = '"><svg onload=alert(3)>';
+    const oceanMatchesHtml = (() => {{
+      const p2 = Object.assign({{}}, profile, {{
+        formatC: Object.assign({{}}, window.CHARM_AGENT_API.getFormatCPersonas()[0], {{ probability: 0.9, topCombos: profile.formatC.topCombos }})
+      }});
+      window.CHARM_AGENT_API.renderProfileToDom(p2, payload, "src");
+      return elementsById["wild-persona-matches"].innerHTML;
+    }})();
     window.CHARM_AGENT_API.renderProfileToDom(profile, payload, '<b onclick=alert(4)>src</b>');
     print(JSON.stringify({{
       metaHtml: elementsById["results-meta-line"].innerHTML,
       distHtml: elementsById["archetype-distribution"].innerHTML,
-      traitCardsHtml: elementsById["trait-cards-container"].innerHTML
+      traitCardsHtml: elementsById["trait-cards-container"].innerHTML,
+      oceanMatchesHtml: oceanMatchesHtml
     }}));
     """
     stdout = _run_jsc(script)
     out = json.loads(stdout.splitlines()[-1])
+    assert "(OCEan)" in out["oceanMatchesHtml"]
     for html_chunk in (out["metaHtml"], out["distHtml"], out["traitCardsHtml"]):
         assert "<img " not in html_chunk
         assert "<script>" not in html_chunk

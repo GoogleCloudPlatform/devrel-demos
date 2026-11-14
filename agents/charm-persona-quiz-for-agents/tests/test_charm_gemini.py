@@ -16,7 +16,7 @@ import os
 import shutil
 
 import pytest
-from google.genai import decisions as genai_decisions
+from google.genai import _api_client, decisions as genai_decisions, types as genai_types
 
 from charm_gemini.client import (
     FLOW_FORMAT_C_PERSONAS,
@@ -166,3 +166,10 @@ def test_flow_32_format_c_personas_table():
     assert FLOW_FORMAT_C_PERSONAS["OCeAn"]["archetype"] == "Scholar"
     assert FLOW_FORMAT_C_PERSONAS["OCEan"]["archetype"] == "Director"
     assert FLOW_FORMAT_C_PERSONAS["OCEaN"]["archetype"] == "Prosecutor"
+
+
+def test_http_options_timeout_uses_milliseconds():
+    timeout_seconds = 30.0
+    opts = genai_types.HttpOptions(api_version="v1beta", timeout=int(timeout_seconds * 1000))
+    assert opts.timeout == 30000
+    assert _api_client.get_timeout_in_seconds(opts.timeout) == timeout_seconds

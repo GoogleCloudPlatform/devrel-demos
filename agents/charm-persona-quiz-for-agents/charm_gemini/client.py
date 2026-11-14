@@ -326,6 +326,7 @@ def call_gemini_decisions_api(
     try:
         client = genai.Client(
             api_key=key,
+            # google.genai.types.HttpOptions.timeout expects milliseconds (divided by 1000.0 in _api_client)
             http_options={"api_version": "v1beta", "timeout": int(timeout * 1000)},
         )
         sdk_resp = client.decisions.create(

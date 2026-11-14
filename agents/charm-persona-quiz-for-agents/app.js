@@ -619,7 +619,7 @@ function renderProfileToDom(profile, requestPayload, sourceLabel = "Gemini Decis
     if (wildPersonaMatches && letters.length === 5) {
       const flip = (ch) => (ch === ch.toUpperCase() ? ch.toLowerCase() : ch.toUpperCase());
       const compCode1 = `${letters[0]}${flip(letters[1])}${letters[2]}${letters[3]}${flip(letters[4])}`;
-      const compCode2 = `${flip(letters[0])}${flip(letters[1])}${flip(letters[2])}A${letters[4]}`;
+      const compCode2 = `${flip(letters[0])}${flip(letters[1])}${flip(letters[2])}${letters[3]}${letters[4]}`;
       const match1 = FLOW_FORMAT_C_BY_CODE[compCode1];
       const match2 = FLOW_FORMAT_C_BY_CODE[compCode2];
       const matches = [match1, match2].filter(
