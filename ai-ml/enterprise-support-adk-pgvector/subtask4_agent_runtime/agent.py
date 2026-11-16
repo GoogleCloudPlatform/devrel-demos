@@ -27,7 +27,9 @@ from google.adk.models import LlmRequest, LlmResponse
 from google.api_core.client_options import ClientOptions
 from google.cloud import modelarmor_v1
 from google.genai import types
-
+from functools import cached_property
+from google.adk.models import Gemini
+from google.genai import Client as GenaiClient
 from subtask2_chunking_embedding.embedder import VertexVectorService
 from subtask3_vector_store.db import VectorStoreRepository
 from subtask5_closed_loop_eval.telemetry import TelemetryService
@@ -190,9 +192,16 @@ def screen_prompt_with_model_armor(
         
     return None
 
+class GlobalGemini(Gemini):
+    """Calls Gemini on the global endpoint, where current models are served."""
+
+    @cached_property
+    def api_client(self) -> GenaiClient:
+        return GenaiClient(vertexai=True, project=os.environ["PROJECT_ID"], location="global")
+
 root_agent = Agent(
     name="enterprise_support_agent",
-    model="gemini-2.5-flash",
+    model=GlobalGemini(model="gemini-3.5-flash"),
     instruction=(
         "Answer only from search_knowledge_base results and cite the heading. "
         "If search_knowledge_base returns no results, call create_itsm_ticket. "
