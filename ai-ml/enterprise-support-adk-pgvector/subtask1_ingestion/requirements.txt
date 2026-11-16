@@ -1,6 +1,7 @@
-fastapi
-uvicorn
-pyyaml
+google-cloud-aiplatform[agent_engines,adk]
 pydantic
-requests
-google-auth
+psycopg2-binary
+pgvector
+google-cloud-modelarmor
+google-cloud-pubsub
+cloudpickle
