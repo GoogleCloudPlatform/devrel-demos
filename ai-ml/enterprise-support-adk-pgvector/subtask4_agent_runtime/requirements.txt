@@ -4,3 +4,4 @@ psycopg2-binary
 pgvector
 google-cloud-modelarmor
 google-cloud-pubsub
+cloudpickle
