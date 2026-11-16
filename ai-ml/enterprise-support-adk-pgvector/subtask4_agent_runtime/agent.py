@@ -22,14 +22,12 @@ from typing import Optional
 
 from google.adk.agents import Agent
 from google.adk.agents.callback_context import CallbackContext
+from google.adk.models import Gemini, LlmRequest, LlmResponse
 from google.adk.tools.tool_context import ToolContext
-from google.adk.models import LlmRequest, LlmResponse
 from google.api_core.client_options import ClientOptions
 from google.cloud import modelarmor_v1
 from google.genai import types
-from functools import cached_property
-from google.adk.models import Gemini
-from google.genai import Client as GenaiClient
+
 from subtask2_chunking_embedding.embedder import VertexVectorService
 from subtask3_vector_store.db import VectorStoreRepository
 from subtask5_closed_loop_eval.telemetry import TelemetryService
@@ -57,17 +55,17 @@ class EnterpriseSupportADKAgent:
         Pre-flight security scan blocking prompt injection or jailbreak attempts via Model Armor API.
         """
         template_name = f"projects/{self.project_id}/locations/{self.location}/templates/default-safety-template"
-        
+
         request = modelarmor_v1.SanitizeUserPromptRequest(
             name=template_name,
             user_prompt_data=modelarmor_v1.DataItem(text=prompt)
         )
-        
+
         response = self.model_armor_client.sanitize_user_prompt(request=request)
-        
+
         if response.sanitization_result.filter_match_state == modelarmor_v1.FilterMatchState.MATCH_FOUND:
             raise PermissionError("Security alert: Prompt violated enterprise safety policy.")
-            
+
         return prompt
 
     def handle_user_query(self, user_id: str, audience_tier: str, raw_query: str, conversation_id: str = "conv_1029") -> dict:
@@ -173,35 +171,37 @@ def screen_prompt_with_model_armor(
         if content.role == "user" and content.parts:
             user_text = "".join(p.text or "" for p in content.parts)
             break
-            
+
     if not user_text:
         return None
-        
+
     response = _model_armor().sanitize_user_prompt(
         request=modelarmor_v1.SanitizeUserPromptRequest(
             name=_TEMPLATE,
             user_prompt_data=modelarmor_v1.DataItem(text=user_text)
         )
     )
-    
+
     if response.sanitization_result.filter_match_state == modelarmor_v1.FilterMatchState.MATCH_FOUND:
         return LlmResponse(content=types.Content(
-            role="model", 
+            role="model",
             parts=[types.Part(text="This request violates the enterprise safety policy.")]
         ))
-        
+
     return None
-
-class GlobalGemini(Gemini):
-    """Calls Gemini on the global endpoint, where current models are served."""
-
-    @cached_property
-    def api_client(self) -> GenaiClient:
-        return GenaiClient(vertexai=True, project=os.environ["PROJECT_ID"], location="global")
 
 root_agent = Agent(
     name="enterprise_support_agent",
-    model=GlobalGemini(model="gemini-3.5-flash"),
+    # Current Gemini models are served from the global endpoint, not regional
+    # ones. client_kwargs keeps ADK's one-client-per-event-loop behavior.
+    model=Gemini(
+        model="gemini-3.5-flash",
+        client_kwargs={
+            "vertexai": True,
+            "project": PROJECT_ID or None,
+            "location": "global",
+        },
+    ),
     instruction=(
         "Answer only from search_knowledge_base results and cite the heading. "
         "If search_knowledge_base returns no results, call create_itsm_ticket. "
