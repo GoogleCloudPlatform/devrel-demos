@@ -28,6 +28,57 @@ import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 
+import { resolveGeminiApiKey } from "./generate_live_audio.mjs";
+
+function hasWebTemplate(dir) {
+  return (
+    fs.existsSync(path.join(dir, "web", "index.html")) ||
+    fs.existsSync(path.join(dir, "web", "index.tmpl"))
+  );
+}
+
+function resolveRepoRoot(scriptDir = import.meta.dirname) {
+  const candidates = [
+    path.resolve(scriptDir, ".."),
+    path.resolve(scriptDir, "../../.."),
+  ];
+  for (const candidate of candidates) {
+    if (hasWebTemplate(candidate)) {
+      return candidate;
+    }
+  }
+  return candidates[0];
+}
+
+function resolveTemplatePath(repoRoot) {
+  const htmlCandidate = path.join(repoRoot, "web", "index.html");
+  if (fs.existsSync(htmlCandidate)) return htmlCandidate;
+  const tmplCandidate = path.join(repoRoot, "web", "index.tmpl");
+  if (fs.existsSync(tmplCandidate)) return tmplCandidate;
+  return htmlCandidate;
+}
+
+function resolveDataFile(opts, repoRoot, cwd = process.cwd()) {
+  if (opts.dataFile) return opts.dataFile;
+  const candidates = [
+    opts.outDir ? path.join(opts.outDir, "data.js") : null,
+    path.resolve(cwd, "data.js"),
+    path.join(repoRoot, "web", "data.js"),
+    path.join(repoRoot, "examples", "self-walkthrough", "data.js"),
+    path.join(repoRoot, "web", "data-adk.js"),
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+function resolveSiblingScript(repoRoot, scriptName, scriptDir = import.meta.dirname) {
+  const localCandidate = path.join(scriptDir, scriptName);
+  if (fs.existsSync(localCandidate)) return localCandidate;
+  return path.join(repoRoot, "scripts", scriptName);
+}
+
 function parseArgs(argv) {
   const opts = {
     dataFile: null,
@@ -64,41 +115,56 @@ function hasCmd(cmd, args = ["--version"]) {
   }
 }
 
-function hasGeminiKey() {
-  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim()) return true;
-  try {
-    const k = execFileSync(
-      "security",
-      ["find-generic-password", "-s", "gemini-api-key", "-w"],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
-    ).trim();
-    if (k) return true;
-  } catch {}
-  if (fs.existsSync(".env")) {
-    const envText = fs.readFileSync(".env", "utf8");
-    for (const line of envText.split(/\r?\n/)) {
-      const match = line.match(/^\s*GEMINI_API_KEY\s*=\s*(.*)$/);
-      if (match) {
-        const val = match[1].trim().replace(/^['"]|['"]$/g, "");
-        if (val) return true;
-      }
-    }
+function detectPythonCmd(platform = process.platform, probe = hasCmd) {
+  if (probe("python3", ["--version"])) {
+    return { cmd: "python3", args: [] };
   }
-  return false;
+  if (probe("python", ["--version"])) {
+    return { cmd: "python", args: [] };
+  }
+  if (platform === "win32" && probe("py", ["-3", "--version"])) {
+    return { cmd: "py", args: ["-3"] };
+  }
+  return null;
+}
+
+function hasGeminiKey(repoRoot = resolveRepoRoot(import.meta.dirname), options = {}) {
+  try {
+    return Boolean(resolveGeminiApiKey(repoRoot, options));
+  } catch {
+    return false;
+  }
+}
+
+function openTarget(targetPath, platform = process.platform, runner = execFileSync) {
+  try {
+    if (platform === "darwin") {
+      runner("open", [targetPath], { stdio: "ignore" });
+    } else if (platform === "win32") {
+      runner("cmd", ["/c", "start", "", targetPath], { stdio: "ignore" });
+    } else {
+      runner("xdg-open", [targetPath], { stdio: "ignore" });
+    }
+    return true;
+  } catch {
+    console.log(`ℹ️  Could not auto-open in this environment. Open manually: ${targetPath}`);
+    return false;
+  }
 }
 
 function checkPrereqsReport() {
-  const py = hasCmd("python3", ["--version"]);
+  const pyInfo = detectPythonCmd();
   const node = hasCmd("node", ["--version"]);
   const gh = hasCmd("gh", ["auth", "status"]);
   const key = hasGeminiKey();
   const ffmpeg = hasCmd("ffmpeg", ["-version"]);
+  const pyLabel = pyInfo ? [pyInfo.cmd, ...pyInfo.args].join(" ") : "";
 
   console.log("=== repo-walkthrough Prerequisites ===");
-  console.log(`  • Python 3 (repo analyzer):          ${py ? "✅ installed" : "❌ missing"}`);
+  console.log(`  • Python 3 (repo analyzer):          ${pyInfo ? `✅ installed (${pyLabel})` : "❌ missing"}`);
   console.log(`  • Node.js >= 20 (TTS & builder):     ${node ? "✅ installed (" + process.version + ")" : "❌ missing"}`);
   console.log(`  • GitHub CLI 'gh' (private repos):   ${gh ? "✅ authenticated" : "⚪ optional (not needed for local or public GitHub repos)"}`);
-  console.log(`  • Gemini API Key (Despina TTS):      ${key ? "✅ available (env / macOS Keychain / .env)" : "⚪ optional for website (falls back to Web Speech), required for video"}`);
+  console.log(`  • Gemini API Key (Despina TTS):      ${key ? "✅ available (env / keychain / .env)" : "⚪ optional for website (falls back to Web Speech), required for video"}`);
   console.log(`  • FFmpeg (MP4 video muxing):         ${ffmpeg ? "✅ installed" : "❌ missing (required only for '--mode video')"}`);
 }
 
@@ -270,10 +336,15 @@ async function main() {
     return;
   }
 
-  const repoRoot = path.resolve(import.meta.dirname, "..");
-  const templateHtml = path.join(repoRoot, "web", "index.html");
-  const dataFile = opts.dataFile || path.join(repoRoot, "web", "data-adk.js");
+  const repoRoot = resolveRepoRoot(import.meta.dirname);
+  const templateHtml = resolveTemplatePath(repoRoot);
+  const dataFile = resolveDataFile(opts, repoRoot);
 
+  if (!dataFile) {
+    throw new Error(
+      "Missing --data <path/to/data.js> (and no data.js found in --out-dir or current directory)."
+    );
+  }
   if (!fs.existsSync(dataFile)) {
     throw new Error(`Data file not found: ${dataFile}`);
   }
@@ -290,7 +361,7 @@ async function main() {
   if (path.resolve(templateHtml) !== path.resolve(targetHtml)) {
     const htmlText = fs
       .readFileSync(templateHtml, "utf8")
-      .replace('<script src="data-adk.js"></script>\n', "");
+      .replace(/<script src="data-adk\.js"><\/script>\r?\n?/, "");
     fs.writeFileSync(targetHtml, htmlText, "utf8");
   }
   const targetDataJs = path.join(outDir, "data.js");
@@ -305,13 +376,13 @@ async function main() {
 
   // Synthesize TTS audio if requested or if in video mode
   const shouldRunTts =
-    opts.mode === "video" || (!opts.noTts && hasGeminiKey());
+    opts.mode === "video" || (!opts.noTts && hasGeminiKey(repoRoot));
 
   if (shouldRunTts) {
     execFileSync(
       process.execPath,
       [
-        path.join(repoRoot, "scripts", "generate_live_audio.mjs"),
+        resolveSiblingScript(repoRoot, "generate_live_audio.mjs", import.meta.dirname),
         "--data",
         dataFile,
         "--out-dir",
@@ -328,7 +399,7 @@ async function main() {
     const slug = rawSlug.replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-|-$/g, "");
     const outMp4 = opts.outVideo || path.join(outDir, `${slug}-walkthrough.mp4`);
     const renderArgs = [
-      path.join(repoRoot, "scripts", "render_video.mjs"),
+      resolveSiblingScript(repoRoot, "render_video.mjs", import.meta.dirname),
       "--dir",
       outDir,
       "--out",
@@ -342,18 +413,38 @@ async function main() {
     }
     execFileSync(process.execPath, renderArgs, { stdio: "inherit" });
     if (opts.open) {
-      execFileSync("open", [outMp4], { stdio: "ignore" });
+      openTarget(outMp4);
     }
   }
 
   if (opts.open) {
-    execFileSync("open", [targetHtml], { stdio: "ignore" });
+    openTarget(targetHtml);
   }
 }
 
-export { computeSpokenOffset, parseArgs, spokenWeight, validateWalkthroughData };
+export {
+  computeSpokenOffset,
+  detectPythonCmd,
+  hasGeminiKey,
+  openTarget,
+  parseArgs,
+  resolveDataFile,
+  resolveRepoRoot,
+  resolveTemplatePath,
+  spokenWeight,
+  validateWalkthroughData,
+};
 
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.meta.filename)) {
+function isExecutedDirectly(argv1 = process.argv[1], metaFilename = import.meta.filename) {
+  if (!argv1) return false;
+  try {
+    return fs.realpathSync(argv1) === fs.realpathSync(metaFilename);
+  } catch {
+    return path.resolve(argv1) === path.resolve(metaFilename);
+  }
+}
+
+if (isExecutedDirectly()) {
   main().catch((err) => {
     console.error("❌ Build failed:", err.message);
     process.exit(1);

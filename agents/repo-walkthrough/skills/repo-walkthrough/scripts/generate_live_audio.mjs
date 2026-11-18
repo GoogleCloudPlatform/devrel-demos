@@ -24,13 +24,15 @@
  *
  * Key resolution order:
  *   1. GEMINI_API_KEY environment variable
- *   2. macOS Keychain (service "gemini-api-key", account "$USER")
- *   3. .env file in working directory
+ *   2. .env / key files: ./, $PLUGIN_DATA, ~/.config/repo-walkthrough (%APPDATA%/repo-walkthrough),
+ *      ~/.gemini, and <repoRoot>
+ *   3. OS credential store (service "gemini-api-key" across macOS Keychain, Linux secret-tool, and Windows Credential Manager)
  */
 
 import { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import vm from "node:vm";
 
@@ -38,6 +40,36 @@ const DEFAULT_MODEL = process.env.GEMINI_TTS_MODEL || "gemini-3.1-flash-tts-prev
 const DEFAULT_VOICE = process.env.GEMINI_VOICE || "Despina"; // Single female speaker
 const TTS_STYLE_PREFIX =
   "Speak the following codebase walkthrough step naturally at a relaxed, clear, conversational pace:\n";
+
+function resolveRepoRoot(scriptDir = import.meta.dirname) {
+  const candidates = [
+    path.resolve(scriptDir, ".."),
+    path.resolve(scriptDir, "../../.."),
+  ];
+  for (const candidate of candidates) {
+    if (
+      fs.existsSync(path.join(candidate, "web", "index.tmpl")) ||
+      fs.existsSync(path.join(candidate, "web", "index.html"))
+    ) {
+      return candidate;
+    }
+  }
+  return candidates[0];
+}
+
+function resolveSharedCacheDir(localCacheDir, env = process.env, homedir = os.homedir()) {
+  const preferred =
+    env.PLUGIN_DATA && env.PLUGIN_DATA.trim()
+      ? path.join(env.PLUGIN_DATA.trim(), "audio-cache")
+      : path.join(homedir, ".cache", "repo-walkthrough", "audio");
+  try {
+    fs.mkdirSync(preferred, { recursive: true });
+    fs.accessSync(preferred, fs.constants.W_OK);
+    return preferred;
+  } catch {
+    return localCacheDir;
+  }
+}
 
 function parseArgs(argv) {
   const opts = {
@@ -58,36 +90,112 @@ function parseArgs(argv) {
   return opts;
 }
 
-function resolveGeminiApiKey(repoRoot) {
-  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim()) {
-    return process.env.GEMINI_API_KEY.trim();
+function readKeyFromEnvFile(envPath) {
+  if (!envPath || !fs.existsSync(envPath)) return null;
+  let envText;
+  try {
+    envText = fs.readFileSync(envPath, "utf8");
+  } catch {
+    return null;
   }
-  if (process.platform === "darwin") {
+  if (path.basename(envPath) === "gemini_api_key") {
+    const raw = envText.trim();
+    if (raw && !raw.includes("\n") && !raw.startsWith("#")) return raw;
+  }
+  for (const line of envText.split(/\r?\n/)) {
+    const gemMatch = line.match(/^\s*(?:export\s+)?GEMINI_API_KEY\s*=\s*(.*)$/);
+    if (gemMatch) {
+      const val = gemMatch[1].trim().replace(/^['"]|['"]$/g, "");
+      if (val) return val;
+    }
+  }
+  return null;
+}
+
+function queryOsCredentialStore(platform = process.platform, runner = execFileSync) {
+  if (platform === "darwin") {
     try {
-      const key = execFileSync(
+      const out = runner(
         "security",
         ["find-generic-password", "-s", "gemini-api-key", "-w"],
         { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
-      ).trim();
-      if (key) return key;
+      );
+      if (out && out.trim()) return out.trim();
+    } catch {}
+  } else if (platform === "linux") {
+    try {
+      const out = runner("secret-tool", ["lookup", "service", "gemini-api-key"], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      });
+      if (out && out.trim()) return out.trim();
+    } catch {}
+  } else if (platform === "win32") {
+    try {
+      const psCmd =
+        "$c = if (Get-Command Get-StoredCredential -ErrorAction SilentlyContinue) { Get-StoredCredential -Target 'gemini-api-key' -ErrorAction SilentlyContinue } else { $null }; " +
+        "if ($c -and $c.GetNetworkCredential().Password) { $c.GetNetworkCredential().Password } " +
+        "else { [Environment]::GetEnvironmentVariable('GEMINI_API_KEY', 'User') }";
+      const out = runner(
+        "powershell.exe",
+        ["-NoProfile", "-NonInteractive", "-Command", psCmd],
+        { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
+      );
+      if (out && out.trim()) return out.trim();
     } catch {}
   }
-  const envCandidates = [path.resolve(".env")];
-  if (repoRoot) envCandidates.push(path.join(repoRoot, ".env"));
+  return null;
+}
+
+function resolveGeminiApiKey(
+  repoRoot,
+  {
+    env = process.env,
+    platform = process.platform,
+    cwd = process.cwd(),
+    homedir = os.homedir(),
+    runner = execFileSync,
+  } = {}
+) {
+  if (env.GEMINI_API_KEY && env.GEMINI_API_KEY.trim()) {
+    return env.GEMINI_API_KEY.trim();
+  }
+  const envCandidates = [path.resolve(cwd, ".env")];
+  if (env.PLUGIN_DATA && env.PLUGIN_DATA.trim()) {
+    envCandidates.push(path.join(env.PLUGIN_DATA.trim(), ".env"));
+  }
+  if (env.APPDATA && env.APPDATA.trim()) {
+    envCandidates.push(path.join(env.APPDATA.trim(), "repo-walkthrough", ".env"));
+    envCandidates.push(path.join(env.APPDATA.trim(), "repo-walkthrough", "gemini_api_key"));
+  }
+  if (homedir) {
+    envCandidates.push(path.join(homedir, ".config", "repo-walkthrough", ".env"));
+    envCandidates.push(path.join(homedir, ".config", "repo-walkthrough", "gemini_api_key"));
+    envCandidates.push(path.join(homedir, ".gemini", ".env"));
+    envCandidates.push(path.join(homedir, ".gemini", "gemini_api_key"));
+  }
+  if (repoRoot) {
+    envCandidates.push(path.join(repoRoot, ".env"));
+  }
   for (const envPath of envCandidates) {
-    if (fs.existsSync(envPath)) {
-      const envText = fs.readFileSync(envPath, "utf8");
-      for (const line of envText.split(/\r?\n/)) {
-        const match = line.match(/^\s*GEMINI_API_KEY\s*=\s*(.*)$/);
-        if (match) {
-          const val = match[1].trim().replace(/^['"]|['"]$/g, "");
-          if (val) return val;
-        }
-      }
-    }
+    const val = readKeyFromEnvFile(envPath);
+    if (val) return val;
+  }
+  const storeKey = queryOsCredentialStore(platform, runner);
+  if (storeKey) return storeKey;
+
+  if (platform === "win32") {
+    throw new Error(
+      'Could not resolve GEMINI_API_KEY. Set $env:GEMINI_API_KEY="YOUR_KEY" in PowerShell (or setx GEMINI_API_KEY "YOUR_KEY"), or add GEMINI_API_KEY=... to .env, %APPDATA%\\repo-walkthrough\\.env, or ~/.gemini/.env.'
+    );
+  }
+  if (platform === "darwin") {
+    throw new Error(
+      'Could not resolve GEMINI_API_KEY. Run export GEMINI_API_KEY="YOUR_KEY", store it in macOS Keychain (security add-generic-password -a "$USER" -s gemini-api-key -w "YOUR_KEY"), or add GEMINI_API_KEY=... to .env, ~/.config/repo-walkthrough/.env, or ~/.gemini/.env.'
+    );
   }
   throw new Error(
-    "Could not resolve GEMINI_API_KEY from env, macOS keychain ('gemini-api-key'), or .env"
+    'Could not resolve GEMINI_API_KEY. Run export GEMINI_API_KEY="YOUR_KEY", store it via secret-tool (secret-tool store --label=gemini-api-key service gemini-api-key), or add GEMINI_API_KEY=... to .env, ~/.config/repo-walkthrough/.env, or ~/.gemini/.env.'
   );
 }
 
@@ -347,27 +455,38 @@ async function alignStepSegmentsWithGemini(apiKey, wavBuffer, narration, { hash,
   });
   fs.writeFileSync(localSegPath, JSON.stringify(alignedSegments, null, 2));
   if (localSegPath !== sharedSegPath) {
-    fs.copyFileSync(localSegPath, sharedSegPath);
+    try {
+      fs.copyFileSync(localSegPath, sharedSegPath);
+    } catch {}
   }
   return { alignedSegments, totalDur };
 }
 
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
-  const repoRoot = path.resolve(import.meta.dirname, "..");
+  const repoRoot = resolveRepoRoot(import.meta.dirname);
   const defaultWebDir = path.join(repoRoot, "web");
-  const dataFile = opts.dataFile || (
-    fs.existsSync(path.join(defaultWebDir, "data.js"))
-      ? path.join(defaultWebDir, "data.js")
-      : path.join(defaultWebDir, "data-adk.js")
-  );
+  const defaultCandidates = [
+    opts.outDir ? path.join(path.dirname(opts.outDir), "data.js") : null,
+    path.resolve(process.cwd(), "data.js"),
+    path.join(defaultWebDir, "data.js"),
+    path.join(repoRoot, "examples", "self-walkthrough", "data.js"),
+    path.join(defaultWebDir, "data-adk.js"),
+  ].filter(Boolean);
+  const dataFile =
+    opts.dataFile || defaultCandidates.find((c) => fs.existsSync(c)) || null;
+  if (!dataFile || !fs.existsSync(dataFile)) {
+    throw new Error(
+      `Missing --data <path/to/data.js> (and no data.js found in ${process.cwd()}).`
+    );
+  }
   const siteDir = path.dirname(dataFile);
   const outDir = opts.outDir || path.join(siteDir, "audio");
-  const sharedCacheDir = path.join(repoRoot, "web", "audio", "cache");
   const localCacheDir = path.join(outDir, "cache");
   fs.mkdirSync(outDir, { recursive: true });
   fs.mkdirSync(localCacheDir, { recursive: true });
-  fs.mkdirSync(sharedCacheDir, { recursive: true });
+  const sharedCacheDir = resolveSharedCacheDir(localCacheDir);
+  const legacyRepoCacheDir = path.join(repoRoot, "web", "audio", "cache");
 
   const sandbox = { window: {} };
   vm.runInNewContext(fs.readFileSync(dataFile, "utf8"), sandbox);
@@ -389,6 +508,7 @@ async function main() {
     const hash = computeContentHash(model, voice, st.narration);
     const localCachedWav = path.join(localCacheDir, `${hash}.wav`);
     const sharedCachedWav = path.join(sharedCacheDir, `${hash}.wav`);
+    const legacyCachedWav = path.join(legacyRepoCacheDir, `${hash}.wav`);
     const stepFileName = `step-${st.step}.wav`;
     const stepFilePath = path.join(outDir, stepFileName);
 
@@ -399,7 +519,12 @@ async function main() {
       wavBuffer = fs.readFileSync(localCachedWav);
     } else if (!force && fs.existsSync(sharedCachedWav)) {
       wavBuffer = fs.readFileSync(sharedCachedWav);
-      fs.copyFileSync(sharedCachedWav, localCachedWav);
+      if (localCachedWav !== sharedCachedWav) {
+        fs.copyFileSync(sharedCachedWav, localCachedWav);
+      }
+    } else if (!force && fs.existsSync(legacyCachedWav)) {
+      wavBuffer = fs.readFileSync(legacyCachedWav);
+      fs.copyFileSync(legacyCachedWav, localCachedWav);
     }
 
     if (wavBuffer) {
@@ -427,7 +552,9 @@ async function main() {
     wavBuffer = createWavBuffer(pcm, 24000, 1, 16);
     fs.writeFileSync(localCachedWav, wavBuffer);
     if (localCachedWav !== sharedCachedWav) {
-      fs.copyFileSync(localCachedWav, sharedCachedWav);
+      try {
+        fs.copyFileSync(localCachedWav, sharedCachedWav);
+      } catch {}
     }
     fs.writeFileSync(stepFilePath, wavBuffer);
 
@@ -487,6 +614,9 @@ async function main() {
 
 export {
   parseArgs,
+  resolveRepoRoot,
+  resolveSharedCacheDir,
+  resolveGeminiApiKey,
   sanitizeForTts,
   computeContentHash,
   createWavBuffer,
@@ -494,7 +624,16 @@ export {
   computeAcousticCueAt,
 };
 
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.meta.filename)) {
+function isExecutedDirectly(argv1 = process.argv[1], metaFilename = import.meta.filename) {
+  if (!argv1) return false;
+  try {
+    return fs.realpathSync(argv1) === fs.realpathSync(metaFilename);
+  } catch {
+    return path.resolve(argv1) === path.resolve(metaFilename);
+  }
+}
+
+if (isExecutedDirectly()) {
   main().catch((err) => {
     console.error("❌ Failed:", err.message);
     process.exit(1);

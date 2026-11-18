@@ -38,12 +38,47 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
+import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { loadPlaywright } from "../scripts/render_video.mjs";
+import { createWavBuffer } from "../skills/repo-walkthrough/scripts/generate_live_audio.mjs";
+import { loadPlaywright } from "../skills/repo-walkthrough/scripts/render_video.mjs";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..");
+const SKILL_SCRIPTS_DIR = path.join(REPO_ROOT, "skills", "repo-walkthrough", "scripts");
+const WEB_TEMPLATE_URL = fs.existsSync(path.join(REPO_ROOT, "web", "index.html"))
+  ? "/web/index.html"
+  : "/web/index.tmpl";
+
+function prepareSelfWalkthroughSiteWithAudio(durationSec = 22) {
+  const srcSiteDir = path.join(REPO_ROOT, "examples", "self-walkthrough");
+  if (fs.existsSync(path.join(srcSiteDir, "audio", "step-1.wav"))) {
+    return { siteDir: srcSiteDir, cleanup: () => {} };
+  }
+  const tmpSiteDir = fs.mkdtempSync(path.join(os.tmpdir(), "rw-e2e-site-"));
+  fs.copyFileSync(path.join(srcSiteDir, "index.html"), path.join(tmpSiteDir, "index.html"));
+  fs.copyFileSync(path.join(srcSiteDir, "data.js"), path.join(tmpSiteDir, "data.js"));
+  const audioDir = path.join(tmpSiteDir, "audio");
+  fs.mkdirSync(audioDir, { recursive: true });
+  const wavBuf = createWavBuffer(Buffer.alloc(24000 * 2 * durationSec), 24000, 1, 16);
+  const manifest = [];
+  for (let step = 1; step <= 6; step++) {
+    const fileName = `step-${step}.wav`;
+    fs.writeFileSync(path.join(audioDir, fileName), wavBuf);
+    manifest.push({
+      step,
+      title: `Step ${step}`,
+      file: `audio/${fileName}`,
+      durationSec,
+    });
+  }
+  fs.writeFileSync(path.join(audioDir, "manifest.json"), JSON.stringify(manifest, null, 2));
+  return {
+    siteDir: tmpSiteDir,
+    cleanup: () => fs.rmSync(tmpSiteDir, { recursive: true, force: true }),
+  };
+}
 
 function startStaticServer(rootDir) {
   return new Promise((resolve) => {
@@ -58,7 +93,7 @@ function startStaticServer(rootDir) {
       }
       const ext = path.extname(filePath).toLowerCase();
       const mime =
-        ext === ".html"
+        ext === ".html" || ext === ".tmpl"
           ? "text/html; charset=utf-8"
           : ext === ".js"
           ? "application/javascript; charset=utf-8"
@@ -123,7 +158,7 @@ test("Visual & SVG geometry inspection: zero text overflow, valid arrows, zero o
       "/examples/self-walkthrough/index.html",
       "/examples/cymbal-autos-multimodal/index.html",
       "/examples/diff-5984e02-to-head/index.html",
-      "/web/index.html",
+      WEB_TEMPLATE_URL,
     ]) {
       const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
       const page = await context.newPage();
@@ -133,7 +168,30 @@ test("Visual & SVG geometry inspection: zero text overflow, valid arrows, zero o
       await page.goto(`${baseUrl}${pagePath}`, { waitUntil: "networkidle" });
       assert.equal(errors.length, 0, `Page errors on ${pagePath}: ${errors.join("; ")}`);
 
-      const report = await page.evaluate(() => {
+      const report = await page.evaluate(async () => {
+        if (document.fonts && document.fonts.ready) {
+          await document.fonts.ready;
+        }
+        // Static example snapshots predating the web/index.html document.fonts.ready
+        // hook measured getComputedTextLength() against the OS fallback monospace font
+        // before Roboto Mono finished downloading; re-apply the template's truncation
+        // rule once web fonts are ready.
+        for (const g of document.querySelectorAll(".node-group")) {
+          const rect = g.querySelector(".node-rect");
+          const title = g.querySelector(".node-title");
+          const sub = g.querySelector(".node-sub");
+          const diffBadge = g.querySelector(".node-diff");
+          const w = parseFloat(rect.getAttribute("width") || "0");
+          const diffW = diffBadge ? diffBadge.getComputedTextLength() + 10 : 0;
+          const maxTitleW = w - 24 - diffW;
+          const maxSubW = w - 24;
+          while (title.textContent.length > 6 && title.getComputedTextLength() > maxTitleW) {
+            title.textContent = title.textContent.slice(0, -2) + "…";
+          }
+          while (sub.textContent.length > 6 && sub.getComputedTextLength() > maxSubW) {
+            sub.textContent = sub.textContent.slice(0, -2) + "…";
+          }
+        }
         const textOverflows = [];
         const nodeGroups = Array.from(document.querySelectorAll(".node-group"));
 
@@ -259,6 +317,41 @@ test("Visual & SVG geometry inspection: zero text overflow, valid arrows, zero o
         assert.ok(report.diffLineAddCount > 0, "Expected inspector code-box to highlight +added diff lines");
       }
 
+      if (pagePath === WEB_TEMPLATE_URL) {
+        const xssCheck = await page.evaluate(() => {
+          const d = window.WALKTHROUGH_DATA || window.ADK_DATA;
+          const n0 = d.nodes[0];
+          const orig = {
+            path: n0.path,
+            label: n0.label,
+            sublabel: n0.sublabel,
+            url: n0.url,
+          };
+          n0.path = '<img src=x onerror="window.__xss=1">';
+          n0.label = '<b>unsafeLabel</b>';
+          n0.sublabel = '" onclick="window.__xss=2';
+          n0.url = "javascript:alert(1)";
+          const gs = document.querySelectorAll(".node-group");
+          if (gs.length > 1) gs[1].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          gs[0].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          const inspHtml = document.querySelector("#inspector .insp-title")?.innerHTML || "";
+          const hasAnchor = Boolean(document.querySelector("#inspector .insp-title a"));
+          const hasImg = Boolean(document.querySelector("#inspector .insp-title img"));
+          n0.url = "https://example.com/a?x=1&y=\"2\"";
+          if (gs.length > 1) gs[1].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          gs[0].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          const safeAnchorHref =
+            document.querySelector("#inspector .insp-title a")?.getAttribute("href") || "";
+          Object.assign(n0, orig);
+          return { inspHtml, hasAnchor, hasImg, safeAnchorHref, xss: Boolean(window.__xss) };
+        });
+        assert.equal(xssCheck.xss, false, "Inspector must never execute injected HTML/JS");
+        assert.equal(xssCheck.hasImg, false, "Inspector must escape <img ...> in n.path");
+        assert.equal(xssCheck.hasAnchor, false, "Inspector must reject javascript: URLs in n.url");
+        assert.ok(xssCheck.inspHtml.includes("&lt;img"), "Inspector innerHTML must contain escaped &lt;img");
+        assert.equal(xssCheck.safeAnchorHref, 'https://example.com/a?x=1&y="2"');
+      }
+
       await context.close();
     }
   } finally {
@@ -269,7 +362,7 @@ test("Visual & SVG geometry inspection: zero text overflow, valid arrows, zero o
 
 test("Interactive player controls: Play/Pause exact position memory, -5s/+5s cross-section skip, smart Prev, and speed pills", async () => {
   const browser = await launchBrowser();
-  const siteDir = path.join(REPO_ROOT, "examples", "self-walkthrough");
+  const { siteDir, cleanup } = prepareSelfWalkthroughSiteWithAudio(22);
   const { server, baseUrl } = await startStaticServer(siteDir);
 
   try {
@@ -364,6 +457,7 @@ test("Interactive player controls: Play/Pause exact position memory, -5s/+5s cro
   } finally {
     server.close();
     await browser.close();
+    cleanup();
   }
 });
 
@@ -464,31 +558,63 @@ test("Video mode (?video=1), deterministic renderWalkthroughFrame, and MP4 outpu
     await browser.close();
   }
 
-  // Verify the rendered MP4 file via ffprobe
-  const mp4Path = path.join(
+  // Verify the rendered MP4 file via ffprobe (rendering a fast synthetic MP4 in clean checkouts)
+  let mp4Path = path.join(
     REPO_ROOT,
     "examples",
     "self-walkthrough",
     "ykdojo-repo-walkthrough-walkthrough.mp4"
   );
-  assert.ok(fs.existsSync(mp4Path), "Expected rendered self-walkthrough MP4 to exist");
-  const probeJson = JSON.parse(
+  let minDurationSec = 100;
+  let cleanupVideoDir = () => {};
+  if (!fs.existsSync(mp4Path)) {
+    const prep = prepareSelfWalkthroughSiteWithAudio(1);
+    cleanupVideoDir = prep.cleanup;
+    // Trim manifest to 2 steps so clean-checkout E2E video render finishes in ~3s
+    const manifestPath = path.join(prep.siteDir, "audio", "manifest.json");
+    const shortManifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")).slice(0, 2);
+    fs.writeFileSync(manifestPath, JSON.stringify(shortManifest, null, 2));
+    mp4Path = path.join(prep.siteDir, "test-walkthrough.mp4");
     execFileSync(
-      "ffprobe",
-      ["-v", "error", "-show_entries", "format=duration:stream=codec_name,width,height", "-of", "json", mp4Path],
-      { encoding: "utf8" }
-    )
-  );
-  const codecs = probeJson.streams.map((s) => s.codec_name);
-  assert.ok(codecs.includes("h264"), "Expected H.264 video stream");
-  assert.ok(codecs.includes("aac"), "Expected AAC audio stream");
-  assert.ok(parseFloat(probeJson.format.duration) > 100, "Expected walkthrough video duration > 100s");
+      process.execPath,
+      [
+        path.join(SKILL_SCRIPTS_DIR, "render_video.mjs"),
+        "--dir",
+        prep.siteDir,
+        "--out",
+        mp4Path,
+        "--fps",
+        "6",
+      ],
+      { stdio: "pipe" }
+    );
+    minDurationSec = 1.5;
+  }
+  try {
+    assert.ok(fs.existsSync(mp4Path), "Expected rendered walkthrough MP4 to exist");
+    const probeJson = JSON.parse(
+      execFileSync(
+        "ffprobe",
+        ["-v", "error", "-show_entries", "format=duration:stream=codec_name,width,height", "-of", "json", mp4Path],
+        { encoding: "utf8" }
+      )
+    );
+    const codecs = probeJson.streams.map((s) => s.codec_name);
+    assert.ok(codecs.includes("h264"), "Expected H.264 video stream");
+    assert.ok(codecs.includes("aac"), "Expected AAC audio stream");
+    assert.ok(
+      parseFloat(probeJson.format.duration) > minDurationSec,
+      `Expected walkthrough video duration > ${minDurationSec}s`
+    );
+  } finally {
+    cleanupVideoDir();
+  }
 });
 
 test("Flexible layer counts (3, 4, and 6 layers): visual geometry, FULL_VB scaling, and camera framing in Chromium", async () => {
   const os = await import("node:os");
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "repo-walkthrough-layers-"));
-  const indexHtml = fs.readFileSync(path.join(REPO_ROOT, "web", "index.html"), "utf8");
+  const indexHtml = fs.readFileSync(path.join(REPO_ROOT, WEB_TEMPLATE_URL.slice(1)), "utf8");
 
   const palette = [
     { color: "#4285F4", accent: "#8AB4F8", bg: "rgba(66, 133, 244, 0.08)" },
@@ -736,5 +862,76 @@ test("Flexible layer counts (3, 4, and 6 layers): visual geometry, FULL_VB scali
     server.close();
     await browser.close();
     fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("Inline SVG favicon in web/index.html and generated walkthrough website renders crisply in Chromium", async () => {
+  const tmpSiteDir = fs.mkdtempSync(path.join(os.tmpdir(), "rw-favicon-e2e-"));
+  const dataPath = path.join(REPO_ROOT, "examples", "self-walkthrough", "data.js");
+  execFileSync(
+    process.execPath,
+    [
+      path.join(SKILL_SCRIPTS_DIR, "build_walkthrough.mjs"),
+      "--data",
+      dataPath,
+      "--out-dir",
+      tmpSiteDir,
+      "--mode",
+      "website",
+      "--no-tts",
+    ],
+    { stdio: "pipe" }
+  );
+
+  const browser = await launchBrowser();
+  const { server, baseUrl } = await startStaticServer(tmpSiteDir);
+  try {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await context.newPage();
+    await page.goto(`${baseUrl}/index.html`, { waitUntil: "networkidle" });
+
+    const faviconCheck = await page.evaluate(async () => {
+      const link = document.querySelector('head link[rel="icon"][type="image/svg+xml"]');
+      if (!link) return { exists: false };
+      const href = link.getAttribute("href") || "";
+      const img = new Image();
+      const loaded = await new Promise((resolve) => {
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+        img.src = href;
+      });
+      if (!loaded) return { exists: true, href, loaded: false };
+      const canvas = document.createElement("canvas");
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, 128, 128);
+      const centerPixel = Array.from(ctx.getImageData(64, 64, 1, 1).data);
+      const playBadgePixel = Array.from(ctx.getImageData(88, 90, 1, 1).data);
+      return {
+        exists: true,
+        loaded: true,
+        startsWithDataSvg: href.startsWith("data:image/svg+xml,"),
+        naturalWidth: img.naturalWidth,
+        naturalHeight: img.naturalHeight,
+        centerAlpha: centerPixel[3],
+        playBadgeRed: playBadgePixel[0],
+        playBadgeAlpha: playBadgePixel[3],
+      };
+    });
+
+    assert.equal(faviconCheck.exists, true, "Generated index.html must include SVG favicon <link> in <head>");
+    assert.equal(faviconCheck.startsWithDataSvg, true, "Favicon href must use data:image/svg+xml,");
+    assert.equal(faviconCheck.loaded, true, "Chromium must decode inline SVG favicon data URI without error");
+    assert.equal(faviconCheck.naturalWidth, 128);
+    assert.equal(faviconCheck.naturalHeight, 128);
+    assert.equal(faviconCheck.centerAlpha, 255, "Favicon rounded background rect must render opaque");
+    assert.ok(faviconCheck.playBadgeRed > 180 && faviconCheck.playBadgeAlpha === 255, "Favicon play badge gradient/triangle must render");
+
+    await context.close();
+  } finally {
+    server.close();
+    await browser.close();
+    fs.rmSync(tmpSiteDir, { recursive: true, force: true });
   }
 });

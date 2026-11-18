@@ -16,13 +16,16 @@
 """Unit and integration tests for scripts/fetch_repo.py."""
 
 import pathlib
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+import unittest.mock
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT / "scripts"))
+SKILL_SCRIPTS = REPO_ROOT / "skills" / "repo-walkthrough" / "scripts"
+sys.path.insert(0, str(SKILL_SCRIPTS if SKILL_SCRIPTS.is_dir() else REPO_ROOT / "scripts"))
 
 import fetch_repo  # noqa: E402
 
@@ -139,8 +142,11 @@ class TestFetchRepo(unittest.TestCase):
     report = fetch_repo.build_analysis_report(info)
     self.assertEqual(report["repo"], "repo-walkthrough")
     paths = [c["path"] for c in report["candidates"]]
-    self.assertIn("web/index.html", paths)
-    self.assertIn("scripts/build_walkthrough.mjs", paths)
+    self.assertTrue("web/index.html" in paths or "web/index.tmpl" in paths)
+    self.assertTrue(
+        "scripts/build_walkthrough.mjs" in paths
+        or "skills/repo-walkthrough/scripts/build_walkthrough.mjs" in paths
+    )
 
   def test_export_voice_markdown(self):
     with tempfile.TemporaryDirectory() as tmp:
@@ -178,25 +184,102 @@ class TestFetchRepo(unittest.TestCase):
 
     with tempfile.TemporaryDirectory() as tmp:
       tmp_repo = pathlib.Path(tmp)
-      subprocess.run(["git", "init", str(tmp_repo)], check=True, capture_output=True)
-      subprocess.run(["git", "-C", str(tmp_repo), "config", "user.email", "test@example.com"], check=True)
-      subprocess.run(["git", "-C", str(tmp_repo), "config", "user.name", "Test"], check=True)
       (tmp_repo / "scripts").mkdir()
       target = tmp_repo / "scripts" / "build_walkthrough.mjs"
-      target.write_text("export function run() {\n  return 1;\n}\n", encoding="utf-8")
-      subprocess.run(["git", "-C", str(tmp_repo), "add", "."], check=True)
-      subprocess.run(["git", "-C", str(tmp_repo), "commit", "-m", "init"], check=True, capture_output=True)
-      target.write_text("export function run() {\n  return 2;\n  // updated\n}\n", encoding="utf-8")
-      subprocess.run(["git", "-C", str(tmp_repo), "add", "."], check=True)
-      subprocess.run(["git", "-C", str(tmp_repo), "commit", "-m", "update"], check=True, capture_output=True)
+      if shutil.which("git"):
+        subprocess.run(["git", "init", str(tmp_repo)], check=True, capture_output=True)
+        subprocess.run(["git", "-C", str(tmp_repo), "config", "user.email", "test@example.com"], check=True)
+        subprocess.run(["git", "-C", str(tmp_repo), "config", "user.name", "Test"], check=True)
+        target.write_text("export function run() {\n  return 1;\n}\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(tmp_repo), "add", "."], check=True)
+        subprocess.run(["git", "-C", str(tmp_repo), "commit", "-m", "init"], check=True, capture_output=True)
+        target.write_text("export function run() {\n  return 2;\n  // updated\n}\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(tmp_repo), "add", "."], check=True)
+        subprocess.run(["git", "-C", str(tmp_repo), "commit", "-m", "update"], check=True, capture_output=True)
+        info = fetch_repo.fetch_git_diff(tmp_repo, "HEAD~1..HEAD", max_files=12)
+      else:
+        target.write_text("export function run() {\n  return 2;\n  // updated\n}\n", encoding="utf-8")
 
-      info = fetch_repo.fetch_git_diff(tmp_repo, "HEAD~1..HEAD", max_files=12)
+        def fake_git_run(cmd, **_kwargs):
+          joined = " ".join(str(x) for x in cmd)
+          out = ""
+          if "--name-status" in joined:
+            out = "M\tscripts/build_walkthrough.mjs\n"
+          elif "--numstat" in joined:
+            out = "2\t1\tscripts/build_walkthrough.mjs\n"
+          elif "-U2" in joined or "diff" in joined:
+            out = (
+                "diff --git a/scripts/build_walkthrough.mjs b/scripts/build_walkthrough.mjs\n"
+                "@@ -1,3 +1,4 @@\n"
+                " export function run() {\n"
+                "-  return 1;\n"
+                "+  return 2;\n"
+                "+  // updated\n"
+            )
+          return subprocess.CompletedProcess(cmd, 0, stdout=out, stderr="")
+
+        with unittest.mock.patch("subprocess.run", side_effect=fake_git_run):
+          info = fetch_repo.fetch_git_diff(tmp_repo, "HEAD~1..HEAD", max_files=12)
+
       report = fetch_repo.build_analysis_report(info)
       self.assertEqual(report["diffRange"], "HEAD~1..HEAD")
       self.assertGreater(report["diffStats"]["totalAdded"], 0)
       by_path = {c["path"]: c for c in report["candidates"]}
       self.assertIn("scripts/build_walkthrough.mjs", by_path)
       self.assertEqual(by_path["scripts/build_walkthrough.mjs"]["diff"]["status"], "modified")
+
+  def test_resolve_repo_root_and_open_target_cross_platform(self) -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+      root = pathlib.Path(tmp)
+      (root / "web").mkdir(parents=True)
+      (root / "web" / "index.html").write_text("<html></html>", encoding="utf-8")
+      direct_scripts = root / "scripts"
+      deref_scripts = root / "skills" / "repo-walkthrough" / "scripts"
+      direct_scripts.mkdir(parents=True)
+      deref_scripts.mkdir(parents=True)
+
+      self.assertEqual(fetch_repo.resolve_repo_root(direct_scripts), root.resolve())
+      self.assertEqual(fetch_repo.resolve_repo_root(deref_scripts), root.resolve())
+      self.assertEqual(
+          fetch_repo.resolve_web_index(root.resolve()),
+          (root / "web" / "index.html").resolve(),
+      )
+
+      (root / "web" / "index.html").unlink()
+      (root / "web" / "index.tmpl").write_text("<html></html>", encoding="utf-8")
+      self.assertEqual(fetch_repo.resolve_repo_root(direct_scripts), root.resolve())
+      self.assertEqual(fetch_repo.resolve_repo_root(deref_scripts), root.resolve())
+      self.assertEqual(
+          fetch_repo.resolve_web_index(root.resolve()),
+          (root / "web" / "index.tmpl").resolve(),
+      )
+
+    # Headless Linux missing xdg-open must not raise
+    self.assertFalse(
+        fetch_repo.open_target(
+            pathlib.Path("/tmp/nonexistent.html"),
+            platform="linux",
+            runner=lambda *_args, **_kwargs: (_ for _ in ()).throw(FileNotFoundError("xdg-open")),
+        )
+    )
+
+  def test_sequence_and_mapping_inputs_accepted(self) -> None:
+    import types
+
+    entries = (("src/main.py", 600), ("src/runner.py", 1200))
+    ranked = fetch_repo.filter_and_rank_paths(entries, max_files=5)
+    self.assertEqual(set(ranked), {"src/main.py", "src/runner.py"})
+
+    blobs = fetch_repo._scope_blobs(
+        (types.MappingProxyType({"type": "blob", "path": "pkg/app.py", "size": 320}),),
+        subpath="pkg",
+    )
+    self.assertEqual(blobs, [("app.py", 320)])
+
+    with tempfile.TemporaryDirectory() as tmp:
+      out_json = pathlib.Path(tmp) / "analysis.json"
+      fetch_repo.main([str(REPO_ROOT), "--mode", "local", "--max-files", "4", "--json", str(out_json)])
+      self.assertTrue(out_json.exists())
 
 
 if __name__ == "__main__":

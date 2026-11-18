@@ -38,6 +38,22 @@ import { pathToFileURL } from "node:url";
 
 const require = createRequire(import.meta.url);
 
+function resolveRepoRoot(scriptDir = import.meta.dirname) {
+  const candidates = [
+    path.resolve(scriptDir, ".."),
+    path.resolve(scriptDir, "../../.."),
+  ];
+  for (const candidate of candidates) {
+    if (
+      fs.existsSync(path.join(candidate, "web", "index.tmpl")) ||
+      fs.existsSync(path.join(candidate, "web", "index.html"))
+    ) {
+      return candidate;
+    }
+  }
+  return candidates[0];
+}
+
 function parseArgs(argv) {
   const opts = {
     dir: null,
@@ -65,18 +81,42 @@ function checkFfmpeg() {
     execFileSync("ffmpeg", ["-version"], { stdio: "ignore" });
   } catch {
     throw new Error(
-      "ffmpeg is required for video rendering but was not found on PATH. Install it via 'brew install ffmpeg' (macOS) or 'apt install ffmpeg' (Linux)."
+      "ffmpeg is required for video rendering but was not found on PATH. Install it via 'brew install ffmpeg' (macOS), 'apt install ffmpeg' (Linux), or 'winget install Gyan.FFmpeg' (Windows)."
     );
   }
 }
 
+function getPlaywrightSearchRoots({
+  platform = process.platform,
+  env = process.env,
+  homedir = os.homedir(),
+} = {}) {
+  const joinPath = platform === "win32" ? path.win32.join : path.join;
+  const npmCmd = platform === "win32" ? "npm.cmd" : "npm";
+  const npxBases = [joinPath(homedir, ".npm", "_npx")];
+  if (env.LOCALAPPDATA) {
+    npxBases.push(joinPath(env.LOCALAPPDATA, "npm-cache", "_npx"));
+  }
+  if (env.APPDATA) {
+    npxBases.push(joinPath(env.APPDATA, "npm-cache", "_npx"));
+  }
+  return { npmCmd, npxBases };
+}
+
 function loadPlaywright() {
-  const candidates = ["playwright-core", "playwright"];
+  const candidates = [
+    "playwright-core",
+    "playwright",
+    path.join(process.cwd(), "node_modules", "playwright-core"),
+    path.join(process.cwd(), "node_modules", "playwright"),
+  ];
+  const { npmCmd, npxBases } = getPlaywrightSearchRoots();
 
   try {
-    const globalRoot = execFileSync("npm", ["root", "-g"], {
+    const globalRoot = execFileSync(npmCmd, ["root", "-g"], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
+      shell: process.platform === "win32",
     }).trim();
     if (globalRoot) {
       candidates.push(
@@ -86,13 +126,14 @@ function loadPlaywright() {
     }
   } catch {}
 
-  const npxBase = path.join(os.homedir(), ".npm", "_npx");
-  if (fs.existsSync(npxBase)) {
-    for (const entry of fs.readdirSync(npxBase)) {
-      const pCore = path.join(npxBase, entry, "node_modules", "playwright-core");
-      const pFull = path.join(npxBase, entry, "node_modules", "playwright");
-      if (fs.existsSync(pCore)) candidates.push(pCore);
-      if (fs.existsSync(pFull)) candidates.push(pFull);
+  for (const npxBase of npxBases) {
+    if (fs.existsSync(npxBase)) {
+      for (const entry of fs.readdirSync(npxBase)) {
+        const pCore = path.join(npxBase, entry, "node_modules", "playwright-core");
+        const pFull = path.join(npxBase, entry, "node_modules", "playwright");
+        if (fs.existsSync(pCore)) candidates.push(pCore);
+        if (fs.existsSync(pFull)) candidates.push(pFull);
+      }
     }
   }
 
@@ -106,6 +147,27 @@ function loadPlaywright() {
   );
 }
 
+function formatFfmpegConcatEntry(filePath) {
+  const normalized = String(filePath).replace(/\\/g, "/").replace(/'/g, "'\\''");
+  return `file '${normalized}'`;
+}
+
+async function launchChromium(chromium, platform = process.platform) {
+  const attempts = [{ headless: true, channel: "chrome" }, { headless: true }];
+  if (platform === "win32") {
+    attempts.push({ headless: true, channel: "msedge" });
+  }
+  let lastErr = null;
+  for (const launchOpts of attempts) {
+    try {
+      return await chromium.launch(launchOpts);
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error("Could not launch Chromium, Chrome, or Edge");
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
   checkFfmpeg();
@@ -115,7 +177,7 @@ async function main() {
   const TRANSITION_SEC = 0.75 / SPEED;
   const GAP_SEC = 0.45;
 
-  const repoRoot = path.resolve(import.meta.dirname, "..");
+  const repoRoot = resolveRepoRoot(import.meta.dirname);
   const webDir = opts.dir || path.join(repoRoot, "web");
   const audioDir = path.join(webDir, "audio");
   const manifestPath = path.join(audioDir, "manifest.json");
@@ -161,9 +223,9 @@ async function main() {
     });
     cursorSec += segDur;
 
-    concatLines.push(`file '${wavPath}'`);
+    concatLines.push(formatFfmpegConcatEntry(wavPath));
     if (i < totalSteps - 1) {
-      concatLines.push(`file '${silenceWav}'`);
+      concatLines.push(formatFfmpegConcatEntry(silenceWav));
     }
   }
 
@@ -184,17 +246,9 @@ async function main() {
     `🎬 Rendering ${totalFrames} animated frames (${totalDurationSec.toFixed(1)}s @ ${FPS}fps, speed ${SPEED}x) -> ${outMp4}...`
   );
 
-  // 2. Launch headless Chrome and open index.html?video=1
+  // 2. Launch headless Chrome (or Edge on Windows) and open index.html?video=1
   const { chromium } = loadPlaywright();
-  let browser;
-  try {
-    browser = await chromium.launch({
-      headless: true,
-      channel: "chrome",
-    });
-  } catch {
-    browser = await chromium.launch({ headless: true });
-  }
+  const browser = await launchChromium(chromium);
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 1,
@@ -202,7 +256,14 @@ async function main() {
   const page = await context.newPage();
   const query = new URLSearchParams({ video: "1" });
   if (opts.data) query.set("data", opts.data);
-  const pageUrl = `${pathToFileURL(path.join(webDir, "index.html")).href}?${query.toString()}`;
+  const htmlCandidate = path.join(webDir, "index.html");
+  const tmplCandidate = path.join(webDir, "index.tmpl");
+  const pagePath = fs.existsSync(htmlCandidate)
+    ? htmlCandidate
+    : fs.existsSync(tmplCandidate)
+    ? tmplCandidate
+    : htmlCandidate;
+  const pageUrl = `${pathToFileURL(pagePath).href}?${query.toString()}`;
   await page.goto(pageUrl, {
     waitUntil: "networkidle",
   });
@@ -331,9 +392,25 @@ async function main() {
   console.log(`✅ Rendered smooth animated walkthrough video to: ${outMp4}`);
 }
 
-export { parseArgs, loadPlaywright };
+export {
+  formatFfmpegConcatEntry,
+  getPlaywrightSearchRoots,
+  launchChromium,
+  loadPlaywright,
+  parseArgs,
+  resolveRepoRoot,
+};
 
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.meta.filename)) {
+function isExecutedDirectly(argv1 = process.argv[1], metaFilename = import.meta.filename) {
+  if (!argv1) return false;
+  try {
+    return fs.realpathSync(argv1) === fs.realpathSync(metaFilename);
+  } catch {
+    return path.resolve(argv1) === path.resolve(metaFilename);
+  }
+}
+
+if (isExecutedDirectly()) {
   main().catch((err) => {
     console.error("❌ Video render failed:", err);
     process.exit(1);
