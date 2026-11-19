@@ -232,7 +232,7 @@ OPTIONS(
       layer: "capabilities",
       lines: 76,
       x: 200, y: 522, w: 188, h: 58,
-      role: "Creates a BigQuery Cloud Resource connection and grants its service account permission to read Cloud Storage images and call Vertex AI models in `03`, `05`, and `06`.",
+      role: "Creates a BigQuery Cloud Resource connection and grants its service account permission to read Cloud Storage images and call Google Cloud models in `03`, `05`, and `06`.",
       snippet: `bq mk --connection --location=$LOCATION --project_id=$PROJECT_ID \\
   --connection_type=CLOUD_RESOURCE conn
 gcloud projects add-iam-policy-binding $PROJECT_ID \\
@@ -304,7 +304,7 @@ bq rm -r -f -d $PROJECT_ID:$DATASET_ID`
     { id: "load_bq_sh>run_all_sh",      from: "load_bq_sh",   to: "run_all_sh",     label: "ready for ML SQL",      detail: "Once `02_load_to_bq.sh` loads the base tables, `07_run_all_ml_pipelines.sh` runs the SQL ML pipeline stages." },
 
     // Row 3 <-> Row 4
-    { id: "conn_sh>vision_sql",         from: "conn_sh",      to: "vision_sql",     label: "GCS & AI access",       detail: "`01_setup_api_connection.sh` grants BigQuery permission to read Cloud Storage photos and call Vertex AI in `03_vision_extraction.sql`." },
+    { id: "conn_sh>vision_sql",         from: "conn_sh",      to: "vision_sql",     label: "GCS & AI access",       detail: "`01_setup_api_connection.sh` grants BigQuery permission to read Cloud Storage photos and call Google Cloud in `03_vision_extraction.sql`." },
     { id: "copy_data_sh>load_bq_sh",    from: "copy_data_sh", to: "load_bq_sh",     label: "staged bucket files",   detail: "`00_copy_data.sh` stages the raw CSVs, JSONLs, and vehicle photos in Cloud Storage for `02_load_to_bq.sh`." },
     { id: "schemas_json>load_bq_sh",    from: "schemas_json", to: "load_bq_sh",     label: "table schemas",         detail: "`02_load_to_bq.sh` uses `data/schemas/*.json` to enforce column types when loading BigQuery tables." },
     { id: "teardown_sh>load_bq_sh",     from: "teardown_sh",  to: "load_bq_sh",     label: "cleans up resources",   detail: "`teardown.sh` removes the BigQuery dataset, Cloud Resource connection, bucket objects, and Cloud Run service." }
@@ -343,8 +343,8 @@ bq rm -r -f -d $PROJECT_ID:$DATASET_ID`
         { at: 0.92, phrase: "teardown.sh reverses", nodes: ["teardown_sh"], focus: "teardown_sh" }
       ],
       audio: "audio/step-2.wav",
-      summary: "`00_copy_data.sh` stages raw data and public vehicle photos in Cloud Storage; `01_setup_api_connection.sh` connects BigQuery to Cloud Storage and Vertex AI; `02_load_to_bq.sh` loads the base tables using `vehicle_metadata_schema.json` so the SQL pipelines can query them.",
-      narration: "Data preparation starts in 00 copy data.sh, which copies raw auction CSVs, JSON lines, and vehicle photos into your project's Cloud Storage bucket and makes the images readable by the web app. Next, 01 setup api connection.sh creates a bridge between BigQuery, Cloud Storage, and Vertex AI so SQL queries can read raw image files and invoke multimodal models directly. Using the column definitions in vehicle metadata schema.json and its companion schema files, 02 load to bq.sh ingests the historical sales records, live auction listings, and scam reference profiles into BigQuery and rewrites every photo link to point to your bucket. When testing is finished, teardown.sh reverses all of these steps in one command."
+      summary: "`00_copy_data.sh` stages raw data and public vehicle photos in Cloud Storage. `01_setup_api_connection.sh` connects BigQuery to Cloud Storage and Google Cloud. `02_load_to_bq.sh` loads the base tables using `vehicle_metadata_schema.json` so the SQL pipelines can query them.",
+      narration: "Data preparation starts in 00 copy data.sh, which copies raw auction CSVs, JSON lines, and vehicle photos into your project's Cloud Storage bucket and makes the images readable by the web app. Next, 01 setup api connection.sh creates a bridge between BigQuery, Cloud Storage, and Google Cloud so SQL queries can read raw image files and invoke multimodal models directly. Using the column definitions in vehicle metadata schema.json and its companion schema files, 02 load to bq.sh ingests the historical sales records, live auction listings, and scam reference profiles into BigQuery and rewrites every photo link to point to your bucket. When testing is finished, teardown.sh reverses all of these steps in one command."
     },
     {
       step: 3,

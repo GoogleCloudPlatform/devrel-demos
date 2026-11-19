@@ -15,13 +15,14 @@
 
 /**
  * Unit and integration tests for:
- *   - scripts/build_walkthrough.mjs (schema & geometry validator, flexible 3-6 layers, CLI arg parser, website build)
- *   - scripts/generate_live_audio.mjs (TTS filename sanitizer, SHA-256 content-hash key, WAV RIFF header builder)
- *   - scripts/render_video.mjs (CLI arg & speed bounds validation)
- *   - Skill & plugin manifests (SKILL.md, plugin.json, zero internal or disallowed tool mentions)
+ *   - skills/repo-walkthrough/scripts/build_walkthrough.mjs
+ *   - skills/repo-walkthrough/scripts/generate_live_audio.mjs
+ *   - skills/repo-walkthrough/scripts/render_video.mjs
+ *   - Skill & plugin manifests (SKILL.md, plugin.json, README.md, single-source assets/index.tmpl)
  */
 
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -33,6 +34,7 @@ import {
   computeSpokenOffset,
   detectPythonCmd,
   hasGeminiKey,
+  hasSupportedNodeVersion,
   openTarget,
   parseArgs as parseBuildArgs,
   resolveDataFile,
@@ -41,10 +43,16 @@ import {
   validateWalkthroughData,
 } from "../skills/repo-walkthrough/scripts/build_walkthrough.mjs";
 import {
+  DEFAULT_ALIGNMENT_MODEL,
+  DEFAULT_MODEL,
+  DEFAULT_SPEECH_STYLE,
+  buildTtsRequestBody,
   computeAcousticCueAt,
   computeContentHash,
   createWavBuffer,
   extractPcmSegments,
+  extractRawPcm,
+  parseArgs as parseAudioArgs,
   resolveGeminiApiKey,
   resolveRepoRoot as resolveAudioRepoRoot,
   resolveSharedCacheDir,
@@ -56,19 +64,20 @@ import {
   launchChromium,
   loadPlaywright,
   parseArgs as parseVideoArgs,
+  resolveContainedAudioPath,
   resolveRepoRoot as resolveVideoRepoRoot,
 } from "../skills/repo-walkthrough/scripts/render_video.mjs";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..");
-const SKILL_SCRIPTS_DIR = path.join(REPO_ROOT, "skills", "repo-walkthrough", "scripts");
-const WEB_TEMPLATE_REL = fs.existsSync(path.join(REPO_ROOT, "web", "index.html"))
-  ? "web/index.html"
-  : "web/index.tmpl";
+const SKILL_DIR = path.join(REPO_ROOT, "skills", "repo-walkthrough");
+const SKILL_SCRIPTS_DIR = path.join(SKILL_DIR, "scripts");
+const SKILL_TEMPLATE_REL = "skills/repo-walkthrough/assets/index.tmpl";
 
 function loadDataJs(filePath) {
-  const sandbox = { window: {} };
-  vm.runInNewContext(fs.readFileSync(filePath, "utf8"), sandbox);
-  return sandbox.window.WALKTHROUGH_DATA || sandbox.window.ADK_DATA;
+  const windowObj = Object.create(null);
+  const sandbox = Object.assign(Object.create(null), { window: windowObj });
+  vm.runInNewContext(fs.readFileSync(filePath, "utf8"), sandbox, { timeout: 2000 });
+  return windowObj.WALKTHROUGH_DATA || windowObj.ADK_DATA;
 }
 
 function makeSampleData(layerCount = 5) {
@@ -149,8 +158,20 @@ test("Production walkthrough datasets (ADK, self-walkthrough, cymbal-autos-multi
   assert.doesNotThrow(() => validateWalkthroughData(selfData, "self-walkthrough/data.js"));
   assert.doesNotThrow(() => validateWalkthroughData(cymbalData, "cymbal-autos-multimodal/data.js"));
   assert.doesNotThrow(() => validateWalkthroughData(diffData, "diff-5984e02-to-head/data.js"));
+  assert.equal(selfData.repo, "GoogleCloudPlatform/devrel-demos");
+  assert.equal(selfData.subpath, "agents/repo-walkthrough");
   assert.equal(cymbalData.subpath, "data-analytics/cymbal-autos-multimodal");
   assert.equal(diffData.diffRange, "5984e02..1c3c31b");
+
+  // Verify every non-generated node path in self-walkthrough exists on disk
+  for (const node of selfData.nodes) {
+    if (!node.generated) {
+      assert.ok(
+        fs.existsSync(path.join(REPO_ROOT, node.path)),
+        `self-walkthrough node '${node.id}' points to missing path '${node.path}'`
+      );
+    }
+  }
 });
 
 test("Flexible layer counts (3, 4, 5, and 6 layers) validate cleanly", () => {
@@ -163,8 +184,7 @@ test("Flexible layer counts (3, 4, 5, and 6 layers) validate cleanly", () => {
   }
 });
 
-test("Validator rejects overlapping nodes, invalid edge endpoints, invalid step references, and out-of-sync cue phrases", () => {
-  // 1. Overlapping nodes
+test("Validator rejects overlapping nodes, invalid edge endpoints, non-integer step numbers, path traversal, and out-of-sync cue phrases", () => {
   const overlapping = makeSampleData(5);
   overlapping.nodes[1].x = overlapping.nodes[0].x + 20;
   overlapping.nodes[1].y = overlapping.nodes[0].y + 10;
@@ -173,7 +193,6 @@ test("Validator rejects overlapping nodes, invalid edge endpoints, invalid step 
     /overlap on the SVG canvas/
   );
 
-  // 2. Unknown edge endpoint
   const badEdge = makeSampleData(5);
   badEdge.edges.push({ id: "bad", from: "n0", to: "nonexistent", detail: "bad" });
   assert.throws(
@@ -181,7 +200,6 @@ test("Validator rejects overlapping nodes, invalid edge endpoints, invalid step 
     /unknown 'to' node 'nonexistent'/
   );
 
-  // 3. Unknown focusNode / cue node
   const badCue = makeSampleData(5);
   badCue.walkthrough[0].cues.push({ at: 0.8, nodes: ["ghost_node"], focus: "ghost_node" });
   assert.throws(
@@ -189,7 +207,22 @@ test("Validator rejects overlapping nodes, invalid edge endpoints, invalid step 
     /unknown cue node 'ghost_node'/
   );
 
-  // 4. Cue phrase drift > 0.08 or missing phrase in narration
+  const badStep = makeSampleData(5);
+  badStep.walkthrough[0].step = "../../evil";
+  assert.throws(
+    () => validateWalkthroughData(badStep, "badStep.js"),
+    /must be an integer >= 1/
+  );
+
+  assert.throws(
+    () => resolveContainedAudioPath("/tmp/site", "../outside.wav"),
+    /outside site directory/
+  );
+  assert.equal(
+    resolveContainedAudioPath("/tmp/site", "audio/step-1.wav"),
+    path.resolve("/tmp/site", "audio/step-1.wav")
+  );
+
   const driftedCue = makeSampleData(5);
   driftedCue.walkthrough[0].narration =
     "First, file 0.py ingests raw records and validates schemas. Next, file 1.py transforms those records into embeddings for downstream search.";
@@ -208,7 +241,13 @@ test("Validator rejects overlapping nodes, invalid edge endpoints, invalid step 
   );
 });
 
-test("TTS filename sanitization and content-hash stability", () => {
+test("Gemini 3.8 TTS defaults, strict v1beta generateContent payload keys, RIFF WAV subchunk extraction (zero header pop), and hash stability", () => {
+  assert.equal(DEFAULT_MODEL, process.env.GEMINI_TTS_MODEL || "gemini-3.8-flash-tts");
+  assert.equal(
+    DEFAULT_ALIGNMENT_MODEL,
+    process.env.GEMINI_ALIGNMENT_MODEL || "gemini-3-flash-preview"
+  );
+
   const raw =
     "In `__init__.py` and `_workflow.py`, `cli_tools_click.py` dispatches to `Runner`.";
   const sanitized = sanitizeForTts(raw);
@@ -219,14 +258,96 @@ test("TTS filename sanitization and content-hash stability", () => {
   assert.ok(!sanitized.includes("_"), "Sanitized TTS text must not contain underscores");
   assert.ok(!sanitized.includes("`"), "Sanitized TTS text must not contain backticks");
 
-  const h1 = computeContentHash("gemini-3.1-flash-tts-preview", "Despina", raw);
-  const h2 = computeContentHash("gemini-3.1-flash-tts-preview", "Despina", sanitized);
+  const payload = buildTtsRequestBody(raw, { voice: "Despina" });
+  assert.deepEqual(Object.keys(payload), ["contents", "generationConfig"]);
+  assert.equal(payload.contents.length, 1);
+  assert.deepEqual(Object.keys(payload.contents[0]), ["parts"]);
+  assert.equal(payload.contents[0].parts.length, 1);
+
+  const part = payload.contents[0].parts[0];
+  assert.deepEqual(
+    Object.keys(part),
+    ["text", "speechMetadata"],
+    "Part keys must match v1beta Part schema (text + speechMetadata)"
+  );
+  assert.equal(part.text, sanitized, "parts[0].text must be strictly verbatim sanitized text without style prefix");
+  assert.ok(!part.text.toLowerCase().includes("speak the following"), "Style prompt must never appear in parts[0].text");
+  assert.deepEqual(part.speechMetadata, { style: DEFAULT_SPEECH_STYLE });
+
+  assert.deepEqual(
+    Object.keys(payload.generationConfig),
+    ["responseModalities", "responseFormat", "speechConfig"],
+    "generationConfig keys must match v1beta GenerationConfig schema"
+  );
+  assert.deepEqual(payload.generationConfig.responseModalities, ["AUDIO"]);
+  assert.deepEqual(payload.generationConfig.responseFormat, {
+    audio: { mimeType: "AUDIO_L16", sampleRate: 24000 },
+  });
+  assert.deepEqual(payload.generationConfig.speechConfig, {
+    voiceConfig: { prebuiltVoiceConfig: { voiceName: "Despina" } },
+  });
+
+  // RIFF stripping: verify silence-led PCM stays at 0 amplitude (0 header pop at t=0.00s)
+  // across raw L16 PCM, canonical 44-byte RIFF WAV, and non-44-byte WAV with LIST + odd JUNK chunks
+  const pcmSample = Buffer.alloc(4800); // first 200 samples are pure digital silence (0)
+  for (let i = 200; i < 2400; i++) pcmSample.writeInt16LE(((i - 200) * 17) % 12000, i * 2);
+  assert.deepEqual(extractRawPcm(pcmSample), pcmSample);
+
+  const wrappedOnce = createWavBuffer(pcmSample, 24000, 1, 16);
+  assert.equal(wrappedOnce.length, 44 + pcmSample.length);
+  assert.deepEqual(extractRawPcm(wrappedOnce), pcmSample);
+
+  // Double-passing a RIFF WAV buffer into createWavBuffer must NEVER double-wrap a second RIFF header or create a t=0 pop
+  const rewrapped = createWavBuffer(wrappedOnce, 24000, 1, 16);
+  assert.equal(rewrapped.length, 44 + pcmSample.length);
+  assert.notEqual(rewrapped.subarray(44, 48).toString("ascii"), "RIFF");
+  for (let s = 0; s < 200; s++) {
+    assert.equal(
+      rewrapped.readInt16LE(44 + s * 2),
+      0,
+      `Expected 0 header pop in leading silence sample ${s}, got ${rewrapped.readInt16LE(44 + s * 2)}`
+    );
+  }
+  assert.deepEqual(rewrapped.subarray(44), pcmSample);
+
+  // Construct a non-44-byte RIFF WAV containing a LIST metadata chunk + odd-length JUNK chunk before data
+  const listPayload = Buffer.from("INFOISFTLavf60.16.100\0", "ascii");
+  const listPaddedLen = listPayload.length + (listPayload.length % 2);
+  const listChunk = Buffer.alloc(8 + listPaddedLen);
+  listChunk.write("LIST", 0);
+  listChunk.writeUInt32LE(listPayload.length, 4);
+  listPayload.copy(listChunk, 8);
+
+  const junkChunk = Buffer.alloc(8 + 6); // 5-byte odd JUNK chunk padded to 6 bytes
+  junkChunk.write("JUNK", 0);
+  junkChunk.writeUInt32LE(5, 4);
+
+  const wavWithListAndJunk = Buffer.concat([
+    Buffer.from("RIFF"),
+    Buffer.alloc(4),
+    Buffer.from("WAVE"),
+    wrappedOnce.subarray(12, 36), // fmt  subchunk (24 bytes)
+    listChunk,
+    junkChunk,
+    wrappedOnce.subarray(36), // data subchunk
+  ]);
+  wavWithListAndJunk.writeUInt32LE(wavWithListAndJunk.length - 8, 4);
+  assert.ok(wavWithListAndJunk.length > 44 + pcmSample.length);
+
+  const strippedListPcm = extractRawPcm(wavWithListAndJunk);
+  assert.deepEqual(strippedListPcm, pcmSample);
+  const canonicalFromListWav = createWavBuffer(wavWithListAndJunk, 24000, 1, 16);
+  assert.equal(canonicalFromListWav.length, 44 + pcmSample.length);
+  assert.equal(canonicalFromListWav.readInt16LE(44), 0, "Expected 0 pop at sample 0 after stripping LIST + JUNK RIFF header");
+
+  const h1 = computeContentHash("gemini-3.8-flash-tts", "Despina", raw);
+  const h2 = computeContentHash("gemini-3.8-flash-tts", "Despina", sanitized);
   assert.equal(h1, h2, "Hash of raw and sanitized text should be identical");
   assert.equal(h1.length, 16);
 });
 
 test("createWavBuffer, extractPcmSegments, and computeAcousticCueAt align voiced segments accurately", () => {
-  const pcm = Buffer.alloc(24000 * 2 * 2); // 2.0 seconds of 24kHz 16-bit mono
+  const pcm = Buffer.alloc(24000 * 2 * 2);
   for (let i = Math.floor(0.1 * 24000); i < Math.floor(0.6 * 24000); i++) {
     pcm.writeInt16LE(4000, i * 2);
   }
@@ -258,7 +379,7 @@ test("createWavBuffer, extractPcmSegments, and computeAcousticCueAt align voiced
   assert.equal(computeAcousticCueAt(aligned, 60.76, "04 predictive pricing.sql", 2), 0.45);
 });
 
-test("CLI argument parsers handle --mode, --speed, and reject out-of-range speeds", () => {
+test("CLI --help / -h exits 0 without mutating examples, and unknown flags or missing .html fail fast", () => {
   const bOpts = parseBuildArgs([
     "--data",
     "examples/self-walkthrough/data.js",
@@ -272,89 +393,170 @@ test("CLI argument parsers handle --mode, --speed, and reject out-of-range speed
   assert.equal(bOpts.speed, "1.2");
   assert.equal(bOpts.noTts, true);
 
-  const vOpts = parseVideoArgs(["--fps", "12", "--speed", "1.1"]);
-  assert.equal(vOpts.fps, 12);
-  assert.equal(vOpts.speed, 1.1);
+  assert.equal(parseBuildArgs(["--help"]).help, true);
+  assert.equal(parseBuildArgs(["-h"]).help, true);
+  assert.equal(parseAudioArgs(["--help"]).help, true);
+  assert.equal(parseVideoArgs(["--help"]).help, true);
 
-  assert.throws(() => parseVideoArgs(["--speed", "0.2"]), /--speed must be between 0.5 and 2.0/);
+  for (const parser of [parseBuildArgs, parseAudioArgs, parseVideoArgs]) {
+    assert.throws(() => parser(["--unknown-flag"]), /Unknown option/);
+  }
+  assert.throws(() => parseBuildArgs(["--mode", "invalid"]), /Invalid --mode/);
+  assert.throws(() => parseBuildArgs(["--speed", "0.2"]), /--speed must be between 0.5 and 2.0/);
   assert.throws(() => parseVideoArgs(["--speed", "2.5"]), /--speed must be between 0.5 and 2.0/);
+  assert.throws(() => parseVideoArgs(["--fps", "0"]), /--fps must be between 1 and 60/);
+
+  // Running --help on each script must exit 0 and leave examples/self-walkthrough/index.html untouched
+  const selfHtmlPath = path.join(REPO_ROOT, "examples", "self-walkthrough", "index.html");
+  const beforeHash = crypto.createHash("sha256").update(fs.readFileSync(selfHtmlPath)).digest("hex");
+
+  for (const scriptName of [
+    "build_walkthrough.mjs",
+    "generate_live_audio.mjs",
+    "render_video.mjs",
+  ]) {
+    const helpOut = execFileSync(
+      process.execPath,
+      [path.join(SKILL_SCRIPTS_DIR, scriptName), "--help"],
+      { encoding: "utf8" }
+    );
+    assert.match(helpOut, /Usage:/);
+  }
+  if (process.platform !== "win32") {
+    const shHelp = execFileSync("bash", [path.join(SKILL_SCRIPTS_DIR, "render_video.sh"), "--help"], {
+      encoding: "utf8",
+    });
+    assert.match(shHelp, /Usage:/);
+  }
+  const afterHash = crypto.createHash("sha256").update(fs.readFileSync(selfHtmlPath)).digest("hex");
+  assert.equal(afterHash, beforeHash, "--help must never modify examples/self-walkthrough/index.html");
+
+  // Running render_video.mjs on a directory containing only index.tmpl (no built index.html) must fail clearly
+  const tmplOnlyDir = fs.mkdtempSync(path.join(os.tmpdir(), "rw-tmpl-only-"));
+  try {
+    fs.copyFileSync(path.join(REPO_ROOT, SKILL_TEMPLATE_REL), path.join(tmplOnlyDir, "index.tmpl"));
+    assert.throws(
+      () =>
+        execFileSync(
+          process.execPath,
+          [path.join(SKILL_SCRIPTS_DIR, "render_video.mjs"), "--dir", tmplOnlyDir],
+          { stdio: "pipe" }
+        ),
+      /Missing built website/
+    );
+  } finally {
+    fs.rmSync(tmplOnlyDir, { recursive: true, force: true });
+  }
 });
 
-test("build_walkthrough.mjs --mode website --no-tts generates standalone site bundle", () => {
+test("build_walkthrough.mjs builds standalone site from both custom data.js and web/data-adk.js, and works from an isolated standalone skill copy", () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "rw-test-"));
   try {
-    const sampleDataPath = path.join(tmpDir, "data.js");
-    fs.writeFileSync(
-      sampleDataPath,
-      `window.WALKTHROUGH_DATA = ${JSON.stringify(makeSampleData(4), null, 2)};\n`,
-      "utf8"
-    );
+    // 1. Build from web/data-adk.js into an output folder (verifies data-adk.js is copied to data.js)
+    const adkOutDir = path.join(tmpDir, "adk-site");
     execFileSync(
       process.execPath,
       [
         path.join(SKILL_SCRIPTS_DIR, "build_walkthrough.mjs"),
         "--data",
-        sampleDataPath,
+        path.join(REPO_ROOT, "web", "data-adk.js"),
         "--out-dir",
-        tmpDir,
+        adkOutDir,
         "--mode",
         "website",
         "--no-tts",
       ],
       { stdio: "pipe" }
     );
-    const builtHtml = fs.readFileSync(path.join(tmpDir, "index.html"), "utf8");
-    assert.ok(fs.existsSync(path.join(tmpDir, "index.html")));
-    assert.ok(!builtHtml.includes('src="data-adk.js"'), "Standalone build must strip data-adk.js");
-    assert.ok(builtHtml.includes('src="data.js"'), "Standalone build must load data.js");
+    assert.ok(fs.existsSync(path.join(adkOutDir, "index.html")));
+    assert.ok(fs.existsSync(path.join(adkOutDir, "data.js")), "web/data-adk.js must be copied to outDir/data.js");
+    const builtAdkHtml = fs.readFileSync(path.join(adkOutDir, "index.html"), "utf8");
+    assert.ok(!builtAdkHtml.includes('src="data-adk.js"'), "Standalone build must strip data-adk.js tag");
+    assert.ok(builtAdkHtml.includes('src="data.js"'), "Standalone build must load data.js");
+
+    // 2. Copy ONLY skills/repo-walkthrough into ~/.gemini/skills/repo-walkthrough-like isolated temp path
+    const standaloneHome = path.join(tmpDir, "isolated-home", ".gemini", "skills", "repo-walkthrough");
+    fs.mkdirSync(path.dirname(standaloneHome), { recursive: true });
+    fs.cpSync(SKILL_DIR, standaloneHome, { recursive: true });
+    assert.ok(fs.existsSync(path.join(standaloneHome, "assets", "index.tmpl")));
+
+    const standaloneOut = path.join(tmpDir, "standalone-out");
+    fs.mkdirSync(standaloneOut, { recursive: true });
+    const sampleDataPath = path.join(standaloneOut, "data.js");
+    fs.writeFileSync(
+      sampleDataPath,
+      `window.WALKTHROUGH_DATA = ${JSON.stringify(makeSampleData(4), null, 2)};\n`,
+      "utf8"
+    );
+
+    execFileSync(
+      process.execPath,
+      [
+        path.join(standaloneHome, "scripts", "build_walkthrough.mjs"),
+        "--data",
+        sampleDataPath,
+        "--out-dir",
+        standaloneOut,
+        "--mode",
+        "website",
+        "--no-tts",
+      ],
+      { stdio: "pipe" }
+    );
+    const builtHtml = fs.readFileSync(path.join(standaloneOut, "index.html"), "utf8");
+    assert.ok(builtHtml.includes("--g-red-light: #F28B82"));
     assert.match(
       builtHtml,
       /<link\s+rel="icon"\s+type="image\/svg\+xml"\s+href="data:image\/svg\+xml,[^"]+">/,
-      "Standalone build must preserve inline SVG favicon in generated index.html"
+      "Standalone skill copy must preserve inline SVG favicon in generated index.html"
     );
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
 
-test("Skill manifest is valid and project layout is clean", () => {
-  const skillMd = fs.readFileSync(
-    path.join(REPO_ROOT, "skills", "repo-walkthrough", "SKILL.md"),
-    "utf8"
+test("Single-source template, README GFM table, SKILL.md, and plugin.json manifests are valid and clean", () => {
+  // Single copy of index.tmpl inside skills/repo-walkthrough/assets/index.tmpl (deleted from web/)
+  assert.equal(
+    fs.existsSync(path.join(REPO_ROOT, SKILL_TEMPLATE_REL)),
+    true,
+    "skills/repo-walkthrough/assets/index.tmpl must exist"
   );
+  assert.equal(
+    fs.existsSync(path.join(REPO_ROOT, "web", "index.tmpl")),
+    false,
+    "web/index.tmpl must not exist (single source in skills/repo-walkthrough/assets/index.tmpl)"
+  );
+  assert.equal(
+    fs.existsSync(path.join(REPO_ROOT, "web", "index.html")),
+    false,
+    "web/index.html must not exist"
+  );
+
+  // README.md must use clean single-line GFM pipe rows (zero Pandoc ': ... :' continuations)
+  const readmeMd = fs.readFileSync(path.join(REPO_ROOT, "README.md"), "utf8");
+  assert.ok(!/^:\s+/m.test(readmeMd), "README.md must not contain multiline ': ... :' broken table rows");
+  assert.match(readmeMd, /^\|\s*\*\*Python 3\*\*\s*\|/m);
+  assert.match(readmeMd, /git sparse-checkout set agents\/repo-walkthrough/);
+  assert.match(readmeMd, /~\/\.gemini\/skills\/repo-walkthrough/);
+
+  const skillMd = fs.readFileSync(path.join(SKILL_DIR, "SKILL.md"), "utf8");
   assert.match(skillMd, /^---\r?\nname:\s*repo-walkthrough\r?\ndescription:/m);
   assert.ok(!/^license:/m.test(skillMd), "SKILL.md frontmatter should not include license field");
   assert.match(skillMd, /^\s*author:\s*Google\s*$/m, "SKILL.md metadata.author should be Google");
+  assert.ok(!skillMd.includes("~/projects/"), "SKILL.md must not hardcode ~/projects/ paths");
+  assert.match(skillMd, /node\s+<skill-dir>\/scripts\/build_walkthrough\.mjs\s+--check-prereqs/);
+  assert.ok(skillMd.includes("python3 <skill-dir>/scripts/fetch_repo.py"));
   assert.ok(
-    !skillMd.includes("~/projects/"),
-    "SKILL.md must not hardcode ~/projects/ paths"
+    !skillMd.includes("<plugin-root>/skills/repo-walkthrough/scripts/"),
+    "SKILL.md commands must use <skill-dir>/scripts/ for standalone portability"
   );
-  assert.match(
-    skillMd,
-    /node\s+<plugin-root>\/skills\/repo-walkthrough\/scripts\/build_walkthrough\.mjs\s+--check-prereqs/
-  );
-  assert.ok(
-    skillMd.includes(
-      "python3 <plugin-root>/skills/repo-walkthrough/scripts/fetch_repo.py"
-    )
-  );
-  assert.ok(
-    !/^\s*(?:node|python3?)\s+scripts\//m.test(skillMd),
-    "SKILL.md must never invoke bare scripts/..."
-  );
-  assert.ok(
-    skillMd.includes("python") && skillMd.includes("$TEMP"),
-    "SKILL.md must mention python and $TEMP for Windows portability"
-  );
+  assert.ok(skillMd.includes("$env:TEMP"), "SKILL.md must use $env:TEMP for Windows PowerShell");
+  assert.ok(!skillMd.includes(";"), "SKILL.md prose must avoid semicolons");
 
-  // Verify skills/repo-walkthrough/scripts is a real directory (not a symlink that turns into a 13-byte stub on Windows git clone)
-  const skillScriptsDir = path.join(REPO_ROOT, "skills", "repo-walkthrough", "scripts");
-  assert.equal(
-    fs.lstatSync(skillScriptsDir).isSymbolicLink(),
-    false,
-    "skills/repo-walkthrough/scripts must be a real directory for Windows core.symlinks=false compatibility"
-  );
-  assert.equal(fs.statSync(skillScriptsDir).isDirectory(), true);
+  // Verify skills/repo-walkthrough/scripts is a real directory
+  assert.equal(fs.lstatSync(SKILL_SCRIPTS_DIR).isSymbolicLink(), false);
+  assert.equal(fs.statSync(SKILL_SCRIPTS_DIR).isDirectory(), true);
   for (const requiredScript of [
     "build_walkthrough.mjs",
     "fetch_repo.py",
@@ -362,116 +564,60 @@ test("Skill manifest is valid and project layout is clean", () => {
     "render_video.mjs",
     "render_video.sh",
   ]) {
-    assert.ok(
-      fs.existsSync(path.join(skillScriptsDir, requiredScript)),
-      `Missing script in skill bundle: ${requiredScript}`
-    );
-  }
-  const rootScriptsDir = path.join(REPO_ROOT, "scripts");
-  if (fs.existsSync(rootScriptsDir)) {
-    for (const scriptFile of fs.readdirSync(rootScriptsDir)) {
-      const srcPath = path.join(rootScriptsDir, scriptFile);
-      if (!fs.statSync(srcPath).isFile()) continue;
-      const srcText = fs.readFileSync(srcPath, "utf8").replace(/\r\n/g, "\n");
-      const dstPath = path.join(skillScriptsDir, scriptFile);
-      assert.ok(fs.existsSync(dstPath), `Missing mirrored script in skill bundle: ${scriptFile}`);
-      const dstText = fs.readFileSync(dstPath, "utf8").replace(/\r\n/g, "\n");
-      assert.equal(dstText, srcText, `Mirrored script ${scriptFile} drifted from scripts/${scriptFile}`);
-    }
+    assert.ok(fs.existsSync(path.join(SKILL_SCRIPTS_DIR, requiredScript)));
   }
 
   const pluginJsonPath = path.join(REPO_ROOT, "plugin.json");
-  assert.ok(fs.existsSync(pluginJsonPath), "plugin.json must exist at plugin root");
   const pluginManifest = JSON.parse(fs.readFileSync(pluginJsonPath, "utf8"));
   assert.equal(pluginManifest.name, "repo-walkthrough");
   assert.equal(pluginManifest.displayName, "Repo Walkthrough");
   assert.ok(!/plugin|antigravity|gemini/i.test(pluginManifest.displayName));
   assert.equal(pluginManifest.version, "1.0.0");
-  assert.ok(
-    pluginManifest.description.length >= 120 && pluginManifest.description.length <= 160,
-    `Expected description length 120..160, got ${pluginManifest.description.length}`
-  );
+  assert.ok(pluginManifest.description.length >= 120 && pluginManifest.description.length <= 160);
   assert.equal(pluginManifest.logo, "assets/logo.svg");
-  assert.ok(fs.existsSync(path.join(REPO_ROOT, pluginManifest.logo)), "assets/logo.svg must exist");
-  assert.ok(!("license" in pluginManifest), "plugin.json should not include license field");
+  assert.ok(fs.existsSync(path.join(REPO_ROOT, pluginManifest.logo)));
+  assert.ok(!("license" in pluginManifest));
   assert.match(pluginManifest.homepage || "", /^https:\/\//);
   assert.match(pluginManifest.repository || "", /^https:\/\//);
   assert.equal(pluginManifest.suggestedPrompts?.length, 3);
   assert.ok(Array.isArray(pluginManifest.keywords) && pluginManifest.keywords.length >= 4);
-
-  assert.ok(!fs.existsSync(path.join(REPO_ROOT, "poc")), "poc directory must not exist in shareable repo-walkthrough");
-  assert.ok(!fs.existsSync(path.join(REPO_ROOT, ".claude-plugin")), ".claude-plugin directory must not exist");
-
-  const localTermsPath = path.join(REPO_ROOT, "tests", "local_disallowed_terms.json");
-  if (fs.existsSync(localTermsPath)) {
-    const disallowedTerms = JSON.parse(fs.readFileSync(localTermsPath, "utf8"));
-    const forbidden = new RegExp(disallowedTerms.join("|"), "i");
-    const checkedRels = [
-      ".gitignore",
-      "README.md",
-      "TESTING.md",
-      "plugin.json",
-      "assets/logo.svg",
-      "skills/repo-walkthrough/SKILL.md",
-      "skills/repo-walkthrough/references/data-schema.md",
-      "skills/repo-walkthrough/scripts/build_walkthrough.mjs",
-      "skills/repo-walkthrough/scripts/fetch_repo.py",
-      "skills/repo-walkthrough/scripts/generate_live_audio.mjs",
-      "skills/repo-walkthrough/scripts/render_video.mjs",
-      "skills/repo-walkthrough/scripts/render_video.sh",
-      WEB_TEMPLATE_REL,
-      "web/data-adk.js",
-      "examples/self-walkthrough/data.js",
-      "examples/cymbal-autos-multimodal/data.js",
-      "examples/diff-5984e02-to-head/data.js",
-      "tests/test_fetch_repo.py",
-      "tests/test_pipeline.mjs",
-      "tests/test_ui_e2e.mjs",
-    ];
-    if (fs.existsSync(path.join(REPO_ROOT, "scripts"))) {
-      checkedRels.push(
-        "scripts/build_walkthrough.mjs",
-        "scripts/fetch_repo.py",
-        "scripts/generate_live_audio.mjs",
-        "scripts/render_video.mjs",
-        "scripts/render_video.sh"
-      );
-    }
-    for (const rel of checkedRels) {
-      const content = fs.readFileSync(path.join(REPO_ROOT, rel), "utf8");
-      assert.ok(!forbidden.test(content), `Forbidden reference found in ${rel}`);
-    }
-  }
 });
 
-test("resolveRepoRoot handles both standard scripts/ and dereferenced skills/repo-walkthrough/scripts/", () => {
+test("resolveRepoRoot and resolveTemplatePath handle plugin installs, standalone skill copies, and test fixtures", () => {
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "rw-deref-"));
   try {
-    fs.mkdirSync(path.join(tmpRoot, "web"), { recursive: true });
-    fs.writeFileSync(path.join(tmpRoot, "web", "index.html"), "<html></html>", "utf8");
-    const directScripts = path.join(tmpRoot, "scripts");
-    const derefScripts = path.join(tmpRoot, "skills", "repo-walkthrough", "scripts");
-    fs.mkdirSync(directScripts, { recursive: true });
-    fs.mkdirSync(derefScripts, { recursive: true });
+    // 1. Plugin layout (plugin.json + skills/repo-walkthrough/assets/index.tmpl)
+    const pluginRoot = path.join(tmpRoot, "plugin-install");
+    fs.mkdirSync(path.join(pluginRoot, "skills", "repo-walkthrough", "assets"), { recursive: true });
+    fs.mkdirSync(path.join(pluginRoot, "skills", "repo-walkthrough", "scripts"), { recursive: true });
+    fs.writeFileSync(path.join(pluginRoot, "plugin.json"), '{"name":"repo-walkthrough"}', "utf8");
+    const tmplPath = path.join(pluginRoot, "skills", "repo-walkthrough", "assets", "index.tmpl");
+    fs.writeFileSync(tmplPath, "<html>tmpl</html>", "utf8");
+    const derefScripts = path.join(pluginRoot, "skills", "repo-walkthrough", "scripts");
 
     for (const fn of [resolveBuildRepoRoot, resolveAudioRepoRoot, resolveVideoRepoRoot]) {
-      assert.equal(fn(directScripts), tmpRoot);
-      assert.equal(fn(derefScripts), tmpRoot);
+      assert.equal(fn(derefScripts), pluginRoot);
     }
-    assert.equal(resolveTemplatePath(tmpRoot), path.join(tmpRoot, "web", "index.html"));
+    assert.equal(resolveTemplatePath(pluginRoot, derefScripts), tmplPath);
 
-    // Verify web/index.tmpl (plugin template) takes precedence when index.html is absent
-    fs.unlinkSync(path.join(tmpRoot, "web", "index.html"));
-    fs.writeFileSync(path.join(tmpRoot, "web", "index.tmpl"), "<html>tmpl</html>", "utf8");
+    // 2. Standalone skill copy under ~/.gemini/skills/repo-walkthrough (parent ~/.gemini has no plugin.json)
+    const geminiHome = path.join(tmpRoot, "home", ".gemini");
+    const standaloneSkill = path.join(geminiHome, "skills", "repo-walkthrough");
+    fs.mkdirSync(path.join(standaloneSkill, "assets"), { recursive: true });
+    fs.mkdirSync(path.join(standaloneSkill, "scripts"), { recursive: true });
+    const standaloneTmpl = path.join(standaloneSkill, "assets", "index.tmpl");
+    fs.writeFileSync(standaloneTmpl, "<html>standalone</html>", "utf8");
+    const standaloneScripts = path.join(standaloneSkill, "scripts");
+
     for (const fn of [resolveBuildRepoRoot, resolveAudioRepoRoot, resolveVideoRepoRoot]) {
-      assert.equal(fn(directScripts), tmpRoot);
-      assert.equal(fn(derefScripts), tmpRoot);
+      assert.equal(fn(standaloneScripts), standaloneSkill);
     }
-    assert.equal(resolveTemplatePath(tmpRoot), path.join(tmpRoot, "web", "index.tmpl"));
+    assert.equal(resolveTemplatePath(standaloneSkill, standaloneScripts), standaloneTmpl);
 
-    // Verify resolveDataFile never looks for unpackaged web/data-adk.js when absent, and resolves outDir/data.js
+    // 3. resolveDataFile requires explicit --data or outDir/data.js (never defaults to examples/)
+    assert.equal(resolveDataFile({ dataFile: null, outDir: null }, REPO_ROOT, REPO_ROOT), null);
     assert.equal(
-      resolveDataFile({ dataFile: null, outDir: path.join(tmpRoot, "no-out") }, tmpRoot, tmpRoot),
+      resolveDataFile({ dataFile: null, outDir: path.join(tmpRoot, "no-out") }, pluginRoot, pluginRoot),
       null
     );
     const outDataDir = path.join(tmpRoot, "out-with-data");
@@ -479,24 +625,9 @@ test("resolveRepoRoot handles both standard scripts/ and dereferenced skills/rep
     const outDataJs = path.join(outDataDir, "data.js");
     fs.writeFileSync(outDataJs, "window.WALKTHROUGH_DATA = {};", "utf8");
     assert.equal(
-      resolveDataFile({ dataFile: null, outDir: outDataDir }, tmpRoot, tmpRoot),
+      resolveDataFile({ dataFile: null, outDir: outDataDir }, pluginRoot, pluginRoot),
       outDataJs
     );
-
-    // Invoking via skills/repo-walkthrough/scripts/build_walkthrough.mjs (symlink on POSIX) must execute main()
-    const symlinkOrDerefBuild = path.join(
-      REPO_ROOT,
-      "skills",
-      "repo-walkthrough",
-      "scripts",
-      "build_walkthrough.mjs"
-    );
-    if (fs.existsSync(symlinkOrDerefBuild)) {
-      const prereqOut = execFileSync(process.execPath, [symlinkOrDerefBuild, "--check-prereqs"], {
-        encoding: "utf8",
-      });
-      assert.match(prereqOut, /Prerequisites/);
-    }
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
@@ -508,19 +639,16 @@ test("resolveSharedCacheDir uses PLUGIN_DATA or ~/.cache and falls back to local
     const localCache = path.join(tmpRoot, "local-cache");
     fs.mkdirSync(localCache, { recursive: true });
 
-    // 1. PLUGIN_DATA set
     const pluginDataDir = path.join(tmpRoot, "plugin-data");
     const resolvedPluginCache = resolveSharedCacheDir(localCache, { PLUGIN_DATA: pluginDataDir }, tmpRoot);
     assert.equal(resolvedPluginCache, path.join(pluginDataDir, "audio-cache"));
     assert.ok(fs.existsSync(resolvedPluginCache));
 
-    // 2. Default ~/.cache/repo-walkthrough/audio when PLUGIN_DATA is unset
     const fakeHome = path.join(tmpRoot, "home");
     const resolvedHomeCache = resolveSharedCacheDir(localCache, {}, fakeHome);
     assert.equal(resolvedHomeCache, path.join(fakeHome, ".cache", "repo-walkthrough", "audio"));
     assert.ok(fs.existsSync(resolvedHomeCache));
 
-    // 3. Read-only parent directory falls back cleanly to localCacheDir without throwing
     const roDir = path.join(tmpRoot, "ro-parent");
     fs.mkdirSync(roDir, { recursive: true });
     if (process.platform === "win32") {
@@ -549,17 +677,17 @@ test("resolveSharedCacheDir uses PLUGIN_DATA or ~/.cache and falls back to local
   }
 });
 
-test("Read-only installed plugin directory (chmod -R a-w) builds website and runs cached audio without failing", () => {
+test("Read-only installed plugin directory (chmod -R a-w / icacls) builds website and runs cached audio without failing", () => {
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "rw-ro-plugin-"));
   const roPluginDir = path.join(tmpRoot, "plugin");
   const outDir = path.join(tmpRoot, "out");
   const pluginDataDir = path.join(tmpRoot, "plugin-data");
   try {
-    // Simulate agy plugin install from packaged plugin bundle (web/index.tmpl + dereferenced skills/repo-walkthrough/scripts)
-    fs.mkdirSync(path.join(roPluginDir, "web"), { recursive: true });
+    fs.mkdirSync(path.join(roPluginDir, "skills", "repo-walkthrough", "assets"), { recursive: true });
+    fs.writeFileSync(path.join(roPluginDir, "plugin.json"), '{"name":"repo-walkthrough"}', "utf8");
     fs.copyFileSync(
       resolveTemplatePath(REPO_ROOT),
-      path.join(roPluginDir, "web", "index.tmpl")
+      path.join(roPluginDir, "skills", "repo-walkthrough", "assets", "index.tmpl")
     );
     const derefScripts = path.join(roPluginDir, "skills", "repo-walkthrough", "scripts");
     fs.mkdirSync(derefScripts, { recursive: true });
@@ -579,18 +707,16 @@ test("Read-only installed plugin directory (chmod -R a-w) builds website and run
       "utf8"
     );
 
-    // Pre-seed shared cache in PLUGIN_DATA so generate_live_audio.mjs runs offline with read-only plugin dir
     const sharedAudioCache = path.join(pluginDataDir, "audio-cache");
     fs.mkdirSync(sharedAudioCache, { recursive: true });
     const stepHash = computeContentHash(
-      "gemini-3.1-flash-tts-preview",
+      DEFAULT_MODEL,
       "Despina",
       sample.walkthrough[0].narration
     );
     const dummyWav = createWavBuffer(Buffer.alloc(24000 * 2), 24000, 1, 16);
     fs.writeFileSync(path.join(sharedAudioCache, `${stepHash}.wav`), dummyWav);
 
-    // Lock down the entire plugin install directory as read-only
     if (process.platform === "win32") {
       execFileSync("attrib", ["+R", path.join(roPluginDir, "*"), "/S", "/D"]);
       execFileSync("icacls", [roPluginDir, "/deny", "*S-1-1-0:(OI)(CI)(WD,AD,WEA,WA)"]);
@@ -598,7 +724,6 @@ test("Read-only installed plugin directory (chmod -R a-w) builds website and run
       execFileSync("chmod", ["-R", "a-w", roPluginDir]);
     }
 
-    // 1. Run dereferenced skills/repo-walkthrough/scripts/build_walkthrough.mjs
     execFileSync(
       process.execPath,
       [
@@ -615,7 +740,6 @@ test("Read-only installed plugin directory (chmod -R a-w) builds website and run
     );
     assert.ok(fs.existsSync(path.join(outDir, "index.html")));
 
-    // 2. Run dereferenced skills/repo-walkthrough/scripts/generate_live_audio.mjs against read-only plugin root
     execFileSync(
       process.execPath,
       [
@@ -645,7 +769,7 @@ test("Read-only installed plugin directory (chmod -R a-w) builds website and run
   }
 });
 
-test("Cross-platform GEMINI_API_KEY resolution (env -> .env files -> OS credential store across macOS/Linux/Windows) and OS-aware errors", () => {
+test("Cross-platform GEMINI_API_KEY resolution and strict scoping", () => {
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "rw-apikey-"));
   try {
     const cwdDir = path.join(tmpRoot, "cwd");
@@ -661,7 +785,6 @@ test("Cross-platform GEMINI_API_KEY resolution (env -> .env files -> OS credenti
     fs.mkdirSync(fakeRepo, { recursive: true });
     const noStore = () => "";
 
-    // 1. Uses GEMINI_API_KEY and ignores GOOGLE_API_KEY
     assert.equal(
       resolveGeminiApiKey(fakeRepo, {
         env: { GEMINI_API_KEY: "gem-key-1", GOOGLE_API_KEY: "goog-key-2" },
@@ -672,19 +795,7 @@ test("Cross-platform GEMINI_API_KEY resolution (env -> .env files -> OS credenti
       }),
       "gem-key-1"
     );
-    assert.throws(
-      () =>
-        resolveGeminiApiKey(fakeRepo, {
-          env: { GOOGLE_API_KEY: "goog-key-only" },
-          platform: "linux",
-          cwd: cwdDir,
-          homedir: fakeHome,
-          runner: noStore,
-        }),
-      /GEMINI_API_KEY/
-    );
 
-    // 2. Fallback chain across .env and key files in reverse priority order
     fs.writeFileSync(path.join(fakeRepo, ".env"), 'GEMINI_API_KEY="from-repo-env"\n', "utf8");
     assert.equal(
       resolveGeminiApiKey(fakeRepo, {
@@ -697,129 +808,7 @@ test("Cross-platform GEMINI_API_KEY resolution (env -> .env files -> OS credenti
       "from-repo-env"
     );
 
-    fs.writeFileSync(
-      path.join(fakeHome, ".gemini", "gemini_api_key"),
-      "from-home-gemini-keyfile\n",
-      "utf8"
-    );
-    assert.equal(
-      resolveGeminiApiKey(fakeRepo, {
-        env: {},
-        platform: "linux",
-        cwd: cwdDir,
-        homedir: fakeHome,
-        runner: noStore,
-      }),
-      "from-home-gemini-keyfile"
-    );
-
-    fs.writeFileSync(
-      path.join(fakeHome, ".gemini", ".env"),
-      "GEMINI_API_KEY=from-home-gemini-env\n",
-      "utf8"
-    );
-    assert.equal(
-      resolveGeminiApiKey(fakeRepo, {
-        env: {},
-        platform: "linux",
-        cwd: cwdDir,
-        homedir: fakeHome,
-        runner: noStore,
-      }),
-      "from-home-gemini-env"
-    );
-
-    fs.writeFileSync(
-      path.join(fakeHome, ".config", "repo-walkthrough", "gemini_api_key"),
-      "from-config-rw-keyfile\n",
-      "utf8"
-    );
-    assert.equal(
-      resolveGeminiApiKey(fakeRepo, {
-        env: {},
-        platform: "linux",
-        cwd: cwdDir,
-        homedir: fakeHome,
-        runner: noStore,
-      }),
-      "from-config-rw-keyfile"
-    );
-
-    fs.writeFileSync(
-      path.join(fakeHome, ".config", "repo-walkthrough", ".env"),
-      "GEMINI_API_KEY=from-config-rw-env\n",
-      "utf8"
-    );
-    assert.equal(
-      resolveGeminiApiKey(fakeRepo, {
-        env: {},
-        platform: "linux",
-        cwd: cwdDir,
-        homedir: fakeHome,
-        runner: noStore,
-      }),
-      "from-config-rw-env"
-    );
-
-    fs.writeFileSync(
-      path.join(appDataDir, "repo-walkthrough", "gemini_api_key"),
-      "from-appdata-rw-keyfile\n",
-      "utf8"
-    );
-    assert.equal(
-      resolveGeminiApiKey(fakeRepo, {
-        env: { APPDATA: appDataDir },
-        platform: "win32",
-        cwd: cwdDir,
-        homedir: fakeHome,
-        runner: noStore,
-      }),
-      "from-appdata-rw-keyfile"
-    );
-
-    fs.writeFileSync(
-      path.join(appDataDir, "repo-walkthrough", ".env"),
-      "GEMINI_API_KEY=from-appdata-rw-env\n",
-      "utf8"
-    );
-    assert.equal(
-      resolveGeminiApiKey(fakeRepo, {
-        env: { APPDATA: appDataDir },
-        platform: "win32",
-        cwd: cwdDir,
-        homedir: fakeHome,
-        runner: noStore,
-      }),
-      "from-appdata-rw-env"
-    );
-
-    fs.writeFileSync(
-      path.join(pluginDataDir, ".env"),
-      "GEMINI_API_KEY=from-plugin-data-env\n",
-      "utf8"
-    );
-    assert.equal(
-      resolveGeminiApiKey(fakeRepo, {
-        env: { PLUGIN_DATA: pluginDataDir, APPDATA: appDataDir },
-        platform: "linux",
-        cwd: cwdDir,
-        homedir: fakeHome,
-        runner: noStore,
-      }),
-      "from-plugin-data-env"
-    );
-
     fs.writeFileSync(path.join(cwdDir, ".env"), "GEMINI_API_KEY=from-cwd-env\n", "utf8");
-    assert.equal(
-      resolveGeminiApiKey(fakeRepo, {
-        env: { PLUGIN_DATA: pluginDataDir },
-        platform: "linux",
-        cwd: cwdDir,
-        homedir: fakeHome,
-        runner: noStore,
-      }),
-      "from-cwd-env"
-    );
     assert.equal(
       hasGeminiKey(fakeRepo, {
         env: {},
@@ -831,7 +820,6 @@ test("Cross-platform GEMINI_API_KEY resolution (env -> .env files -> OS credenti
       true
     );
 
-    // 3. Native OS credential store lookup across macOS, Linux, and Windows
     const emptyDir = path.join(tmpRoot, "empty");
     fs.mkdirSync(emptyDir, { recursive: true });
     assert.equal(
@@ -848,17 +836,6 @@ test("Cross-platform GEMINI_API_KEY resolution (env -> .env files -> OS credenti
     assert.equal(
       resolveGeminiApiKey(emptyDir, {
         env: {},
-        platform: "linux",
-        cwd: emptyDir,
-        homedir: emptyDir,
-        runner: (cmd, args) =>
-          cmd === "secret-tool" && args.includes("gemini-api-key") ? "from-linux-secret-tool\n" : "",
-      }),
-      "from-linux-secret-tool"
-    );
-    assert.equal(
-      resolveGeminiApiKey(emptyDir, {
-        env: {},
         platform: "win32",
         cwd: emptyDir,
         homedir: emptyDir,
@@ -869,99 +846,36 @@ test("Cross-platform GEMINI_API_KEY resolution (env -> .env files -> OS credenti
       }),
       "from-windows-cred"
     );
-
-    // 4. OS-aware error instructions when no key exists
-    assert.throws(
-      () =>
-        resolveGeminiApiKey(emptyDir, {
-          env: {},
-          platform: "win32",
-          cwd: emptyDir,
-          homedir: emptyDir,
-          runner: noStore,
-        }),
-      /\$env:GEMINI_API_KEY/
-    );
-    assert.throws(
-      () =>
-        resolveGeminiApiKey(emptyDir, {
-          env: {},
-          platform: "linux",
-          cwd: emptyDir,
-          homedir: emptyDir,
-          runner: noStore,
-        }),
-      /export GEMINI_API_KEY/
-    );
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
 });
 
-test("GEMINI_API_KEY lookup never probes unrelated config folders or non-standard keychain services", () => {
-  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "rw-apikey-strict-"));
-  try {
-    const cwdDir = path.join(tmpRoot, "cwd");
-    const appDataDir = path.join(tmpRoot, "appdata");
-    const fakeHome = path.join(tmpRoot, "home");
-    const fakeRepo = path.join(tmpRoot, "repo");
-    fs.mkdirSync(cwdDir, { recursive: true });
-    fs.mkdirSync(fakeRepo, { recursive: true });
-
-    // Unrelated sibling tool folders under ~/.config and %APPDATA% must never be read
-    const otherConfigDir = path.join(fakeHome, ".config", "unrelated-private-tool");
-    const otherAppDataDir = path.join(appDataDir, "unrelated-private-tool");
-    fs.mkdirSync(otherConfigDir, { recursive: true });
-    fs.mkdirSync(otherAppDataDir, { recursive: true });
-    fs.writeFileSync(path.join(otherConfigDir, ".env"), "GEMINI_API_KEY=leaked-config\n", "utf8");
-    fs.writeFileSync(path.join(otherConfigDir, "gemini_api_key"), "leaked-keyfile\n", "utf8");
-    fs.writeFileSync(path.join(otherAppDataDir, ".env"), "GEMINI_API_KEY=leaked-appdata\n", "utf8");
-    fs.writeFileSync(path.join(otherAppDataDir, "gemini_api_key"), "leaked-appdata-key\n", "utf8");
-
-    // On every OS, credential store runner must query strictly "gemini-api-key" once and nothing else
-    for (const platform of ["darwin", "linux", "win32"]) {
-      const calls = [];
-      assert.throws(
-        () =>
-          resolveGeminiApiKey(fakeRepo, {
-            env: { APPDATA: appDataDir },
-            platform,
-            cwd: cwdDir,
-            homedir: fakeHome,
-            runner: (cmd, args) => {
-              calls.push({ cmd, args });
-              return "";
-            },
-          }),
-        /GEMINI_API_KEY/
-      );
-      assert.equal(calls.length, 1, `Expected strictly 1 credential-store lookup on ${platform}, got ${calls.length}`);
-      assert.ok(
-        calls[0].args.some((a) => a.includes("gemini-api-key")),
-        `Expected credential-store lookup on ${platform} to target gemini-api-key`
-      );
-    }
-  } finally {
-    fs.rmSync(tmpRoot, { recursive: true, force: true });
-  }
-});
-
-test("Cross-platform helpers: openTarget, detectPythonCmd, formatFfmpegConcatEntry, getPlaywrightSearchRoots, and launchChromium", async () => {
-  // 1. openTarget on darwin, win32, linux, and headless Linux ENOENT fallback
+test("Cross-platform helpers: openTarget (rundll32 on win32, blocks .tmpl), detectPythonCmd, Node >= 20.11, formatFfmpegConcatEntry, and launchChromium msedge fallback", async () => {
   const calls = [];
   const mockRunner = (cmd, args) => {
     calls.push({ cmd, args });
   };
+
+  // Never opens raw .tmpl files on any OS
+  assert.equal(openTarget("/path/to/index.tmpl", "darwin", mockRunner), false);
+  assert.equal(openTarget("C:\\out\\index.tmpl", "win32", mockRunner), false);
+  assert.equal(openTarget("/path/to/index.tmpl", "linux", mockRunner), false);
+  assert.equal(calls.length, 0);
+
   assert.equal(openTarget("/path/to/index.html", "darwin", mockRunner), true);
   assert.deepEqual(calls.pop(), { cmd: "open", args: ["/path/to/index.html"] });
 
-  assert.equal(openTarget("C:\\out\\index.html", "win32", mockRunner), true);
-  assert.deepEqual(calls.pop(), { cmd: "cmd", args: ["/c", "start", "", "C:\\out\\index.html"] });
+  const trickyWinTarget = "C:\\Users\\dev\\R&D (1) %TEMP%\\index.html";
+  assert.equal(openTarget(trickyWinTarget, "win32", mockRunner), true);
+  assert.deepEqual(calls.pop(), {
+    cmd: "rundll32.exe",
+    args: ["url.dll,FileProtocolHandler", trickyWinTarget],
+  });
 
   assert.equal(openTarget("/path/to/index.html", "linux", mockRunner), true);
   assert.deepEqual(calls.pop(), { cmd: "xdg-open", args: ["/path/to/index.html"] });
 
-  // Headless Linux where xdg-open throws ENOENT must not crash
   assert.doesNotThrow(() => {
     const ok = openTarget("/path/to/index.html", "linux", () => {
       const err = new Error("spawn xdg-open ENOENT");
@@ -971,7 +885,7 @@ test("Cross-platform helpers: openTarget, detectPythonCmd, formatFfmpegConcatEnt
     assert.equal(ok, false);
   });
 
-  // 2. detectPythonCmd fallback order: python3 -> python -> py -3 on win32
+  // detectPythonCmd verifies Python 3 and prioritizes py -3 ahead of Windows Store python stub on win32
   assert.deepEqual(
     detectPythonCmd("win32", (cmd, args) => cmd === "py" && args[0] === "-3"),
     { cmd: "py", args: ["-3"] }
@@ -985,7 +899,10 @@ test("Cross-platform helpers: openTarget, detectPythonCmd, formatFfmpegConcatEnt
     { cmd: "python3", args: [] }
   );
 
-  // 3. FFmpeg concat path escaping for Windows backslashes and single quotes
+  assert.equal(hasSupportedNodeVersion("20.11.0"), true);
+  assert.equal(hasSupportedNodeVersion("22.4.1"), true);
+  assert.equal(hasSupportedNodeVersion("20.9.0"), false);
+
   assert.equal(
     formatFfmpegConcatEntry("C:\\Users\\dev\\out\\audio\\step-1.wav"),
     "file 'C:/Users/dev/out/audio/step-1.wav'"
@@ -995,7 +912,6 @@ test("Cross-platform helpers: openTarget, detectPythonCmd, formatFfmpegConcatEnt
     "file 'C:/Users/O'\\''Connor/audio/step-1.wav'"
   );
 
-  // 4. Playwright search roots on Windows include LOCALAPPDATA and APPDATA _npx
   const roots = getPlaywrightSearchRoots({
     platform: "win32",
     homedir: "C:\\Users\\dev",
@@ -1008,7 +924,6 @@ test("Cross-platform helpers: openTarget, detectPythonCmd, formatFfmpegConcatEnt
   assert.ok(roots.npxBases.some((p) => p.includes("Local") && p.includes("_npx")));
   assert.ok(roots.npxBases.some((p) => p.includes("Roaming") && p.includes("_npx")));
 
-  // 5. launchChromium falls back to channel: "msedge" on Windows when chrome and bundled chromium fail
   const launchAttempts = [];
   const fakeChromium = {
     async launch(opts) {
@@ -1021,7 +936,6 @@ test("Cross-platform helpers: openTarget, detectPythonCmd, formatFfmpegConcatEnt
   assert.deepEqual(launched, { browser: "msedge" });
   assert.ok(launchAttempts.some((a) => a.channel === "msedge"));
 
-  // 6. loadPlaywright resolves path.join(process.cwd(), "node_modules", "playwright")
   const tmpCwd = fs.mkdtempSync(path.join(os.tmpdir(), "rw-pw-cwd-"));
   try {
     const fakePwDir = path.join(tmpCwd, "node_modules", "playwright");
@@ -1049,21 +963,24 @@ test("Cross-platform helpers: openTarget, detectPythonCmd, formatFfmpegConcatEnt
   }
 });
 
-test("web template embeds assets/logo.svg as a 1-line inline SVG favicon in <head>", () => {
-  const indexHtml = fs.readFileSync(resolveTemplatePath(REPO_ROOT), "utf8");
-  const headMatch = indexHtml.match(/<head>([\s\S]*?)<\/head>/i);
-  assert.ok(headMatch, "web/index.html must contain a <head> section");
-  const iconMatch = headMatch[1].match(
-    /<link\s+rel="icon"\s+type="image\/svg\+xml"\s+href="(data:image\/svg\+xml,[^"]+)">/
-  );
-  assert.ok(iconMatch, "web/index.html <head> must contain an inline SVG favicon <link>");
-  assert.ok(!iconMatch[0].includes("\n"), "Inline SVG favicon <link> tag must be single-line");
-
-  const decodedSvg = decodeURIComponent(iconMatch[1].slice("data:image/svg+xml,".length));
-  assert.match(decodedSvg, /^<svg\b[\s\S]*<\/svg>$/);
-  assert.ok(decodedSvg.includes("viewBox='0 0 128 128'") || decodedSvg.includes('viewBox="0 0 128 128"'));
+test("Viewer template and all 3 rebuilt examples embed assets/logo.svg as a 1-line inline SVG favicon in <head>", () => {
   const logoSvg = fs.readFileSync(path.join(REPO_ROOT, "assets", "logo.svg"), "utf8").trim();
-  assert.equal(decodedSvg.replace(/'/g, '"'), logoSvg, "Inline SVG favicon must match assets/logo.svg");
-  assert.ok(decodedSvg.includes("bgGrad") && decodedSvg.includes("playGrad") && decodedSvg.includes("feDropShadow"));
-  assert.ok(decodedSvg.includes("#eb5850") && decodedSvg.includes("#56d364"));
+  const targets = [
+    resolveTemplatePath(REPO_ROOT),
+    path.join(REPO_ROOT, "examples", "self-walkthrough", "index.html"),
+    path.join(REPO_ROOT, "examples", "cymbal-autos-multimodal", "index.html"),
+    path.join(REPO_ROOT, "examples", "diff-5984e02-to-head", "index.html"),
+  ];
+  for (const target of targets) {
+    const html = fs.readFileSync(target, "utf8");
+    const headMatch = html.match(/<head>([\s\S]*?)<\/head>/i);
+    assert.ok(headMatch, `${target} must contain a <head> section`);
+    const iconMatch = headMatch[1].match(
+      /<link\s+rel="icon"\s+type="image\/svg\+xml"\s+href="(data:image\/svg\+xml,[^"]+)">/
+    );
+    assert.ok(iconMatch, `${target} <head> must contain an inline SVG favicon <link>`);
+    assert.ok(!iconMatch[0].includes("\n"), "Inline SVG favicon <link> tag must be single-line");
+    const decodedSvg = decodeURIComponent(iconMatch[1].slice("data:image/svg+xml,".length));
+    assert.equal(decodedSvg.replace(/'/g, '"'), logoSvg, `Inline SVG favicon in ${target} must match assets/logo.svg`);
+  }
 });

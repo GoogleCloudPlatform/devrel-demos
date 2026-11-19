@@ -14,13 +14,14 @@
 // limitations under the License.
 
 /**
- * Generate spoken walkthrough audio for each step using the dedicated Gemini TTS
- * audio generation model (`gemini-3.1-flash-tts-preview` via `generateContent`),
- * using a single female speaker ("Despina") and content-hash caching so identical
+ * Generate spoken walkthrough audio for each step using the GA Gemini TTS
+ * audio generation model (`gemini-3.8-flash-tts` by default, or
+ * `gemini-3.8-flash-lite-tts` via `GEMINI_TTS_MODEL` / `--model`), using a
+ * single female speaker ("Despina") and content-hash caching so identical
  * text is never re-generated.
  *
  * Usage:
- *   node scripts/generate_live_audio.mjs [--data <path/to/data.js>] [--out-dir <path/to/audio-dir>] [--voice Despina] [--force]
+ *   node skills/repo-walkthrough/scripts/generate_live_audio.mjs --data <path/to/data.js> [--out-dir <path/to/audio-dir>] [--voice Despina] [--model gemini-3.8-flash-tts] [--force]
  *
  * Key resolution order:
  *   1. GEMINI_API_KEY environment variable
@@ -36,25 +37,43 @@ import os from "node:os";
 import path from "node:path";
 import vm from "node:vm";
 
-const DEFAULT_MODEL = process.env.GEMINI_TTS_MODEL || "gemini-3.1-flash-tts-preview";
-const DEFAULT_VOICE = process.env.GEMINI_VOICE || "Despina"; // Single female speaker
-const TTS_STYLE_PREFIX =
-  "Speak the following codebase walkthrough step naturally at a relaxed, clear, conversational pace:\n";
+const DEFAULT_MODEL = process.env.GEMINI_TTS_MODEL || "gemini-3.8-flash-tts";
+const DEFAULT_ALIGNMENT_MODEL =
+  process.env.GEMINI_ALIGNMENT_MODEL || "gemini-3-flash-preview";
+const DEFAULT_VOICE = process.env.GEMINI_VOICE || "Despina";
+const DEFAULT_SPEECH_STYLE = "relaxed, clear, conversational pace";
+
+const USAGE_TEXT = `Usage:
+  node skills/repo-walkthrough/scripts/generate_live_audio.mjs --data <path/to/data.js> [options]
+
+Options:
+  --data <file>      Path to data.js containing window.WALKTHROUGH_DATA
+  --out-dir <dir>    Output audio directory (defaults to <site-dir>/audio)
+  --voice <name>     Prebuilt Gemini TTS voice name (default: Despina)
+  --model <id>       Gemini TTS model ID (default: gemini-3.8-flash-tts, or gemini-3.8-flash-lite-tts)
+  --force            Re-synthesize all steps even if cached WAV files exist
+  -h, --help         Show this help message and exit
+`;
+
+function isPluginOrRepoRoot(dir) {
+  return (
+    fs.existsSync(path.join(dir, "plugin.json")) ||
+    fs.existsSync(path.join(dir, "web", "index.html")) ||
+    fs.existsSync(path.join(dir, "web", "index.tmpl")) ||
+    fs.existsSync(path.join(dir, "web", "data-adk.js"))
+  );
+}
 
 function resolveRepoRoot(scriptDir = import.meta.dirname) {
-  const candidates = [
-    path.resolve(scriptDir, ".."),
-    path.resolve(scriptDir, "../../.."),
-  ];
-  for (const candidate of candidates) {
-    if (
-      fs.existsSync(path.join(candidate, "web", "index.tmpl")) ||
-      fs.existsSync(path.join(candidate, "web", "index.html"))
-    ) {
-      return candidate;
-    }
+  const pluginCandidate = path.resolve(scriptDir, "../../..");
+  const directCandidate = path.resolve(scriptDir, "..");
+  if (isPluginOrRepoRoot(pluginCandidate)) {
+    return pluginCandidate;
   }
-  return candidates[0];
+  if (isPluginOrRepoRoot(directCandidate)) {
+    return directCandidate;
+  }
+  return directCandidate;
 }
 
 function resolveSharedCacheDir(localCacheDir, env = process.env, homedir = os.homedir()) {
@@ -71,6 +90,14 @@ function resolveSharedCacheDir(localCacheDir, env = process.env, homedir = os.ho
   }
 }
 
+function requireOptionValue(argv, index, flag) {
+  const val = argv[index + 1];
+  if (val === undefined || val === "" || val.startsWith("-")) {
+    throw new Error(`Option ${flag} requires a value. Pass --help for usage.`);
+  }
+  return val;
+}
+
 function parseArgs(argv) {
   const opts = {
     dataFile: null,
@@ -78,14 +105,25 @@ function parseArgs(argv) {
     voice: DEFAULT_VOICE,
     model: DEFAULT_MODEL,
     force: false,
+    help: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === "--data" && argv[i + 1]) opts.dataFile = path.resolve(argv[++i]);
-    else if (a === "--out-dir" && argv[i + 1]) opts.outDir = path.resolve(argv[++i]);
-    else if (a === "--voice" && argv[i + 1]) opts.voice = argv[++i];
-    else if (a === "--model" && argv[i + 1]) opts.model = argv[++i];
-    else if (a === "--force") opts.force = true;
+    if (a === "-h" || a === "--help") {
+      opts.help = true;
+    } else if (a === "--data") {
+      opts.dataFile = path.resolve(requireOptionValue(argv, i++, "--data"));
+    } else if (a === "--out-dir") {
+      opts.outDir = path.resolve(requireOptionValue(argv, i++, "--out-dir"));
+    } else if (a === "--voice") {
+      opts.voice = requireOptionValue(argv, i++, "--voice");
+    } else if (a === "--model") {
+      opts.model = requireOptionValue(argv, i++, "--model");
+    } else if (a === "--force") {
+      opts.force = true;
+    } else {
+      throw new Error(`Unknown option: ${a}. Pass --help for usage.`);
+    }
   }
   return opts;
 }
@@ -218,11 +256,37 @@ function computeContentHash(model, voice, text) {
     .slice(0, 16);
 }
 
+function extractRawPcm(audioBuffer) {
+  if (!Buffer.isBuffer(audioBuffer) || audioBuffer.length < 12) {
+    return audioBuffer;
+  }
+  if (
+    audioBuffer.subarray(0, 4).toString("ascii") !== "RIFF" ||
+    audioBuffer.subarray(8, 12).toString("ascii") !== "WAVE"
+  ) {
+    return audioBuffer;
+  }
+  let offset = 12;
+  while (offset + 8 <= audioBuffer.length) {
+    const chunkId = audioBuffer.subarray(offset, offset + 4).toString("ascii");
+    const chunkSize = audioBuffer.readUInt32LE(offset + 4);
+    const dataStart = offset + 8;
+    if (chunkId === "data") {
+      return Buffer.from(
+        audioBuffer.subarray(dataStart, Math.min(audioBuffer.length, dataStart + chunkSize))
+      );
+    }
+    offset = dataStart + chunkSize + (chunkSize % 2);
+  }
+  return audioBuffer.length >= 44 ? Buffer.from(audioBuffer.subarray(44)) : audioBuffer;
+}
+
 function createWavBuffer(pcmBuffer, sampleRate = 24000, numChannels = 1, bitsPerSample = 16) {
+  const rawPcm = extractRawPcm(pcmBuffer);
   const header = Buffer.alloc(44);
   const byteRate = (sampleRate * numChannels * bitsPerSample) / 8;
   const blockAlign = (numChannels * bitsPerSample) / 8;
-  const dataSize = pcmBuffer.length;
+  const dataSize = rawPcm.length;
 
   header.write("RIFF", 0);
   header.writeUInt32LE(36 + dataSize, 4);
@@ -238,20 +302,29 @@ function createWavBuffer(pcmBuffer, sampleRate = 24000, numChannels = 1, bitsPer
   header.write("data", 36);
   header.writeUInt32LE(dataSize, 40);
 
-  return Buffer.concat([header, pcmBuffer]);
+  return Buffer.concat([header, rawPcm]);
 }
 
-async function synthesizeTts(apiKey, text, { model = DEFAULT_MODEL, voice = DEFAULT_VOICE } = {}) {
+function buildTtsRequestBody(
+  text,
+  { voice = DEFAULT_VOICE, style = DEFAULT_SPEECH_STYLE } = {}
+) {
   const cleanText = sanitizeForTts(text);
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const body = {
+  const part = style ? { text: cleanText, speechMetadata: { style } } : { text: cleanText };
+  return {
     contents: [
       {
-        parts: [{ text: `${TTS_STYLE_PREFIX}${cleanText}` }],
+        parts: [part],
       },
     ],
     generationConfig: {
       responseModalities: ["AUDIO"],
+      responseFormat: {
+        audio: {
+          mimeType: "AUDIO_L16",
+          sampleRate: 24000,
+        },
+      },
       speechConfig: {
         voiceConfig: {
           prebuiltVoiceConfig: {
@@ -261,11 +334,24 @@ async function synthesizeTts(apiKey, text, { model = DEFAULT_MODEL, voice = DEFA
       },
     },
   };
+}
+
+async function synthesizeTts(
+  apiKey,
+  text,
+  { model = DEFAULT_MODEL, voice = DEFAULT_VOICE, style = DEFAULT_SPEECH_STYLE } = {}
+) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const body = buildTtsRequestBody(text, { voice, style });
 
   for (let attempt = 0; attempt < 4; attempt++) {
     const resp = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      signal: AbortSignal.timeout(60000),
       body: JSON.stringify(body),
     });
 
@@ -290,7 +376,7 @@ async function synthesizeTts(apiKey, text, { model = DEFAULT_MODEL, voice = DEFA
     if (!b64) {
       throw new Error(`No audio data returned by ${model}`);
     }
-    return Buffer.from(b64, "base64");
+    return extractRawPcm(Buffer.from(b64, "base64"));
   }
 }
 
@@ -393,7 +479,12 @@ function computeAcousticCueAt(alignedSegments, totalDur, phrase = "", cueIndex =
   return null;
 }
 
-async function alignStepSegmentsWithGemini(apiKey, wavBuffer, narration, { hash, localCacheDir, sharedCacheDir, force = false }) {
+async function alignStepSegmentsWithGemini(
+  apiKey,
+  wavBuffer,
+  narration,
+  { hash, localCacheDir, sharedCacheDir, force = false, alignmentModel = DEFAULT_ALIGNMENT_MODEL }
+) {
   const localSegPath = path.join(localCacheDir, `${hash}.segments.json`);
   const sharedSegPath = path.join(sharedCacheDir, `${hash}.segments.json`);
   const { segments, totalDur, totalSamples, sr } = extractPcmSegments(wavBuffer, 10);
@@ -402,8 +493,13 @@ async function alignStepSegmentsWithGemini(apiKey, wavBuffer, narration, { hash,
     return { alignedSegments: JSON.parse(fs.readFileSync(localSegPath, "utf8")), totalDur };
   }
   if (!force && fs.existsSync(sharedSegPath)) {
-    fs.copyFileSync(sharedSegPath, localSegPath);
+    try {
+      fs.copyFileSync(sharedSegPath, localSegPath);
+    } catch {}
     return { alignedSegments: JSON.parse(fs.readFileSync(sharedSegPath, "utf8")), totalDur };
+  }
+  if (!apiKey) {
+    return null;
   }
 
   const parts = [
@@ -421,13 +517,16 @@ async function alignStepSegmentsWithGemini(apiKey, wavBuffer, narration, { hash,
     });
   });
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(alignmentModel)}:generateContent`;
   let parsed = null;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const resp = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
         signal: AbortSignal.timeout(25000),
         body: JSON.stringify({
           contents: [{ parts }],
@@ -440,12 +539,18 @@ async function alignStepSegmentsWithGemini(apiKey, wavBuffer, narration, { hash,
       });
       const json = await resp.json();
       if (!resp.ok || json.error) {
-        throw new Error(`Gemini segment alignment error (${resp.status}): ${JSON.stringify(json.error || json)}`);
+        const err = new Error(
+          `Gemini segment alignment error (${resp.status}): ${JSON.stringify(json.error || json)}`
+        );
+        err.status = resp.status;
+        throw err;
       }
       parsed = JSON.parse(json.candidates[0].content.parts[0].text);
       break;
     } catch (err) {
-      if (attempt === 2) throw err;
+      if (attempt === 2 || (err.status && err.status >= 400 && err.status < 500 && err.status !== 429)) {
+        throw err;
+      }
       await new Promise((r) => setTimeout(r, 1500));
     }
   }
@@ -464,22 +569,28 @@ async function alignStepSegmentsWithGemini(apiKey, wavBuffer, narration, { hash,
 
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
+  if (opts.help) {
+    process.stdout.write(USAGE_TEXT);
+    return;
+  }
+
   const repoRoot = resolveRepoRoot(import.meta.dirname);
-  const defaultWebDir = path.join(repoRoot, "web");
-  const defaultCandidates = [
-    opts.outDir ? path.join(path.dirname(opts.outDir), "data.js") : null,
-    path.resolve(process.cwd(), "data.js"),
-    path.join(defaultWebDir, "data.js"),
-    path.join(repoRoot, "examples", "self-walkthrough", "data.js"),
-    path.join(defaultWebDir, "data-adk.js"),
-  ].filter(Boolean);
+  const outDirCandidateData = opts.outDir
+    ? path.join(path.dirname(opts.outDir), "data.js")
+    : null;
   const dataFile =
-    opts.dataFile || defaultCandidates.find((c) => fs.existsSync(c)) || null;
-  if (!dataFile || !fs.existsSync(dataFile)) {
+    opts.dataFile ||
+    (outDirCandidateData && fs.existsSync(outDirCandidateData) ? outDirCandidateData : null);
+
+  if (!dataFile) {
     throw new Error(
-      `Missing --data <path/to/data.js> (and no data.js found in ${process.cwd()}).`
+      "Missing --data <path/to/data.js>. Pass --data <path/to/data.js> (or --help for usage)."
     );
   }
+  if (!fs.existsSync(dataFile)) {
+    throw new Error(`Data file not found: ${dataFile}`);
+  }
+
   const siteDir = path.dirname(dataFile);
   const outDir = opts.outDir || path.join(siteDir, "audio");
   const localCacheDir = path.join(outDir, "cache");
@@ -488,11 +599,20 @@ async function main() {
   const sharedCacheDir = resolveSharedCacheDir(localCacheDir);
   const legacyRepoCacheDir = path.join(repoRoot, "web", "audio", "cache");
 
-  const sandbox = { window: {} };
-  vm.runInNewContext(fs.readFileSync(dataFile, "utf8"), sandbox);
-  const data = sandbox.window.WALKTHROUGH_DATA || sandbox.window.ADK_DATA;
+  const windowObj = Object.create(null);
+  const sandbox = Object.assign(Object.create(null), { window: windowObj });
+  vm.runInNewContext(fs.readFileSync(dataFile, "utf8"), sandbox, { timeout: 2000 });
+  const data = windowObj.WALKTHROUGH_DATA || windowObj.ADK_DATA;
   if (!data || !Array.isArray(data.walkthrough)) {
-    throw new Error(`Invalid walkthrough data in ${dataFile} (expected window.WALKTHROUGH_DATA or window.ADK_DATA)`);
+    throw new Error(
+      `Invalid walkthrough data in ${dataFile} (expected window.WALKTHROUGH_DATA or window.ADK_DATA)`
+    );
+  }
+
+  for (const st of data.walkthrough) {
+    if (!Number.isInteger(st.step) || st.step < 1) {
+      throw new Error(`Invalid walkthrough step number '${st.step}': expected an integer >= 1.`);
+    }
   }
 
   const { model, voice, force } = opts;
@@ -512,19 +632,21 @@ async function main() {
     const stepFileName = `step-${st.step}.wav`;
     const stepFilePath = path.join(outDir, stepFileName);
 
-    process.stdout.write(`  • Step ${st.step}/${data.walkthrough.length} [${hash}]: "${st.title.replace(/`/g, "")}" ... `);
+    process.stdout.write(
+      `  • Step ${st.step}/${data.walkthrough.length} [${hash}]: "${String(st.title || "").replace(/`/g, "")}" ... `
+    );
 
     let wavBuffer = null;
     if (!force && fs.existsSync(localCachedWav)) {
-      wavBuffer = fs.readFileSync(localCachedWav);
+      wavBuffer = createWavBuffer(fs.readFileSync(localCachedWav), 24000, 1, 16);
     } else if (!force && fs.existsSync(sharedCachedWav)) {
-      wavBuffer = fs.readFileSync(sharedCachedWav);
+      wavBuffer = createWavBuffer(fs.readFileSync(sharedCachedWav), 24000, 1, 16);
       if (localCachedWav !== sharedCachedWav) {
-        fs.copyFileSync(sharedCachedWav, localCachedWav);
+        fs.writeFileSync(localCachedWav, wavBuffer);
       }
     } else if (!force && fs.existsSync(legacyCachedWav)) {
-      wavBuffer = fs.readFileSync(legacyCachedWav);
-      fs.copyFileSync(legacyCachedWav, localCachedWav);
+      wavBuffer = createWavBuffer(fs.readFileSync(legacyCachedWav), 24000, 1, 16);
+      fs.writeFileSync(localCachedWav, wavBuffer);
     }
 
     if (wavBuffer) {
@@ -575,36 +697,40 @@ async function main() {
     });
   }
 
-  // Align cues against actual PCM silence segments + Gemini transcription
+  // Align cues against actual PCM silence segments + Gemini transcription (or cached segments)
   if (!apiKey) {
     try {
       apiKey = resolveGeminiApiKey(repoRoot);
     } catch {}
   }
   if (apiKey) {
-    console.log(`🎯 Aligning step cues to acoustic WAV segments via Gemini (gemini-3-flash-preview)...`);
-    for (let idx = 0; idx < stepBuffers.length; idx++) {
-      const { st, hash, wavBuffer, durationSec } = stepBuffers[idx];
-      try {
-        const { alignedSegments } = await alignStepSegmentsWithGemini(apiKey, wavBuffer, st.narration, {
-          hash,
-          localCacheDir,
-          sharedCacheDir,
-          force,
+    console.log(
+      `🎯 Aligning step cues to acoustic WAV segments via Gemini (${DEFAULT_ALIGNMENT_MODEL})...`
+    );
+  }
+  for (let idx = 0; idx < stepBuffers.length; idx++) {
+    const { st, hash, wavBuffer, durationSec } = stepBuffers[idx];
+    try {
+      const alignedResult = await alignStepSegmentsWithGemini(apiKey, wavBuffer, st.narration, {
+        hash,
+        localCacheDir,
+        sharedCacheDir,
+        force,
+      });
+      if (!alignedResult) continue;
+      const { alignedSegments } = alignedResult;
+      manifest[idx].segments = alignedSegments;
+      if (Array.isArray(st.cues)) {
+        manifest[idx].alignedCues = st.cues.map((c, cIdx) => {
+          const acousticAt = computeAcousticCueAt(alignedSegments, durationSec, c.phrase, cIdx);
+          return {
+            ...c,
+            at: acousticAt !== null ? acousticAt : c.at,
+          };
         });
-        manifest[idx].segments = alignedSegments;
-        if (Array.isArray(st.cues)) {
-          manifest[idx].alignedCues = st.cues.map((c, cIdx) => {
-            const acousticAt = computeAcousticCueAt(alignedSegments, durationSec, c.phrase, cIdx);
-            return {
-              ...c,
-              at: acousticAt !== null ? acousticAt : c.at,
-            };
-          });
-        }
-      } catch (err) {
-        console.warn(`  ⚠️ Acoustic alignment warning on Step ${st.step}: ${err.message}`);
       }
+    } catch (err) {
+      console.warn(`  ⚠️ Acoustic alignment warning on Step ${st.step}: ${err.message}`);
     }
   }
 
@@ -613,15 +739,21 @@ async function main() {
 }
 
 export {
-  parseArgs,
-  resolveRepoRoot,
-  resolveSharedCacheDir,
-  resolveGeminiApiKey,
-  sanitizeForTts,
+  DEFAULT_ALIGNMENT_MODEL,
+  DEFAULT_MODEL,
+  DEFAULT_SPEECH_STYLE,
+  DEFAULT_VOICE,
+  buildTtsRequestBody,
+  computeAcousticCueAt,
   computeContentHash,
   createWavBuffer,
   extractPcmSegments,
-  computeAcousticCueAt,
+  extractRawPcm,
+  parseArgs,
+  resolveGeminiApiKey,
+  resolveRepoRoot,
+  resolveSharedCacheDir,
+  sanitizeForTts,
 };
 
 function isExecutedDirectly(argv1 = process.argv[1], metaFilename = import.meta.filename) {

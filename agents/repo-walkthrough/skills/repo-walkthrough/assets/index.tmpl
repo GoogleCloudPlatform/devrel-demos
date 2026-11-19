@@ -38,6 +38,7 @@
     --g-blue: #4285F4;
     --g-blue-light: #8AB4F8;
     --g-red: #EA4335;
+    --g-red-light: #F28B82;
     --g-yellow: #FBBC04;
     --g-yellow-light: #FDD663;
     --g-green: #34A853;
@@ -181,11 +182,11 @@
     fill: #1a2433; stroke: #475569; stroke-width: 2;
   }
   .node-title {
-    fill: #94a3b8; font: 600 12.5px var(--mono); pointer-events: none;
+    fill: #cbd5e1; font: 600 12.5px var(--mono); pointer-events: none;
     transition: fill 0.25s ease;
   }
   .node-sub {
-    fill: #64748b; font: 400 11px var(--sans); pointer-events: none;
+    fill: #94a3b8; font: 400 11px var(--sans); pointer-events: none;
     transition: fill 0.25s ease;
   }
   /* In-step non-highlighted context node: calm dark gray */
@@ -306,7 +307,7 @@
     display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
   }
   .step-pill {
-    background: var(--g-blue); color: #fff;
+    background: #1d4ed8; color: #fff;
     font: 700 11.5px var(--mono); padding: 3px 10px; border-radius: 999px;
     letter-spacing: 0.03em; white-space: nowrap; flex-shrink: 0;
   }
@@ -397,6 +398,71 @@
     background: #0a0e14; border: 1px solid var(--line-bright); border-radius: 6px;
     padding: 4px 10px; font: 500 11.5px var(--mono); color: var(--ink);
     white-space: nowrap; display: none; z-index: 30; pointer-events: none;
+  }
+
+  /* Responsive tablet and mobile layout (preserved off in ?video=1) */
+  @media (max-width: 900px) {
+    html:has(body:not(.video-mode)),
+    body:not(.video-mode) {
+      height: auto; min-height: 100vh; width: 100%;
+      overflow-x: hidden; overflow-y: auto;
+    }
+    body:not(.video-mode) header {
+      flex-wrap: wrap; padding: 8px 12px; gap: 6px 10px;
+    }
+    body:not(.video-mode) header h1 {
+      font-size: 13.5px; min-width: 0; overflow-wrap: anywhere;
+    }
+    body:not(.video-mode) header .sub {
+      order: 3; flex-basis: 100%; font-size: 11.5px; line-height: 1.35;
+    }
+    body:not(.video-mode) main {
+      flex-direction: column; flex: none;
+    }
+    body:not(.video-mode) #graph-wrap {
+      flex: none; width: 100%; height: clamp(260px, 48vh, 460px);
+    }
+    body:not(.video-mode) aside {
+      width: 100%; max-width: 100%; max-height: 280px;
+      border-left: 0; border-top: 1px solid var(--line);
+      padding: 14px 16px;
+    }
+    body:not(.video-mode) #bottom-dock {
+      padding: 14px 16px; gap: 12px;
+    }
+    body:not(.video-mode) .walk-bar {
+      flex-direction: column; align-items: stretch; gap: 12px;
+    }
+    body:not(.video-mode) .walk-head {
+      flex-wrap: wrap; gap: 8px;
+    }
+    body:not(.video-mode) .walk-title {
+      font-size: 15px; overflow-wrap: anywhere;
+    }
+    body:not(.video-mode) .walk-desc {
+      font-size: 13.5px; max-width: 100%; overflow-wrap: anywhere;
+    }
+    body:not(.video-mode) .walk-controls {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 640px) {
+    body:not(.video-mode) #graph-wrap {
+      height: clamp(240px, 44vh, 360px);
+    }
+    body:not(.video-mode):not(.mobile-inspector-open) aside {
+      display: none;
+    }
+    body:not(.video-mode) .transport {
+      gap: 12px;
+    }
+    body:not(.video-mode) .speed-pills {
+      flex-wrap: wrap; gap: 5px;
+    }
+    body:not(.video-mode) .walk-controls button.spd {
+      padding: 4px 8px; min-width: 34px; font-size: 12px;
+    }
   }
 </style>
 </head>
@@ -739,6 +805,7 @@
 
   function isSafeHref(url = "") {
     const u = String(url).trim();
+    if (!u || u.startsWith("//") || u.startsWith("/\\")) return false;
     return u.startsWith("http://") || u.startsWith("https://") || u.startsWith("/");
   }
 
@@ -958,7 +1025,7 @@
 
   function formatCodeOrDiff(raw = "", isDiff = false) {
     const lines = raw.split("\n");
-    const looksLikeDiff = isDiff || lines.some(l => l.startsWith("@@") || (l.startsWith("+") && !l.startsWith("+++")) || (l.startsWith("-") && !l.startsWith("---")));
+    const looksLikeDiff = isDiff || lines.some(l => l.startsWith("@@"));
     const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     if (!looksLikeDiff) return esc(raw);
     return lines.map(line => {
@@ -974,7 +1041,11 @@
   function renderNodeInspector(n) {
     if (!n || currentInspectorNodeId === n.id) return;
     currentInspectorNodeId = n.id;
-    const isGitHubRepo = DATA.repo && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(DATA.repo);
+    const isGitHubRepo =
+      DATA.repo &&
+      /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(DATA.repo) &&
+      DATA.repo !== "ykdojo/repo-walkthrough" &&
+      !n.generated;
     const subPrefix = DATA.subpath ? `${DATA.subpath.replace(/^\/+|\/+$/g, "")}/` : "";
     const rawPath = String(n.path || n.label || "");
     const fullRepoPath = (subPrefix && !rawPath.startsWith(subPrefix)) ? `${subPrefix}${rawPath}` : rawPath;
@@ -1020,6 +1091,7 @@
     pausePlayback();
     selectedEdgeId = null;
     selectedNodeId = id;
+    document.body.classList.add("mobile-inspector-open");
     updateHighlights();
     renderNodeInspector(nodeById[id]);
   }
@@ -1028,6 +1100,7 @@
     pausePlayback();
     selectedNodeId = null;
     selectedEdgeId = id;
+    document.body.classList.add("mobile-inspector-open");
     updateHighlights();
     renderEdgeInspector(edgeById[id]);
   }
@@ -1037,6 +1110,7 @@
     stepIdx = Math.max(0, Math.min(total - 1, idx));
     selectedNodeId = null;
     selectedEdgeId = null;
+    document.body.classList.remove("mobile-inspector-open");
 
     if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
     stopProgressLoop();
@@ -1116,7 +1190,9 @@
     if (selectedNodeId || selectedEdgeId) {
       selectedNodeId = null;
       selectedEdgeId = null;
+      document.body.classList.remove("mobile-inspector-open");
       updateHighlights();
+      renderNodeInspector(nodeById[activeCueFocusId]);
     }
   });
 
@@ -1281,6 +1357,7 @@
       if (seek) {
         const onMeta = () => {
           liveAudio.removeEventListener("loadedmetadata", onMeta);
+          liveAudio.removeEventListener("error", onErr);
           const d = isFinite(liveAudio.duration) ? liveAudio.duration : 0;
           liveAudio.currentTime = seek.fromEnd != null
             ? Math.max(0, d - seek.fromEnd)
@@ -1293,7 +1370,13 @@
             }).catch(() => speakFallback(st.narration));
           }
         };
+        const onErr = () => {
+          liveAudio.removeEventListener("loadedmetadata", onMeta);
+          liveAudio.removeEventListener("error", onErr);
+          if (!keepPaused) speakFallback(st.narration);
+        };
         liveAudio.addEventListener("loadedmetadata", onMeta);
+        liveAudio.addEventListener("error", onErr);
         if (keepPaused) liveAudio.load();
       } else {
         liveAudio.currentTime = 0;
@@ -1373,7 +1456,7 @@
     }
   }
 
-  // Speed Control Pills (0.8x .. 1.2x, matching gemini-voice)
+  // Speed Control Pills (0.8x .. 1.2x)
   $$(".spd").forEach(btn => {
     btn.onclick = () => {
       $$(".spd").forEach(b => b.classList.remove("on"));
@@ -1384,7 +1467,7 @@
     };
   });
 
-  // Skip Back 5s & Forward 5s across section boundaries (matching gemini-voice)
+  // Skip Back 5s & Forward 5s across section boundaries
   $("#back5Btn").onclick = () => {
     selectedNodeId = null;
     selectedEdgeId = null;
@@ -1429,7 +1512,7 @@
     }
   };
 
-  // Track skip (matching gemini-voice): restart current section if > 0.5s in, else go back one section
+  // Track skip: restart current section if > 0.5s in, else go back one section
   $("#prevBtn").onclick = () => {
     if (loadedStepIdx === stepIdx && liveAudio.src && liveAudio.currentTime > 0.5) {
       liveAudio.currentTime = 0;
@@ -1460,7 +1543,9 @@
     } else if (e.key === "Escape") {
       selectedNodeId = null;
       selectedEdgeId = null;
+      document.body.classList.remove("mobile-inspector-open");
       updateHighlights();
+      renderNodeInspector(nodeById[activeCueFocusId]);
     }
   });
 

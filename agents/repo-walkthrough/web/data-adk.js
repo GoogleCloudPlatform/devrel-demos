@@ -276,7 +276,7 @@ class LoopAgent(BaseAgent):
       layer: "capabilities",
       lines: 615,
       x: 410, y: 522, w: 188, h: 58,
-      role: "Concrete Gemini adapter (`google-genai` SDK) supporting Gemini API keys and Vertex AI, plus `LLMRegistry` model resolution.",
+      role: "Concrete Gemini adapter (`google-genai` SDK) supporting Gemini API keys and Google Cloud, plus `LLMRegistry` model resolution.",
       snippet: `class Gemini(BaseLlm):
   model: str = 'gemini-2.5-flash'
   async def generate_content_async(
@@ -291,7 +291,7 @@ class LoopAgent(BaseAgent):
       layer: "capabilities",
       lines: 230,
       x: 620, y: 522, w: 188, h: 58,
-      role: "Manages conversation `Session` persistence and applies `event.actions.state_delta` (supporting `user:`, `app:`, and `temp:` prefixes). Backed by InMemory, SQLite, Postgres, or Vertex AI.",
+      role: "Manages conversation `Session` persistence and applies `event.actions.state_delta` (supporting `user:`, `app:`, and `temp:` prefixes). Backed by InMemory, SQLite, Postgres, or Google Cloud.",
       snippet: `class BaseSessionService(ABC):
   async def append_event(self, session: Session, event: Event) -> Event:
     # Merges event.actions.state_delta into session.state`
@@ -448,8 +448,8 @@ class LoopAgent(BaseAgent):
         { at: 0.56, node: "models" }
       ],
       audio: "audio/step-7.wav",
-      summary: "During each flow turn (`base_llm_flow.py` & `auto_flow.py`), `function_tool.py` inspects Python type hints and docstrings to generate Gemini tool declarations, while `google_llm.py` connects flows to the Gemini API and Vertex AI.",
-      narration: "During each turn of the flow, function tool.py inspects your Python type hints and docstrings to build tool schemas and run functions automatically, while google llm.py connects your agents to Gemini and Vertex AI."
+      summary: "During each flow turn (`base_llm_flow.py` & `auto_flow.py`), `function_tool.py` inspects Python type hints and docstrings to generate Gemini tool declarations, while `google_llm.py` connects flows to the Gemini API and Google Cloud.",
+      narration: "During each turn of the flow, function tool.py inspects your Python type hints and docstrings to build tool schemas and run functions automatically, while google llm.py connects your agents to Gemini and Google Cloud."
     },
     {
       step: 8,
@@ -463,7 +463,7 @@ class LoopAgent(BaseAgent):
         { at: 0.72, node: "eval_plugins" }
       ],
       audio: "audio/step-8.wav",
-      summary: "Agents never mutate databases directly—they attach `state_delta` to `event.py`, which `session_service.py` persists. Finally, `agent_evaluator.py` scores emitted event trajectories against test cases.",
+      summary: "Agents never mutate databases directly: they attach `state_delta` to `event.py`, which `session_service.py` persists. Finally, `agent_evaluator.py` scores emitted event trajectories against test cases.",
       narration: "Finally, state in ADK is event-driven: agents attach state deltas to event.py, which session service.py persists across turns. And agent evaluator.py scores those emitted event trajectories against test cases."
     }
   ]

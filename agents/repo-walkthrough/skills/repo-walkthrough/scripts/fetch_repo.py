@@ -293,71 +293,130 @@ _GITHUB_TARGET_PATTERN = re.compile(
 _GITHUB_REPO_PATTERN = re.compile(
     r"https?://github\.com/([^/]+/[^/#?]+?)(?:\.git)?(?:/.*)?"
 )
+_VALID_REPO_SLUG_PATTERN = re.compile(
+    r"^(?![.]{1,2}/)[A-Za-z0-9_.-]+/(?![.]{1,2}$)[A-Za-z0-9_.-]+$"
+)
 _SYMBOL_DECL_PATTERN = re.compile(
     r"^(?:export\s+)?(?:default\s+)?(?:async\s+)?"
     r"(?:class|interface|type|function|func|struct|enum)\s+([A-Za-z0-9_]+)"
 )
 
 
+def _is_plugin_or_repo_root(candidate: pathlib.Path) -> bool:
+  """Returns True when `candidate` is the plugin or repository root."""
+  web_dir = candidate / "web"
+  return (
+      (candidate / "plugin.json").exists()
+      or (web_dir / "index.html").exists()
+      or (web_dir / "index.tmpl").exists()
+      or (web_dir / "data-adk.js").exists()
+  )
+
+
+def _is_within_root(target: pathlib.Path, root: pathlib.Path) -> bool:
+  """Returns True if `target` resolves inside `root` (blocks external symlinks)."""
+  try:
+    return target.resolve().is_relative_to(root.resolve())
+  except (OSError, ValueError):
+    return False
+
+
+def _validate_repo_slug(repo: str) -> str:
+  """Validates a GitHub `owner/repo` slug before building API URLs."""
+  cleaned = repo.strip()
+  if not _VALID_REPO_SLUG_PATTERN.fullmatch(cleaned):
+    raise ValueError(f"Invalid GitHub owner/repo identifier: {repo!r}")
+  return cleaned
+
+
+def _validate_diff_range(diff_range: str) -> str:
+  """Validates `diff_range` to prevent git option injection."""
+  cleaned = diff_range.strip()
+  if not cleaned or cleaned.startswith("-"):
+    raise ValueError(f"Invalid git diff range: {diff_range!r}")
+  if any(ord(ch) < 32 or ord(ch) == 127 for ch in cleaned):
+    raise ValueError(f"Invalid control character in git diff range: {diff_range!r}")
+  for endpoint in re.split(r"\.{2,3}", cleaned):
+    if endpoint.startswith("-"):
+      raise ValueError(f"Invalid revision endpoint in git diff range: {diff_range!r}")
+  return cleaned
+
+
 def resolve_repo_root(script_dir: pathlib.Path | None = None) -> pathlib.Path:
-  """Resolves the plugin root from `scripts/` or dereferenced skill scripts.
+  """Resolves the plugin or skill root from `scripts/` or skill subdirectories.
 
   Args:
     script_dir: Directory containing the script. When `None`, resolves from this
       file's parent directory.
 
   Returns:
-    The resolved repository root directory containing `web/index.html` or
-    `web/index.tmpl`, or the immediate parent directory if neither ancestor is
-    present.
+    The resolved plugin root directory when `plugin.json` or `web/` is present,
+    or the immediate skill parent directory for standalone skill installs.
   """
   base = (script_dir or pathlib.Path(__file__).resolve().parent).resolve()
-  for candidate in (base.parent, base.parent.parent.parent):
-    web_dir = candidate / "web"
-    if (web_dir / "index.html").exists() or (web_dir / "index.tmpl").exists():
-      return candidate
-  return base.parent
+  plugin_candidate = base.parent.parent.parent
+  direct_candidate = base.parent
+  if _is_plugin_or_repo_root(plugin_candidate):
+    return plugin_candidate
+  if _is_plugin_or_repo_root(direct_candidate):
+    return direct_candidate
+  return direct_candidate
 
 
-def resolve_web_index(repo_root: pathlib.Path) -> pathlib.Path:
-  """Resolves `web/index.html`, falling back to `web/index.tmpl` when absent.
+def resolve_web_index(repo_root: pathlib.Path) -> pathlib.Path | None:
+  """Resolves a built `.html` viewer page without ever falling back to `.tmpl`.
 
   Args:
-    repo_root: Repository or plugin root directory.
+    repo_root: Repository, plugin, or skill root directory.
 
   Returns:
-    Path to `web/index.html` if it exists on disk, or `web/index.tmpl` when
-    `web/index.html` is absent.
+    Path to a built `index.html` file if one exists on disk, or `None` when no
+    end-product HTML file has been built yet.
   """
-  index_html = repo_root / "web" / "index.html"
-  if index_html.exists():
-    return index_html
-  index_tmpl = repo_root / "web" / "index.tmpl"
-  if index_tmpl.exists():
-    return index_tmpl
-  return index_html
+  for candidate in (
+      repo_root / "web" / "index.html",
+      repo_root / "examples" / "self-walkthrough" / "index.html",
+  ):
+    if candidate.exists():
+      return candidate
+  return None
 
 
 def open_target(
     target_path: pathlib.Path,
     platform: str = sys.platform,
     runner: Callable[..., Any] = subprocess.run,
+    startfile_fn: Callable[[str], Any] | None = None,
 ) -> bool:
-  """Opens `target_path` in the default browser without crashing headlessly.
+  """Opens a built HTML or media file in the default viewer safely.
+
+  Never opens raw `.tmpl` template files or invokes `cmd.exe /c start`.
 
   Args:
-    target_path: Local HTML or media path to open.
+    target_path: Local built HTML or media path to open.
     platform: Platform identifier such as `darwin`, `win32`, or `linux`.
     runner: Subprocess execution callable accepting a command sequence.
+    startfile_fn: Optional `os.startfile` override for Windows testing.
 
   Returns:
-    True if the launcher command was invoked cleanly, or False on OS errors.
+    True if the launcher was invoked cleanly, or False on `.tmpl` or OS errors.
   """
+  if target_path.suffix.lower() == ".tmpl":
+    return False
   try:
     if platform == "darwin":
       runner(["open", str(target_path)], check=False)
     elif platform.startswith("win"):
-      runner(["cmd", "/c", "start", "", str(target_path)], check=False)
+      opener = startfile_fn or getattr(os, "startfile", None)
+      if opener is not None and runner is subprocess.run:
+        opener(str(target_path))
+      elif startfile_fn is not None:
+        startfile_fn(str(target_path))
+      else:
+        runner(
+            ["rundll32.exe", "url.dll,FileProtocolHandler", str(target_path)],
+            check=False,
+        )
     else:
       runner(["xdg-open", str(target_path)], check=False)
     return True
@@ -521,6 +580,7 @@ def fetch_github_public(
   Returns:
     Repository metadata, blob list, and downloaded file contents keyed by path.
   """
+  repo = _validate_repo_slug(repo)
   headers = {"User-Agent": "repo-walkthrough/1.0"}
   meta_url = f"https://api.github.com/repos/{repo}"
   meta_req = urllib_request.Request(meta_url, headers=headers)
@@ -595,12 +655,22 @@ def fetch_github_via_gh(
   Returns:
     Repository metadata, blob list, and decoded file contents keyed by path.
   """
-  meta_raw = subprocess.check_output(["gh", "api", f"repos/{repo}"], text=True)
+  repo = _validate_repo_slug(repo)
+  meta_raw = subprocess.check_output(
+      ["gh", "api", f"repos/{repo}"],
+      encoding="utf-8",
+      errors="replace",
+  )
   meta = json.loads(meta_raw)
   branch = branch_override or meta.get("default_branch", "main")
+  encoded_branch = urllib_parse.quote(branch, safe="")
 
-  tree_endpoint = f"repos/{repo}/git/trees/{branch}?recursive=1"
-  tree_raw = subprocess.check_output(["gh", "api", tree_endpoint], text=True)
+  tree_endpoint = f"repos/{repo}/git/trees/{encoded_branch}?recursive=1"
+  tree_raw = subprocess.check_output(
+      ["gh", "api", tree_endpoint],
+      encoding="utf-8",
+      errors="replace",
+  )
   tree_data = json.loads(tree_raw)
 
   blobs = _scope_blobs(tree_data.get("tree", []), subpath=subpath)
@@ -611,11 +681,15 @@ def fetch_github_via_gh(
   file_contents: dict[str, str] = {}
   for rel_path in selected:
     full_path = f"{prefix}{rel_path}"
-    content_endpoint = f"repos/{repo}/contents/{full_path}?ref={branch}"
+    encoded_path = urllib_parse.quote(full_path)
+    content_endpoint = (
+        f"repos/{repo}/contents/{encoded_path}?ref={encoded_branch}"
+    )
     try:
       b64_content = subprocess.check_output(
           ["gh", "api", content_endpoint, "--jq", ".content"],
-          text=True,
+          encoding="utf-8",
+          errors="replace",
       )
       file_contents[rel_path] = base64.b64decode(b64_content).decode(
           "utf-8", errors="replace"
@@ -666,6 +740,10 @@ def fetch_local_dir(
       ]
       for filename in filenames:
         candidate_path = pathlib.Path(root) / filename
+        if candidate_path.is_symlink() and not _is_within_root(
+            candidate_path, local_path
+        ):
+          continue
         rel_path = candidate_path.relative_to(local_path).as_posix()
         is_code = (
             candidate_path.suffix.lower() in CODE_EXTENSIONS
@@ -683,8 +761,11 @@ def fetch_local_dir(
   selected = filter_and_rank_paths(all_entries, max_files)
   file_contents: dict[str, str] = {}
   for rel_path in selected:
+    target_file = base_dir / rel_path
+    if not _is_within_root(target_file, base_dir):
+      continue
     try:
-      file_contents[rel_path] = (base_dir / rel_path).read_text(
+      file_contents[rel_path] = target_file.read_text(
           encoding="utf-8", errors="replace"
       )
     except OSError:
@@ -823,28 +904,48 @@ def fetch_git_diff(
     Diff statistics, commit summaries, per-file patches, and file contents.
 
   Raises:
+    ValueError: If `diff_range` starts with `-` or contains control characters.
     RuntimeError: If any underlying `git` command fails.
   """
+  diff_range = _validate_diff_range(diff_range)
   local_path = local_path.resolve()
-  base_cmd = ["git", "-C", str(local_path)]
+  base_cmd = ["git", "-c", "core.quotePath=false", "-C", str(local_path)]
   diff_base = [*base_cmd, "diff", "--relative", "--no-renames"]
+  effective_range = diff_range
   try:
+    if "..." in diff_range:
+      left_raw, right_raw = diff_range.split("...", 1)
+      left_ref = left_raw or "HEAD"
+      right_ref = right_raw or "HEAD"
+      mb_out = subprocess.run(
+          [*base_cmd, "merge-base", left_ref, right_ref],
+          capture_output=True,
+          encoding="utf-8",
+          errors="replace",
+          check=True,
+      ).stdout.strip()
+      if mb_out:
+        effective_range = f"{mb_out}..{right_ref}"
+
     numstat_out = subprocess.run(
-        [*diff_base, "--numstat", diff_range, "--", "."],
+        [*diff_base, "--numstat", effective_range, "--", "."],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
+        errors="replace",
         check=True,
     ).stdout
     status_out = subprocess.run(
-        [*diff_base, "--name-status", diff_range, "--", "."],
+        [*diff_base, "--name-status", effective_range, "--", "."],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
+        errors="replace",
         check=True,
     ).stdout
     commits_out = subprocess.run(
-        [*base_cmd, "log", "--oneline", diff_range, "--", "."],
+        [*base_cmd, "log", "--oneline", effective_range, "--", "."],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
+        errors="replace",
         check=True,
     ).stdout
   except subprocess.CalledProcessError as err:
@@ -884,23 +985,24 @@ def fetch_git_diff(
         and rel_file.name.lower() not in CODE_FILENAMES
     ):
       continue
+    if any(skip in rel_path for skip in SKIP_SUBSTRINGS):
+      continue
     added = int(add_str)
     deleted = int(del_str)
     total_added += added
     total_deleted += deleted
-    patch_raw = subprocess.check_output(
-        [*base_cmd, "diff", "--relative", "-U2", diff_range, "--", rel_path],
-        text=True,
-    )
     file_diffs[rel_path] = {
         "status": status_by_path.get(rel_path, "modified"),
         "added": added,
         "deleted": deleted,
-        "patchPreview": _extract_diff_preview(patch_raw),
+        "patchPreview": "",
     }
     full_file = local_path / rel_path
-    if full_file.exists():
-      size_bytes = full_file.stat().st_size
+    if full_file.exists() and _is_within_root(full_file, local_path):
+      try:
+        size_bytes = full_file.stat().st_size
+      except OSError:
+        size_bytes = (added + deleted) * 40
     else:
       size_bytes = (added + deleted) * 40
     changed_entries.append((rel_path, size_bytes))
@@ -915,8 +1017,24 @@ def fetch_git_diff(
   selected = [rel_path for rel_path, _ in changed_entries[:max_files]]
   file_contents: dict[str, str] = {}
   for rel_path in selected:
+    patch_raw = subprocess.run(
+        [
+            *base_cmd,
+            "diff",
+            "--relative",
+            "-U2",
+            effective_range,
+            "--",
+            rel_path,
+        ],
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+        check=True,
+    ).stdout
+    file_diffs[rel_path]["patchPreview"] = _extract_diff_preview(patch_raw)
     full_file = local_path / rel_path
-    if full_file.exists():
+    if full_file.exists() and _is_within_root(full_file, local_path):
       try:
         file_contents[rel_path] = full_file.read_text(
             encoding="utf-8", errors="replace"
@@ -984,7 +1102,7 @@ def build_analysis_report(info: Mapping[str, Any]) -> dict[str, Any]:
 def export_voice_markdown(
     preset: Mapping[str, Any], out_path: pathlib.Path
 ) -> None:
-  """Exports walkthrough narration into a markdown draft for `gemini-voice`."""
+  """Exports walkthrough narration into a spoken-friendly markdown draft."""
   lines = [f"# {preset['title']} - Codebase Walkthrough\n"]
   lines.append(f"{preset.get('subtitle', '')}\n")
   for step_item in preset.get("walkthrough", []):
@@ -994,7 +1112,7 @@ def export_voice_markdown(
     if step_item.get("takeaway"):
       lines.append(f"Key takeaway: {step_item['takeaway']}\n")
   out_path.write_text("\n".join(lines), encoding="utf-8")
-  print(f"Wrote gemini-voice compatible markdown to: {out_path}")
+  print(f"Wrote spoken walkthrough markdown to: {out_path}")
 
 
 def _build_arg_parser() -> argparse.ArgumentParser:
@@ -1042,12 +1160,12 @@ def _build_arg_parser() -> argparse.ArgumentParser:
   parser.add_argument(
       "--export-voice",
       metavar="MARKDOWN_PATH",
-      help="Export walkthrough narration as markdown for gemini-voice",
+      help="Export walkthrough narration as spoken-friendly markdown",
   )
   parser.add_argument(
       "--open",
       action="store_true",
-      help="Open web/index.html (or web/index.tmpl) in the default browser",
+      help="Open a built index.html viewer page if available",
   )
   return parser
 
@@ -1072,7 +1190,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     info = fetch_git_diff(
         local_candidate, diff_range=args.diff, max_files=args.max_files
     )
-  elif args.mode == "local" or local_candidate.exists():
+  elif args.mode == "local" or (args.mode == "auto" and local_candidate.exists()):
     resolved_dir = local_candidate.resolve()
     print(f"[local] Analyzing local repository at {resolved_dir}...")
     info = fetch_local_dir(local_candidate, max_files=args.max_files)
@@ -1158,7 +1276,14 @@ def main(argv: Sequence[str] | None = None) -> None:
     export_voice_markdown(preset, out_md)
 
   if args.open:
-    open_target(web_index)
+    if web_index is not None:
+      open_target(web_index)
+    else:
+      print(
+          "No built index.html found yet. Build the website first with "
+          "'node skills/repo-walkthrough/scripts/build_walkthrough.mjs --data "
+          "<path/to/data.js> --open'."
+      )
 
 
 if __name__ == "__main__":

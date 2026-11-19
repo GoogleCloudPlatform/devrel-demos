@@ -1,6 +1,6 @@
 # Testing Guide (`repo-walkthrough`)
 
-Unit, pipeline, end-to-end browser, clean-room Linux container (`bwrap`), and Windows verification guide for `repo-walkthrough`.
+Unit, pipeline, end-to-end browser, clean-room Linux container (`bwrap`), and cross-platform Windows/macOS verification guide for `repo-walkthrough`.
 
 ## Quick Run (All Automated Tests)
 
@@ -14,7 +14,7 @@ python3 tests/test_fetch_repo.py -v
 # 3. Node.js validator, TTS, cross-platform helpers, and build pipeline tests
 node tests/test_pipeline.mjs
 
-# 4. Headless Chromium UI, SVG geometry, and MP4 video E2E tests
+# 4. Headless Chromium/Edge UI, mobile/desktop SVG geometry, and MP4 video E2E tests
 node tests/test_ui_e2e.mjs
 ```
 
@@ -26,35 +26,35 @@ Tests [skills/repo-walkthrough/scripts/fetch_repo.py](./skills/repo-walkthrough/
 - GitHub URL normalization (`owner/repo`, `.git` suffixes, and monorepo `/tree/<branch>/<subpath>` URLs).
 - Architectural file ranking and filtering across Python, JS/TS, SQL, and Jupyter notebooks.
 - Automatic grouping of candidate files into architectural layers.
-- Local directory analysis and `--diff <base>..<head>` unified diff extraction.
-- Markdown export (`--export-voice`) for `gemini-voice`.
-- Symlink-dereferenced `resolve_repo_root` (`scripts/` vs `skills/repo-walkthrough/scripts/`) and headless Linux `open_target` non-crash behavior.
+- Local directory analysis, symlink containment, UTF-8 non-ASCII git diff extraction (`-c core.quotePath=false`), 3-dot `merge-base` diff resolution, and leading-`-` git flag rejection.
+- Spoken narration markdown export (`--export-voice`).
+- Plugin and standalone skill root resolution plus safe `open_target` behavior (`os.startfile` on Windows, refusing `.tmpl` templates, and non-crashing headless fallback).
 
 ### 2. Build Pipeline, Validator, Plugin & Cross-Platform Helpers (`tests/test_pipeline.mjs`)
 
 Tests [skills/repo-walkthrough/scripts/build_walkthrough.mjs](./skills/repo-walkthrough/scripts/build_walkthrough.mjs), [skills/repo-walkthrough/scripts/generate_live_audio.mjs](./skills/repo-walkthrough/scripts/generate_live_audio.mjs), [skills/repo-walkthrough/scripts/render_video.mjs](./skills/repo-walkthrough/scripts/render_video.mjs), and [plugin.json](./plugin.json):
 - Schema and zero-overlap geometry validation across all included walkthrough datasets ([web/data-adk.js](./web/data-adk.js), [examples/self-walkthrough/data.js](./examples/self-walkthrough/data.js), [examples/cymbal-autos-multimodal/data.js](./examples/cymbal-autos-multimodal/data.js), and [examples/diff-5984e02-to-head/data.js](./examples/diff-5984e02-to-head/data.js)).
 - Support for 3-to-6 layer architectures (with 5 layers as the default).
-- Rejection of overlapping nodes, invalid edge endpoints, and out-of-sync `cues`.
-- TTS filename sanitization, WAV header creation, and voiced segment alignment.
-- Standalone website bundling (`--mode website --no-tts`), `plugin.json` manifest rules, and `SKILL.md` relative-path integrity.
-- Dereferenced symlink `resolveRepoRoot` (`skills/repo-walkthrough/scripts/*.mjs` resolving `web/index.tmpl`).
-- Read-only plugin install directory (`chmod -R a-w`) audio cache fallback (`$PLUGIN_DATA/audio-cache` -> `~/.cache/repo-walkthrough/audio` -> `localCacheDir`).
+- Rejection of overlapping nodes, invalid edge endpoints, non-integer step numbers, and out-of-sync `cues`.
+- Gemini 3.8 TTS request builder (`gemini-3.8-flash-tts`, `speechMetadata.style`, `responseFormat.audio` `AUDIO_L16` at `24000` Hz, zero style prefix in `parts[0].text`), defensive RIFF WAV `"data"` subchunk extraction (`extractRawPcm`), filename sanitization, and voiced segment alignment.
+- Safe `-h` / `--help` execution (exiting `0` with zero file mutations) and unknown-flag rejection across all CLI scripts.
+- Standalone website bundling (`--mode website --no-tts`), `web/data-adk.js` copying, standalone `skills/repo-walkthrough` folder copy execution (resolving `skills/repo-walkthrough/assets/index.tmpl` with zero parent directories), `plugin.json` manifest rules, and `SKILL.md` relative-path integrity.
+- Read-only plugin install directory (`chmod -R a-w` / `icacls`) audio cache fallback (`$PLUGIN_DATA/audio-cache` -> `~/.cache/repo-walkthrough/audio` -> `localCacheDir`).
 - Cross-platform `GEMINI_API_KEY` resolution order (`GEMINI_API_KEY` -> `./.env` -> `$PLUGIN_DATA/.env` -> `~/.config/repo-walkthrough/.env` / `%APPDATA%\repo-walkthrough\.env` -> `~/.gemini/.env` -> `<repoRoot>/.env` -> OS credential store `gemini-api-key`) and OS-specific error hints.
-- Cross-platform helpers: `openTarget` (`darwin`/`win32`/`linux` + headless `ENOENT` resilience), `detectPythonCmd` (`python3` -> `python` -> `py -3`), Windows FFmpeg concat backslash/quote escaping (`formatFfmpegConcatEntry`), Windows Playwright `_npx` discovery (`npm.cmd`, `%LOCALAPPDATA%\npm-cache\_npx`, `%APPDATA%\npm-cache\_npx`), and `channel: "msedge"` fallback.
+- Cross-platform helpers: `openTarget` (`open` on macOS, `rundll32.exe url.dll,FileProtocolHandler` on Windows, `xdg-open` on Linux, refusing `.tmpl`), `detectPythonCmd` (`python3` -> `py -3` -> `python` verified as Python 3), Windows FFmpeg concat escaping (`formatFfmpegConcatEntry`), Windows Playwright `_npx` discovery, and `channel: "msedge"` fallback.
 
 ### 3. Browser UI, Geometry & Video E2E (`tests/test_ui_e2e.mjs`)
 
-Launches headless Chrome/Chromium/Edge via Playwright and verifies:
-- **SVG Graph Geometry**: Zero node overlaps, zero text or badge overflows, zero layer-header collisions, and valid arrow paths across 3-to-6 layer graphs.
+Launches headless Chrome/Chromium/Edge via Playwright and verifies across [web/data-adk.js](./web/data-adk.js) and all three built `examples/*/index.html` pages:
+- **Desktop (`1440x900`) & Mobile (`390x844`, `360x640`) Layout**: Zero node overlaps, zero text or badge overflows, non-zero mobile SVG graph height, zero horizontal viewport overflow (`scrollWidth <= clientWidth`), zero dock collisions, WCAG AA contrast, inline SVG favicon rendering, and DOM XSS / `javascript:` / `//` URL rejection.
 - **Interactive Walkthrough Controls**: Audio playback, pause/resume position memory, section navigation, `-5s`/`+5s` skipping, and playback speed selection.
-- **Video Rendering (`?video=1`)**: Full-width camera framing across all steps without clipping nodes, plus `ffprobe` verification of the rendered H.264/AAC MP4 output.
+- **Video Rendering (`?video=1`)**: Full-width camera framing across all steps without clipping nodes, `os.tmpdir()` scratch frame cleanup, and `ffprobe` verification of the rendered H.264/AAC MP4 output.
 
 ---
 
 ## Clean-Room Linux Container (`bwrap`) Verification
 
-To verify the plugin in a clean-room Linux sandbox with an isolated `$HOME`, read-only installed plugin files (`--ro-bind`), and no personal `~/.gemini` or `~/projects` directory visible:
+To verify the plugin in a clean-room Linux sandbox with an isolated `$HOME` and read-only installed plugin files (`--ro-bind`):
 
 ```bash
 CLEAN_HOME="$(mktemp -d /tmp/rw-clean-linux-home.XXXXXX)"
@@ -92,14 +92,14 @@ rm -rf "$CLEAN_HOME" "$OUT_DIR"
 
 ## Windows Verification Checklist (PowerShell)
 
-Use this copy-pasteable checklist on Windows 10/11 (PowerShell) to verify prerequisites, plugin installation, unit tests, website generation, and MP4 video export.
+Use this copy-pasteable checklist on Windows 10/11 (PowerShell) to verify prerequisites, standalone skill execution, unit tests, website generation, and MP4 video export.
 
 ### 1. Windows Prerequisites
 
 | Prerequisite | Check Command (PowerShell) | Install / Setup Command (PowerShell) |
 | :--- | :--- | :--- |
-| **Node.js 20+** | `node --version` | `winget install OpenJS.NodeJS.LTS` |
-| **Python 3** (`python` or `py -3`) | `python --version` or `py -3 --version` | `winget install Python.Python.3.12` |
+| **Node.js 20.11+** | `node --version` | `winget install OpenJS.NodeJS.LTS` |
+| **Python 3** (`py -3` or `python`) | `py -3 --version` or `python --version` | `winget install Python.Python.3.12` |
 | **FFmpeg** *(for `--mode video`)* | `ffmpeg -version` | `winget install Gyan.FFmpeg` |
 | **Chrome or Edge + Playwright** | `npx playwright-core --version` | `npm install -g playwright-core` (uses installed Chrome or falls back to built-in Microsoft Edge `channel: "msedge"`) |
 | **`GEMINI_API_KEY`** | `if ($env:GEMINI_API_KEY) { "OK" }` | `$env:GEMINI_API_KEY = "YOUR_API_KEY"` (or persist via `New-Item -ItemType Directory -Force "$HOME\.gemini" \| Out-Null; Set-Content "$HOME\.gemini\.env" "GEMINI_API_KEY=YOUR_API_KEY"`) |
@@ -108,71 +108,57 @@ Use this copy-pasteable checklist on Windows 10/11 (PowerShell) to verify prereq
 
 ```powershell
 # 1. Navigate to the plugin directory in your devrel-demos checkout
-Set-Location "$HOME\projects\devrel-demos\agents\repo-walkthrough"
+Set-Location "path\to\devrel-demos\agents\repo-walkthrough"
 
-# 2. Check prerequisites (verifies Python/py -3, Node.js, Gemini API key, and FFmpeg)
+# 2. Check prerequisites (verifies Python 3, Node.js >= 20.11, Gemini API key, FFmpeg, and Playwright)
 node .\skills\repo-walkthrough\scripts\build_walkthrough.mjs --check-prereqs
 
-# 3. Run Python & Node.js unit test suites
-if (Get-Command python -ErrorAction SilentlyContinue) {
-  python .\tests\test_fetch_repo.py -v
-} else {
+# 3. Run Python & Node.js unit test suites (prefer py -3 over the Windows Store python.exe stub)
+if (Get-Command py -ErrorAction SilentlyContinue) {
   py -3 .\tests\test_fetch_repo.py -v
+} else {
+  python .\tests\test_fetch_repo.py -v
 }
 node .\tests\test_pipeline.mjs
 
-# 4. Validate and install the Antigravity plugin
-agy plugin validate . --strict
-agy plugin install .
-agy plugin list
-
-# 5. Run the installed skill scripts from the dereferenced plugin directory
-$SkillDir = "$HOME\.gemini\config\plugins\repo-walkthrough\skills\repo-walkthrough"
+# 4. Copy the standalone skill directory to $env:TEMP and verify end-to-end execution
+$StandaloneSkill = Join-Path $env:TEMP "rw-standalone-skill\repo-walkthrough"
 $OutDir = Join-Path $env:TEMP "rw-win-verify"
-New-Item -ItemType Directory -Force $OutDir | Out-Null
+New-Item -ItemType Directory -Force (Split-Path $StandaloneSkill), $OutDir | Out-Null
+Copy-Item -Recurse -Force .\skills\repo-walkthrough $StandaloneSkill
 
-# 5a. Analyze the repository into $env:TEMP\rw-win-verify\repo-analysis.json
-if (Get-Command python -ErrorAction SilentlyContinue) {
-  python "$SkillDir\scripts\fetch_repo.py" . --json "$OutDir\repo-analysis.json"
+# 4a. Analyze the repository into $env:TEMP\rw-win-verify\repo-analysis.json
+if (Get-Command py -ErrorAction SilentlyContinue) {
+  py -3 "$StandaloneSkill\scripts\fetch_repo.py" . --json "$OutDir\repo-analysis.json"
 } else {
-  py -3 "$SkillDir\scripts\fetch_repo.py" . --json "$OutDir\repo-analysis.json"
+  python "$StandaloneSkill\scripts\fetch_repo.py" . --json "$OutDir\repo-analysis.json"
 }
 
-# 5b. Build and auto-open the standalone interactive Website (uses cmd /c start "")
-node "$SkillDir\scripts\build_walkthrough.mjs" `
+# 4b. Build and auto-open the standalone interactive Website (uses rundll32.exe url.dll,FileProtocolHandler)
+node "$StandaloneSkill\scripts\build_walkthrough.mjs" `
   --data .\examples\self-walkthrough\data.js `
   --out-dir "$OutDir\site" `
   --mode website `
   --no-tts `
   --open
 
-# 5c. (Optional, requires GEMINI_API_KEY + ffmpeg) Build Website + voice-narrated MP4 Video
+# 4c. (Optional, requires GEMINI_API_KEY + ffmpeg) Build Website + voice-narrated MP4 Video
 if ($env:GEMINI_API_KEY -or (Test-Path "$HOME\.gemini\.env")) {
-  node "$SkillDir\scripts\build_walkthrough.mjs" `
+  node "$StandaloneSkill\scripts\build_walkthrough.mjs" `
     --data .\examples\self-walkthrough\data.js `
     --out-dir "$OutDir\video-site" `
     --mode video `
     --open
 }
 
-# 6. Run full browser UI, SVG geometry & video E2E tests (Chrome/Chromium/Edge)
+# 5. Run full browser UI, SVG geometry & video E2E tests (Chrome/Chromium/Edge)
 node .\tests\test_ui_e2e.mjs
 ```
 
 ---
 
-## Cross-Platform Verification Matrix (Linux, macOS, and Windows)
+### Windows-Specific Notes
 
-| Check | Linux (`Ubuntu 24.04 x86_64` & `bwrap`) | macOS (`Darwin arm64`) | Windows (`Windows Server 2022` & `Windows Server 2025`) |
-| :--- | :--- | :--- | :--- |
-| **`agy plugin validate --strict` & `install`** | PASS (`1.0.0`, 1 skill in isolated `$HOME`) | PASS (`1.0.0`, 1 skill in isolated `$HOME`) | PASS (`agy.exe` `1.0.0`, 1 skill in isolated `%USERPROFILE%` on `Windows Server 2022`) |
-| **`tests/test_fetch_repo.py`** | PASS (`10/10`) | PASS (`10/10`) | PASS (`10/10` on `Windows Server 2022` and `Windows Server 2025`) |
-| **`tests/test_pipeline.mjs`** | PASS (`15/15`) | PASS (`15/15`) | PASS (`15/15` on `Windows Server 2025`) |
-| **`tests/test_ui_e2e.mjs` (Playwright Chromium)** | PASS (`5/5`) | PASS (`5/5`) | PASS (`5/5` in Headless Chrome on `Windows Server 2025`) |
-| **Read-Only Plugin Bundle + Website & MP4 Video (`ffprobe`)** | PASS (`--ro-bind` / `chmod -R a-w`, `h264` + `aac` `1440x900` MP4) | PASS (`chmod -R a-w`, live `253.12s` `1440x900` `h264` + `aac` MP4 with Gemini TTS `Despina`) | PASS (`attrib +R` + `icacls /deny` + `fetch_repo.py` + `build_walkthrough.mjs` + `render_video.mjs` `1440x900` `h264` + `aac` MP4) |
-
-### Windows-Specific Notes & Fixes
-
-- **DirectWrite Web-Font Swap (`document.fonts.ready`)**: On Windows DirectWrite, initial synchronous `buildGraph()` measured `getComputedTextLength()` against the narrower fallback monospace font (`Consolas`) before `Roboto Mono` finished downloading, causing long SQL and JSON node titles in `cymbal-autos-multimodal` to overflow by ~2px once `Roboto Mono` swapped in. Re-running `buildGraph()` and `updateHighlights()` when `document.fonts.ready` resolves in [web/index.tmpl](./web/index.tmpl) (and awaiting `document.fonts.ready` in [tests/test_ui_e2e.mjs](./tests/test_ui_e2e.mjs)) ensures exact `Roboto Mono` and `Inter` text truncation on Windows.
-- **Windows `npm.cmd` / `npx.cmd` & `fileURLToPath` Resolution**: [skills/repo-walkthrough/scripts/render_video.mjs](./skills/repo-walkthrough/scripts/render_video.mjs) uses `npm.cmd` (`shell: true` on `win32`), checks `%LOCALAPPDATA%\npm-cache\_npx` and `%APPDATA%\npm-cache\_npx`, normalizes Windows drive paths (`C:\`, `D:\`) via `pathToFileURL` / `fileURLToPath`, and falls back to `channel: "msedge"` when Chrome is absent.
-
+- **DirectWrite Web-Font Swap (`document.fonts.ready`)**: On Windows DirectWrite, initial synchronous `buildGraph()` measured `getComputedTextLength()` against the narrower fallback monospace font (`Consolas`) before `Roboto Mono` finished downloading. Re-running `buildGraph()` and `updateHighlights()` when `document.fonts.ready` resolves in [skills/repo-walkthrough/assets/index.tmpl](./skills/repo-walkthrough/assets/index.tmpl) (and awaiting `document.fonts.ready` in [render_video.mjs](./skills/repo-walkthrough/scripts/render_video.mjs) and [tests/test_ui_e2e.mjs](./tests/test_ui_e2e.mjs)) ensures exact `Roboto Mono` and `Inter` text truncation on Windows.
+- **Safe File Launching (`os.startfile` & `rundll32.exe`)**: On Windows, [fetch_repo.py](./skills/repo-walkthrough/scripts/fetch_repo.py) uses `os.startfile` and [build_walkthrough.mjs](./skills/repo-walkthrough/scripts/build_walkthrough.mjs) invokes `rundll32.exe url.dll,FileProtocolHandler` directly without `cmd.exe`, preventing command splitting on paths containing `&`, spaces, parentheses, or `%VAR%` tokens.
+- **Windows `npm.cmd` / `npx` & `msedge` Fallback**: [render_video.mjs](./skills/repo-walkthrough/scripts/render_video.mjs) resolves global Playwright installs via `cmd.exe /d /s /c "npm.cmd root -g"`, checks `%LOCALAPPDATA%\npm-cache\_npx` and `%APPDATA%\npm-cache\_npx`, normalizes Windows drive paths via `pathToFileURL`, and falls back to `channel: "msedge"` when Chrome is absent.

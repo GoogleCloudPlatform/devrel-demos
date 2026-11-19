@@ -14,15 +14,16 @@
 // limitations under the License.
 
 /**
- * Render a smooth animated MP4 walkthrough video directly from `index.html?video=1`
- * + `audio/manifest.json` using headless Chromium and ffmpeg.
+ * Render a smooth animated MP4 walkthrough video directly from a built
+ * `index.html?video=1` + `audio/manifest.json` site directory using headless
+ * Chromium/Chrome/Edge and ffmpeg.
  *
  * Usage:
- *   node scripts/render_video.mjs [--dir <site-dir>] [--data <data.js>] [--out <out.mp4>] [--fps 12]
+ *   node skills/repo-walkthrough/scripts/render_video.mjs --dir <site-dir> [--out <out.mp4>] [--fps 12] [--speed 1.0]
  *
  * Unlike static slide concatenation, this renders every frame in full-width video mode (`?video=1`):
- *   - Hides the right-hand code inspector sidebar so the 5-layer graph fills 1440x900
- *   - Shows the full 5-layer overview with all left section headers on Step 1
+ *   - Hides the right-hand code inspector sidebar so the layered graph fills 1440x900
+ *   - Shows the full layered overview with all left section headers on Step 1
  *   - Smooth cubic ease-in-out camera pan & zoom transitions on Steps 2..N
  *   - Continuously moving bottom timeline status bar from Step 1 -> Step N
  *   - Single light-blue (#8AB4F8) node spotlighting (`cues`) synced to spoken narration
@@ -38,39 +39,85 @@ import { pathToFileURL } from "node:url";
 
 const require = createRequire(import.meta.url);
 
+const USAGE_TEXT = `Usage:
+  node skills/repo-walkthrough/scripts/render_video.mjs --dir <site-dir> [options]
+
+Options:
+  --dir <dir>        Built website directory containing index.html, data.js, and audio/manifest.json
+  --out <file.mp4>   Output MP4 file path (defaults to <site-dir>/walkthrough.mp4)
+  --fps <number>     Frames per second between 1 and 60 (default: 12, or VIDEO_FPS)
+  --speed <number>   Playback speed multiplier between 0.5 and 2.0 (default: 1.0, or VIDEO_SPEED)
+  -h, --help         Show this help message and exit
+`;
+
+function isPluginOrRepoRoot(dir) {
+  return (
+    fs.existsSync(path.join(dir, "plugin.json")) ||
+    fs.existsSync(path.join(dir, "web", "index.html")) ||
+    fs.existsSync(path.join(dir, "web", "index.tmpl")) ||
+    fs.existsSync(path.join(dir, "web", "data-adk.js"))
+  );
+}
+
 function resolveRepoRoot(scriptDir = import.meta.dirname) {
-  const candidates = [
-    path.resolve(scriptDir, ".."),
-    path.resolve(scriptDir, "../../.."),
-  ];
-  for (const candidate of candidates) {
-    if (
-      fs.existsSync(path.join(candidate, "web", "index.tmpl")) ||
-      fs.existsSync(path.join(candidate, "web", "index.html"))
-    ) {
-      return candidate;
-    }
+  const pluginCandidate = path.resolve(scriptDir, "../../..");
+  const directCandidate = path.resolve(scriptDir, "..");
+  if (isPluginOrRepoRoot(pluginCandidate)) {
+    return pluginCandidate;
   }
-  return candidates[0];
+  if (isPluginOrRepoRoot(directCandidate)) {
+    return directCandidate;
+  }
+  return directCandidate;
+}
+
+function requirePathValue(argv, index, flag) {
+  const val = argv[index + 1];
+  if (val === undefined || val === "" || val.startsWith("-")) {
+    throw new Error(`Option ${flag} requires a value. Pass --help for usage.`);
+  }
+  return val;
+}
+
+function requireNumericValue(argv, index, flag) {
+  const val = argv[index + 1];
+  if (val === undefined || val === "") {
+    throw new Error(`Option ${flag} requires a numeric value. Pass --help for usage.`);
+  }
+  return Number(val);
 }
 
 function parseArgs(argv) {
   const opts = {
     dir: null,
-    data: null,
     out: null,
     fps: Number(process.env.VIDEO_FPS || 12),
     speed: Number(process.env.VIDEO_SPEED || 1.0),
+    help: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === "--dir" && argv[i + 1]) opts.dir = path.resolve(argv[++i]);
-    else if (a === "--data" && argv[i + 1]) opts.data = argv[++i];
-    else if (a === "--out" && argv[i + 1]) opts.out = path.resolve(argv[++i]);
-    else if (a === "--fps" && argv[i + 1]) opts.fps = Number(argv[++i]);
-    else if (a === "--speed" && argv[i + 1]) opts.speed = Number(argv[++i]);
+    if (a === "-h" || a === "--help") {
+      opts.help = true;
+    } else if (a === "--dir") {
+      opts.dir = path.resolve(requirePathValue(argv, i++, "--dir"));
+    } else if (a === "--out") {
+      opts.out = path.resolve(requirePathValue(argv, i++, "--out"));
+    } else if (a === "--fps") {
+      opts.fps = requireNumericValue(argv, i++, "--fps");
+    } else if (a === "--speed") {
+      opts.speed = requireNumericValue(argv, i++, "--speed");
+    } else {
+      throw new Error(`Unknown option: ${a}. Pass --help for usage.`);
+    }
   }
-  if (!(opts.speed >= 0.5 && opts.speed <= 2.0)) {
+  if (opts.help) {
+    return opts;
+  }
+  if (!Number.isFinite(opts.fps) || opts.fps < 1 || opts.fps > 60) {
+    throw new Error("--fps must be between 1 and 60");
+  }
+  if (!Number.isFinite(opts.speed) || !(opts.speed >= 0.5 && opts.speed <= 2.0)) {
     throw new Error("--speed must be between 0.5 and 2.0");
   }
   return opts;
@@ -103,6 +150,23 @@ function getPlaywrightSearchRoots({
   return { npmCmd, npxBases };
 }
 
+function queryGlobalNpmRoot(platform = process.platform, npmCmd = "npm") {
+  try {
+    if (platform === "win32") {
+      return execFileSync("cmd.exe", ["/d", "/s", "/c", `${npmCmd} root -g`], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+    }
+    return execFileSync(npmCmd, ["root", "-g"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return "";
+  }
+}
+
 function loadPlaywright() {
   const candidates = [
     "playwright-core",
@@ -112,19 +176,13 @@ function loadPlaywright() {
   ];
   const { npmCmd, npxBases } = getPlaywrightSearchRoots();
 
-  try {
-    const globalRoot = execFileSync(npmCmd, ["root", "-g"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-      shell: process.platform === "win32",
-    }).trim();
-    if (globalRoot) {
-      candidates.push(
-        path.join(globalRoot, "playwright-core"),
-        path.join(globalRoot, "playwright")
-      );
-    }
-  } catch {}
+  const globalRoot = queryGlobalNpmRoot(process.platform, npmCmd);
+  if (globalRoot) {
+    candidates.push(
+      path.join(globalRoot, "playwright-core"),
+      path.join(globalRoot, "playwright")
+    );
+  }
 
   for (const npxBase of npxBases) {
     if (fs.existsSync(npxBase)) {
@@ -168,8 +226,27 @@ async function launchChromium(chromium, platform = process.platform) {
   throw lastErr || new Error("Could not launch Chromium, Chrome, or Edge");
 }
 
+function resolveContainedAudioPath(webDir, relFile) {
+  const cleanRel = String(relFile || "").trim();
+  if (!cleanRel) {
+    throw new Error("Audio manifest entry is missing 'file'.");
+  }
+  const resolvedWeb = path.resolve(webDir);
+  const resolvedWav = path.resolve(resolvedWeb, cleanRel);
+  const relFromWeb = path.relative(resolvedWeb, resolvedWav);
+  if (relFromWeb.startsWith("..") || path.isAbsolute(relFromWeb)) {
+    throw new Error(`Audio manifest entry '${cleanRel}' resolves outside site directory.`);
+  }
+  return resolvedWav;
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
+  if (opts.help) {
+    process.stdout.write(USAGE_TEXT);
+    return;
+  }
+
   checkFfmpeg();
 
   const FPS = opts.fps;
@@ -178,226 +255,271 @@ async function main() {
   const GAP_SEC = 0.45;
 
   const repoRoot = resolveRepoRoot(import.meta.dirname);
-  const webDir = opts.dir || path.join(repoRoot, "web");
+  const webDir = path.resolve(opts.dir || path.join(repoRoot, "web"));
+  const htmlPath = path.join(webDir, "index.html");
+  if (!fs.existsSync(htmlPath)) {
+    throw new Error(
+      `Missing built website ${htmlPath}. Build the end-product website first with 'node skills/repo-walkthrough/scripts/build_walkthrough.mjs --data <path/to/data.js> --out-dir <dir>' (never open raw .tmpl files directly).`
+    );
+  }
+
   const audioDir = path.join(webDir, "audio");
   const manifestPath = path.join(audioDir, "manifest.json");
-  const defaultOutName = fs.existsSync(path.join(webDir, "data.js"))
-    ? "walkthrough.mp4"
-    : "adk-walkthrough.mp4";
-  const outMp4 = opts.out || path.join(webDir, defaultOutName);
-
   if (!fs.existsSync(manifestPath)) {
-    throw new Error(`Missing ${manifestPath}. Run 'node scripts/generate_live_audio.mjs' first.`);
+    throw new Error(
+      `Missing ${manifestPath}. Run 'node skills/repo-walkthrough/scripts/generate_live_audio.mjs --data <path/to/data.js>' first.`
+    );
   }
+
+  const outMp4 = opts.out || path.join(webDir, "walkthrough.mp4");
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  if (!Array.isArray(manifest) || manifest.length === 0) {
+    throw new Error(`Audio manifest ${manifestPath} is empty.`);
+  }
   const totalSteps = manifest.length;
 
-  // 1. Build a single concatenated WAV audio track with a 0.45s gap between steps
-  const tmpDir = path.join(audioDir, ".tmp-video");
-  fs.mkdirSync(tmpDir, { recursive: true });
-  const fullAudioWav = path.join(tmpDir, "full-audio.wav");
-  const silenceWav = path.join(tmpDir, "silence.wav");
-  const concatListTxt = path.join(tmpDir, "audio-concat.txt");
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "repo-walkthrough-video-"));
+  let browser = null;
 
-  execFileSync("ffmpeg", [
-    "-y", "-f", "lavfi", "-i", "anullsrc=r=24000:cl=mono",
-    "-t", String(GAP_SEC), "-c:a", "pcm_s16le", silenceWav
-  ], { stdio: "ignore" });
+  try {
+    // 1. Build a single concatenated WAV audio track with a 0.45s gap between steps
+    const fullAudioWav = path.join(tmpDir, "full-audio.wav");
+    const silenceWav = path.join(tmpDir, "silence.wav");
+    const concatListTxt = path.join(tmpDir, "audio-concat.txt");
 
-  const concatLines = [];
-  const stepTimings = [];
-  let cursorSec = 0;
-
-  for (let i = 0; i < totalSteps; i++) {
-    const item = manifest[i];
-    const wavPath = path.join(webDir, item.file);
-    const dur = Number(item.durationSec) / SPEED;
-    const segDur = dur + (i < totalSteps - 1 ? GAP_SEC / SPEED : 0.25 / SPEED);
-
-    stepTimings.push({
-      stepIndex: i,
-      prevStepIndex: Math.max(0, i - 1),
-      startSec: cursorSec,
-      audioDurSec: dur,
-      endSec: cursorSec + segDur,
-    });
-    cursorSec += segDur;
-
-    concatLines.push(formatFfmpegConcatEntry(wavPath));
-    if (i < totalSteps - 1) {
-      concatLines.push(formatFfmpegConcatEntry(silenceWav));
-    }
-  }
-
-  fs.writeFileSync(concatListTxt, concatLines.join("\n") + "\n");
-  const concatFfmpegArgs = [
-    "-y", "-f", "concat", "-safe", "0", "-i", concatListTxt,
-  ];
-  if (SPEED !== 1) {
-    concatFfmpegArgs.push("-filter:a", `atempo=${SPEED}`);
-  }
-  concatFfmpegArgs.push("-c:a", "pcm_s16le", fullAudioWav);
-  execFileSync("ffmpeg", concatFfmpegArgs, { stdio: "ignore" });
-
-  const totalDurationSec = cursorSec;
-  const totalFrames = Math.ceil(totalDurationSec * FPS);
-
-  console.log(
-    `🎬 Rendering ${totalFrames} animated frames (${totalDurationSec.toFixed(1)}s @ ${FPS}fps, speed ${SPEED}x) -> ${outMp4}...`
-  );
-
-  // 2. Launch headless Chrome (or Edge on Windows) and open index.html?video=1
-  const { chromium } = loadPlaywright();
-  const browser = await launchChromium(chromium);
-  const context = await browser.newContext({
-    viewport: { width: 1440, height: 900 },
-    deviceScaleFactor: 1,
-  });
-  const page = await context.newPage();
-  const query = new URLSearchParams({ video: "1" });
-  if (opts.data) query.set("data", opts.data);
-  const htmlCandidate = path.join(webDir, "index.html");
-  const tmplCandidate = path.join(webDir, "index.tmpl");
-  const pagePath = fs.existsSync(htmlCandidate)
-    ? htmlCandidate
-    : fs.existsSync(tmplCandidate)
-    ? tmplCandidate
-    : htmlCandidate;
-  const pageUrl = `${pathToFileURL(pagePath).href}?${query.toString()}`;
-  await page.goto(pageUrl, {
-    waitUntil: "networkidle",
-  });
-
-  // Apply acoustically aligned cue timestamps from manifest.json if available
-  await page.evaluate((manifestItems) => {
-    const d = window.WALKTHROUGH_DATA || window.ADK_DATA;
-    if (!d || !Array.isArray(d.walkthrough)) return;
-    for (let i = 0; i < manifestItems.length; i++) {
-      if (Array.isArray(manifestItems[i]?.alignedCues) && d.walkthrough[i]) {
-        d.walkthrough[i].cues = manifestItems[i].alignedCues;
-      }
-    }
-  }, manifest);
-
-  // Disable CSS transitions during deterministic frame stepping so every frame is exact
-  await page.addStyleTag({
-    content: `
-      .node-group, .node-rect, .edge-group, .edge-path, .tl-mark {
-        transition: none !important;
-      }
-    `,
-  });
-
-  const cdp = await context.newCDPSession(page);
-
-  // 3. Spawn ffmpeg reading JPEG frames from stdin and muxing with fullAudioWav
-  const ff = spawn(
-    "ffmpeg",
-    [
-      "-loglevel", "error",
-      "-y",
-      "-f", "image2pipe",
-      "-vcodec", "mjpeg",
-      "-framerate", String(FPS),
-      "-i", "-",
-      "-i", fullAudioWav,
-      "-c:v", "libx264",
-      "-pix_fmt", "yuv420p",
-      "-preset", "fast",
-      "-crf", "20",
-      "-r", "30",
-      "-c:a", "aac",
-      "-b:a", "192k",
-      "-shortest",
-      "-movflags", "+faststart",
-      outMp4,
-    ],
-    { stdio: ["pipe", "ignore", "inherit"] }
-  );
-  ff.on("error", (err) => {
-    console.error("Failed to start ffmpeg:", err);
-  });
-  ff.stdin.on("error", (err) => {
-    if (err.code !== "EPIPE") {
-      console.error("ffmpeg stdin error:", err);
-    }
-  });
-
-  for (let frame = 0; frame < totalFrames; frame++) {
-    const t = frame / FPS;
-    let activeSeg = stepTimings[stepTimings.length - 1];
-    for (const seg of stepTimings) {
-      if (t >= seg.startSec && t < seg.endSec) {
-        activeSeg = seg;
-        break;
-      }
-    }
-
-    const localT = Math.max(0, t - activeSeg.startSec);
-    const camTransition =
-      activeSeg.stepIndex === 0
-        ? 1
-        : Math.min(1, localT / TRANSITION_SEC);
-    const stepProgress = Math.min(1, localT / Math.max(0.1, activeSeg.audioDurSec));
-
-    const startAnchor = totalSteps > 1 ? (100 * activeSeg.stepIndex) / (totalSteps - 1) : 0;
-    const endAnchor =
-      activeSeg.stepIndex < totalSteps - 1
-        ? (100 * (activeSeg.stepIndex + 1)) / (totalSteps - 1)
-        : 100;
-    const segProgress = Math.min(
-      1,
-      localT / Math.max(0.1, activeSeg.endSec - activeSeg.startSec)
+    execFileSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=r=24000:cl=mono",
+        "-t",
+        String(GAP_SEC),
+        "-c:a",
+        "pcm_s16le",
+        silenceWav,
+      ],
+      { stdio: "ignore" }
     );
-    const timelinePct = startAnchor + (endAnchor - startAnchor) * segProgress;
-    const dashOffset = -((t * 22) % 12).toFixed(2);
 
-    await page.evaluate((state) => {
-      window.renderWalkthroughFrame(state);
-    }, {
-      stepIndex: activeSeg.stepIndex,
-      prevStepIndex: activeSeg.prevStepIndex,
-      camTransition,
-      stepProgress,
-      timelinePct,
-      dashOffset,
-    });
+    const concatLines = [];
+    const stepTimings = [];
+    let cursorSec = 0;
 
-    const { data } = await cdp.send("Page.captureScreenshot", {
-      format: "jpeg",
-      quality: 90,
-    });
-    const buf = Buffer.from(data, "base64");
-    const canWrite = ff.stdin.write(buf);
-    if (!canWrite) {
-      await new Promise((resolve) => ff.stdin.once("drain", resolve));
+    for (let i = 0; i < totalSteps; i++) {
+      const item = manifest[i];
+      const wavPath = resolveContainedAudioPath(webDir, item.file);
+      if (!fs.existsSync(wavPath)) {
+        throw new Error(`Missing step audio WAV file: ${wavPath}`);
+      }
+      const dur = Number(item.durationSec) / SPEED;
+      const segDur = dur + (i < totalSteps - 1 ? GAP_SEC / SPEED : 0.25 / SPEED);
+
+      stepTimings.push({
+        stepIndex: i,
+        prevStepIndex: Math.max(0, i - 1),
+        startSec: cursorSec,
+        audioDurSec: dur,
+        endSec: cursorSec + segDur,
+      });
+      cursorSec += segDur;
+
+      concatLines.push(formatFfmpegConcatEntry(wavPath));
+      if (i < totalSteps - 1) {
+        concatLines.push(formatFfmpegConcatEntry(silenceWav));
+      }
     }
 
-    if (frame % (FPS * 10) === 0 || frame === totalFrames - 1) {
-      process.stdout.write(
-        `  • Frame ${frame + 1}/${totalFrames} (${((100 * (frame + 1)) / totalFrames).toFixed(0)}%)\n`
+    fs.writeFileSync(concatListTxt, concatLines.join("\n") + "\n");
+    const concatFfmpegArgs = ["-y", "-f", "concat", "-safe", "0", "-i", concatListTxt];
+    if (SPEED !== 1) {
+      concatFfmpegArgs.push("-filter:a", `atempo=${SPEED}`);
+    }
+    concatFfmpegArgs.push("-c:a", "pcm_s16le", fullAudioWav);
+    execFileSync("ffmpeg", concatFfmpegArgs, { stdio: "ignore" });
+
+    const totalDurationSec = cursorSec;
+    const totalFrames = Math.ceil(totalDurationSec * FPS);
+
+    console.log(
+      `🎬 Rendering ${totalFrames} animated frames (${totalDurationSec.toFixed(1)}s @ ${FPS}fps, speed ${SPEED}x) -> ${outMp4}...`
+    );
+
+    // 2. Launch headless Chrome (or Edge on Windows) and open built index.html?video=1
+    const { chromium } = loadPlaywright();
+    browser = await launchChromium(chromium);
+    const context = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      deviceScaleFactor: 1,
+    });
+    const page = await context.newPage();
+    const pageUrl = `${pathToFileURL(htmlPath).href}?video=1`;
+    await page.goto(pageUrl, {
+      waitUntil: "networkidle",
+    });
+    await page.evaluate(async () => {
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+    });
+
+    // Apply acoustically aligned cue timestamps from manifest.json if available
+    await page.evaluate((manifestItems) => {
+      const d = window.WALKTHROUGH_DATA || window.ADK_DATA;
+      if (!d || !Array.isArray(d.walkthrough)) return;
+      for (let i = 0; i < manifestItems.length; i++) {
+        if (Array.isArray(manifestItems[i]?.alignedCues) && d.walkthrough[i]) {
+          d.walkthrough[i].cues = manifestItems[i].alignedCues;
+        }
+      }
+    }, manifest);
+
+    // Disable CSS transitions during deterministic frame stepping so every frame is exact
+    await page.addStyleTag({
+      content: `
+        .node-group, .node-rect, .edge-group, .edge-path, .tl-mark {
+          transition: none !important;
+        }
+      `,
+    });
+
+    const cdp = await context.newCDPSession(page);
+
+    // 3. Spawn ffmpeg reading JPEG frames from stdin and muxing with fullAudioWav
+    fs.mkdirSync(path.dirname(outMp4), { recursive: true });
+    const ff = spawn(
+      "ffmpeg",
+      [
+        "-loglevel",
+        "error",
+        "-y",
+        "-f",
+        "image2pipe",
+        "-vcodec",
+        "mjpeg",
+        "-framerate",
+        String(FPS),
+        "-i",
+        "-",
+        "-i",
+        fullAudioWav,
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-preset",
+        "fast",
+        "-crf",
+        "20",
+        "-r",
+        "30",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "192k",
+        "-shortest",
+        "-movflags",
+        "+faststart",
+        outMp4,
+      ],
+      { stdio: ["pipe", "ignore", "inherit"] }
+    );
+    ff.on("error", (err) => {
+      console.error("Failed to start ffmpeg:", err);
+    });
+    ff.stdin.on("error", (err) => {
+      if (err.code !== "EPIPE") {
+        console.error("ffmpeg stdin error:", err);
+      }
+    });
+
+    for (let frame = 0; frame < totalFrames; frame++) {
+      const t = frame / FPS;
+      let activeSeg = stepTimings[stepTimings.length - 1];
+      for (const seg of stepTimings) {
+        if (t >= seg.startSec && t < seg.endSec) {
+          activeSeg = seg;
+          break;
+        }
+      }
+
+      const localT = Math.max(0, t - activeSeg.startSec);
+      const camTransition =
+        activeSeg.stepIndex === 0 ? 1 : Math.min(1, localT / TRANSITION_SEC);
+      const stepProgress = Math.min(1, localT / Math.max(0.1, activeSeg.audioDurSec));
+
+      const startAnchor =
+        totalSteps > 1 ? (100 * activeSeg.stepIndex) / (totalSteps - 1) : 0;
+      const endAnchor =
+        activeSeg.stepIndex < totalSteps - 1
+          ? (100 * (activeSeg.stepIndex + 1)) / (totalSteps - 1)
+          : 100;
+      const segProgress = Math.min(
+        1,
+        localT / Math.max(0.1, activeSeg.endSec - activeSeg.startSec)
       );
+      const timelinePct = startAnchor + (endAnchor - startAnchor) * segProgress;
+      const dashOffset = -((t * 22) % 12).toFixed(2);
+
+      await page.evaluate(
+        (state) => {
+          window.renderWalkthroughFrame(state);
+        },
+        {
+          stepIndex: activeSeg.stepIndex,
+          prevStepIndex: activeSeg.prevStepIndex,
+          camTransition,
+          stepProgress,
+          timelinePct,
+          dashOffset,
+        }
+      );
+
+      const { data } = await cdp.send("Page.captureScreenshot", {
+        format: "jpeg",
+        quality: 90,
+      });
+      const buf = Buffer.from(data, "base64");
+      const canWrite = ff.stdin.write(buf);
+      if (!canWrite) {
+        await new Promise((resolve) => ff.stdin.once("drain", resolve));
+      }
+
+      if (frame % (FPS * 10) === 0 || frame === totalFrames - 1) {
+        process.stdout.write(
+          `  • Frame ${frame + 1}/${totalFrames} (${((100 * (frame + 1)) / totalFrames).toFixed(0)}%)\n`
+        );
+      }
     }
+
+    ff.stdin.end();
+    await new Promise((resolve, reject) => {
+      ff.on("close", (code) =>
+        code === 0 ? resolve() : reject(new Error(`ffmpeg exited with ${code}`))
+      );
+    });
+
+    console.log(`✅ Rendered smooth animated walkthrough video to: ${outMp4}`);
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+      } catch {}
+    }
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   }
-
-  ff.stdin.end();
-  await new Promise((resolve, reject) => {
-    ff.on("close", (code) =>
-      code === 0 ? resolve() : reject(new Error(`ffmpeg exited with ${code}`))
-    );
-  });
-
-  await browser.close();
-  fs.rmSync(tmpDir, { recursive: true, force: true });
-  console.log(`✅ Rendered smooth animated walkthrough video to: ${outMp4}`);
 }
 
 export {
+  checkFfmpeg,
   formatFfmpegConcatEntry,
   getPlaywrightSearchRoots,
   launchChromium,
   loadPlaywright,
   parseArgs,
+  resolveContainedAudioPath,
   resolveRepoRoot,
 };
 
@@ -412,7 +534,7 @@ function isExecutedDirectly(argv1 = process.argv[1], metaFilename = import.meta.
 
 if (isExecutedDirectly()) {
   main().catch((err) => {
-    console.error("❌ Video render failed:", err);
+    console.error("❌ Video render failed:", err.message || err);
     process.exit(1);
   });
 }

@@ -13,13 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Unit and integration tests for scripts/fetch_repo.py."""
+"""Unit and integration tests for skills/repo-walkthrough/scripts/fetch_repo.py."""
 
+import os
 import pathlib
 import shutil
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 import unittest.mock
 
@@ -45,6 +47,12 @@ class TestFetchRepo(unittest.TestCase):
         fetch_repo.normalize_repo_target("https://github.com/google/adk-python/tree/main/src"),
         "google/adk-python",
     )
+
+  def test_validate_repo_slug_rejects_traversal(self):
+    self.assertEqual(fetch_repo._validate_repo_slug("google/adk-python"), "google/adk-python")
+    for invalid_slug in ("../etc", "owner/..", "owner/repo/extra", "", "-bad"):
+      with self.assertRaises(ValueError):
+        fetch_repo._validate_repo_slug(invalid_slug)
 
   def test_parse_github_target_and_scope_blobs(self):
     self.assertEqual(
@@ -137,16 +145,31 @@ class TestFetchRepo(unittest.TestCase):
 
   def test_fetch_local_dir_and_report(self):
     info = fetch_repo.fetch_local_dir(REPO_ROOT, max_files=15)
-    self.assertEqual(info["repo"], "repo-walkthrough")
+    self.assertEqual(info["repo"], REPO_ROOT.resolve().name)
     self.assertGreaterEqual(info["total_files"], 8)
     report = fetch_repo.build_analysis_report(info)
-    self.assertEqual(report["repo"], "repo-walkthrough")
     paths = [c["path"] for c in report["candidates"]]
-    self.assertTrue("web/index.html" in paths or "web/index.tmpl" in paths)
-    self.assertTrue(
-        "scripts/build_walkthrough.mjs" in paths
-        or "skills/repo-walkthrough/scripts/build_walkthrough.mjs" in paths
-    )
+    self.assertIn("skills/repo-walkthrough/assets/index.tmpl", paths)
+    self.assertIn("skills/repo-walkthrough/scripts/build_walkthrough.mjs", paths)
+    self.assertNotIn("web/index.tmpl", paths)
+
+  def test_symlink_containment_blocks_external_files(self):
+    with tempfile.TemporaryDirectory() as outer_tmp:
+      outer = pathlib.Path(outer_tmp)
+      secret_file = outer / "outside_secret.py"
+      secret_file.write_text("SECRET_TOKEN = 'do-not-read'\n", encoding="utf-8")
+      repo_dir = outer / "repo"
+      repo_dir.mkdir()
+      (repo_dir / "main.py").write_text("def main():\n  return 1\n", encoding="utf-8")
+      link_path = repo_dir / "escaped.py"
+      try:
+        os.symlink(secret_file, link_path)
+      except OSError:
+        # Windows without Developer Mode symlink privilege
+        return
+      info = fetch_repo.fetch_local_dir(repo_dir, max_files=10)
+      self.assertIn("main.py", info["files"])
+      self.assertNotIn("escaped.py", info["files"])
 
   def test_export_voice_markdown(self):
     with tempfile.TemporaryDirectory() as tmp:
@@ -164,7 +187,21 @@ class TestFetchRepo(unittest.TestCase):
       self.assertIn("## Step 1: Entry", text)
       self.assertIn("Starts at main.py.", text)
 
-  def test_fetch_git_diff_and_preview(self) -> None:
+  def test_fetch_git_diff_rejects_flag_injection(self) -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+      tmp_repo = pathlib.Path(tmp)
+      for bad_range in (
+          "--output=/tmp/pwn",
+          "-U99",
+          "HEAD..--output=/tmp/pwn",
+          "main...--exec=bad",
+          "HEAD~1..HEAD\ninjected",
+          "   ",
+      ):
+        with self.assertRaises(ValueError):
+          fetch_repo.fetch_git_diff(tmp_repo, bad_range)
+
+  def test_fetch_git_diff_utf8_non_ascii_ampersand_path_and_merge_base(self) -> None:
     raw_patch = (
         "diff --git a/app.py b/app.py\n"
         "index 111..222 100644\n"
@@ -182,77 +219,98 @@ class TestFetchRepo(unittest.TestCase):
     self.assertIn("+    return 2", preview)
     self.assertNotIn("diff --git", preview)
 
+    if not shutil.which("git"):
+      return
+
     with tempfile.TemporaryDirectory() as tmp:
-      tmp_repo = pathlib.Path(tmp)
-      (tmp_repo / "scripts").mkdir()
+      # Place repo inside a folder containing '&', spaces, and parentheses to test Windows/shell safety
+      tmp_repo = pathlib.Path(tmp) / "R&D (Demo) Repo"
+      (tmp_repo / "scripts").mkdir(parents=True)
       target = tmp_repo / "scripts" / "build_walkthrough.mjs"
-      if shutil.which("git"):
-        subprocess.run(["git", "init", str(tmp_repo)], check=True, capture_output=True)
-        subprocess.run(["git", "-C", str(tmp_repo), "config", "user.email", "test@example.com"], check=True)
-        subprocess.run(["git", "-C", str(tmp_repo), "config", "user.name", "Test"], check=True)
-        target.write_text("export function run() {\n  return 1;\n}\n", encoding="utf-8")
-        subprocess.run(["git", "-C", str(tmp_repo), "add", "."], check=True)
-        subprocess.run(["git", "-C", str(tmp_repo), "commit", "-m", "init"], check=True, capture_output=True)
-        target.write_text("export function run() {\n  return 2;\n  // updated\n}\n", encoding="utf-8")
-        subprocess.run(["git", "-C", str(tmp_repo), "add", "."], check=True)
-        subprocess.run(["git", "-C", str(tmp_repo), "commit", "-m", "update"], check=True, capture_output=True)
-        info = fetch_repo.fetch_git_diff(tmp_repo, "HEAD~1..HEAD", max_files=12)
-      else:
-        target.write_text("export function run() {\n  return 2;\n  // updated\n}\n", encoding="utf-8")
+      cafe_file = tmp_repo / "src" / "café.py"
+      cafe_file.parent.mkdir(parents=True)
 
-        def fake_git_run(cmd, **_kwargs):
-          joined = " ".join(str(x) for x in cmd)
-          out = ""
-          if "--name-status" in joined:
-            out = "M\tscripts/build_walkthrough.mjs\n"
-          elif "--numstat" in joined:
-            out = "2\t1\tscripts/build_walkthrough.mjs\n"
-          elif "-U2" in joined or "diff" in joined:
-            out = (
-                "diff --git a/scripts/build_walkthrough.mjs b/scripts/build_walkthrough.mjs\n"
-                "@@ -1,3 +1,4 @@\n"
-                " export function run() {\n"
-                "-  return 1;\n"
-                "+  return 2;\n"
-                "+  // updated\n"
-            )
-          return subprocess.CompletedProcess(cmd, 0, stdout=out, stderr="")
+      subprocess.run(["git", "init", "-b", "main", str(tmp_repo)], check=True, capture_output=True)
+      subprocess.run(["git", "-C", str(tmp_repo), "config", "user.email", "test@example.com"], check=True)
+      subprocess.run(["git", "-C", str(tmp_repo), "config", "user.name", "Test"], check=True)
 
-        with unittest.mock.patch("subprocess.run", side_effect=fake_git_run):
-          info = fetch_repo.fetch_git_diff(tmp_repo, "HEAD~1..HEAD", max_files=12)
+      target.write_text("export function run() {\n  return 1;\n}\n", encoding="utf-8")
+      cafe_file.write_text('def menu():\n  return "café"\n', encoding="utf-8")
+      subprocess.run(["git", "-C", str(tmp_repo), "add", "."], check=True)
+      subprocess.run(["git", "-C", str(tmp_repo), "commit", "-m", "init"], check=True, capture_output=True)
 
+      # Create feature branch modifying target + non-ASCII café.py
+      subprocess.run(["git", "-C", str(tmp_repo), "checkout", "-b", "feat"], check=True, capture_output=True)
+      target.write_text("export function run() {\n  return 2;\n  // updated\n}\n", encoding="utf-8")
+      cafe_file.write_text('def menu():\n  return "crème brûlée"\n', encoding="utf-8")
+      subprocess.run(["git", "-C", str(tmp_repo), "add", "."], check=True)
+      subprocess.run(["git", "-C", str(tmp_repo), "commit", "-m", "feat: update café"], check=True, capture_output=True)
+
+      # Advance main independently so 3-dot main...feat tests merge-base isolation
+      subprocess.run(["git", "-C", str(tmp_repo), "checkout", "main"], check=True, capture_output=True)
+      upstream_only = tmp_repo / "src" / "upstream_only.py"
+      upstream_only.write_text("UPSTREAM = True\n", encoding="utf-8")
+      subprocess.run(["git", "-C", str(tmp_repo), "add", "."], check=True)
+      subprocess.run(["git", "-C", str(tmp_repo), "commit", "-m", "main: upstream commit"], check=True, capture_output=True)
+
+      info = fetch_repo.fetch_git_diff(tmp_repo, "main...feat", max_files=12)
       report = fetch_repo.build_analysis_report(info)
-      self.assertEqual(report["diffRange"], "HEAD~1..HEAD")
-      self.assertGreater(report["diffStats"]["totalAdded"], 0)
+      self.assertEqual(report["diffRange"], "main...feat")
+      self.assertEqual(len(report["commits"]), 1)
+      self.assertIn("feat: update café", report["commits"][0])
       by_path = {c["path"]: c for c in report["candidates"]}
       self.assertIn("scripts/build_walkthrough.mjs", by_path)
-      self.assertEqual(by_path["scripts/build_walkthrough.mjs"]["diff"]["status"], "modified")
+      self.assertIn("src/café.py", by_path)
+      self.assertNotIn("src/upstream_only.py", by_path)
+      self.assertEqual(by_path["src/café.py"]["diff"]["status"], "modified")
 
   def test_resolve_repo_root_and_open_target_cross_platform(self) -> None:
     with tempfile.TemporaryDirectory() as tmp:
       root = pathlib.Path(tmp)
-      (root / "web").mkdir(parents=True)
-      (root / "web" / "index.html").write_text("<html></html>", encoding="utf-8")
-      direct_scripts = root / "scripts"
-      deref_scripts = root / "skills" / "repo-walkthrough" / "scripts"
-      direct_scripts.mkdir(parents=True)
+      (root / "plugin.json").write_text('{"name":"repo-walkthrough"}', encoding="utf-8")
+      skill_dir = root / "skills" / "repo-walkthrough"
+      (skill_dir / "assets").mkdir(parents=True)
+      (skill_dir / "assets" / "index.tmpl").write_text("<html>tmpl</html>", encoding="utf-8")
+      deref_scripts = skill_dir / "scripts"
       deref_scripts.mkdir(parents=True)
 
-      self.assertEqual(fetch_repo.resolve_repo_root(direct_scripts), root.resolve())
       self.assertEqual(fetch_repo.resolve_repo_root(deref_scripts), root.resolve())
+      # Without any built index.html, resolve_web_index must return None (never .tmpl)
+      self.assertIsNone(fetch_repo.resolve_web_index(root.resolve()))
+
+      # Standalone skill copy under ~/.gemini/skills/repo-walkthrough must resolve to the skill dir itself
+      fake_gemini = root / "home" / ".gemini"
+      standalone_skill = fake_gemini / "skills" / "repo-walkthrough"
+      (standalone_skill / "assets").mkdir(parents=True)
+      (standalone_skill / "assets" / "index.tmpl").write_text("<html>tmpl</html>", encoding="utf-8")
+      standalone_scripts = standalone_skill / "scripts"
+      standalone_scripts.mkdir(parents=True)
+      self.assertEqual(fetch_repo.resolve_repo_root(standalone_scripts), standalone_skill.resolve())
+
+      # Built index.html is resolved cleanly
+      (root / "web").mkdir(parents=True)
+      (root / "web" / "index.html").write_text("<html>built</html>", encoding="utf-8")
       self.assertEqual(
           fetch_repo.resolve_web_index(root.resolve()),
           (root / "web" / "index.html").resolve(),
       )
 
-      (root / "web" / "index.html").unlink()
-      (root / "web" / "index.tmpl").write_text("<html></html>", encoding="utf-8")
-      self.assertEqual(fetch_repo.resolve_repo_root(direct_scripts), root.resolve())
-      self.assertEqual(fetch_repo.resolve_repo_root(deref_scripts), root.resolve())
-      self.assertEqual(
-          fetch_repo.resolve_web_index(root.resolve()),
-          (root / "web" / "index.tmpl").resolve(),
-      )
+    # Refuses .tmpl files on every platform
+    self.assertFalse(fetch_repo.open_target(pathlib.Path("/tmp/index.tmpl"), platform="win32"))
+    self.assertFalse(fetch_repo.open_target(pathlib.Path("/tmp/index.tmpl"), platform="darwin"))
+    self.assertFalse(fetch_repo.open_target(pathlib.Path("/tmp/index.tmpl"), platform="linux"))
+
+    # Windows uses os.startfile safely (no cmd /c start splitting on &, parens, or %TEMP%)
+    opened_win: list[str] = []
+    tricky_win_path = pathlib.Path(r"C:\Users\dev\R&D (1) %TEMP%\index.html")
+    self.assertTrue(
+        fetch_repo.open_target(
+            tricky_win_path,
+            platform="win32",
+            startfile_fn=opened_win.append,
+        )
+    )
+    self.assertEqual(opened_win, [str(tricky_win_path)])
 
     # Headless Linux missing xdg-open must not raise
     self.assertFalse(
@@ -264,8 +322,6 @@ class TestFetchRepo(unittest.TestCase):
     )
 
   def test_sequence_and_mapping_inputs_accepted(self) -> None:
-    import types
-
     entries = (("src/main.py", 600), ("src/runner.py", 1200))
     ranked = fetch_repo.filter_and_rank_paths(entries, max_files=5)
     self.assertEqual(set(ranked), {"src/main.py", "src/runner.py"})
