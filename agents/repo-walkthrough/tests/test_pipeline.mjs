@@ -474,8 +474,8 @@ test("build_walkthrough.mjs builds standalone site from both custom data.js and 
     assert.ok(!builtAdkHtml.includes('src="data-adk.js"'), "Standalone build must strip data-adk.js tag");
     assert.ok(builtAdkHtml.includes('src="data.js"'), "Standalone build must load data.js");
 
-    // 2. Copy ONLY skills/repo-walkthrough into ~/.gemini/skills/repo-walkthrough-like isolated temp path
-    const standaloneHome = path.join(tmpDir, "isolated-home", ".gemini", "skills", "repo-walkthrough");
+    // 2. Copy ONLY skills/repo-walkthrough into an isolated .agents/skills/repo-walkthrough path
+    const standaloneHome = path.join(tmpDir, "isolated-home", ".agents", "skills", "repo-walkthrough");
     fs.mkdirSync(path.dirname(standaloneHome), { recursive: true });
     fs.cpSync(SKILL_DIR, standaloneHome, { recursive: true });
     assert.ok(fs.existsSync(path.join(standaloneHome, "assets", "index.tmpl")));
@@ -538,9 +538,17 @@ test("Single-source template, README GFM table, SKILL.md, and plugin.json manife
   assert.ok(!/^:\s+/m.test(readmeMd), "README.md must not contain multiline ': ... :' broken table rows");
   assert.match(readmeMd, /^\|\s*\*\*Python 3\*\*\s*\|/m);
   assert.match(readmeMd, /git sparse-checkout set agents\/repo-walkthrough/);
-  assert.match(readmeMd, /~\/\.gemini\/skills\/repo-walkthrough/);
+  assert.match(readmeMd, /~\/\.gemini\/config\/skills\/repo-walkthrough/);
+  assert.ok(
+    !/gemini\s*cli|gemini-cli|~\/\.gemini\/skills\/|\.gemini\/skills\//i.test(readmeMd),
+    "README.md must not reference Gemini CLI or legacy .gemini/skills install paths"
+  );
 
   const skillMd = fs.readFileSync(path.join(SKILL_DIR, "SKILL.md"), "utf8");
+  assert.ok(
+    !/gemini\s*cli|gemini-cli|~\/\.gemini\/skills\/|\.gemini\/skills\//i.test(skillMd),
+    "SKILL.md must not reference Gemini CLI or legacy .gemini/skills install paths"
+  );
   assert.match(skillMd, /^---\r?\nname:\s*repo-walkthrough\r?\ndescription:/m);
   assert.ok(!/^license:/m.test(skillMd), "SKILL.md frontmatter should not include license field");
   assert.match(skillMd, /^\s*author:\s*Google\s*$/m, "SKILL.md metadata.author should be Google");
@@ -600,9 +608,9 @@ test("resolveRepoRoot and resolveTemplatePath handle plugin installs, standalone
     }
     assert.equal(resolveTemplatePath(pluginRoot, derefScripts), tmplPath);
 
-    // 2. Standalone skill copy under ~/.gemini/skills/repo-walkthrough (parent ~/.gemini has no plugin.json)
-    const geminiHome = path.join(tmpRoot, "home", ".gemini");
-    const standaloneSkill = path.join(geminiHome, "skills", "repo-walkthrough");
+    // 2. Standalone skill copy under .agents/skills/repo-walkthrough (parent .agents has no plugin.json)
+    const agentsRoot = path.join(tmpRoot, "project", ".agents");
+    const standaloneSkill = path.join(agentsRoot, "skills", "repo-walkthrough");
     fs.mkdirSync(path.join(standaloneSkill, "assets"), { recursive: true });
     fs.mkdirSync(path.join(standaloneSkill, "scripts"), { recursive: true });
     const standaloneTmpl = path.join(standaloneSkill, "assets", "index.tmpl");

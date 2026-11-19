@@ -278,9 +278,9 @@ class TestFetchRepo(unittest.TestCase):
       # Without any built index.html, resolve_web_index must return None (never .tmpl)
       self.assertIsNone(fetch_repo.resolve_web_index(root.resolve()))
 
-      # Standalone skill copy under ~/.gemini/skills/repo-walkthrough must resolve to the skill dir itself
-      fake_gemini = root / "home" / ".gemini"
-      standalone_skill = fake_gemini / "skills" / "repo-walkthrough"
+      # Standalone skill copy under .agents/skills/repo-walkthrough must resolve to the skill dir itself
+      fake_agents = root / "project" / ".agents"
+      standalone_skill = fake_agents / "skills" / "repo-walkthrough"
       (standalone_skill / "assets").mkdir(parents=True)
       (standalone_skill / "assets" / "index.tmpl").write_text("<html>tmpl</html>", encoding="utf-8")
       standalone_scripts = standalone_skill / "scripts"

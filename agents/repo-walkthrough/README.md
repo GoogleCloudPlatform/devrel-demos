@@ -3,10 +3,10 @@
 Interactive codebase architecture graph website and voice-narrated MP4
 walkthrough video for any repository.
 
-Packaged as a standard
+Packaged as an **Antigravity** plugin and standard
 [Agent Skill (`SKILL.md`)](./skills/repo-walkthrough/SKILL.md) compatible with
-**Antigravity**, **Gemini CLI**, **Claude Code**, and more (any agent supporting
-[Agent Skills (`agentskills.io`)](https://agentskills.io)). All examples in this
+**Antigravity**, **Claude Code**, **Cursor**, **Codex**, and other agents
+supporting [Agent Skills](https://agentskills.io). All examples in this
 repository were generated with
 **[Gemini 4 Argon](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/)**.
 
@@ -106,18 +106,17 @@ From `agents/repo-walkthrough`:
 -   **Antigravity**: Install **Repo Walkthrough** from the Antigravity Plugin
     Marketplace (`Customizations > Plugins` or `/plugin`), run
     `agy plugin install .`, or copy/symlink `skills/repo-walkthrough` to
-    `~/.gemini/config/skills/repo-walkthrough`.
--   **Gemini CLI**: Copy or symlink `skills/repo-walkthrough` to
-    `~/.gemini/skills/repo-walkthrough` (or `.gemini/skills/repo-walkthrough` in
-    a project).
+    `~/.gemini/config/skills/repo-walkthrough` or
+    `.agents/skills/repo-walkthrough` in a project.
 -   **Claude Code**: Copy or symlink `skills/repo-walkthrough` to
-    `~/.claude/skills/repo-walkthrough` (or `.claude/skills/repo-walkthrough` in
-    a project).
--   **Other Agents (`agentskills.io`)**: Copy or symlink
-    `skills/repo-walkthrough` into your agent's `skills/` directory (for
-    example, `.agents/skills/repo-walkthrough`). Because the viewer template is
-    bundled inside `skills/repo-walkthrough/assets/index.tmpl`, standalone skill
-    copies work without any parent directories.
+    `~/.claude/skills/repo-walkthrough` or `.claude/skills/repo-walkthrough` in
+    a project.
+-   **Cursor, Codex, and Other [Agent Skills](https://agentskills.io) Agents**:
+    Copy or symlink `skills/repo-walkthrough` into your agent's `skills/`
+    directory, such as `.agents/skills/repo-walkthrough` or
+    `.cursor/skills/repo-walkthrough`. Because the viewer template is bundled
+    inside `skills/repo-walkthrough/assets/index.tmpl`, standalone skill copies
+    work without any parent directories.
 
 [preview-image]: https://raw.githubusercontent.com/GoogleCloudPlatform/devrel-demos/main/agents/repo-walkthrough/docs/preview.png
 [video-preview-gif]: https://raw.githubusercontent.com/GoogleCloudPlatform/devrel-demos/main/agents/repo-walkthrough/docs/video-preview.gif

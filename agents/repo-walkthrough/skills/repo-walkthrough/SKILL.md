@@ -23,9 +23,10 @@ or git diff) into an interactive architecture graph website and an optional
 voice-narrated MP4 walkthrough video.
 
 In all commands below, `<skill-dir>` refers to the directory containing this
-`SKILL.md` file (for example `<plugin-root>/skills/repo-walkthrough` when
-installed as a plugin, or `~/.gemini/skills/repo-walkthrough` /
-`~/.claude/skills/repo-walkthrough` when copied as a standalone skill).
+`SKILL.md` file, such as `<plugin-root>/skills/repo-walkthrough` when installed
+as an Antigravity plugin, or `~/.gemini/config/skills/repo-walkthrough`,
+`~/.claude/skills/repo-walkthrough`, or `.agents/skills/repo-walkthrough` when
+copied as a standalone skill.
 
 ## Output Options
 
