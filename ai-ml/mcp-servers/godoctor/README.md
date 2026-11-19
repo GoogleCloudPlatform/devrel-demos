@@ -28,18 +28,29 @@ GoDoctor organizes its capabilities into domain-specific tools to streamline dev
 
 ## Installation
 
-### For Gemini CLI Users (Recommended)
+### For Antigravity Users (Recommended)
 
-If you use the [Gemini CLI](https://github.com/google/gemini-cli), you can install GoDoctor as an extension. This is the easiest way for most Go developers to use it.
+If you use [Google Antigravity](https://antigravity.google), register GoDoctor as an MCP server. Antigravity CLI (`agy`) replaced Gemini CLI. See the [migration guide](https://antigravity.google/docs/cli/gcli-migration) for details.
 
-1.  **Install the binary:**
+1.  **Install the binary** (from the `devrel-demos` root):
     ```bash
-    go install github.com/danicat/godoctor@latest
+    cd ai-ml/mcp-servers/godoctor && go install ./cmd/godoctor
     ```
-2.  **Install the extension:**
+2.  **Add the MCP server:**
     ```bash
-    gemini extensions install https://github.com/danicat/godoctor
+    agy mcp add godoctor "$(go env GOPATH)/bin/godoctor"
     ```
+    Or add it to `~/.gemini/config/mcp_config.json` (global) or `.agents/mcp_config.json` (workspace), using the full binary path if `$(go env GOPATH)/bin` is not on `PATH`:
+    ```json
+    {
+      "mcpServers": {
+        "godoctor": {
+          "command": "godoctor"
+        }
+      }
+    }
+    ```
+    GoDoctor's local Go tools work immediately without an API key. To enable `code_review`, pass `-e GEMINI_API_KEY="your-api-key"` before the server name in `agy mcp add` or add an `"env"` block in `~/.gemini/config/mcp_config.json`.
 
 ### For GoDoctor Developers
 ... (rest of the existing installation)
