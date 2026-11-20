@@ -14,7 +14,8 @@
 
 """
 Subtask 2 & 3: FastAPI HTTP Handler
-Receives the validated document from Subtask 1, chunks it, embeds it, and saves it to the database.
+Receives the validated document from Subtask 1, chunks it, and saves it to the database,
+where Cloud SQL generates the embeddings.
 """
 
 import os
@@ -22,7 +23,6 @@ import functools
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
 from subtask2_chunking_embedding.ast_chunker import HeadingAwareChunker
-from subtask2_chunking_embedding.embedder import VertexVectorService
 from subtask3_vector_store.db import VectorStoreRepository
 
 app = FastAPI(title="Subtask 2: Chunker and Embedder Service")
@@ -37,10 +37,6 @@ class ProcessDocumentRequest(BaseModel):
     body: str
 
 @functools.cache
-def _embedder() -> VertexVectorService:
-    return VertexVectorService(os.environ["PROJECT_ID"], os.environ.get("LOCATION", "us-central1"))
-
-@functools.cache
 def _db() -> VectorStoreRepository:
     return VectorStoreRepository({
         "host": os.environ["DB_HOST"],
@@ -53,7 +49,6 @@ def _db() -> VectorStoreRepository:
 def process_document(req: ProcessDocumentRequest):
     try:
         chunker = HeadingAwareChunker()
-        embedder = _embedder()
         db = _db()
 
         # 1. Chunk the document
@@ -61,11 +56,7 @@ def process_document(req: ProcessDocumentRequest):
         if not chunks:
             return {"status": "SKIPPED", "reason": "No chunks generated."}
 
-        # 2. Generate embeddings
-        chunk_texts = [c["content"] for c in chunks]
-        embeddings = embedder.generate_embeddings(chunk_texts)
-
-        # 3. Write securely to pgvector
+        # 2. Write securely to pgvector (embeddings are generated in Cloud SQL)
         doc_meta = {
             "document_id": req.document_id,
             "title": req.title,
@@ -74,7 +65,7 @@ def process_document(req: ProcessDocumentRequest):
             "content_owner": req.content_owner,
             "last_verified_date": req.last_verified_date
         }
-        db.write_document_and_chunks(doc_meta, chunks, embeddings)
+        db.write_document_and_chunks(doc_meta, chunks)
 
         return {"status": "SUCCESS", "chunks_processed": len(chunks)}
     except Exception as e:

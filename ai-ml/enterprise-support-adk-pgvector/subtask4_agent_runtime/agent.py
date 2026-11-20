@@ -28,7 +28,6 @@ from google.api_core.client_options import ClientOptions
 from google.cloud import modelarmor_v1
 from google.genai import types
 
-from subtask2_chunking_embedding.embedder import VertexVectorService
 from subtask3_vector_store.db import VectorStoreRepository
 from subtask5_closed_loop_eval.telemetry import TelemetryService
 from subtask4_agent_runtime.mcp_tools import (
@@ -39,9 +38,8 @@ from subtask4_agent_runtime.mcp_tools import (
 SIMILARITY_THRESHOLD = 0.65
 
 class EnterpriseSupportADKAgent:
-    def __init__(self, vector_repo, embedder, telemetry_service, project_id, location):
+    def __init__(self, vector_repo, telemetry_service, project_id, location):
         self.vector_repo = vector_repo
-        self.embedder = embedder
         self.telemetry = telemetry_service
         self.project_id = project_id
         self.location = location
@@ -75,7 +73,7 @@ class EnterpriseSupportADKAgent:
         clean_query = self._sanitize_with_model_armor(raw_query)
 
         search_req = EnterpriseWikiSearchRequest(query=clean_query, user_audience_level=audience_tier)
-        retrieved_evidence = execute_wiki_rag_search(search_req, self.vector_repo, self.embedder)
+        retrieved_evidence = execute_wiki_rag_search(search_req, self.vector_repo)
 
         if not retrieved_evidence or retrieved_evidence[0]["similarity"] < SIMILARITY_THRESHOLD:
             execute_record_outcome(OutcomeRecordRequest(
@@ -115,10 +113,6 @@ LOCATION = os.environ.get("LOCATION", "us-central1")
 _TEMPLATE = f"projects/{PROJECT_ID}/locations/{LOCATION}/templates/default-safety-template"
 
 @functools.cache
-def _embedder() -> VertexVectorService:
-    return VertexVectorService(PROJECT_ID, LOCATION)
-
-@functools.cache
 def _vector_repo() -> VectorStoreRepository:
     return VectorStoreRepository({
         "host": os.environ.get("DB_HOST", "localhost"),
@@ -144,7 +138,7 @@ def search_knowledge_base(query: str, tool_context: ToolContext) -> list[dict]:
     audience = tool_context.state.get("user_audience", "All-Employees")
     results = execute_wiki_rag_search(
         EnterpriseWikiSearchRequest(query=query, user_audience_level=audience),
-        _vector_repo(), _embedder())
+        _vector_repo())
     # Apply the threshold in code so routing doesn't depend on the model.
     return [r for r in results if r["similarity"] >= SIMILARITY_THRESHOLD]
 

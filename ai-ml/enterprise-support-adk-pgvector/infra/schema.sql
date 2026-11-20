@@ -14,6 +14,7 @@
 
 -- Enable the vector extension for low-latency similarity search
 CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS google_ml_integration CASCADE;
 
 -- Document master table preserving auditability and ownership
 CREATE TABLE IF NOT EXISTS kb_documents (
@@ -33,7 +34,6 @@ CREATE TABLE IF NOT EXISTS kb_chunks (
     document_id VARCHAR(64) REFERENCES kb_documents(document_id) ON DELETE CASCADE,
     heading_hierarchy TEXT NOT NULL,       -- Injected breadcrumbs: e.g. "[App: ZTNA] > [OS: Desktop]"
     chunk_content TEXT NOT NULL,          -- Markdown body strictly bounded by AST headings
-    target_audience VARCHAR(64) NOT NULL, -- Denormalized for zero-join RLAC filtering
     embedding vector(768) NOT NULL,       -- Sized for Vertex AI text-embedding-005
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -45,6 +45,12 @@ ON kb_chunks
 USING hnsw (embedding vector_cosine_ops) 
 WITH (m = 16, ef_construction = 64);
 
--- Index for deterministic Role-Level Access Control (RLAC) pre-filtering
-CREATE INDEX IF NOT EXISTS idx_kb_chunks_audience 
-ON kb_chunks (target_audience);
+-- Register the Vertex AI embedding model so Postgres can generate embeddings natively.
+-- Auth uses the Cloud SQL service account, which needs roles/aiplatform.user (see main.tf).
+-- Note: create_model is not idempotent; skip this statement when re-running the schema.
+CALL google_ml.create_model(
+    model_id => 'text-embedding-005',
+    model_provider => 'google',
+    model_qualified_name => 'text-embedding-005',
+    model_type => 'text_embedding',
+    model_auth_type => 'cloudsql_service_agent_iam');

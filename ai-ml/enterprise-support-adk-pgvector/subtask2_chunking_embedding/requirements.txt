@@ -2,6 +2,5 @@ fastapi
 uvicorn
 pydantic
 mistune
-google-cloud-aiplatform
 psycopg2-binary
 pgvector

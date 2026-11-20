@@ -15,7 +15,7 @@
 """
 Subtask 3: Low-Latency Persistence & Real-Time HNSW Vector Search.
 Why this logic:
-- Directly writes vector embeddings to PostgreSQL with ACID safety.
+- Cloud SQL generates embeddings in-database (google_ml_integration) and stores them with ACID safety.
 - Changes are searchable within milliseconds, eliminating multi-hour batch indexing delays.
 - Enforces Role-Level Access Control (RLAC) inside the SQL WHERE clause.
 """
@@ -33,7 +33,7 @@ class VectorStoreRepository:
         self.conn = psycopg2.connect(**db_config)
         register_vector(self.conn)
 
-    def write_document_and_chunks(self, doc_meta: dict, chunks: list[dict], embeddings: list[list[float]]):
+    def write_document_and_chunks(self, doc_meta: dict, chunks: list[dict]):
         """
         Atomically commits the document header and indexed chunks within a single transaction.
         """
@@ -56,7 +56,7 @@ class VectorStoreRepository:
                     doc_meta["last_verified_date"]
                 ))
 
-                # 2. Insert semantic chunks with HNSW vector indexing
+                # 2. Insert semantic chunks; Postgres generates the embeddings natively
                 chunk_records = []
                 for i, chunk in enumerate(chunks):
                     chunk_records.append((
@@ -64,36 +64,40 @@ class VectorStoreRepository:
                         doc_meta["document_id"],
                         chunk["hierarchy"],
                         chunk["content"],
-                        doc_meta["target_audience"],
-                        embeddings[i]
+                        chunk["content"],  # embedded in SQL by google_ml.embedding
                     ))
 
                 execute_values(cur, """
-                    INSERT INTO kb_chunks (chunk_id, document_id, heading_hierarchy, chunk_content, target_audience, embedding)
+                    INSERT INTO kb_chunks (chunk_id, document_id, heading_hierarchy, chunk_content, embedding)
                     VALUES %s
                     ON CONFLICT (chunk_id) DO UPDATE 
                     SET chunk_content = EXCLUDED.chunk_content,
                         embedding = EXCLUDED.embedding;
-                """, chunk_records)
+                """, chunk_records,
+                    template="(%s, %s, %s, %s, google_ml.embedding('text-embedding-005', %s)::vector)")
 
-    def search_similar_chunks(self, query_embedding: list[float], user_audience: str, top_k: int = 3) -> list[dict]:
+    def search_similar_chunks(self, query_text: str, user_audience: str, top_k: int = 3) -> list[dict]:
         """
-        Queries top_k chunks using cosine distance (<=>).
-        Pre-filters strictly by the caller's target_audience (RLAC).
+        Embeds query_text in Postgres and queries top_k chunks using cosine distance (<=>).
+        Filters strictly by the parent document's target_audience (RLAC).
         """
         with self.conn.cursor() as cur:
             cur.execute("""
+                WITH q AS (
+                    SELECT google_ml.embedding('text-embedding-005', %s)::vector AS v
+                )
                 SELECT 
-                    chunk_id, 
-                    document_id, 
-                    heading_hierarchy, 
-                    chunk_content,
-                    1 - (embedding <=> %s::vector) AS cosine_similarity
-                FROM kb_chunks
-                WHERE target_audience = %s OR target_audience = 'All-Employees'
-                ORDER BY embedding <=> %s::vector
+                    c.chunk_id, 
+                    c.document_id, 
+                    c.heading_hierarchy, 
+                    c.chunk_content,
+                    1 - (c.embedding <=> (SELECT v FROM q)) AS cosine_similarity
+                FROM kb_chunks c
+                JOIN kb_documents d ON c.document_id = d.document_id
+                WHERE d.target_audience IN (%s, 'All-Employees')
+                ORDER BY c.embedding <=> (SELECT v FROM q)
                 LIMIT %s;
-            """, (query_embedding, user_audience, query_embedding, top_k))
+            """, (query_text, user_audience, top_k))
             
             rows = cur.fetchall()
             return [

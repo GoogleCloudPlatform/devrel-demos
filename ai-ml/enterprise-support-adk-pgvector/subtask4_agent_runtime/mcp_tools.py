@@ -38,9 +38,8 @@ class OutcomeRecordRequest(BaseModel):
     user_feedback_rating: Optional[str] = Field(None, description="thumbs_up or thumbs_down")
 
 # Python equivalents of Go MCP Interfaces
-def execute_wiki_rag_search(req: EnterpriseWikiSearchRequest, vector_repo, embedder) -> list[dict]:
-    query_vector = embedder.generate_embeddings([req.query])[0]
-    return vector_repo.search_similar_chunks(query_vector, req.user_audience_level, top_k=3)
+def execute_wiki_rag_search(req: EnterpriseWikiSearchRequest, vector_repo) -> list[dict]:
+    return vector_repo.search_similar_chunks(req.query, req.user_audience_level, top_k=3)
 
 def execute_create_itsm_ticket(req: ITSMTicketRequest) -> dict:
     # Deterministic API call to the ITSM platform (avoids LLM routing hallucinations)

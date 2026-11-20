@@ -7,7 +7,7 @@ This repository provides a reference architecture for an event-driven, low-laten
 ## 🏗️ Architecture & Subtasks
 
 1. **Ingestion & Governance (`subtask1_ingestion`):** Replaces batch scraping with instant webhooks, enforcing Role-Level Access Control (RLAC) metadata.
-2. **AST Chunking (`subtask2_chunking_embedding`):** Uses heading-aware chunking and Vertex AI `text-embedding-005` to preserve procedural context.
+2. **AST Chunking (`subtask2_chunking_embedding`):** Uses heading-aware chunking to preserve procedural context. Embeddings (`text-embedding-005`) are generated inside Cloud SQL by the `google_ml_integration` extension.
 3. **Vector Store (`subtask3_vector_store`):** Transactional HNSW vector storage in Cloud SQL PostgreSQL for fast similarity search.
 4. **Agent Runtime (`subtask4_agent_runtime`):** ADK-based orchestrator featuring Model Armor prompt defense and deterministic Model Context Protocol (MCP) tools, running on Agent Runtime on Gemini Enterprise Agent Platform.
 5. **Closed-Loop Eval (`subtask5_closed_loop_eval`):** Pub/Sub event streaming and automated runbook generation for unhandled queries.

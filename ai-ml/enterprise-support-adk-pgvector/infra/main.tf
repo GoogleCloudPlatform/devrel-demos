@@ -81,6 +81,18 @@ resource "google_sql_database_instance" "knowledge_store" {
   settings {
     tier = "db-custom-4-16384"
 
+    # Lets the instance call Vertex AI through the google_ml_integration extension
+    database_flags {
+      name  = "cloudsql.enable_google_ml_integration"
+      value = "on"
+    }
+
+    # Enables model endpoint management (google_ml.create_model)
+    database_flags {
+      name  = "google_ml_integration.enable_model_support"
+      value = "on"
+    }
+
     ip_configuration {
       # In production, require private IP exclusively
       ipv4_enabled    = false
@@ -89,6 +101,13 @@ resource "google_sql_database_instance" "knowledge_store" {
       # TODO(production): Verify PSC vs VPC Peering allocation
     }
   }
+}
+
+# Lets the Cloud SQL service account call Vertex AI embedding models
+resource "google_project_iam_member" "cloudsql_vertex_ai_user" {
+  project = var.project_id
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${google_sql_database_instance.knowledge_store.service_account_email_address}"
 }
 
 # Pub/Sub Topic for Subtask 5 Asynchronous Telemetry
