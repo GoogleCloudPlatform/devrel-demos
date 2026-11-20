@@ -58,6 +58,7 @@ import {
   resolveSharedCacheDir,
   sanitizeForTts,
 } from "../skills/repo-walkthrough/scripts/generate_live_audio.mjs";
+import * as audioModule from "../skills/repo-walkthrough/scripts/generate_live_audio.mjs";
 import {
   formatFfmpegConcatEntry,
   getPlaywrightSearchRoots,
@@ -377,6 +378,109 @@ test("createWavBuffer, extractPcmSegments, and computeAcousticCueAt align voiced
   ];
   assert.equal(computeAcousticCueAt(aligned, 60.76, "03 vision extraction.sql", 1), 0.3);
   assert.equal(computeAcousticCueAt(aligned, 60.76, "04 predictive pricing.sql", 2), 0.45);
+});
+
+test("computeAcousticCueAt returns null (not 0) for non-first cues with missing, empty, or unmatched phrases and anchors only cue 0 at 0", () => {
+  const aligned = [
+    { seg: 0, startSec: 18.24, endSec: 20.8, text: "03 vision extraction.sql inspects photos" },
+    { seg: 1, startSec: 26.76, endSec: 29.52, text: "while 04 predictive pricing.sql combines traits" },
+  ];
+  assert.equal(computeAcousticCueAt(aligned, 60.76, undefined, 1), null, "missing phrase on cue 1 must be null");
+  assert.equal(computeAcousticCueAt(aligned, 60.76, "", 2), null, "empty phrase on cue 2 must be null");
+  assert.equal(computeAcousticCueAt(aligned, 60.76, "  !!  ", 1), null, "punctuation-only phrase must be null");
+  assert.equal(computeAcousticCueAt(aligned, 60.76, "never spoken here", 1), null, "unmatched phrase must be null");
+  assert.equal(computeAcousticCueAt([], 60.76, "03 vision extraction.sql", 1), null, "empty segments must be null");
+  assert.equal(computeAcousticCueAt(null, 60.76, "03 vision extraction.sql", 1), null, "null segments must be null");
+  assert.equal(computeAcousticCueAt(aligned, 0, "03 vision extraction.sql", 1), null, "zero duration must be null");
+
+  assert.equal(computeAcousticCueAt(aligned, 60.76, undefined, 0), 0, "cue 0 always anchors at 0");
+  assert.equal(computeAcousticCueAt(aligned, 60.76, "04 predictive pricing.sql", 0), 0, "cue 0 anchors at 0 even with a phrase");
+  assert.equal(computeAcousticCueAt([], 60.76, "", 0), 0, "cue 0 anchors at 0 even without segments");
+});
+
+test("computeAcousticCueAt matches non-Latin phrases with Unicode-aware normalization", () => {
+  const alignedJa = [
+    { seg: 0, startSec: 0, endSec: 4, text: "これはテストです。" },
+    { seg: 1, startSec: 5, endSec: 9, text: "次に日本語の説明をします。" },
+  ];
+  // "日本語" starts at char 2 of the 12-char normalized segment 1: 5 + 4 * (2 / 12) = 5.67s of 10s
+  assert.equal(computeAcousticCueAt(alignedJa, 10, "日本語", 1), 0.57);
+  assert.equal(computeAcousticCueAt(alignedJa, 10, "中文", 1), null, "unmatched non-Latin phrase must be null");
+  assert.equal(computeAcousticCueAt([], 10, "日本語", 1), null, "non-Latin phrase with empty segments must be null");
+  assert.equal(computeAcousticCueAt(alignedJa, 10, "日本語", 0), 0, "cue 0 still anchors at 0");
+});
+
+test("alignStepCues advances a monotonic search cursor so repeated phrases never jump backward", () => {
+  assert.equal(
+    typeof audioModule.alignStepCues,
+    "function",
+    "generate_live_audio.mjs must export alignStepCues(cues, alignedSegments, totalDur)"
+  );
+  const aligned = [
+    { seg: 0, startSec: 1, endSec: 3, text: "the runner calls the agent" },
+    { seg: 1, startSec: 4, endSec: 6, text: "then the runner calls the tool" },
+    { seg: 2, startSec: 7, endSec: 9, text: "finally the runner returns" },
+  ];
+  const cues = [
+    { at: 0, node: "a" },
+    { at: 0.2, node: "b", phrase: "the runner" },
+    { at: 0.3, node: "c" },
+    { at: 0.5, node: "d", phrase: "the runner" },
+    { at: 0.8, node: "e", phrase: "the runner" },
+  ];
+  const out = audioModule.alignStepCues(cues, aligned, 10);
+  // 1 + 2 * 0/26 = 1.0s, 4 + 2 * 5/30 = 4.33s, 7 + 2 * 8/26 = 7.62s (of 10s)
+  assert.deepEqual(
+    out.map((c) => c.at),
+    [0, 0.1, 0.3, 0.43, 0.76]
+  );
+  assert.deepEqual(
+    out.map((c) => c.node),
+    ["a", "b", "c", "d", "e"],
+    "cue payloads must be preserved"
+  );
+  const phrased = out.filter((c) => c.phrase).map((c) => c.at);
+  for (let i = 1; i < phrased.length; i++) {
+    assert.ok(phrased[i] > phrased[i - 1], `repeated phrase cue ${i} moved backward: ${phrased}`);
+  }
+  // Without a cursor each call is independent and finds the first occurrence
+  assert.equal(computeAcousticCueAt(aligned, 10, "the runner", 3), 0.1);
+});
+
+test("Real web/data-adk.js cues without a phrase keep their authored timing (0 clobbered to 0)", () => {
+  const adkData = loadDataJs(path.join(REPO_ROOT, "web", "data-adk.js"));
+  const totalDur = 60;
+  const missing = [];
+  const clobbered = [];
+  for (const st of adkData.walkthrough) {
+    const aligned = [{ seg: 0, startSec: 0, endSec: totalDur, text: st.narration }];
+    (st.cues || []).forEach((c, cIdx) => {
+      if (cIdx === 0 || c.phrase) return;
+      missing.push(`step ${st.step} cue ${cIdx}`);
+      // Mirrors the main() merge: `at: acousticAt !== null ? acousticAt : c.at`
+      const acousticAt = computeAcousticCueAt(aligned, totalDur, c.phrase, cIdx);
+      const at = acousticAt !== null ? acousticAt : c.at;
+      if (at !== c.at) clobbered.push(`step ${st.step} cue ${cIdx}: ${c.at} -> ${at}`);
+    });
+  }
+  assert.equal(missing.length, 20, "bundled ADK example should have 20 non-first cues without a phrase");
+  assert.deepEqual(
+    clobbered,
+    [],
+    `${clobbered.length} of ${missing.length} phrase-less ADK cues were clobbered:\n${clobbered.join("\n")}`
+  );
+
+  assert.equal(typeof audioModule.alignStepCues, "function", "generate_live_audio.mjs must export alignStepCues");
+  for (const st of adkData.walkthrough) {
+    const aligned = [{ seg: 0, startSec: 0, endSec: totalDur, text: st.narration }];
+    const out = audioModule.alignStepCues(st.cues, aligned, totalDur);
+    assert.equal(out[0].at, 0, `step ${st.step} cue 0 must anchor at 0`);
+    st.cues.forEach((c, cIdx) => {
+      if (cIdx > 0 && !c.phrase) {
+        assert.equal(out[cIdx].at, c.at, `step ${st.step} cue ${cIdx} must keep authored at`);
+      }
+    });
+  }
 });
 
 test("CLI --help / -h exits 0 without mutating examples, and unknown flags or missing .html fail fast", () => {

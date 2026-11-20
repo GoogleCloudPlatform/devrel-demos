@@ -438,45 +438,49 @@ function sliceWavBase64(wavBuffer, startSec, endSec, sr = 24000, totalSamples = 
 }
 
 function normalizeMatchText(s = "") {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return String(s).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 }
 
-function computeAcousticCueAt(alignedSegments, totalDur, phrase = "", cueIndex = 0) {
-  if (cueIndex === 0 || !phrase || !alignedSegments?.length || !(totalDur > 0)) return 0;
+/**
+ * Returns the cue start as a 0..0.99 fraction of the step audio.
+ * Cue 0 always anchors at 0. Any other cue returns null (keep the authored `at`)
+ * when its phrase is missing, empty, or not found in the aligned segments.
+ * Pass a shared `cursor` object ({ pos: 0 }) across a step's cues so repeated
+ * phrases resolve to successive occurrences instead of jumping back to the first.
+ */
+function computeAcousticCueAt(alignedSegments, totalDur, phrase = "", cueIndex = 0, cursor = null) {
+  if (cueIndex === 0) return 0;
+  if (!phrase || !alignedSegments?.length || !(totalDur > 0)) return null;
   const normPhrase = normalizeMatchText(phrase);
-  if (!normPhrase) return 0;
+  if (!normPhrase) return null;
 
+  // Join normalized segment texts so a phrase can span a short pause between segments.
+  const spans = [];
+  let combined = "";
   for (const seg of alignedSegments) {
-    const normSeg = normalizeMatchText(seg.text || "");
-    const idx = normSeg.indexOf(normPhrase);
-    if (idx >= 0) {
-      const frac = normSeg.length > 0 ? idx / normSeg.length : 0;
-      const exactSec = seg.startSec + (seg.endSec - seg.startSec) * frac;
-      return Number(Math.min(0.99, Math.max(0, exactSec / totalDur)).toFixed(2));
-    }
+    const text = normalizeMatchText(seg.text || "");
+    if (!text) continue;
+    if (combined) combined += " ";
+    spans.push({ seg, start: combined.length, text });
+    combined += text;
   }
-  // Fallback: check across two consecutive segments in case a phrase spans a short pause
-  for (let i = 0; i < alignedSegments.length - 1; i++) {
-    const sA = alignedSegments[i];
-    const sB = alignedSegments[i + 1];
-    const normA = normalizeMatchText(sA.text || "");
-    const normB = normalizeMatchText(sB.text || "");
-    const combined = `${normA} ${normB}`.trim();
-    const idx = combined.indexOf(normPhrase);
-    if (idx >= 0) {
-      if (idx < normA.length) {
-        const frac = normA.length > 0 ? idx / normA.length : 0;
-        const exactSec = sA.startSec + (sA.endSec - sA.startSec) * frac;
-        return Number(Math.min(0.99, Math.max(0, exactSec / totalDur)).toFixed(2));
-      } else {
-        const idxB = Math.max(0, idx - normA.length - 1);
-        const fracB = normB.length > 0 ? idxB / normB.length : 0;
-        const exactSec = sB.startSec + (sB.endSec - sB.startSec) * fracB;
-        return Number(Math.min(0.99, Math.max(0, exactSec / totalDur)).toFixed(2));
-      }
-    }
-  }
-  return null;
+
+  const idx = combined.indexOf(normPhrase, cursor?.pos || 0);
+  if (idx < 0) return null;
+  if (cursor) cursor.pos = idx + normPhrase.length;
+
+  const span = spans.findLast((s) => s.start <= idx);
+  const frac = (idx - span.start) / span.text.length;
+  const exactSec = span.seg.startSec + (span.seg.endSec - span.seg.startSec) * frac;
+  return Number(Math.min(0.99, Math.max(0, exactSec / totalDur)).toFixed(2));
+}
+
+function alignStepCues(cues, alignedSegments, totalDur) {
+  const cursor = { pos: 0 };
+  return cues.map((c, cIdx) => {
+    const acousticAt = computeAcousticCueAt(alignedSegments, totalDur, c.phrase, cIdx, cursor);
+    return { ...c, at: acousticAt !== null ? acousticAt : c.at };
+  });
 }
 
 async function alignStepSegmentsWithGemini(
@@ -721,13 +725,7 @@ async function main() {
       const { alignedSegments } = alignedResult;
       manifest[idx].segments = alignedSegments;
       if (Array.isArray(st.cues)) {
-        manifest[idx].alignedCues = st.cues.map((c, cIdx) => {
-          const acousticAt = computeAcousticCueAt(alignedSegments, durationSec, c.phrase, cIdx);
-          return {
-            ...c,
-            at: acousticAt !== null ? acousticAt : c.at,
-          };
-        });
+        manifest[idx].alignedCues = alignStepCues(st.cues, alignedSegments, durationSec);
       }
     } catch (err) {
       console.warn(`  ⚠️ Acoustic alignment warning on Step ${st.step}: ${err.message}`);
@@ -743,6 +741,7 @@ export {
   DEFAULT_MODEL,
   DEFAULT_SPEECH_STYLE,
   DEFAULT_VOICE,
+  alignStepCues,
   buildTtsRequestBody,
   computeAcousticCueAt,
   computeContentHash,
