@@ -1138,9 +1138,9 @@ test("Security: resolveGeminiApiKey prefers user-scoped keys and the OS store ov
       "<cwd>/.env is never read without the explicit opt-in"
     );
     assert.equal(
-      resolveGeminiApiKey(fakeRepo, { ...base, env: { REPO_WALKTHROUGH_ALLOW_CWD_ENV: "1" } }),
+      resolveGeminiApiKey(fakeRepo, { ...base, env: { REPO_WALKTHROUGH_LOAD_CWD_DOTENV: "1" } }),
       "untrusted_repo_key",
-      "<cwd>/.env is the last resort only with REPO_WALKTHROUGH_ALLOW_CWD_ENV=1"
+      "<cwd>/.env is the last resort only with REPO_WALKTHROUGH_LOAD_CWD_DOTENV=1"
     );
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
@@ -1160,9 +1160,9 @@ test("Security: keyless users never pick up a hostile <cwd>/.env, and key files 
     assert.equal(hasGeminiKey(fakeRepo, keyless), false, "keyless user must stay keyless inside a hostile clone");
     assert.throws(() => resolveGeminiApiKey(fakeRepo, keyless), /Could not resolve GEMINI_API_KEY/);
     assert.equal(
-      resolveGeminiApiKey(fakeRepo, { ...keyless, env: { REPO_WALKTHROUGH_ALLOW_CWD_ENV: "1" } }),
+      resolveGeminiApiKey(fakeRepo, { ...keyless, env: { REPO_WALKTHROUGH_LOAD_CWD_DOTENV: "1" } }),
       "hostile_clone_key",
-      "<cwd>/.env is read only with the explicit REPO_WALKTHROUGH_ALLOW_CWD_ENV=1 opt-in"
+      "<cwd>/.env is read only with the explicit REPO_WALKTHROUGH_LOAD_CWD_DOTENV=1 opt-in"
     );
 
     // Oversized key files are ignored instead of slurped into memory
@@ -1241,8 +1241,8 @@ test("Cross-platform GEMINI_API_KEY resolution and strict scoping", () => {
 
     fs.writeFileSync(path.join(cwdDir, ".env"), "GEMINI_API_KEY=from-cwd-env\n", "utf8");
     assert.equal(
-      hasGeminiKey(fakeRepo, {
-        env: { REPO_WALKTHROUGH_ALLOW_CWD_ENV: "1" },
+      hasGeminiKey(null, {
+        env: { REPO_WALKTHROUGH_LOAD_CWD_DOTENV: "1" },
         platform: "linux",
         cwd: cwdDir,
         homedir: fakeHome,

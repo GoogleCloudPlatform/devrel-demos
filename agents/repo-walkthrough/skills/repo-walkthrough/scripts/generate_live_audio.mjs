@@ -29,7 +29,7 @@
  *      ~/.config/repo-walkthrough, and ~/.gemini
  *   3. OS credential store (service "gemini-api-key" across macOS Keychain, Linux secret-tool, and Windows Credential Manager)
  *   4. <repoRoot>/.env of the installed plugin or skill
- *   5. <cwd>/.env only when REPO_WALKTHROUGH_ALLOW_CWD_ENV=1, since the cwd may be an untrusted clone
+ *   5. <cwd>/.env only when REPO_WALKTHROUGH_LOAD_CWD_DOTENV=1, since the cwd may be an untrusted clone
  * Key files must be regular files (symlinks are followed only to regular files) of at most 64 KiB.
  */
 
@@ -243,7 +243,7 @@ function resolveGeminiApiKey(
 
   const repoCandidates = [];
   if (repoRoot) repoCandidates.push(path.join(repoRoot, ".env"));
-  if (env.REPO_WALKTHROUGH_ALLOW_CWD_ENV === "1") repoCandidates.push(path.resolve(cwd, ".env"));
+  if (env.REPO_WALKTHROUGH_LOAD_CWD_DOTENV === "1") repoCandidates.push(path.resolve(cwd, ".env"));
   for (const envPath of repoCandidates) {
     const val = readKeyFromEnvFile(envPath);
     if (val) return val;
