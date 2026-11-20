@@ -514,11 +514,20 @@ function computeAcousticCueAt(alignedSegments, totalDur, phrase = "", cueIndex =
   return Number(Math.min(0.99, Math.max(0, exactSec / totalDur)).toFixed(2));
 }
 
+// Minimum gap between consecutive cues so a later cue can never hide an earlier one
+const CUE_MIN_GAP = 0.02;
+
 function alignStepCues(cues, alignedSegments, totalDur) {
   const cursor = { pos: 0 };
+  let prevAt = null;
   return cues.map((c, cIdx) => {
     const acousticAt = computeAcousticCueAt(alignedSegments, totalDur, c.phrase, cIdx, cursor);
-    return { ...c, at: acousticAt !== null ? acousticAt : c.at };
+    let at = acousticAt !== null ? acousticAt : c.at;
+    if (typeof at === "number" && prevAt !== null && at < prevAt + CUE_MIN_GAP) {
+      at = Number(Math.min(0.99, prevAt + CUE_MIN_GAP).toFixed(2));
+    }
+    if (typeof at === "number") prevAt = at;
+    return { ...c, at };
   });
 }
 

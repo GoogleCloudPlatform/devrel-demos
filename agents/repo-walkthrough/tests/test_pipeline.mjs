@@ -508,6 +508,50 @@ test("Repeated phrases: cue 0's phrase advances the cursor and the validator and
   assert.equal(resolveCue(st, 0.7).focus, "b", "viewer must switch to cue 1 at the second 'the runner'");
 });
 
+test("Non-monotonic cues: mixed acoustic and authored at values are clamped so every cue renders for at least 1 frame", () => {
+  // Cue 1 aligns acoustically to 0.38 while cue 2 keeps its authored 0.35
+  const aligned = [{ seg: 0, startSec: 3.8, endSec: 6, text: "the agent replies" }];
+  const out = audioModule.alignStepCues(
+    [
+      { at: 0, node: "a" },
+      { at: 0.2, node: "b", phrase: "the agent" },
+      { at: 0.35, node: "c" },
+    ],
+    aligned,
+    10
+  );
+  assert.equal(out[1].at, 0.38);
+  for (let i = 1; i < out.length; i++) {
+    assert.ok(
+      out[i].at >= out[i - 1].at + 0.02 - 1e-9,
+      `alignedCues must be non-decreasing with a 0.02 gap: ${out.map((c) => c.at).join(", ")}`
+    );
+  }
+
+  // The viewer must also tolerate raw out-of-order at values from data.js or older manifests
+  const { resolveCue } = loadTemplateCueFns();
+  const st = {
+    narration: "Narration.",
+    activeNodes: ["a", "b", "c"],
+    focusNode: "a",
+    cues: [
+      { at: 0, node: "a" },
+      { at: 0.38, node: "b" },
+      { at: 0.35, node: "c" },
+    ],
+  };
+  const fps = 12;
+  const stepSec = 20;
+  const totalFrames = fps * stepSec;
+  const framesPerCue = { a: 0, b: 0, c: 0 };
+  for (let f = 0; f < totalFrames; f++) {
+    framesPerCue[resolveCue(st, f / totalFrames).focus]++;
+  }
+  for (const [node, frames] of Object.entries(framesPerCue)) {
+    assert.ok(frames >= 1, `cue '${node}' never rendered: ${JSON.stringify(framesPerCue)}`);
+  }
+});
+
 test("Real web/data-adk.js cues without a phrase keep their authored timing (0 clobbered to 0)", () => {
   const adkData = loadDataJs(path.join(REPO_ROOT, "web", "data-adk.js"));
   const totalDur = 60;

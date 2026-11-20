@@ -786,6 +786,7 @@
     let chosen = st.cues[0];
     const narrationLower = String(st.narration || "").toLowerCase();
     let phraseCursor = 0;
+    let prevCueAt = null;
     for (const c of st.cues) {
       // Moving cursor so a repeated phrase maps to its next occurrence
       let phraseIdx = -1;
@@ -793,12 +794,15 @@
         phraseIdx = narrationLower.indexOf(String(c.phrase).toLowerCase(), phraseCursor);
         if (phraseIdx >= 0) phraseCursor = phraseIdx + String(c.phrase).length;
       }
-      const cueAt =
+      let cueAt =
         typeof c.at === "number"
           ? c.at
           : phraseIdx > 0
             ? computeSpokenOffset(st.narration, c.phrase, phraseIdx)
             : 0;
+      // Keep cue times non-decreasing (0.02 gap) so an out-of-order cue never hides an earlier one
+      if (prevCueAt !== null && cueAt < prevCueAt + 0.02) cueAt = Math.min(0.99, prevCueAt + 0.02);
+      prevCueAt = cueAt;
       if (progress01 >= cueAt) chosen = c;
     }
     const nodes = chosen.nodes || (chosen.node ? [chosen.node] : st.activeNodes);
