@@ -1030,11 +1030,69 @@ test("Security: resolveGeminiApiKey prefers user-scoped keys and the OS store ov
       "env_key",
       "GEMINI_API_KEY env var always wins"
     );
-    assert.equal(
-      resolveGeminiApiKey(fakeRepo, base),
-      "untrusted_repo_key",
-      "<cwd>/.env stays available only as the last-resort fallback"
+    assert.throws(
+      () => resolveGeminiApiKey(fakeRepo, base),
+      /Could not resolve GEMINI_API_KEY/,
+      "<cwd>/.env is never read without the explicit opt-in"
     );
+    assert.equal(
+      resolveGeminiApiKey(fakeRepo, { ...base, env: { REPO_WALKTHROUGH_ALLOW_CWD_ENV: "1" } }),
+      "untrusted_repo_key",
+      "<cwd>/.env is the last resort only with REPO_WALKTHROUGH_ALLOW_CWD_ENV=1"
+    );
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test("Security: keyless users never pick up a hostile <cwd>/.env, and key files must be small regular files", () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "rw-keyless-"));
+  try {
+    const hostileCwd = path.join(tmpRoot, "hostile-clone");
+    const emptyHome = path.join(tmpRoot, "home");
+    const fakeRepo = path.join(tmpRoot, "plugin-root");
+    for (const d of [hostileCwd, emptyHome, fakeRepo]) fs.mkdirSync(d, { recursive: true });
+    fs.writeFileSync(path.join(hostileCwd, ".env"), "GEMINI_API_KEY=hostile_clone_key\n");
+    const keyless = { env: {}, platform: "linux", cwd: hostileCwd, homedir: emptyHome, runner: () => "" };
+
+    assert.equal(hasGeminiKey(fakeRepo, keyless), false, "keyless user must stay keyless inside a hostile clone");
+    assert.throws(() => resolveGeminiApiKey(fakeRepo, keyless), /Could not resolve GEMINI_API_KEY/);
+    assert.equal(
+      resolveGeminiApiKey(fakeRepo, { ...keyless, env: { REPO_WALKTHROUGH_ALLOW_CWD_ENV: "1" } }),
+      "hostile_clone_key",
+      "<cwd>/.env is read only with the explicit REPO_WALKTHROUGH_ALLOW_CWD_ENV=1 opt-in"
+    );
+
+    // Oversized key files are ignored instead of slurped into memory
+    const bigHome = path.join(tmpRoot, "big-home");
+    fs.mkdirSync(path.join(bigHome, ".gemini"), { recursive: true });
+    fs.writeFileSync(
+      path.join(bigHome, ".gemini", ".env"),
+      "#".repeat(1024 * 1024) + "\nGEMINI_API_KEY=oversized_key\n"
+    );
+    assert.equal(hasGeminiKey(fakeRepo, { ...keyless, homedir: bigHome }), false, "key files over the size cap are ignored");
+
+    if (process.platform !== "win32" && fs.existsSync("/dev/zero")) {
+      // A key file symlinked to a device must be skipped, not read forever
+      const devHome = path.join(tmpRoot, "dev-home");
+      fs.mkdirSync(path.join(devHome, ".config", "repo-walkthrough"), { recursive: true });
+      fs.symlinkSync("/dev/zero", path.join(devHome, ".config", "repo-walkthrough", ".env"));
+      const audioUrl = pathToFileURL(path.join(SKILL_SCRIPTS_DIR, "generate_live_audio.mjs")).href;
+      const probe = spawnSync(
+        process.execPath,
+        [
+          "--input-type=module",
+          "-e",
+          `import { resolveGeminiApiKey } from ${JSON.stringify(audioUrl)};
+           let out = "none";
+           try { out = resolveGeminiApiKey(null, { env: {}, platform: "linux", cwd: ${JSON.stringify(emptyHome)}, homedir: ${JSON.stringify(devHome)}, runner: () => "" }); } catch { out = "no-key"; }
+           process.stdout.write(String(out));`,
+        ],
+        { encoding: "utf8", timeout: 10000 }
+      );
+      assert.equal(probe.error?.code, undefined, `resolveGeminiApiKey hung on a /dev/zero symlink: ${probe.error?.code} ${probe.signal}`);
+      assert.equal(probe.stdout, "no-key", `device symlink must be skipped. stderr: ${String(probe.stderr).slice(0, 300)}`);
+    }
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
@@ -1082,7 +1140,7 @@ test("Cross-platform GEMINI_API_KEY resolution and strict scoping", () => {
     fs.writeFileSync(path.join(cwdDir, ".env"), "GEMINI_API_KEY=from-cwd-env\n", "utf8");
     assert.equal(
       hasGeminiKey(fakeRepo, {
-        env: {},
+        env: { REPO_WALKTHROUGH_ALLOW_CWD_ENV: "1" },
         platform: "linux",
         cwd: cwdDir,
         homedir: fakeHome,

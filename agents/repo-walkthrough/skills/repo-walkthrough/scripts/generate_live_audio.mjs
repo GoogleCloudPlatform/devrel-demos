@@ -25,9 +25,12 @@
  *
  * Key resolution order:
  *   1. GEMINI_API_KEY environment variable
- *   2. .env / key files: ./, $PLUGIN_DATA, ~/.config/repo-walkthrough (%APPDATA%/repo-walkthrough),
- *      ~/.gemini, and <repoRoot>
+ *   2. User-scoped .env / gemini_api_key files: $PLUGIN_DATA, %APPDATA%/repo-walkthrough,
+ *      ~/.config/repo-walkthrough, and ~/.gemini
  *   3. OS credential store (service "gemini-api-key" across macOS Keychain, Linux secret-tool, and Windows Credential Manager)
+ *   4. <repoRoot>/.env of the installed plugin or skill
+ *   5. <cwd>/.env only when REPO_WALKTHROUGH_ALLOW_CWD_ENV=1, since the cwd may be an untrusted clone
+ * Key files must be regular files (symlinks are followed only to regular files) of at most 64 KiB.
  */
 
 import { execFileSync } from "node:child_process";
@@ -128,10 +131,17 @@ function parseArgs(argv) {
   return opts;
 }
 
+const MAX_KEY_FILE_BYTES = 64 * 1024;
+
 function readKeyFromEnvFile(envPath) {
-  if (!envPath || !fs.existsSync(envPath)) return null;
+  if (!envPath) return null;
   let envText;
   try {
+    // Reject devices, FIFOs, and directories, including via symlink, and oversized files
+    const link = fs.lstatSync(envPath);
+    if (!link.isFile() && !link.isSymbolicLink()) return null;
+    const st = link.isSymbolicLink() ? fs.statSync(envPath) : link;
+    if (!st.isFile() || st.size > MAX_KEY_FILE_BYTES) return null;
     envText = fs.readFileSync(envPath, "utf8");
   } catch {
     return null;
@@ -209,7 +219,7 @@ function resolveGeminiApiKey(
   if (env.GEMINI_API_KEY && env.GEMINI_API_KEY.trim()) {
     return env.GEMINI_API_KEY.trim();
   }
-  // User-scoped locations first. The cwd may be an untrusted clone, so its .env is last resort.
+  // User-scoped locations first. The cwd may be an untrusted clone, so its .env is opt-in only.
   const envCandidates = [];
   if (env.PLUGIN_DATA && env.PLUGIN_DATA.trim()) {
     envCandidates.push(path.join(env.PLUGIN_DATA.trim(), ".env"));
@@ -233,7 +243,7 @@ function resolveGeminiApiKey(
 
   const repoCandidates = [];
   if (repoRoot) repoCandidates.push(path.join(repoRoot, ".env"));
-  repoCandidates.push(path.resolve(cwd, ".env"));
+  if (env.REPO_WALKTHROUGH_ALLOW_CWD_ENV === "1") repoCandidates.push(path.resolve(cwd, ".env"));
   for (const envPath of repoCandidates) {
     const val = readKeyFromEnvFile(envPath);
     if (val) return val;
