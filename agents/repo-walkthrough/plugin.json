@@ -1,0 +1,26 @@
+{
+  "name": "repo-walkthrough",
+  "displayName": "Repo Walkthrough",
+  "version": "1.0.0",
+  "description": "Turn any local or GitHub repository or git diff into an interactive layered architecture graph website and voice-narrated MP4 walkthrough video.",
+  "logo": "assets/logo.svg",
+  "author": {
+    "name": "Google LLC",
+    "url": "https://cloud.google.com"
+  },
+  "homepage": "https://github.com/GoogleCloudPlatform/devrel-demos/tree/main/agents/repo-walkthrough",
+  "repository": "https://github.com/GoogleCloudPlatform/devrel-demos",
+  "keywords": [
+    "architecture",
+    "codebase-visualization",
+    "walkthrough",
+    "diagram",
+    "video",
+    "tts"
+  ],
+  "suggestedPrompts": [
+    "Generate an interactive architecture walkthrough website for this repository",
+    "Build a voice-narrated walkthrough website and MP4 video for google/adk-python",
+    "Create an interactive walkthrough of the git diff between main and HEAD"
+  ]
+}

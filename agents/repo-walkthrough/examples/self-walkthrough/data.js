@@ -15,7 +15,8 @@
 // Clean, zero-crossing 5-layer architectural graph and 6-step self-walkthrough for repo-walkthrough
 
 window.WALKTHROUGH_DATA = {
-  repo: "ykdojo/repo-walkthrough",
+  repo: "GoogleCloudPlatform/devrel-demos",
+  subpath: "agents/repo-walkthrough",
   branch: "main",
   title: "repo-walkthrough",
   subtitle: "Universal Codebase Graph Website & Video Skill · Self-Walkthrough",
@@ -63,7 +64,7 @@ description: >-
       id: "fetch_repo",
       label: "fetch_repo.py",
       sub: "Repo & Diff Analyzer",
-      path: "scripts/fetch_repo.py",
+      path: "skills/repo-walkthrough/scripts/fetch_repo.py",
       layer: "engine",
       lines: 447,
       x: 205, y: 150, w: 215, h: 58,
@@ -75,25 +76,25 @@ description: >-
       id: "build_walk",
       label: "build_walkthrough.mjs",
       sub: "Validator & Builder",
-      path: "scripts/build_walkthrough.mjs",
+      path: "skills/repo-walkthrough/scripts/build_walkthrough.mjs",
       layer: "engine",
       lines: 260,
       x: 495, y: 150, w: 215, h: 58,
       role: "Validates the graph layout and walkthrough steps, then builds the interactive website (`--mode website`) and optional MP4 video (`--mode video`).",
       snippet: `validateWalkthroughData(data, path.basename(dataFile));
-// Copies index.html + data.js, runs generate_live_audio.mjs, and optionally render_video.mjs`
+// Renders index.tmpl -> index.html, copies data.js, and runs audio/video scripts`
     },
     {
       id: "render_sh",
       label: "render_video.sh",
       sub: "Video CLI Wrapper",
-      path: "scripts/render_video.sh",
+      path: "skills/repo-walkthrough/scripts/render_video.sh",
       layer: "engine",
       lines: 6,
       x: 785, y: 150, w: 215, h: 58,
-      role: "Shell wrapper that resolves the repository root and runs `scripts/render_video.mjs`.",
-      snippet: `REPO_ROOT="$(cd "$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
-exec node "$REPO_ROOT/scripts/render_video.mjs" "$@"`
+      role: "Shell wrapper that resolves the skill scripts directory and runs `render_video.mjs`.",
+      snippet: `SCRIPT_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+exec node "$SCRIPT_DIR/render_video.mjs" "$@"`
     },
 
     // ROW 2: SCHEMA & GRAPH MODEL (y = 274, x >= 200)
@@ -119,7 +120,7 @@ exec node "$REPO_ROOT/scripts/render_video.mjs" "$@"`
       x: 615, y: 274, w: 280, h: 58,
       role: "Repository-specific graph data containing `layers`, `nodes`, `edges`, and step-by-step `walkthrough` narration.",
       snippet: `window.WALKTHROUGH_DATA = {
-  repo: "ykdojo/repo-walkthrough",
+  repo: "google/adk-python",
   layers: [...], nodes: [...], edges: [...], walkthrough: [...]
 };`
     },
@@ -129,7 +130,7 @@ exec node "$REPO_ROOT/scripts/render_video.mjs" "$@"`
       id: "gen_audio",
       label: "generate_live_audio.mjs",
       sub: "Gemini TTS Audio",
-      path: "scripts/generate_live_audio.mjs",
+      path: "skills/repo-walkthrough/scripts/generate_live_audio.mjs",
       layer: "flows",
       lines: 270,
       x: 205, y: 398, w: 215, h: 58,
@@ -140,13 +141,13 @@ exec node "$REPO_ROOT/scripts/render_video.mjs" "$@"`
     },
     {
       id: "index_html",
-      label: "index.html",
-      sub: "Interactive Web Viewer",
-      path: "web/index.html",
+      label: "index.tmpl",
+      sub: "Interactive Viewer Template",
+      path: "skills/repo-walkthrough/assets/index.tmpl",
       layer: "flows",
-      lines: 1127,
+      lines: 1600,
       x: 495, y: 398, w: 215, h: 58,
-      role: "Interactive web viewer that renders the layered architecture graph, file inspector sidebar, and voice-narrated walkthrough.",
+      role: "Single-source HTML viewer template inside the skill bundle that builds into `index.html` with the layered architecture graph, file inspector sidebar, and voice-narrated walkthrough.",
       snippet: `if (params.has("video")) document.body.classList.add("video-mode");
 window.renderWalkthroughFrame = ({ stepIndex, camTransition, stepProgress, timelinePct }) => { ... };`
     },
@@ -154,11 +155,11 @@ window.renderWalkthroughFrame = ({ stepIndex, camTransition, stepProgress, timel
       id: "render_video",
       label: "render_video.mjs",
       sub: "MP4 Video Renderer",
-      path: "scripts/render_video.mjs",
+      path: "skills/repo-walkthrough/scripts/render_video.mjs",
       layer: "flows",
       lines: 293,
       x: 785, y: 398, w: 215, h: 58,
-      role: "Renders the animated walkthrough in headless Chrome and combines the frames with step audio into an MP4 video via `ffmpeg`.",
+      role: "Renders the animated walkthrough from the built `index.html` in headless Chrome or Edge and combines the frames with step audio into an MP4 video via `ffmpeg`.",
       snippet: `await page.evaluate((state) => window.renderWalkthroughFrame(state), frameState);
 const { data } = await cdp.send("Page.captureScreenshot", { format: "jpeg", quality: 90 });`
     },
@@ -168,11 +169,12 @@ const { data } = await cdp.send("Page.captureScreenshot", { format: "jpeg", qual
       id: "audio_cache",
       label: "audio/manifest.json",
       sub: "Audio Manifest & Cache",
-      path: "web/audio/manifest.json",
+      path: "audio/manifest.json",
+      generated: true,
       layer: "capabilities",
       lines: 82,
       x: 205, y: 522, w: 280, h: 58,
-      role: "Stores step audio durations, aligned cue timings, and cached WAV references.",
+      role: "Generated output manifest storing step audio durations, aligned cue timings, and cached WAV references.",
       snippet: `{
   "step": 1, "hash": "cc22524683f9a897", "voice": "Despina",
   "file": "audio/step-1.wav", "durationSec": 24.04
@@ -182,7 +184,8 @@ const { data } = await cdp.send("Page.captureScreenshot", { format: "jpeg", qual
       id: "mp4_out",
       label: "walkthrough.mp4",
       sub: "Walkthrough Video",
-      path: "web/adk-walkthrough.mp4",
+      path: "walkthrough.mp4",
+      generated: true,
       layer: "capabilities",
       lines: 1,
       x: 615, y: 522, w: 280, h: 58,
@@ -267,7 +270,7 @@ const { data } = await cdp.send("Page.captureScreenshot", { format: "jpeg", qual
     },
     {
       step: 4,
-      title: "Interactive Website & Video Layout: `index.html`",
+      title: "Interactive Website & Video Layout: `index.tmpl` -> `index.html`",
       focusNode: "index_html",
       activeNodes: ["data_js", "index_html", "render_video"],
       activeEdges: ["data_js>index_html", "index_html>render_video"],
@@ -276,8 +279,8 @@ const { data } = await cdp.send("Page.captureScreenshot", { format: "jpeg", qual
         { at: 0.65, node: "render_video" }
       ],
       audio: "audio/step-4.wav",
-      summary: "In website mode, `index.html` pairs the layered architecture graph with a file inspector sidebar. In video mode, it switches to a full-width graph layout so `render_video.mjs` can zoom smoothly across each step.",
-      narration: "In interactive mode, index.html pairs the five-layer SVG graph with a right-hand code inspector, drag-to-pan, and scroll-to-zoom. When render video.mjs opens index.html with video equals 1, it hides the right sidebar so the graph fills the entire frame, showing the full five-layer overview on Step 1 before zooming into each cluster."
+      summary: "Built from `index.tmpl`, `index.html` pairs the layered architecture graph with a file inspector sidebar in website mode, and switches to a full-width graph layout in video mode so `render_video.mjs` can zoom smoothly across each step.",
+      narration: "Built from index.tmpl inside the skill folder, index.html pairs the five-layer SVG graph with a right-hand code inspector, drag-to-pan, and scroll-to-zoom. When render video.mjs opens the built index.html with video equals 1, it hides the right sidebar so the graph fills the entire frame, showing the full five-layer overview on Step 1 before zooming into each cluster."
     },
     {
       step: 5,
@@ -291,8 +294,8 @@ const { data } = await cdp.send("Page.captureScreenshot", { format: "jpeg", qual
         { at: 0.80, node: "index_html" }
       ],
       audio: "audio/step-5.wav",
-      summary: "`generate_live_audio.mjs` synthesizes spoken narration for each step with Gemini TTS and stores cached WAV files and timings in `audio/manifest.json`.",
-      narration: "For voice narration, generate live audio.mjs resolves your Gemini API key from the environment, macOS Keychain, or dot env. It sanitizes filenames for natural speech, synthesizes 24 kilohertz Despina audio with gemini-3.1-flash-tts-preview, and caches each WAV by SHA-256 hash alongside audio/manifest.json."
+      summary: "`generate_live_audio.mjs` synthesizes spoken narration for each step with Gemini TTS (`gemini-3.8-flash-tts`) and stores cached WAV files and timings in `audio/manifest.json`.",
+      narration: "For voice narration, generate live audio.mjs resolves your Gemini API key from the environment, OS credential store, or dot env. It sanitizes filenames for natural speech, synthesizes 24 kilohertz Despina audio with gemini-3.8-flash-tts, and caches each WAV by SHA-256 hash alongside audio/manifest.json."
     },
     {
       step: 6,

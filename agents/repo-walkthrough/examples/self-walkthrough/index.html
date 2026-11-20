@@ -20,6 +20,7 @@
 <meta charset="utf-8">
 <title>google/adk-python · Codebase Walkthrough</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128' width='128' height='128' fill='none'%3E%3Cdefs%3E%3ClinearGradient id='bgGrad' x1='12' y1='12' x2='116' y2='116' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0%25' stop-color='%23161b22'/%3E%3Cstop offset='100%25' stop-color='%230a0d12'/%3E%3C/linearGradient%3E%3ClinearGradient id='rimGrad' x1='16' y1='12' x2='112' y2='116' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0%25' stop-color='%234b5e79'/%3E%3Cstop offset='55%25' stop-color='%23323f53'/%3E%3Cstop offset='100%25' stop-color='%231f2837'/%3E%3C/linearGradient%3E%3ClinearGradient id='n1Fill' x1='46' y1='26' x2='46' y2='46' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0%25' stop-color='%23224e86'/%3E%3Cstop offset='100%25' stop-color='%2316345b'/%3E%3C/linearGradient%3E%3ClinearGradient id='n1Stroke' x1='46' y1='24' x2='46' y2='48' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0%25' stop-color='%2381c4ff'/%3E%3Cstop offset='100%25' stop-color='%234c94e4'/%3E%3C/linearGradient%3E%3ClinearGradient id='n1bFill' x1='90.5' y1='26' x2='90.5' y2='46' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0%25' stop-color='%231f3a61'/%3E%3Cstop offset='100%25' stop-color='%23142642'/%3E%3C/linearGradient%3E%3ClinearGradient id='n1bStroke' x1='90.5' y1='24' x2='90.5' y2='48' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0%25' stop-color='%236db6ff'/%3E%3Cstop offset='100%25' stop-color='%233f81ce'/%3E%3C/linearGradient%3E%3ClinearGradient id='n2Fill' x1='43.5' y1='54' x2='43.5' y2='74' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0%25' stop-color='%23895b14'/%3E%3Cstop offset='100%25' stop-color='%235c3b0a'/%3E%3C/linearGradient%3E%3ClinearGradient id='n2Stroke' x1='43.5' y1='52' x2='43.5' y2='76' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0%25' stop-color='%23f8c457'/%3E%3Cstop offset='100%25' stop-color='%23ce8f22'/%3E%3C/linearGradient%3E%3ClinearGradient id='n3Fill' x1='42' y1='82' x2='42' y2='102' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0%25' stop-color='%231c5e2c'/%3E%3Cstop offset='100%25' stop-color='%23113b1b'/%3E%3C/linearGradient%3E%3ClinearGradient id='n3Stroke' x1='42' y1='80' x2='42' y2='104' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0%25' stop-color='%236be378'/%3E%3Cstop offset='100%25' stop-color='%233bb249'/%3E%3C/linearGradient%3E%3ClinearGradient id='sp1' x1='43' y1='46' x2='43' y2='54' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0%25' stop-color='%2379c0ff'/%3E%3Cstop offset='100%25' stop-color='%23c3b480'/%3E%3C/linearGradient%3E%3ClinearGradient id='sp2' x1='43' y1='74' x2='43' y2='82' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0%25' stop-color='%23ebae3b'/%3E%3Cstop offset='100%25' stop-color='%238ac656'/%3E%3C/linearGradient%3E%3ClinearGradient id='playGrad' x1='88' y1='75' x2='88' y2='104' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0%25' stop-color='%23eb5850'/%3E%3Cstop offset='100%25' stop-color='%23b22c28'/%3E%3C/linearGradient%3E%3ClinearGradient id='playRim' x1='88' y1='75' x2='88' y2='104' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0%25' stop-color='%23ffa8a6'/%3E%3Cstop offset='100%25' stop-color='%23de5551'/%3E%3C/linearGradient%3E%3Cfilter id='nodeLift' filterUnits='userSpaceOnUse' x='0' y='0' width='128' height='128'%3E%3CfeDropShadow dx='0' dy='1.8' stdDeviation='1.65' flood-color='%23000' flood-opacity='.24'/%3E%3C/filter%3E%3C/defs%3E%3Crect x='12' y='12' width='104' height='104' rx='24' fill='url(%23bgGrad)'/%3E%3Crect x='13.5' y='13.5' width='101' height='101' rx='22.5' stroke='url(%23rimGrad)' stroke-width='3'/%3E%3Cpath d='M67 36h11m12.5 10c0 11.5-14 18-28.5 18' stroke='%234d78b3' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M43 46v8' stroke='url(%23sp1)' stroke-width='4.75' stroke-linecap='round'/%3E%3Cpath d='M43 74v8' stroke='url(%23sp2)' stroke-width='4.75' stroke-linecap='round'/%3E%3Cpath d='M59 90.75h15.5' stroke='%2356d364' stroke-width='4.75' stroke-linecap='round'/%3E%3Cg filter='url(%23nodeLift)'%3E%3Crect x='23.2' y='26.2' width='45.6' height='23.4' rx='7.8' fill='%230d2647' fill-opacity='.2'/%3E%3Crect x='25' y='26' width='42' height='20' rx='6' fill='url(%23n1Fill)' stroke='url(%23n1Stroke)' stroke-width='3.75' stroke-linejoin='round'/%3E%3Cpath d='M30 28.4h32' stroke='%23fff' stroke-opacity='.16' stroke-width='1' stroke-linecap='round'/%3E%3Ccircle cx='34.5' cy='36' r='3.25' fill='%23bee6ff'/%3E%3Crect x='42' y='33.75' width='17' height='4.5' rx='2.25' fill='%23fff'/%3E%3C/g%3E%3Cg filter='url(%23nodeLift)'%3E%3Crect x='76.3' y='26.2' width='28.4' height='23.2' rx='7.6' fill='%230d2647' fill-opacity='.2'/%3E%3Crect x='78' y='26' width='25' height='20' rx='6' fill='url(%23n1bFill)' stroke='url(%23n1bStroke)' stroke-width='3.5' stroke-linejoin='round'/%3E%3Cpath d='M83 28.4h15' stroke='%23fff' stroke-opacity='.14' stroke-width='1' stroke-linecap='round'/%3E%3Ccircle cx='90.5' cy='36' r='3.5' fill='%23acdaff'/%3E%3C/g%3E%3Cg filter='url(%23nodeLift)'%3E%3Crect x='23.2' y='54.2' width='40.6' height='23.4' rx='7.8' fill='%234d2f06' fill-opacity='.2'/%3E%3Crect x='25' y='54' width='37' height='20' rx='6' fill='url(%23n2Fill)' stroke='url(%23n2Stroke)' stroke-width='3.75' stroke-linejoin='round'/%3E%3Cpath d='M30 56.4h27' stroke='%23fff' stroke-opacity='.16' stroke-width='1' stroke-linecap='round'/%3E%3Ccircle cx='34.5' cy='64' r='3.25' fill='%23ffe99c'/%3E%3Crect x='42' y='61.75' width='12' height='4.5' rx='2.25' fill='%23fff'/%3E%3C/g%3E%3Cg filter='url(%23nodeLift)'%3E%3Crect x='23.2' y='82.2' width='37.6' height='23.4' rx='7.8' fill='%230d3817' fill-opacity='.2'/%3E%3Crect x='25' y='82' width='34' height='20' rx='6' fill='url(%23n3Fill)' stroke='url(%23n3Stroke)' stroke-width='3.75' stroke-linejoin='round'/%3E%3Cpath d='M30 84.4h24' stroke='%23fff' stroke-opacity='.16' stroke-width='1' stroke-linecap='round'/%3E%3Ccircle cx='34.5' cy='92' r='3.25' fill='%23aef5b4'/%3E%3Crect x='42' y='89.75' width='9.5' height='4.5' rx='2.25' fill='%23fff'/%3E%3C/g%3E%3Cg filter='url(%23nodeLift)'%3E%3Ccircle cx='88' cy='91.11' r='14.3' fill='%236e1614' fill-opacity='.2'/%3E%3Ccircle cx='88' cy='89.5' r='12.75' fill='url(%23playGrad)' stroke='url(%23playRim)' stroke-width='3.25'/%3E%3Cpath d='M85.2 84.5l8.7 5-8.7 5z' fill='%23fff' stroke='%23fff' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -37,6 +38,7 @@
     --g-blue: #4285F4;
     --g-blue-light: #8AB4F8;
     --g-red: #EA4335;
+    --g-red-light: #F28B82;
     --g-yellow: #FBBC04;
     --g-yellow-light: #FDD663;
     --g-green: #34A853;
@@ -180,11 +182,11 @@
     fill: #1a2433; stroke: #475569; stroke-width: 2;
   }
   .node-title {
-    fill: #94a3b8; font: 600 12.5px var(--mono); pointer-events: none;
+    fill: #cbd5e1; font: 600 12.5px var(--mono); pointer-events: none;
     transition: fill 0.25s ease;
   }
   .node-sub {
-    fill: #64748b; font: 400 11px var(--sans); pointer-events: none;
+    fill: #94a3b8; font: 400 11px var(--sans); pointer-events: none;
     transition: fill 0.25s ease;
   }
   /* In-step non-highlighted context node: calm dark gray */
@@ -305,7 +307,7 @@
     display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
   }
   .step-pill {
-    background: var(--g-blue); color: #fff;
+    background: #1d4ed8; color: #fff;
     font: 700 11.5px var(--mono); padding: 3px 10px; border-radius: 999px;
     letter-spacing: 0.03em; white-space: nowrap; flex-shrink: 0;
   }
@@ -396,6 +398,71 @@
     background: #0a0e14; border: 1px solid var(--line-bright); border-radius: 6px;
     padding: 4px 10px; font: 500 11.5px var(--mono); color: var(--ink);
     white-space: nowrap; display: none; z-index: 30; pointer-events: none;
+  }
+
+  /* Responsive tablet and mobile layout (preserved off in ?video=1) */
+  @media (max-width: 900px) {
+    html:has(body:not(.video-mode)),
+    body:not(.video-mode) {
+      height: auto; min-height: 100vh; width: 100%;
+      overflow-x: hidden; overflow-y: auto;
+    }
+    body:not(.video-mode) header {
+      flex-wrap: wrap; padding: 8px 12px; gap: 6px 10px;
+    }
+    body:not(.video-mode) header h1 {
+      font-size: 13.5px; min-width: 0; overflow-wrap: anywhere;
+    }
+    body:not(.video-mode) header .sub {
+      order: 3; flex-basis: 100%; font-size: 11.5px; line-height: 1.35;
+    }
+    body:not(.video-mode) main {
+      flex-direction: column; flex: none;
+    }
+    body:not(.video-mode) #graph-wrap {
+      flex: none; width: 100%; height: clamp(260px, 48vh, 460px);
+    }
+    body:not(.video-mode) aside {
+      width: 100%; max-width: 100%; max-height: 280px;
+      border-left: 0; border-top: 1px solid var(--line);
+      padding: 14px 16px;
+    }
+    body:not(.video-mode) #bottom-dock {
+      padding: 14px 16px; gap: 12px;
+    }
+    body:not(.video-mode) .walk-bar {
+      flex-direction: column; align-items: stretch; gap: 12px;
+    }
+    body:not(.video-mode) .walk-head {
+      flex-wrap: wrap; gap: 8px;
+    }
+    body:not(.video-mode) .walk-title {
+      font-size: 15px; overflow-wrap: anywhere;
+    }
+    body:not(.video-mode) .walk-desc {
+      font-size: 13.5px; max-width: 100%; overflow-wrap: anywhere;
+    }
+    body:not(.video-mode) .walk-controls {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 640px) {
+    body:not(.video-mode) #graph-wrap {
+      height: clamp(240px, 44vh, 360px);
+    }
+    body:not(.video-mode):not(.mobile-inspector-open) aside {
+      display: none;
+    }
+    body:not(.video-mode) .transport {
+      gap: 12px;
+    }
+    body:not(.video-mode) .speed-pills {
+      flex-wrap: wrap; gap: 5px;
+    }
+    body:not(.video-mode) .walk-controls button.spd {
+      padding: 4px 8px; min-width: 34px; font-size: 12px;
+    }
   }
 </style>
 </head>
@@ -705,9 +772,9 @@
     return w;
   }
 
-  function computeSpokenOffset(narration = "", phrase = "") {
+  function computeSpokenOffset(narration = "", phrase = "", fromIdx = 0) {
     if (!narration || !phrase) return 0;
-    const idx = narration.toLowerCase().indexOf(phrase.toLowerCase());
+    const idx = narration.toLowerCase().indexOf(phrase.toLowerCase(), fromIdx);
     if (idx <= 0) return 0;
     return Number((spokenWeight(narration.slice(0, idx)) / Math.max(1, spokenWeight(narration))).toFixed(2));
   }
@@ -717,8 +784,25 @@
       return { nodes: st.activeNodes || [st.focusNode], focus: st.focusNode };
     }
     let chosen = st.cues[0];
+    const narrationLower = String(st.narration || "").toLowerCase();
+    let phraseCursor = 0;
+    let prevCueAt = null;
     for (const c of st.cues) {
-      const cueAt = typeof c.at === "number" ? c.at : computeSpokenOffset(st.narration, c.phrase);
+      // Moving cursor so a repeated phrase maps to its next occurrence
+      let phraseIdx = -1;
+      if (c.phrase) {
+        phraseIdx = narrationLower.indexOf(String(c.phrase).toLowerCase(), phraseCursor);
+        if (phraseIdx >= 0) phraseCursor = phraseIdx + String(c.phrase).length;
+      }
+      let cueAt =
+        typeof c.at === "number"
+          ? c.at
+          : phraseIdx > 0
+            ? computeSpokenOffset(st.narration, c.phrase, phraseIdx)
+            : 0;
+      // Keep cue times non-decreasing (0.02 gap) so an out-of-order cue never hides an earlier one
+      if (prevCueAt !== null && cueAt < prevCueAt + 0.02) cueAt = Math.min(0.99, prevCueAt + 0.02);
+      prevCueAt = cueAt;
       if (progress01 >= cueAt) chosen = c;
     }
     const nodes = chosen.nodes || (chosen.node ? [chosen.node] : st.activeNodes);
@@ -726,11 +810,23 @@
     return { nodes, focus };
   }
 
-  function fmt(str = "") {
-    return str
+  function escHtml(str = "") {
+    return String(str)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function isSafeHref(url = "") {
+    const u = String(url).trim();
+    if (!u || u.startsWith("//") || u.startsWith("/\\")) return false;
+    return u.startsWith("http://") || u.startsWith("https://") || u.startsWith("/");
+  }
+
+  function fmt(str = "") {
+    return escHtml(str)
       .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
       .replace(/`([^`]+)`/g, "<code>$1</code>");
   }
@@ -945,7 +1041,7 @@
 
   function formatCodeOrDiff(raw = "", isDiff = false) {
     const lines = raw.split("\n");
-    const looksLikeDiff = isDiff || lines.some(l => l.startsWith("@@") || (l.startsWith("+") && !l.startsWith("+++")) || (l.startsWith("-") && !l.startsWith("---")));
+    const looksLikeDiff = isDiff || lines.some(l => l.startsWith("@@"));
     const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     if (!looksLikeDiff) return esc(raw);
     return lines.map(line => {
@@ -961,20 +1057,33 @@
   function renderNodeInspector(n) {
     if (!n || currentInspectorNodeId === n.id) return;
     currentInspectorNodeId = n.id;
-    const isGitHubRepo = DATA.repo && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(DATA.repo);
+    const isGitHubRepo =
+      DATA.repo &&
+      /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(DATA.repo) &&
+      DATA.repo !== "ykdojo/repo-walkthrough" &&
+      !n.generated;
     const subPrefix = DATA.subpath ? `${DATA.subpath.replace(/^\/+|\/+$/g, "")}/` : "";
-    const fullRepoPath = (subPrefix && !n.path.startsWith(subPrefix)) ? `${subPrefix}${n.path}` : n.path;
-    const fileHref = n.url || (isGitHubRepo
-      ? `https://github.com/${DATA.repo}/blob/${DATA.branch || "main"}/${fullRepoPath}`
-      : null);
-    const titleHtml = fileHref
-      ? `<a href="${fileHref}" target="_blank" rel="noopener">${n.path} ↗</a>`
-      : `<span>${n.path}</span>`;
+    const rawPath = String(n.path || n.label || "");
+    const fullRepoPath = (subPrefix && !rawPath.startsWith(subPrefix)) ? `${subPrefix}${rawPath}` : rawPath;
+    const rawUrl = n.url != null ? String(n.url).trim() : "";
+    const candidateHref = rawUrl
+      ? (isSafeHref(rawUrl) ? rawUrl : null)
+      : (isGitHubRepo
+        ? `https://github.com/${DATA.repo}/blob/${DATA.branch || "main"}/${fullRepoPath}`
+        : null);
+    const safeHref = (candidateHref && isSafeHref(candidateHref)) ? escHtml(candidateHref) : null;
+    const safePath = escHtml(n.path || n.label || "");
+    const safeLabel = escHtml(n.label || "");
+    const safeSublabel = escHtml(n.sublabel || n.sub || "");
+    const titleAttr = safeSublabel ? ` title="${safeLabel ? `${safeLabel} · ${safeSublabel}` : safeSublabel}"` : "";
+    const titleHtml = safeHref
+      ? `<a href="${safeHref}" target="_blank" rel="noopener"${titleAttr}>${safePath} ↗</a>`
+      : `<span${titleAttr}>${safePath}</span>`;
     const diffMetaHtml = n.diff
       ? `<div class="diff-meta">
-           <span class="diff-status-pill">${n.diff.status || "modified"}</span>
-           <span class="diff-stat-add">+${n.diff.added || 0}</span>
-           <span class="diff-stat-del">-${n.diff.deleted || 0}</span>
+           <span class="diff-status-pill">${escHtml(n.diff.status || "modified")}</span>
+           <span class="diff-stat-add">+${Number(n.diff.added) || 0}</span>
+           <span class="diff-stat-del">-${Number(n.diff.deleted) || 0}</span>
          </div>`
       : "";
     $("#inspector").innerHTML = `
@@ -989,7 +1098,7 @@
     currentInspectorNodeId = null;
     const src = nodeById[e.from], dst = nodeById[e.to];
     $("#inspector").innerHTML = `
-      <div class="insp-title">${src.label} → ${dst.label}</div>
+      <div class="insp-title">${escHtml(src.label)} → ${escHtml(dst.label)}</div>
       <div class="insp-desc">${fmt(e.detail)}</div>
     `;
   }
@@ -998,6 +1107,7 @@
     pausePlayback();
     selectedEdgeId = null;
     selectedNodeId = id;
+    document.body.classList.add("mobile-inspector-open");
     updateHighlights();
     renderNodeInspector(nodeById[id]);
   }
@@ -1006,6 +1116,7 @@
     pausePlayback();
     selectedNodeId = null;
     selectedEdgeId = id;
+    document.body.classList.add("mobile-inspector-open");
     updateHighlights();
     renderEdgeInspector(edgeById[id]);
   }
@@ -1015,6 +1126,7 @@
     stepIdx = Math.max(0, Math.min(total - 1, idx));
     selectedNodeId = null;
     selectedEdgeId = null;
+    document.body.classList.remove("mobile-inspector-open");
 
     if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
     stopProgressLoop();
@@ -1094,7 +1206,9 @@
     if (selectedNodeId || selectedEdgeId) {
       selectedNodeId = null;
       selectedEdgeId = null;
+      document.body.classList.remove("mobile-inspector-open");
       updateHighlights();
+      renderNodeInspector(nodeById[activeCueFocusId]);
     }
   });
 
@@ -1259,6 +1373,7 @@
       if (seek) {
         const onMeta = () => {
           liveAudio.removeEventListener("loadedmetadata", onMeta);
+          liveAudio.removeEventListener("error", onErr);
           const d = isFinite(liveAudio.duration) ? liveAudio.duration : 0;
           liveAudio.currentTime = seek.fromEnd != null
             ? Math.max(0, d - seek.fromEnd)
@@ -1271,7 +1386,13 @@
             }).catch(() => speakFallback(st.narration));
           }
         };
+        const onErr = () => {
+          liveAudio.removeEventListener("loadedmetadata", onMeta);
+          liveAudio.removeEventListener("error", onErr);
+          if (!keepPaused) speakFallback(st.narration);
+        };
         liveAudio.addEventListener("loadedmetadata", onMeta);
+        liveAudio.addEventListener("error", onErr);
         if (keepPaused) liveAudio.load();
       } else {
         liveAudio.currentTime = 0;
@@ -1351,7 +1472,7 @@
     }
   }
 
-  // Speed Control Pills (0.8x .. 1.2x, matching gemini-voice)
+  // Speed Control Pills (0.8x .. 1.2x)
   $$(".spd").forEach(btn => {
     btn.onclick = () => {
       $$(".spd").forEach(b => b.classList.remove("on"));
@@ -1362,7 +1483,7 @@
     };
   });
 
-  // Skip Back 5s & Forward 5s across section boundaries (matching gemini-voice)
+  // Skip Back 5s & Forward 5s across section boundaries
   $("#back5Btn").onclick = () => {
     selectedNodeId = null;
     selectedEdgeId = null;
@@ -1407,7 +1528,7 @@
     }
   };
 
-  // Track skip (matching gemini-voice): restart current section if > 0.5s in, else go back one section
+  // Track skip: restart current section if > 0.5s in, else go back one section
   $("#prevBtn").onclick = () => {
     if (loadedStepIdx === stepIdx && liveAudio.src && liveAudio.currentTime > 0.5) {
       liveAudio.currentTime = 0;
@@ -1438,7 +1559,9 @@
     } else if (e.key === "Escape") {
       selectedNodeId = null;
       selectedEdgeId = null;
+      document.body.classList.remove("mobile-inspector-open");
       updateHighlights();
+      renderNodeInspector(nodeById[activeCueFocusId]);
     }
   });
 
@@ -1499,6 +1622,12 @@
   buildGraph();
   buildTimelineMarks();
   applyStep(0, { animate: false });
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      buildGraph();
+      updateHighlights();
+    });
+  }
 })();
 </script>
 </body>
