@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+pydantic
+mistune
+psycopg2-binary
+pgvector
