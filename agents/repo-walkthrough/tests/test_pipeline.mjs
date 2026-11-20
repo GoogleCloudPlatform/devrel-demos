@@ -23,11 +23,12 @@
 
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { pathToFileURL } from "node:url";
 import vm from "node:vm";
 
 import {
@@ -881,6 +882,113 @@ test("Read-only installed plugin directory (chmod -R a-w / icacls) builds websit
   }
 });
 
+test("Security: loadPlaywright and --check-prereqs never execute node_modules committed in an untrusted cwd", () => {
+  const untrustedCwd = fs.mkdtempSync(path.join(os.tmpdir(), "rw-untrusted-cwd-"));
+  const marker = path.join(untrustedCwd, "PWNED");
+  try {
+    for (const pkg of ["playwright-core", "playwright"]) {
+      const pkgDir = path.join(untrustedCwd, "node_modules", pkg);
+      fs.mkdirSync(pkgDir, { recursive: true });
+      fs.writeFileSync(path.join(pkgDir, "package.json"), JSON.stringify({ name: pkg, main: "index.js" }));
+      fs.writeFileSync(
+        path.join(pkgDir, "index.js"),
+        `require("fs").appendFileSync(${JSON.stringify(marker)}, ${JSON.stringify(`${pkg} executed\n`)});\n` +
+          `module.exports = { chromium: { launch: async () => { throw new Error("attacker stub"); } } };\n`
+      );
+    }
+    const childEnv = { ...process.env, NODE_PATH: "" };
+
+    const renderUrl = pathToFileURL(path.join(SKILL_SCRIPTS_DIR, "render_video.mjs")).href;
+    spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        `import { loadPlaywright } from ${JSON.stringify(renderUrl)}; try { loadPlaywright(); } catch {}`,
+      ],
+      { cwd: untrustedCwd, env: childEnv, encoding: "utf8", timeout: 60000 }
+    );
+    assert.equal(
+      fs.existsSync(marker),
+      false,
+      `loadPlaywright() executed attacker code from <cwd>/node_modules: ${fs.existsSync(marker) ? fs.readFileSync(marker, "utf8").trim() : ""}`
+    );
+
+    spawnSync(process.execPath, [path.join(SKILL_SCRIPTS_DIR, "build_walkthrough.mjs"), "--check-prereqs"], {
+      cwd: untrustedCwd,
+      env: childEnv,
+      encoding: "utf8",
+      timeout: 60000,
+    });
+    assert.equal(
+      fs.existsSync(marker),
+      false,
+      `build_walkthrough.mjs --check-prereqs executed attacker code from <cwd>/node_modules: ${fs.existsSync(marker) ? fs.readFileSync(marker, "utf8").trim() : ""}`
+    );
+  } finally {
+    fs.rmSync(untrustedCwd, { recursive: true, force: true });
+  }
+});
+
+test("Security: resolveGeminiApiKey prefers user-scoped keys and the OS store over an untrusted <cwd>/.env", () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "rw-apikey-untrusted-"));
+  try {
+    const untrustedCwd = path.join(tmpRoot, "untrusted-clone");
+    const fakeRepo = path.join(tmpRoot, "plugin-root");
+    const emptyHome = path.join(tmpRoot, "empty-home");
+    for (const d of [untrustedCwd, fakeRepo, emptyHome]) fs.mkdirSync(d, { recursive: true });
+    fs.writeFileSync(path.join(untrustedCwd, ".env"), "GEMINI_API_KEY=untrusted_repo_key\n", "utf8");
+    const noStore = () => "";
+    const base = { env: {}, platform: "linux", cwd: untrustedCwd, homedir: emptyHome, runner: noStore };
+
+    const configHome = path.join(tmpRoot, "config-home");
+    fs.mkdirSync(path.join(configHome, ".config", "repo-walkthrough"), { recursive: true });
+    fs.writeFileSync(path.join(configHome, ".config", "repo-walkthrough", ".env"), "GEMINI_API_KEY=user_trusted_key\n");
+    assert.equal(
+      resolveGeminiApiKey(fakeRepo, { ...base, homedir: configHome }),
+      "user_trusted_key",
+      "~/.config/repo-walkthrough/.env must beat <cwd>/.env"
+    );
+
+    const geminiHome = path.join(tmpRoot, "gemini-home");
+    fs.mkdirSync(path.join(geminiHome, ".gemini"), { recursive: true });
+    fs.writeFileSync(path.join(geminiHome, ".gemini", ".env"), "GEMINI_API_KEY=user_gemini_key\n");
+    assert.equal(
+      resolveGeminiApiKey(fakeRepo, { ...base, homedir: geminiHome }),
+      "user_gemini_key",
+      "~/.gemini/.env must beat <cwd>/.env"
+    );
+
+    const pluginData = path.join(tmpRoot, "plugin-data");
+    fs.mkdirSync(pluginData, { recursive: true });
+    fs.writeFileSync(path.join(pluginData, ".env"), "GEMINI_API_KEY=plugin_data_key\n");
+    assert.equal(
+      resolveGeminiApiKey(fakeRepo, { ...base, env: { PLUGIN_DATA: pluginData } }),
+      "plugin_data_key",
+      "$PLUGIN_DATA/.env must beat <cwd>/.env"
+    );
+
+    assert.equal(
+      resolveGeminiApiKey(fakeRepo, { ...base, runner: (cmd) => (cmd === "secret-tool" ? "os_store_key\n" : "") }),
+      "os_store_key",
+      "OS credential store must beat <cwd>/.env"
+    );
+
+    assert.equal(
+      resolveGeminiApiKey(fakeRepo, { ...base, env: { GEMINI_API_KEY: "env_key" }, homedir: configHome }),
+      "env_key",
+      "GEMINI_API_KEY env var always wins"
+    );
+    assert.equal(
+      resolveGeminiApiKey(fakeRepo, base),
+      "untrusted_repo_key",
+      "<cwd>/.env stays available only as the last-resort fallback"
+    );
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
 test("Cross-platform GEMINI_API_KEY resolution and strict scoping", () => {
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "rw-apikey-"));
   try {
@@ -1065,10 +1173,21 @@ test("Cross-platform helpers: openTarget (rundll32 on win32, blocks .tmpl), dete
     const origCwd = process.cwd();
     process.chdir(tmpCwd);
     try {
-      const resolvedPw = loadPlaywright();
-      assert.equal(resolvedPw.source, "cwd-playwright");
+      let cwdResolved = null;
+      try {
+        cwdResolved = loadPlaywright();
+      } catch {}
+      assert.notEqual(cwdResolved?.source, "cwd-playwright", "must never load playwright from an untrusted cwd");
     } finally {
       process.chdir(origCwd);
+    }
+    const origPwPath = process.env.PLAYWRIGHT_MODULE_PATH;
+    process.env.PLAYWRIGHT_MODULE_PATH = fakePwDir;
+    try {
+      assert.equal(loadPlaywright().source, "cwd-playwright", "explicit PLAYWRIGHT_MODULE_PATH opt-in is honored");
+    } finally {
+      if (origPwPath === undefined) delete process.env.PLAYWRIGHT_MODULE_PATH;
+      else process.env.PLAYWRIGHT_MODULE_PATH = origPwPath;
     }
   } finally {
     fs.rmSync(tmpCwd, { recursive: true, force: true });

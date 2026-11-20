@@ -168,12 +168,13 @@ function queryGlobalNpmRoot(platform = process.platform, npmCmd = "npm") {
 }
 
 function loadPlaywright() {
-  const candidates = [
-    "playwright-core",
-    "playwright",
-    path.join(process.cwd(), "node_modules", "playwright-core"),
-    path.join(process.cwd(), "node_modules", "playwright"),
-  ];
+  // Never resolve from process.cwd(): the cwd may be an untrusted clone with committed
+  // node_modules. Bare names resolve relative to this script (plugin or skill install) only.
+  const candidates = [];
+  if (process.env.PLAYWRIGHT_MODULE_PATH && process.env.PLAYWRIGHT_MODULE_PATH.trim()) {
+    candidates.push(path.resolve(process.env.PLAYWRIGHT_MODULE_PATH.trim()));
+  }
+  candidates.push("playwright-core", "playwright");
   const { npmCmd, npxBases } = getPlaywrightSearchRoots();
 
   const globalRoot = queryGlobalNpmRoot(process.platform, npmCmd);

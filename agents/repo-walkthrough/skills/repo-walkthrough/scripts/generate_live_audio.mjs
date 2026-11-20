@@ -198,7 +198,8 @@ function resolveGeminiApiKey(
   if (env.GEMINI_API_KEY && env.GEMINI_API_KEY.trim()) {
     return env.GEMINI_API_KEY.trim();
   }
-  const envCandidates = [path.resolve(cwd, ".env")];
+  // User-scoped locations first. The cwd may be an untrusted clone, so its .env is last resort.
+  const envCandidates = [];
   if (env.PLUGIN_DATA && env.PLUGIN_DATA.trim()) {
     envCandidates.push(path.join(env.PLUGIN_DATA.trim(), ".env"));
   }
@@ -212,9 +213,6 @@ function resolveGeminiApiKey(
     envCandidates.push(path.join(homedir, ".gemini", ".env"));
     envCandidates.push(path.join(homedir, ".gemini", "gemini_api_key"));
   }
-  if (repoRoot) {
-    envCandidates.push(path.join(repoRoot, ".env"));
-  }
   for (const envPath of envCandidates) {
     const val = readKeyFromEnvFile(envPath);
     if (val) return val;
@@ -222,18 +220,26 @@ function resolveGeminiApiKey(
   const storeKey = queryOsCredentialStore(platform, runner);
   if (storeKey) return storeKey;
 
+  const repoCandidates = [];
+  if (repoRoot) repoCandidates.push(path.join(repoRoot, ".env"));
+  repoCandidates.push(path.resolve(cwd, ".env"));
+  for (const envPath of repoCandidates) {
+    const val = readKeyFromEnvFile(envPath);
+    if (val) return val;
+  }
+
   if (platform === "win32") {
     throw new Error(
-      'Could not resolve GEMINI_API_KEY. Set $env:GEMINI_API_KEY="YOUR_KEY" in PowerShell (or setx GEMINI_API_KEY "YOUR_KEY"), or add GEMINI_API_KEY=... to .env, %APPDATA%\\repo-walkthrough\\.env, or ~/.gemini/.env.'
+      'Could not resolve GEMINI_API_KEY. Set $env:GEMINI_API_KEY="YOUR_KEY" in PowerShell (or setx GEMINI_API_KEY "YOUR_KEY"), or add GEMINI_API_KEY=... to %APPDATA%\\repo-walkthrough\\.env or ~/.gemini/.env.'
     );
   }
   if (platform === "darwin") {
     throw new Error(
-      'Could not resolve GEMINI_API_KEY. Run export GEMINI_API_KEY="YOUR_KEY", store it in macOS Keychain (security add-generic-password -a "$USER" -s gemini-api-key -w "YOUR_KEY"), or add GEMINI_API_KEY=... to .env, ~/.config/repo-walkthrough/.env, or ~/.gemini/.env.'
+      'Could not resolve GEMINI_API_KEY. Run export GEMINI_API_KEY="YOUR_KEY", store it in macOS Keychain (security add-generic-password -a "$USER" -s gemini-api-key -w "YOUR_KEY"), or add GEMINI_API_KEY=... to ~/.config/repo-walkthrough/.env or ~/.gemini/.env.'
     );
   }
   throw new Error(
-    'Could not resolve GEMINI_API_KEY. Run export GEMINI_API_KEY="YOUR_KEY", store it via secret-tool (secret-tool store --label=gemini-api-key service gemini-api-key), or add GEMINI_API_KEY=... to .env, ~/.config/repo-walkthrough/.env, or ~/.gemini/.env.'
+    'Could not resolve GEMINI_API_KEY. Run export GEMINI_API_KEY="YOUR_KEY", store it via secret-tool (secret-tool store --label=gemini-api-key service gemini-api-key), or add GEMINI_API_KEY=... to ~/.config/repo-walkthrough/.env or ~/.gemini/.env.'
   );
 }
 
