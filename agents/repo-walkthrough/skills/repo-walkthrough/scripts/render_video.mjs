@@ -280,6 +280,7 @@ async function main() {
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "repo-walkthrough-video-"));
   let browser = null;
+  let ff = null;
 
   try {
     // 1. Build a single concatenated WAV audio track with a 0.45s gap between steps
@@ -389,7 +390,7 @@ async function main() {
 
     // 3. Spawn ffmpeg reading JPEG frames from stdin and muxing with fullAudioWav
     fs.mkdirSync(path.dirname(outMp4), { recursive: true });
-    const ff = spawn(
+    ff = spawn(
       "ffmpeg",
       [
         "-loglevel",
@@ -426,9 +427,23 @@ async function main() {
       ],
       { stdio: ["pipe", "ignore", "inherit"] }
     );
-    ff.on("error", (err) => {
-      console.error("Failed to start ffmpeg:", err);
+    // Watch ffmpeg from the moment it spawns so a mid-stream exit can never strand the frame loop
+    let ffExitInfo = null;
+    const ffExited = new Promise((resolve) => {
+      ff.once("error", (err) => {
+        ffExitInfo ??= { error: err };
+        resolve(ffExitInfo);
+      });
+      ff.once("close", (code, signal) => {
+        ffExitInfo ??= { code, signal };
+        resolve(ffExitInfo);
+      });
     });
+    const ffFailure = () => {
+      const info = ffExitInfo || {};
+      if (info.error) return new Error(`Failed to start ffmpeg: ${info.error.message}`);
+      return new Error(`ffmpeg exited with ${info.signal ? `signal ${info.signal}` : `code ${info.code}`}`);
+    };
     ff.stdin.on("error", (err) => {
       if (err.code !== "EPIPE") {
         console.error("ffmpeg stdin error:", err);
@@ -436,6 +451,9 @@ async function main() {
     });
 
     for (let frame = 0; frame < totalFrames; frame++) {
+      if (ffExitInfo) {
+        throw ffFailure();
+      }
       const t = frame / FPS;
       let activeSeg = stepTimings[stepTimings.length - 1];
       for (const seg of stepTimings) {
@@ -484,7 +502,16 @@ async function main() {
       const buf = Buffer.from(data, "base64");
       const canWrite = ff.stdin.write(buf);
       if (!canWrite) {
-        await new Promise((resolve) => ff.stdin.once("drain", resolve));
+        let onDrain = null;
+        const drained = new Promise((resolve) => {
+          onDrain = resolve;
+          ff.stdin.once("drain", onDrain);
+        });
+        await Promise.race([drained, ffExited]);
+        ff.stdin.off("drain", onDrain);
+        if (ffExitInfo) {
+          throw ffFailure();
+        }
       }
 
       if (frame % (FPS * 10) === 0 || frame === totalFrames - 1) {
@@ -495,14 +522,17 @@ async function main() {
     }
 
     ff.stdin.end();
-    await new Promise((resolve, reject) => {
-      ff.on("close", (code) =>
-        code === 0 ? resolve() : reject(new Error(`ffmpeg exited with ${code}`))
-      );
-    });
+    const exitInfo = await ffExited;
+    if (exitInfo.error || exitInfo.code !== 0) {
+      throw ffFailure();
+    }
 
     console.log(`✅ Rendered smooth animated walkthrough video to: ${outMp4}`);
   } finally {
+    if (ff && ff.exitCode === null && ff.signalCode === null) {
+      ff.stdin.destroy();
+      ff.kill();
+    }
     if (browser) {
       try {
         await browser.close();

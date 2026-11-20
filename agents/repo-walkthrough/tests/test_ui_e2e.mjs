@@ -30,7 +30,7 @@
  */
 
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
@@ -652,6 +652,81 @@ test("Video mode (?video=1), deterministic renderWalkthroughFrame, os.tmpdir() c
   } finally {
     prep.cleanup();
     fs.rmSync(outMp4Dir, { recursive: true, force: true });
+  }
+});
+
+test("render_video.mjs fails fast (no deadlock) when ffmpeg exits mid-stream and leaks no temp dir or Chromium", async () => {
+  // Isolated temp root: os.tmpdir() in the child (and Playwright's Chromium profile dir) lands here,
+  // so leaked repo-walkthrough-video-* dirs and Chromium processes are attributable to this run only.
+  const isoTmp = fs.mkdtempSync(path.join(os.tmpdir(), "rw-ffmpeg-fail-"));
+  const siteDir = path.join(isoTmp, "site");
+  fs.mkdirSync(path.join(siteDir, "audio"), { recursive: true });
+  const srcSiteDir = path.join(REPO_ROOT, "examples", "self-walkthrough");
+  fs.copyFileSync(path.join(srcSiteDir, "index.html"), path.join(siteDir, "index.html"));
+  fs.copyFileSync(path.join(srcSiteDir, "data.js"), path.join(siteDir, "data.js"));
+  const wavBuf = createWavBuffer(Buffer.alloc(24000 * 2 * 3), 24000, 1, 16);
+  const manifest = [1, 2].map((step) => {
+    fs.writeFileSync(path.join(siteDir, "audio", `step-${step}.wav`), wavBuf);
+    return { step, title: `Step ${step}`, file: `audio/step-${step}.wav`, durationSec: 3 };
+  });
+  fs.writeFileSync(path.join(siteDir, "audio", "manifest.json"), JSON.stringify(manifest));
+
+  // ffmpeg probes the first piped frames, then fails to pick a muxer for the unknown extension
+  const badOut = path.join(isoTmp, "bad_144.unknownext");
+  const TIMEOUT_MS = 60000;
+  const listIsoProcs = () => {
+    if (process.platform === "win32") return [];
+    return execFileSync("ps", ["-eo", "pid=,args="], { encoding: "utf8" })
+      .split("\n")
+      .filter((l) => l.includes(isoTmp) && !l.includes("ps -eo"));
+  };
+
+  const child = spawn(
+    process.execPath,
+    [path.join(SKILL_SCRIPTS_DIR, "render_video.mjs"), "--dir", siteDir, "--out", badOut, "--fps", "6"],
+    { env: { ...process.env, TMPDIR: isoTmp, TEMP: isoTmp, TMP: isoTmp }, stdio: ["ignore", "pipe", "pipe"] }
+  );
+  let output = "";
+  child.stdout.on("data", (d) => (output += d));
+  child.stderr.on("data", (d) => (output += d));
+
+  try {
+    const result = await new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        child.kill("SIGKILL");
+        resolve({ timedOut: true, code: null });
+      }, TIMEOUT_MS);
+      child.on("close", (code) => {
+        clearTimeout(timer);
+        resolve({ timedOut: false, code });
+      });
+    });
+
+    const leakedTmp = fs.readdirSync(isoTmp).filter((n) => n.startsWith("repo-walkthrough-video-"));
+    // Give a closing Chromium a moment to reap its helper processes before checking for leaks
+    let leakedProcs = listIsoProcs();
+    for (let i = 0; i < 20 && leakedProcs.length; i++) {
+      await new Promise((r) => setTimeout(r, 250));
+      leakedProcs = listIsoProcs();
+    }
+
+    assert.equal(
+      result.timedOut,
+      false,
+      `render_video.mjs deadlocked: still running after ${TIMEOUT_MS / 1000}s once ffmpeg died. Leaked temp dirs: ${JSON.stringify(leakedTmp)}. Leaked processes: ${leakedProcs.length}.\n--- output ---\n${output}`
+    );
+    assert.notEqual(result.code, 0, `render_video.mjs must exit non-zero when ffmpeg fails.\n${output}`);
+    assert.match(output, /Video render failed:.*ffmpeg/i, `error must clearly report the ffmpeg failure.\n${output}`);
+    assert.deepEqual(leakedTmp, [], "repo-walkthrough-video-* temp dir must be removed after ffmpeg failure");
+    assert.deepEqual(leakedProcs, [], "no Chromium process from this render may survive");
+  } finally {
+    if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+    if (process.platform !== "win32") {
+      try {
+        execFileSync("pkill", ["-KILL", "-f", isoTmp]);
+      } catch {}
+    }
+    fs.rmSync(isoTmp, { recursive: true, force: true });
   }
 });
 
