@@ -37,6 +37,8 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { safeExecOptions } from "./generate_live_audio.mjs";
+
 const require = createRequire(import.meta.url);
 
 const USAGE_TEXT = `Usage:
@@ -123,9 +125,9 @@ function parseArgs(argv) {
   return opts;
 }
 
-function checkFfmpeg() {
+function checkFfmpeg(runner = execFileSync, platform = process.platform) {
   try {
-    execFileSync("ffmpeg", ["-version"], { stdio: "ignore" });
+    runner("ffmpeg", ["-version"], safeExecOptions({ stdio: "ignore" }, platform));
   } catch {
     throw new Error(
       "ffmpeg is required for video rendering but was not found on PATH. Install it via 'brew install ffmpeg' (macOS), 'apt install ffmpeg' (Linux), or 'winget install Gyan.FFmpeg' (Windows)."
@@ -150,24 +152,19 @@ function getPlaywrightSearchRoots({
   return { npmCmd, npxBases };
 }
 
-function queryGlobalNpmRoot(platform = process.platform, npmCmd = "npm") {
+function queryGlobalNpmRoot(platform = process.platform, npmCmd = "npm", runner = execFileSync) {
+  const opts = safeExecOptions({ encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }, platform);
   try {
     if (platform === "win32") {
-      return execFileSync("cmd.exe", ["/d", "/s", "/c", `${npmCmd} root -g`], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      }).trim();
+      return String(runner("cmd.exe", ["/d", "/s", "/c", `${npmCmd} root -g`], opts)).trim();
     }
-    return execFileSync(npmCmd, ["root", "-g"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
+    return String(runner(npmCmd, ["root", "-g"], opts)).trim();
   } catch {
     return "";
   }
 }
 
-function loadPlaywright() {
+function loadPlaywright({ runner = execFileSync, requireFn = require } = {}) {
   // Never resolve from process.cwd(): the cwd may be an untrusted clone with committed
   // node_modules. Bare names resolve relative to this script (plugin or skill install) only.
   const candidates = [];
@@ -175,9 +172,21 @@ function loadPlaywright() {
     candidates.push(path.resolve(process.env.PLAYWRIGHT_MODULE_PATH.trim()));
   }
   candidates.push("playwright-core", "playwright");
-  const { npmCmd, npxBases } = getPlaywrightSearchRoots();
+  const tryLoad = (list) => {
+    for (const c of list) {
+      try {
+        return requireFn(c);
+      } catch {}
+    }
+    return null;
+  };
+  const direct = tryLoad(candidates);
+  if (direct) return direct;
 
-  const globalRoot = queryGlobalNpmRoot(process.platform, npmCmd);
+  // Only spawn npm once the module candidates above have failed
+  const { npmCmd, npxBases } = getPlaywrightSearchRoots();
+  candidates.length = 0;
+  const globalRoot = queryGlobalNpmRoot(process.platform, npmCmd, runner);
   if (globalRoot) {
     candidates.push(
       path.join(globalRoot, "playwright-core"),
@@ -196,11 +205,8 @@ function loadPlaywright() {
     }
   }
 
-  for (const c of candidates) {
-    try {
-      return require(c);
-    } catch {}
-  }
+  const fallback = tryLoad(candidates);
+  if (fallback) return fallback;
   throw new Error(
     "Could not load 'playwright-core' or 'playwright'. Install it with 'npm install -g playwright-core' or 'npx playwright-core --version'."
   );
@@ -303,7 +309,7 @@ async function main() {
         "pcm_s16le",
         silenceWav,
       ],
-      { stdio: "ignore" }
+      safeExecOptions({ stdio: "ignore" })
     );
 
     const concatLines = [];
@@ -340,7 +346,7 @@ async function main() {
       concatFfmpegArgs.push("-filter:a", `atempo=${SPEED}`);
     }
     concatFfmpegArgs.push("-c:a", "pcm_s16le", fullAudioWav);
-    execFileSync("ffmpeg", concatFfmpegArgs, { stdio: "ignore" });
+    execFileSync("ffmpeg", concatFfmpegArgs, safeExecOptions({ stdio: "ignore" }));
 
     const totalDurationSec = cursorSec;
     const totalFrames = Math.ceil(totalDurationSec * FPS);
@@ -426,7 +432,7 @@ async function main() {
         "+faststart",
         outMp4,
       ],
-      { stdio: ["pipe", "ignore", "inherit"] }
+      safeExecOptions({ stdio: ["pipe", "ignore", "inherit"] })
     );
     // Watch ffmpeg from the moment it spawns so a mid-stream exit can never strand the frame loop
     let ffExitInfo = null;
@@ -550,6 +556,7 @@ export {
   launchChromium,
   loadPlaywright,
   parseArgs,
+  queryGlobalNpmRoot,
   resolveContainedAudioPath,
   resolveRepoRoot,
 };

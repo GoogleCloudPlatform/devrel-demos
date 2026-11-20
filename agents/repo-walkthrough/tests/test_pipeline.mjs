@@ -60,6 +60,8 @@ import {
   sanitizeForTts,
 } from "../skills/repo-walkthrough/scripts/generate_live_audio.mjs";
 import * as audioModule from "../skills/repo-walkthrough/scripts/generate_live_audio.mjs";
+import * as buildModule from "../skills/repo-walkthrough/scripts/build_walkthrough.mjs";
+import * as renderModule from "../skills/repo-walkthrough/scripts/render_video.mjs";
 import {
   formatFfmpegConcatEntry,
   getPlaywrightSearchRoots,
@@ -928,6 +930,55 @@ test("Security: loadPlaywright and --check-prereqs never execute node_modules co
   } finally {
     fs.rmSync(untrustedCwd, { recursive: true, force: true });
   }
+});
+
+test("Security: helper spawns run from the script dir with NoDefaultCurrentDirectoryInExePath on Windows", () => {
+  assert.equal(typeof buildModule.hasCmd, "function", "build_walkthrough.mjs must export hasCmd");
+  assert.equal(typeof renderModule.queryGlobalNpmRoot, "function", "render_video.mjs must export queryGlobalNpmRoot");
+  const calls = [];
+  const runner = (cmd, args, opts = {}) => {
+    calls.push({ cmd, args, opts });
+    return "/fake/global/node_modules\n";
+  };
+  for (const platform of ["win32", "linux", "darwin"]) {
+    calls.length = 0;
+    buildModule.hasCmd("gh", ["auth", "status"], { runner, platform });
+    renderModule.queryGlobalNpmRoot(platform, platform === "win32" ? "npm.cmd" : "npm", runner);
+    renderModule.checkFfmpeg(runner, platform);
+    audioModule.resolveGeminiApiKey(null, { env: {}, platform, cwd: os.tmpdir(), homedir: "", runner });
+    const storeCmd = { win32: "powershell.exe", linux: "secret-tool", darwin: "security" }[platform];
+    assert.deepEqual(
+      calls.map((c) => c.cmd),
+      platform === "win32" ? ["gh", "cmd.exe", "ffmpeg", storeCmd] : ["gh", "npm", "ffmpeg", storeCmd],
+      `mocked runner must receive every helper spawn on ${platform}`
+    );
+    for (const c of calls) {
+      assert.equal(
+        path.resolve(String(c.opts.cwd)),
+        SKILL_SCRIPTS_DIR,
+        `${c.cmd} must spawn with cwd set to the script dir on ${platform}, not the untrusted cwd`
+      );
+      if (platform === "win32") {
+        assert.equal(
+          c.opts.env?.NoDefaultCurrentDirectoryInExePath,
+          "1",
+          `${c.cmd} must set NoDefaultCurrentDirectoryInExePath=1 on win32`
+        );
+      }
+    }
+  }
+
+  const stub = { chromium: { name: "stub" } };
+  calls.length = 0;
+  const loaded = renderModule.loadPlaywright({
+    runner,
+    requireFn: (id) => {
+      if (id === "playwright-core") return stub;
+      throw new Error(`not found: ${id}`);
+    },
+  });
+  assert.equal(loaded, stub, "loadPlaywright must honor the injected requireFn");
+  assert.equal(calls.length, 0, "npm root -g must not be spawned when a module candidate already resolves");
 });
 
 test("Security: resolveGeminiApiKey prefers user-scoped keys and the OS store over an untrusted <cwd>/.env", () => {

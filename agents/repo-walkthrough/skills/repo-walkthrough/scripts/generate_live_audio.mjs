@@ -150,22 +150,33 @@ function readKeyFromEnvFile(envPath) {
   return null;
 }
 
+// Run helper executables from this script's directory, never the user's cwd, which may be an
+// untrusted clone. On Windows also stop cmd.exe and CreateProcess from searching the cwd first.
+function safeExecOptions(extra = {}, platform = process.platform, env = process.env) {
+  const opts = { ...extra, cwd: import.meta.dirname };
+  if (platform === "win32") {
+    opts.env = { ...(extra.env || env), NoDefaultCurrentDirectoryInExePath: "1" };
+  }
+  return opts;
+}
+
 function queryOsCredentialStore(platform = process.platform, runner = execFileSync) {
   if (platform === "darwin") {
     try {
       const out = runner(
         "security",
         ["find-generic-password", "-s", "gemini-api-key", "-w"],
-        { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
+        safeExecOptions({ encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }, platform)
       );
       if (out && out.trim()) return out.trim();
     } catch {}
   } else if (platform === "linux") {
     try {
-      const out = runner("secret-tool", ["lookup", "service", "gemini-api-key"], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      });
+      const out = runner(
+        "secret-tool",
+        ["lookup", "service", "gemini-api-key"],
+        safeExecOptions({ encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }, platform)
+      );
       if (out && out.trim()) return out.trim();
     } catch {}
   } else if (platform === "win32") {
@@ -177,7 +188,7 @@ function queryOsCredentialStore(platform = process.platform, runner = execFileSy
       const out = runner(
         "powershell.exe",
         ["-NoProfile", "-NonInteractive", "-Command", psCmd],
-        { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
+        safeExecOptions({ encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }, platform)
       );
       if (out && out.trim()) return out.trim();
     } catch {}
@@ -758,6 +769,7 @@ export {
   resolveGeminiApiKey,
   resolveRepoRoot,
   resolveSharedCacheDir,
+  safeExecOptions,
   sanitizeForTts,
 };
 

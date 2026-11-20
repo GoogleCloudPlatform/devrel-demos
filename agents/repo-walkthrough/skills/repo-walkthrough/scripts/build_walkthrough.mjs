@@ -28,7 +28,7 @@ import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 
-import { resolveGeminiApiKey } from "./generate_live_audio.mjs";
+import { resolveGeminiApiKey, safeExecOptions } from "./generate_live_audio.mjs";
 import { checkFfmpeg, launchChromium, loadPlaywright } from "./render_video.mjs";
 
 const USAGE_TEXT = `Usage:
@@ -174,9 +174,9 @@ function parseArgs(argv) {
   return opts;
 }
 
-function hasCmd(cmd, args = ["--version"]) {
+function hasCmd(cmd, args = ["--version"], { runner = execFileSync, platform = process.platform } = {}) {
   try {
-    execFileSync(cmd, args, { stdio: "ignore" });
+    runner(cmd, args, safeExecOptions({ stdio: "ignore" }, platform));
     return true;
   } catch {
     return false;
@@ -238,11 +238,15 @@ function openTarget(targetPath, platform = process.platform, runner = execFileSy
   }
   try {
     if (platform === "darwin") {
-      runner("open", [targetPath], { stdio: "ignore" });
+      runner("open", [targetPath], safeExecOptions({ stdio: "ignore" }, platform));
     } else if (platform === "win32") {
-      runner("rundll32.exe", ["url.dll,FileProtocolHandler", targetPath], { stdio: "ignore" });
+      runner(
+        "rundll32.exe",
+        ["url.dll,FileProtocolHandler", targetPath],
+        safeExecOptions({ stdio: "ignore" }, platform)
+      );
     } else {
-      runner("xdg-open", [targetPath], { stdio: "ignore" });
+      runner("xdg-open", [targetPath], safeExecOptions({ stdio: "ignore" }, platform));
     }
     return true;
   } catch {
@@ -559,6 +563,7 @@ async function main() {
 export {
   computeSpokenOffset,
   detectPythonCmd,
+  hasCmd,
   hasGeminiKey,
   hasSupportedNodeVersion,
   openTarget,
