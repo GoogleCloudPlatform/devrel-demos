@@ -463,6 +463,7 @@ class TestFetchRepo(unittest.TestCase):
     real_git = shutil.which("git")
     if not real_git:
       return
+    real_gh = shutil.which("gh")
     with tempfile.TemporaryDirectory() as tmp:
       poison_repo = pathlib.Path(tmp) / "hostile-repo"
       poison_repo.mkdir()
@@ -479,29 +480,60 @@ class TestFetchRepo(unittest.TestCase):
       subprocess.run([real_git, "-C", str(poison_repo), "add", "app.py"], check=True)
       subprocess.run([real_git, "-C", str(poison_repo), "commit", "-m", "c2"], check=True, capture_output=True)
 
-      # Isolated trusted bin dir containing ONLY a symlink to real git (no gh), so any gh hit is poison.
-      trusted_dir = pathlib.Path(tmp) / "trusted-bin"
-      trusted_dir.mkdir()
-      try:
-        os.symlink(real_git, trusted_dir / "git")
-      except OSError:
-        trusted_dir = pathlib.Path(real_git_dir)
+      # On Windows, use the real Git and gh install dirs directly: symlinking cmd\git.exe into a
+      # temp folder breaks its relative ..\mingw64\bin\git.exe lookup and lacks an .exe suffix.
+      if os.name == "nt":
+        trusted_dirs = [real_git_dir]
+        if real_gh:
+          real_gh_dir = str(pathlib.Path(real_gh).resolve().parent)
+          if real_gh_dir.lower() not in {d.lower() for d in trusted_dirs}:
+            trusted_dirs.append(real_gh_dir)
+        sys_root = os.environ.get("SystemRoot") or os.environ.get("WINDIR") or r"C:\Windows"
+        system32_dir = str(pathlib.Path(sys_root) / "System32")
+        if os.path.isdir(system32_dir) and system32_dir.lower() not in {d.lower() for d in trusted_dirs}:
+          trusted_dirs.append(system32_dir)
+      else:
+        trusted_dir = pathlib.Path(tmp) / "trusted-bin"
+        trusted_dir.mkdir()
+        try:
+          os.symlink(real_git, trusted_dir / "git")
+          trusted_dirs = [str(trusted_dir)]
+        except OSError:
+          trusted_dirs = [real_git_dir]
 
       for tool in ("git", "gh"):
         script = poison_repo / tool
         script.write_text(
-            f"#!/bin/sh\nprintf '%s\\n' '{tool}' >> '{marker}'\nexit 0\n",
+            f"#!/bin/sh\nprintf '%s\\n' '{tool}' >> '{marker}'\nexit 99\n",
             encoding="utf-8",
         )
         script.chmod(0o755)
+        if os.name == "nt":
+          for ext in (".bat", ".cmd"):
+            win_stub = poison_repo / f"{tool}{ext}"
+            win_stub.write_text(
+                f'@echo off\r\necho {tool}>> "{marker}"\r\nexit /b 99\r\n',
+                encoding="utf-8",
+            )
 
-      hostile_path = f":.:relative/bin:{trusted_dir}"
+      sep = os.pathsep
+      rel_bin = os.path.join("relative", "bin")
+      poison_only_path = sep.join(["", ".", rel_bin])
+      hostile_path = sep.join(["", ".", rel_bin, *trusted_dirs])
+      gh_in_trusted = bool(shutil.which("gh", path=sep.join(trusted_dirs)))
+
       orig_cwd = os.getcwd()
       os.chdir(poison_repo)
       try:
+        with unittest.mock.patch.dict(os.environ, {"PATH": poison_only_path}, clear=False):
+          self.assertFalse(fetch_repo.has_gh_cli(), "poison-only PATH must not execute gh in cwd")
+          with self.assertRaises(RuntimeError):
+            fetch_repo.fetch_git_diff(poison_repo, "HEAD~1..HEAD", max_files=4)
         with unittest.mock.patch.dict(os.environ, {"PATH": hostile_path}, clear=False):
-          if trusted_dir != pathlib.Path(real_git_dir):
-            self.assertFalse(fetch_repo.has_gh_cli(), "keyless/gh-less host must not execute ./gh in cwd")
+          if not gh_in_trusted:
+            self.assertFalse(fetch_repo.has_gh_cli(), "gh-less PATH must not execute gh in cwd")
+          else:
+            fetch_repo.has_gh_cli()
           diff_info = fetch_repo.fetch_git_diff(poison_repo, "HEAD~1..HEAD", max_files=4)
           self.assertIn("app.py", diff_info["files"])
       finally:
