@@ -337,6 +337,178 @@ class TestFetchRepo(unittest.TestCase):
       fetch_repo.main([str(REPO_ROOT), "--mode", "local", "--max-files", "4", "--json", str(out_json)])
       self.assertTrue(out_json.exists())
 
+  def test_security_never_resolves_or_spawns_executables_from_untrusted_cwd(self) -> None:
+    expected_script_dir = (REPO_ROOT / "skills" / "repo-walkthrough" / "scripts").resolve()
+
+    # 1. Mocked win32 seam: even with a clean PATH, Windows shutil.which checks os.curdir unless
+    # NoDefaultCurrentDirectoryInExePath=1 is set, and CreateProcessW searches cwd for bare names.
+    with tempfile.TemporaryDirectory() as tmp:
+      poison_cwd = pathlib.Path(tmp) / "untrusted-clone"
+      poison_cwd.mkdir()
+      for name in ("git.exe", "gh.exe", "rundll32.exe"):
+        (poison_cwd / name).write_text("poison", encoding="utf-8")
+
+      trusted_git_dir = r"C:\Program Files\Git\cmd"
+      trusted_gh_dir = r"C:\Program Files\GitHub CLI"
+      trusted_bins = {
+          (trusted_git_dir.lower(), "git"): trusted_git_dir + r"\git.exe",
+          (trusted_gh_dir.lower(), "gh"): trusted_gh_dir + r"\gh.exe",
+      }
+
+      def fake_win_which(cmd: str, mode: int = os.F_OK | os.X_OK, path: str | None = None) -> str | None:
+        del mode
+        if "\\" in cmd or "/" in cmd:
+          parent, leaf = cmd.rsplit("\\", 1) if "\\" in cmd else cmd.rsplit("/", 1)
+          stem = leaf[:-4].lower() if leaf.lower().endswith(".exe") else leaf.lower()
+          return trusted_bins.get((parent.lower(), stem))
+        raw_path = os.environ.get("PATH", "") if path is None else path
+        search_dirs = raw_path.split(";") if raw_path else []
+        if not os.environ.get("NoDefaultCurrentDirectoryInExePath"):
+          search_dirs = [".", *search_dirs]
+        stem = cmd[:-4].lower() if cmd.lower().endswith(".exe") else cmd.lower()
+        for entry in search_dirs:
+          cleaned = entry.strip().strip('"')
+          if cleaned in ("", ".") or not (len(cleaned) >= 3 and cleaned[1] == ":"):
+            candidate = poison_cwd / f"{stem}.exe"
+            if candidate.exists():
+              return f".\\{stem}.exe" if cleaned == "." else str(candidate)
+            continue
+          hit = trusted_bins.get((cleaned.lower(), stem))
+          if hit:
+            return hit
+        return None
+
+      recorded_spawns: list[tuple[list[str], dict[str, object]]] = []
+
+      def fake_run(cmd: list[str], *args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        del args
+        recorded_spawns.append((list(cmd), dict(kwargs)))
+        stdout = ""
+        if "log" in cmd:
+          stdout = "abc1234 feat: demo\n"
+        return subprocess.CompletedProcess(cmd, 0, stdout=stdout, stderr="")
+
+      def fake_check_output(cmd: list[str], *args: object, **kwargs: object) -> str:
+        del args
+        recorded_spawns.append((list(cmd), dict(kwargs)))
+        if any(str(part).endswith("/git/trees/main?recursive=1") for part in cmd):
+          return '{"tree": []}'
+        return '{"default_branch": "main", "description": "demo", "stargazers_count": 1, "language": "Python"}'
+
+      win_env = {
+          "PATH": f";.;relative\\bin;{trusted_git_dir};{trusted_gh_dir}",
+          "SystemRoot": r"C:\Windows",
+      }
+      orig_cwd = os.getcwd()
+      os.chdir(poison_cwd)
+      try:
+        with (
+            unittest.mock.patch.object(fetch_repo.sys, "platform", "win32"),
+            unittest.mock.patch.dict(fetch_repo.os.environ, win_env, clear=True),
+            unittest.mock.patch.object(fetch_repo.shutil, "which", side_effect=fake_win_which),
+            unittest.mock.patch.object(fetch_repo.subprocess, "run", side_effect=fake_run),
+            unittest.mock.patch.object(fetch_repo.subprocess, "check_output", side_effect=fake_check_output),
+        ):
+          self.assertTrue(fetch_repo.has_gh_cli())
+          fetch_repo.fetch_github_via_gh("owner/repo", max_files=1)
+          fetch_repo.fetch_git_diff(poison_cwd, "HEAD~1..HEAD", max_files=1)
+          self.assertTrue(
+              fetch_repo.open_target(
+                  pathlib.Path(r"C:\out\index.html"),
+                  platform="win32",
+                  runner=fake_run,
+              )
+          )
+      finally:
+        os.chdir(orig_cwd)
+
+      self.assertGreaterEqual(len(recorded_spawns), 6)
+      for cmd, kwargs in recorded_spawns:
+        exe = cmd[0]
+        self.assertNotIn(str(poison_cwd).lower(), exe.lower(), f"resolved poison cwd binary: {exe}")
+        self.assertFalse(exe.startswith("."), f"resolved relative cwd binary: {exe}")
+        self.assertNotIn(exe.lower(), ("git", "git.exe", "gh", "gh.exe", "rundll32.exe"), f"unqualified exe: {exe}")
+        self.assertEqual(pathlib.Path(str(kwargs.get("cwd"))).resolve(), expected_script_dir)
+        child_env = kwargs.get("env")
+        self.assertIsInstance(child_env, dict)
+        assert isinstance(child_env, dict)
+        self.assertEqual(child_env.get("NoDefaultCurrentDirectoryInExePath"), "1")
+
+      rundll_cmd = recorded_spawns[-1][0][0]
+      self.assertEqual(rundll_cmd, r"C:\Windows\System32\rundll32.exe")
+
+      # When neither git nor gh is installed on trusted PATH dirs, poison <cwd>\git.exe and
+      # <cwd>\gh.exe must never be resolved or spawned.
+      trusted_bins.clear()
+      recorded_spawns.clear()
+      os.chdir(poison_cwd)
+      try:
+        with (
+            unittest.mock.patch.object(fetch_repo.sys, "platform", "win32"),
+            unittest.mock.patch.dict(fetch_repo.os.environ, win_env, clear=True),
+            unittest.mock.patch.object(fetch_repo.shutil, "which", side_effect=fake_win_which),
+            unittest.mock.patch.object(fetch_repo.subprocess, "run", side_effect=fake_run),
+            unittest.mock.patch.object(fetch_repo.subprocess, "check_output", side_effect=fake_check_output),
+        ):
+          self.assertFalse(fetch_repo.has_gh_cli(), "must not resolve poison <cwd>\\gh.exe")
+          with self.assertRaises(FileNotFoundError):
+            fetch_repo.fetch_github_via_gh("owner/repo", max_files=1)
+          with self.assertRaises(RuntimeError):
+            fetch_repo.fetch_git_diff(poison_cwd, "HEAD~1..HEAD", max_files=1)
+      finally:
+        os.chdir(orig_cwd)
+      self.assertEqual(recorded_spawns, [], "must never spawn when only poison cwd binaries exist")
+
+    # 2. Real subprocess check with a poisoned cwd and '.' / empty entries in PATH.
+    real_git = shutil.which("git")
+    if not real_git:
+      return
+    with tempfile.TemporaryDirectory() as tmp:
+      poison_repo = pathlib.Path(tmp) / "hostile-repo"
+      poison_repo.mkdir()
+      marker = pathlib.Path(tmp) / "PWNED"
+      real_git_dir = str(pathlib.Path(real_git).resolve().parent)
+
+      subprocess.run([real_git, "init", "-b", "main", str(poison_repo)], check=True, capture_output=True)
+      subprocess.run([real_git, "-C", str(poison_repo), "config", "user.email", "t@example.com"], check=True)
+      subprocess.run([real_git, "-C", str(poison_repo), "config", "user.name", "T"], check=True)
+      (poison_repo / "app.py").write_text("x = 1\n", encoding="utf-8")
+      subprocess.run([real_git, "-C", str(poison_repo), "add", "app.py"], check=True)
+      subprocess.run([real_git, "-C", str(poison_repo), "commit", "-m", "c1"], check=True, capture_output=True)
+      (poison_repo / "app.py").write_text("x = 2\n", encoding="utf-8")
+      subprocess.run([real_git, "-C", str(poison_repo), "add", "app.py"], check=True)
+      subprocess.run([real_git, "-C", str(poison_repo), "commit", "-m", "c2"], check=True, capture_output=True)
+
+      # Isolated trusted bin dir containing ONLY a symlink to real git (no gh), so any gh hit is poison.
+      trusted_dir = pathlib.Path(tmp) / "trusted-bin"
+      trusted_dir.mkdir()
+      try:
+        os.symlink(real_git, trusted_dir / "git")
+      except OSError:
+        trusted_dir = pathlib.Path(real_git_dir)
+
+      for tool in ("git", "gh"):
+        script = poison_repo / tool
+        script.write_text(
+            f"#!/bin/sh\nprintf '%s\\n' '{tool}' >> '{marker}'\nexit 0\n",
+            encoding="utf-8",
+        )
+        script.chmod(0o755)
+
+      hostile_path = f":.:relative/bin:{trusted_dir}"
+      orig_cwd = os.getcwd()
+      os.chdir(poison_repo)
+      try:
+        with unittest.mock.patch.dict(os.environ, {"PATH": hostile_path}, clear=False):
+          if trusted_dir != pathlib.Path(real_git_dir):
+            self.assertFalse(fetch_repo.has_gh_cli(), "keyless/gh-less host must not execute ./gh in cwd")
+          diff_info = fetch_repo.fetch_git_diff(poison_repo, "HEAD~1..HEAD", max_files=4)
+          self.assertIn("app.py", diff_info["files"])
+      finally:
+        os.chdir(orig_cwd)
+
+      self.assertFalse(marker.exists(), f"poison binary in cwd was executed: {marker.read_text() if marker.exists() else ''}")
+
 
 if __name__ == "__main__":
   unittest.main()

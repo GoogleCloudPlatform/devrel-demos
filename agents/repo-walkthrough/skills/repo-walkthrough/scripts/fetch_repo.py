@@ -39,8 +39,10 @@ import base64
 from collections.abc import Callable, Mapping, Sequence
 from http import client as http_client
 import json
+import ntpath
 import os
 import pathlib
+import posixpath
 import re
 import shutil
 import subprocess
@@ -300,6 +302,109 @@ _SYMBOL_DECL_PATTERN = re.compile(
     r"^(?:export\s+)?(?:default\s+)?(?:async\s+)?"
     r"(?:class|interface|type|function|func|struct|enum)\s+([A-Za-z0-9_]+)"
 )
+_SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
+if sys.platform.startswith("win") and not os.environ.get(
+    "NoDefaultCurrentDirectoryInExePath"
+):
+  os.environ["NoDefaultCurrentDirectoryInExePath"] = "1"
+
+
+def _is_abs_search_dir(entry: str, platform: str) -> bool:
+  """Returns True when `entry` is an absolute path on `platform`."""
+  if not entry or entry == ".":
+    return False
+  if platform.startswith("win"):
+    return bool(ntpath.splitdrive(entry)[0]) and ntpath.isabs(entry)
+  return posixpath.isabs(entry)
+
+
+def _clean_search_path(
+    raw_path: str | None,
+    platform: str | None = None,
+) -> list[str]:
+  """Strips empty, '.', and relative entries from a PATH string."""
+  active_platform = sys.platform if platform is None else platform
+  if not raw_path:
+    return []
+  sep = ";" if active_platform.startswith("win") else os.pathsep
+  dirs: list[str] = []
+  for raw_entry in raw_path.split(sep):
+    entry = (
+        raw_entry.strip().strip('"')
+        if active_platform.startswith("win")
+        else raw_entry
+    )
+    if _is_abs_search_dir(entry, active_platform):
+      dirs.append(entry)
+  return dirs
+
+
+def _resolve_executable(
+    name: str,
+    platform: str | None = None,
+) -> str | None:
+  """Resolves `name` to an absolute executable path without searching cwd."""
+  active_platform = sys.platform if platform is None else platform
+  if active_platform.startswith("win") and not os.environ.get(
+      "NoDefaultCurrentDirectoryInExePath"
+  ):
+    os.environ["NoDefaultCurrentDirectoryInExePath"] = "1"
+  raw_path = os.environ["PATH"] if "PATH" in os.environ else os.defpath
+  safe_dirs = _clean_search_path(raw_path, active_platform)
+  if not safe_dirs:
+    return None
+  is_win = active_platform.startswith("win")
+  path_mod = ntpath if is_win else posixpath
+  norm = (
+      (lambda p: ntpath.normcase(ntpath.normpath(p)))
+      if is_win
+      else posixpath.normpath
+  )
+  allowed_parents = {norm(directory) for directory in safe_dirs}
+
+  def _is_allowed_hit(candidate: str | None) -> bool:
+    return (
+        bool(candidate)
+        and _is_abs_search_dir(candidate, active_platform)
+        and norm(path_mod.dirname(candidate)) in allowed_parents
+    )
+
+  sep = ";" if is_win else os.pathsep
+  resolved = shutil.which(name, path=sep.join(safe_dirs))
+  if _is_allowed_hit(resolved):
+    return resolved
+  if resolved:
+    for directory in safe_dirs:
+      fallback = shutil.which(path_mod.join(directory, name))
+      if _is_allowed_hit(fallback):
+        return fallback
+  return None
+
+
+def _safe_subprocess_kwargs(platform: str | None = None) -> dict[str, Any]:
+  """Returns `cwd` and `env` kwargs isolating child spawns from untrusted cwd."""
+  active_platform = sys.platform if platform is None else platform
+  kwargs: dict[str, Any] = {"cwd": _SCRIPT_DIR}
+  if active_platform.startswith("win"):
+    child_env = dict(os.environ)
+    child_env["NoDefaultCurrentDirectoryInExePath"] = "1"
+    kwargs["env"] = child_env
+  return kwargs
+
+
+def _windows_rundll32_path() -> str:
+  """Returns `%SystemRoot%\\System32\\rundll32.exe` using an absolute root."""
+  raw_root = (
+      os.environ.get("SystemRoot")
+      or os.environ.get("SYSTEMROOT")
+      or os.environ.get("windir")
+      or os.environ.get("WINDIR")
+      or r"C:\Windows"
+  )
+  cleaned_root = raw_root.strip().strip('"')
+  if not _is_abs_search_dir(cleaned_root, "win32"):
+    cleaned_root = r"C:\Windows"
+  return ntpath.join(cleaned_root, "System32", "rundll32.exe")
 
 
 def _is_plugin_or_repo_root(candidate: pathlib.Path) -> bool:
@@ -384,7 +489,7 @@ def resolve_web_index(repo_root: pathlib.Path) -> pathlib.Path | None:
 
 def open_target(
     target_path: pathlib.Path,
-    platform: str = sys.platform,
+    platform: str | None = None,
     runner: Callable[..., Any] = subprocess.run,
     startfile_fn: Callable[[str], Any] | None = None,
 ) -> bool:
@@ -403,10 +508,13 @@ def open_target(
   """
   if target_path.suffix.lower() == ".tmpl":
     return False
+  active_platform = sys.platform if platform is None else platform
+  exec_kwargs = _safe_subprocess_kwargs(active_platform)
   try:
-    if platform == "darwin":
-      runner(["open", str(target_path)], check=False)
-    elif platform.startswith("win"):
+    if active_platform == "darwin":
+      open_exe = _resolve_executable("open", active_platform) or "/usr/bin/open"
+      runner([open_exe, str(target_path)], check=False, **exec_kwargs)
+    elif active_platform.startswith("win"):
       opener = startfile_fn or getattr(os, "startfile", None)
       if opener is not None and runner is subprocess.run:
         opener(str(target_path))
@@ -414,11 +522,19 @@ def open_target(
         startfile_fn(str(target_path))
       else:
         runner(
-            ["rundll32.exe", "url.dll,FileProtocolHandler", str(target_path)],
+            [
+                _windows_rundll32_path(),
+                "url.dll,FileProtocolHandler",
+                str(target_path),
+            ],
             check=False,
+            **exec_kwargs,
         )
     else:
-      runner(["xdg-open", str(target_path)], check=False)
+      xdg_exe = _resolve_executable("xdg-open", active_platform)
+      if xdg_exe is None and runner is subprocess.run:
+        raise FileNotFoundError("xdg-open")
+      runner([xdg_exe or "xdg-open", str(target_path)], check=False, **exec_kwargs)
     return True
   except (OSError, subprocess.SubprocessError):
     print(
@@ -459,14 +575,16 @@ def normalize_repo_target(target: str) -> str:
 
 def has_gh_cli() -> bool:
   """Returns True if the `gh` CLI is installed and authenticated."""
-  if not shutil.which("gh"):
+  gh_exe = _resolve_executable("gh")
+  if not gh_exe:
     return False
   try:
     subprocess.run(
-        ["gh", "auth", "status"],
+        [gh_exe, "auth", "status"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         check=True,
+        **_safe_subprocess_kwargs(),
     )
     return True
   except (OSError, subprocess.CalledProcessError):
@@ -656,10 +774,15 @@ def fetch_github_via_gh(
     Repository metadata, blob list, and decoded file contents keyed by path.
   """
   repo = _validate_repo_slug(repo)
+  gh_exe = _resolve_executable("gh")
+  if not gh_exe:
+    raise FileNotFoundError("gh CLI executable not found on PATH.")
+  exec_kwargs = _safe_subprocess_kwargs()
   meta_raw = subprocess.check_output(
-      ["gh", "api", f"repos/{repo}"],
+      [gh_exe, "api", f"repos/{repo}"],
       encoding="utf-8",
       errors="replace",
+      **exec_kwargs,
   )
   meta = json.loads(meta_raw)
   branch = branch_override or meta.get("default_branch", "main")
@@ -667,9 +790,10 @@ def fetch_github_via_gh(
 
   tree_endpoint = f"repos/{repo}/git/trees/{encoded_branch}?recursive=1"
   tree_raw = subprocess.check_output(
-      ["gh", "api", tree_endpoint],
+      [gh_exe, "api", tree_endpoint],
       encoding="utf-8",
       errors="replace",
+      **exec_kwargs,
   )
   tree_data = json.loads(tree_raw)
 
@@ -687,9 +811,10 @@ def fetch_github_via_gh(
     )
     try:
       b64_content = subprocess.check_output(
-          ["gh", "api", content_endpoint, "--jq", ".content"],
+          [gh_exe, "api", content_endpoint, "--jq", ".content"],
           encoding="utf-8",
           errors="replace",
+          **exec_kwargs,
       )
       file_contents[rel_path] = base64.b64decode(b64_content).decode(
           "utf-8", errors="replace"
@@ -908,8 +1033,12 @@ def fetch_git_diff(
     RuntimeError: If any underlying `git` command fails.
   """
   diff_range = _validate_diff_range(diff_range)
+  git_exe = _resolve_executable("git")
+  if not git_exe:
+    raise RuntimeError("Git executable not found on PATH.")
+  exec_kwargs = _safe_subprocess_kwargs()
   local_path = local_path.resolve()
-  base_cmd = ["git", "-c", "core.quotePath=false", "-C", str(local_path)]
+  base_cmd = [git_exe, "-c", "core.quotePath=false", "-C", str(local_path)]
   diff_base = [*base_cmd, "diff", "--relative", "--no-renames"]
   effective_range = diff_range
   try:
@@ -923,6 +1052,7 @@ def fetch_git_diff(
           encoding="utf-8",
           errors="replace",
           check=True,
+          **exec_kwargs,
       ).stdout.strip()
       if mb_out:
         effective_range = f"{mb_out}..{right_ref}"
@@ -933,6 +1063,7 @@ def fetch_git_diff(
         encoding="utf-8",
         errors="replace",
         check=True,
+        **exec_kwargs,
     ).stdout
     status_out = subprocess.run(
         [*diff_base, "--name-status", effective_range, "--", "."],
@@ -940,6 +1071,7 @@ def fetch_git_diff(
         encoding="utf-8",
         errors="replace",
         check=True,
+        **exec_kwargs,
     ).stdout
     commits_out = subprocess.run(
         [*base_cmd, "log", "--oneline", effective_range, "--", "."],
@@ -947,6 +1079,7 @@ def fetch_git_diff(
         encoding="utf-8",
         errors="replace",
         check=True,
+        **exec_kwargs,
     ).stdout
   except subprocess.CalledProcessError as err:
     detail = err.stderr.strip() if err.stderr else str(err)
@@ -1031,6 +1164,7 @@ def fetch_git_diff(
         encoding="utf-8",
         errors="replace",
         check=True,
+        **exec_kwargs,
     ).stdout
     file_diffs[rel_path]["patchPreview"] = _extract_diff_preview(patch_raw)
     full_file = local_path / rel_path
