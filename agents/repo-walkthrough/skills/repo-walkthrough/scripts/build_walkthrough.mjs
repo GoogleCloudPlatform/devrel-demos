@@ -303,9 +303,9 @@ function spokenWeight(text = "") {
   return w;
 }
 
-function computeSpokenOffset(narration = "", phrase = "") {
+function computeSpokenOffset(narration = "", phrase = "", fromIdx = 0) {
   if (!narration || !phrase) return 0;
-  const idx = narration.toLowerCase().indexOf(phrase.toLowerCase());
+  const idx = narration.toLowerCase().indexOf(phrase.toLowerCase(), fromIdx);
   if (idx < 0) return -1;
   if (idx === 0) return 0;
   const total = Math.max(1, spokenWeight(narration));
@@ -400,7 +400,7 @@ function validateWalkthroughData(data, fileLabel) {
       }
     }
     let prevAt = -1;
-    let prevCharIdx = -1;
+    let phraseCursor = 0;
     for (const c of st.cues || []) {
       for (const cn of c.nodes || []) {
         if (!nodeById.has(cn)) {
@@ -411,17 +411,19 @@ function validateWalkthroughData(data, fileLabel) {
         errors.push(`Step ${st.step} references unknown cue focus node '${c.focus}'.`);
       }
       if (c.phrase && st.narration) {
-        const charIdx = st.narration.toLowerCase().indexOf(c.phrase.toLowerCase());
+        // Search from a moving cursor so a repeated phrase maps to its next occurrence
+        const lowerNarration = st.narration.toLowerCase();
+        const lowerPhrase = c.phrase.toLowerCase();
+        const charIdx = lowerNarration.indexOf(lowerPhrase, phraseCursor);
         if (charIdx < 0) {
-          errors.push(`Step ${st.step} cue phrase "${c.phrase}" was not found in step narration.`);
+          errors.push(
+            lowerNarration.includes(lowerPhrase)
+              ? `Step ${st.step} cue phrase "${c.phrase}" appears earlier in narration than the previous cue.`
+              : `Step ${st.step} cue phrase "${c.phrase}" was not found in step narration.`
+          );
         } else {
-          if (charIdx < prevCharIdx) {
-            errors.push(
-              `Step ${st.step} cue phrase "${c.phrase}" appears earlier in narration than the previous cue.`
-            );
-          }
-          prevCharIdx = charIdx;
-          const expectedAt = computeSpokenOffset(st.narration, c.phrase);
+          phraseCursor = charIdx + lowerPhrase.length;
+          const expectedAt = computeSpokenOffset(st.narration, c.phrase, charIdx);
           if (typeof c.at !== "number") {
             c.at = expectedAt;
           } else if (Math.abs(c.at - expectedAt) > 0.08) {

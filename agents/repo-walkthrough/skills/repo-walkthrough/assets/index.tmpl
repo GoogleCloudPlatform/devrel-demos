@@ -773,9 +773,9 @@
     return w;
   }
 
-  function computeSpokenOffset(narration = "", phrase = "") {
+  function computeSpokenOffset(narration = "", phrase = "", fromIdx = 0) {
     if (!narration || !phrase) return 0;
-    const idx = narration.toLowerCase().indexOf(phrase.toLowerCase());
+    const idx = narration.toLowerCase().indexOf(phrase.toLowerCase(), fromIdx);
     if (idx <= 0) return 0;
     return Number((spokenWeight(narration.slice(0, idx)) / Math.max(1, spokenWeight(narration))).toFixed(2));
   }
@@ -785,8 +785,21 @@
       return { nodes: st.activeNodes || [st.focusNode], focus: st.focusNode };
     }
     let chosen = st.cues[0];
+    const narrationLower = String(st.narration || "").toLowerCase();
+    let phraseCursor = 0;
     for (const c of st.cues) {
-      const cueAt = typeof c.at === "number" ? c.at : computeSpokenOffset(st.narration, c.phrase);
+      // Moving cursor so a repeated phrase maps to its next occurrence
+      let phraseIdx = -1;
+      if (c.phrase) {
+        phraseIdx = narrationLower.indexOf(String(c.phrase).toLowerCase(), phraseCursor);
+        if (phraseIdx >= 0) phraseCursor = phraseIdx + String(c.phrase).length;
+      }
+      const cueAt =
+        typeof c.at === "number"
+          ? c.at
+          : phraseIdx > 0
+            ? computeSpokenOffset(st.narration, c.phrase, phraseIdx)
+            : 0;
       if (progress01 >= cueAt) chosen = c;
     }
     const nodes = chosen.nodes || (chosen.node ? [chosen.node] : st.activeNodes);

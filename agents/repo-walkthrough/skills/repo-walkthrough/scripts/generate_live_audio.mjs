@@ -475,13 +475,8 @@ function normalizeMatchText(s = "") {
  * Pass a shared `cursor` object ({ pos: 0 }) across a step's cues so repeated
  * phrases resolve to successive occurrences instead of jumping back to the first.
  */
-function computeAcousticCueAt(alignedSegments, totalDur, phrase = "", cueIndex = 0, cursor = null) {
-  if (cueIndex === 0) return 0;
-  if (!phrase || !alignedSegments?.length || !(totalDur > 0)) return null;
-  const normPhrase = normalizeMatchText(phrase);
-  if (!normPhrase) return null;
-
-  // Join normalized segment texts so a phrase can span a short pause between segments.
+// Join normalized segment texts so a phrase can span a short pause between segments.
+function joinSegmentText(alignedSegments) {
   const spans = [];
   let combined = "";
   for (const seg of alignedSegments) {
@@ -491,7 +486,24 @@ function computeAcousticCueAt(alignedSegments, totalDur, phrase = "", cueIndex =
     spans.push({ seg, start: combined.length, text });
     combined += text;
   }
+  return { spans, combined };
+}
 
+function computeAcousticCueAt(alignedSegments, totalDur, phrase = "", cueIndex = 0, cursor = null) {
+  if (cueIndex === 0) {
+    // Cue 0 anchors at 0, but its phrase still consumes text so a repeat in cue 1 maps forward
+    const normPhrase0 = cursor && phrase && alignedSegments?.length ? normalizeMatchText(phrase) : "";
+    if (normPhrase0) {
+      const idx0 = joinSegmentText(alignedSegments).combined.indexOf(normPhrase0, cursor.pos || 0);
+      if (idx0 >= 0) cursor.pos = idx0 + normPhrase0.length;
+    }
+    return 0;
+  }
+  if (!phrase || !alignedSegments?.length || !(totalDur > 0)) return null;
+  const normPhrase = normalizeMatchText(phrase);
+  if (!normPhrase) return null;
+
+  const { spans, combined } = joinSegmentText(alignedSegments);
   const idx = combined.indexOf(normPhrase, cursor?.pos || 0);
   if (idx < 0) return null;
   if (cursor) cursor.pos = idx + normPhrase.length;

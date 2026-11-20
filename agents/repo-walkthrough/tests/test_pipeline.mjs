@@ -84,6 +84,17 @@ function loadDataJs(filePath) {
   return windowObj.WALKTHROUGH_DATA || windowObj.ADK_DATA;
 }
 
+function loadTemplateCueFns() {
+  const tmpl = fs.readFileSync(path.join(SKILL_DIR, "assets", "index.tmpl"), "utf8");
+  const start = tmpl.indexOf("  function spokenWeight(");
+  const end = tmpl.indexOf("  function escHtml(");
+  assert.ok(start > 0 && end > start, "index.tmpl cue helpers (spokenWeight..resolveCue) not found");
+  const sandbox = Object.create(null);
+  vm.runInNewContext(tmpl.slice(start, end), sandbox, { timeout: 2000 });
+  assert.equal(typeof sandbox.resolveCue, "function", "index.tmpl must define resolveCue");
+  return sandbox;
+}
+
 function makeSampleData(layerCount = 5) {
   const allLayers = [
     { id: "l0", name: "Layer 0", color: "#4285F4", accent: "#8AB4F8", bg: "rgba(66,133,244,0.08)" },
@@ -448,6 +459,53 @@ test("alignStepCues advances a monotonic search cursor so repeated phrases never
   }
   // Without a cursor each call is independent and finds the first occurrence
   assert.equal(computeAcousticCueAt(aligned, 10, "the runner", 3), 0.1);
+});
+
+test("Repeated phrases: cue 0's phrase advances the cursor and the validator and viewer search with a moving cursor", () => {
+  const aligned = [
+    { seg: 0, startSec: 0.2, endSec: 4.8, text: "the runner starts the session" },
+    { seg: 1, startSec: 5.2, endSec: 9.8, text: "the runner ends it" },
+  ];
+  const out = audioModule.alignStepCues(
+    [
+      { at: 0, node: "a", phrase: "the runner" },
+      { at: 0.5, node: "b", phrase: "the runner" },
+    ],
+    aligned,
+    10
+  );
+  assert.deepEqual(out.map((c) => c.at), [0, 0.52], "cue 1 must map to the second 'the runner' at 0.52, not 0.02");
+
+  const narration = "The runner loads the config file, and later the runner calls the agent.";
+  assert.equal(computeSpokenOffset(narration, "the runner", 1), 0.64, "computeSpokenOffset must search from the cursor");
+  const repeated = makeSampleData(5);
+  repeated.walkthrough[0].narration = narration;
+  repeated.walkthrough[0].cues = [
+    { at: 0, phrase: "The runner", nodes: ["n0"], focus: "n0" },
+    { at: 0.64, phrase: "the runner", nodes: ["n1"], focus: "n1" },
+  ];
+  assert.doesNotThrow(() => validateWalkthroughData(repeated, "repeated.js"), "repeated phrases must validate");
+
+  const outOfOrder = makeSampleData(5);
+  outOfOrder.walkthrough[0].narration = narration;
+  outOfOrder.walkthrough[0].cues = [
+    { at: 0.5, phrase: "later the runner", nodes: ["n0"], focus: "n0" },
+    { at: 0.6, phrase: "loads the config", nodes: ["n1"], focus: "n1" },
+  ];
+  assert.throws(() => validateWalkthroughData(outOfOrder, "outOfOrder.js"), /appears earlier in narration/);
+
+  const { resolveCue } = loadTemplateCueFns();
+  const st = {
+    narration,
+    activeNodes: ["a", "b"],
+    focusNode: "a",
+    cues: [
+      { phrase: "The runner", node: "a" },
+      { phrase: "the runner", node: "b" },
+    ],
+  };
+  assert.equal(resolveCue(st, 0.3).focus, "a", "viewer must keep cue 0 before the second 'the runner'");
+  assert.equal(resolveCue(st, 0.7).focus, "b", "viewer must switch to cue 1 at the second 'the runner'");
 });
 
 test("Real web/data-adk.js cues without a phrase keep their authored timing (0 clobbered to 0)", () => {
