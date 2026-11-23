@@ -11,10 +11,11 @@ researcher = Agent(
     description="Gathers information on a topic using Google Search.",
     instruction="""
     You are an expert researcher. Your goal is to find comprehensive and accurate information on the user's topic.
+    Use the `google_search` tool to find relevant information.
     Summarize your findings clearly.
     If you receive feedback that your research is insufficient, use the feedback to refine your next search.
-    DO NOT output any function calls. Provide your research directly as text.
     """,
+    tools=[google_search],
 )
 
 root_agent = researcher

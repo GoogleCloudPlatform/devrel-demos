@@ -1,11 +1,10 @@
 import os
 import json
-from typing import AsyncGenerator
-from google.adk.agents import BaseAgent, LoopAgent, SequentialAgent
-from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
-from google.adk.events import Event, EventActions
-from google.adk.agents.invocation_context import InvocationContext
 from google.adk.agents.callback_context import CallbackContext
+from google.adk.agents.context import Context
+from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
+from google.adk.events import Event
+from google.adk.workflow import Workflow
 
 from authenticated_httpx import create_authenticated_client
 
@@ -37,17 +36,16 @@ def create_save_output_callback(key: str):
 # Connect to Researcher, Judge, and Content Builder using RemoteA2aAgent.
 # Remember to use the environment variables for URLs (or localhost defaults).
 
-# --- Escalation Checker ---
+# --- Feedback Router ---
 
-# TODO: Define EscalationChecker
-# This agent should check the status of the judge's feedback.
-# If status is "pass", it should escalate (break the loop).
+# TODO: Define check_judge_feedback
+# This function node should check ctx.state.get("judge_feedback") and track iterations.
+# Return Event(route="pass", ...) when status is "pass" (or max iterations reached),
+# otherwise return Event(route="retry", ...).
 
 # --- Orchestration ---
 
-# TODO: Define the Research Loop
-# Use LoopAgent to cycle through Researcher -> Judge -> EscalationChecker.
-
-# TODO: Define the Root Agent (Pipeline)
-# Use SequentialAgent to run the Research Loop followed by the Content Builder.
+# TODO: Define the Root Agent (Workflow)
+# Use Workflow with edges connecting START -> researcher -> judge -> check_judge_feedback,
+# routing "retry" back to researcher and "pass" to content_builder.
 

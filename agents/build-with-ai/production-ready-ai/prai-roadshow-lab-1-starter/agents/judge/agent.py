@@ -1,6 +1,5 @@
 from typing import Literal
 from google.adk.agents import Agent
-from google.adk.apps.app import App
 from pydantic import BaseModel, Field
 
 

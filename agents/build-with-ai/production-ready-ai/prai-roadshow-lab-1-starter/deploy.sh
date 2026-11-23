@@ -39,6 +39,7 @@ gcloud run deploy researcher \
   --region $REGION \
   --no-allow-unauthenticated \
   --set-env-vars GOOGLE_CLOUD_PROJECT="${GOOGLE_CLOUD_PROJECT}" \
+  --set-env-vars GOOGLE_CLOUD_LOCATION="global" \
   --set-env-vars GOOGLE_GENAI_USE_VERTEXAI="true"
 RESEARCHER_URL=$(gcloud run services describe researcher --region $REGION --format='value(status.url)')
 
@@ -48,6 +49,7 @@ gcloud run deploy content-builder \
   --region $REGION \
   --no-allow-unauthenticated \
   --set-env-vars GOOGLE_CLOUD_PROJECT="${GOOGLE_CLOUD_PROJECT}" \
+  --set-env-vars GOOGLE_CLOUD_LOCATION="global" \
   --set-env-vars GOOGLE_GENAI_USE_VERTEXAI="true"
 CONTENT_BUILDER_URL=$(gcloud run services describe content-builder --region $REGION --format='value(status.url)')
 
@@ -57,6 +59,7 @@ gcloud run deploy judge \
   --region $REGION \
   --no-allow-unauthenticated \
   --set-env-vars GOOGLE_CLOUD_PROJECT="${GOOGLE_CLOUD_PROJECT}" \
+  --set-env-vars GOOGLE_CLOUD_LOCATION="global" \
   --set-env-vars GOOGLE_GENAI_USE_VERTEXAI="true"
 JUDGE_URL=$(gcloud run services describe judge --region $REGION --format='value(status.url)')
 
@@ -69,6 +72,7 @@ gcloud run deploy orchestrator \
   --set-env-vars JUDGE_AGENT_CARD_URL=$JUDGE_URL/a2a/agent/.well-known/agent-card.json \
   --set-env-vars CONTENT_BUILDER_AGENT_CARD_URL=$CONTENT_BUILDER_URL/a2a/agent/.well-known/agent-card.json \
   --set-env-vars GOOGLE_CLOUD_PROJECT="${GOOGLE_CLOUD_PROJECT}" \
+  --set-env-vars GOOGLE_CLOUD_LOCATION="global" \
   --set-env-vars GOOGLE_GENAI_USE_VERTEXAI="true"
 ORCHESTRATOR_URL=$(gcloud run services describe orchestrator --region $REGION --format='value(status.url)')
 
