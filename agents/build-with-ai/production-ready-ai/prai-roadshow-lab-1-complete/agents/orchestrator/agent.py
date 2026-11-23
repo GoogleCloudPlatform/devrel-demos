@@ -91,8 +91,10 @@ def check_judge_feedback(ctx: Context) -> Event:
     is_pass = False
     if feedback and isinstance(feedback, dict) and feedback.get("status") == "pass":
         is_pass = True
-    elif isinstance(feedback, str) and '"status": "pass"' in feedback:
-        is_pass = True
+    elif isinstance(feedback, str):
+        normalized = feedback.replace(" ", "").replace("'", '"')
+        if '"status":"pass"' in normalized:
+            is_pass = True
 
     if is_pass or iterations >= MAX_ITERATIONS:
         return Event(route="pass", state={"research_iterations": iterations})
