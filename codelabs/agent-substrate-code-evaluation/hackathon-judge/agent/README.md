@@ -1,8 +1,8 @@
 # Hackathon Judge Orchestrator (`agent`)
 
-A production-ready Python application that listens to a Google Cloud Pub/Sub subscription, orchestrates isolated repository evaluations inside ephemeral **Agent Substrate** (`v1.0.0`) **Judge Actors** using a Google ADK agent, proxies model inference requests to **Gemini on Agent Platform**, and publishes **Evaluation Results** back to Pub/Sub.
+A production-ready Python application that listens to a Google Cloud Pub/Sub subscription, orchestrates isolated repository evaluations inside ephemeral **Agent Substrate** (`v1.0.0`) **Judge Actors** (`SandboxDirectAdapter` by default via `AGENT_TYPE=sandbox_direct`, with an optional Google ADK coordinator via `AGENT_TYPE=adk`), proxies model inference requests to **Gemini platform**, and publishes **Evaluation Results** back to Pub/Sub.
 
-Built with **FastAPI**, **Google Cloud Pub/Sub**, and **ADK**, structured using **Hexagonal Architecture (Ports and Adapters)**.
+Built with **FastAPI** and **Google Cloud Pub/Sub** (with optional **ADK** support), structured using **Hexagonal Architecture (Ports and Adapters)**.
 
 ## Prerequisites
 
@@ -45,6 +45,8 @@ For each **Judging Task**, the Judge Orchestrator provisions a fresh ephemeral *
 - `SANDBOX_ROUTER_URL` (optional): override the router URL (default `https://atenet-router.ate-system.svc.cluster.local:443`).
 - `MODEL_PROXY_BASE_URL` (optional): base URL injected into the Judge Actor so `app.judge` routes Gemini model calls through the orchestrator's Model Proxy (default `http://agent.hackathon-judge.svc.cluster.local:8000/vertex-proxy`).
 
+- `AGENT_TYPE` (default `sandbox_direct`): selects `SandboxDirectAdapter` (directly invokes `evaluate_repository`, delegating all LLM reasoning to the Antigravity SDK inside the Judge Actor) or `adk` (`ADKAgentAdapter` wrapping `evaluate_repository` as a Google ADK tool).
+
 ## Running Tests
 
 The project uses `pytest` for testing. To run the full test suite:
@@ -59,10 +61,10 @@ uv run pytest
 graph TD
     A[Pub/Sub Input Topic] -->|Subscribes| B(BackgroundSubscriber)
     B -->|Triggers| C(Core AgentService)
-    C -->|Calls| D(ADKAgentAdapter)
+    C -->|Calls| D("SandboxDirectAdapter (default)<br/>or ADKAgentAdapter")
     D -->|kubectl-ate & atenet-router| E[Agent Substrate Judge Actor]
     E -->|POST /vertex-proxy| M(Model Proxy)
-    M -->|Workload Identity| V[Gemini on Agent Platform]
+    M -->|Workload Identity| V[Gemini platform]
     E -.->|Returns evaluation.json| D
     D -.->|Returns| C
     C -->|Uses| F(PubSubPublisherAdapter)
@@ -81,7 +83,6 @@ This project follows a Hexagonal Architecture to separate concerns and ensure te
 
 - **`src/core/`**: Contains the Domain Models (`AgentRequest`, `AgentResponse`) and Ports/Interfaces (`MessagePublisher`, `AgentService`).
 - **`src/adapters/`**: Integrations with external services.
-  - **`inbound/`**: `BackgroundSubscriber` (listens to Pub/Sub and triggers the agent).
-  - **`outbound/`**: `ADKAgentAdapter` / `substrate_client.py` (manages ephemeral Agent Substrate Judge Actors and communicates via `atenet-router`) and `PubSubPublisherAdapter` (publishes results back to Pub/Sub).
-- **`src/vertex_proxy.py`**: Zero-credential Model Proxy that validates `generateContent` / `streamGenerateContent` paths and attaches the orchestrator's Google Cloud credentials.
+  - **`inbound/`**: `BackgroundSubscriber` (listens to Pub/Sub and triggers the orchestrator) and `model_proxy.py` (zero-credential Model Proxy that validates `generateContent` / `streamGenerateContent` paths and attaches the orchestrator's Google Cloud credentials).
+  - **`outbound/`**: `SandboxDirectAdapter` (default), optional `ADKAgentAdapter`, `substrate_client.py` (manages ephemeral Agent Substrate Judge Actors and communicates via `atenet-router`), and `PubSubPublisherAdapter` (publishes results back to Pub/Sub).
 - **`src/main.py`**: The composition root. It wires the adapters to the core ports and manages the application lifecycle using FastAPI.

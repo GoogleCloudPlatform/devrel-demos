@@ -467,7 +467,7 @@ if [ "$RUN_APIS" = "true" ]; then
     "artifactregistry.googleapis.com"     # Artifact Registry
     "cloudbuild.googleapis.com"           # Cloud Build
     "pubsub.googleapis.com"               # Cloud Pub/Sub
-    "aiplatform.googleapis.com"           # Gemini Enterprise Agent Platform (Essential for the judge agent)
+    "aiplatform.googleapis.com"           # Gemini platform (Essential for the judge agent)
     "cloudresourcemanager.googleapis.com" # Cloud Resource Manager (Required for project metadata & IAM)
     "iam.googleapis.com"                  # Identity and Access Management (IAM)
     "bigquery.googleapis.com"             # BigQuery (Essential for evaluations analytics)
@@ -843,6 +843,13 @@ if [ "$RUN_K8S" = "true" ]; then
 
   WORKER_DIGEST=$(cd "$SUBSTRATE_SRC_DIR" && GOWORK=off go run github.com/google/go-containerregistry/cmd/crane@latest digest "${SUBSTRATE_IMAGE_REPO}/ateworker-gvisor:${SUBSTRATE_VERSION}")
   export SUBSTRATE_WORKER_IMAGE="${SUBSTRATE_IMAGE_REPO}/ateworker-gvisor:${SUBSTRATE_VERSION}@${WORKER_DIGEST}"
+  if [ -f "$ENV_FILE" ]; then
+    if grep -q '^SUBSTRATE_WORKER_IMAGE=' "$ENV_FILE"; then
+      sed -i.bak "s|^SUBSTRATE_WORKER_IMAGE=.*|SUBSTRATE_WORKER_IMAGE=${SUBSTRATE_WORKER_IMAGE}|" "$ENV_FILE" && rm -f "${ENV_FILE}.bak"
+    else
+      printf '\n# Agent Substrate Worker Image (digest-pinned)\nSUBSTRATE_WORKER_IMAGE=%s\n' "${SUBSTRATE_WORKER_IMAGE}" >> "$ENV_FILE"
+    fi
+  fi
 
   log_info "Applying Kubernetes Namespace (with ate.dev/api-access=true)..."
   kubectl apply -f k8s/namespace.yaml

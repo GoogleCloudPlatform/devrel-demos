@@ -19,7 +19,7 @@ prompt.md) as:
 
     uv run python -m app.judge
 
-Uses the Google Antigravity SDK against Gemini on Agent Platform (via the
+Uses the Google Antigravity SDK against the Gemini platform (via the
 Judge Orchestrator Model Proxy or direct Workload Identity ADC), and writes
 the validated result to evaluation.json.
 

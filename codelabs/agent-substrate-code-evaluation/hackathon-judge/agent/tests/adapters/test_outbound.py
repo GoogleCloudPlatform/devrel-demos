@@ -76,6 +76,13 @@ def test_evaluate_repository_tool_registration():
     from src.adapters.outbound.shared_sandbox import evaluate_repository
     assert evaluate_repository in adapter.agent.tools
 
+
+def test_adk_agent_adapter_defaults_to_gemini_3_8_flash_and_honors_judge_model():
+    with patch.dict("os.environ", {}, clear=True):
+        assert ADKAgentAdapter().agent.model == "gemini-3.8-flash"
+    with patch.dict("os.environ", {"JUDGE_MODEL": "gemini-3.8-pro"}, clear=True):
+        assert ADKAgentAdapter().agent.model == "gemini-3.8-pro"
+
 @pytest.mark.asyncio
 @patch('src.adapters.outbound.shared_sandbox.get_sandbox_client')
 async def test_evaluate_repository_execution(mock_get_sandbox_client):

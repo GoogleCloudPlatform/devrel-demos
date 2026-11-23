@@ -98,7 +98,11 @@ else
   echo -e "${BLUE}ℹ${NC} Using existing COMMIT_SHA: ${COMMIT_SHA}"
 fi
 
-export SUBSTRATE_WORKER_IMAGE="${SUBSTRATE_WORKER_IMAGE:-ghcr.io/agent-substrate/substrate/ateworker-gvisor:v1.0.0}"
+if [[ ":${PATH}:" != *":${HOME}/.local/bin:"* ]]; then
+  export PATH="${HOME}/.local/bin:${PATH}"
+fi
+
+export SUBSTRATE_WORKER_IMAGE="${SUBSTRATE_WORKER_IMAGE:-ghcr.io/agent-substrate/substrate/ateworker-gvisor:v1.0.0@sha256:f8987236c6256f58c4b2625e543b43f4ae4bdded6ee6821c03d966effb7c0f17}"
 if [ -z "${AGENT_SANDBOX_IMAGE:-}" ]; then
   AGENT_SANDBOX_DIGEST=$(gcloud artifacts docker images describe "${ARTIFACT_REGISTRY_LOCATION}-docker.pkg.dev/${GOOGLE_CLOUD_PROJECT}/${ARTIFACT_REPO_NAME}/agent-sandbox:${COMMIT_SHA}" --format='value(image_summary.digest)' 2>/dev/null || true)
   if [ -n "$AGENT_SANDBOX_DIGEST" ]; then

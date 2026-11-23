@@ -14,8 +14,8 @@
 
 """Model Proxy inbound adapter for credential-free Judge Actors.
 
-Proxies Gemini model requests from isolated Judge Actors to Gemini on Agent
-Platform, enforcing a strict path allowlist and injecting the Judge
+Proxies Gemini model requests from isolated Judge Actors to the Gemini
+platform, enforcing a strict path allowlist and injecting the Judge
 Orchestrator's Workload Identity access token on the wire.
 """
 

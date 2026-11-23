@@ -467,7 +467,7 @@ if [ "$RUN_APIS" = "true" ]; then
     "artifactregistry.googleapis.com"     # Artifact Registry
     "cloudbuild.googleapis.com"           # Cloud Build
     "pubsub.googleapis.com"               # Cloud Pub/Sub
-    "aiplatform.googleapis.com"           # Gemini Enterprise Agent Platform (Essential for the judge agent)
+    "aiplatform.googleapis.com"           # Gemini platform (Essential for the judge agent)
     "cloudresourcemanager.googleapis.com" # Cloud Resource Manager (Required for project metadata & IAM)
     "iam.googleapis.com"                  # Identity and Access Management (IAM)
     "bigquery.googleapis.com"             # BigQuery (Essential for evaluations analytics)
@@ -846,6 +846,13 @@ if [ "$RUN_K8S" = "true" ]; then
 
   WORKER_DIGEST=$(cd "$SUBSTRATE_SRC_DIR" && GOWORK=off go run github.com/google/go-containerregistry/cmd/crane@latest digest "${SUBSTRATE_IMAGE_REPO}/ateworker-gvisor:${SUBSTRATE_VERSION}")
   export SUBSTRATE_WORKER_IMAGE="${SUBSTRATE_IMAGE_REPO}/ateworker-gvisor:${SUBSTRATE_VERSION}@${WORKER_DIGEST}"
+  if [ -f "$ENV_FILE" ]; then
+    if grep -q '^SUBSTRATE_WORKER_IMAGE=' "$ENV_FILE"; then
+      sed -i.bak "s|^SUBSTRATE_WORKER_IMAGE=.*|SUBSTRATE_WORKER_IMAGE=${SUBSTRATE_WORKER_IMAGE}|" "$ENV_FILE" && rm -f "${ENV_FILE}.bak"
+    else
+      printf '\n# Agent Substrate Worker Image (digest-pinned)\nSUBSTRATE_WORKER_IMAGE=%s\n' "${SUBSTRATE_WORKER_IMAGE}" >> "$ENV_FILE"
+    fi
+  fi
 
   log_info "Applying Kubernetes Namespace (with ate.dev/api-access=true)..."
   kubectl apply -f k8s/namespace.yaml
@@ -891,39 +898,8 @@ if [ "$RUN_K8S" = "true" ]; then
   source ./setup-env.sh >/dev/null
   envsubst < k8s/configmap.yaml | kubectl apply -f -
 
-  AGENT_SANDBOX_DIGEST=$(gcloud artifacts docker images describe "${ARTIFACT_REGISTRY_LOCATION}-docker.pkg.dev/${GOOGLE_CLOUD_PROJECT}/${ARTIFACT_REPO_NAME}/agent-sandbox:${COMMIT_SHA}" --format='value(image_summary.digest)' 2>/dev/null || true)
-  if [ -n "$AGENT_SANDBOX_DIGEST" ]; then
-    export AGENT_SANDBOX_IMAGE="${ARTIFACT_REGISTRY_LOCATION}-docker.pkg.dev/${GOOGLE_CLOUD_PROJECT}/${ARTIFACT_REPO_NAME}/agent-sandbox:${COMMIT_SHA}@${AGENT_SANDBOX_DIGEST}"
-  else
-    export AGENT_SANDBOX_IMAGE="${ARTIFACT_REGISTRY_LOCATION}-docker.pkg.dev/${GOOGLE_CLOUD_PROJECT}/${ARTIFACT_REPO_NAME}/agent-sandbox:${COMMIT_SHA}"
-  fi
-
-  log_info "Applying Agent Substrate WorkerPool, AccessPolicy, and ActorTemplate..."
-  envsubst < k8s/substrate.yaml | kubectl apply -f -
-  kubectl-ate create atespace "$NAMESPACE" 2>/dev/null || true
-  kubectl-ate create access-policy -a "$NAMESPACE" -f k8s/access-policy.yaml || true
-  if ! kubectl-ate get actor-template judge-sandbox -a "$NAMESPACE" -o json 2>/dev/null | grep -qF "${AGENT_SANDBOX_DIGEST:-$AGENT_SANDBOX_IMAGE}"; then
-    kubectl-ate delete actor-template judge-sandbox -a "$NAMESPACE" 2>/dev/null || true
-    envsubst < k8s/actortemplate.yaml | kubectl-ate create actor-template -f -
-  fi
-
-  log_info "Waiting for WorkerPool pods and ActorTemplate Golden Snapshot..."
-  kubectl -n hackathon-judge wait --for=condition=Ready pod -l workload=hackathon-judge --timeout=600s
-  GOLDEN_TAG=""
-  for _ in $(seq 1 60); do
-    GOLDEN_TAG=$(kubectl-ate get actor-template judge-sandbox -a hackathon-judge -o json 2>/dev/null | grep -oE '"(goldenTag|snapshotTime)"[[:space:]]*:[[:space:]]*"[^"]*"' || true)
-    if [ -n "$GOLDEN_TAG" ]; then
-      log_success "ActorTemplate 'judge-sandbox' Golden Snapshot ready (${GOLDEN_TAG})."
-      break
-    fi
-    sleep 5
-  done
-  if [ -z "$GOLDEN_TAG" ]; then
-    log_error "Timed out waiting for ActorTemplate 'judge-sandbox' Golden Snapshot (goldenTag remained empty)."
-    exit 1
-  fi
-
-  log_success "Kubernetes & Agent Substrate resources applied and verified!"
+  log_success "Kubernetes & Agent Substrate control plane applied and verified!"
+  log_info "Next, run 'source ./setup-env.sh' and configure WorkerPool, AccessPolicy, and ActorTemplate."
 else
   log_info "Skipping Step 11: Kubernetes deployment (Bypassed by CLI flag)."
 fi

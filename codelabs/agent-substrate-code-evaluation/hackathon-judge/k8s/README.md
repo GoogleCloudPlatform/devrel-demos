@@ -1,6 +1,6 @@
 # Hackathon Judge Kubernetes & Agent Substrate Deployment
 
-This directory contains the Kubernetes and **Agent Substrate** (`v1.0.0`) manifests required to deploy the Hackathon Judge application to a Google Kubernetes Engine (GKE) Standard cluster with gVisor nodes.
+This directory contains the Kubernetes and **Agent Substrate** (`v1.0.0`) manifests required to deploy the Hackathon Judge application to a Google Kubernetes Engine (GKE) Standard cluster with nested virtualization (`--enable-nested-virtualization`) running Agent Substrate's `ateworker-gvisor` / `atelet` runtime.
 
 ## Architecture Diagram
 
@@ -20,7 +20,7 @@ graph TD
     Agent -->|mTLS HTTP + X-Ate-Target-*| Router[atenet-router]
     Router -->|Routes to port 80| Actor[gVisor Judge Actor on WorkerPool]
     Actor -->|Zero-Credential Model Proxy /vertex-proxy| Agent
-    Agent -->|Workload Identity| AgentPlatform[Gemini on Agent Platform]
+    Agent -->|Workload Identity| GeminiPlatform[Gemini platform]
     Agent -->|Pub/Sub| PubSub
 ```
 

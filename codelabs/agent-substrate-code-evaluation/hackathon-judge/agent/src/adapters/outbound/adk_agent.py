@@ -17,6 +17,7 @@ from src.core.ports.agent_service import AgentService
 from src.core.models.message import AgentRequest, AgentResponse, CategoryScore
 from src.core.models.evaluation import EvaluationOutput
 import logging
+import os
 
 from google.adk.agents import Agent
 from google.adk.runners import Runner
@@ -26,11 +27,13 @@ from .shared_sandbox import evaluate_repository
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_ADK_MODEL = "gemini-3.8-flash"
+
 class ADKAgentAdapter(AgentService):
     def __init__(self):
         self.agent = Agent(
             name="hackathon_judge",
-            model="gemini-3-flash-preview",
+            model=os.getenv("JUDGE_MODEL") or DEFAULT_ADK_MODEL,
             instruction="""
 You are an expert hackathon judge evaluating a project.
 Analyze the provided submission and evaluate it against the given criteria and rubric.
