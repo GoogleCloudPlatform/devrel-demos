@@ -30,6 +30,20 @@ gcloud services enable \
     aiplatform.googleapis.com
 echo -e "${GREEN}✅ APIs enabled successfully.${NC}"
 
+# 2b. Grant MCP Tool User role for GKE remote MCP server
+USER_EMAIL=$(gcloud config get-value account 2>/dev/null)
+if [ -n "$USER_EMAIL" ]; then
+    echo -e "${YELLOW}🔐 Granting roles/mcp.toolUser to $USER_EMAIL...${NC}"
+    if gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+        --member="user:$USER_EMAIL" \
+        --role="roles/mcp.toolUser" \
+        --quiet > /dev/null 2>&1; then
+        echo -e "${GREEN}✅ roles/mcp.toolUser granted.${NC}"
+    else
+        echo -e "${YELLOW}⚠️ Could not automatically grant roles/mcp.toolUser (you may already have it or lack IAM admin permissions).${NC}"
+    fi
+fi
+
 # 3. Check for required tools
 echo -e "${YELLOW}🔍 Checking for required tools...${NC}"
 
@@ -40,11 +54,11 @@ else
     echo -e "${RED}❌ gcloud is not installed. Please install it.${NC}"
 fi
 
-# gemini CLI
-if command -v gemini &> /dev/null; then
-    echo -e "${GREEN}✅ gemini CLI is installed.${NC}"
+# Antigravity CLI (agy)
+if command -v agy &> /dev/null; then
+    echo -e "${GREEN}✅ Antigravity CLI (agy) is installed.${NC}"
 else
-    echo -e "${YELLOW}⚠️ gemini CLI is not installed. In a real lab, this should be pre-installed in Cloud Shell.${NC}"
+    echo -e "${YELLOW}⚠️ Antigravity CLI (agy) is not installed. Install it with: curl -fsSL https://antigravity.google/cli/install.sh | bash${NC}"
 fi
 
 # 4. Create GKE Autopilot Cluster
