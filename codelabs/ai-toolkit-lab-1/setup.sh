@@ -33,9 +33,13 @@ echo -e "${GREEN}✅ APIs enabled successfully.${NC}"
 # 2b. Grant MCP Tool User role for GKE remote MCP server
 USER_EMAIL=$(gcloud config get-value account 2>/dev/null)
 if [ -n "$USER_EMAIL" ]; then
+    MEMBER_TYPE="user"
+    if [[ "$USER_EMAIL" == *".gserviceaccount.com" ]]; then
+        MEMBER_TYPE="serviceAccount"
+    fi
     echo -e "${YELLOW}🔐 Granting roles/mcp.toolUser to $USER_EMAIL...${NC}"
     if gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-        --member="user:$USER_EMAIL" \
+        --member="$MEMBER_TYPE:$USER_EMAIL" \
         --role="roles/mcp.toolUser" \
         --quiet > /dev/null 2>&1; then
         echo -e "${GREEN}✅ roles/mcp.toolUser granted.${NC}"
