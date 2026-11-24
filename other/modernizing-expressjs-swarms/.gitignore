@@ -1,0 +1,13 @@
+# Source & Target repositories (cloned or generated during migration)
+legacy-app/
+modern-app/
+
+# Generated audit & verification reports (preserve empty docs/ and workshop docs)
+docs/*
+!docs/prompts.md
+
+# Dependencies, build artifacts & secrets
+node_modules/
+.env
+.env.*
+!.env.example
