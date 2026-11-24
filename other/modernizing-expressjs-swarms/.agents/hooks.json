@@ -1,0 +1,17 @@
+{
+  "modernization-guardrails": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./scripts/guardrails.mjs",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
