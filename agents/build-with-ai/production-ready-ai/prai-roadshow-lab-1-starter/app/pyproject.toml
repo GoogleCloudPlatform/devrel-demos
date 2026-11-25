@@ -2,15 +2,15 @@
 name = "course-creation-app"
 version = "0.1.0"
 description = "Course Creation Web App"
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.11,<3.14"
 dependencies = [
-    "uvicorn==0.40.0",
-    "fastapi==0.123.*",
-    "httpx==0.28.*",
-    "httpx_sse==0.4.*",
-    "google-genai==1.57.*",
-    "google-cloud-logging==3.13.0",
-    "opentelemetry-exporter-gcp-trace==1.11.0",
+    "uvicorn>=0.40.0,<1.0.0",
+    "fastapi>=0.133.0,<1.0.0",
+    "httpx>=0.28.0,<1.0.0",
+    "httpx_sse>=0.4.0,<1.0.0",
+    "google-genai>=2.34.0,<4.0.0",
+    "google-cloud-logging>=3.13.0,<4.0.0",
+    "opentelemetry-exporter-gcp-trace>=1.11.0,<2.0.0",
 ]
 
 [[tool.uv.index]]

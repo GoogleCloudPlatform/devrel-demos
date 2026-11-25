@@ -6,7 +6,7 @@ A multi-agent system built with Google's Agent Development Kit (ADK) and Agent-t
 
 This project uses a distributed microservices architecture where each agent runs in its own container and communicates via A2A:
 
-*   **Orchestrator Service (`orchestrator`):** The main entry point. It manages the workflow using `LoopAgent` and `SequentialAgent`, and connects to other agents using `RemoteA2aAgent`.
+*   **Orchestrator Service (`orchestrator`):** The main entry point. It manages the workflow using ADK v2 `Workflow`, and connects to other agents using `RemoteA2aAgent`.
 *   **Researcher Service (`researcher`):** A standalone agent that gathers information using Google Search.
 *   **Judge Service (`judge`):** A standalone agent that evaluates research quality.
 *   **Content Builder Service (`content_builder`):** A standalone agent that compiles the final course.
@@ -68,16 +68,18 @@ To avoid duplication, these files are linked into respective subdirectories as [
 
 To deploy to Google Cloud Run, you need to deploy each service individually and then configure the Orchestrator with the URLs of the other services.
 
-1.  **Deploy Researcher, Judge, Content Builder, and Orchestrator:**
+1.  **Deploy Researcher, Judge, and Content Builder:**
     Deploy each of these folders as a separate Cloud Run service. Note down their URLs (e.g., `https://researcher-xyz.a.run.app`).
 
-2.  **Deploy Agent App:**
-    Deploy the `app/` folder to Cloud Run.
-    Set the following environment variables on the Agent App service:
-    *   `RESEARCHER_AGENT_CARD_URL`: `https://<researcher-url>/a2a/agent/.well-known/agent.json`
-    *   `JUDGE_AGENT_CARD_URL`: `https://<judge-url>/a2a/agent/.well-known/agent.json`
-    *   `CONTENT_BUILDER_AGENT_CARD_URL`: `https://<content-builder-url>/a2a/agent/.well-known/agent.json`
-    *   `AGENT_URL`: `https://<orchestrator-url>`
+2.  **Deploy Orchestrator:**
+    Deploy the `agents/orchestrator/` folder to Cloud Run and set the following environment variables:
+    *   `RESEARCHER_AGENT_CARD_URL`: `https://<researcher-url>/a2a/agent/.well-known/agent-card.json`
+    *   `JUDGE_AGENT_CARD_URL`: `https://<judge-url>/a2a/agent/.well-known/agent-card.json`
+    *   `CONTENT_BUILDER_AGENT_CARD_URL`: `https://<content-builder-url>/a2a/agent/.well-known/agent-card.json`
 
-3.  **Access:**
+3.  **Deploy Agent App:**
+    Deploy the `app/` folder to Cloud Run and set:
+    *   `AGENT_SERVER_URL`: `https://<orchestrator-url>`
+
+4.  **Access:**
     Open the App's URL in your browser.

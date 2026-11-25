@@ -1,11 +1,10 @@
 import os
 import json
-from typing import AsyncGenerator
-from google.adk.agents import BaseAgent, LoopAgent, SequentialAgent
-from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
-from google.adk.events import Event, EventActions
-from google.adk.agents.invocation_context import InvocationContext
 from google.adk.agents.callback_context import CallbackContext
+from google.adk.agents.context import Context
+from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
+from google.adk.events import Event
+from google.adk.workflow import Workflow
 
 from authenticated_httpx import create_authenticated_client
 
@@ -32,15 +31,12 @@ def create_save_output_callback(key: str):
     return callback
 
 # --- Remote Agents ---
-# These agents are running in their own containers. We connect to them via SimpleRemoteAgent.
-
 # Default URLs assume local running on different ports if env vars are not set.
-# Note: We use the base URL (e.g., http://localhost:8001) instead of the agent card URL.
 
 # Connect to the Researcher (Localhost port 8001)
 researcher_url = os.environ.get(
     "RESEARCHER_AGENT_CARD_URL",
-    "http://localhost:8001/.well-known/agent.json"
+    "http://localhost:8001/a2a/agent/.well-known/agent-card.json"
 )
 researcher = RemoteA2aAgent(
     name="researcher",
@@ -55,7 +51,7 @@ researcher = RemoteA2aAgent(
 # Connect to the Judge (Localhost port 8002)
 judge_url = os.environ.get(
     "JUDGE_AGENT_CARD_URL",
-    "http://localhost:8002/.well-known/agent.json"
+    "http://localhost:8002/a2a/agent/.well-known/agent-card.json"
 )
 judge = RemoteA2aAgent(
     name="judge",
@@ -66,10 +62,10 @@ judge = RemoteA2aAgent(
     httpx_client=create_authenticated_client(judge_url)
 )
 
-# Content Builder (Localhost port 8003) - Implementation hidden for this lab
+# Content Builder (Localhost port 8003)
 content_builder_url = os.environ.get(
     "CONTENT_BUILDER_AGENT_CARD_URL",
-    "http://localhost:8003/.well-known/agent.json"
+    "http://localhost:8003/a2a/agent/.well-known/agent-card.json"
 )
 content_builder = RemoteA2aAgent(
     name="content_builder",
@@ -79,40 +75,43 @@ content_builder = RemoteA2aAgent(
     httpx_client=create_authenticated_client(content_builder_url)
 )
 
-# --- Local Orchestration Agents ---
+# --- Feedback Router ---
 
-class EscalationChecker(BaseAgent):
-    """Checks the judge's feedback and escalates (breaks the loop) if it passed."""
+MAX_ITERATIONS = 3
 
-    async def _run_async_impl(
-        self, ctx: InvocationContext
-    ) -> AsyncGenerator[Event, None]:
-        feedback = ctx.session.state.get("judge_feedback")
 
-        # Debug log to see what we got from the remote agent
-        print(f"[EscalationChecker] Feedback received: {feedback}")
+def check_judge_feedback(ctx: Context) -> Event:
+    """Checks the judge's feedback and routes to retry or content_builder."""
+    feedback = ctx.state.get("judge_feedback")
+    iterations = ctx.state.get("research_iterations", 0) + 1
 
-        if feedback and isinstance(feedback, dict) and feedback.get("status") == "pass":
-            yield Event(author=self.name, actions=EventActions(escalate=True))
-        elif isinstance(feedback, str) and '"status": "pass"' in feedback:
-             yield Event(author=self.name, actions=EventActions(escalate=True))
-        else:
-            yield Event(author=self.name)
+    # Debug log to see what we got from the remote agent
+    print(f"[check_judge_feedback] Iteration {iterations}, Feedback received: {feedback}")
 
-escalation_checker = EscalationChecker(name="escalation_checker")
+    is_pass = False
+    if feedback and isinstance(feedback, dict) and feedback.get("status") == "pass":
+        is_pass = True
+    elif isinstance(feedback, str):
+        normalized = feedback.replace(" ", "").replace("'", '"')
+        if '"status":"pass"' in normalized:
+            is_pass = True
+
+    if is_pass or iterations >= MAX_ITERATIONS:
+        return Event(route="pass", state={"research_iterations": iterations})
+    return Event(route="retry", state={"research_iterations": iterations})
+
 
 # --- Orchestration ---
 
-research_loop = LoopAgent(
-    name="research_loop",
-    description="Iteratively researches and judges until quality standards are met.",
-    sub_agents=[researcher, judge, escalation_checker],
-    max_iterations=3,
-)
-
-root_agent = SequentialAgent(
+root_agent = Workflow(
     name="course_creation_pipeline",
     description="A pipeline that researches a topic and then builds a course from it.",
-    sub_agents=[research_loop, content_builder],
+    edges=[
+        ("START", researcher, judge, check_judge_feedback),
+        (
+            check_judge_feedback,
+            {"retry": researcher, "pass": content_builder},
+        ),
+    ],
 )
 

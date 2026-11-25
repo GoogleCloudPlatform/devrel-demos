@@ -41,7 +41,7 @@ popd
 # Wait a bit for them to start up
 sleep 5
 
-echo "Starting Orchestrator Agent on port 8000..."
+echo "Starting Frontend App Server on port 8000..."
 pushd app
 export AGENT_SERVER_URL=http://localhost:8004
 
