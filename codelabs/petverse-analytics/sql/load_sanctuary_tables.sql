@@ -15,6 +15,19 @@ CREATE SCHEMA IF NOT EXISTS `__PROJECT_ID__.petverse`
   );
 
 -- ----------------------------------------------------------------------------
+-- 0. Master Resident Table: `petverse.pets`
+-- ----------------------------------------------------------------------------
+LOAD DATA OVERWRITE `__PROJECT_ID__.petverse.pets`
+OPTIONS (
+  description = 'Master registry of PetVerse animal sanctuary residents, adoption stories, hobbies, and multimodal media.'
+)
+FROM FILES (
+  skip_leading_rows = 1,
+  uris = ['gs://__PROJECT_ID__-petverse/pets.csv'],
+  format = 'CSV'
+);
+
+-- ----------------------------------------------------------------------------
 -- 1. Undocumented Cryptic Telemetry Table: `petverse.pv_ops_tlm_v2`
 --    Intentionally created with NO table description and NO column descriptions
 --    so Knowledge Studio Metadata Enrichment decodes it from PAWSTLM2.cpy!

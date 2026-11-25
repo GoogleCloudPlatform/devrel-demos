@@ -273,6 +273,27 @@ echo "  🔄   Creating BigQuery dataset '${DATASET_ID}' in ${REGION}..."
 bq --location="$REGION" mk --dataset --project_id="$PROJECT_ID" "$DATASET_ID" >/dev/null 2>&1 || true
 echo "  ✅   BigQuery dataset '${PROJECT_ID}:${DATASET_ID}' ready."
 
+echo "  🔄   Loading BigQuery tables (pets, pv_ops_tlm_v2, pv_snct_inv_88)..."
+LOAD_SQL="$(sed \
+  -e "s/__PROJECT_ID__-petverse/${BUCKET}/g" \
+  -e "s/__PROJECT_ID__/${PROJECT_ID}/g" \
+  -e "s/__REGION__/${REGION}/g" \
+  -e "s/\.petverse\./.${DATASET_ID}./g" \
+  "$SCRIPT_DIR/sql/load_sanctuary_tables.sql")"
+
+if ! bq query \
+  --project_id="$PROJECT_ID" \
+  --location="$REGION" \
+  --use_legacy_sql=false \
+  --quiet \
+  <<<"$LOAD_SQL" >/dev/null; then
+  echo "❌ Error: Failed to load BigQuery sanctuary tables."
+  exit 1
+fi
+echo "  ✅   Loaded pets, pv_ops_tlm_v2, and pv_snct_inv_88 into '${PROJECT_ID}:${DATASET_ID}'."
+
+bash "$SCRIPT_DIR/setup-object-refs.sh"
+
 echo " "
 echo "  📦   Your bucket is: gs://${BUCKET}"
 echo "🎉  🦄 Script execution complete."

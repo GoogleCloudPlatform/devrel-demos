@@ -153,7 +153,7 @@ CREATE OR REPLACE MODEL `__PROJECT_ID__.petverse.multimodalembedding`
 
 CREATE OR REPLACE TABLE `__PROJECT_ID__.petverse.profile_embeddings` AS
 SELECT *
-FROM ML.GENERATE_EMBEDDING(
+FROM AI.GENERATE_EMBEDDING(
   MODEL `__PROJECT_ID__.petverse.multimodalembedding`,
   (
     SELECT profile_picture AS content, Id
@@ -167,7 +167,7 @@ CREATE OR REPLACE MODEL `__PROJECT_ID__.petverse.textembedding`
 
 CREATE OR REPLACE TABLE `__PROJECT_ID__.petverse.text_embeddings` AS
 SELECT *
-FROM ML.GENERATE_EMBEDDING(
+FROM AI.GENERATE_EMBEDDING(
   MODEL `__PROJECT_ID__.petverse.textembedding`,
   (
     SELECT
@@ -185,7 +185,7 @@ FROM ML.GENERATE_EMBEDDING(
       AND LENGTH(Hobby) > 0
   )
 )
-WHERE LENGTH(ml_generate_embedding_status) = 0;
+WHERE LENGTH(status) = 0;
 
 -- ----------------------------------------------------------------------------
 -- 4. Load Sanctuary Telemetry (`pv_ops_tlm_v2`) & Supply Vault (`pv_snct_inv_88`)

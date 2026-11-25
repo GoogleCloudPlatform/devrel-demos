@@ -9,7 +9,7 @@ Companion code, configurable sample telemetry generator, mock PAWS/400 legacy CO
 ```text
 petverse-analytics/
 ├── setenv.sh                         # Exports PROJECT_ID, REGION, DATASET_ID, BUCKET
-├── petverse-setup.sh                 # APIs, pet-connection, kc-enrichment-sa IAM, bucket & staged assets, BQ dataset
+├── petverse-setup.sh                 # APIs, IAM, bucket & staged assets, BQ dataset, tables & ObjectRefs
 ├── setup-object-refs.sh              # Populates Cloud Storage ObjectRef media columns across petverse.pets
 ├── apply-enriched-metadata.sh        # Instant fallback applying decoded COBOL metadata to pv_ops_tlm_v2
 ├── catchup.sh                        # Full idempotent end-to-end catch-up + DQ assertions

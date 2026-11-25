@@ -8,7 +8,7 @@
 #      `gs://${PROJECT_ID}-petverse` bucket, staged media/telemetry/legacy repo,
 #      and `petverse` BigQuery dataset)
 #   2. Loads `pets` + ObjectRefs, runs `AI.GENERATE` (`gemini-3.5-flash-lite` &
-#      `gemini-3.8-flash`) and `ML.GENERATE_EMBEDDING` (`multimodalembedding@001`
+#      `gemini-3.8-flash`) and `AI.GENERATE_EMBEDDING` (`multimodalembedding@001`
 #      & `gemini-embedding-001`)
 #   3. Loads `pv_ops_tlm_v2` & `pv_snct_inv_88` (`sql/load_sanctuary_tables.sql`)
 #   4. Applies fallback metadata (`apply-enriched-metadata.sh`)
@@ -85,38 +85,20 @@ echo "==========================================================================
 echo "🚀 Starting PetVerse Analytics Catch-Up for project: $PROJECT_ID ($REGION)"
 echo "============================================================================"
 
-# 1. Base setup, APIs, BigQuery connection, Knowledge Studio IAM, GCS bucket & staged assets
+# 1. Base setup, APIs, connection, IAM, GCS bucket, BigQuery tables & ObjectRefs
 echo ""
-echo "[1/5] Running base setup, IAM, bucket creation & asset staging..."
+echo "[1/4] Running base setup, bucket staging, table loads & ObjectRef setup..."
 bash "$SCRIPT_DIR/petverse-setup.sh"
 
-# 2. Verify connection, load pets, AI.GENERATE & embeddings
+# 2. Run Gemini AI.GENERATE & AI.GENERATE_EMBEDDING steps
 echo ""
-echo "[2/5] Loading '${DATASET_ID}.pets' and running Gemini multimodal/embedding steps..."
+echo "[2/4] Running Gemini AI.GENERATE & AI.GENERATE_EMBEDDING enrichments..."
 
-run_bq_step "Verifying BigQuery connection (${CONN}) access to Cloud Storage" "
-SELECT OBJ.FETCH_METADATA(
-  OBJ.MAKE_REF('gs://${BUCKET}/yoda_profile_picture.png', '${CONN}')
-);
-"
-
-run_bq_step "Loading ${DATASET_ID}.pets from CSV" "
-LOAD DATA OVERWRITE \`${PROJECT_ID}.${DATASET_ID}.pets\`
-OPTIONS(description='Master registry of PetVerse animal sanctuary residents, adoption stories, hobbies, and multimodal media.')
-FROM FILES (
-  skip_leading_rows = 1,
-  uris = ['gs://${BUCKET}/pets.csv'],
-  format = 'CSV'
-);
-
+run_bq_step "Enriching ${DATASET_ID}.pets via AI.GENERATE (gemini-3.5-flash-lite & gemini-3.8-flash)" "
 ALTER TABLE \`${PROJECT_ID}.${DATASET_ID}.pets\`
 ADD COLUMN IF NOT EXISTS MediaDescription STRING
 OPTIONS(description = 'AI-generated epic personality and media summary extracted from unstructured pet videos, audio clips, and photos.');
-"
 
-bash "$SCRIPT_DIR/setup-object-refs.sh"
-
-run_bq_step "Enriching ${DATASET_ID}.pets via AI.GENERATE (gemini-3.5-flash-lite & gemini-3.8-flash)" "
 UPDATE \`${PROJECT_ID}.${DATASET_ID}.pets\` AS p
 SET FavoriteFood = aigen.food
 FROM (
@@ -152,14 +134,14 @@ FROM (
 WHERE p.Id = aigen.Id;
 "
 
-run_bq_step "Creating multimodalembedding@001 & gemini-embedding-001 models and embedding tables" "
+run_bq_step "Creating multimodalembedding@001 & gemini-embedding-001 models and AI.GENERATE_EMBEDDING tables" "
 CREATE OR REPLACE MODEL \`${PROJECT_ID}.${DATASET_ID}.multimodalembedding\`
   REMOTE WITH CONNECTION \`${CONN}\`
   OPTIONS (ENDPOINT = 'multimodalembedding@001');
 
 CREATE OR REPLACE TABLE \`${PROJECT_ID}.${DATASET_ID}.profile_embeddings\` AS
 SELECT *
-FROM ML.GENERATE_EMBEDDING(
+FROM AI.GENERATE_EMBEDDING(
   MODEL \`${PROJECT_ID}.${DATASET_ID}.multimodalembedding\`,
   (
     SELECT profile_picture AS content, Id
@@ -173,7 +155,7 @@ CREATE OR REPLACE MODEL \`${PROJECT_ID}.${DATASET_ID}.textembedding\`
 
 CREATE OR REPLACE TABLE \`${PROJECT_ID}.${DATASET_ID}.text_embeddings\` AS
 SELECT *
-FROM ML.GENERATE_EMBEDDING(
+FROM AI.GENERATE_EMBEDDING(
   MODEL \`${PROJECT_ID}.${DATASET_ID}.textembedding\`,
   (
     SELECT
@@ -191,22 +173,17 @@ FROM ML.GENERATE_EMBEDDING(
       AND LENGTH(Hobby) > 0
   )
 )
-WHERE LENGTH(ml_generate_embedding_status) = 0;
+WHERE LENGTH(status) = 0;
 "
 
-# 3. Load sanctuary telemetry & supply inventory tables
+# 3. Apply fallback enriched metadata descriptions to pv_ops_tlm_v2
 echo ""
-echo "[3/5] Loading sanctuary telemetry (pv_ops_tlm_v2) & supply inventory (pv_snct_inv_88)..."
-run_bq_step "Executing sql/load_sanctuary_tables.sql" "$(render_sql_file "$SCRIPT_DIR/sql/load_sanctuary_tables.sql")"
-
-# 4. Apply fallback enriched metadata descriptions to pv_ops_tlm_v2
-echo ""
-echo "[4/5] Applying decoded COBOL metadata descriptions to pv_ops_tlm_v2..."
+echo "[3/4] Applying decoded COBOL metadata descriptions to pv_ops_tlm_v2..."
 bash "$SCRIPT_DIR/apply-enriched-metadata.sh"
 
-# 5. Execute Data Quality Assertions
+# 4. Execute Data Quality Assertions
 echo ""
-echo "[5/5] Running BigQuery SQL Data Quality Assertions (sql/dq_assertions.sql)..."
+echo "[4/4] Running BigQuery SQL Data Quality Assertions (sql/dq_assertions.sql)..."
 run_bq_step "Validating data quality assertions" "$(render_sql_file "$SCRIPT_DIR/sql/dq_assertions.sql")"
 
 echo ""
