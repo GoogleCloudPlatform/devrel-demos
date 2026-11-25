@@ -1,0 +1,6 @@
+sku_cd,sp_cat_cd,itm_lbl,cur_stk_kg,reord_thr_kg,unit_cost_c,cold_flg
+SKU-FEL-01,CAT,Artisanal Salmon & Poultry Feline Pate + Kibble Blend,24.0,8.0,1180,N
+SKU-KBL-05,DOG,Working & Active Canine High-Protein Salmon Kibble,38.0,25.0,740,N
+SKU-ROD-10,HAMSTER,Fortified Timothy Hay Pellets & Sunflower Seed Mix,6.5,1.5,620,N
+SKU-REP-12,SNAKE,Cryo-Packed Sanctuary Grade Feeder Rodent Rations,5.0,1.2,2450,Y
+SKU-GRN-13,CAPYBARA,"Hydroponic Romaine, Orchard Grass & Aquatic Greens Bundle",15.0,12.0,490,Y

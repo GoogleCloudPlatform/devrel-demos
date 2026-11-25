@@ -1,0 +1,18 @@
+# PetVerse Sanctuary Resident Telemetry Seed Profiles
+# Pipe-delimited configurable baselines used by scripts/generate_telemetry.py
+# Columns:
+#   ent_fk|pet_name|species|base_nutr_g|daily_trend_g|weekend_bump_g|base_act_stp|base_slp_min|base_care_cents
+1|Yoda|Cat|68.0|0.05|6.0|3600|840|340
+2|Madonna|Cat|62.0|0.02|5.0|3100|890|325
+3|Pixel|Cat|74.0|0.08|8.0|8400|740|375
+4|SQL|Cat|65.0|0.03|5.5|3300|870|350
+5|Buddy|Dog|420.0|0.84|32.0|14200|640|890
+6|Daisy|Dog|215.0|0.10|16.0|4800|790|640
+7|Max|Dog|460.0|0.56|35.0|13100|620|960
+8|Penny|Dog|340.0|0.25|28.0|16800|580|845
+9|Rocky|Dog|260.0|0.12|20.0|9600|670|680
+10|Pip|Hamster|12.0|0.01|1.8|18500|820|145
+11|Squeaky|Hamster|16.0|0.02|2.5|9200|850|160
+12|Scales|Snake|18.0|0.02|3.0|420|1080|230
+13|Capy|Capybara|1080.0|2.92|85.0|5400|610|1450
+14|Joel|Cat|70.0|0.04|6.5|3900|830|355
