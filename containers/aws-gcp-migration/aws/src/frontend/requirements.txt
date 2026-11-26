@@ -45,7 +45,7 @@ grpcio-status==1.66.2
     # via google-api-core
 gunicorn==22.0.0
     # via -r requirements.in
-idna==3.10
+idna==3.15
     # via requests
 importlib-metadata==8.4.0
     # via
