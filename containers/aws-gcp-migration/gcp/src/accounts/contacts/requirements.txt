@@ -186,11 +186,13 @@ pycparser==2.22
     #   cffi
 pycryptodome==3.20.0
     # via -r requirements.in
+pygments==2.20.0
+    # via pytest
 pyjwt==2.9.0
     # via -r requirements.in
 pyparsing==3.1.4
     # via -r requirements.in
-pytest==7.4.4
+pytest==9.0.3
     # via
     #   -r requirements.in
     #   pytest-cov
