@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { getAI, getTemplateGenerativeModel, GoogleAIBackend } from "firebase/ai";
+import { getAI, getTemplateGenerativeModel, AgentPlatformBackend } from "firebase/ai";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import { initializeApp } from "firebase/app";
 
@@ -26,25 +26,21 @@ const firebaseConfig = {
 // Initialize Firebase
 export const app = initializeApp(firebaseConfig);
 
-// Uncomment the line below to enable App Check debug mode
-// (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-
 // Initialize App Check
 initializeAppCheck(app, {
   provider: new ReCaptchaEnterpriseProvider('YOUR_RECAPTCHA_ENTERPRISE_SITE_KEY'),
   isTokenAutoRefreshEnabled: true
 });
 
-const ai = getAI(app, { backend: new GoogleAIBackend() });
+const ai = getAI(app, { backend: new AgentPlatformBackend(), useLimitedUseAppCheckTokens: true  });
 
 const model = getTemplateGenerativeModel(ai);
-export const callCustomerSupportModel = async (query: string, productId?: string, history?: { role: string, contents: string }[], productDetails?: Record<string, any>) => {
+export const callCustomerSupportModel = async (query: string, productId?: string, history?: { role: string, contents: string }[]) => {    
     // Generate content using the published 'product-agent' template
     const result = await model.generateContent('product-agent', {
         query,
         productId,
-        history,
-        productDetails
+        history
     });
     return result.response.text();
 }
