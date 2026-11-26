@@ -70,10 +70,10 @@ images:
   - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/frontend:$COMMIT_SHA'
   - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/agent:$COMMIT_SHA'
   - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/agent-sandbox:$COMMIT_SHA'
-  - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/backend:latest'
-  - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/frontend:latest'
-  - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/agent:latest'
-  - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/agent-sandbox:latest'
+  - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/backend:$COMMIT_SHA'
+  - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/frontend:$COMMIT_SHA'
+  - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/agent:$COMMIT_SHA'
+  - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/agent-sandbox:$COMMIT_SHA'
 
 substitutions:
   _REGION: us

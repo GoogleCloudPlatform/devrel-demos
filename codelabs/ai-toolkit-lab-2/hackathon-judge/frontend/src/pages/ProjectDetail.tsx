@@ -169,9 +169,9 @@ export default function ProjectDetail() {
 
                       return (
                         <div key={idx} className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                          <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-200">
+                          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-2 pb-2 border-b border-gray-200">
                             <span className="font-bold text-slate-700 text-lg">{c.name}</span>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4 shrink-0">
                               <div className="text-right">
                                 <span className="text-[10px] text-gray-400 uppercase font-bold block leading-none mb-1">Score</span>
                                 <span className="font-black text-blue-600 text-lg">{typeof c.score === 'number' ? c.score.toFixed(2) : 'N/A'}</span>
