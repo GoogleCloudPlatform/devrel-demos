@@ -1,0 +1,19 @@
+# Local python configurations
+__pycache__/
+*.py[cod]
+.venv/
+env/
+venv/
+.env
+
+# Terraform local state and secrets
+.terraform/
+*.tfstate
+*.tfstate.backup
+tfplan
+*.tfvars
+*.tfvars.json
+
+# System files
+.DS_Store
+Thumbs.db
