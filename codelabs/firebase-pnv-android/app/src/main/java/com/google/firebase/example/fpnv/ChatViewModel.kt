@@ -2,6 +2,7 @@ package com.google.firebase.example.fpnv
 
 import android.Manifest
 import android.content.Context
+import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -18,6 +19,8 @@ import com.google.firebase.ai.type.Schema
 import com.google.firebase.ai.type.Tool
 import com.google.firebase.ai.type.content
 import com.google.firebase.ai.type.liveGenerationConfig
+import com.google.firebase.pnv.FirebasePhoneNumberVerification
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +28,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
@@ -51,11 +55,17 @@ data class ChatUiState(
     val availableRestaurants: List<Restaurant> = emptyList(),
     val reservations: List<Reservation> = emptyList(),
     val pendingReservation: Reservation? = null,
+    val isVerifying: Boolean = false,
+    val verificationFailure: FpnvFailure? = null,
     val error: String? = null
 )
 
 @OptIn(PublicPreviewAPI::class)
 class ChatViewModel : ViewModel() {
+    private companion object {
+        const val TAG = "ChatViewModel"
+    }
+
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
@@ -232,43 +242,30 @@ class ChatViewModel : ViewModel() {
             }
 
             "verifyPhoneNumber" -> {
-                runBlocking {
-                    try {
-                        val verifiedNum = verifyPhoneNumber()
-                        _uiState.update { state ->
-                            val pending = state.pendingReservation
-                            if (pending != null) {
-                                state.copy(
-                                    reservations = state.reservations + pending.copy(phoneNumber = verifiedNum),
-                                    pendingReservation = null
-                                )
-                            } else {
-                                state // Should not happen in correct flow
-                            }
-                        }
-                        FunctionResponsePart(
-                            call.name,
-                            JsonObject(
-                                mapOf(
-                                    "success" to JsonPrimitive(true),
-                                    "phoneNumber" to JsonPrimitive(verifiedNum),
-                                    "message" to JsonPrimitive("Verification successful. Reservation saved.")
+                val failure = runBlocking { verifyAndSaveReservation() }
+                if (failure == null) {
+                    FunctionResponsePart(
+                        call.name,
+                        JsonObject(
+                            mapOf(
+                                "success" to JsonPrimitive(true),
+                                "message" to JsonPrimitive("Verification successful. Reservation saved.")
+                            )
+                        )
+                    )
+                } else {
+                    FunctionResponsePart(
+                        call.name,
+                        JsonObject(
+                            mapOf(
+                                "success" to JsonPrimitive(false),
+                                "message" to JsonPrimitive(
+                                    "Verification failed: ${failure.userMessage} " +
+                                        "Tell the user what happened. Don't call verifyPhoneNumber again."
                                 )
                             )
                         )
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        FunctionResponsePart(
-                            call.name,
-                            JsonObject(
-                                mapOf(
-                                    "success" to JsonPrimitive(false),
-                                    "phoneNumber" to JsonPrimitive("null"),
-                                    "message" to JsonPrimitive("Error: ${e.message}")
-                                )
-                            )
-                        )
-                    }
+                    )
                 }
             }
 
@@ -280,27 +277,65 @@ class ChatViewModel : ViewModel() {
     }
 
     suspend fun verifyPhoneNumber(): String {
-        val phoneNumber = TODO("Call Firebase PNV to verify the user's phone number")
+        // getVerifiedPhoneNumber() shows the consent screen, so it needs an
+        // Activity. Any other Context fails with ACTIVITY_CONTEXT_REQUIRED.
+        val activity = checkNotNull(context) { "Start a call before verifying" }
+
+        // getInstance() returns the same instance every time. The test session
+        // was enabled once, in TeraBitesApplication.
+        val result = FirebasePhoneNumberVerification.getInstance()
+            .getVerifiedPhoneNumber(activity)
+            .await()
+
+        // In test mode, this is a valid country code followed by all zeros.
+        // Display it only. To use the verified number on a server, send
+        // result.getToken() and verify it there.
+        return result.getPhoneNumber()
     }
 
-    fun retry() {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val verifiedNum = verifyPhoneNumber()
-                _uiState.update { state ->
-                    val pending = state.pendingReservation
-                    if (pending != null) {
-                        state.copy(
-                            reservations = state.reservations + pending.copy(phoneNumber = verifiedNum),
-                            pendingReservation = null
-                        )
-                    } else {
-                        state // Should not happen in correct flow
-                    }
+    /**
+     * Verifies the user's phone number and, if successful, saves the pending
+     * reservation. Returns null on success, or the failure to report.
+     */
+    private suspend fun verifyAndSaveReservation(): FpnvFailure? {
+        _uiState.update { it.copy(isVerifying = true, verificationFailure = null) }
+        return try {
+            val verifiedNum = verifyPhoneNumber()
+            _uiState.update { state ->
+                val pending = state.pendingReservation
+                if (pending != null) {
+                    state.copy(
+                        reservations = state.reservations + pending.copy(phoneNumber = verifiedNum),
+                        pendingReservation = null,
+                        isVerifying = false
+                    )
+                } else {
+                    state.copy(isVerifying = false) // Should not happen in correct flow
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
             }
+            null
+        } catch (e: CancellationException) {
+            _uiState.update { it.copy(isVerifying = false) }
+            throw e
+        } catch (e: Exception) {
+            val failure = e.toFpnvFailure()
+            when (failure) {
+                FpnvFailure.ConsentDeclined -> Log.i(TAG, "User declined Firebase PNV consent")
+                FpnvFailure.TestTokenRejected -> Log.e(TAG, "Firebase PNV test token rejected", e)
+                FpnvFailure.ActivityContextRequired ->
+                    Log.e(TAG, "Firebase PNV needs an Activity context", e)
+                is FpnvFailure.Other -> Log.w(TAG, "Firebase PNV failed: ${failure.errorCode}", e)
+            }
+            _uiState.update { it.copy(isVerifying = false, verificationFailure = failure) }
+            failure
+        }
+    }
+
+    fun retry(context: Context) {
+        // Use the current Activity, in case it was recreated since the call started.
+        this.context = context
+        viewModelScope.launch(Dispatchers.IO) {
+            verifyAndSaveReservation()
         }
     }
 
