@@ -1,6 +1,6 @@
 # Google Cloud & Dev Ecosystem Agent Skills
 
-A collection of specialized **Agent Skills** to supercharge your AI agents (Gemini CLI, Antigravity) with deep knowledge of Google Cloud Platform and developer workflows.
+A collection of specialized **Agent Skills** to supercharge your AI agents in [Google Antigravity](https://antigravity.google) (App, CLI, and IDE) with deep knowledge of Google Cloud and developer workflows.
 
 ## 📂 Included Skills
 
@@ -12,9 +12,11 @@ A collection of specialized **Agent Skills** to supercharge your AI agents (Gemi
 
 ## 🚀 Installation
 
-### Option 1: Gemini CLI (Global Install)
+> **Note:** Antigravity CLI (`agy`) replaced Gemini CLI. See the [migration guide](https://antigravity.google/docs/cli/gcli-migration) to move legacy `.gemini/skills/` folders to `.agents/skills/`.
 
-To make these skills available to Gemini in your terminal anywhere:
+### Option 1: Global Install (Antigravity CLI, App, and IDE)
+
+To make these skills available across all workspaces in Antigravity CLI (`agy`), Antigravity App, and Antigravity IDE:
 
 1. Clone this repository:
 
@@ -22,43 +24,27 @@ To make these skills available to Gemini in your terminal anywhere:
    git clone https://github.com/GoogleCloudPlatform/devrel-demos.git ~/devrel-demos
    ```
 
-1. Link the skills to your Gemini configuration:
+1. Link the skills to your global Antigravity configuration:
 
    ```bash
-   # Create the skills directory if it doesn't exist
-   mkdir -p ~/.gemini/skills
+   # Create the global skills directory if it doesn't exist
+   mkdir -p ~/.gemini/config/skills
 
-   # Symlink specific skills (Recommended)
-   ln -s ~/devrel-demos/agents/skills/video-description ~/.gemini/skills/video-description
-
-   # OR symlink the entire folder (if supported by your version)
-   # ln -s ~/devrel-demos/agents/skills/* ~/.gemini/skills/
+   # Symlink a skill
+   ln -sfn ~/devrel-demos/agents/skills/video-description ~/.gemini/config/skills/video-description
    ```
 
-1. Verify installation:
-
-   ```bash
-   gemini skills list
-   ```
+1. Verify installation by running `/skills` inside `agy` (or `/skills reload` in an active session), or open **Customizations** in the Antigravity App or IDE.
 
 ### Option 2: Project-Specific (Workspace)
 
-To enable these skills only for a specific project, copy the skill folder into your project's agent directory:
+To enable these skills only for a specific project, copy the skill folder into your project's `.agents/skills` directory:
 
 ```bash
 cd my-project
-mkdir -p .gemini/skills
-cp -r ~/devrel-demos/agents/skills/video-description .gemini/skills/
+mkdir -p .agents/skills
+cp -r ~/devrel-demos/agents/skills/video-description .agents/skills/
 ```
-
-### Option 3: Google Antigravity (IDE)
-
-Antigravity automatically discovers skills in standard locations.
-
-1. Copy the skill folder you need.
-1. Place it in `~/.gemini/antigravity/skills/` (for User scope) or your project's `.agent/skills/` folder (for Project scope).
-1. Restart the Antigravity editor (or reload window).
-1. The agent will now intuitively know how to use these tools when you ask it to "deploy" or "debug".
 
 ## 🛠 Usage Examples
 
