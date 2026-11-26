@@ -1,0 +1,206 @@
+{
+  "eval_cases": [
+    {
+      "eval_case_id": "fe_001_tokyo_compliant",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Design and homologate a Formula E circuit at Tokyo Bay."
+          }
+        ]
+      },
+      "reference": {
+        "response": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "APPROVED: Tokyo Bay (FIA-FE-2026-TYO-01), 3150m long, 10.0m minimum width, peak regeneration about 422 kW at Turn 5, with F1_TRACK_CENTRELINE, F1_PIT_ENTRY_SPEED_LIMIT_LANE, F1_WALL_TEMP and F1_TEC3 plus F1_MEDICAL_CENTRE_TEXT and F1_HELIPAD. The Gatekeeper approved it."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "eval_case_id": "fe_002_monaco_narrow",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Can the Monaco Harbour layout be homologated as it is?"
+          }
+        ]
+      },
+      "reference": {
+        "response": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "REJECTED: Monaco Harbour's 6.8m chicane is below the 10.0m minimum width. Widen the chicane to at least 10.0m, keep F1_TRACK_CENTRELINE, F1_PIT_ENTRY_SPEED_LIMIT_LANE, F1_WALL_TEMP and F1_TEC3, then re-assess."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "eval_case_id": "fe_003_berlin_too_long",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Check the Berlin Tempelhof perimeter layout for FIA compliance."
+          }
+        ]
+      },
+      "reference": {
+        "response": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "REJECTED: Berlin Tempelhof is 4350m, above the 3500m maximum. Shorten the layout to 3500m or less. Peak regeneration (about 297 kW at Turn 9) and the CAD layers F1_TRACK_CENTRELINE, F1_PIT_ENTRY_SPEED_LIMIT_LANE, F1_WALL_TEMP and F1_TEC3 are fine."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "eval_case_id": "fe_004_missing_layers",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Audit a 2400m, 11.5m wide London layout with 507 kW peak regeneration that only has F1_TRACK_CENTRELINE and F1_WALL_TEMP."
+          }
+        ]
+      },
+      "reference": {
+        "response": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "REJECTED: the layout is missing the mandatory F1_PIT_ENTRY_SPEED_LIMIT_LANE and F1_TEC3 layers. Add both; length, width and regeneration pass."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "eval_case_id": "fe_005_low_regen",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "A 2800m, 11m wide circuit has all four mandatory CAD layers, but its heaviest braking zone goes from 140 to 65 kph over 110m. Is it compliant?"
+          }
+        ]
+      },
+      "reference": {
+        "response": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "REJECTED: that braking zone only gives about 102 kW, below the 250 kW target. Add a heavier braking zone such as a hairpin after a long straight. Length, width and the layers F1_TRACK_CENTRELINE, F1_PIT_ENTRY_SPEED_LIMIT_LANE, F1_WALL_TEMP and F1_TEC3 pass."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "eval_case_id": "fe_006_sao_paulo_medical",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "What does the Sao Paulo Sambadrome layout need before it can be homologated?"
+          }
+        ]
+      },
+      "reference": {
+        "response": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "It passes length (2930m), width (10.5m), regeneration and the four mandatory layers (F1_TRACK_CENTRELINE, F1_PIT_ENTRY_SPEED_LIMIT_LANE, F1_WALL_TEMP and F1_TEC3), but it cuts the hospital ambulance route. Add a bypass corridor plus F1_MEDICAL_CENTRE_TEXT and F1_HELIPAD."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "eval_case_id": "fe_007_attack_mode",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Can we put the Attack Mode activation zone on the racing line at London Turn 16 with a 0.2s time loss?"
+          }
+        ]
+      },
+      "reference": {
+        "response": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "No. The Attack Mode zone must be off the racing line and cost 1.0s to 1.5s. Keep London's current off-line zone at Turn 16 (1.2s)."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "eval_case_id": "fe_008_multiturn_remediation",
+      "agent_data": {
+        "turns": [
+          {
+            "turn_index": 0,
+            "events": [
+              {
+                "author": "user",
+                "content": {
+                  "role": "user",
+                  "parts": [
+                    {
+                      "text": "Assess the Monaco Harbour layout."
+                    }
+                  ]
+                }
+              },
+              {
+                "author": "track_planner",
+                "content": {
+                  "role": "model",
+                  "parts": [
+                    {
+                      "text": "REJECTED: the 6.8m harbour chicane is below the 10.0m minimum width."
+                    }
+                  ]
+                }
+              },
+              {
+                "author": "user",
+                "content": {
+                  "role": "user",
+                  "parts": [
+                    {
+                      "text": "Widen the chicane to 11m, keep everything else the same, and get Gatekeeper approval."
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "reference": {
+        "response": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "APPROVED: with the chicane widened to 11m, Monaco Harbour (3330m, peak regeneration about 461 kW, with F1_TRACK_CENTRELINE, F1_PIT_ENTRY_SPEED_LIMIT_LANE, F1_WALL_TEMP and F1_TEC3) passes the Assessor and the Gatekeeper approved it."
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
